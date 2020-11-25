@@ -7,23 +7,19 @@
 project(system)
 
 set(GAIA_SYSTEM_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
-  "${GAIA_INC}/public/catalog"
-  "${GAIA_INC}/public/direct_access"
-  "${GAIA_INC}/public/system"
-  "${GAIA_INC}/public/rules"
-  "${GAIA_INC}/internal/rules"
+  "${GAIA_INC}"
   "${GAIA_GENERATED_SCHEMAS}"
 )
 
 message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INTERNAL_INC}/common"
+  "${GAIA_INTERNAL_INC}/db"
+  "${GAIA_INTERNAL_INC}/rules"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
+  "${GAIA_REPO}/production/schemas/loader/inc"
   "${GAIA_REPO}/production/db/storage_engine/tests/" # TODO remove once RI is supported in EDC
   )
 
@@ -43,7 +39,7 @@ set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_SYSTEM_PUBLIC_INCLUDES}
   ${GAIA_SYSTEM_PRIVATE_INCLUDES}
-  "${GAIA_INC}/internal/catalog"
+  "${GAIA_INTERNAL_INC}/catalog"
   "${GAIA_REPO}/production/catalog/parser/inc"
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
@@ -54,7 +50,7 @@ add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
 add_executable(test_recovery "tests/test_recovery.cpp")
 target_include_directories(test_recovery PRIVATE "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}")
 add_dependencies(test_recovery "generate_addr_book_headers")
-target_link_libraries(test_recovery PRIVATE "rt;gaia_system;gaia_se_client;gtest_main" )
+target_link_libraries(test_recovery PRIVATE rt gaia_system gaia_schema_loader gtest_main)
 set_target_properties(test_recovery PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(test_recovery PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_target_properties(test_recovery PROPERTIES CXX_CLANG_TIDY "")

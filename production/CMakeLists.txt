@@ -33,21 +33,37 @@ if(BUILD_GAIA_RELEASE)
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
   set(GAIA_LINK_FLAGS "-pthread")
 else()
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb -fsanitize=address")
-  set(GAIA_LINK_FLAGS "-ggdb -pthread -fsanitize=address")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+  set(GAIA_LINK_FLAGS "-ggdb -pthread")
 endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+endif()
+
+message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
+message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
+
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+set(GAIA_INTERNAL_INC "${PROJECT_SOURCE_DIR}/inc/gaia_internal")
+
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
+
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
+
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
+
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
+
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
+
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
@@ -154,17 +170,21 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
+
 if(BUILD_GAIA_RELEASE)
-  set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
-  set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
   unset(CMAKE_CXX_CLANG_TIDY)
-  add_subdirectory(sdk)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
 # Query processors.
 add_subdirectory(sql)
+
+# SDK
+# Be sure to add the SDK directory after the sql directory because the package mechanism
+# requires that we know whether the gaia_fdw target will be added or not. If it is added
+# then we can add gaia_fdw to the list of dependencies for the package.
+add_subdirectory(sdk)
 
 # Java Tinkerpop project.
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")

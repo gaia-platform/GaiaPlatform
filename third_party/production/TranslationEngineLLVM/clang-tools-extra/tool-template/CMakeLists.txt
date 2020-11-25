@@ -14,4 +14,5 @@ target_link_libraries(tool-template
   clangFrontend
   clangTooling
   clangToolingRefactor
+  gaia_system
   )

@@ -13,5 +13,6 @@ target_link_libraries(clang-doc
   clangDoc
   clangTooling
   clangToolingCore
+  gaia_system
   )
   

@@ -5,8 +5,8 @@
 
 #include "event_manager_settings.hpp"
 
-#include "exceptions.hpp"
-#include "rules.hpp"
+#include "gaia/exceptions.hpp"
+#include "gaia/rules/rules.hpp"
 
 using namespace std;
 

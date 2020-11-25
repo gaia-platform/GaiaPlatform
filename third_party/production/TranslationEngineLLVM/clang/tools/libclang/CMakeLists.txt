@@ -40,6 +40,7 @@ set(LIBS
   clangIndex
   clangLex
   clangSema
+  gaia_system
   clangSerialization
   clangTooling
 )

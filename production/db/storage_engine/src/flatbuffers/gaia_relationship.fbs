@@ -1,0 +1,11 @@
+namespace gaia.db.catalog;
+table gaia_relationship {
+    name:string;
+    cardinality:uint8;
+    parent_required:bool;
+    deprecated:bool;
+    first_child_offset:uint16;
+    next_child_offset:uint16;
+    parent_offset:uint16;
+}
+root_type gaia_relationship;

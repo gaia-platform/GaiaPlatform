@@ -112,10 +112,10 @@ public:
             .parent_required = this->m_parent_required});
 
         auto& parent_meta = type_registry_t::instance().test_get_or_create(m_parent_type);
-        parent_meta.add_parent_relationship(m_first_child_offset, rel);
+        parent_meta.add_parent_relationship(rel);
 
         auto& child_meta = type_registry_t::instance().test_get_or_create(m_child_type);
-        child_meta.add_child_relationship(m_parent_offset, rel);
+        child_meta.add_child_relationship(rel);
     }
 
 private:
@@ -133,23 +133,9 @@ private:
     reference_offset_t m_parent_offset = c_parent_doctor_offset;
 };
 
-/**
- * Creates a gaia_ptr using the type metadata to infer some of the details about the object
- * such as the number of relations.
- *
- * TODO maybe some of this logic should be moved inside gaia_ptr
- */
-gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data)
-{
-    gaia_id_t id = gaia_ptr::generate_id();
-    auto& metadata = type_registry_t::instance().get(type);
-    size_t num_references = metadata.num_references();
-    return gaia_ptr::create(id, type, num_references, data_size, data);
-}
-
 gaia_ptr create_object(gaia_type_t type, std::string payload)
 {
-    return create_object(type, payload.size(), payload.data());
+    return gaia_ptr::create(type, payload.size(), payload.data());
 }
 
 void clean_type_registry()

@@ -21,19 +21,20 @@ target_link_options(gaia_fdw PRIVATE ${PGSQL_LDFLAGS})
 # We need to un-quote this variable for some reason as well.
 separate_arguments(GAIA_LINK_FLAGS UNIX_COMMAND "${GAIA_LINK_FLAGS}")
 target_link_options(gaia_fdw PRIVATE ${GAIA_LINK_FLAGS})
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_options(gaia_fdw PRIVATE "-shared-libasan")
+endif()
 
 set_target_properties(
   gaia_fdw PROPERTIES
-    OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION_MAJOR}"
+    OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION}"
     PREFIX "")
 
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/common")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/catalog")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/catalog")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/db")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/db")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/common")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/catalog")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/db/payload_types")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
@@ -42,20 +43,15 @@ target_link_libraries(gaia_fdw PRIVATE gaia_catalog)
 target_link_libraries(gaia_fdw PRIVATE gaia_payload_types)
 
 # Extension configuration.
-
 set(GAIA_FDW_INSTALL_EXTENSIONS
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
-
 configure_file(
   gaia_fdw.sql
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql")
-
 configure_file(gaia_fdw.control "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
 
 # Installation steps for configuration and binaries.
-
 install(TARGETS gaia_fdw DESTINATION ${PGSQL_PKGLIBDIR})
-
 install(FILES ${GAIA_FDW_INSTALL_EXTENSIONS}
   DESTINATION "${PGSQL_SHAREDIR}/extension")

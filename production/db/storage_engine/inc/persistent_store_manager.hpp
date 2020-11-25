@@ -7,8 +7,8 @@
 
 #include <memory>
 
+#include "gaia/common.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
 #include "rdb_internal.hpp"
 #include "se_helpers.hpp"
 #include "se_shared_data.hpp"
@@ -21,8 +21,6 @@ namespace gaia
 {
 namespace db
 {
-
-constexpr size_t c_max_open_db_attempt_count = 10;
 
 class persistent_store_manager
 {
@@ -54,7 +52,7 @@ public:
      * We expect writes to the RocksDB WAL to just work; this
      * method will sigabrt otherwise.
      */
-    void prepare_wal_for_write(gaia::db::log* log, std::string& txn_name);
+    void prepare_wal_for_write(gaia::db::log* log, const std::string& txn_name);
 
     /**
      * This method will append a commit marker with the appropriate
@@ -69,12 +67,12 @@ public:
      * The RocksDB commit API will additionally perform its own validation, but this codepath
      * has been switched off so we don't expect any errors from the normal flow of execution.
      */
-    void append_wal_commit_marker(std::string& txn_name);
+    void append_wal_commit_marker(const std::string& txn_name);
 
     /**
      * Append a rollback marker to the log.
      */
-    void append_wal_rollback_marker(std::string& txn_name);
+    void append_wal_rollback_marker(const std::string& txn_name);
 
     /**
      * Destroy the persistent store.

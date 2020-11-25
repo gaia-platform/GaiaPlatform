@@ -7,8 +7,8 @@
 
 #include <cstddef>
 
+#include "gaia/common.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
 
 namespace gaia
 {
@@ -62,6 +62,8 @@ struct log
 
     log_record log_records[c_max_log_records];
 };
+
+constexpr size_t c_initial_log_size = sizeof(log) + (sizeof(log::log_record) * c_max_log_records);
 
 struct data
 {

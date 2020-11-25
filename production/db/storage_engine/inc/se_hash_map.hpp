@@ -24,7 +24,7 @@ public:
         data* data = gaia::db::get_shared_data();
         if (locators == nullptr)
         {
-            throw transaction_not_open();
+            throw no_open_transaction();
         }
 
         hash_node* node = data->hash_nodes + (id % c_hash_buckets);
@@ -79,7 +79,7 @@ public:
         data* data = gaia::db::get_shared_data();
         if (locators == nullptr)
         {
-            throw transaction_not_open();
+            throw no_open_transaction();
         }
 
         hash_node* node = data->hash_nodes + (id % c_hash_buckets);

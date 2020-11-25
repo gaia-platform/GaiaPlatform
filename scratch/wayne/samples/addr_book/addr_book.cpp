@@ -8,9 +8,9 @@
 #include <list>
 #include <map>
 #include <fstream>
-#include "nullable_string.hpp"
+#include "gaia/direct_access/nullable_string.hpp"
 #include "addr_book_generated.h" // include both flatbuffer types and object API for testing 
-#include "gaia_object.hpp"
+#include "gaia/direct_access/edc_object.hpp"
 #include "PerfTimer.h"
 #include "CSVRow.h"
 

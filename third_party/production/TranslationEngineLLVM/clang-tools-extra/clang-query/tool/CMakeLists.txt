@@ -11,6 +11,7 @@ target_link_libraries(clang-query
   clangQuery
   clangSerialization
   clangTooling
+  gaia_system
   )
 
 install(TARGETS clang-query RUNTIME DESTINATION bin)

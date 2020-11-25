@@ -21,7 +21,7 @@ extern "C"
 
 } // extern "C"
 
-#include "gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "gaia_ptr.hpp"
 #include "retail_assert.hpp"
 
@@ -74,7 +74,6 @@ public:
     static void begin_session();
     static void end_session();
 
-    static bool is_transaction_open();
     static bool begin_transaction();
     static bool commit_transaction();
 
@@ -90,11 +89,11 @@ public:
         gaia::common::gaia_type_t& container_id);
 
     template <class S>
-    static S* get_state(const char* table_name, size_t expected_count_fields)
+    static S* get_state(const char* table_name, size_t expected_field_count)
     {
         S* state = (S*)palloc0(sizeof(S));
 
-        return state->initialize(table_name, expected_count_fields) ? state : nullptr;
+        return state->initialize(table_name, expected_field_count) ? state : nullptr;
     }
 
 protected:
@@ -132,6 +131,7 @@ struct field_information_t
 
     bool is_reference;
 
+    // Note: currently, this is used only for the delayed setting of references.
     NullableDatum value_to_set;
 };
 
@@ -143,7 +143,7 @@ protected:
     // to prevent the creation of any instances.
     state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_fields);
+    bool initialize(const char* table_name, size_t expected_field_count);
 
 public:
     // Provides the index corresponding to each field.
@@ -152,13 +152,18 @@ public:
 
     bool is_gaia_id_field_index(size_t field_index);
 
+    const char* get_table_name();
+
 protected:
+    // Store the table name for the convenience of printing it in error messages.
+    char* m_table_name;
+
     // The table id and container id.
     gaia::common::gaia_id_t m_table_id;
     gaia::common::gaia_type_t m_container_id;
 
     // Count of fields for current table.
-    size_t m_count_fields;
+    size_t m_field_count;
 
     // Field information array.
     field_information_t* m_fields;
@@ -169,7 +174,7 @@ protected:
 
 // The scan state is set up in gaia_begin_foreign_scan,
 // is stashed away in node->fdw_private,
-// and is fetched in gaia_iterate_foreign_scan.
+// and is fetched in gaia_iterate_foreign_scan and gaia_rescan_foreign_scan.
 class scan_state_t : public state_t
 {
     friend class adapter_t;
@@ -192,9 +197,9 @@ public:
 
 protected:
     // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr m_current_node;
+    gaia::db::gaia_ptr m_current_record;
 
-    // Pointer to the deserialized payload of the current_node.
+    // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;
 };
 

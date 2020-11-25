@@ -11,9 +11,9 @@
 #include <thread>
 #include <variant>
 
+#include "gaia/rules/rules.hpp"
 #include "gaia_event_log.h"
 #include "rule_stats_manager.hpp"
-#include "rules.hpp"
 #include "triggers.hpp"
 
 namespace gaia
@@ -34,7 +34,7 @@ public:
     struct log_events_invocation_t
     {
         const db::triggers::trigger_event_list_t events;
-        const vector<bool> rules_invoked;
+        const std::vector<bool> rules_invoked;
     };
 
     struct rule_invocation_t
@@ -129,12 +129,12 @@ private:
     // have to wait.  If they have to wait then it is the responsibility
     // of the thread they are waiting on to move them over.
     static thread_local bool s_tls_can_enqueue;
-    static thread_local queue<invocation_t> s_tls_pending_invocations;
+    static thread_local std::queue<invocation_t> s_tls_pending_invocations;
 
     /**
      * Queue from which worker thread draw their invocations.
      */
-    queue<invocation_t> m_invocations;
+    std::queue<invocation_t> m_invocations;
 
     /**
      * Helper to calculate and log statistics for
@@ -146,15 +146,15 @@ private:
     /**
      * OS threads waiting to do work
      */
-    vector<thread> m_threads;
+    std::vector<std::thread> m_threads;
 
     /**
      * This lock together with the condition variable ensure synchronized 
      * access and signaling between the enqueue function and the worker
      * threads.
      */
-    mutex m_lock;
-    condition_variable m_invocations_signal;
+    std::mutex m_lock;
+    std::condition_variable m_invocations_signal;
     bool m_exit;
 };
 

@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "rules.hpp"
+#include "gaia/rules/rules.hpp"
 
 namespace gaia
 {
@@ -21,10 +21,10 @@ namespace rules
 class rule_checker_t
 {
 public:
-    void check_catalog(gaia_type_t type, const field_position_list_t& field_list);
+    void check_catalog(common::gaia_type_t type, const common::field_position_list_t& field_list);
 
 private:
-    void check_fields(gaia_id_t id, const field_position_list_t& field_list);
+    void check_fields(common::gaia_id_t id, const common::field_position_list_t& field_list);
 };
 
 } // namespace rules

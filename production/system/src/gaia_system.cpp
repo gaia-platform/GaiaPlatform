@@ -3,12 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_system.hpp"
-
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/exception.hpp"
+#include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "cpptoml.h"
-#include "gaia_db.hpp"
-#include "gaia_exception.hpp"
 #include "logger.hpp"
 #include "rules_config.hpp"
 #include "scope_guard.hpp"
@@ -94,4 +94,13 @@ void gaia::system::initialize(const char* gaia_config_file)
     gaia::rules::initialize_rules_engine(root_config);
 
     cleanup_init_state.dismiss();
+}
+
+void gaia::system::shutdown()
+{
+    // Shutdown in reverse order of initialization. Shutdown functions should
+    // not fail even if the component has not been initialized.
+    gaia::rules::shutdown_rules_engine();
+    gaia::db::end_session();
+    gaia_log::shutdown();
 }

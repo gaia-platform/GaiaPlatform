@@ -14,14 +14,14 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "db_test_base.hpp"
 #include "ddl_execution.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
 #include "timer.hpp"
 
 using namespace gaia::common;
@@ -252,6 +252,7 @@ protected:
 
     static void TearDownTestSuite()
     {
+        gaia::rules::shutdown_rules_engine();
         end_session();
         gaia_log::shutdown();
     }
@@ -463,8 +464,12 @@ TEST_F(rule_integration_test, test_parallel)
 
 TEST_F(rule_integration_test, test_reinit)
 {
+    // Should be okay to call shutdown twice.
     gaia::rules::shutdown_rules_engine();
-    EXPECT_THROW(gaia::rules::shutdown_rules_engine(), initialization_error);
+    gaia::rules::shutdown_rules_engine();
+
+    // Should be okay to call init twice.
+    gaia::rules::initialize_rules_engine();
     gaia::rules::initialize_rules_engine();
 }
 

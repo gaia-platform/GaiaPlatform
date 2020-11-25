@@ -210,3 +210,13 @@ class GenAbcBuild(Dependency, ABC):
             f' {Path.repo()}'
         )
         await Host.execute(f'docker image prune -f')
+
+    @memoize
+    async def cli_entrypoint(self) -> None:
+        if not self.options.mixins:
+            build = self
+        else:
+            from .._custom.build import GenCustomBuild
+            build = GenCustomBuild(options=self.options, base_build=self)
+
+        await build.run()

@@ -7,18 +7,15 @@
 project(catalog)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
-  ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/common
+  ${GAIA_INTERNAL_INC}/catalog
+  ${GAIA_INC}
 )
 
 message(VERBOSE "GAIA_CATALOG_PUBLIC_INCLUDES=${GAIA_CATALOG_PUBLIC_INCLUDES}")
 
 set(GAIA_CATALOG_PRIVATE_INCLUDES
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc

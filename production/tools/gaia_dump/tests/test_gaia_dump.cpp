@@ -3,17 +3,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "db_test_base.hpp"
-#include "ddl_execution.hpp"
 #include "gaia_airport.h"
 #include "gaia_dump.hpp"
-#include "gaia_parser.hpp"
 
 using namespace gaia::catalog;
 using namespace gaia::db;

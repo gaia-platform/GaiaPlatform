@@ -162,30 +162,6 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_child_references(
-    size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id)
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    references()[next_child_slot] = next_child_id;
-    references()[parent_slot] = parent_id;
-
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-    return *this;
-}
-
-gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id)
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    references()[child_slot] = child_id;
-
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-    return *this;
-}
-
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client::is_valid_event(type))
@@ -309,10 +285,12 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     // is preserved thus if there are no parent references there are no next_child_offset either
     if (child_ptr.references()[relationship->parent_offset] != c_invalid_gaia_id)
     {
-        // ATM we don't allow a reference to be re-assigned on the fly.
-        // Users need to explicitly call remove_child_reference() or
-        // remove_parent_reference() before replacing an existing reference.
-        // In future we may introduce flags/parameters that allow to do so.
+        // If the child already has a reference to this parent, handle gracefully.
+        // Otherwise throw an exception.
+        if (child_ptr.references()[relationship->parent_offset] == id())
+        {
+            return;
+        }
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
 
@@ -385,6 +363,11 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     if (relationship->child_type != child_ptr.type())
     {
         throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    }
+
+    if (child_ptr.references()[relationship->parent_offset] != id())
+    {
+        throw invalid_child(child_ptr.type(), child_id, type(), id());
     }
 
     // REMOVE REFERENCE

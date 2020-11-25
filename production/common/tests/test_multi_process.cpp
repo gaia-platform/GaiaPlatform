@@ -19,13 +19,11 @@
 
 #include <cstdlib>
 
-#include <iostream>
 #include <thread>
 
 #include "gtest/gtest.h"
-#include <sys/stat.h>
 
-#include "db_test_base.hpp"
+#include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
 
 using namespace std;
@@ -64,9 +62,12 @@ constexpr const char c_go_parent[] = "go_parent";
 
 // The multi_process fixture overrides SetUp() and TeadDown() because
 // it needs to control when begin_session() and end_session() are called.
-class gaia_multi_process_test : public db_test_base_t
+class gaia_multi_process_test : public db_catalog_test_base_t
 {
 protected:
+    gaia_multi_process_test()
+        : db_catalog_test_base_t("addr_book.ddl", true){};
+
     sem_t* m_sem_go_child;
     sem_t* m_sem_go_parent;
     timespec m_timeout;
@@ -90,7 +91,8 @@ protected:
     }
     void SetUp() override
     {
-        reset_server();
+        db_catalog_test_base_t::SetUp();
+
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }

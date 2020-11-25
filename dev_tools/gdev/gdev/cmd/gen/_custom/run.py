@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 
 from gdev.third_party.atools import memoize
@@ -5,11 +6,13 @@ from .build import GenCustomBuild
 from .._abc.run import GenAbcRun
 
 
+@dataclass(frozen=True, repr=False)
 class GenCustomRun(GenAbcRun):
+    base_run: GenAbcRun
 
     @property
     def build(self) -> GenCustomBuild:
-        return GenCustomBuild(self.options)
+        return GenCustomBuild(options=self.options, base_build=self.base_run.build)
 
     @memoize
     async def _get_flags(self) -> str:
