@@ -27,8 +27,7 @@ extern "C" void initialize_rules()
 
 void rule(const rule_context_t* ctx)
 {
-    // We had a Link error where the Linker would not export rule_context_t::last_operation
-    // function because unused anywhere in the project (besides the module where it is defined).
+    // Ensure the linker exports rule_context_t::last_operation.
     if (ctx->last_operation(gaia::addr_book::employee_t::s_gaia_type) == last_operation_t::row_insert)
     {
         ASSERT_EQ(ctx->gaia_type, gaia::addr_book::employee_t::s_gaia_type);
