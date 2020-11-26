@@ -66,7 +66,6 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/production/gaia.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia.conf
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/production/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia_log.conf
 
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/demo_script.md ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/demo_script.md
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia.conf
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia_log.conf
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/incubator.ddl ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/incubator.ddl
