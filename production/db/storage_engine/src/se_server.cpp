@@ -73,7 +73,19 @@ void server::handle_begin_txn(
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
     // This allocates a new begin_ts for this txn and initializes its entry.
-    s_txn_id = txn_begin();
+    // Since it can fail spuriously (by having the begin_ts entry invalidated
+    // before it can be initialized), we loop until it succeeds. This seems
+    // preferable to exposing a spurious failure in begin_transaction() to
+    // clients.
+    gaia_txn_id_t begin_ts = c_invalid_gaia_txn_id;
+    size_t retry_count = 0;
+    while (begin_ts == c_invalid_gaia_txn_id)
+    {
+        begin_ts = txn_begin();
+        retry_count++;
+    }
+    cerr << "Allocated begin timestamp " << begin_ts << " after " << retry_count << " tries." << endl;
+    s_txn_id = begin_ts;
     // Open a stream socket to send all applicable txn log fds to the client.
     auto log_fd_generator = get_log_fd_generator_for_begin_ts(s_txn_id);
     // We can't use structured binding names in a lambda capture list.
@@ -1246,7 +1258,10 @@ std::function<std::optional<int>()> server::get_log_fd_generator_for_begin_ts(ga
                 retail_assert(
                     is_txn_decided(ts),
                     "Undecided commit_ts found in snapshot window!");
-                return get_txn_log_fd(ts);
+                if (is_txn_committed(ts))
+                {
+                    return get_txn_log_fd(ts);
+                }
             }
         }
         // Signal end of iteration.
@@ -1430,7 +1445,7 @@ inline uint64_t server::get_status(gaia_txn_id_t ts)
 
 inline uint64_t server::get_status_from_entry(uint64_t ts_entry)
 {
-    return ((ts_entry & server::c_txn_status_flags_mask) >> c_txn_status_flags_shift);
+    return ((ts_entry & c_txn_status_flags_mask) >> c_txn_status_flags_shift);
 }
 
 inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
@@ -1575,14 +1590,14 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
     bool set_new_entry = s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
     if (!set_new_entry)
     {
+        retail_assert(
+            is_txn_entry_decided(expected_entry),
+            "commit_ts entry in validating state can only transition to a decided state!");
         // If another txn validated before us, they should have reached the same decision.
-        if (is_txn_entry_decided(expected_entry))
-        {
-            retail_assert(
-                is_txn_entry_committed(expected_entry) == committed,
-                "Inconsistent txn decision detected!");
-            return;
-        }
+        retail_assert(
+            is_txn_entry_committed(expected_entry) == committed,
+            "Inconsistent txn decision detected!");
+        return;
     }
 }
 
@@ -1696,6 +1711,7 @@ bool server::validate_txn(
             int committed_log_fd = get_txn_log_fd(ts);
             if (txn_logs_conflict(log_fd, committed_log_fd))
             {
+                cerr << "Aborted (conflict with committed txn) top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
                 return false;
             }
         }
@@ -1710,6 +1726,7 @@ bool server::validate_txn(
         if (is_unknown_ts(ts))
         {
             invalidate_ts(ts);
+            cerr << "Invalidated unknown entry for timestamp " << ts << endl;
         }
     }
 
@@ -1745,6 +1762,7 @@ bool server::validate_txn(
                 int committed_log_fd = get_txn_log_fd(ts);
                 if (txn_logs_conflict(log_fd, committed_log_fd))
                 {
+                    cerr << "Aborted (conflict with previously-undecided committed txn) top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
                     return false;
                 }
             }
@@ -1754,6 +1772,7 @@ bool server::validate_txn(
     // If there are no potentially conflicting undecided txns, we are done.
     if (last_undecided_conflicting_txn_commit_ts == c_invalid_gaia_txn_id)
     {
+        cerr << "Committing: no conflicting txns found for top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
         return true;
     }
 
@@ -1774,12 +1793,15 @@ bool server::validate_txn(
             bool committed = validate_txn(
                 get_begin_ts(ts), ts, get_txn_log_fd(ts), false);
 
+            cerr << (committed ? "Committed" : "Aborted") << " validated txn with begin_ts " << get_begin_ts(ts) << ", commit_ts " << ts << endl;
+
             // Update the current txn's decided status.
             update_txn_decision(ts, committed);
 
             // If the just-validated txn committed, then test it for conflicts.
             if (committed && txn_logs_conflict(log_fd, get_txn_log_fd(ts)))
             {
+                cerr << "Aborted (conflict with validated committed txn) top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
                 return false;
             }
         }
@@ -1788,6 +1810,7 @@ bool server::validate_txn(
     // At this point, there are no undecided txns that could possibly conflict
     // with this txn, and all committed txns have been tested for conflicts, so
     // we can commit.
+    cerr << "Committed top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
     return true;
 }
 
@@ -1815,7 +1838,7 @@ gaia_txn_id_t server::txn_begin()
     // c_txn_entry_unknown to any state except c_txn_entry_invalid.
     if (!set_new_entry)
     {
-        cerr << "In txn_begin" << endl;
+        cerr << "Lost race to initialize entry for begin timestamp " << begin_ts << endl;
         dump_ts_entry(begin_ts);
         retail_assert(
             expected_entry == c_txn_entry_invalid,

@@ -474,12 +474,10 @@ void client::begin_transaction()
     const server_reply_t* reply = msg->msg_as_reply();
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
-    // If we receive c_invalid_gaia_txn_id as our begin timestamp, it means a
-    // nondeterministic concurrency failure on the server.
-    if (s_txn_id == c_invalid_gaia_txn_id)
-    {
-        throw transaction_concurrency_failure();
-    }
+    retail_assert(
+        s_txn_id != c_invalid_gaia_txn_id,
+        "Begin timestamp should not be invalid!");
+    std::cerr << "Begin timestamp: " << s_txn_id << std::endl;
 
     // Apply all txn logs received from server to our snapshot, in order. The
     // generator will close the stream socket when it's exhausted, but we need
@@ -489,7 +487,7 @@ void client::begin_transaction()
     auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
     for (int txn_log_fd : txn_log_fds)
     {
-        std::cerr << "Applying txn log with fd " << txn_log_fd << " to snapshot" << std::endl;
+        std::cerr << "Applying txn log with fd " << txn_log_fd << " to snapshot with begin_ts " << s_txn_id << std::endl;
         apply_txn_log(txn_log_fd);
         close_fd(txn_log_fd);
     }
@@ -616,7 +614,7 @@ void client::commit_transaction()
         s_txn_commit_trigger(s_txn_id, s_events);
     }
     // Reset transaction id.
-    s_txn_id = 0;
+    s_txn_id = c_invalid_gaia_txn_id;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();

@@ -255,6 +255,7 @@ inline size_t recv_msg_with_fds(
             *pfd_count = 0;
         }
     }
+    std::cerr << "Read " << bytes_read << " bytes from recv_msg_with_fds" << std::endl;
     return static_cast<size_t>(bytes_read);
 }
 
