@@ -56,12 +56,14 @@ private:
     // Allocate 128 KB per stack allocator.
     // If the largest object size if 64KB - it won't fit into a stack allocator of size 64KB due to other metadata created by the stack allocator.
     // Hence allocate 128KB so each stack allocator is at least large enough to fit a gaia object of maximum size.
-    // Or alternatively this could be 64KB + minimum size required by stack allocator metadata.
-    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 128 * 1024;
-    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 32;
+    // Or alternatively this could be 64KB + minimum size required by stack allocator metadata (rounded up to a factor of 2)
+    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 64 * 1024 + 128;
+    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 2;
+    static constexpr size_t max_memory_request_size_bytes = 16 * 64 * 1024;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
+    // Set a maximum on how much virtual memory can be allocated to a transaction at a time from s_data->objects
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
     static inline std::shared_mutex s_locators_lock{};
@@ -152,7 +154,14 @@ private:
 
     static void clear_shared_memory();
 
-    static void allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment);
+    static size_t calculate_allotment_count(
+        session_event_t event,
+        size_t txn_memory_request_size_hint);
+
+    static void allocate_stack_allocators(
+        session_event_t event,
+        size_t txn_memory_request_size_hint,
+        std::vector<stack_allocator_t>* new_memory_allotment);
 
     static void init_memory_manager();
 

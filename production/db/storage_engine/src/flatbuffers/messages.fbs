@@ -47,7 +47,8 @@ table stack_allocator_info_t {
 
 table memory_allocation_info_t {
     stack_allocator_list: [stack_allocator_info_t];
-    request_more_memory: bool;
+    // Number of stack allocators to request from the server.
+    memory_request_size_hint: uint64;
 }
 
 // FlatBuffers doesn't allow scalar fields in a union.

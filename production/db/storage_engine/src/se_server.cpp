@@ -9,6 +9,7 @@
 
 #include <csignal>
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <shared_mutex>
@@ -41,9 +42,38 @@ using namespace gaia::db::messages;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment)
+/**
+ * Calculate the number of stack allocators to reserve for a transaction.
+ */
+size_t server::calculate_allotment_count(
+    session_event_t event,
+    size_t txn_memory_request_size_hint)
 {
-    size_t allocation_count = STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
+    // Ignore hint when assigning initial memory for the transaction.
+    if (event == session_event_t::BEGIN_TXN || txn_memory_request_size_hint == 0)
+    {
+        return STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
+    }
+
+    // Ignore memory size hint if it is greater than max_memory_request_size_bytes
+    txn_memory_request_size_hint = std::min(txn_memory_request_size_hint, max_memory_request_size_bytes);
+
+    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect session event received when requesting the server for more memory");
+
+    // Best effort to find allotment count; at least send back 1 stack allocator.
+    size_t allotment_count = txn_memory_request_size_hint / STACK_ALLOCATOR_SIZE_BYTES + 1;
+
+    return allotment_count;
+}
+
+void server::allocate_stack_allocators(
+    session_event_t event,
+    size_t txn_memory_request_size_hint,
+    std::vector<stack_allocator_t>* new_memory_allotment)
+{
+    // The server will allocate stack allocators of the same size.
+    size_t allocation_count = calculate_allotment_count(event, txn_memory_request_size_hint);
+
     for (size_t i = 0; i < allocation_count; i++)
     {
         // Offset gets assigned; no need to set it.
@@ -95,7 +125,7 @@ void server::handle_begin_txn(
         && reinterpret_cast<const bool*>(request->data()))
     {
         std::vector<stack_allocator_t> new_memory_allotment;
-        allocate_stack_allocators(&new_memory_allotment);
+        allocate_stack_allocators(session_event_t::BEGIN_TXN, 0, &new_memory_allotment);
         build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
     }
     else
@@ -173,16 +203,23 @@ void server::handle_commit_txn(
 }
 
 void server::handle_request_memory(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect event type for requesting more memory.");
     // This event never changes session state.
     retail_assert(old_state == new_state, "Requesting more memory shouldn't cause session state to change.");
 
+    auto request = static_cast<const client_request_t*>(event_data);
+    retail_assert(
+        request->data_type() == request_data_t::memory_info,
+        "Unexpected request data type");
+
+    auto memory_size_hint = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
+
     FlatBufferBuilder builder;
     std::vector<stack_allocator_t> new_memory_allotment;
     // Only invoked mid transaction.
-    allocate_stack_allocators(&new_memory_allotment);
+    allocate_stack_allocators(session_event_t::REQUEST_MEMORY, memory_size_hint, &new_memory_allotment);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }

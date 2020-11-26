@@ -186,13 +186,13 @@ static std::vector<flatbuffers::Offset<stack_allocator_info_t>> build_stack_allo
 static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event,
-    bool need_more_memory = false)
+    size_t memory_request_size_hint = 0)
 {
     flatbuffers::Offset<client_request_t> client_request;
-    if (need_more_memory)
+    if (event == session_event_t::REQUEST_MEMORY || event == session_event_t::BEGIN_TXN)
     {
         // Request more memory from the server in case session thread is running low.
-        auto alloc_info = Creatememory_allocation_info_tDirect(builder, nullptr, need_more_memory);
+        auto alloc_info = Creatememory_allocation_info_tDirect(builder, nullptr, memory_request_size_hint);
         client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
     }
     else
@@ -432,7 +432,7 @@ void client::begin_transaction()
 
     FlatBufferBuilder builder;
     bool need_more_memory = true;
-    build_client_request(builder, session_event_t::BEGIN_TXN, need_more_memory);
+    build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id from the server.
@@ -545,7 +545,8 @@ void client::request_memory()
     verify_txn_active();
 
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::REQUEST_MEMORY, true);
+    txn_memory_request_size_hint_bytes = txn_memory_request_size_hint_bytes * memory_request_size_multiplier;
+    build_client_request(builder, session_event_t::REQUEST_MEMORY, txn_memory_request_size_hint_bytes);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Receive memory allocation information from the server.

@@ -80,6 +80,10 @@ private:
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
         static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
+    static constexpr size_t initial_memory_request_size = 1064;
+    static constexpr int memory_request_size_multiplier = 2;
+    thread_local static inline size_t txn_memory_request_size_hint_bytes = 1064;
+
     // Allot stack allocators to the ongoing transaction from this list.
     // Unused memory from this list is deallocted upon session end.
     thread_local static inline std::vector<memory_manager::stack_allocator_t> s_free_stack_allocators{};
