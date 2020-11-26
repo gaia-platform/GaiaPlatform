@@ -20,6 +20,7 @@ target_link_libraries(modularize
   clangLex
   clangSerialization
   clangTooling
+  gaia_system
   )
 
 install(TARGETS modularize

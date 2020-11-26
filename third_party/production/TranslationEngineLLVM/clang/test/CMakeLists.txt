@@ -7,7 +7,7 @@ else ()
   set(LLVM_BUILD_MODE "%(build_mode)s")
 endif ()
 
-string(REPLACE ${CMAKE_CFG_INTDIR} ${LLVM_BUILD_MODE} CLANG_TOOLS_DIR ${LLVM_RUNTIME_OUTPUT_INTDIR})
+string(REPLACE ${CMAKE_CFG_INTDIR} "../${LLVM_BUILD_MODE}" CLANG_TOOLS_DIR ${LLVM_RUNTIME_OUTPUT_INTDIR})
 
 if(CLANG_BUILT_STANDALONE)
   # Set HAVE_LIBZ according to recorded LLVM_ENABLE_ZLIB value. This
@@ -57,7 +57,6 @@ list(APPEND CLANG_TEST_DEPS
   clang-diff
   hmaptool
   )
-  
 if(CLANG_ENABLE_STATIC_ANALYZER)
   list(APPEND CLANG_TEST_DEPS
     clang-check
