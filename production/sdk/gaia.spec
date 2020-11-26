@@ -26,6 +26,7 @@ pkill -f -KILL gaia_se_server
 /opt/gaia/bin/*
 /opt/gaia/lib/*
 /opt/gaia/examples/*
+/etc/opt/gaia/*
 
 %changelog
 * Mon Sep 14 2020  Gaia
