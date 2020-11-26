@@ -59,7 +59,7 @@ private:
     static inline int s_fd_locators = -1;
     static inline locators* s_shared_locators = nullptr;
     thread_local static inline log* s_log = nullptr;
-    static inline int s_fd_log = -1;
+    thread_local static inline int s_fd_log = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     static inline std::unique_ptr<persistent_store_manager> rdb{};
     thread_local static inline int s_session_socket = -1;
