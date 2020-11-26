@@ -489,6 +489,7 @@ void client::begin_transaction()
     auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
     for (int txn_log_fd : txn_log_fds)
     {
+        std::cerr << "Applying txn log with fd " << txn_log_fd << " to snapshot" << std::endl;
         apply_txn_log(txn_log_fd);
         close_fd(txn_log_fd);
     }

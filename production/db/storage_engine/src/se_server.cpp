@@ -119,6 +119,7 @@ void server::handle_commit_txn(
     // Get the log fd and mmap it.
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
+    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
     // We need to keep the log fd around until the watermark advances past this txn's commit_ts,
     // so we only close the log fd if an exception is thrown.
     auto cleanup_log_fd = make_scope_guard([&]() {
@@ -1218,6 +1219,7 @@ void server::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts
         if (is_unknown_ts(ts))
         {
             invalidate_ts(ts);
+            continue;
         }
         // Validate any undecided submitted txns.
         if (is_commit_ts(ts) && !is_txn_decided(ts))
@@ -1358,7 +1360,8 @@ inline bool server::is_invalid_ts(gaia_txn_id_t ts)
 inline bool server::is_commit_ts(gaia_txn_id_t ts)
 {
     uint64_t ts_entry = s_txn_info[ts];
-    return ((ts_entry & c_txn_status_commit_mask) == c_txn_status_commit_mask);
+    // The "invalid" value has the commit bit set, so we need to check it as well.
+    return (!is_invalid_ts(ts) && ((ts_entry & c_txn_status_commit_mask) == c_txn_status_commit_mask));
 }
 
 inline bool server::is_txn_submitted(gaia_txn_id_t begin_ts)
@@ -1679,10 +1682,11 @@ bool server::validate_txn(
     std::unordered_set<gaia_txn_id_t> committed_txns;
     cerr << "Validating " << (in_committing_txn ? "top-level" : "recursive") << " txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
 
+    retail_assert(log_fd != -1, "Uninitialized fd log!");
     // Iterate over all txns in conflict window, and test all committed txns for conflicts.
     for (gaia_txn_id_t ts = begin_ts + 1; ts < commit_ts; ++ts)
     {
-        if (is_txn_committed(ts))
+        if (is_commit_ts(ts) && is_txn_committed(ts))
         {
             // Remember each committed txn commit_ts so we don't test it again.
             committed_txns.insert(ts);
@@ -1831,6 +1835,7 @@ gaia_txn_id_t server::txn_begin()
 // This method returns true for a commit decision and false for an abort decision.
 bool server::txn_commit()
 {
+    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
 
@@ -1853,6 +1858,7 @@ bool server::txn_commit()
     }
 
     // Validate the txn against all other committed txns in the conflict window.
+    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
     bool committed = validate_txn(s_txn_id, commit_ts, s_fd_log);
 
     // Update the txn entry with our commit decision.
