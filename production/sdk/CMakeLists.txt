@@ -61,8 +61,10 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaiat
 
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/librocksdb.so.6
-
     COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/${GAIA_LIBRARY_NAME}
+
+    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/gaia.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia.conf
+    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia_log.conf
 
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/demo_script.md ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/demo_script.md
     COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia.conf
