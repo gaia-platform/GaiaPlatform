@@ -73,7 +73,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(count_worker_threads, *m_stats_manager);
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
 
     if (settings.enable_catalog_checks)
     {

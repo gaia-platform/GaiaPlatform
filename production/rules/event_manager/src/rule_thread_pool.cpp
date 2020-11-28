@@ -59,8 +59,8 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
     gaia::db::commit_transaction();
 }
 
-rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, rule_stats_manager_t& stats_manager)
-    : m_stats_manager(stats_manager)
+rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, size_t max_retries, rule_stats_manager_t& stats_manager)
+    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries)
 {
     m_exit = false;
     for (uint32_t i = 0; i < count_threads; i++)
@@ -193,7 +193,6 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             rule_invocation.record,
             rule_invocation.fields);
 
-        // Invoke the rule.
         m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
 
         // Invoke the rule.
@@ -214,7 +213,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             catch (const transaction_update_conflict&)
             {
                 should_schedule = false;
-                if (invocation.num_retries >= event_manager_settings_t().max_rule_retries)
+                if (invocation.num_retries >= m_max_rule_retries)
                 {
                     throw;
                 }
@@ -227,7 +226,6 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        // TODO[GAIAPLAT-129]: Log an error in an error table here.
         gaia_log::rules().trace("exception: {}, {}", rule_id, e.what());
     }
 

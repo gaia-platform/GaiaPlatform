@@ -8,6 +8,7 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <map>
 #include <thread>
@@ -44,6 +45,7 @@ constexpr uint16_t c_phone_type_position = 1;
 constexpr uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
+atomic<int> g_num_conflicts;
 
 optional_timer_t g_timer;
 steady_clock::time_point g_start;
@@ -131,6 +133,30 @@ void rule_bad(const rule_context_t*)
     employee_t bad;
     // Accessing this object should throw an exception since the employee does not exist in the database.
     bad = bad.get_next();
+}
+
+void rule_conflict(const rule_context_t* context)
+{
+    {
+        auto ew = employee_t::get(context->record).writer();
+        ew.name_first = "Success";
+        ew.update_row();
+    }
+
+    if (g_num_conflicts > 0)
+    {
+        g_num_conflicts--;
+        thread([&context] {
+            begin_session();
+            auto_transaction_t txn;
+            auto ew = employee_t::get(context->record).writer();
+            ew.name_first = "Conflict";
+            ew.update_row();
+            txn.commit();
+        }).join();
+    }
+
+    g_wait_for_count--;
 }
 
 extern "C" void initialize_rules()
@@ -221,6 +247,12 @@ public:
         }
 
         subscribe_rule(phone_t::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
+    }
+
+    void subscribe_conflict()
+    {
+        rule_binding_t binding{"ruleset", "conflict", rule_conflict};
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
 protected:
@@ -489,4 +521,41 @@ TEST_F(rule_integration_test, test_exception)
     gaia::rules::shutdown_rules_engine();
     // And reinitialize to provide harmony for other tests.
     gaia::rules::initialize_rules_engine();
+}
+
+TEST_F(rule_integration_test, test_retry)
+{
+    auto test_inner = [&](int num_conflicts, int max_retries) {
+        g_num_conflicts = num_conflicts;
+
+        gaia::rules::shutdown_rules_engine();
+        event_manager_settings_t settings;
+        settings.max_rule_retries = max_retries;
+        gaia::rules::test::initialize_rules_engine(settings);
+
+        subscribe_conflict();
+        gaia_id_t id;
+        {
+            // First rule execution isn't a retry, thus the "+ 1".
+            rule_monitor_t monitor(min(num_conflicts, max_retries) + 1);
+            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+            employee_writer writer;
+            writer.name_first = c_name;
+            id = writer.insert_row();
+            txn.commit();
+        }
+        // Shut down the rules engine to ensure the rule fires.
+        gaia::rules::shutdown_rules_engine();
+        // And reinitialize to provide harmony for other tests.
+        gaia::rules::initialize_rules_engine();
+
+        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        return string(employee_t::get(id).name_first());
+    };
+
+    EXPECT_EQ(test_inner(0, 1), "Success");
+    EXPECT_EQ(test_inner(2, 1), "Conflict");
+    EXPECT_EQ(test_inner(1, 3), "Success");
+    EXPECT_EQ(test_inner(3, 3), "Success");
+    EXPECT_EQ(test_inner(4, 3), "Conflict");
 }
