@@ -53,7 +53,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
-  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp
+  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
   COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
   DEPENDS gaiat
