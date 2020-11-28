@@ -211,10 +211,15 @@ inline size_t recv_msg_with_fds(
             throw peer_disconnected();
         }
     }
-    else if (msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC))
+    else if (msg.msg_flags & MSG_TRUNC)
     {
         throw system_error(
-            "recvmsg: control or data payload truncated on read");
+            "recvmsg: data payload truncated on read");
+    }
+    else if (msg.msg_flags & MSG_CTRUNC)
+    {
+        throw system_error(
+            "recvmsg: control payload truncated on read");
     }
 
     if (fds)
