@@ -43,8 +43,13 @@ public:
     error_code_t allocate_raw(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Adds the stack allocator's unused memory to the list of free memory.
+    // This API additionally frees up allocation records too.
     error_code_t free_stack_allocator(
         const std::unique_ptr<stack_allocator_t>& stack_allocator);
+
+    // Adds objects at old objects to the list of free memory.
+    error_code_t free_old_offsets(
+        const std::list<address_offset_t>& offsets);
 
 private:
     // This structure is used for tracking information about a memory block.

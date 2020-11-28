@@ -232,6 +232,11 @@ address_offset_t get_stack_allocator_offset(
         // Reset the allocator offset and try to allocate an object again.
         allocated_memory_offset = -1;
         result = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
+        if (result != error_code_t::success)
+        {
+            std::cout << "err code=" << static_cast<std::underlying_type<error_code_t>::type>(result) << std::endl;
+            std::cout << "object size=" << size << std::endl;
+        }
     }
 
     // Todo - add exception class.

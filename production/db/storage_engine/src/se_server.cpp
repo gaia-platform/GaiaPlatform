@@ -79,7 +79,6 @@ void server::allocate_stack_allocators(
         // Offset gets assigned; no need to set it.
         address_offset_t stack_allocator_offset;
         auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
-        std::cout << static_cast<std::underlying_type<error_code_t>::type>(error) << std::endl;
         retail_assert(error == error_code_t::success, "allocate_raw failure in server.");
         stack_allocator_t stack_allocator = stack_allocator_t();
         error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
@@ -147,8 +146,11 @@ void server::get_memory_info_from_request_and_free(session_event_t event, bool c
             // Rollback all allocations.
             stack_allocator.deallocate(0);
         }
-        // Free up unused space.
-        // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+        else
+        {
+            // Free up unused space.
+            memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+        }
     }
     s_active_stack_allocators.clear();
 }
@@ -222,6 +224,8 @@ void server::handle_request_memory(
     allocate_stack_allocators(session_event_t::REQUEST_MEMORY, memory_size_hint, &new_memory_allotment);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    cout << "Request triggered" << endl;
 }
 
 void server::handle_decide_txn(

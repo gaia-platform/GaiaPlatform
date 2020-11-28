@@ -119,112 +119,112 @@ protected:
     }
 };
 
-TEST_F(storage_engine_client_test, read_data)
-{
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        gaia_ptr node2 = gaia_ptr::open(node2_id);
-        gaia_ptr node3 = gaia_ptr::open(node3_id);
-        gaia_ptr node4 = gaia_ptr::open(node4_id);
-        print_node(node1);
-        print_node(node2);
-        print_node(node3);
-        print_node(node4);
-        EXPECT_EQ(node1.id(), node1_id);
-        EXPECT_EQ(node2.id(), node2_id);
-        EXPECT_EQ(node3.id(), node3_id);
-        EXPECT_EQ(node4.id(), node4_id);
-    }
-    commit_transaction();
-}
+// TEST_F(storage_engine_client_test, read_data)
+// {
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Update payload and verify" << std::endl;
+//         gaia_ptr node1 = gaia_ptr::open(node1_id);
+//         gaia_ptr node2 = gaia_ptr::open(node2_id);
+//         gaia_ptr node3 = gaia_ptr::open(node3_id);
+//         gaia_ptr node4 = gaia_ptr::open(node4_id);
+//         print_node(node1);
+//         print_node(node2);
+//         print_node(node3);
+//         print_node(node4);
+//         EXPECT_EQ(node1.id(), node1_id);
+//         EXPECT_EQ(node2.id(), node2_id);
+//         EXPECT_EQ(node3.id(), node3_id);
+//         EXPECT_EQ(node4.id(), node4_id);
+//     }
+//     commit_transaction();
+// }
 
-TEST_F(storage_engine_client_test, update_payload)
-{
-    auto payload = "payload str";
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        print_node(node1);
-        node1.update_payload(strlen(payload), payload);
-        print_node(node1);
-        EXPECT_STREQ(node1.data(), payload);
-    }
-    commit_transaction();
+// TEST_F(storage_engine_client_test, update_payload)
+// {
+//     auto payload = "payload str";
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Update payload and verify" << std::endl;
+//         gaia_ptr node1 = gaia_ptr::open(node1_id);
+//         print_node(node1);
+//         node1.update_payload(strlen(payload), payload);
+//         print_node(node1);
+//         EXPECT_STREQ(node1.data(), payload);
+//     }
+//     commit_transaction();
 
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        print_node(node1);
-        EXPECT_STREQ(node1.data(), payload);
-    }
-    commit_transaction();
-}
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Reload data and verify update" << std::endl;
+//         gaia_ptr node1 = gaia_ptr::open(node1_id);
+//         print_node(node1);
+//         EXPECT_STREQ(node1.data(), payload);
+//     }
+//     commit_transaction();
+// }
 
-TEST_F(storage_engine_client_test, update_payload_rollback)
-{
-    auto payload = "payload str";
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        print_node(node1);
-        node1.update_payload(strlen(payload), payload);
-        print_node(node1);
-        EXPECT_STREQ(node1.data(), payload);
-    }
-    rollback_transaction();
+// TEST_F(storage_engine_client_test, update_payload_rollback)
+// {
+//     auto payload = "payload str";
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Update payload and verify" << std::endl;
+//         gaia_ptr node1 = gaia_ptr::open(node1_id);
+//         print_node(node1);
+//         node1.update_payload(strlen(payload), payload);
+//         print_node(node1);
+//         EXPECT_STREQ(node1.data(), payload);
+//     }
+//     rollback_transaction();
 
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        print_node(node1);
-        EXPECT_EQ(node1.data(), nullptr);
-    }
-    commit_transaction();
-}
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Reload data and verify update" << std::endl;
+//         gaia_ptr node1 = gaia_ptr::open(node1_id);
+//         print_node(node1);
+//         EXPECT_EQ(node1.data(), nullptr);
+//     }
+//     commit_transaction();
+// }
 
-TEST_F(storage_engine_client_test, iterate_type)
-{
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
+// TEST_F(storage_engine_client_test, iterate_type)
+// {
+//     begin_transaction();
+//     {
+//         std::cerr << std::endl;
+//         std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
 
-        gaia_type_t type = type1;
-        gaia_id_t id = node1_id;
-        for (auto node_iter = gaia_ptr::find_first(type);
-             node_iter;
-             node_iter = node_iter.find_next())
-        {
-            print_node(node_iter);
-            EXPECT_EQ(node_iter.id(), id);
-            id++;
-        }
+//         gaia_type_t type = type1;
+//         gaia_id_t id = node1_id;
+//         for (auto node_iter = gaia_ptr::find_first(type);
+//              node_iter;
+//              node_iter = node_iter.find_next())
+//         {
+//             print_node(node_iter);
+//             EXPECT_EQ(node_iter.id(), id);
+//             id++;
+//         }
 
-        std::cerr << std::endl;
-        std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
-        type = type2;
-        for (auto node_iter = gaia_ptr::find_first(type);
-             node_iter;
-             node_iter = node_iter.find_next())
-        {
-            print_node(node_iter);
-            EXPECT_EQ(node_iter.id(), id);
-            id++;
-        }
-    }
-    commit_transaction();
-}
+//         std::cerr << std::endl;
+//         std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
+//         type = type2;
+//         for (auto node_iter = gaia_ptr::find_first(type);
+//              node_iter;
+//              node_iter = node_iter.find_next())
+//         {
+//             print_node(node_iter);
+//             EXPECT_EQ(node_iter.id(), id);
+//             id++;
+//         }
+//     }
+//     commit_transaction();
+// }
 
 TEST_F(storage_engine_client_test, iterate_type_cursor)
 {
