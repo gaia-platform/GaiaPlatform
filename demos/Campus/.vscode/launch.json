@@ -25,7 +25,35 @@
             ]
         },
         {
-            "name": "Edge Put (gdb)",
+            "name": "Edge Person (gdb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/campus",
+            "args": ["file://./config/TemperatureSensorProperties.json","file://./config/PersonProperties.json","60"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build",
+            "environment": [
+                {
+                    "name": "ADLINK_DATARIVER_URI", 
+                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/config/default_datariver_config_v1.6.xml"
+                },
+                {
+                    "name": "ADLINK_LICENSE", 
+                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/license.lic"   
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]            
+        },
+        {
+            "name": "Edge TempSensor (gdb)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/temperaturesensor",
@@ -53,7 +81,7 @@
             ]            
         },
         {
-            "name": "Edge Get (gdb)",
+            "name": "Edge TempReader (gdb)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/temperaturedisplay",

@@ -23,6 +23,18 @@ set(GAIA_BIN "/usr/local/bin")                                                  
 
 find_library(MENU_LIBRARY menu)
 
+# make sure we can find the ThingAPI package...
+if(NOT TARGET ThingAPI::ThingAPI)
+	if("$ENV{EDGE_SDK_HOME}" STREQUAL "")
+	    message(FATAL_ERROR "Environment variable EDGE_SDK_HOME is not set. Please run config_env_variables.com/bat script to set the environment variables")
+	endif()
+
+    file(TO_CMAKE_PATH "$ENV{EDGE_SDK_HOME}" EDGE_SDK_HOME_PATH)
+	list(APPEND CMAKE_MODULE_PATH "${EDGE_SDK_HOME_PATH}/cmake")
+
+	find_package(ThingAPI REQUIRED)
+endif()
+
 include(GoogleTest)
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
@@ -109,28 +121,16 @@ target_include_directories(campus PRIVATE ${GAIA_CAMPUS_DEMO_INCLUDES})
 #1target_link_libraries(campus PRIVATE rt pthread gaia gaia_semock gaia_rules gaia_direct)
 
 #set(SPDLOG_BUILD_SHARED OFF)
-target_link_libraries(campus PUBLIC spdlog::spdlog) 
+target_link_libraries(campus PUBLIC spdlog::spdlog ThingAPI::ThingAPI) 
 target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread gaia)
 
 ###########################################################################
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
-
-# make sure we can find the ThingAPI package...
-if(NOT TARGET ThingAPI::ThingAPI)
-	if("$ENV{EDGE_SDK_HOME}" STREQUAL "")
-	    message(FATAL_ERROR "Environment variable EDGE_SDK_HOME is not set. Please run config_env_variables.com/bat script to set the environment variables")
-	endif()
-
-    file(TO_CMAKE_PATH "$ENV{EDGE_SDK_HOME}" EDGE_SDK_HOME_PATH)
-	list(APPEND CMAKE_MODULE_PATH "${EDGE_SDK_HOME_PATH}/cmake")
-
-	find_package(ThingAPI REQUIRED)
-endif()
+#if(NOT CMAKE_BUILD_TYPE)
+#  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+#      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+#      FORCE)
+#endif(NOT CMAKE_BUILD_TYPE)
 
 add_executable(s1_temperaturesensor
     edge/src/TemperatureSensor.cpp

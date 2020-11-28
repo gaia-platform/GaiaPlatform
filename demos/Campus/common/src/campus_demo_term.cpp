@@ -625,7 +625,7 @@ void Init()
     //std::function<void(terminalMenu&, std::shared_ptr<message::Message> msg)> mcb = &terminalMenu::MessageCallback;
 
     // Initialize message bus
-    _messageBus = std::make_shared<message::MessageBusInProc>();
+    _messageBus = std::make_shared<message::MessageBus>();
     _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback, _sender_name);
 }
 

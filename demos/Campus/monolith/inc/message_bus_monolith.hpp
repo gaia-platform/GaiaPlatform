@@ -6,7 +6,7 @@ namespace message {
 /**
  * @brief A local in process message bus
  */
-class MessageBusInProc : public IMessageBus
+class MessageBus : public IMessageBus
 {
 private:
 
@@ -117,7 +117,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    MessageBusInProc()
+    MessageBus()
     {
         Run();
     }
@@ -150,7 +150,7 @@ public:
      */  
     int Run()
     {
-        _workerThread = new std::thread(&MessageBusInProc::worker, this);        
+        _workerThread = new std::thread(&MessageBus::worker, this);        
         return 0;
     }
 

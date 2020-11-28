@@ -2,13 +2,24 @@
 
 #include "../../common/inc/message_bus.hpp"
 
+#include <IoTDataThing.hpp>
+#include <JSonThingAPI.hpp>
+#include <thing_IoTData.h>
+#include <ThingAPIException.hpp>
+
+using namespace std;
+using namespace com::adlinktech::datariver;
+using namespace com::adlinktech::iot;
+
 namespace message {
 /**
  * @brief A local in process message bus
  */
-class MessageBusInProc : public IMessageBus
+class MessageBus : public IMessageBus
 {
 private:
+
+    DataRiver m_dataRiver;
 
     std::thread* _workerThread;
     std::queue<std::shared_ptr<message::Message>> _messageQueue;
@@ -117,9 +128,27 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    MessageBusInProc()
+    MessageBus()
     {
+        init();
         Run();
+    }
+
+    /**
+     * Initialize the Edge SDK DataRiver
+     * 
+     * These env vars must be set prior to execution
+     * 
+     * ADLINK_DATARIVER_URI = "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/config/default_datariver_config_v1.6.xml"
+     * ADLINK_LICENSE = file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/license.lic"   
+     * 
+     * @return 
+     * @throws 
+     * @exceptsafe yes
+     */  
+    bool init(){   
+        m_dataRiver = com::adlinktech::datariver::DataRiver::getInstance();
+        return true;
     }
 
     /**
@@ -150,7 +179,7 @@ public:
      */  
     int Run()
     {
-        _workerThread = new std::thread(&MessageBusInProc::worker, this);        
+        _workerThread = new std::thread(&MessageBus::worker, this);        
         return 0;
     }
 
