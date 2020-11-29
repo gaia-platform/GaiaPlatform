@@ -15,6 +15,7 @@ include(gaia)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
+# TODO: Replace dummy source with object libraries.
 add_library(gaia SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
 set(SDK_LINK_LIBRARIES
   -Wl,--whole-archive
@@ -26,81 +27,7 @@ target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )
 
-if(BUILD_GAIA_RELEASE)
-  if (TARGET gaia_fdw)
-    add_custom_command(
-      OUTPUT ${PGSQL_PACKAGE_FOLDER}
-      COMMAND cmake -E copy_if_different $<TARGET_SONAME_FILE:gaia_fdw> ${PGSQL_PACKAGE_FOLDER}/$<TARGET_SONAME_FILE_NAME:gaia_fdw>
-      COMMAND cmake -E copy_directory ${GAIA_PROD_BUILD}/sql/pgsql ${PGSQL_PACKAGE_FOLDER}
-      DEPENDS gaia_fdw
-    )
-  else()
-    add_custom_command(
-      OUTPUT ${PGSQL_PACKAGE_FOLDER}
-      COMMAND cmake -E make_directory ${PGSQL_PACKAGE_FOLDER}
-    )
-  endif()
-
-  add_custom_command(
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
-
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/control ${TEMP_PACKAGE_FOLDER}/DEBIAN/control
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/changelog ${TEMP_PACKAGE_FOLDER}/DEBIAN/changelog
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/copyright ${TEMP_PACKAGE_FOLDER}/DEBIAN/copyright
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/preinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/preinst
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/postinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/postinst
-
-    COMMAND cmake -E copy_directory ${GAIA_INC}/gaia ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/gaia
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/flatbuffers.h
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/base.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/base.h
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/stl_emulation.h
-
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaia_se_server
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaiac
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaiat
-
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/librocksdb.so.6
-    COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/${GAIA_LIBRARY_NAME}
-
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/production/gaia.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia.conf
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/production/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/etc/opt/gaia/gaia_log.conf
-
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia.conf
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia_log.conf
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/incubator.ddl ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/incubator.ddl
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/incubator.ruleset ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/incubator.ruleset
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/main.cpp ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/main.cpp
-    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/README.md ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/README.md
-    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/CMakeLists.txt
-
-    COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
-
-    COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}/DEBIAN
-
-    COMMAND rpmbuild --bb ${PROJECT_SOURCE_DIR}/gaia.spec --define "_rpmdir ${CMAKE_CURRENT_BINARY_DIR}" --define "buildroot ${TEMP_PACKAGE_FOLDER}" --define "_build_name_fmt gaia.rpm"
-
-    COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}
-
-    DEPENDS gaiac
-    DEPENDS gaiat
-    DEPENDS gaia_se_server
-    DEPENDS gaia_system
-    DEPENDS ${PROJECT_SOURCE_DIR}/control
-    DEPENDS ${PROJECT_SOURCE_DIR}/preinst
-    DEPENDS ${PROJECT_SOURCE_DIR}/postinst
-    DEPENDS ${PROJECT_SOURCE_DIR}/changelog
-    DEPENDS ${PROJECT_SOURCE_DIR}/copyright
-    DEPENDS ${PROJECT_SOURCE_DIR}/gaia.spec
-    DEPENDS ${PGSQL_PACKAGE_FOLDER}
-    COMMENT "Compiled SDK packages."
-  )
-
-  add_custom_target(generate_gaia_deb_package ALL
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
-  )
-endif()
+install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
 # Ensure this test only includes public headers and links to the gaia shared library.
@@ -114,3 +41,101 @@ set(SDK_TEST_INCLUDES
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia" "generate_addr_book_headers")
+
+
+# Set CPack variables required for building a DEB package.
+#
+# See:
+# https://cmake.org/cmake/help/v3.17/module/CPack.html#variables-common-to-all-cpack-generators
+# https://cmake.org/cmake/help/v3.17/cpack_gen/deb.html#variables-specific-to-cpack-debian-deb-generator
+#
+# Required. Debian packages need a maintainer.
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "info@gaiaplatform.io")
+# Optional. Set to the project homepage.
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://www.gaiaplatform.io/")
+# Optional. Set to PROJECT_NAME by CPackDebHelper if left unset.
+set(CPACK_PACKAGE_NAME "gaia")
+# Optional. Default to "0.1.1".
+set(CPACK_PACKAGE_VERSION_MAJOR "0.1.0")
+# Optional. Default to "1".
+set(CPACK_PACKAGE_VERSION_MINOR "0")
+# Optional. Set to CMAKE_BINARY_DIR by CPackDebHelper if left unset.
+set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR})
+# Optional. Default to "/usr".
+set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/gaia")
+# Optional. The DEB package likes to know its target system architecture.
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+# Optional. This is used in the debian/control file.
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Gaia Platform SDK")
+# Optional.
+set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb)
+# Optional. CPack produces a warning if CPACK_DEBIAN_PACKAGE_DEPENDS is also
+# empty (ie. no dependencies are given at all).
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+
+# Set CPackDebHelper variables:
+#
+# Required. The directory that contains the files listed in CPACK_DEBHELPER_INPUT
+set(CPACK_DEBHELPER_INPUT_DIR "${PROJECT_SOURCE_DIR}/debian")
+# Required. List of input files that require processing by the debhelpers. All
+# of these must have the '.in' extention because they are first processed by
+# configure_file().
+set(CPACK_DEBHELPER_INPUT
+  control.in
+  changelog.in
+  service.in
+  links.in
+)
+# Optional. List of debhelpers to run.
+# If left unset the default list of debhelpers is executed.
+set(CPACK_DEBHELPER_RUN
+  dh_install dh_installdirs dh_installchangelogs
+  dh_installdocs dh_installsystemd
+  dh_usrlocal dh_link dh_dwz dh_compress dh_fixperms)
+# Optional. Scan for shared libraries and generates a shlibs file.
+# If left unset then CPackDebHelper set this to OFF.
+set(CPACK_DEBHELPER_MAKESHLIBS OFF)
+# Optional. Generate shared library substvar dependencies.
+# If left unset then CPackDebHelper sets this to CPACK_DEBIAN_PACKAGE_SHLIBDEPS
+# or to ON if CPACK_DEBIAN_PACKAGE_SHLIBDEPS is not defined.
+set(CPACK_DEBHELPER_SHLIBDEPS OFF)
+# Optional. Let the debhelpers generate the debian/control file (instead of CPack)
+# If left unset then the CPackDebHelper set this to ON because the CPack DEB
+# generator does not create a valid control file.
+set(CPACK_DEBHELPER_GENCONTROL ON)
+# Optional. Run the debhelpers in verbose mode.
+set(CPACK_DEBHELPER_VERBOSE ON)
+
+# Load the CPackDebHelper module.
+include(CPackDebHelper)
+# If CPACK_DEBHELPER_FATALITY is true at this point a DEB package may still be
+# built but will not contain any debhelper generated files.
+message(CHECK_START "Looking for debhelper")
+if(CPACK_DEBHELPER_FATALITY)
+  message(CHECK_FAIL "not found")
+else()
+  message(CHECK_PASS "found")
+endif()
+# Load the CPack module.
+include(CPack)
+
+# Place flatbuffer headers.
+install(FILES ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
+install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
+install(FILES ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
+
+# Place gaia headers.
+install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# Place gaia configs
+install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
+install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
+
+# Place incubator examples
+install(FILES ${GAIA_REPO}/demos/incubator/gaia.conf DESTINATION examples/incubator_demo)
+install(FILES ${GAIA_REPO}/demos/incubator/gaia_log.conf DESTINATION examples/incubator_demo)
+install(FILES ${GAIA_REPO}/demos/incubator/incubator.ddl DESTINATION examples/incubator_demo)
+install(FILES ${GAIA_REPO}/demos/incubator/incubator.ruleset DESTINATION examples/incubator_demo)
+install(FILES ${GAIA_REPO}/demos/incubator/main.cpp DESTINATION examples/incubator_demo)
+install(FILES ${GAIA_REPO}/demos/incubator/README.md DESTINATION examples/incubator_demo)
+install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt DESTINATION examples/incubator_demo RENAME CMakeLists.txt)

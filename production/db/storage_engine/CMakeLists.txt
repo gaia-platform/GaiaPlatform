@@ -137,7 +137,7 @@ target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explai
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
-install(TARGETS gaia_se_server DESTINATION "bin")
+install(TARGETS gaia_se_server DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
   ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}

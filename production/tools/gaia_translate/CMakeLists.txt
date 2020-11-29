@@ -44,6 +44,8 @@ target_link_libraries(gaiat
   explain
 )
 
+install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl")
 set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
 

@@ -10,10 +10,12 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production)
+project(gaia)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -119,9 +121,9 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
-add_subdirectory(${ROCKSDB} rocksdb)
+add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
-add_subdirectory(${FLATBUFFERS} flatbuffers)
+add_subdirectory(${FLATBUFFERS} flatbuffers EXCLUDE_FROM_ALL)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
@@ -142,7 +144,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
+add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
@@ -173,7 +175,7 @@ add_subdirectory(tools)
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
-  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm)
+  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
