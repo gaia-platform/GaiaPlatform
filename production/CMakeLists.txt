@@ -10,7 +10,7 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(gaia)
+project(production)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
