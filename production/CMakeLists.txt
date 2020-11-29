@@ -123,7 +123,8 @@ endif()
 # Rocksdb.
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
-add_subdirectory(${FLATBUFFERS} flatbuffers EXCLUDE_FROM_ALL)
+set(FLATBUFFERS_INSTALL OFF)
+add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
