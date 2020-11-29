@@ -302,7 +302,6 @@ void client::begin_session()
     retail_assert(s_log == nullptr, "Log segment uninitialized");
     retail_assert(s_locators == nullptr, "Locators segment uninitialized");
     retail_assert(s_free_stack_allocators.empty(), "No memory should be reserved yet");
-    retail_assert(s_stack_allocators.empty(), "No memory should be reserved yet");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -385,7 +384,6 @@ void client::end_session()
     // Clean up client side state.
     // The server will release memory for any uncommitted/unused stack allocators on the session thread.
     s_free_stack_allocators.clear();
-    s_stack_allocators.clear();
 }
 
 void client::begin_transaction()
@@ -475,7 +473,7 @@ void client::rollback_transaction()
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
     // Reset stack allocator vector.
-    s_stack_allocators.clear();
+    s_free_stack_allocators.clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -537,7 +535,7 @@ void client::commit_transaction()
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
     // Reset stack allocator vector.
-    s_stack_allocators.clear();
+    s_free_stack_allocators.clear();
 }
 
 void client::request_memory()

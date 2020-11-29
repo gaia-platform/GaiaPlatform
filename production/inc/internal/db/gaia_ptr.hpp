@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <stack>
+
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
 #include "retail_assert.hpp"
@@ -287,7 +289,6 @@ protected:
     void stack_allocator_allocate(
         memory_manager::address_offset_t old_slot_offset,
         size_t size,
-        std::vector<memory_manager::stack_allocator_t>& transaction_allocators,
         std::vector<memory_manager::stack_allocator_t>& free_allocators);
 
 private:

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <stack>
+
 #include "gaia_db.hpp"
 #include "messages_generated.h"
 #include "retail_assert.hpp"
@@ -87,11 +89,6 @@ private:
     // Allot stack allocators to the ongoing transaction from this list.
     // Unused memory from this list is deallocted upon session end.
     thread_local static inline std::vector<memory_manager::stack_allocator_t> s_free_stack_allocators{};
-
-    // s_stack_allocators has transaction lifetime and is cleared after each transaction.
-    // This represents the list of stack allocators that were required by the transaction.
-    // This list is propagated to the server at the time of commit.
-    thread_local static inline std::vector<memory_manager::stack_allocator_t> s_stack_allocators{};
 
     // Load server initialized stack allocators on the client.
     static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
