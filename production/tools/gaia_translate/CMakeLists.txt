@@ -41,7 +41,9 @@ target_link_libraries(gaiat
   gaia_payload_types
   gaia_system
   flatbuffers
-  explain
+  ${LIB_EXPLAIN}
+  ${LIB_CAP}
+  dl
 )
 
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})

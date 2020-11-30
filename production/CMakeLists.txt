@@ -69,6 +69,13 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
+# Prefer the static version of the libexplain.
+# The solution is suggested by a cmake developer on its mailing list:
+# https://cmake.org/pipermail/cmake/2010-December/041326.html
+find_library(LIB_EXPLAIN NAMES libexplain.a explain)
+# Transitive dependency of the libexplain.
+find_library(LIB_CAP NAMES libcap.a cap)
+
 # Force spdlog to use an external version of fmt.
 # TODO this flag should only be set in common/CMakeLists.txt. The flag is
 #  necessary here too, otherwise the compilation fail. The reason could

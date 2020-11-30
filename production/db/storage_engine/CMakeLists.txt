@@ -92,7 +92,7 @@ target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_client PUBLIC gaia_common)
-target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types)
+target_link_libraries(gaia_se_client PRIVATE gaia_payload_types ${LIB_EXPLAIN} ${LIB_CAP} dl)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -133,7 +133,7 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_se_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads rocks_wrapper ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
