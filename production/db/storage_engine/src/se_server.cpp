@@ -214,7 +214,8 @@ void server::handle_request_memory(
     retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect event type for requesting more memory.");
     // This event never changes session state.
     retail_assert(old_state == new_state, "Requesting more memory shouldn't cause session state to change.");
-
+    // This API is only invoked mid transaction.
+    retail_assert(old_state == session_state_t::TXN_IN_PROGRESS, "Old state when requesting more memory from server should be TXN_IN_PROGRESS.");
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::memory_info,
@@ -224,12 +225,9 @@ void server::handle_request_memory(
 
     FlatBufferBuilder builder;
     std::vector<stack_allocator_t> new_memory_allotment;
-    // Only invoked mid transaction.
     allocate_stack_allocators(session_event_t::REQUEST_MEMORY, memory_size_hint, &new_memory_allotment);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    cout << "Request triggered" << endl;
 }
 
 void server::handle_decide_txn(

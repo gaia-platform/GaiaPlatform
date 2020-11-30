@@ -175,27 +175,6 @@ error_code_t memory_manager_t::free_stack_allocator(
     }
     else
     {
-        // // Iterate over all stack_allocator_t allocations and collect old memory offsets in free memory records.
-        // for (size_t allocation_number = 1; allocation_number <= count_allocations; ++allocation_number)
-        // {
-        //     stack_allocator_allocation_t* allocation_record = stack_allocator->get_allocation_record(allocation_number);
-        //     retail_assert(allocation_record != nullptr, "An unexpected null allocation record was retrieved!");
-
-        //     if (allocation_record->old_memory_offset != c_invalid_offset)
-        //     {
-        //         memory_allocation_metadata_t* allocation_metadata
-        //             = read_allocation_metadata(allocation_record->old_memory_offset);
-        //         address_offset_t allocation_metadata_offset
-        //             = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
-
-        //         // Add allocation to free memory block list.
-        //         unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
-        //         m_free_memory_list.emplace_back(
-        //             allocation_metadata_offset,
-        //             allocation_metadata->allocation_size);
-        //     }
-        // }
-
         // Get the stack_allocator_t metadata.
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
         address_offset_t stack_allocator_metadata_offset

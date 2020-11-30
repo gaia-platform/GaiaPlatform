@@ -165,25 +165,6 @@ client::get_id_generator_for_type(gaia_type_t type)
     return id_generator;
 }
 
-static std::vector<flatbuffers::Offset<stack_allocator_info_t>> build_stack_allocator_list(
-    FlatBufferBuilder& builder,
-    const std::vector<stack_allocator_t>& stack_allocators)
-{
-    std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
-
-    for (auto stack_allocator : stack_allocators)
-    {
-        const auto stack_allocator_info = Createstack_allocator_info_t(
-            builder,
-            stack_allocator.get_base_memory_offset(),
-            stack_allocator.get_total_memory_size());
-
-        memory_allocation.push_back(stack_allocator_info);
-    }
-
-    return memory_allocation;
-}
-
 static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event,
@@ -430,7 +411,6 @@ void client::begin_transaction()
     });
 
     FlatBufferBuilder builder;
-    bool need_more_memory = true;
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
