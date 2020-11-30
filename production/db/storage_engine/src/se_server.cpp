@@ -90,7 +90,6 @@ void server::allocate_stack_allocators(
         {
             throw memory_manager_error("Stack allocator initialization failure.", error);
         }
-        retail_assert(error == error_code_t::success, "SA init failure.");
         // Add created stack_allocator to the list of active stack allocators.
         s_active_stack_allocators.push_back(stack_allocator);
         new_memory_allotment->push_back(stack_allocator);
@@ -1252,9 +1251,4 @@ void server::run(bool disable_persistence)
             ::raise(caught_signal);
         }
     }
-}
-
-// No-op on the server.
-void request_memory()
-{
 }
