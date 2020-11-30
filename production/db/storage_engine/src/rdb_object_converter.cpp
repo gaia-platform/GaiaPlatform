@@ -60,7 +60,7 @@ gaia_id_t gaia::db::persistence::decode_object(
     auto payload = value_reader.read(size);
 
     // Create object.
-    persistent_store_manager::s_create_object_on_recovery_fn(id, type, num_references, size, payload);
+    create_object(id, type, num_references, size, payload);
 
     return id;
 }

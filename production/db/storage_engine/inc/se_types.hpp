@@ -27,6 +27,12 @@ enum class gaia_operation_t : uint8_t
     clone = 0x4
 };
 
+enum class memory_allocation_policy_t : uint8_t
+{
+    stack_allocator = 0x1,
+    memory_manager = 0x2
+};
+
 constexpr char c_server_connect_socket_name[] = "gaia_se_server";
 constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
 constexpr char c_sch_mem_data[] = "gaia_mem_data";

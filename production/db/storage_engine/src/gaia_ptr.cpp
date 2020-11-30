@@ -105,7 +105,7 @@ void gaia_ptr::clone_no_txn()
     se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(se_object_t) + old_this->payload_size;
     gaia_offset_t old_offset = to_offset();
-    stack_allocator_allocate(old_offset, new_size, client::s_free_stack_allocators);
+    client::allocate_object(m_locator, old_offset, new_size);
     se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
@@ -139,7 +139,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     }
 
     // updates m_locator to point to the new object
-    stack_allocator_allocate(old_offset, sizeof(se_object_t) + total_len, client::s_free_stack_allocators);
+    client::allocate_object(m_locator, old_offset, sizeof(se_object_t) + total_len);
 
     se_object_t* new_this = to_ptr();
 
@@ -186,77 +186,8 @@ gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
 {
     hash_node* hash_node = se_hash_map::insert(id);
     hash_node->locator = m_locator = allocate_locator();
-    stack_allocator_allocate(0, size, client::s_free_stack_allocators);
+    client::allocate_object(m_locator, 0, size);
     client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
-}
-
-address_offset_t get_stack_allocator_offset(
-    gaia_locator_t locator,
-    address_offset_t old_slot_offset,
-    size_t size,
-    std::vector<stack_allocator_t>& free_allocators)
-{
-    error_code_t result = error_code_t::not_set;
-    address_offset_t allocated_memory_offset = c_invalid_offset;
-    // We should only need two attempts to allocate memory.
-    // If more than two attempts are required then it means the newly obtained free stack allocator
-    // doesn't have enough memory for the current object - which should not happen.
-    for (size_t allocation_attempt = 0; allocation_attempt < 2; allocation_attempt++)
-    {
-        // If free list is empty, make an IPC call to request more memory from the server.
-        // Note that this call can crash the server in case the server runs out of memory.
-        if (free_allocators.empty())
-        {
-            client::request_memory();
-        }
-
-        retail_assert(!free_allocators.empty(), "Unable to obtain memory from server.");
-
-        // Try allocating object. If current stack allocator memory isn't enough, then fetch
-        // another allocator from the free list.
-        auto current_allocator = free_allocators.front();
-        result = current_allocator.allocate(locator, old_slot_offset, size, allocated_memory_offset);
-
-        // The stack allocator size may not be sufficient for the current object, so get a new one.
-        if (result == error_code_t::insufficient_memory_size || result == error_code_t::memory_size_too_large)
-        {
-            free_allocators.erase(free_allocators.begin());
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    // Todo - add exception class.
-    retail_assert(result == error_code_t::success, "Object Stack allocation failure!");
-    // Size 0 indicates a deletion. We never expect memory to be allocated for a delete call.
-    if (size == 0)
-    {
-        retail_assert(allocated_memory_offset == c_invalid_offset, "Memory allocated for a delete operation!");
-    }
-    else
-    {
-        retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
-    }
-
-    return allocated_memory_offset;
-}
-
-void gaia_ptr::stack_allocator_allocate(
-    address_offset_t old_slot_offset,
-    size_t size,
-    std::vector<stack_allocator_t>& free_allocators)
-{
-    bool deallocate = size == 0;
-    address_offset_t allocated_memory_offset = get_stack_allocator_offset(m_locator, old_slot_offset, size, free_allocators);
-
-    if (!deallocate)
-    {
-        retail_assert(allocated_memory_offset != c_invalid_offset, "offset should be valid!");
-        // Update locator array to point to the new offset.
-        allocate_object(m_locator, allocated_memory_offset);
-    }
 }
 
 se_object_t* gaia_ptr::to_ptr() const

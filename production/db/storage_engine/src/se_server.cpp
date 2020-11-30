@@ -485,28 +485,17 @@ void server::init_memory_manager()
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 }
 
-void server::create_object_on_recovery(
-    gaia_id_t id,
-    gaia_type_t type,
-    size_t num_refs,
-    size_t data_size,
-    const void* data)
+void server::allocate_object(
+    gaia_locator_t locator,
+    address_offset_t old_slot_offset,
+    size_t size)
 {
-    gaia::db::hash_node* hash_node = se_hash_map::insert(id);
-    hash_node->locator = allocate_locator();
-    // This API is called on Recovery - where we don't need to track log records.
-    // Thus allocate objects using the memory manager directly and not the stack allocator.
-    address_offset_t offset = -1;
-    error_code_t error = memory_manager->allocate(data_size + sizeof(se_object_t), offset);
+    retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
+    address_offset_t offset = c_invalid_offset;
+    error_code_t error = memory_manager->allocate(size + sizeof(se_object_t), offset);
     retail_assert(error == error_code_t::success, "Allocation failure on recovery");
     retail_assert(offset != -1, "Invalid offset on recovery");
-    allocate_object(hash_node->locator, offset);
-    se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
-    obj_ptr->id = id;
-    obj_ptr->type = type;
-    obj_ptr->num_references = num_refs;
-    obj_ptr->payload_size = data_size;
-    memcpy(obj_ptr->payload, data, data_size);
+    update_locator(locator, offset);
 }
 
 void server::recover_db()
@@ -518,7 +507,6 @@ void server::recover_db()
         if (!rdb)
         {
             rdb = make_unique<gaia::db::persistent_store_manager>();
-            rdb->set_create_object_on_recovery_fn(&create_object_on_recovery);
             rdb->open();
             rdb->recover();
         }
@@ -1257,4 +1245,9 @@ void server::run(bool disable_persistence)
             ::raise(caught_signal);
         }
     }
+}
+
+// No-op on the server.
+void request_memory()
+{
 }

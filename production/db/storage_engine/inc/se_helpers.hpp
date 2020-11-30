@@ -71,7 +71,7 @@ inline gaia_offset_t get_gaia_offset(memory_manager::address_offset_t offset)
     return offset / sizeof(uint64_t);
 }
 
-inline void allocate_object(
+inline void update_locator(
     gaia_locator_t locator,
     memory_manager::address_offset_t offset)
 {
@@ -83,6 +83,20 @@ inline void allocate_object(
 
     (*locators)[locator] = get_gaia_offset(offset);
 }
+
+// inline void allocate_object(
+//     gaia_locator_t locator,
+//     memory_manager::address_offset_t offset,
+//     memory_allocation_policy_t memory_allocation_policy = memory_allocation_policy_t::stack_allocator)
+// {
+//     locators* locators = gaia::db::get_shared_locators();
+//     if (!locators)
+//     {
+//         throw transaction_not_open();
+//     }
+
+//     (*locators)[locator] = get_gaia_offset(offset);
+// }
 
 inline bool locator_exists(gaia_locator_t locator)
 {

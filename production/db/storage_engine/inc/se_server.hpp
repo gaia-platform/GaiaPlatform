@@ -45,6 +45,10 @@ class server
 {
     friend gaia::db::locators* gaia::db::get_shared_locators();
     friend gaia::db::data* gaia::db::get_shared_data();
+    friend void gaia::db::allocate_object(
+        gaia_locator_t locator,
+        memory_manager::address_offset_t old_slot_offset,
+        size_t size);
 
 public:
     static void run(bool disable_persistence = false);
@@ -171,6 +175,8 @@ private:
 
     static void init_shared_memory();
 
+    static void request_memory();
+
     static void recover_db();
 
     static sigset_t mask_signals();
@@ -196,12 +202,10 @@ private:
 
     static bool txn_commit();
 
-    static void create_object_on_recovery(
-        gaia_id_t id,
-        gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
-        const void* data);
+    static void allocate_object(
+        gaia_locator_t locator,
+        address_offset_t old_slot_offset,
+        size_t size);
 };
 
 } // namespace db

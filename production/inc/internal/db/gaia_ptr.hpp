@@ -283,14 +283,6 @@ protected:
 
     void reset();
 
-    // Used by the client to allocate memory for a transaction from a stack allocator.
-    // Note that the server does not need to use stack allocators to allocate memory when creating
-    // objects during recovery.
-    void stack_allocator_allocate(
-        memory_manager::address_offset_t old_slot_offset,
-        size_t size,
-        std::vector<memory_manager::stack_allocator_t>& free_allocators);
-
 private:
     gaia_locator_t m_locator = {};
 

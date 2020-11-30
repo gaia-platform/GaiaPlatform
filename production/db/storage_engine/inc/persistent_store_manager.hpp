@@ -81,17 +81,6 @@ public:
      */
     void destroy_persistent_store();
 
-    typedef void (*create_object_on_recovery_fn)(
-        common::gaia_id_t id,
-        common::gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
-        const void* data);
-
-    static inline create_object_on_recovery_fn s_create_object_on_recovery_fn = nullptr;
-
-    static bool set_create_object_on_recovery_fn(create_object_on_recovery_fn create_object_fn);
-
 private:
     static inline const std::string c_data_dir = c_persistent_directory_path;
     gaia::db::data* m_data = nullptr;

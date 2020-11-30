@@ -26,6 +26,10 @@ class client
     friend class gaia_ptr;
     friend gaia::db::locators* gaia::db::get_shared_locators();
     friend gaia::db::data* gaia::db::get_shared_data();
+    friend void gaia::db::allocate_object(
+        gaia_locator_t locator,
+        memory_manager::address_offset_t old_slot_offset,
+        size_t size);
 
 public:
     static inline bool is_transaction_active()
@@ -92,6 +96,17 @@ private:
 
     // Load server initialized stack allocators on the client.
     static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
+
+    // static address_offset_t get_stack_allocator_offset(
+    //     gaia_locator_t locator,
+    //     address_offset_t old_slot_offset,
+    //     size_t size,
+    //     std::vector<stack_allocator_t>& free_allocators);
+
+    static void allocate_object(
+        gaia_locator_t locator,
+        memory_manager::address_offset_t old_slot_offset,
+        size_t size);
 
     static void txn_cleanup();
 
