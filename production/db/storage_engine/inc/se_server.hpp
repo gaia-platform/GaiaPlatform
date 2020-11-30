@@ -90,7 +90,7 @@ private:
     // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
     // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
     // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
-    thread_local static inline std::vector<stack_allocator_t> s_active_stack_allocators{};
+    thread_local static inline std::vector<std::unique_ptr<stack_allocator_t>> s_active_stack_allocators{};
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?

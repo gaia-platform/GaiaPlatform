@@ -362,10 +362,6 @@ void client::end_session()
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);
-
-    // Clean up client side state.
-    // The server will release memory for any uncommitted/unused stack allocators on the session thread.
-    s_free_stack_allocators.clear();
 }
 
 void client::begin_transaction()
@@ -429,7 +425,10 @@ void client::begin_transaction()
 
     // Obtain transaction memory allocation information.
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
-    retail_assert(allocation_info && allocation_info->stack_allocator_list()->size() > 0, "Failed to fetch memory from the server.");
+    if (!(allocation_info && allocation_info->stack_allocator_list()->size() > 0))
+    {
+        throw memory_manager_error("Failed to fetch memory from the server at begin transaction.");
+    }
     load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
     cleanup_log_fd.dismiss();
@@ -541,7 +540,7 @@ void client::request_memory()
     load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 }
 
-static address_offset_t get_stack_allocator_offset(
+static address_offset_t stack_allocator_allocate(
     gaia_locator_t locator,
     address_offset_t old_slot_offset,
     size_t size,
@@ -598,7 +597,7 @@ void client::allocate_object(
     address_offset_t old_slot_offset,
     size_t size)
 {
-    address_offset_t allocated_memory_offset = get_stack_allocator_offset(locator, old_slot_offset, size, client::s_free_stack_allocators);
+    address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size, client::s_free_stack_allocators);
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);
 }

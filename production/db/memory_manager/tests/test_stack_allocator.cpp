@@ -46,7 +46,6 @@ TEST(memory_manager, stack_allocator)
     gaia::db::memory_manager::error_code_t error_code = error_code_t::not_set;
 
     execution_flags_t execution_flags;
-    execution_flags.enable_extra_validations = true;
     execution_flags.enable_console_output = true;
 
     memory_manager.set_execution_flags(execution_flags);

@@ -48,7 +48,7 @@ public:
         const std::unique_ptr<stack_allocator_t>& stack_allocator);
 
     // Adds objects at old objects to the list of free memory.
-    error_code_t free_old_offsets(
+    void free_old_offsets(
         const std::list<address_offset_t>& offsets);
 
 private:

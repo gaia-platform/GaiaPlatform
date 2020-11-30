@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <memory>
 #include <shared_mutex>
 #include <thread>
 
@@ -84,15 +85,16 @@ void server::allocate_stack_allocators(
         {
             throw memory_manager_error("Memory manager allocate_raw failure.", error);
         }
-        stack_allocator_t stack_allocator = stack_allocator_t();
-        error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
+        std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
+        error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
         if (error != error_code_t::success)
         {
             throw memory_manager_error("Stack allocator initialization failure.", error);
         }
         // Add created stack_allocator to the list of active stack allocators.
-        s_active_stack_allocators.push_back(stack_allocator);
-        new_memory_allotment->push_back(stack_allocator);
+        s_active_stack_allocators.push_back(std::move(stack_allocator));
+        // Copy stack allocator object into container.
+        new_memory_allotment->push_back(*s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get());
     }
 }
 
@@ -145,15 +147,15 @@ void server::get_memory_info_from_request_and_free(session_event_t event, bool c
 {
     retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
 
-    for (auto stack_allocator : s_active_stack_allocators)
+    for (auto& stack_allocator : s_active_stack_allocators)
     {
         if (!commit_success)
         {
             // Rollback all allocations.
-            stack_allocator.deallocate(0);
+            stack_allocator->deallocate(0);
         }
         // Free up unused space.
-        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+        memory_manager->free_stack_allocator(stack_allocator);
     }
     s_active_stack_allocators.clear();
 }
@@ -261,10 +263,10 @@ void server::handle_client_shutdown(
     s_session_shutdown = true;
 
     // Free all unused or uncommitted session stack allocators.
-    for (auto stack_allocator : s_active_stack_allocators)
+    for (auto& stack_allocator : s_active_stack_allocators)
     {
-        stack_allocator.deallocate(0);
-        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+        stack_allocator->deallocate(0);
+        memory_manager->free_stack_allocator(stack_allocator);
     }
 }
 
@@ -381,6 +383,28 @@ void server::apply_transition(session_event_t event, const void* event_data, int
         + "'");
 }
 
+static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offset(
+    FlatBufferBuilder& builder,
+    const std::vector<stack_allocator_t>* const stack_allocators)
+{
+    flatbuffers::Offset<memory_allocation_info_t> memory_allocation_reply = 0;
+    if (stack_allocators)
+    {
+        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
+        for (auto& stack_allocator : *stack_allocators)
+        {
+            const auto stack_allocator_info = Createstack_allocator_info_t(
+                builder,
+                stack_allocator.get_base_memory_offset(),
+                stack_allocator.get_total_memory_size());
+
+            memory_allocation.push_back(stack_allocator_info);
+        }
+        memory_allocation_reply = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation));
+    }
+    return memory_allocation_reply;
+}
+
 void server::build_server_reply(
     FlatBufferBuilder& builder,
     session_event_t event,
@@ -390,31 +414,17 @@ void server::build_server_reply(
     const std::vector<stack_allocator_t>* const stack_allocators)
 {
     const auto server_reply = [&] {
-        flatbuffers::Offset<memory_allocation_info_t> session_memory_allocation = 0;
-        if (stack_allocators)
-        {
-            std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
-            for (auto& stack_allocator : *stack_allocators)
-            {
-                const auto stack_allocator_info = Createstack_allocator_info_t(
-                    builder,
-                    stack_allocator.get_base_memory_offset(),
-                    stack_allocator.get_total_memory_size());
-
-                memory_allocation.push_back(stack_allocator_info);
-            }
-            session_memory_allocation = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation));
-        }
+        auto memory_allocation_reply = get_memory_allocation_offset(builder, stack_allocators);
         if (txn_id)
         {
             const auto transaction_info = Createtransaction_info_t(builder, txn_id);
-            const auto reply_data = Createreply_data_t(builder, transaction_info, session_memory_allocation);
+            const auto reply_data = Createreply_data_t(builder, transaction_info, memory_allocation_reply);
             return Createserver_reply_t(
                 builder, event, old_state, new_state, reply_data);
         }
         else
         {
-            const auto reply_data = Createreply_data_t(builder, 0, session_memory_allocation);
+            const auto reply_data = Createreply_data_t(builder, 0, memory_allocation_reply);
             return Createserver_reply_t(builder, event, old_state, new_state, reply_data);
         }
     }();
@@ -479,7 +489,6 @@ void server::init_shared_memory()
 void server::init_memory_manager()
 {
     execution_flags_t execution_flags;
-    execution_flags.enable_extra_validations = false;
     execution_flags.enable_console_output = false;
 
     memory_manager.reset();

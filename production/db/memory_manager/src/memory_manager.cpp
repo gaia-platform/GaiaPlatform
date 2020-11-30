@@ -57,8 +57,6 @@ error_code_t memory_manager_t::manage(
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << "  Configuration - enable_extra_validations = " << m_execution_flags.enable_extra_validations << endl;
-
         output_debugging_information("manage");
     }
 
@@ -129,21 +127,18 @@ error_code_t memory_manager_t::allocate_internal(
         return error_code_t::insufficient_memory_size;
     }
 
-    if (m_execution_flags.enable_extra_validations)
+    // Verify proper allocation alignment.
+    if (add_allocation_metadata)
     {
-        // Verify proper allocation alignment.
-        if (add_allocation_metadata)
-        {
-            retail_assert(
-                allocated_memory_offset % c_allocation_alignment == 0,
-                "Memory allocation was not made on a 64B boundary!");
-        }
-        else
-        {
-            retail_assert(
-                allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
-                "Raw memory allocation is not offset by 56B from a 64B boundary!");
-        }
+        retail_assert(
+            allocated_memory_offset % c_allocation_alignment == 0,
+            "Memory allocation was not made on a 64B boundary!");
+    }
+    else
+    {
+        retail_assert(
+            allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
+            "Raw memory allocation is not offset by 56B from a 64B boundary!");
     }
 
     return error_code_t::success;
@@ -215,7 +210,7 @@ error_code_t memory_manager_t::free_stack_allocator(
     return error_code_t::success;
 }
 
-error_code_t memory_manager_t::free_old_offsets(const std::list<address_offset_t>& offsets)
+void memory_manager_t::free_old_offsets(const std::list<address_offset_t>& offsets)
 {
     // Iterate over the list of offsets and collect objects at those offsets in free memory records.
     for (address_offset_t offset : offsets)
