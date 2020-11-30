@@ -22,6 +22,7 @@
 #include "fd_helpers.hpp"
 #include "gaia_db_internal.hpp"
 #include "generator_iterator.hpp"
+#include "memory_manager_error.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
@@ -79,9 +80,16 @@ void server::allocate_stack_allocators(
         // Offset gets assigned; no need to set it.
         address_offset_t stack_allocator_offset;
         auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
-        retail_assert(error == error_code_t::success, "allocate_raw failure in server.");
+        if (error != error_code_t::success)
+        {
+            throw memory_manager_error("Memory manager allocate_raw failure.", error);
+        }
         stack_allocator_t stack_allocator = stack_allocator_t();
         error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
+        if (error != error_code_t::success)
+        {
+            throw memory_manager_error("Stack allocator initialization failure.", error);
+        }
         retail_assert(error == error_code_t::success, "SA init failure.");
         // Add created stack_allocator to the list of active stack allocators.
         s_active_stack_allocators.push_back(stack_allocator);
@@ -136,21 +144,17 @@ void server::handle_begin_txn(
 
 void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Memory information from client received on commit/rollback only");
+    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
 
-    for (int i = 0; i < s_active_stack_allocators.size(); i++)
+    for (auto stack_allocator : s_active_stack_allocators)
     {
-        auto stack_allocator = s_active_stack_allocators[i];
         if (!commit_success)
         {
             // Rollback all allocations.
             stack_allocator.deallocate(0);
         }
-        else
-        {
-            // Free up unused space.
-            memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
-        }
+        // Free up unused space.
+        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
     }
     s_active_stack_allocators.clear();
 }
@@ -407,12 +411,14 @@ void server::build_server_reply(
         if (txn_id)
         {
             const auto transaction_info = Createtransaction_info_t(builder, txn_id);
+            const auto reply_data = Createreply_data_t(builder, transaction_info, session_memory_allocation);
             return Createserver_reply_t(
-                builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union(), session_memory_allocation);
+                builder, event, old_state, new_state, reply_data);
         }
         else
         {
-            return Createserver_reply_t(builder, event, old_state, new_state, reply_data_t::NONE, 0, session_memory_allocation);
+            const auto reply_data = Createreply_data_t(builder, 0, session_memory_allocation);
+            return Createserver_reply_t(builder, event, old_state, new_state, reply_data);
         }
     }();
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
@@ -493,8 +499,11 @@ void server::allocate_object(
     retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
     address_offset_t offset = c_invalid_offset;
     error_code_t error = memory_manager->allocate(size + sizeof(se_object_t), offset);
-    retail_assert(error == error_code_t::success, "Allocation failure on recovery");
-    retail_assert(offset != -1, "Invalid offset on recovery");
+    if (error != error_code_t::success)
+    {
+        throw memory_manager_error("Error when creating objects.", error);
+    }
+    retail_assert(offset != -c_invalid_offset, "Invalid offset post object creation.");
     update_locator(locator, offset);
 }
 

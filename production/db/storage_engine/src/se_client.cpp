@@ -442,13 +442,13 @@ void client::begin_transaction()
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = reply->data()->transaction_info();
     s_txn_id = txn_info->transaction_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
     // Obtain transaction memory allocation information.
-    const memory_allocation_info_t* allocation_info = reply->session_memory_allocation_info();
+    const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
     retail_assert(allocation_info && allocation_info->stack_allocator_list()->size() > 0, "Failed to fetch memory from the server.");
     load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
@@ -512,7 +512,7 @@ void client::commit_transaction()
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         "Unexpected event received!");
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = reply->data()->transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Throw an exception on server-side abort.
@@ -555,7 +555,7 @@ void client::request_memory()
 
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const memory_allocation_info_t* allocation_info = reply->session_memory_allocation_info();
+    const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
 
     retail_assert(allocation_info && allocation_info->stack_allocator_list()->size() > 0, "Failed to fetch memory from the server.");
     load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
@@ -605,7 +605,7 @@ static address_offset_t get_stack_allocator_offset(
 
     if (result != error_code_t::success)
     {
-        throw memory_manager_error("Stack allocation failure!", static_cast<std::underlying_type_t<error_code_t>>(result));
+        throw memory_manager_error("Stack allocation failure!", result);
     }
 
     retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");

@@ -56,8 +56,9 @@ table transaction_info_t {
     transaction_id: uint64;
 }
 
-union reply_data_t {
-    transaction_info: transaction_info_t,
+table reply_data_t {
+    transaction_info: transaction_info_t;
+    memory_allocation_info: memory_allocation_info_t;
 }
 
 table server_reply_t {
@@ -67,7 +68,6 @@ table server_reply_t {
     old_state: session_state_t;
     new_state: session_state_t;
     data: reply_data_t;
-    session_memory_allocation_info: memory_allocation_info_t;
 }
 
 union any_message_t {
