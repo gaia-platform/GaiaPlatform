@@ -624,9 +624,20 @@ void Init()
     // function of member
     //std::function<void(terminalMenu&, std::shared_ptr<message::Message> msg)> mcb = &terminalMenu::MessageCallback;
 
-    // Initialize message bus
-    _messageBus = std::make_shared<message::MessageBus>();
-    _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback, _sender_name);
+    try
+    {
+        // Initialize message bus
+        _messageBus = std::make_shared<message::MessageBus>();
+        _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback, _sender_name);        
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }    
+    catch(...)
+    {
+        std::cerr << "Exception ..." << '\n';
+    }
 }
 
 };

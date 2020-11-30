@@ -1,16 +1,13 @@
 {
-  "name": "UI",
+  "name": "Campus",
   "context": "io.gaiaplatform.campus",
   "version": "v1.0",
-  "description": "UI",
+  "description": "Campus",
   "outputs": [{
-    "name": "action",
-    "tagGroupId": "actionTagGroup:io.gaiaplatform.campus:v1.0"
-  }],
-  "inputs":[{
     "name": "alert",
     "tagGroupId": "alertTagGroup:io.gaiaplatform.campus:v1.0"
-  },{
+  }],
+  "inputs": [{
     "name": "action",
     "tagGroupId": "actionTagGroup:io.gaiaplatform.campus:v1.0"
   }]

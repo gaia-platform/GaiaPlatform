@@ -1,6 +1,12 @@
 #pragma once
 
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "../../common/inc/message_bus.hpp"
+#include "ui_thing.hpp"
 
 #include <IoTDataThing.hpp>
 #include <JSonThingAPI.hpp>
@@ -13,13 +19,14 @@ using namespace com::adlinktech::iot;
 
 namespace message {
 /**
- * @brief A local in process message bus
+ * @brief An ADLink Edge message bus
  */
 class MessageBus : public IMessageBus
 {
 private:
 
     DataRiver m_dataRiver;
+    std::shared_ptr<ui_thing> m_uiThing = nullptr;
 
     std::thread* _workerThread;
     std::queue<std::shared_ptr<message::Message>> _messageQueue;
@@ -147,7 +154,27 @@ public:
      * @exceptsafe yes
      */  
     bool init(){   
-        m_dataRiver = com::adlinktech::datariver::DataRiver::getInstance();
+        try
+        {
+            m_dataRiver = com::adlinktech::datariver::DataRiver::getInstance();
+            m_uiThing = std::make_shared<ui_thing>(m_dataRiver, "file://./config/UIProperties.json");            
+        }
+        catch (ThingAPIException& e) 
+        {
+            std::cerr << "Exception in MessageBus.init() : " << e.what() << endl;
+            throw;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in MessageBus.init() : " << e.what() << '\n';
+            throw;
+        }        
+        catch(...)
+        {
+            std::cerr << "Exception in MessageBus.init() : ..." << '\n';
+            throw;
+        }
+        
         return true;
     }
 
@@ -162,8 +189,35 @@ public:
     int SendMessage(std::shared_ptr<message::Message> msg) override
     {
         {
-            //std::lock_guard<std::mutex> lk(m);
-            _messageQueue.push(msg);
+            try
+            {
+                auto hdr = msg->get_header();
+
+                // TODO : This is a hacky way to determine which thing sent
+                // the message. Ok for now, change it soon though.
+                if(hdr.get_senderName() == "termUi")
+                {
+                    m_uiThing->SendMessage(msg);
+                }
+
+                //std::lock_guard<std::mutex> lk(m);
+                _messageQueue.push(msg);                
+            }
+            catch (ThingAPIException& e) 
+            {
+                std::cerr << "Exception in MessageBus.init() : " << e.what() << endl;
+                throw;
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << "Exception in MessageBus.init() : " << e.what() << '\n';
+                throw;
+            }        
+            catch(...)
+            {
+                std::cerr << "Exception in MessageBus.init() : ..." << '\n';
+                throw;
+            }
         }
 
         cv.notify_one();

@@ -108,7 +108,8 @@ add_executable(campus
     common/src/campus_demo.cpp
     common/src/campus_demo_term.cpp
     common/tests/test_campus_demo.cpp 
-    ${GENERATED_OUTPUTS}/campus_rules.cpp     
+    ${GENERATED_OUTPUTS}/campus_rules.cpp    
+    #edge/src/person_thing.cpp 
 )
 
 # The campus demo uses a system configuration and logger configuration file.
@@ -181,10 +182,13 @@ add_custom_target(${PROJECT_NAME}_copy_definition_files ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory definitions/TagGroup/io.gaiaplatform.campus
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/PersonTagGroup.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/ActionTagGroup.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/AlertTagGroup.json
         definitions/TagGroup/io.gaiaplatform.campus
     COMMAND ${CMAKE_COMMAND} -E make_directory definitions/ThingClass/io.gaiaplatform.campus
     COMMAND ${CMAKE_COMMAND} -E copy_if_different      
         ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/PersonThingClass.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/CampusThingClass.json
         ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/UIThingClass.json
         definitions/ThingClass/io.gaiaplatform.campus
 )

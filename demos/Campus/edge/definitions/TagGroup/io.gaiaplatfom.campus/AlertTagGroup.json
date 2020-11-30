@@ -1,0 +1,35 @@
+{
+  "name": "alertTagGroup",
+  "context": "io.gaiaplatform.campus",
+  "qosProfile": "telemetry",
+  "version": "v1.0",
+  "description": "Gaiaplatform Campus Demo Alert TagGroup",
+  "tags": [
+  {
+    "name": "title",
+    "description": "title",
+    "kind": "STRING",
+    "unit": ""
+  },
+  {
+    "name": "body",
+    "description": "body",
+    "kind": "STRING",
+    "unit": ""    
+  },
+  {
+    "name": "severity",
+    "description": "severity",
+    "kind": "INT32",
+    "unit": ""    
+  },
+  {
+    "name": "arg1",
+    "description": "arg1",
+    "kind": "STRING",
+    "unit": ""    
+  }
+  ]
+}
+
+

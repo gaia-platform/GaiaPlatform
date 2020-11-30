@@ -1,0 +1,33 @@
+{
+  "name": "actionTagGroup",
+  "context": "io.gaiaplatform.campus",
+  "qosProfile": "telemetry",
+  "version": "v1.0",
+  "description": "Gaiaplatform Campus Demo Action TagGroup",
+  "tags": [
+  {
+    "name": "actorType",
+    "description": "actorType",
+    "kind": "STRING",
+    "unit": ""
+  },
+  {
+    "name": "actor",
+    "description": "actor",
+    "kind": "STRING",
+    "unit": ""    
+  },
+  {
+    "name": "action",
+    "description": "action",
+    "kind": "STRING",
+    "unit": ""    
+  },
+  {
+    "name": "arg1",
+    "description": "arg1",
+    "kind": "STRING",
+    "unit": ""    
+  }
+  ]
+}
