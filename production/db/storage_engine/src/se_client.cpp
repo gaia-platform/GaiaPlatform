@@ -24,6 +24,7 @@
 #include "db_types.hpp"
 #include "fd_helpers.hpp"
 #include "generator_iterator.hpp"
+#include "memory_manager_error.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "retail_assert.hpp"
@@ -566,6 +567,7 @@ static address_offset_t get_stack_allocator_offset(
     size_t size,
     std::vector<stack_allocator_t>& free_allocators)
 {
+    retail_assert(size != 0, "The client should not deallocate objects directly.");
     error_code_t result = error_code_t::not_set;
     address_offset_t allocated_memory_offset = c_invalid_offset;
     // We should only need two attempts to allocate memory.
@@ -580,7 +582,10 @@ static address_offset_t get_stack_allocator_offset(
             client::request_memory();
         }
 
-        retail_assert(!free_allocators.empty(), "Unable to obtain memory from server.");
+        if (free_allocators.empty())
+        {
+            throw memory_manager_error("Unable to obtain memory from server.");
+        }
 
         // Try allocating object. If current stack allocator memory isn't enough, then fetch
         // another allocator from the free list.
@@ -598,17 +603,12 @@ static address_offset_t get_stack_allocator_offset(
         }
     }
 
-    // Todo - add exception class.
-    retail_assert(result == error_code_t::success, "Object Stack allocation failure!");
-    // Size 0 indicates a deletion. We never expect memory to be allocated for a delete call.
-    if (size == 0)
+    if (result != error_code_t::success)
     {
-        retail_assert(allocated_memory_offset == c_invalid_offset, "Memory allocated for a delete operation!");
+        throw memory_manager_error("Stack allocation failure!", static_cast<std::underlying_type_t<error_code_t>>(result));
     }
-    else
-    {
-        retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
-    }
+
+    retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
 
     return allocated_memory_offset;
 }
@@ -618,13 +618,7 @@ void client::allocate_object(
     address_offset_t old_slot_offset,
     size_t size)
 {
-    bool deallocate = size == 0;
     address_offset_t allocated_memory_offset = get_stack_allocator_offset(locator, old_slot_offset, size, client::s_free_stack_allocators);
-
-    if (!deallocate)
-    {
-        retail_assert(allocated_memory_offset != c_invalid_offset, "offset should be valid!");
-        // Update locator array to point to the new offset.
-        update_locator(locator, allocated_memory_offset);
-    }
+    // Update locator array to point to the new offset.
+    update_locator(locator, allocated_memory_offset);
 }
