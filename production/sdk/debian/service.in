@@ -1,1 +1,9 @@
-# systemd unit file.
+[Unit]
+Description=Gaia Platform SE Server
+
+[Service]
+Type=simple
+ExecStart=/opt/gaia/bin/gaia_se_server
+
+[Install]
+WantedBy=multi-user.target
