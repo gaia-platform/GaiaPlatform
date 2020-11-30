@@ -80,7 +80,7 @@ set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}_${C
 # The directory that contains the files listed in CPACK_DEBHELPER_INPUT
 set(CPACK_DEBHELPER_INPUT_DIR "${PROJECT_SOURCE_DIR}/debian")
 # List of input files that require processing by the debhelpers. All of these
-# must have the '.in' extention because they are first processed by
+# must have the '.in' extension because they are first processed by
 # configure_file().
 set(CPACK_DEBHELPER_INPUT
   control.in
