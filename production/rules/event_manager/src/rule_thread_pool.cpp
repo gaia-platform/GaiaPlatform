@@ -59,7 +59,7 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
     gaia::db::commit_transaction();
 }
 
-rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, size_t max_retries, rule_stats_manager_t& stats_manager)
+rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
     : m_stats_manager(stats_manager), m_max_rule_retries(max_retries)
 {
     m_exit = false;
@@ -206,21 +206,18 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         s_tls_can_enqueue = true;
         if (gaia::db::is_transaction_active())
         {
-            try
-            {
-                txn.commit();
-            }
-            catch (const transaction_update_conflict&)
-            {
-                should_schedule = false;
-                if (invocation.num_retries >= m_max_rule_retries)
-                {
-                    throw;
-                }
-                invocation.num_retries++;
-                m_stats_manager.inc_retries(rule_id);
-                enqueue(invocation);
-            }
+            txn.commit();
+        }
+    }
+    catch (const transaction_update_conflict&)
+    {
+        should_schedule = false;
+        if (invocation.num_retries <= m_max_rule_retries)
+        {
+            invocation.num_retries++;
+            m_stats_manager.inc_retries(rule_id);
+            s_tls_can_enqueue = true;
+            enqueue(invocation);
         }
     }
     catch (const std::exception& e)

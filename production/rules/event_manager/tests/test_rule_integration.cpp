@@ -46,6 +46,7 @@ constexpr uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
+bool g_manual_commit;
 
 optional_timer_t g_timer;
 steady_clock::time_point g_start;
@@ -157,6 +158,11 @@ void rule_conflict(const rule_context_t* context)
     }
 
     g_wait_for_count--;
+
+    if (g_manual_commit)
+    {
+        context->txn.commit();
+    }
 }
 
 extern "C" void initialize_rules()
@@ -526,8 +532,6 @@ TEST_F(rule_integration_test, test_exception)
 TEST_F(rule_integration_test, test_retry)
 {
     auto test_inner = [&](int num_conflicts, int max_retries) {
-        g_num_conflicts = num_conflicts;
-
         gaia::rules::shutdown_rules_engine();
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
@@ -538,6 +542,7 @@ TEST_F(rule_integration_test, test_retry)
         {
             // First rule execution isn't a retry, thus the "+ 1".
             rule_monitor_t monitor(min(num_conflicts, max_retries) + 1);
+            g_num_conflicts = num_conflicts;
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
             employee_writer writer;
             writer.name_first = c_name;
@@ -553,9 +558,17 @@ TEST_F(rule_integration_test, test_retry)
         return string(employee_t::get(id).name_first());
     };
 
-    EXPECT_EQ(test_inner(0, 1), "Success");
-    EXPECT_EQ(test_inner(2, 1), "Conflict");
-    EXPECT_EQ(test_inner(1, 3), "Success");
-    EXPECT_EQ(test_inner(3, 3), "Success");
-    EXPECT_EQ(test_inner(4, 3), "Conflict");
+    for (auto manual_commit : {false, true})
+    {
+        // We want to make sure that we generate update conflicts from within the rule invocation
+        // and from the auto-commit after the rule succeeds.
+        g_manual_commit = manual_commit;
+
+        EXPECT_EQ(test_inner(0, 0), "Success");
+        EXPECT_EQ(test_inner(0, 1), "Success");
+        EXPECT_EQ(test_inner(1, 0), "Conflict");
+        EXPECT_EQ(test_inner(1, 1), "Success");
+        EXPECT_EQ(test_inner(4, 3), "Conflict");
+        EXPECT_EQ(test_inner(3, 3), "Success");
+    }
 }

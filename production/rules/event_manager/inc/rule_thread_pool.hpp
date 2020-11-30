@@ -71,7 +71,7 @@ public:
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */
-    rule_thread_pool_t(size_t num_threads, size_t max_rule_retries, rule_stats_manager_t& stats_manager);
+    rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -144,7 +144,7 @@ private:
     /**
      * Maximum number of times to retry a rule when getting transaction update conflicts.
      */
-    const size_t m_max_rule_retries;
+    const uint32_t m_max_rule_retries;
 
     /**
      * OS threads waiting to do work
