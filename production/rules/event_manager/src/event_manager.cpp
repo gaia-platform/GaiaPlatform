@@ -98,8 +98,6 @@ void event_manager_t::shutdown()
         return;
     }
 
-    m_is_initialized = false;
-
     // Stop new events from coming in.
     set_commit_trigger(nullptr);
 
@@ -107,6 +105,9 @@ void event_manager_t::shutdown()
     m_invocations.reset();
     m_stats_manager.reset();
     m_rule_checker.reset();
+
+    // Don't uninitialize until we've shutdown the thread pool.
+    m_is_initialized = false;
 
     // Ensure we can re-initialize by dropping our subscription state.
     unsubscribe_rules();
