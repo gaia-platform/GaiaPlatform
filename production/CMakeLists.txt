@@ -13,7 +13,9 @@ enable_testing()
 project(production)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -67,6 +69,13 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
+# Prefer the static version of the libexplain.
+# The solution is suggested by a cmake developer on its mailing list:
+# https://cmake.org/pipermail/cmake/2010-December/041326.html
+find_library(LIB_EXPLAIN NAMES libexplain.a explain)
+# Transitive dependency of the libexplain.
+find_library(LIB_CAP NAMES libcap.a cap)
+
 # Force spdlog to use an external version of fmt.
 # TODO this flag should only be set in common/CMakeLists.txt. The flag is
 #  necessary here too, otherwise the compilation fail. The reason could
@@ -119,8 +128,9 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
-add_subdirectory(${ROCKSDB} rocksdb)
+add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
+set(FLATBUFFERS_INSTALL OFF)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -142,7 +152,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
+add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
@@ -173,7 +183,7 @@ add_subdirectory(tools)
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
-  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm)
+  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 

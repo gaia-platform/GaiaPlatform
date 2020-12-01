@@ -41,8 +41,12 @@ target_link_libraries(gaiat
   gaia_payload_types
   gaia_system
   flatbuffers
-  explain
+  ${LIB_EXPLAIN}
+  ${LIB_CAP}
+  dl
 )
+
+install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl")
 set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
@@ -53,7 +57,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
-  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp
+  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
   COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
   DEPENDS gaiat
