@@ -228,6 +228,41 @@ TEST_F(ddl_executor_test, create_table_duplicate_field)
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
+TEST_F(ddl_executor_test, create_table_double_anonymous_refrence)
+{
+    table_builder_t::new_table("table_1").create();
+    table_builder_t::new_table("table_2").create();
+
+    table_builder_t::new_table("test_double_anonymous_reference")
+        .anonymous_reference("table_1")
+        .anonymous_reference("table_2")
+        .create();
+}
+
+TEST_F(ddl_executor_test, create_table_duplicate_anonymous_refrence)
+{
+    table_builder_t::new_table("table_1").create();
+
+    EXPECT_THROW(
+        table_builder_t::new_table("test_double_anonymous_reference")
+            .anonymous_reference("table_1")
+            .anonymous_reference("table_1")
+            .create(),
+        duplicate_field);
+}
+
+TEST_F(ddl_executor_test, create_table_duplicate_anonymous_refrence_and_field)
+{
+    table_builder_t::new_table("table_1").create();
+
+    EXPECT_THROW(
+        table_builder_t::new_table("test_double_anonymous_reference")
+            .field("table_1", data_type_t::e_string)
+            .anonymous_reference("table_1")
+            .create(),
+        duplicate_field);
+}
+
 TEST_F(ddl_executor_test, drop_table)
 {
     string test_table_name{"drop_table_test"};
