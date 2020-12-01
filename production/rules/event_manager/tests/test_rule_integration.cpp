@@ -531,22 +531,27 @@ TEST_F(rule_integration_test, test_exception)
 
 TEST_F(rule_integration_test, test_retry)
 {
-    auto test_inner = [&](int num_conflicts, int max_retries) {
+    auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name) {
         gaia::rules::shutdown_rules_engine();
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
         gaia::rules::test::initialize_rules_engine(settings);
 
         subscribe_conflict();
-        gaia_id_t id;
+
+        // We execute the rule twice for each test to ensure that subsequent rules also have the
+        // expected retry behavior.
+        vector<string> names{"FooName", "BarName"};
+        vector<gaia_id_t> ids;
+        for (auto name : names)
         {
             // First rule execution isn't a retry, thus the "+ 1".
             rule_monitor_t monitor(min(num_conflicts, max_retries) + 1);
             g_num_conflicts = num_conflicts;
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
             employee_writer writer;
-            writer.name_first = c_name;
-            id = writer.insert_row();
+            writer.name_first = name;
+            ids.emplace_back(writer.insert_row());
             txn.commit();
         }
         // Shut down the rules engine to ensure the rule fires.
@@ -555,7 +560,11 @@ TEST_F(rule_integration_test, test_retry)
         gaia::rules::initialize_rules_engine();
 
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        return string(employee_t::get(id).name_first());
+        ASSERT_EQ(ids.size(), 2);
+        for (auto id : ids)
+        {
+            EXPECT_EQ(string(employee_t::get(id).name_first()), expected_name);
+        }
     };
 
     for (auto manual_commit : {false, true})
@@ -564,11 +573,11 @@ TEST_F(rule_integration_test, test_retry)
         // and from the auto-commit after the rule succeeds.
         g_manual_commit = manual_commit;
 
-        EXPECT_EQ(test_inner(0, 0), "Success");
-        EXPECT_EQ(test_inner(0, 1), "Success");
-        EXPECT_EQ(test_inner(1, 0), "Conflict");
-        EXPECT_EQ(test_inner(1, 1), "Success");
-        EXPECT_EQ(test_inner(4, 3), "Conflict");
-        EXPECT_EQ(test_inner(3, 3), "Success");
+        test_inner(0, 0, "Success");
+        test_inner(0, 1, "Success");
+        test_inner(1, 0, "Conflict");
+        test_inner(1, 1, "Success");
+        test_inner(4, 3, "Conflict");
+        test_inner(3, 3, "Success");
     }
 }
