@@ -37,7 +37,7 @@ char * personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall
 char * personRoles[] = {(char*)"Stranger", (char*)"Student", (char*)"Teacher", (char*)"Parent", (char*)"Exit", (char*)NULL};
 char * carLocations[] = {(char*)"Entry", (char*)"Garage", (char*)"Concourse", (char*)"Exit", (char*)NULL};
 
-class terminalMenu
+class terminal_menu
 {
 
 private:
@@ -49,19 +49,19 @@ bool _show_all_messages = true;
 const std::string _sender_name = "termUi";
 
 // singletonish
-inline static terminalMenu* _lastInstance = nullptr;
+inline static terminal_menu* _lastInstance = nullptr;
 
 // callback method type
-typedef void (terminalMenu::*CallbackType)(char * name);  
+typedef void (terminal_menu::*callback_type)(char * name);  
 
 // callback method container
-struct CallbackContStruct
+struct callback_cont_struct
 {
-    CallbackType Callback;
+    callback_type Callback;
 };
 
 // the message bus we want to use
-std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
+std::shared_ptr<message::i_message_bus> _messageBus = nullptr;
 
 // message header data
 int _sequenceID = 0;
@@ -90,7 +90,7 @@ std::string _arg1;
 * @throws 
 * @exceptsafe yes
 */  
-void putMenu(char *name, ITEM** items, int h, int w, int row, int col)
+void put_menu(char *name, ITEM** items, int h, int w, int row, int col)
 {
     int c;
     MENU* theMenu;
@@ -154,7 +154,7 @@ void putMenu(char *name, ITEM** items, int h, int w, int row, int col)
                     exit = true;
                 else
                 {
-                    CallbackContStruct* cbc = reinterpret_cast<CallbackContStruct*>(item_userptr(cur));    
+                    callback_cont_struct* cbc = reinterpret_cast<callback_cont_struct*>(item_userptr(cur));    
                     std::invoke(cbc->Callback, this, (char *)item_name(cur));
                     pos_menu_cursor(theMenu);                     
                 }
@@ -204,7 +204,7 @@ void putMenu(char *name, ITEM** items, int h, int w, int row, int col)
 * @throws 
 * @exceptsafe yes
 */  
-void putMenu(char *name, char* items[], CallbackType handler, int count, int h, int w, int row, int col)
+void put_menu(char *name, char* items[], callback_type handler, int count, int h, int w, int row, int col)
 {
     ITEM** menuItems;
     int n_choices, i;
@@ -212,7 +212,7 @@ void putMenu(char *name, char* items[], CallbackType handler, int count, int h, 
     n_choices = count;
     menuItems = (ITEM**)calloc(n_choices, sizeof(ITEM*));
 
-    CallbackContStruct cbc;
+    callback_cont_struct cbc;
     cbc.Callback = handler;
 
     for (i = 0; i < n_choices; ++i)
@@ -221,7 +221,7 @@ void putMenu(char *name, char* items[], CallbackType handler, int count, int h, 
         set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
     }
 
-    putMenu((char *)name, menuItems, h, w, row, col);
+    put_menu((char *)name, menuItems, h, w, row, col);
 
     for (i = 0; i < n_choices; ++i)
         free_item(menuItems[i]);
@@ -276,7 +276,7 @@ void print_in_middle(WINDOW* win, int starty, int startx, int width, char* strin
 * @throws 
 * @exceptsafe yes
 */  
-void showSelection(char * name)
+void show_selection(char * name)
 {
     move(2, 0);        
     clrtoeol();        
@@ -292,7 +292,7 @@ void showSelection(char * name)
 * @throws 
 * @exceptsafe yes
 */  
-void showTextMessage(char * textMessage)
+void show_text_message(char * textMessage)
 {
     move(2, 0);        
     clrtoeol();        
@@ -308,33 +308,33 @@ void showTextMessage(char * textMessage)
 * @throws 
 * @exceptsafe yes
 */  
-void showMessage(std::shared_ptr<message::Message> msg)
+void show_message(std::shared_ptr<bus_messages::message> msg)
 {
     auto messageType = msg->get_message_type_name();
     char buffer[1024];
 
-    if(messageType == message::message_types::action_message)
+    if(messageType == bus_messages::message_types::action_message)
     {
-        auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+        auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
-        sprintf(buffer, "Change detected: %s %s %s", actionMessage->_actor.c_str(), 
-            actionMessage->_action.c_str(), actionMessage->_arg1.c_str());
+        sprintf(buffer, "Change detected: %s %s %s", action_message->_actor.c_str(), 
+            action_message->_action.c_str(), action_message->_arg1.c_str());
     }
-    else if(messageType == message::message_types::alert_message)
+    else if(messageType == bus_messages::message_types::alert_message)
     {
-        auto alertMessage = reinterpret_cast<message::alert_message*>(msg.get());  
+        auto alertMessage = reinterpret_cast<bus_messages::alert_message*>(msg.get());  
 
         std::string sev_level = "Unknown"; 
 
         switch(alertMessage->_severity)
         {
-            case message::alert_message::severity_level_enum::alert :
+            case bus_messages::alert_message::severity_level_enum::alert :
                 sev_level = "Alert";
             break;
-            case message::alert_message::severity_level_enum::emergency :
+            case bus_messages::alert_message::severity_level_enum::emergency :
                 sev_level = "Emergency";
             break;
-            case message::alert_message::severity_level_enum::notice :
+            case bus_messages::alert_message::severity_level_enum::notice :
                 sev_level = "Notice";
             break;
         }
@@ -344,7 +344,7 @@ void showMessage(std::shared_ptr<message::Message> msg)
             alertMessage->_arg1.c_str());
     }
 
-    showTextMessage(buffer);
+    show_text_message(buffer);
 }
 
 /**
@@ -355,7 +355,7 @@ void showMessage(std::shared_ptr<message::Message> msg)
 * @throws 
 * @exceptsafe yes
 */  
-void ActorTypeSelected(char *name)
+void actor_type_selected(char *name)
 {       
     // set action values
     _actorType = name;
@@ -367,9 +367,9 @@ void ActorTypeSelected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Person"))
-        putMenu((char *)"Actor", people, &terminalMenu::PersonSelected, ARRAY_SIZE(people), 10, 40, 4, 44);
+        put_menu((char *)"Actor", people, &terminal_menu::person_selected, ARRAY_SIZE(people), 10, 40, 4, 44);
     else if(0 == strcmp(name, "Car"))
-        putMenu((char *)"Actor", cars, &terminalMenu::CarSelected, ARRAY_SIZE(cars), 10, 40, 4, 44);     
+        put_menu((char *)"Actor", cars, &terminal_menu::car_selected, ARRAY_SIZE(cars), 10, 40, 4, 44);     
 } 
 
 /**
@@ -380,7 +380,7 @@ void ActorTypeSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void PersonSelected(char *name)
+void person_selected(char *name)
 {        
     // set action values
     _actorName = name;
@@ -390,7 +390,7 @@ void PersonSelected(char *name)
     //showSelection(name);
 
     // show sub menu
-    putMenu((char *)"Action", personAction, &terminalMenu::PersonsActionSelected, ARRAY_SIZE(personAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(personAction), 10, 40, 4, 84);   
 } 
 
 /**
@@ -401,7 +401,7 @@ void PersonSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void CarSelected(char *name)
+void car_selected(char *name)
 {        
     // set action values
     _actorName = name;
@@ -411,7 +411,7 @@ void CarSelected(char *name)
     //showSelection(name);
 
     // show sub menu
-    putMenu((char *)"Action", carAction, &terminalMenu::CarActionSelected, ARRAY_SIZE(carAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(carAction), 10, 40, 4, 84);   
 } 
 
 /**
@@ -422,7 +422,7 @@ void CarSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void PersonsActionSelected(char *name)
+void persons_action_selected(char *name)
 {        
     // set action values
     _actionName = name;
@@ -432,13 +432,13 @@ void PersonsActionSelected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Move To"))
-        putMenu((char *)"Location", personLocations, &terminalMenu::PersonsActionMovetoSelected, ARRAY_SIZE(personLocations), 10, 40, 4, 124);
+        put_menu((char *)"Location", personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(personLocations), 10, 40, 4, 124);
     else if(0 == strcmp(name, "Change Role"))
-        putMenu((char *)"New Role", personRoles, &terminalMenu::PersonsActionChangeRoleSelected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);   
+        put_menu((char *)"New Role", personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
-        DoTheChange();    
+        do_the_change();    
     else if(0 == strcmp(name, "Disarm"))
-        DoTheChange();
+        do_the_change();
 } 
 
 /**
@@ -449,13 +449,13 @@ void PersonsActionSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void CarActionSelected(char *name)
+void car_action_selected(char *name)
 {        
     // set action values
     _actionName = name;
     _arg1 = "";
 
-    putMenu((char *)"Location", carLocations, &terminalMenu::CarActionChangeLocationSelected, ARRAY_SIZE(carLocations), 10, 40, 4, 124);   
+    put_menu((char *)"Location", carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(carLocations), 10, 40, 4, 124);   
 } 
 
 /**
@@ -466,13 +466,13 @@ void CarActionSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void PersonsActionMovetoSelected(char *name)
+void persons_action_moveto_selected(char *name)
 {        
     // set action values
     _arg1 = name;
 
     //do the change  
-    DoTheChange();
+    do_the_change();
 } 
 
 /**
@@ -483,13 +483,13 @@ void PersonsActionMovetoSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void PersonsActionChangeRoleSelected(char *name)
+void persons_action_change_role_selected(char *name)
 {        
     // set action values
     _arg1 = name;
 
     //do the change  
-    DoTheChange();  
+    do_the_change();  
 } 
 
 /**
@@ -500,13 +500,13 @@ void PersonsActionChangeRoleSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void CarActionChangeLocationSelected(char *name)
+void car_action_change_location_selected(char *name)
 {        
     // set action values
     _arg1 = name;
 
     //do the change  
-    DoTheChange();
+    do_the_change();
 } 
 
 /**
@@ -516,27 +516,27 @@ void CarActionChangeLocationSelected(char *name)
 * @throws 
 * @exceptsafe yes
 */  
-void DoTheChange()
+void do_the_change()
 {
     if(nullptr == _messageBus)
         return;
 
-    message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
-    std::shared_ptr<message::Message> msg = 
-        std::make_shared<message::ActionMessage>(mh, _actorType, _actorName, _actionName, _arg1);
+    std::shared_ptr<bus_messages::message> msg = 
+        std::make_shared<bus_messages::action_message>(mh, _actorType, _actorName, _actionName, _arg1);
 
-    _messageBus->SendMessage(msg);
+    _messageBus->send_message(msg);
 }
 
 public:
 
-static terminalMenu* GetLastInstance()
+static terminal_menu* get_last_instance()
 {
     return _lastInstance;
 }
 
-std::shared_ptr<message::IMessageBus> GetMessageBus()
+std::shared_ptr<message::i_message_bus> get_message_bus()
 {
     return _messageBus;
 }
@@ -552,33 +552,33 @@ std::shared_ptr<message::IMessageBus> GetMessageBus()
 */  
 void Run()
 {    
-    putMenu((char *)"Actor Type", choices1, &terminalMenu::ActorTypeSelected, ARRAY_SIZE(choices1), 10, 40, 4, 4); 
+    put_menu((char *)"Actor Type", choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(choices1), 10, 40, 4, 4); 
     endwin();
 }
 
 /**
 * Callback from the message bus when a message arrives
 *
-* @param[in] message::Message msg
+* @param[in] bus_messages::message msg
 * @return 
 * @throws 
 * @exceptsafe yes
 */  
-void MessageCallback(std::shared_ptr<message::Message> msg)
+void message_callback(std::shared_ptr<bus_messages::message> msg)
 {
     if(_show_all_messages)
-        showMessage(msg);
+        show_message(msg);
 
     auto messageType = msg->get_message_type_name();
 
     // switch on the type of message received
-    if(messageType == message::message_types::action_message)
+    if(messageType == bus_messages::message_types::action_message)
     {
-        //auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+        //auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
         //at this point we have our action message, update the DB
-        //if(actionMessage->_actorType == "Person")
-            //got_person_action_message(actionMessage);
+        //if(action_message->_actorType == "Person")
+            //got_person_action_message(action_message);
     }
 }
 
@@ -586,19 +586,19 @@ void MessageCallback(std::shared_ptr<message::Message> msg)
 * Callback from the message bus when a message arrives
 * Am not crazy about this, I need to convert to using a std::fuction
 *
-* @param[in] message::Message msg
+* @param[in] bus_messages::message msg
 * @return 
 * @throws 
 * @exceptsafe yes
 */  
-static void StaticMessageCallback(std::shared_ptr<message::Message> msg)
+static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
 {
-    auto li = GetLastInstance();
+    auto li = get_last_instance();
 
     if(nullptr == li) //TODO: notify user
         return;
 
-    li->MessageCallback(msg);
+    li->message_callback(msg);
 }
 
 /**
@@ -610,7 +610,7 @@ static void StaticMessageCallback(std::shared_ptr<message::Message> msg)
 * @throws 
 * @exceptsafe yes
 */  
-void Init()
+void init()
 {   
     _lastInstance = this;
 
@@ -624,13 +624,13 @@ void Init()
     init_pair(2, COLOR_CYAN, COLOR_BLACK); 
 
     // function of member
-    //std::function<void(terminalMenu&, std::shared_ptr<message::Message> msg)> mcb = &terminalMenu::MessageCallback;
+    //std::function<void(terminalMenu&, std::shared_ptr<bus_messages::message> msg)> mcb = &terminalMenu::MessageCallback;
 
     try
     {
         // Initialize message bus
-        _messageBus = std::make_shared<message::MessageBus>();
-        _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback, _sender_name);        
+        _messageBus = std::make_shared<message::message_bus>();
+        _messageBus->register_message_callback(&terminal_menu::static_message_callback, _sender_name);        
     }
     catch(const std::exception& e)
     {
@@ -655,12 +655,12 @@ void Init()
 */  
 int main()
 {
-    terminalMenu tm;
-    tm.Init();
+    terminal_menu tm;
+    tm.init();
 
-    CampusDemo::Campus cd;
+    campus_demo::campus cd;
 
-    if( 0 == cd.Init(tm.GetMessageBus()))
+    if( 0 == cd.init(tm.get_message_bus()))
         tm.Run();
     else
     {

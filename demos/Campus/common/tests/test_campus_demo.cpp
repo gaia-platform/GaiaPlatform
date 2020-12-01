@@ -9,14 +9,14 @@
 
 namespace tests{
 
-// CampusDemo test fixture
-class CampusDemoTest : public ::testing::Test {
+// campus_demo test fixture
+class campus_demo_test : public ::testing::Test {
  protected:
 
-  CampusDemoTest() {
+  campus_demo_test() {
   }
 
-  ~CampusDemoTest() override {
+  ~campus_demo_test() override {
   }
 
   // called immidiately after constructor
@@ -29,21 +29,21 @@ class CampusDemoTest : public ::testing::Test {
 };
 
 // yada ...
-TEST_F(CampusDemoTest, DemoTestTest) {
-   CampusDemo::Campus cd;
-   EXPECT_EQ(cd.DemoTest(), 0);
+TEST_F(campus_demo_test, DemoTestTest) {
+   campus_demo::campus cd;
+   EXPECT_EQ(cd.demo_test(), 0);
 }
 
 // yada ...
-TEST_F(CampusDemoTest, MessageHeaderTest) {
-   message::MessageHeader mh;
-   EXPECT_EQ(mh.DemoTest(), 0);
+TEST_F(campus_demo_test, MessageHeaderTest) {
+   bus_messages::message_header mh;
+   EXPECT_EQ(mh.demo_test(), 0);
 }
 
 // yada ...
-TEST_F(CampusDemoTest, MessageTest) {
-   message::Message msg;
-   EXPECT_EQ(msg.DemoTest(), 0);
+TEST_F(campus_demo_test, MessageTest) {
+   bus_messages::message msg;
+   EXPECT_EQ(msg.demo_test(), 0);
 }
 
 }  // namespace tests

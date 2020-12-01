@@ -25,7 +25,7 @@
             ]
         },
         {
-            "name": "Edge Person (gdb)",
+            "name": "Edge (gdb)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/campus",
@@ -51,63 +51,6 @@
                     "ignoreFailures": true
                 }
             ]            
-        },
-        {
-            "name": "Edge TempSensor (gdb)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/temperaturesensor",
-            "args": ["file://./config/TemperatureSensorProperties.json","file://./config/PersonProperties.json","60"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
-            "environment": [
-                {
-                    "name": "ADLINK_DATARIVER_URI", 
-                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/config/default_datariver_config_v1.6.xml"
-                },
-                {
-                    "name": "ADLINK_LICENSE", 
-                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/license.lic"   
-                }
-            ],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]            
-        },
-        {
-            "name": "Edge TempReader (gdb)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/temperaturedisplay",
-            "args": ["file://./config/TemperatureDisplayProperties.json","60"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
-            "environment": [
-                {
-                    "name": "ADLINK_DATARIVER_URI", 
-                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/config/default_datariver_config_v1.6.xml"
-                },
-                {
-                    "name": "ADLINK_LICENSE", 
-                    "value": "file:///media/mark/Data1/U20/SDK/ADLINK/EdgeSDK/1.5.1/etc/license.lic"   
-                }
-            ],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]            
         }
-
     ]
 }

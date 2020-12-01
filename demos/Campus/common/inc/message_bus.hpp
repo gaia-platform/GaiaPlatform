@@ -14,13 +14,13 @@
 #define UNUSED(...) (void)(__VA_ARGS__)
     
 // callback method type
-typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
+typedef void (*message_callback_type)(std::shared_ptr<bus_messages::message> msg); 
 
 namespace message {
 
 /*class IMessageCallback
 {
-    virtual void MessageCallback(std::shared_ptr<message::Message> msg)
+    virtual void MessageCallback(std::shared_ptr<bus_messages::message> msg)
     {
         UNUSED(msg);
     }
@@ -33,12 +33,12 @@ class callback_registration{
 
 private:
 
-    MessageCallbackType _callback = nullptr;
+    message_callback_type _callback = nullptr;
     std::string _regsitrantName = "";
 
 public:
 
-    MessageCallbackType get_callback(){
+    message_callback_type get_callback(){
         return _callback;
     }
 
@@ -46,52 +46,52 @@ public:
         return _regsitrantName;
     }   
 
-    callback_registration(MessageCallbackType callback, std::string regsitrantName) :
+    callback_registration(message_callback_type callback, std::string regsitrantName) :
         _callback(callback), _regsitrantName(regsitrantName){}
 };
 
 /**
 * @brief The message bus interface
 */
-class IMessageBus
+class i_message_bus
 {
 public:
   
-    //std::vector<MessageCallbackType> _messageCallbacks;
+    //std::vector<message_callback_type> _messageCallbacks;
     std::vector<callback_registration> _messageCallbacks;
 
     // send a message to the message bus
-    virtual int SendMessage(std::shared_ptr<message::Message> msg)
+    virtual int send_message(std::shared_ptr<bus_messages::message> msg)
     {
         UNUSED(msg);
         return 0;
     }
 
     // message received from the message bus
-    virtual int message_received_from_bus(std::shared_ptr<message::Message> msg)
+    virtual int message_received_from_bus(std::shared_ptr<bus_messages::message> msg)
     {
         UNUSED(msg);
         return 0;
     }
 
     // register a callback on which to receive messages
-    virtual int RegisterMessageCallback(MessageCallbackType callback, std::string regsitrantName) 
+    virtual int register_message_callback(message_callback_type callback, std::string regsitrantName) 
     {
         _messageCallbacks.push_back(callback_registration(callback, regsitrantName));
         return 0;
     }
     
     // register a callback on which to receive messages
-    virtual int DeRegisterMessageCallback(MessageCallbackType callback) 
+    virtual int deregister_message_callback(message_callback_type callback) 
     {
         UNUSED(callback);
         return 0;
     }
 
     // to get rid of annoying build warnings
-    virtual ~IMessageBus(){}
+    virtual ~i_message_bus(){}
     
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 };

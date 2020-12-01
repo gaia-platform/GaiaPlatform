@@ -6,12 +6,12 @@ namespace message {
 /**
  * @brief A local in process message bus
  */
-class MessageBus : public IMessageBus
+class message_bus : public i_message_bus
 {
 private:
 
     std::thread* _workerThread;
-    std::queue<std::shared_ptr<message::Message>> _messageQueue;
+    std::queue<std::shared_ptr<bus_messages::message>> _messageQueue;
     std::mutex m;
     std::condition_variable cv;
     bool _stop = false;
@@ -44,13 +44,13 @@ private:
     /**
      * Check if message sender is the callback registrant
      * 
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @param[in] callback_registration registration
      * @return true if the same, false if not the same
      * @throws std::invalid_argument
      * @exceptsafe yes
      */  
-    bool is_registrant_sender(std::shared_ptr<message::Message> msg, 
+    bool is_registrant_sender(std::shared_ptr<bus_messages::message> msg, 
         callback_registration registration)
     {
         if(nullptr == msg)
@@ -84,7 +84,7 @@ private:
             while(!_messageQueue.empty())
             {
                 // get the first message
-                std::shared_ptr<message::Message> msg = _messageQueue.front();
+                std::shared_ptr<bus_messages::message> msg = _messageQueue.front();
                 _messageQueue.pop();
 
                 if(nullptr == msg)
@@ -117,20 +117,20 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    MessageBus()
+    message_bus()
     {
-        Run();
+        run();
     }
 
     /**
      * Put a message on the bus
      *
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @return int
      * @throws 
      * @exceptsafe yes
      */  
-    int SendMessage(std::shared_ptr<message::Message> msg) override
+    int send_message(std::shared_ptr<bus_messages::message> msg) override
     {
         {
             //std::lock_guard<std::mutex> lk(m);
@@ -148,9 +148,9 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    int Run()
+    int run()
     {
-        _workerThread = new std::thread(&MessageBus::worker, this);        
+        _workerThread = new std::thread(&message_bus::worker, this);        
         return 0;
     }
 
@@ -160,7 +160,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    void Stop()
+    void stop()
     {
         _stop = true;
 

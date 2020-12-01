@@ -23,7 +23,7 @@ namespace message {
 /**
  * @brief An ADLink Edge message bus
  */
-class MessageBus : public IMessageBus
+class message_bus : public i_message_bus
 {
 private:
 
@@ -60,13 +60,13 @@ private:
     /**
      * Check if message sender is the callback registrant
      * 
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @param[in] callback_registration registration
      * @return true if the same, false if not the same
      * @throws std::invalid_argument
      * @exceptsafe yes
      */  
-    bool is_registrant_sender(std::shared_ptr<message::Message> msg, 
+    bool is_registrant_sender(std::shared_ptr<bus_messages::message> msg, 
         callback_registration registration){
         if(nullptr == msg)
             throw std::invalid_argument("argument msg cannot be null");
@@ -83,7 +83,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */  
-    MessageBus(){
+    message_bus(){
         init();
     }
 
@@ -129,12 +129,12 @@ public:
     /**
      * Put a message on the bus
      *
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @return int
      * @throws 
      * @exceptsafe yes
      */  
-    int SendMessage(std::shared_ptr<message::Message> msg) override{
+    int send_message(std::shared_ptr<bus_messages::message> msg) override{
         {
             try
             {
@@ -144,15 +144,15 @@ public:
                 // the message. Ok for now, change it soon though.
                 if(hdr.get_senderName() == "termUi")
                 {
-                    m_uiThing->SendMessage(msg);
+                    m_uiThing->send_message(msg);
                 }                
                 else if(hdr.get_senderName() == "campus")
                 {
-                    m_campusThing->SendMessage(msg);
+                    m_campusThing->send_message(msg);
                 }
                 else if(hdr.get_senderName() == "person")
                 {
-                    m_personThing->SendMessage(msg);
+                    m_personThing->send_message(msg);
                 }            
             }
             catch (ThingAPIException& e) 
@@ -178,12 +178,12 @@ public:
     /**
      * Message received from the message bus
      *
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @return int
      * @throws 
      * @exceptsafe yes
      */  
-    int message_received_from_bus(std::shared_ptr<message::Message> msg) override{
+    int message_received_from_bus(std::shared_ptr<bus_messages::message> msg) override{
         {
             try
             {
@@ -224,5 +224,5 @@ public:
 
         return 0;
     }
-}; // class MessageBus
+}; // class message_bus
 } // namespace message

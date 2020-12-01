@@ -8,31 +8,31 @@
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
 
-CampusDemo::Campus::Campus(){
+campus_demo::campus::campus(){
     _lastInstance = this;
 }
 
-CampusDemo::Campus::~Campus(){}
+campus_demo::campus::~campus(){}
 
-int CampusDemo::Campus::DemoTest(){
+int campus_demo::campus::demo_test(){
     return 0;
 }
 
-CampusDemo::Campus* CampusDemo::Campus::GetLastInstance(){
+campus_demo::campus* campus_demo::campus::get_last_instance(){
     return _lastInstance;
 }
 
-void CampusDemo::Campus::log_this(std::string prefix, const std::exception& e){
+void campus_demo::campus::log_this(std::string prefix, const std::exception& e){
     auto ew = e.what();
     UNUSED(ew);
     std::cout << "Exception: " << prefix << " : " << e.what();
 }
 
-void CampusDemo::Campus::log_this(std::string prefix){
+void campus_demo::campus::log_this(std::string prefix){
     std::cout << prefix;
 }
 
-void CampusDemo::Campus::got_person_action_message(const message::ActionMessage *msg){
+void campus_demo::campus::got_person_action_message(const bus_messages::action_message *msg){
     
     gaia::campus::person_t found_person;
 
@@ -58,16 +58,16 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
             if(nullptr == _messageBus)
                 return;
 
-            message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+            bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
             char buffer[256];
             sprintf(buffer, "'%s' is brandishing a weapon", msg->_actor.c_str());
 
-            std::shared_ptr<message::Message> msg = 
-                std::make_shared<message::alert_message>(mh, "Deadly Threat", 
-                    buffer, message::alert_message::severity_level_enum::emergency, "");
+            std::shared_ptr<bus_messages::message> msg = 
+                std::make_shared<bus_messages::alert_message>(mh, "Deadly Threat", 
+                    buffer, bus_messages::alert_message::severity_level_enum::emergency, "");
 
-            _messageBus->SendMessage(msg);
+            _messageBus->send_message(msg);
         }
     }    
     else if(msg->_action == "Disarm")
@@ -79,7 +79,7 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
     }
 }
 
-void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
+void campus_demo::campus::message_callback(std::shared_ptr<bus_messages::message> msg){
     
     bool gotSession = false;
 
@@ -88,24 +88,24 @@ void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
         // what kind of message do we have?
         auto messageType = msg->get_message_type_name();
 
-        if(messageType == message::message_types::action_message)
+        if(messageType == bus_messages::message_types::action_message)
         {
             // begin a Gaia DB session
             begin_session();   
             gotSession = true;         
         
-            auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
             //at this point we have our action message, update the DB
-            if(actionMessage->_actorType == "Person")
-                got_person_action_message(actionMessage);
+            if(action_message->_actorType == "Person")
+                got_person_action_message(action_message);
         }
     }
     catch(const std::exception& e){
-        log_this("CampusDemo::Campus::MessageCallback()", e);
+        log_this("campus_demo::campus::MessageCallback()", e);
     }
     catch(...){
-        log_this("Exception in CampusDemo::Campus::MessageCallback() ...");
+        log_this("Exception in campus_demo::campus::MessageCallback() ...");
     }
 
     if(gotSession){
@@ -114,23 +114,23 @@ void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
     }
 }
 
-void CampusDemo::Campus::StaticMessageCallback(std::shared_ptr<message::Message> msg){
+void campus_demo::campus::static_message_callback(std::shared_ptr<bus_messages::message> msg){
     
-    auto li = GetLastInstance();
+    auto li = get_last_instance();
 
     if(nullptr == li) //TODO: notify user
         return;
 
-    li->MessageCallback(msg);        
+    li->message_callback(msg);        
 }
 
-int CampusDemo::Campus::RunAsync(){
+int campus_demo::campus::run_async(){
     // start a new thread and ...
 
     return 0;
 }
 
-void CampusDemo::Campus::Worker(){
+void campus_demo::campus::worker(){
     //Initialize Gaia
     gaia::system::initialize(_config_file_name.c_str());     
 
@@ -143,25 +143,25 @@ void CampusDemo::Campus::Worker(){
     }
 }
 
-int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
+int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus){
 
     try{
         //Disregard all this for now
-        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(this);
-        //auto bbb = std::shared_ptr<CampusDemo::Campus>(this);    
-        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this))
-        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this));
-        //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<ICampus>>(shared_from_this());
+        //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(this);
+        //auto bbb = std::shared_ptr<campus_demo::Campus>(this);    
+        //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(reinterpret_cast<i_Campus*>(this))
+        //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(reinterpret_cast<i_Campus*>(this));
+        //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<i_Campus>>(shared_from_this());
 
         //TODO : yes, I know, make this modern
-        campus_ruleset_p_campus = reinterpret_cast<ICampus*>(this);
+        campus_ruleset_p_campus = reinterpret_cast<i_Campus*>(this);
 
         if(nullptr == messageBus)
             throw std::invalid_argument("argument messageBus cannot be null");
         
         //Save the message bus and register a callback
         _messageBus = messageBus;
-        _messageBus->RegisterMessageCallback(&CampusDemo::Campus::StaticMessageCallback, _sender_name);
+        _messageBus->register_message_callback(&campus_demo::campus::static_message_callback, _sender_name);
 
         //Initialize Gaia
         gaia::system::initialize(_config_file_name.c_str());     
@@ -169,50 +169,50 @@ int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
         init_storage();    
     }
     catch(const std::exception& e){
-        log_this("CampusDemo::Campus::Init()", e);
+        log_this("campus_demo::campus::Init()", e);
         return -1;
     }
     catch(...){
-        log_this("Exception in CampusDemo::Campus::Init() ...");
+        log_this("Exception in campus_demo::campus::Init() ...");
         return -1;
     }
     
     return 0;
 }
 
-//*** ICampus interface ***
+//*** i_Campus interface ***
 
-void CampusDemo::Campus::cb_action( std::string actorType, 
+void campus_demo::campus::cb_action( std::string actorType, 
     std::string actorName, std::string actionName, std::string arg1){
 
     if(nullptr == _messageBus)
         return;
 
-    message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
-    std::shared_ptr<message::Message> msg = 
-        std::make_shared<message::ActionMessage>(mh, actorType, actorName, actionName, arg1);
+    std::shared_ptr<bus_messages::message> msg = 
+        std::make_shared<bus_messages::action_message>(mh, actorType, actorName, actionName, arg1);
 
-    _messageBus->SendMessage(msg);
+    _messageBus->send_message(msg);
 }
 
-void CampusDemo::Campus::cb_alert( std::string title, 
+void campus_demo::campus::cb_alert( std::string title, 
         std::string body, int severity, std::string arg1){
 
     if(nullptr == _messageBus)
         return;
 
-    message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
-    std::shared_ptr<message::Message> msg = 
-        std::make_shared<message::alert_message>(mh, title, body, severity, arg1);
+    std::shared_ptr<bus_messages::message> msg = 
+        std::make_shared<bus_messages::alert_message>(mh, title, body, severity, arg1);
 
-    _messageBus->SendMessage(msg);
+    _messageBus->send_message(msg);
 }
 
 //*** DB Procedural ***
 
-bool CampusDemo::Campus::get_person(const char* name, gaia::campus::person_t &found_person)
+bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t &found_person)
 {
     bool did_find = false;
 
@@ -229,7 +229,7 @@ bool CampusDemo::Campus::get_person(const char* name, gaia::campus::person_t &fo
     return did_find;
 }
 
-gaia_id_t CampusDemo::Campus::insert_campus(const char* name, bool in_emergency) {
+gaia_id_t campus_demo::campus::insert_campus(const char* name, bool in_emergency) {
     gaia::campus::campus_writer cw;
     cw.name = name;
     cw.in_emergency = in_emergency;
@@ -237,13 +237,13 @@ gaia_id_t CampusDemo::Campus::insert_campus(const char* name, bool in_emergency)
     return cw.insert_row();
 }
 
-void CampusDemo::Campus::update_campus(gaia::campus::campus_t& camp, bool in_emergency) {
+void campus_demo::campus::update_campus(gaia::campus::campus_t& camp, bool in_emergency) {
     auto c = camp.writer();
     c.in_emergency = in_emergency;
     c.update_row();
 }
 
-gaia_id_t CampusDemo::Campus::insert_person(const char* name, bool is_threat, const std::string location) {
+gaia_id_t campus_demo::campus::insert_person(const char* name, bool is_threat, const std::string location) {
     gaia::campus::person_writer p;
     p.name = name;
     p.is_threat = is_threat;
@@ -251,21 +251,21 @@ gaia_id_t CampusDemo::Campus::insert_person(const char* name, bool is_threat, co
     return p.insert_row();
 }
 
-void CampusDemo::Campus::update_person(gaia::campus::person_t& person, bool is_threat, const std::string location) {
+void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_threat, const std::string location) {
     auto p = person.writer();
     p.is_threat = is_threat;
     p.location = location;
     p.update_row();
 }
 
-void CampusDemo::Campus::restore_default_values() {
+void campus_demo::campus::restore_default_values() {
     for (auto& person : gaia::campus::person_t::list()) {
         //_persons_v.push_back(person);
         update_person(person, false, "*");
     }
 }
 
-void CampusDemo::Campus::init_storage() {
+void campus_demo::campus::init_storage() {
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
     if (gaia::campus::person_t::get_first()) {

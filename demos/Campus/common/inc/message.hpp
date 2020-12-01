@@ -3,12 +3,12 @@
 #include <time.h>
 #include <string>
 
-namespace message {
+namespace bus_messages {
 
 /**
 * The message header
 */
-class MessageHeader{
+class message_header{
 private:
 
     unsigned int _sequenceID = 0;
@@ -28,7 +28,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */
-    MessageHeader()
+    message_header()
     {
         _timeSent  = time(nullptr);
         
@@ -51,7 +51,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */
-    MessageHeader(unsigned int sequenceID,
+    message_header(unsigned int sequenceID,
         unsigned int senderID,
         std::string senderName,    
         unsigned int destID,
@@ -60,7 +60,7 @@ public:
         _senderName(senderName), _destID(destID), _destName(destName)
     {
         _timeSent  = time(nullptr);
-        FixVals();
+        fix_vals();
     };
 
     /**
@@ -76,7 +76,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */    
-    MessageHeader(unsigned int sequenceID,
+    message_header(unsigned int sequenceID,
         time_t timeSent,
         unsigned int senderID,
         std::string senderName,    
@@ -85,14 +85,14 @@ public:
         _sequenceID(sequenceID), _timeSent(timeSent), _senderID(senderID), 
         _senderName(senderName), _destID(destID), _destName(destName)
     {
-        FixVals();
+        fix_vals();
     };
 
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 
-    void FixVals()
+    void fix_vals()
     {
         if( "" == _senderName ) 
          _senderName = "*";
@@ -134,12 +134,12 @@ class Message{
 
 private:
 
-    MessageHeader messageHeader_;    
+    message_header messageHeader_;    
     T payload_;
     
 public:
 
-    Message(MessageHeader header, T payload) : 
+    Message(message_header header, T payload) : 
         messageHeader_(header), payload_(payload){
     }
 
@@ -155,11 +155,11 @@ public:
 /**
 * The message. The base class of all messages. 
 */
-class Message{
+class message{
 
 protected:
 
-    MessageHeader _messageHeader;    
+    message_header _messageHeader;    
     void * _payload;
     std::string _messageTypeName = "";
     
@@ -168,14 +168,14 @@ public:
     /**
      * Constructor
      *
-     * @param[in] MessageHeader header
+     * @param[in] message_header header
      * @param[in] T payload
      * @return 
      * @throws 
      * @exceptsafe yes
      */    
     template <class T>    
-    Message(MessageHeader header, T payload) : 
+    message(message_header header, T payload) : 
         _messageHeader(header)
     {
         _payload = payload;
@@ -184,18 +184,18 @@ public:
     /**
      * Constructor
      *
-     * @param[in] MessageHeader header
+     * @param[in] message_header header
      * @return 
      * @throws 
      * @exceptsafe yes
      */    
-    Message(MessageHeader header) : 
+    message(message_header header) : 
         _messageHeader(header)
     {}
 
-    Message(){}
+    message(){}
 
-    MessageHeader get_header(){
+    message_header get_header(){
         return _messageHeader;
     }
 
@@ -207,7 +207,7 @@ public:
         return _messageTypeName;
     }
 
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 };
@@ -229,7 +229,7 @@ public:
 *   The action message, used to convey that some object has taken some action,
 *   like a move to a new loocation or a change in role. 
 */
-class ActionMessage : public Message
+class action_message : public message
 {
 private:
 
@@ -242,16 +242,16 @@ public:
     std::string _action;
     std::string _arg1;
 
-    ActionMessage(MessageHeader header, std::string actorType, std::string actor, std::string action, std::string arg1) :
-        Message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1){ 
+    action_message(message_header header, std::string actorType, std::string actor, std::string action, std::string arg1) :
+        message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1){ 
         _messageTypeName = message_types::action_message;
     }
 
-    ActionMessage(){ 
+    action_message(){ 
         _messageTypeName = message_types::action_message;
     }
 
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 };
@@ -259,7 +259,7 @@ public:
 /*
 *   The alert message message, used to send an alert 
 */
-class alert_message : public Message
+class alert_message : public message
 {
 private:
 
@@ -274,13 +274,13 @@ public:
     severity_level_enum _severity;
     std::string _arg1;
 
-    alert_message(MessageHeader header, std::string title, std::string body, severity_level_enum severity, std::string arg1) :
-        Message(header), _title(title), _body(body), _severity(severity), _arg1(arg1){ 
+    alert_message(message_header header, std::string title, std::string body, severity_level_enum severity, std::string arg1) :
+        message(header), _title(title), _body(body), _severity(severity), _arg1(arg1){ 
         _messageTypeName = message_types::alert_message;
     }
 
-    alert_message(MessageHeader header, std::string title, std::string body, int severity, std::string arg1) :
-        Message(header), _title(title), _body(body), _arg1(arg1){ 
+    alert_message(message_header header, std::string title, std::string body, int severity, std::string arg1) :
+        message(header), _title(title), _body(body), _arg1(arg1){ 
         _severity = static_cast<severity_level_enum>(severity); //TODO : catch arg problems
         _messageTypeName = message_types::alert_message;
     }
@@ -289,9 +289,9 @@ public:
         _messageTypeName = message_types::alert_message;
     }
 
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 };
 
-}
+} // bus_messages

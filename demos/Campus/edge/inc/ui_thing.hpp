@@ -31,9 +31,9 @@ private:
 
     string m_thingPropertiesUri;
     DataRiver m_dataRiver;
-    Thing m_thing = createThing();    
+    Thing m_thing = create_thing();    
     data_listener m_dataListener;
-    message::IMessageBus* m_callbackClass;
+    message::i_message_bus* m_callbackClass;
 
     // the name of the client on the message bus
     const std::string _sender_name = "UI";
@@ -52,7 +52,7 @@ private:
     * @throws ThingAPIException
     * @exceptsafe yes
     */  
-    Thing createThing(){
+    Thing create_thing(){
 
         //TODO: it appears that creating a unique tag group more than once does not result in an error
         // 1) verify this, 2) find a way to check if a tag group exists
@@ -84,12 +84,12 @@ public:
     * Constructor
     *
     * @param[in] DataRiver dataRiver
-    * @param[in] message::IMessageBus* callbackClass
+    * @param[in] message::i_message_bus* callbackClass
     * @param[in] string thingPropertiesUri
     * @throws ThingAPIException
     * @exceptsafe yes
     */  
-    ui_thing(DataRiver dataRiver, message::IMessageBus* callbackClass, string thingPropertiesUri) 
+    ui_thing(DataRiver dataRiver, message::i_message_bus* callbackClass, string thingPropertiesUri) 
         :m_thingPropertiesUri(thingPropertiesUri), m_dataRiver(dataRiver), m_callbackClass(callbackClass) {
 
         m_dataListener.register_listener(this);
@@ -111,28 +111,28 @@ public:
     /**
      * Put a message on the bus
      *
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @return int
      * @throws 
      * @exceptsafe yes
      */  
-    int SendMessage(std::shared_ptr<message::Message> msg){
+    int send_message(std::shared_ptr<bus_messages::message> msg){
 
         auto messageType = msg->get_message_type_name();
 
-        if(messageType == message::message_types::action_message){
+        if(messageType == bus_messages::message_types::action_message){
 
-            auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
             IOT_VALUE actorType_v;            
             IOT_VALUE actor_v;            
             IOT_VALUE action_v;            
             IOT_VALUE arg1_v;
 
-            actorType_v.iotv_string(actionMessage->_actorType);            
-            actor_v.iotv_string(actionMessage->_actor);            
-            action_v.iotv_string(actionMessage->_action);            
-            actorType_v.iotv_string(actionMessage->_arg1);
+            actorType_v.iotv_string(action_message->_actorType);            
+            actor_v.iotv_string(action_message->_actor);            
+            action_v.iotv_string(action_message->_action);            
+            actorType_v.iotv_string(action_message->_arg1);
 
             IOT_NVP_SEQ actionData = {
                 IOT_NVP(string("actorType"), actorType_v),                
@@ -152,7 +152,7 @@ public:
     /**
      * Receive a message from the bus
      *
-     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] std::shared_ptr<bus_messages::message> msg
      * @return int
      * @throws 
      * @exceptsafe yes
@@ -198,10 +198,10 @@ public:
             }
 
             // create message payload
-            message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+            bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
-            std::shared_ptr<message::Message> msg = 
-                std::make_shared<message::alert_message>(mh, title, body, severity, arg1);
+            std::shared_ptr<bus_messages::message> msg = 
+                std::make_shared<bus_messages::alert_message>(mh, title, body, severity, arg1);
 
             // notify internal bus of new message
             m_callbackClass->message_received_from_bus(msg);

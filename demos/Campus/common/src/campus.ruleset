@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <string.h>
 #include <memory>
-#include "../inc/icampus.hpp"
+#include "../inc/i_campus.hpp"
 
 //using namespace std;
 
@@ -11,7 +11,7 @@ ruleset campus_ruleset
     {         
         if( 1 == person.is_threat )
         {
-            auto cbc = ICampus::get_callback_class();
+            auto cbc = i_Campus::get_callback_class();
             char buffer[256];
             sprintf(buffer, "'%s' is brandishing a weapon", @person.name);
             cbc->cb_alert("Deadly Threat", buffer, 2, "");
@@ -19,7 +19,7 @@ ruleset campus_ruleset
         
         if( 0 == person.is_threat )
         {
-            auto cbc = ICampus::get_callback_class();
+            auto cbc = i_Campus::get_callback_class();
             char buffer[256];
             sprintf(buffer, "'%s' is not threatening anyone", @person.name);
             cbc->cb_alert("All Clear", buffer, 0, "");

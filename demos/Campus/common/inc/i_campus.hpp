@@ -4,7 +4,7 @@
 * @brief Interface used to expose campus core methods inside a Gaia ruleset rules
 */
 
-class ICampus
+class i_Campus
 {
 protected: 
 
@@ -12,11 +12,11 @@ protected:
 // 2) We mention GCC but this works for Clang as well
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wc++17-extensions"
-    //inline static const std::shared_ptr<ICampus> campus_ruleset_p_campus = nullptr;
+    //inline static const std::shared_ptr<i_Campus> campus_ruleset_p_campus = nullptr;
 
     // The pointer to the live instance of the campus core class
     // TODO : This is not an example to good coding practice, need to make safe and modern
-    inline static ICampus* campus_ruleset_p_campus = nullptr;
+    inline static i_Campus* campus_ruleset_p_campus = nullptr;
 #pragma GCC diagnostic pop
 
 public:
@@ -25,16 +25,16 @@ public:
      * Class factory, this is the only method allowed for obtaining an instance of the 
      * class withing a ruleset rule
      * 
-     * @return ICampus*
+     * @return i_Campus*
      * @throws 
      * @exceptsafe yes
      */   
-    static ICampus* get_callback_class(){
+    static i_Campus* get_callback_class(){
         return campus_ruleset_p_campus;
     }
 
-    /*static std::shared_ptr<ICampus> get_callback_classy(){
-        return std::make_shared<ICampus>(campus_ruleset_p_campus);
+    /*static std::shared_ptr<i_Campus> get_callback_classy(){
+        return std::make_shared<i_Campus>(campus_ruleset_p_campus);
     }*/
 
     /**
@@ -71,7 +71,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */   
-    ICampus(){}
+    i_Campus(){}
   
     /**
      * Destructor, to get rid of annoying build warnings
@@ -79,7 +79,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */   
-    virtual ~ICampus(){}
+    virtual ~i_Campus(){}
     
     /**
      * Unit test, needs to be implemented
@@ -87,7 +87,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */       
-    int DemoTest(){
+    int demo_test(){
         return 0;
     }
 };

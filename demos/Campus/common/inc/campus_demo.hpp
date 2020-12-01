@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #include "../generated/gaia_campus.h"
-#include "../inc/icampus.hpp"
+#include "../inc/i_campus.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -29,8 +29,8 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace std;
 
-namespace CampusDemo{
-class Campus : ICampus, std::enable_shared_from_this<Campus> {
+namespace campus_demo{
+class campus : i_Campus, std::enable_shared_from_this<campus> {
 
 private:
 
@@ -59,12 +59,12 @@ private:
     const std::string _config_file_name = "./gaia_conf.toml"; //TODO: Is that path ok?
     
     // singletonish
-    inline static Campus* _lastInstance = nullptr;
+    inline static campus* _lastInstance = nullptr;
 
     // the message bus we want to use
-    std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
+    std::shared_ptr<message::i_message_bus> _messageBus = nullptr;
 
-    static Campus* GetLastInstance();
+    static campus* get_last_instance();
 
     /**
      * Log message to stdout
@@ -94,32 +94,32 @@ private:
     * @throws 
     * @exceptsafe yes
     */  
-    void Worker();
+    void worker();
 
     /**
     * Callback from the message bus when a message arrives
     *
-    * @param[in] message::Message msg
+    * @param[in] bus_messages::message msg
     * @return 
     * @throws 
     * @exceptsafe yes
     */  
-    void MessageCallback(std::shared_ptr<message::Message> msg);
+    void message_callback(std::shared_ptr<bus_messages::message> msg);
 
     /**
     * Callback from the message bus when a message arrives
     * Am not crazy about this, I need to convert to using a std::fuction
     *
-    * @param[in] message::Message msg
+    * @param[in] bus_messages::message msg
     * @return 
     * @throws 
     * @exceptsafe yes
     */  
-    static void StaticMessageCallback(std::shared_ptr<message::Message> msg);
+    static void static_message_callback(std::shared_ptr<bus_messages::message> msg);
 
     //********************************
 
-    void got_person_action_message(const message::ActionMessage *msg);
+    void got_person_action_message(const bus_messages::action_message *msg);
 
     bool get_person(const char* name, gaia::campus::person_t &found_person);
     gaia_id_t insert_campus(const char* name, bool in_emergency);
@@ -129,7 +129,7 @@ private:
     void restore_default_values(); 
     void init_storage();
 
-    //*** ICampus interface *****************************
+    //*** i_Campus interface *****************************
 
     void cb_action( std::string actorType, std::string actorName, 
         std::string actionName, std::string arg1) override;
@@ -138,19 +138,19 @@ private:
 
 public:
 
-    Campus();
+    campus();
 
-    ~Campus();
+    ~campus();
 
         /**
      * Run the campus demo.
      *
-     * @param[in] std::shared_ptr<message::IMessageBus> messageBus
+     * @param[in] std::shared_ptr<message::i_message_bus> messageBus
      * @return 
      * @throws
      * @exceptsafe basic?
      */
-    int Init(std::shared_ptr<message::IMessageBus> messageBus);
+    int init(std::shared_ptr<message::i_message_bus> messageBus);
 
     /**
      * Run the campus demo.
@@ -160,9 +160,9 @@ public:
      * @throws
      * @exceptsafe basic?
      */
-    int RunAsync();
+    int run_async();
 
-    int DemoTest();
+    int demo_test();
 
-}; // class Campus
-} // namespace CampusDemo
+}; // class campus
+} // namespace campus_demo
