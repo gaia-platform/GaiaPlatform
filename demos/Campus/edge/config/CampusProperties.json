@@ -1,6 +1,6 @@
 {
     "id": "_AUTO_",
-    "classId": "UI:io.gaiaplatform.campus:v1.0",
+    "classId": "Campus:io.gaiaplatform.campus:v1.0",
     "contextId": "campusDemo.ui",
     "description": "Gaiaplatform Campus Demo UI"
 }

@@ -14,6 +14,7 @@
 #include <thing_IoTData.h>
 #include <ThingAPIException.hpp>
 
+#include "../../common/inc/message_bus.hpp"
 #include "I_edge_notified.hpp"
 #include "data_listener.hpp"
 
@@ -25,7 +26,7 @@ using namespace com::adlinktech::iot;
 * @brief UI Thing
 */
 
-class ui_thing : I_edge_notified {
+class person_thing : I_edge_notified {
 
 private:
 
@@ -36,7 +37,7 @@ private:
     message::IMessageBus* m_callbackClass;
 
     // the name of the client on the message bus
-    const std::string _sender_name = "UI";
+    const std::string _sender_name = "Person";
 
     // message header data
     int _sequenceID = 0;
@@ -46,12 +47,12 @@ private:
     std::string _destName = "*";
 
     /**
-    * Create the Edge thing
-    *
-    * @return Thing
-    * @throws ThingAPIException
-    * @exceptsafe yes
-    */  
+     * Create the Edge thing
+     *
+     * @return Thing
+     * @throws ThingAPIException
+     * @exceptsafe yes
+     */  
     Thing createThing(){
 
         //TODO: it appears that creating a unique tag group more than once does not result in an error
@@ -69,7 +70,7 @@ private:
 
         // Create and Populate the ThingClass registry with JSON resource files.
         JSonThingClassRegistry tcr;
-        tcr.registerThingClassesFromURI("file://definitions/ThingClass/io.gaiaplatform.campus/UIThingClass.json");
+        tcr.registerThingClassesFromURI("file://definitions/ThingClass/io.gaiaplatform.campus/PersonThingClass.json");
         m_dataRiver.addThingClassRegistry(tcr);
 
         // Create a Thing based on properties specified in a JSON resource file.
@@ -89,13 +90,13 @@ public:
     * @throws ThingAPIException
     * @exceptsafe yes
     */  
-    ui_thing(DataRiver dataRiver, message::IMessageBus* callbackClass, string thingPropertiesUri) 
+    person_thing(DataRiver dataRiver, message::IMessageBus* callbackClass, string thingPropertiesUri) 
         :m_thingPropertiesUri(thingPropertiesUri), m_dataRiver(dataRiver), m_callbackClass(callbackClass) {
 
         m_dataListener.register_listener(this);
         m_thing.addListener(m_dataListener);
 
-        //cout << "UI Thing started" << endl;
+        //cout << "Person Thing started" << endl;
     }
 
     /**
@@ -103,19 +104,18 @@ public:
     *
     * @exceptsafe yes
     */     
-    ~ui_thing() {
-        //m_dataRiver.close();
-        //cout << "UI Thing stopped" << endl;
+    ~person_thing() {
+        //cout << "Person Thing stopped" << endl;
     }
 
     /**
-     * Put a message on the bus
-     *
-     * @param[in] std::shared_ptr<message::Message> msg
-     * @return int
-     * @throws 
-     * @exceptsafe yes
-     */  
+    * Put a message on the bus
+    *
+    * @param[in] std::shared_ptr<message::Message> msg
+    * @return int
+    * @throws 
+    * @exceptsafe yes
+    */  
     int SendMessage(std::shared_ptr<message::Message> msg){
 
         auto messageType = msg->get_message_type_name();
@@ -169,9 +169,9 @@ public:
         // extract data values
         for( auto data : dataIn) 
         {
-            std::string title = "";
-            std::string body = "";
-            uint32_t severity = 0;
+            std::string actorType = "Person";
+            std::string actorName = "";
+            std::string actionName = "";
             std::string arg1 = "";
 
             auto dat = data.getData();
@@ -187,21 +187,23 @@ public:
                 if( type == com::adlinktech::iot::IOT_TYPE::TYPE_NONE)
                     continue;
 
-                if(name == "title")
-                { title = value.iotv_string(); }
-                else if(name == "body")
-                {body = value.iotv_string();}
-                else if(name == "severity")
-                {severity = value.iotv_uint32();}
+                if(name == "actorType")
+                { actorType = value.iotv_string(); }
+                else if(name == "actor")
+                {actorName = value.iotv_string();}
+                else if(name == "action")
+                {actionName = value.iotv_string();}
                 else if(name == "arg1")
                 {arg1 = value.iotv_string();}
             }
+
+            actorType = "Person";
 
             // create message payload
             message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
             std::shared_ptr<message::Message> msg = 
-                std::make_shared<message::alert_message>(mh, title, body, severity, arg1);
+                std::make_shared<message::ActionMessage>(mh, actorType, actorName, actionName, arg1);
 
             // notify internal bus of new message
             m_callbackClass->message_received_from_bus(msg);

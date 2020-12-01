@@ -60,8 +60,15 @@ public:
     //std::vector<MessageCallbackType> _messageCallbacks;
     std::vector<callback_registration> _messageCallbacks;
 
-    // send a message
+    // send a message to the message bus
     virtual int SendMessage(std::shared_ptr<message::Message> msg)
+    {
+        UNUSED(msg);
+        return 0;
+    }
+
+    // message received from the message bus
+    virtual int message_received_from_bus(std::shared_ptr<message::Message> msg)
     {
         UNUSED(msg);
         return 0;

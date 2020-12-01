@@ -10,7 +10,7 @@
 #include <thing_IoTData.h>
 #include <ThingAPIException.hpp>
 
-#include "INotified.hpp"
+#include "I_edge_notified.hpp"
 
 using namespace std;
 using namespace com::adlinktech::datariver;
@@ -24,7 +24,7 @@ class data_listener : public DataAvailableListener<IOT_NVP_SEQ> {
 
 private:
 
-    INotified* m_callback;
+    I_edge_notified* m_callback;
 
     /**
      * Called by the Data River wher a message has arrived from the message bus
@@ -50,7 +50,7 @@ public:
      * @throws 
      * @exceptsafe yes
      */       
-    void register_listener(INotified* caller){
+    void register_listener(I_edge_notified* caller){
         m_callback = caller;
     }
 };

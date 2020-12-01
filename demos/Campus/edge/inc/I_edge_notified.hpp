@@ -11,10 +11,10 @@
 #include <ThingAPIException.hpp>
 
 /**
-* @brief Interface used by classes that provide message callbacks
+* @brief Interface used by classes that provide Edge message callbacks
 */
 
-class INotified {
+class I_edge_notified {
 
 public:
 
@@ -36,6 +36,6 @@ public:
      * @throws 
      * @exceptsafe yes
      */   
-    virtual ~INotified(){}
+    virtual ~I_edge_notified(){}
 };
 

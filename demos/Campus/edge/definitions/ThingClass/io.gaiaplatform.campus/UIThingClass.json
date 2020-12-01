@@ -10,8 +10,5 @@
   "inputs":[{
     "name": "alert",
     "tagGroupId": "alertTagGroup:io.gaiaplatform.campus:v1.0"
-  },{
-    "name": "action",
-    "tagGroupId": "actionTagGroup:io.gaiaplatform.campus:v1.0"
   }]
 }

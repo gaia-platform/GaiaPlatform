@@ -165,6 +165,7 @@ add_custom_target(${PROJECT_NAME}_copy_config_files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/PersonProperties.json
         ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/UIProperties.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/CampusProperties.json
         config
 )
 
