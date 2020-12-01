@@ -30,7 +30,7 @@ char * choices1[] = {(char*)"Person", (char*)"Car", (char*)"Exit", (char*)NULL};
 char * people[] = {(char*)"Unidentified", (char*)"Bob Kabob", (char*)"Sam Kabam", (char*)"Exit", (char*)NULL};
 char * cars[] = {(char*)"Unidentified", (char*)"Ford Fairlane", (char*)"Purple Lambo", (char*)"Exit", (char*)NULL};
 
-char * personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Brandish Weapon", (char*)"Exit", (char*)NULL};
+char * personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
 char * carAction[] = {(char*)"Move To", (char*)"Exit", (char*)NULL};
 
 char * personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall", (char*)"Exit", (char*)NULL};
@@ -436,6 +436,8 @@ void PersonsActionSelected(char *name)
     else if(0 == strcmp(name, "Change Role"))
         putMenu((char *)"New Role", personRoles, &terminalMenu::PersonsActionChangeRoleSelected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
+        DoTheChange();    
+    else if(0 == strcmp(name, "Disarm"))
         DoTheChange();
 } 
 

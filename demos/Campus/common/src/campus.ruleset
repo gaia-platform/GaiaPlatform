@@ -16,10 +16,13 @@ ruleset campus_ruleset
             sprintf(buffer, "'%s' is brandishing a weapon", @person.name);
             cbc->cb_alert("Deadly Threat", buffer, 2, "");
         }
-        /*if( strcmp(person.location, "HI") == 0 )
+        
+        if( 0 == person.is_threat )
         {
             auto cbc = ICampus::get_callback_class();
-            cbc->cb_action("aa", "bb", "cc", "dd");
-        }*/        
+            char buffer[256];
+            sprintf(buffer, "'%s' is not threatening anyone", @person.name);
+            cbc->cb_alert("All Clear", buffer, 0, "");
+        }    
     }
 }

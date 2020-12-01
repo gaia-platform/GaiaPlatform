@@ -36,8 +36,6 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
     
     gaia::campus::person_t found_person;
 
-    begin_session();
-
     //if we can't find them in the DB then exit. 
     //obviously this is not how we would proceed in production, an unidentified thing may be a security issue
     if( !get_person(msg->_actor.c_str(), found_person))
@@ -71,17 +69,31 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
 
             _messageBus->SendMessage(msg);
         }
+    }    
+    else if(msg->_action == "Disarm")
+    {
+        begin_transaction();
+        //update that person as a threat
+        update_person(found_person,false,found_person.location());
+        commit_transaction();
     }
 }
 
 void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
     
+    bool gotSession = false;
+
     try
     {
+        // what kind of message do we have?
         auto messageType = msg->get_message_type_name();
 
         if(messageType == message::message_types::action_message)
         {
+            // begin a Gaia DB session
+            begin_session();   
+            gotSession = true;         
+        
             auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
 
             //at this point we have our action message, update the DB
@@ -94,6 +106,11 @@ void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
     }
     catch(...){
         log_this("Exception in CampusDemo::Campus::MessageCallback() ...");
+    }
+
+    if(gotSession){
+        // end the Gaia DB session
+        end_session();
     }
 }
 
@@ -199,7 +216,6 @@ bool CampusDemo::Campus::get_person(const char* name, gaia::campus::person_t &fo
 {
     bool did_find = false;
 
-    //begin_session();
     begin_transaction();
     for (auto& person : gaia::campus::person_t::list())
     {
