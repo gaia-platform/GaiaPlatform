@@ -266,7 +266,7 @@ public:
 protected:
     explicit gaia_ptr(gaia_id_t id);
 
-    gaia_ptr(gaia_id_t id, size_t size);
+    gaia_ptr(gaia_locator_t locator, gaia_offset_t offset);
 
     void allocate(size_t size);
 

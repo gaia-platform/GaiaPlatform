@@ -28,10 +28,10 @@ gaia::db::data* gaia::db::get_shared_data()
     return gaia::db::client::s_data;
 }
 
-void gaia::db::allocate_object(
+memory_manager::address_offset_t gaia::db::allocate_object(
     gaia_locator_t locator,
     memory_manager::address_offset_t old_slot_offset,
     size_t size)
 {
-    gaia::db::client::allocate_object(locator, old_slot_offset, size);
+    return gaia::db::client::allocate_object(locator, old_slot_offset, size);
 }

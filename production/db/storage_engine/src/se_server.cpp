@@ -497,7 +497,7 @@ void server::init_memory_manager()
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 }
 
-void server::allocate_object(
+address_offset_t server::allocate_object(
     gaia_locator_t locator,
     address_offset_t old_slot_offset,
     size_t size)
@@ -511,6 +511,7 @@ void server::allocate_object(
     }
     retail_assert(offset != -c_invalid_offset, "Invalid offset post object creation.");
     update_locator(locator, offset);
+    return offset;
 }
 
 void server::recover_db()

@@ -59,7 +59,11 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     // TODO this constructor allows creating a gaia_ptr in an invalid state
     //  the se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
-    gaia_ptr obj(id, total_len + sizeof(se_object_t));
+    hash_node* hash_node = se_hash_map::insert(id);
+    size_t object_size = total_len + sizeof(se_object_t);
+    hash_node->locator = allocate_locator();
+    address_offset_t offset = client::allocate_object(hash_node->locator, 0, object_size);
+    gaia_ptr obj(hash_node->locator, offset);
     se_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -182,12 +186,10 @@ gaia_ptr::gaia_ptr(gaia_id_t id)
     m_locator = se_hash_map::find(id);
 }
 
-gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
+gaia_ptr::gaia_ptr(gaia_locator_t locator, address_offset_t offset)
 {
-    hash_node* hash_node = se_hash_map::insert(id);
-    hash_node->locator = m_locator = allocate_locator();
-    client::allocate_object(m_locator, 0, size);
-    client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
+    m_locator = locator;
+    client::txn_log(m_locator, 0, get_gaia_offset(offset), gaia_operation_t::create);
 }
 
 se_object_t* gaia_ptr::to_ptr() const

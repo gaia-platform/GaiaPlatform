@@ -45,7 +45,7 @@ class server
 {
     friend gaia::db::locators* gaia::db::get_shared_locators();
     friend gaia::db::data* gaia::db::get_shared_data();
-    friend void gaia::db::allocate_object(
+    friend memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         memory_manager::address_offset_t old_slot_offset,
         size_t size);
@@ -202,7 +202,7 @@ private:
 
     static bool txn_commit();
 
-    static void allocate_object(
+    static address_offset_t allocate_object(
         gaia_locator_t locator,
         address_offset_t old_slot_offset,
         size_t size);

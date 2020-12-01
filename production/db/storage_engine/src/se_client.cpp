@@ -592,7 +592,7 @@ static address_offset_t stack_allocator_allocate(
     return allocated_memory_offset;
 }
 
-void client::allocate_object(
+address_offset_t client::allocate_object(
     gaia_locator_t locator,
     address_offset_t old_slot_offset,
     size_t size)
@@ -600,4 +600,6 @@ void client::allocate_object(
     address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size, client::s_free_stack_allocators);
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);
+
+    return allocated_memory_offset;
 }

@@ -111,8 +111,7 @@ target_include_directories(rocks_wrapper PRIVATE
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
-# REVIEW: Should not be linking gaia_memory_manager here; need to refactor persistent_store_manager.cpp to not depend on the server.
-target_link_libraries(rocks_wrapper rocksdb gaia_memory_manager)
+target_link_libraries(rocks_wrapper rocksdb)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 
 set(GAIA_SE_SERVER_SOURCES
