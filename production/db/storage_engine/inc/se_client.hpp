@@ -37,9 +37,13 @@ public:
         return (s_locators != nullptr);
     }
 
-    static inline bool set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
+    /**
+     * Called by the rules engine only during initialization and
+     * shutdown.
+     */
+    static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
     {
-        return __sync_val_compare_and_swap(&s_txn_commit_trigger, s_txn_commit_trigger, trigger_fn);
+        s_txn_commit_trigger = trigger_fn;
     }
 
     // This test-only function is exported from gaia_db_internal.hpp.

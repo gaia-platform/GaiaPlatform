@@ -53,7 +53,7 @@ void event_manager_t::init()
     init(settings);
 }
 
-void event_manager_t::init(event_manager_settings_t& settings)
+void event_manager_t::init(const event_manager_settings_t& settings)
 {
     unique_lock<recursive_mutex> lock(m_init_lock);
 
