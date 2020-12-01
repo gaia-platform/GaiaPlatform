@@ -96,7 +96,7 @@ set(CPACK_DEBHELPER_VERBOSE ON)
 # Build rpm
 set(CPACK_GENERATOR "RPM")
 
-if(BUILD_GAIA_RELEASE)
+if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:
   #   - Add "DEB" to the CPACK_GENERATOR variable.
   #   - Parse the files in CPACK_DEBHELPER_INPUT with configure_file().
