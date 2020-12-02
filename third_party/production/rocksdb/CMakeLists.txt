@@ -205,6 +205,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64")
   endif(HAS_ARMV8_CRC)
 endif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64")
 
+# Avoid SIGILL in rocksdb::LRUCache
+# https://github.com/cockroachdb/cockroach/issues/16843
+set(PORTABLE ON)
+set(FORCE_SSE42 ON)
+
 option(PORTABLE "build a portable binary" OFF)
 option(FORCE_SSE42 "force building with SSE4.2, even when PORTABLE=ON" OFF)
 if(PORTABLE)
