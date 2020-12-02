@@ -532,7 +532,6 @@ TEST_F(rule_integration_test, test_exception)
 TEST_F(rule_integration_test, test_retry)
 {
     auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name) {
-        gaia::rules::shutdown_rules_engine();
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
         gaia::rules::test::initialize_rules_engine(settings);
@@ -556,8 +555,6 @@ TEST_F(rule_integration_test, test_retry)
         }
         // Shut down the rules engine to ensure the rule fires.
         gaia::rules::shutdown_rules_engine();
-        // And reinitialize to provide harmony for other tests.
-        gaia::rules::initialize_rules_engine();
 
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
         ASSERT_EQ(ids.size(), 2);
@@ -567,10 +564,15 @@ TEST_F(rule_integration_test, test_retry)
         }
     };
 
+    // Each iteration of test_inner will initialize the rules engine with a different value for
+    // max_rule_retries.
+    gaia::rules::shutdown_rules_engine();
+
+    // We want to make sure that we generate update conflicts from within the rule invocation
+    // and from the auto-commit after the rule succeeds, so we set a flag to indicate which way we
+    // want the rule to commit.
     for (auto manual_commit : {false, true})
     {
-        // We want to make sure that we generate update conflicts from within the rule invocation
-        // and from the auto-commit after the rule succeeds.
         g_manual_commit = manual_commit;
 
         test_inner(0, 0, "Success");
@@ -580,4 +582,7 @@ TEST_F(rule_integration_test, test_retry)
         test_inner(4, 3, "Conflict");
         test_inner(3, 3, "Success");
     }
+
+    // And reinitialize to provide harmony for other tests.
+    gaia::rules::initialize_rules_engine();
 }
