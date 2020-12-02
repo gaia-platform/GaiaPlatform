@@ -213,6 +213,8 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         }
         catch (const transaction_update_conflict& e)
         {
+            // If should_schedule == false, rule scheduling failed and we drop any pending
+            // invocations. We may retry our current rule and re-enqueue our pending.
             should_schedule = false;
             if (invocation.num_retries >= m_max_rule_retries)
             {
@@ -233,8 +235,6 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
     }
 
-    // If should_schedule == false, rule scheduling failed and we drop any pending invocations. We
-    // may retry our current rule and re-enqueue our pending.
     process_pending_invocations(should_schedule);
 }
 
