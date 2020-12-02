@@ -207,6 +207,12 @@ endif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64")
 
 option(PORTABLE "build a portable binary" OFF)
 option(FORCE_SSE42 "force building with SSE4.2, even when PORTABLE=ON" OFF)
+
+# Avoid SIGILL in rocksdb::LRUCache
+# https://github.com/cockroachdb/cockroach/issues/16843
+set(PORTABLE ON)
+set(FORCE_SSE42 ON)
+
 if(PORTABLE)
   # MSVC does not need a separate compiler flag to enable SSE4.2; if nmmintrin.h
   # is available, it is available by default.
