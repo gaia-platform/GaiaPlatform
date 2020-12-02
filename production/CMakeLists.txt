@@ -69,12 +69,23 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
-# Prefer the static version of the libexplain.
-# The solution is suggested by a cmake developer on its mailing list:
-# https://cmake.org/pipermail/cmake/2010-December/041326.html
-find_library(LIB_EXPLAIN NAMES libexplain.a explain)
-# Transitive dependency of the libexplain.
-find_library(LIB_CAP NAMES libcap.a cap)
+# Perform a special library lookup for libexplain and its dependency libcap.
+# We will use the static version of the libexplain when doing the SDK build.
+message(CHECK_START "Looking for libexplain and libcap")
+if(BUILD_GAIA_RELEASE)
+  find_library(LIB_EXPLAIN NAMES libexplain.a)
+  find_library(LIB_CAP NAMES libcap.a)
+else()
+  find_library(LIB_EXPLAIN NAMES explain)
+  find_library(LIB_CAP NAMES cap)
+endif()
+if (LIB_EXPLAIN AND LIB_CAP)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+  message(FATAL_ERROR "libexplain and libcap are required.")
+endif()
+
 
 # Force spdlog to use an external version of fmt.
 # TODO this flag should only be set in common/CMakeLists.txt. The flag is
@@ -130,7 +141,6 @@ endif()
 # Rocksdb.
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
-set(FLATBUFFERS_INSTALL OFF)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
