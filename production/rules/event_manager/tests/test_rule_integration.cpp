@@ -149,11 +149,14 @@ void rule_conflict(const rule_context_t* context)
         g_num_conflicts--;
         thread([&context] {
             begin_session();
-            auto_transaction_t txn;
-            auto ew = employee_t::get(context->record).writer();
-            ew.name_first = "Conflict";
-            ew.update_row();
-            txn.commit();
+            {
+                auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+                auto ew = employee_t::get(context->record).writer();
+                ew.name_first = "Conflict";
+                ew.update_row();
+                txn.commit();
+            }
+            end_session();
         }).join();
     }
 
@@ -257,7 +260,7 @@ public:
 
     void subscribe_conflict()
     {
-        rule_binding_t binding{"ruleset", "conflict", rule_conflict};
+        rule_binding_t binding{"ruleset", "rule_conflict", rule_conflict};
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
