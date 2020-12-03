@@ -48,6 +48,16 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
     m_message = string_stream.str();
 }
 
+cannot_set_null_string_value::cannot_set_null_string_value()
+{
+    m_message = "Setting null string values is not supported!";
+}
+
+cannot_update_null_string_value::cannot_update_null_string_value()
+{
+    m_message = "Updating null string values is not supported!";
+}
+
 void initialize_type_information_from_binary_schema(
     type_information_t* type_information,
     const uint8_t* binary_schema,
@@ -288,6 +298,12 @@ void set_field_value(
     const data_holder_t& value)
 {
     retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+    retail_assert(value.type == reflection::String, "Attempt to set value of incorrect type");
+
+    if (value.hold.string_value == nullptr)
+    {
+        throw cannot_set_null_string_value();
+    }
 
     const flatbuffers::Table* root_table = nullptr;
     auto_type_information_t auto_type_information;
@@ -298,9 +314,7 @@ void set_field_value(
         type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field);
 
-    retail_assert(
-        field->type()->base_type() == reflection::String && value.type == reflection::String,
-        "Attempt to set value of incorrect type");
+    retail_assert(field->type()->base_type() == reflection::String, "Attempt to set value of incorrect type");
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -313,7 +327,7 @@ void set_field_value(
     const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
     if (field_value == nullptr)
     {
-        throw invalid_serialized_data();
+        throw cannot_update_null_string_value();
     }
 
     flatbuffers::SetString(
@@ -478,10 +492,14 @@ data_holder_t get_field_array_element(
     {
         const auto field_element_value
             = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
+        if (field_element_value == nullptr)
+        {
+            // Unlike in the string scalar case, when we were calling GetFieldS(),
+            // GetAnyVectorElemPointer() should not be able to return nullptr.
+            throw invalid_serialized_data();
+        }
 
-        // For null strings, the field_value will come back as nullptr,
-        // so just set the string_value to nullptr as well.
-        result.hold.string_value = (field_element_value == nullptr) ? nullptr : field_element_value->c_str();
+        result.hold.string_value = field_element_value->c_str();
     }
     else
     {
@@ -548,6 +566,12 @@ void set_field_array_element(
     const data_holder_t& value)
 {
     retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+    retail_assert(value.type == reflection::String, "Attempt to set value of incorrect type");
+
+    if (value.hold.string_value == nullptr)
+    {
+        throw cannot_set_null_string_value();
+    }
 
     const flatbuffers::Table* root_table = nullptr;
     auto_type_information_t auto_type_information;
@@ -560,9 +584,7 @@ void set_field_array_element(
         root_table, auto_type_information, local_type_information, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
-    retail_assert(
-        field->type()->element() == reflection::String && value.type == reflection::String,
-        "Attempt to set value of incorrect type");
+    retail_assert(field->type()->element() == reflection::String, "Attempt to set value of incorrect type");
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -576,6 +598,8 @@ void set_field_array_element(
         = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
     if (field_element_value == nullptr)
     {
+        // Unlike in the string scalar case, when we were calling GetFieldS(),
+        // GetAnyVectorElemPointer() should not be able to return nullptr.
         throw invalid_serialized_data();
     }
 
