@@ -90,47 +90,57 @@ const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy
 
 string generate_general_subscription_code()
 {
-    string return_value = "namespace gaia\n{\nnamespace rules\n{\nextern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
+    string return_value;
+    return_value
+        .append("namespace gaia\n")
+        .append("{\n")
+        .append("namespace rules\n")
+        .append("{\n")
+        .append("extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n")
+        .append("{\n");
 
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("\tif (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n\t{\n\t\t::")
-            .append(ruleset)
-            .append("::subscribe_ruleset_")
-            .append(ruleset)
-            .append("();\n\t\treturn;\n\t}\n");
+            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("    {\n")
+            .append("        ::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("        return;\n")
+            .append("    }\n");
     }
 
-    return_value += "\tthrow ruleset_not_found(ruleset_name);\n}\n"
-                    "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n{\n";
+    return_value
+        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append("}\n")
+        .append("extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n")
+        .append("{\n");
 
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("\tif (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n\t{\n\t\t::")
-            .append(ruleset)
-            .append("::unsubscribe_ruleset_")
-            .append(ruleset)
-            .append("();\n\t\treturn;\n\t}\n");
+            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("    {\n")
+            .append("        ::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("        return;\n")
+            .append("    }\n");
     }
 
-    return_value += "\tthrow ruleset_not_found(ruleset_name);\n}\n"
-                    "extern \"C\" void initialize_rules()\n{\n";
+    return_value
+        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append("}\n")
+        .append("extern \"C\" void initialize_rules()\n")
+        .append("{\n");
+
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("\t::")
-            .append(ruleset)
-            .append("::subscribe_ruleset_")
-            .append(ruleset)
-            .append("();\n");
+            .append("    ::" + ruleset)
+            .append("::subscribe_ruleset_" + ruleset + "();\n");
     }
-    return_value += "}\n} // namespace rules\n} // namespace gaia\n";
+    return_value
+        .append("}\n")
+        .append("} // namespace rules\n")
+        .append("} // namespace gaia\n");
 
     return return_value;
 }
@@ -608,9 +618,10 @@ void generate_rules(Rewriter& rewriter)
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         common_subscription_code
-            .append("\t")
+            .append("    ")
             .append(c_nolint_identifier_naming)
-            .append("\n\trule_binding_t ")
+            .append("\n")
+            .append("    rule_binding_t ")
             .append(rule_name)
             .append("binding(\"")
             .append(g_current_ruleset)
@@ -630,11 +641,10 @@ void generate_rules(Rewriter& rewriter)
             .append(");\n");
 
         field_subscription_code
-            .append("\t")
+            .append("    ")
             .append(c_nolint_identifier_naming)
-            .append("\n\tfield_position_list_t fields_")
-            .append(rule_name)
-            .append(";\n");
+            .append("\n")
+            .append("    field_position_list_t fields_" + rule_name + ";\n");
 
         if (fd.second.find("LastOperation") != fd.second.end())
         {
@@ -662,7 +672,7 @@ void generate_rules(Rewriter& rewriter)
                 }
 
                 field_subscription_code
-                    += "\tfields_" + rule_name + ".push_back(" + to_string(g_field_data.position) + ");\n";
+                    += "    fields_" + rule_name + ".push_back(" + to_string(g_field_data.position) + ");\n";
             }
         }
 
@@ -680,7 +690,7 @@ void generate_rules(Rewriter& rewriter)
         {
             g_current_ruleset_subscription
                 .append(field_subscription_code)
-                .append("\tsubscribe_rule(gaia::")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -688,10 +698,10 @@ void generate_rules(Rewriter& rewriter)
                 .append(rule_name)
                 .append(",")
                 .append(rule_name)
-                .append("binding);\n\n");
+                .append("binding);\n");
             g_current_ruleset_unsubscription
                 .append(field_subscription_code)
-                .append("\tunsubscribe_rule(gaia::")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -699,19 +709,20 @@ void generate_rules(Rewriter& rewriter)
                 .append(rule_name)
                 .append(",")
                 .append(rule_name)
-                .append("binding);\n\n");
+                .append("binding);\n");
         }
 
         if (contains_last_operation)
         {
             g_current_ruleset_subscription
-                .append("\tsubscribe_rule(gaia::")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
                 .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
                 .append(rule_name)
-                .append("binding);\nsubscribe_rule(gaia::")
+                .append("binding);\n")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -722,7 +733,7 @@ void generate_rules(Rewriter& rewriter)
             if (g_delete_operation_in_rule)
             {
                 g_current_ruleset_subscription
-                    .append("\tsubscribe_rule(gaia::")
+                    .append("    subscribe_rule(gaia::")
                     .append(g_table_db_data[table])
                     .append("::")
                     .append(table)
@@ -732,13 +743,14 @@ void generate_rules(Rewriter& rewriter)
             }
 
             g_current_ruleset_unsubscription
-                .append("\tunsubscribe_rule(gaia::")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
                 .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
                 .append(rule_name)
-                .append("binding);\nunsubscribe_rule(gaia::")
+                .append("binding);\n")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -748,7 +760,7 @@ void generate_rules(Rewriter& rewriter)
             if (g_delete_operation_in_rule)
             {
                 g_current_ruleset_unsubscription
-                    .append("\tunsubscribe_rule(gaia::")
+                    .append("    unsubscribe_rule(gaia::")
                     .append(g_table_db_data[table])
                     .append("::")
                     .append(table)
@@ -757,6 +769,9 @@ void generate_rules(Rewriter& rewriter)
                     .append("binding);\n");
             }
         }
+
+        g_current_ruleset_subscription.append("\n");
+        g_current_ruleset_unsubscription.append("\n");
 
         navigation_code_data_t navigation_code = generate_navigation_code(table);
         string function_header = "\n";
