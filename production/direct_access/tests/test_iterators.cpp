@@ -13,12 +13,13 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/direct_access/edc_iterators.hpp"
 #include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_iterators.hpp"
 
 using namespace std;
 using namespace gaia::db;
+using namespace gaia::direct_access;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 

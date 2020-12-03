@@ -4,12 +4,14 @@
 /////////////////////////////////////////////
 #include "payload_diff.hpp"
 
+#include "gaia/common.hpp"
 #include "catalog_core.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"
-#include "gaia_common.hpp"
 #include "retail_assert.hpp"
 #include "type_id_mapping.hpp"
+
+using namespace gaia::common;
 
 namespace gaia
 {
@@ -28,19 +30,26 @@ void compute_payload_diff(
 
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
 
+    // We have entered payload diff for the update. The data have been updated,
+    // and we cannot find the type in catalog. This means we have some serious
+    // data corruption bug(s).
+    retail_assert(
+        type_record_id != c_invalid_gaia_id,
+        "The type '" + std::to_string(type_id) + "' does not exist in the catalog for payload diff!");
+
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 
     for (auto field_view : catalog_core_t::list_fields(type_record_id))
     {
-        field_position_t pos = field_view.position();
+        field_position_t field_position = field_view.position();
         payload_types::data_holder_t data_holder1 = payload_types::get_field_value(
-            type_id, payload1, schema.data(), schema.size(), pos);
+            type_id, payload1, schema.data(), schema.size(), field_position);
         payload_types::data_holder_t data_holder2 = payload_types::get_field_value(
-            type_id, payload2, schema.data(), schema.size(), pos);
+            type_id, payload2, schema.data(), schema.size(), field_position);
 
         if (data_holder1.compare(data_holder2) != 0)
         {
-            changed_fields->push_back(pos);
+            changed_fields->push_back(field_position);
         }
     }
 }

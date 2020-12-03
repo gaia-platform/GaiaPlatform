@@ -16,6 +16,7 @@ target_link_libraries(clang-rename
   clangTooling
   clangToolingCore
   clangToolingRefactor
+  gaia_system
   )
 
 install(PROGRAMS clang-rename.py

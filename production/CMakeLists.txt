@@ -13,7 +13,9 @@ enable_testing()
 project(production)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -45,6 +47,7 @@ message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+set(GAIA_INTERNAL_INC "${PROJECT_SOURCE_DIR}/inc/gaia_internal")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
@@ -65,6 +68,24 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
+
+# Perform a special library lookup for libexplain and its dependency libcap.
+# We will use the static version of the libexplain when doing the SDK build.
+message(CHECK_START "Looking for libexplain and libcap")
+if(BUILD_GAIA_RELEASE)
+  find_library(LIB_EXPLAIN NAMES libexplain.a)
+  find_library(LIB_CAP NAMES libcap.a cap)
+else()
+  find_library(LIB_EXPLAIN NAMES explain)
+  find_library(LIB_CAP NAMES cap)
+endif()
+if (LIB_EXPLAIN AND LIB_CAP)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+  message(FATAL_ERROR "libexplain and libcap are required.")
+endif()
+
 
 # Force spdlog to use an external version of fmt.
 # TODO this flag should only be set in common/CMakeLists.txt. The flag is
@@ -118,7 +139,7 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
-add_subdirectory(${ROCKSDB} rocksdb)
+add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -141,7 +162,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
+add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
@@ -169,17 +190,21 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
+
 if(BUILD_GAIA_RELEASE)
-  set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
-  set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
   unset(CMAKE_CXX_CLANG_TIDY)
-  add_subdirectory(sdk)
-  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm)
+  add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
 # Query processors.
 add_subdirectory(sql)
+
+# SDK
+# Be sure to add the SDK directory after the sql directory because the package mechanism
+# requires that we know whether the gaia_fdw target will be added or not. If it is added
+# then we can add gaia_fdw to the list of dependencies for the package.
+add_subdirectory(sdk)
 
 # Java Tinkerpop project.
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
@@ -268,7 +293,7 @@ endif()
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )
 
 # Copy log configuration file to make it visible during

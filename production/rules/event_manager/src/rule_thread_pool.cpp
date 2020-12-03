@@ -11,9 +11,11 @@
 #include "logger.hpp"
 #include "retail_assert.hpp"
 
+using namespace std;
+
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace std;
+using namespace gaia::direct_access;
 
 /**
  * Thread local variable instances
@@ -57,8 +59,8 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
     gaia::db::commit_transaction();
 }
 
-rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, rule_stats_manager_t& stats_manager)
-    : m_stats_manager(stats_manager)
+rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
+    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries)
 {
     m_exit = false;
     for (uint32_t i = 0; i < count_threads; i++)
@@ -112,10 +114,21 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
-    m_stats_manager.insert_rule_stats(invocation.rule_id);
+    if (invocation.type == invocation_type_t::rule)
+    {
+        m_stats_manager.insert_rule_stats(invocation.rule_id);
+        if (s_tls_can_enqueue)
+        {
+            m_stats_manager.inc_scheduled(invocation.rule_id);
+        }
+        else
+        {
+            m_stats_manager.inc_pending(invocation.rule_id);
+        }
+    }
+
     if (s_tls_can_enqueue)
     {
-        m_stats_manager.inc_scheduled(invocation.rule_id);
         if (m_threads.size() > 0)
         {
             unique_lock<mutex> lock(m_lock);
@@ -130,7 +143,6 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     }
     else
     {
-        m_stats_manager.inc_pending(invocation.rule_id);
         s_tls_pending_invocations.push(invocation);
     }
 }
@@ -173,39 +185,54 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
     try
     {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        rule_context_t context(
-            txn,
-            rule_invocation.gaia_type,
-            rule_invocation.event_type,
-            rule_invocation.record,
-            rule_invocation.fields);
-
-        // Invoke the rule.
-        m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
-
-        // Invoke the rule.
-        auto fn_start = gaia::common::timer_t::get_time_point();
-        gaia_log::rules().trace("call: {}", rule_id);
-        rule_invocation.rule_fn(&context);
-        gaia_log::rules().trace("return: {}", rule_id);
-        m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
-
-        should_schedule = true;
-        s_tls_can_enqueue = true;
-        if (gaia::db::is_transaction_active())
+        try
         {
-            txn.commit();
+            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+            rule_context_t context(
+                txn,
+                rule_invocation.gaia_type,
+                rule_invocation.event_type,
+                rule_invocation.record,
+                rule_invocation.fields);
+
+            m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
+
+            // Invoke the rule.
+            auto fn_start = gaia::common::timer_t::get_time_point();
+            gaia_log::rules().trace("call: {}", rule_id);
+            rule_invocation.rule_fn(&context);
+            gaia_log::rules().trace("return: {}", rule_id);
+            m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
+
+            should_schedule = true;
+            s_tls_can_enqueue = true;
+            if (gaia::db::is_transaction_active())
+            {
+                txn.commit();
+            }
+        }
+        catch (const transaction_update_conflict& e)
+        {
+            // If should_schedule == false, rule scheduling failed and we drop any pending
+            // invocations. We may retry our current rule and re-enqueue our pending.
+            should_schedule = false;
+            if (invocation.num_retries >= m_max_rule_retries)
+            {
+                throw;
+            }
+            else
+            {
+                invocation.num_retries++;
+                m_stats_manager.inc_retries(rule_id);
+                s_tls_can_enqueue = true;
+                enqueue(invocation);
+            }
         }
     }
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        // TODO[GAIAPLAT-129]: Log an error in an error table here.
-        // TODO[GAIAPLAT-158]: Determine retry/error handling logic
-        // Catch all exceptions or let terminate happen? Don't drop pending
-        // rules on the floor (should_schedule == false) when we add retry logic.
-        gaia_log::rules().trace("exception: {}, {}", rule_id, e.what());
+        gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
     }
 
     process_pending_invocations(should_schedule);

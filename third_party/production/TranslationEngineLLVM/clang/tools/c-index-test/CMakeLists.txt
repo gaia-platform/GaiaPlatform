@@ -31,6 +31,7 @@ else()
     clangFrontend
     clangIndex
     clangSerialization
+    gaia_system
   )
 endif()
 

@@ -7,8 +7,9 @@
 // we don't have a dependency on the internal implementation.
 
 #include "gtest/gtest.h"
+
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "db_test_base.hpp"
-#include "auto_transaction.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -18,7 +19,8 @@ extern "C" void initialize_rules()
 {
 }
 
-class auto_transaction_test : public db_test_base_t {
+class auto_transaction_test : public db_test_base_t
+{
 };
 
 TEST_F(auto_transaction_test, throw_if_active)
@@ -78,7 +80,7 @@ TEST_F(auto_transaction_test, invalid_commit_twice)
     {
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
         txn.commit();
-        EXPECT_THROW(txn.commit(), transaction_not_open);
+        EXPECT_THROW(txn.commit(), no_open_transaction);
     }
     EXPECT_EQ(false, is_transaction_active());
 }
@@ -89,7 +91,7 @@ TEST_F(auto_transaction_test, invalid_commit_mixed)
     {
         auto_transaction_t txn;
         gaia::db::commit_transaction();
-        EXPECT_THROW(txn.commit(), transaction_not_open);
+        EXPECT_THROW(txn.commit(), no_open_transaction);
     }
     EXPECT_EQ(false, is_transaction_active());
 }
@@ -125,7 +127,7 @@ TEST_F(auto_transaction_test, auto_begin_true)
         txn.commit();
         // We begin a new transaction after commit
         EXPECT_EQ(true, is_transaction_active());
-    }// Rollback the auto-begin transaction here.
+    } // Rollback the auto-begin transaction here.
     EXPECT_EQ(false, is_transaction_active());
 }
 
@@ -137,6 +139,6 @@ TEST_F(auto_transaction_test, auto_begin_false)
         EXPECT_EQ(true, is_transaction_active());
         txn.commit();
         EXPECT_EQ(false, is_transaction_active());
-    }// Nothing to rollback here.
+    } // Nothing to rollback here.
     EXPECT_EQ(false, is_transaction_active());
 }

@@ -16,4 +16,5 @@ target_link_libraries(clang-move
   clangSerialization
   clangTooling
   clangToolingCore
+  gaia_system
   )

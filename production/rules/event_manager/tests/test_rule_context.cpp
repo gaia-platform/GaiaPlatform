@@ -8,12 +8,17 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/rules/rules.hpp"
 #include "db_test_base.hpp"
-#include "rules.hpp"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::rules;
+using namespace gaia::db::triggers;
+
+extern "C" void initialize_rules()
+{
+}
 
 void check_all_event_types(gaia_type_t context_type, gaia_type_t test_type, last_operation_t* expected)
 {

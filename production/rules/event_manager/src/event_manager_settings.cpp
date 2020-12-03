@@ -5,8 +5,8 @@
 
 #include "event_manager_settings.hpp"
 
-#include "exceptions.hpp"
-#include "rules.hpp"
+#include "gaia/exceptions.hpp"
+#include "gaia/rules/rules.hpp"
 
 using namespace std;
 
@@ -57,9 +57,9 @@ void gaia::rules::event_manager_settings_t::parse_rules_config(
         settings.enable_rule_stats = *individual_rule_stats_setting;
     }
 
-    auto num_retries_setting = rules_config->get_as<uint32_t>(event_manager_settings_t::c_rule_retry_count_key);
-    if (num_retries_setting)
+    auto max_retries_setting = rules_config->get_as<uint32_t>(event_manager_settings_t::c_rule_retry_count_key);
+    if (max_retries_setting)
     {
-        settings.num_rule_retries = *num_retries_setting;
+        settings.max_rule_retries = *max_retries_setting;
     }
 }

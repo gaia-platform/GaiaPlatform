@@ -16,7 +16,7 @@ namespace rules
 {
 namespace test
 {
-void initialize_rules_engine(event_manager_settings_t& settings);
+void initialize_rules_engine(const event_manager_settings_t& settings);
 
 void commit_trigger(
     gaia_txn_id_t txn_id,

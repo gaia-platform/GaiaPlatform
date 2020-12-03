@@ -7,16 +7,20 @@
 
 #include <memory>
 
+#include "gaia/common.hpp"
+#include "gaia/exception.hpp"
 #include "fbs_generator.hpp"
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
 #include "json_generator.hpp"
 #include "logger.hpp"
 #include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "system_table_types.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog::ddl;
+using namespace gaia::common;
+using namespace gaia::direct_access;
 
 namespace gaia
 {
@@ -101,9 +105,9 @@ void ddl_executor_t::bootstrap_catalog()
         //     cardinality uint8,
         //     parent_required bool,
         //     deprecated bool,
-        //     first_child_offset uint8,
-        //     next_child_offset uint8,
-        //     parent_offset uint8,
+        //     first_child_offset uint16,
+        //     next_child_offset uint16,
+        //     parent_offset uint16,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -114,11 +118,11 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         // See gaia::db::relationship_t for more details about relationships.
         // (parent)-[first_child_offset]->(child)
-        fields.emplace_back(make_unique<data_field_def_t>("first_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("first_child_offset", data_type_t::e_uint16, 1));
         // (child)-[next_child_offset]->(child)
-        fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint16, 1));
         // (child)-[parent_offset]->(parent)
-        fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
         create_table_impl(
             "catalog", "gaia_relationship",
             fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
@@ -422,39 +426,59 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-uint8_t ddl_executor_t::find_parent_available_offset(const parent_gaia_relationship_list_t& relationships)
+void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_offset)
+{
+    if (reference_offset == c_invalid_reference_offset)
+    {
+        throw max_reference_count_reached();
+    }
+}
+
+reference_offset_t ddl_executor_t::find_parent_available_offset(const parent_gaia_relationship_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
         return 0;
     }
 
-    uint8_t max_offset = 0;
+    reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
         max_offset = std::max(max_offset, relationship.first_child_offset());
+
+        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
-    // The next available offset is the one after current max.
-    return max_offset + 1;
+
+    reference_offset_t next_available_offset = max_offset + 1;
+
+    validate_new_reference_offset(next_available_offset);
+
+    return next_available_offset;
 }
 
-uint8_t ddl_executor_t::find_child_available_offset(const child_gaia_relationship_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(const child_gaia_relationship_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
         return 0;
     }
 
-    uint8_t max_offset = 0;
+    reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
         max_offset = std::max({max_offset, relationship.next_child_offset(), relationship.parent_offset()});
+
+        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
-    // The next available offset is the one after current max.
-    return max_offset + 1;
+
+    reference_offset_t next_available_offset = max_offset + 1;
+
+    validate_new_reference_offset(next_available_offset);
+
+    return next_available_offset;
 }
 
-uint8_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
+reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
 {
     gaia_table_t table = gaia_table_t::get(table_id);
     return std::max(
@@ -502,11 +526,21 @@ gaia_id_t ddl_executor_t::create_table_impl(
     set<string> field_names;
     for (const auto& field : fields)
     {
-        if (field_names.find(field->name) != field_names.end())
+        string field_name = field->name;
+
+        // Note: anonymous references are on path of deprecation
+        if (field_name.empty())
         {
-            throw duplicate_field(field->name);
+            retail_assert(field->field_type == field_type_t::reference, "Only references can have empty name");
+            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
+            field_name = ref_field->parent_table.second;
         }
-        field_names.insert(field->name);
+
+        if (field_names.find(field_name) != field_names.end())
+        {
+            throw duplicate_field(field_name);
+        }
+        field_names.insert(field_name);
     }
 
     string fbs{generate_fbs(db_name, table_name, fields)};
@@ -572,23 +606,31 @@ gaia_id_t ddl_executor_t::create_table_impl(
             {
                 // This is a self-relationship, both parent and child pointers are in the same table.
                 child_available_offset = parent_available_offset + 1;
+
+                validate_new_reference_offset(child_available_offset);
             }
             else
             {
                 child_available_offset = find_available_offset(table_id);
             }
 
+            reference_offset_t first_child_offset = parent_available_offset;
+
+            reference_offset_t parent_offset = child_available_offset;
+            reference_offset_t next_child_offset = child_available_offset + 1;
+            validate_new_reference_offset(next_child_offset);
+
+            bool is_parent_required = false;
+            bool is_deprecated = false;
+
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
                 ref_field->name.c_str(),
                 static_cast<uint8_t>(relationship_cardinality_t::many),
-                false,
-                false,
-                // first_child_offset is the first available offset in the parent container
-                parent_available_offset,
-                // next_child_offset is the second available offset in the child container
-                child_available_offset + 1,
-                // parent_offset is the first available offset in the child container
-                child_available_offset);
+                is_parent_required,
+                is_deprecated,
+                first_child_offset,
+                next_child_offset,
+                parent_offset);
             auto rel = gaia_relationship_t::get(relationship_id);
             gaia_table_t::get(table_id).child_gaia_relationship_list().insert(relationship_id);
             parent_table.parent_gaia_relationship_list().insert(relationship_id);

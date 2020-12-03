@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/exception.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
-#include "gaia_exception.hpp"
 #include "memory_manager.hpp"
 #include "memory_types.hpp"
 #include "retail_assert.hpp"
@@ -45,13 +45,7 @@ inline gaia_txn_id_t allocate_txn_id()
 
 inline gaia_locator_t allocate_locator()
 {
-    locators* locators = gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
-
-    if (!locators)
-    {
-        throw transaction_not_open();
-    }
 
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
@@ -78,7 +72,7 @@ inline void update_locator(
     locators* locators = gaia::db::get_shared_locators();
     if (!locators)
     {
-        throw transaction_not_open();
+        throw no_open_transaction();
     }
 
     (*locators)[locator] = get_gaia_offset(offset);

@@ -12,18 +12,17 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
+  "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INTERNAL_INC}/db"
 )
 
 message(VERBOSE "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
 
 set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
-  "${GAIA_INC}/internal/common"
+  "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/storage_engine"
   "${GAIA_DB_INC}/storage_engine/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
@@ -43,7 +42,8 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -84,12 +84,9 @@ add_library(gaia_se_client STATIC
   src/se_shared_data_client.cpp
   src/type_metadata.cpp
   src/type_id_mapping.cpp)
-add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
+add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
-# For referential integrity check to read catalog.
-# TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
-target_include_directories(gaia_se_client PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
 
 # For flatbuffers generated code.
 target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
@@ -97,7 +94,7 @@ target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_client PUBLIC gaia_common)
-target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types gaia_direct gaia_memory_manager)
+target_link_libraries(gaia_se_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -113,6 +110,7 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper rocksdb)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_SE_SERVER_SOURCES
   src/se_server.cpp
@@ -137,11 +135,11 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_se_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper gaia_memory_manager)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
-install(TARGETS gaia_se_server DESTINATION "bin")
+install(TARGETS gaia_se_server DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
   ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}
@@ -192,8 +190,8 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
-  ${GAIA_INC}/internal/db/
-  ${GAIA_INC}/public/direct_access/
+  ${GAIA_INTERNAL_INC}/db/
+  ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
@@ -207,7 +205,12 @@ set_target_properties(gaia_db_catalog_test PROPERTIES COMPILE_FLAGS "${GAIA_COMP
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_se_client "tests/test_se_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
+add_gtest(test_se_client "tests/test_se_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client;gaia_direct")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_memory_manager")
-add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct;gaia_memory_manager")
+add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
+
+add_gtest(test_catalog_core
+  tests/test_catalog_core.cpp
+  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
+  "gaia_common;gaia_se_client;gaia_catalog")

@@ -10,8 +10,8 @@
 #include <utility>
 #include <variant>
 
+#include "gaia/events.hpp"
 #include "db_types.hpp"
-#include "events.hpp"
 #include "gaia_db_internal.hpp"
 #include "retail_assert.hpp"
 #include "rule_stats_manager.hpp"
@@ -33,38 +33,34 @@ const char* event_manager_t::s_gaia_log_event_rule = "gaia::rules::log_event";
 /**
  * Class implementation
  */
-event_manager_t& event_manager_t::get(bool is_initializing)
+event_manager_t& event_manager_t::get(bool require_initialized)
 {
     static event_manager_t s_instance;
 
-    // Initialize errors can happen for two reasons:
-    //
-    // If we are currently trying to initialize, then is_initializing
-    // will be true. At this point, we don't expect the instance to be
-    // initialized yet.
-    //
-    // If we are not initializing, then we expect the instance to already be
-    // initialized.
-    if (is_initializing == s_instance.m_is_initialized)
+    // Throw an error if the instance must be initialized before retrieving the instance.
+    if (require_initialized && !s_instance.m_is_initialized)
     {
-        throw initialization_error(is_initializing);
+        throw initialization_error();
     }
+
     return s_instance;
 }
 
 void event_manager_t::init()
 {
-    // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
-    // application developer for the number of threads to create.
-
     // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
     init(settings);
 }
 
-void event_manager_t::init(event_manager_settings_t& settings)
+void event_manager_t::init(const event_manager_settings_t& settings)
 {
-    unique_lock<mutex> lock(m_init_lock);
+    unique_lock<recursive_mutex> lock(m_init_lock);
+
+    if (m_is_initialized)
+    {
+        shutdown();
+    }
 
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
@@ -77,7 +73,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(count_worker_threads, *m_stats_manager);
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
 
     if (settings.enable_catalog_checks)
     {
@@ -94,9 +91,12 @@ void event_manager_t::init(event_manager_settings_t& settings)
 
 void event_manager_t::shutdown()
 {
-    unique_lock<mutex> lock(m_init_lock);
+    unique_lock<recursive_mutex> lock(m_init_lock);
 
-    m_is_initialized = false;
+    if (!m_is_initialized)
+    {
+        return;
+    }
 
     // Stop new events from coming in.
     set_commit_trigger(nullptr);
@@ -105,6 +105,9 @@ void event_manager_t::shutdown()
     m_invocations.reset();
     m_stats_manager.reset();
     m_rule_checker.reset();
+
+    // Don't uninitialize until we've shutdown the thread pool.
+    m_is_initialized = false;
 
     // Ensure we can re-initialize by dropping our subscription state.
     unsubscribe_rules();
@@ -381,7 +384,8 @@ void event_manager_t::unsubscribe_rules()
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type_ptr,
-    const event_type_t* event_type_ptr, const uint16_t* field_ptr,
+    const event_type_t* event_type_ptr,
+    const field_position_t* field_ptr,
     subscription_list_t& subscriptions)
 {
     subscriptions.clear();
@@ -426,7 +430,7 @@ void event_manager_t::add_subscriptions(
     const rule_list_t& rules,
     gaia_type_t gaia_type,
     event_type_t event_type,
-    uint16_t field,
+    field_position_t field,
     const char* ruleset_filter)
 {
     for (auto rule : rules)
@@ -532,14 +536,14 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
 // Initialize the rules engine with settings from a user-supplied gaia configuration file.
 void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config)
 {
-    bool is_initializing = true;
+    bool require_initialized = false;
     // Create default settings for the rules engine and then override them with
     // user-supplied configuration values;
     event_manager_settings_t settings;
 
     // Override the default settings with any configuration settings;
     event_manager_settings_t::parse_rules_config(root_config, settings);
-    event_manager_t::get(is_initializing).init(settings);
+    event_manager_t::get(require_initialized).init(settings);
     initialize_rules();
 }
 
@@ -548,8 +552,8 @@ void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_confi
  */
 void gaia::rules::initialize_rules_engine()
 {
-    bool is_initializing = true;
-    event_manager_t::get(is_initializing).init();
+    bool require_initialized = false;
+    event_manager_t::get(require_initialized).init();
 
     /**
      * This function must be provided by the
@@ -562,7 +566,9 @@ void gaia::rules::initialize_rules_engine()
 
 void gaia::rules::shutdown_rules_engine()
 {
-    event_manager_t::get().shutdown();
+    // Allow shutdown to be called even if the rules engine has not been initialized.
+    bool require_initialized = false;
+    event_manager_t::get(require_initialized).shutdown();
 }
 
 void gaia::rules::subscribe_rule(
@@ -591,8 +597,41 @@ void gaia::rules::unsubscribe_rules()
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type,
-    const event_type_t* event_type, const uint16_t* field,
+    const event_type_t* event_type,
+    const field_position_t* field,
     subscription_list_t& subscriptions)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type, event_type, field, subscriptions);
+}
+
+// Note: this function is not used anywhere outside this module hence the linker will not export
+// it defined into it's own file. The linker does not consider single functions but entire object
+// files for export (unless specified otherwise). Since this file is used outside of this module,
+// putting this function here will make the linker export it.
+last_operation_t gaia::rules::rule_context_t::last_operation(gaia_type_t other_gaia_type) const
+{
+    last_operation_t operation = last_operation_t::none;
+
+    if (other_gaia_type != gaia_type)
+    {
+        return operation;
+    }
+
+    switch (event_type)
+    {
+    case db::triggers::event_type_t::row_delete:
+        operation = last_operation_t::row_delete;
+        break;
+    case db::triggers::event_type_t::row_insert:
+        operation = last_operation_t::row_insert;
+        break;
+    case db::triggers::event_type_t::row_update:
+        operation = last_operation_t::row_update;
+        break;
+    default:
+        // Ignore other event types.
+        break;
+    }
+
+    return operation;
 }

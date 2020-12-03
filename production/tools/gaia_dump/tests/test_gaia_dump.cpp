@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "db_test_base.hpp"
 #include "gaia_airport.h"
 #include "gaia_dump.hpp"

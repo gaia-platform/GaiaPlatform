@@ -15,7 +15,6 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "gaia_exception.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
@@ -55,8 +54,6 @@ public:
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 
 private:
-    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
     // Allocate 128 KB per stack allocator.
     // If the largest object size if 64KB - it won't fit into a stack allocator of size 64KB due to other metadata created by the stack allocator.
     // Hence allocate 128KB so each stack allocator is at least large enough to fit a gaia object of maximum size.
@@ -64,10 +61,10 @@ private:
     static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 64 * 1024 + 128;
     static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 2;
     static constexpr size_t max_memory_request_size_bytes = 16 * 64 * 1024;
-
-    // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
-    static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
     // Set a maximum on how much virtual memory can be allocated to a transaction at a time from s_data->objects
+    static constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
+    // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
+    static constexpr size_t c_stream_batch_size = 1 << 10;
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
     static inline std::shared_mutex s_locators_lock{};

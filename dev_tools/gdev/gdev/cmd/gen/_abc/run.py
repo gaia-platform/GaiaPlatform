@@ -110,3 +110,13 @@ class GenAbcRun(Dependency, ABC):
         self.log.debug(f'execvpe {command = }')
 
         os.execvpe(command[0], command, os.environ)
+
+    @memoize
+    async def cli_entrypoint(self) -> None:
+        if not self.options.mixins:
+            run = self
+        else:
+            from .._custom.run import GenCustomRun
+            run = GenCustomRun(options=self.options, base_run=self)
+
+        await run.run()

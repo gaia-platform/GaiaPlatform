@@ -1,5 +1,5 @@
 namespace gaia.db.catalog;
-table gaia_field{
+table gaia_field {
     name:string;
     type:uint8;
     repeated_count:uint16;

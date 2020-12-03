@@ -10,8 +10,8 @@
 
 #include <vector>
 
-#include <db_types.hpp>
-#include <data_holder.hpp>
+#include "data_holder.hpp"
+#include "db_types.hpp"
 
 namespace gaia
 {
@@ -33,6 +33,6 @@ struct index_record_t
     int compare(const index_record_t& other) const;
 };
 
-}
-}
-}
+} // namespace index
+} // namespace db
+} // namespace gaia

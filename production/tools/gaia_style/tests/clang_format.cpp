@@ -15,15 +15,16 @@
 #include "flatbuffers/base.h"
 #include "spdlog/spdlog.h"
 
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
+#include "gaia/common.hpp"
+#include "gaia/component.hpp"
+#include "gaia/db/db.hpp"
 
 // Does not move include with comments.
 #include <iterator>
 #include <list>
 #include <string>
 
-#include "gaia_exception.hpp"
+#include "gaia/exception.hpp"
 
 #ifdef VAR
 #include <filesystem>

@@ -22,6 +22,7 @@ set(CLANG_IMPORT_TEST_LIB_DEPS
   clangLex
   clangParse
   clangSerialization
+  gaia_system
   )
 
 target_link_libraries(clang-import-test

@@ -8,6 +8,11 @@
 
 gaia::db::locators* gaia::db::get_shared_locators()
 {
+    if (!gaia::db::client::s_locators)
+    {
+        throw no_open_transaction();
+    }
+
     // REVIEW: Callers of this method should probably never be able to observe
     // the locators segment in an unmapped state (i.e., outside a transaction),
     // but asserting this condition currently breaks test code that assumes we
@@ -24,7 +29,12 @@ gaia::db::data* gaia::db::get_shared_data()
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the data segment unmapped).
-    retail_assert(gaia::db::client::s_data, "Client data segment is unmapped!");
+
+    if (!gaia::db::client::s_data)
+    {
+        throw no_active_session();
+    }
+
     return gaia::db::client::s_data;
 }
 

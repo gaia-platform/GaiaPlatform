@@ -17,8 +17,8 @@ set(GAIA_COMPILE_FLAGS "-c -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb")
 
 set(GAIA_COMMON_INCLUDES 
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/internal/common
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/common
   ${GAIA_REPO}/demos/airport_q1/inc
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -33,7 +33,7 @@ include_directories(${AIRIMPORT_INCLUDES})
 
 # This command produces two headers in the build directory. This program (airimport)
 # uses them unchanged. The companion program airqueries modifies airport_q1_gaia_generated.h
-# so that it points to a specialized gaia_object.hpp version called gaia_object_q1_demo.hpp
+# so that it points to a specialized edc_object.hpp version called gaia_object_q1_demo.hpp
 # in the airport_q1/inc/ directory. See airqueries/CMakeLists.txt for more info.
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h"

@@ -11,9 +11,9 @@
 #include <thread>
 #include <variant>
 
+#include "gaia/rules/rules.hpp"
 #include "gaia_event_log.h"
 #include "rule_stats_manager.hpp"
-#include "rules.hpp"
 #include "triggers.hpp"
 
 namespace gaia
@@ -34,7 +34,7 @@ public:
     struct log_events_invocation_t
     {
         const db::triggers::trigger_event_list_t events;
-        const vector<bool> rules_invoked;
+        const std::vector<bool> rules_invoked;
     };
 
     struct rule_invocation_t
@@ -52,6 +52,7 @@ public:
         std::variant<rule_invocation_t, log_events_invocation_t> args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
+        uint32_t num_retries{0};
     };
 
     /**
@@ -70,7 +71,7 @@ public:
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */
-    rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager);
+    rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -107,17 +108,14 @@ private:
     void inline invoke_rule(invocation_t& invocation)
     {
         const char* rule_id = invocation.rule_id;
-        m_stats_manager.inc_executed(rule_id);
         if (invocation_type_t::rule == invocation.type)
         {
+            m_stats_manager.inc_executed(rule_id);
             invoke_user_rule(invocation);
         }
         else
         {
-            m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
-            auto fn_start = gaia::common::timer_t::get_time_point();
             log_events(invocation);
-            m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
         }
     }
 
@@ -129,12 +127,12 @@ private:
     // have to wait.  If they have to wait then it is the responsibility
     // of the thread they are waiting on to move them over.
     static thread_local bool s_tls_can_enqueue;
-    static thread_local queue<invocation_t> s_tls_pending_invocations;
+    static thread_local std::queue<invocation_t> s_tls_pending_invocations;
 
     /**
      * Queue from which worker thread draw their invocations.
      */
-    queue<invocation_t> m_invocations;
+    std::queue<invocation_t> m_invocations;
 
     /**
      * Helper to calculate and log statistics for
@@ -144,17 +142,22 @@ private:
     rule_stats_manager_t& m_stats_manager;
 
     /**
+     * Maximum number of times to retry a rule when getting transaction update conflicts.
+     */
+    const uint32_t m_max_rule_retries;
+
+    /**
      * OS threads waiting to do work
      */
-    vector<thread> m_threads;
+    std::vector<std::thread> m_threads;
 
     /**
      * This lock together with the condition variable ensure synchronized 
      * access and signaling between the enqueue function and the worker
      * threads.
      */
-    mutex m_lock;
-    condition_variable m_invocations_signal;
+    std::mutex m_lock;
+    std::condition_variable m_invocations_signal;
     bool m_exit;
 };
 

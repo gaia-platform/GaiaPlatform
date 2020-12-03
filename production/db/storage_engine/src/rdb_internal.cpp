@@ -24,7 +24,7 @@ namespace gaia
 namespace db
 {
 
-void rdb_internal_t::open_txn_db(rocksdb::Options& init_options, rocksdb::TransactionDBOptions& opts)
+void rdb_internal_t::open_txn_db(const rocksdb::Options& init_options, const rocksdb::TransactionDBOptions& opts)
 {
     // RocksDB throws an IOError (Lock on persistent dir) when trying to open (recover) twice on the same directory
     // while a process is already up.
@@ -44,7 +44,7 @@ void rdb_internal_t::open_txn_db(rocksdb::Options& init_options, rocksdb::Transa
     retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
 }
 
-std::string rdb_internal_t::begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id)
+std::string rdb_internal_t::begin_txn(const rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id)
 {
     // RocksDB supplies its own transaction id but expects a unique transaction name.
     // We map gaia_txn_id to a RocksDB transaction name. Transaction id isn't
@@ -68,14 +68,14 @@ void rdb_internal_t::prepare_wal_for_write(rocksdb::Transaction* txn)
     handle_rdb_error(s);
 }
 
-void rdb_internal_t::rollback(std::string& txn_name)
+void rdb_internal_t::rollback(const std::string& txn_name)
 {
     auto txn = get_txn_by_name(txn_name);
     auto s = txn->Rollback();
     handle_rdb_error(s);
 }
 
-void rdb_internal_t::commit(std::string& txn_name)
+void rdb_internal_t::commit(const std::string& txn_name)
 {
     auto txn = get_txn_by_name(txn_name);
     auto s = txn->Commit();
@@ -109,7 +109,7 @@ bool rdb_internal_t::is_db_open()
     return bool(m_txn_db);
 }
 
-rocksdb::Transaction* rdb_internal_t::get_txn_by_name(std::string& txn_name)
+rocksdb::Transaction* rdb_internal_t::get_txn_by_name(const std::string& txn_name)
 {
     retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
     return m_txn_db->GetTransactionByName(txn_name);

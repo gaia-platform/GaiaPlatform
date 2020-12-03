@@ -8,11 +8,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <data_holder.hpp>
-#include <gaia_exception.hpp>
-#include <type_cache.hpp>
-
 #include "flatbuffers/reflection.h"
+
+#include "gaia/exception.hpp"
+#include "data_holder.hpp"
+#include "type_cache.hpp"
 
 namespace gaia
 {
@@ -49,6 +49,18 @@ class unhandled_field_type : public gaia::common::gaia_exception
 {
 public:
     unhandled_field_type(size_t field_type);
+};
+
+class cannot_set_null_string_value : public gaia::common::gaia_exception
+{
+public:
+    cannot_set_null_string_value();
+};
+
+class cannot_update_null_string_value : public gaia::common::gaia_exception
+{
+public:
+    cannot_update_null_string_value();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

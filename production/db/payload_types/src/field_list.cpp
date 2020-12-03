@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "auto_transaction.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 

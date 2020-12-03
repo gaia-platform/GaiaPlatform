@@ -73,12 +73,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
-    int flags = ::fcntl(stream_socket, F_GETFL, 0);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    retail_assert(~(flags & O_NONBLOCK), "Stream socket is not set to blocking!");
+    retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
     cleanup_stream_socket.dismiss();
     return stream_socket;
@@ -185,15 +180,6 @@ static void build_client_request(
     builder.Finish(message);
 }
 
-void client::destroy_log_mapping()
-{
-    // We might have already destroyed the log mapping before committing the txn.
-    if (s_log)
-    {
-        unmap_fd(s_log, sizeof(log));
-    }
-}
-
 // This function must be called before establishing a new session. It ensures
 // that if the server restarts or is reset, no session will start with a stale
 // data mapping or locator fd.
@@ -202,29 +188,20 @@ void client::clear_shared_memory()
     // This is intended to be called before a session is established.
     verify_no_session();
     // We closed our original fd for the data segment, so we only need to unmap it.
-    if (s_data)
-    {
-        unmap_fd(s_data, sizeof(data));
-    }
+    unmap_fd(s_data, sizeof(data));
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
-    if (s_fd_locators != -1)
-    {
-        close_fd(s_fd_locators);
-    }
+    close_fd(s_fd_locators);
 }
 
 void client::txn_cleanup()
 {
     // Destroy the log memory mapping.
-    destroy_log_mapping();
+    unmap_fd(s_log, c_initial_log_size);
     // Destroy the log fd.
     close_fd(s_fd_log);
     // Destroy the locator mapping.
-    if (s_locators)
-    {
-        unmap_fd(s_locators, sizeof(locators));
-    }
+    unmap_fd(s_locators, sizeof(locators));
 }
 
 int client::get_session_socket()
@@ -333,8 +310,7 @@ void client::begin_session()
     // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    s_data = static_cast<data*>(map_fd(
-        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
@@ -378,13 +354,10 @@ void client::begin_transaction()
     auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(fd_log);
     });
-    if (-1 == ::ftruncate(fd_log, sizeof(log)))
-    {
-        throw_system_error("ftruncate failed");
-    }
-    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    truncate_fd(fd_log, c_initial_log_size);
+    map_fd(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(s_log, sizeof(log));
+        unmap_fd(s_log, c_initial_log_size);
     });
 
     // Now we map a private COW view of the locator shared memory segment.
@@ -401,7 +374,7 @@ void client::begin_transaction()
         }
     });
 
-    s_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
+    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0);
     auto cleanup_locator_mapping = make_scope_guard([&]() {
         unmap_fd(s_locators, sizeof(locators));
     });
@@ -467,7 +440,7 @@ void client::commit_transaction()
     auto cleanup = make_scope_guard(txn_cleanup);
 
     // Unmap the log segment so we can seal it.
-    destroy_log_mapping();
+    unmap_fd(s_log, c_initial_log_size);
     // Seal the txn log memfd for writes before sending it to the server.
     if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
     {

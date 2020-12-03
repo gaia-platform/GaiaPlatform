@@ -198,7 +198,7 @@ void server::handle_commit_txn(
     retail_assert(seals & F_SEAL_WRITE, "Log fd was not sealed for write!");
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
+    map_fd(s_log, get_fd_size(fd_log), PROT_READ, MAP_PRIVATE, fd_log, 0);
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
@@ -311,15 +311,7 @@ void server::handle_request_stream(
         close_fd(client_socket);
     });
     // Set server socket to be nonblocking, since we use it within an epoll loop.
-    int flags = ::fcntl(server_socket, F_GETFL);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    if (-1 == ::fcntl(server_socket, F_SETFL, flags | O_NONBLOCK))
-    {
-        throw_system_error("fcntl(F_SETFL) failed");
-    }
+    set_non_blocking(server_socket);
     // The only currently supported stream type is table scans.
     // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
@@ -434,22 +426,10 @@ void server::build_server_reply(
 
 void server::clear_shared_memory()
 {
-    if (s_shared_locators)
-    {
-        unmap_fd(s_shared_locators, sizeof(locators));
-    }
-    if (s_fd_locators != -1)
-    {
-        close_fd(s_fd_locators);
-    }
-    if (s_data)
-    {
-        unmap_fd(s_data, sizeof(data));
-    }
-    if (s_fd_data != -1)
-    {
-        close_fd(s_fd_data);
-    }
+    unmap_fd(s_shared_locators, sizeof(locators));
+    close_fd(s_fd_locators);
+    unmap_fd(s_data, sizeof(data));
+    close_fd(s_fd_data);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -474,12 +454,10 @@ void server::init_shared_memory()
     {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ::ftruncate(s_fd_locators, sizeof(locators)) || -1 == ::ftruncate(s_fd_data, sizeof(data)))
-    {
-        throw_system_error("ftruncate failed");
-    }
-    s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
-    s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+    truncate_fd(s_fd_locators, sizeof(locators));
+    truncate_fd(s_fd_data, sizeof(data));
+    map_fd(s_shared_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0);
+    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0);
     init_memory_manager();
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -551,16 +529,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
     cerr << "Caught signal " << ::strsignal(signum) << endl;
-    // Signal the eventfd by writing a nonzero value.
-    // This value is large enough that no thread will
-    // decrement it to zero, so every waiting thread
-    // should see a nonzero value.
-    ssize_t bytes_written = ::write(s_server_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
-    if (bytes_written == -1)
-    {
-        throw_system_error("write to eventfd failed");
-    }
-    retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
+    signal_eventfd(s_server_shutdown_eventfd);
 }
 
 void server::init_listening_socket()
@@ -724,20 +693,13 @@ void server::client_dispatch_handler()
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                uint64_t val;
-                ssize_t bytes_read = ::read(s_server_shutdown_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read failed");
-                }
-                // We should always read the value 1 from a semaphore eventfd.
-                retail_assert(bytes_read == sizeof(val) && val == 1, "Unexpected value read from semaphore event fd");
+                consume_eventfd(s_server_shutdown_eventfd);
                 return;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd type detected!");
+                retail_assert(false, "Unexpected fd!");
             }
         }
     }
@@ -780,29 +742,17 @@ void server::session_handler(int session_socket)
     }
     epoll_event events[std::size(fds)];
     // Event to signal session-owned threads to terminate.
-    int session_shutdown_eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
-    if (session_shutdown_eventfd == -1)
-    {
-        throw_system_error("eventfd failed");
-    }
-    s_session_shutdown_eventfd = session_shutdown_eventfd;
+    s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
-        // Signal the eventfd by writing a nonzero value.
-        // This value is large enough that no thread will
-        // decrement it to zero, so every waiting thread
-        // should see a nonzero value.
-        ssize_t bytes_written = ::write(s_session_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
-        if (bytes_written == -1)
-        {
-            throw_system_error("write to eventfd failed");
-        }
-        retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
+        // Signal all session-owned threads to terminate.
+        signal_eventfd(s_session_shutdown_eventfd);
         // Wait for all session-owned threads to terminate.
         for (std::thread& t : s_session_owned_threads)
         {
             t.join();
         }
-        // All threads have received the session shutdown notification, so we can close the eventfd.
+        // All threads have received the session shutdown notification, so we
+        // can close the eventfd.
         close_fd(s_session_shutdown_eventfd);
     });
 
@@ -900,21 +850,13 @@ void server::session_handler(int session_socket)
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
                 retail_assert(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
-                // We should always read the value 1 from a semaphore eventfd.
-                uint64_t val;
-                ssize_t bytes_read = ::read(s_server_shutdown_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read(eventfd) failed");
-                }
-                retail_assert(bytes_read == sizeof(val), "Failed to fully read expected data!");
-                retail_assert(val == 1, "Unexpected value received!");
+                consume_eventfd(s_server_shutdown_eventfd);
                 event = session_event_t::SERVER_SHUTDOWN;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd!");
+                retail_assert(false, "Unexpected fd!");
             }
             retail_assert(event != session_event_t::NOP, "Unexpected event type!");
             apply_transition(event, event_data, fds, fd_count);
@@ -936,13 +878,8 @@ void server::stream_producer_handler(
         // since we hold the only fd pointing to this socket.
         close_fd(stream_socket);
     });
-    // Check if our stream socket is non-blocking (so we don't accidentally block in write()).
-    int flags = ::fcntl(stream_socket, F_GETFL, 0);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    retail_assert(flags & O_NONBLOCK, "Stream socket is in blocking mode!");
+    // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
+    retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
@@ -971,7 +908,7 @@ void server::stream_producer_handler(
     // The userspace buffer that we use to construct a batch datagram message.
     std::vector<T_element_type> batch_buffer;
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
-    batch_buffer.reserve(STREAM_BATCH_SIZE);
+    batch_buffer.reserve(c_stream_batch_size);
     while (!producer_shutdown)
     {
         // Block forever (we will be notified of shutdown).
@@ -1020,7 +957,7 @@ void server::stream_producer_handler(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
-                    while (gen_iter && (batch_buffer.size() < STREAM_BATCH_SIZE))
+                    while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
                     {
                         T_element_type next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
@@ -1080,21 +1017,13 @@ void server::stream_producer_handler(
             else if (ev.data.fd == cancel_eventfd)
             {
                 retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
-                // We should always read the value 1 from a semaphore eventfd.
-                uint64_t val;
-                ssize_t bytes_read = ::read(cancel_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read(eventfd) failed");
-                }
-                retail_assert(bytes_read == sizeof(val), "Failed to fully read data!");
-                retail_assert(val == 1, "Unexpected data received!");
+                consume_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd!");
+                retail_assert(false, "Unexpected fd!");
             }
         }
     }
@@ -1210,27 +1139,15 @@ void server::run(bool disable_persistence)
     while (true)
     {
         // Create eventfd shutdown event.
-        // Linux is non-POSIX-compliant and sometimes marks an fd as readable
-        // from select/poll/epoll even when a subsequent read would block.
-        // Therefore it's safest to always set an fd to nonblocking when it's
-        // used with select/poll/epoll. However, a datagram socket will return
-        // EAGAIN/EWOULDBLOCK on write if there's not enough space in the send
-        // buffer to write the whole message. This shouldn't be an issue as long
-        // as our send buffer is larger than any message, but we should assert
-        // that writes never block when the socket is writable, just to be sure.
-        // We really just want the semantics of a broadcast, level-triggered
-        // "waitable flag", but the closest thing to that is semaphore mode, which
-        // has the unwanted semantics of a decrement on each read (the eventfd stops
-        // alerting when it is decremented to zero). So as a workaround, we write
-        // the largest possible value to the eventfd to ensure that it is never
-        // decremented to zero, no matter how many threads read (and decrement) the
-        // value.
-        int server_shutdown_eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
-        if (server_shutdown_eventfd == -1)
-        {
-            throw_system_error("eventfd failed");
-        }
-        s_server_shutdown_eventfd = server_shutdown_eventfd;
+        s_server_shutdown_eventfd = make_eventfd();
+        auto cleanup_shutdown_eventfd = make_scope_guard([]() {
+            // We can't close this fd until all readers and writers have exited.
+            // The only readers are the client dispatch thread and the session
+            // threads, and the only writer is the signal handler thread. All
+            // these threads must have exited before we exit this scope and this
+            // handler executes.
+            close_fd(s_server_shutdown_eventfd);
+        });
         // Launch signal handler thread.
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
@@ -1241,15 +1158,18 @@ void server::run(bool disable_persistence)
         client_dispatch_thread.join();
         // The signal handler thread will only return after a blocked signal is pending.
         signal_handler_thread.join();
-        // We can't close this fd until all readers and writers have exited.
-        // The only readers are the client dispatch thread and the session
-        // threads, and the only writer is the signal handler thread.
-        close_fd(s_server_shutdown_eventfd);
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
         // We special-case SIGHUP to force reinitialization of the server.
-        if (caught_signal != SIGHUP)
+        // This is only enabled if persistence is disabled, because otherwise
+        // data would disappear on reset, only to reappear when the database is
+        // restarted and recovers from the persistent store.
+        if (!(caught_signal == SIGHUP && s_disable_persistence))
         {
+            if (caught_signal == SIGHUP)
+            {
+                cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
+            }
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.
             // We may have already received other pending signals by the time

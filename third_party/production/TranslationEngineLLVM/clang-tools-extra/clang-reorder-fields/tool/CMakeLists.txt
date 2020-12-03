@@ -9,4 +9,5 @@ target_link_libraries(clang-reorder-fields
   clangSerialization
   clangTooling
   clangToolingCore
+  gaia_system
   )

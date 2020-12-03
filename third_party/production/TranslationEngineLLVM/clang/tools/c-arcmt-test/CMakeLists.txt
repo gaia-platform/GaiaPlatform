@@ -11,6 +11,7 @@ else()
   target_link_libraries(c-arcmt-test
     PRIVATE
     libclang
+    gaia_system
     )
 endif()
 

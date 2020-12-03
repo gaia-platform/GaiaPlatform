@@ -10,13 +10,16 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 #include "type_id_mapping.hpp"
 #include "type_metadata.hpp"
 
+using namespace std;
+
+using namespace gaia::direct_access;
 using namespace gaia::catalog;
 
 /*
@@ -223,6 +226,41 @@ TEST_F(ddl_executor_test, create_table_duplicate_field)
     fields.emplace_back(make_unique<data_field_def_t>("field1", data_type_t::e_string, 1));
     fields.emplace_back(make_unique<data_field_def_t>("field1", data_type_t::e_string, 1));
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
+}
+
+TEST_F(ddl_executor_test, create_table_double_anonymous_reference)
+{
+    table_builder_t::new_table("table_1").create();
+    table_builder_t::new_table("table_2").create();
+
+    table_builder_t::new_table("test_double_anonymous_reference")
+        .anonymous_reference("table_1")
+        .anonymous_reference("table_2")
+        .create();
+}
+
+TEST_F(ddl_executor_test, create_table_duplicate_anonymous_reference)
+{
+    table_builder_t::new_table("table_1").create();
+
+    EXPECT_THROW(
+        table_builder_t::new_table("test_double_anonymous_reference")
+            .anonymous_reference("table_1")
+            .anonymous_reference("table_1")
+            .create(),
+        duplicate_field);
+}
+
+TEST_F(ddl_executor_test, create_table_duplicate_anonymous_reference_and_field)
+{
+    table_builder_t::new_table("table_1").create();
+
+    EXPECT_THROW(
+        table_builder_t::new_table("test_double_anonymous_reference")
+            .field("table_1", data_type_t::e_string)
+            .anonymous_reference("table_1")
+            .create(),
+        duplicate_field);
 }
 
 TEST_F(ddl_executor_test, drop_table)
@@ -577,7 +615,7 @@ TEST_F(ddl_executor_test, metadata_not_exists)
     const int c_non_existent_type = 1001;
     EXPECT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
-        retail_assertion_failure);
+        invalid_type);
 
     txn.commit();
 }
