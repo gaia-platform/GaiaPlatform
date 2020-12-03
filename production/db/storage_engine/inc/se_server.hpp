@@ -143,6 +143,8 @@ private:
         {session_state_t::ANY, session_event_t::REQUEST_MEMORY, {session_state_t::ANY, handle_request_memory}},
     };
 
+    static void free_stack_allocators(bool deallocate_stack_allocator);
+
     static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
     static void build_server_reply(

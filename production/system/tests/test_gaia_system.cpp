@@ -104,7 +104,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
     {
         g_rule_per_commit_count = 0;
         begin_transaction();
-        // // Insert row.
+        // Insert row.
         employee_writer w;
         w.name_first = "name";
         gaia_id_t id = w.insert_row();
@@ -119,11 +119,11 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         employee_t::delete_row(id);
         gaia::db::commit_transaction();
 
-        // // We should get crud_operations_per_txn per commit.  Wait for them.
-        // while (g_rule_per_commit_count < crud_operations_per_txn)
-        // {
-        //     usleep(1);
-        // }
+        // We should get crud_operations_per_txn per commit.  Wait for them.
+        while (g_rule_per_commit_count < crud_operations_per_txn)
+        {
+            usleep(1);
+        }
     }
 
     if (new_thread)
@@ -134,7 +134,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
 
 void validate_and_end_test(uint32_t count_txn, uint32_t crud_operations_per_txn, uint32_t count_threads)
 {
-    // EXPECT_EQ(g_rule_count, count_txn * crud_operations_per_txn * count_threads);
+    EXPECT_EQ(g_rule_count, count_txn * crud_operations_per_txn * count_threads);
 }
 
 TEST_F(gaia_system_test, single_threaded_transactions)

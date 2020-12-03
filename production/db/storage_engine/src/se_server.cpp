@@ -23,7 +23,7 @@
 #include "fd_helpers.hpp"
 #include "gaia_db_internal.hpp"
 #include "generator_iterator.hpp"
-#include "memory_manager_error.hpp"
+#include "memory_allocation_error.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
@@ -56,11 +56,10 @@ size_t server::calculate_allotment_count(
     {
         return STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
     }
+    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect session event received when requesting the server for more memory");
 
     // Ignore memory size hint if it is greater than max_memory_request_size_bytes
     txn_memory_request_size_hint = std::min(txn_memory_request_size_hint, max_memory_request_size_bytes);
-
-    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect session event received when requesting the server for more memory");
 
     // Best effort to find allotment count; at least send back 1 stack allocator.
     size_t allotment_count = txn_memory_request_size_hint / STACK_ALLOCATOR_SIZE_BYTES + 1;
@@ -83,13 +82,13 @@ void server::allocate_stack_allocators(
         auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
         if (error != error_code_t::success)
         {
-            throw memory_manager_error("Memory manager allocate_raw failure.", error);
+            throw memory_allocation_error("Memory manager allocate_raw failure.", error);
         }
         std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
         error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
         if (error != error_code_t::success)
         {
-            throw memory_manager_error("Stack allocator initialization failure.", error);
+            throw memory_allocation_error("Stack allocator initialization failure.", error);
         }
         // Add created stack_allocator to the list of active stack allocators.
         s_active_stack_allocators.push_back(std::move(stack_allocator));
@@ -143,20 +142,28 @@ void server::handle_begin_txn(
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
+void server::free_stack_allocators(bool deallocate_stack_allocator)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
-
-    for (auto& stack_allocator : s_active_stack_allocators)
+    for (auto& stack_allocator : server::s_active_stack_allocators)
     {
-        if (!commit_success)
+        if (deallocate_stack_allocator)
         {
             // Rollback all allocations.
             stack_allocator->deallocate(0);
         }
         // Free up unused space.
-        memory_manager->free_stack_allocator(stack_allocator);
+        server::memory_manager->free_stack_allocator(stack_allocator);
     }
+}
+
+void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
+{
+    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
+
+    // Deallocate stack allocator in case of an abort.
+    bool deallocate_stack_allocator = !commit_success;
+    free_stack_allocators(deallocate_stack_allocator);
+
     s_active_stack_allocators.clear();
 }
 
@@ -263,11 +270,7 @@ void server::handle_client_shutdown(
     s_session_shutdown = true;
 
     // Free all unused or uncommitted session stack allocators.
-    for (auto& stack_allocator : s_active_stack_allocators)
-    {
-        stack_allocator->deallocate(0);
-        memory_manager->free_stack_allocator(stack_allocator);
-    }
+    free_stack_allocators(true);
 }
 
 void server::handle_server_shutdown(
@@ -382,7 +385,7 @@ static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offse
     flatbuffers::Offset<memory_allocation_info_t> memory_allocation_reply = 0;
     if (stack_allocators)
     {
-        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
+        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation_info;
         for (auto& stack_allocator : *stack_allocators)
         {
             const auto stack_allocator_info = Createstack_allocator_info_t(
@@ -390,9 +393,9 @@ static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offse
                 stack_allocator.get_base_memory_offset(),
                 stack_allocator.get_total_memory_size());
 
-            memory_allocation.push_back(stack_allocator_info);
+            memory_allocation_info.push_back(stack_allocator_info);
         }
-        memory_allocation_reply = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation));
+        memory_allocation_reply = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation_info));
     }
     return memory_allocation_reply;
 }
@@ -485,7 +488,7 @@ address_offset_t server::allocate_object(
     error_code_t error = memory_manager->allocate(size + sizeof(se_object_t), offset);
     if (error != error_code_t::success)
     {
-        throw memory_manager_error("Error when creating objects.", error);
+        throw memory_allocation_error("Error when creating objects.", error);
     }
     retail_assert(offset != -c_invalid_offset, "Invalid offset post object creation.");
     update_locator(locator, offset);

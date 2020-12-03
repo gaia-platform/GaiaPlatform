@@ -24,7 +24,7 @@
 #include "db_types.hpp"
 #include "fd_helpers.hpp"
 #include "generator_iterator.hpp"
-#include "memory_manager_error.hpp"
+#include "memory_allocation_error.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "retail_assert.hpp"
@@ -400,7 +400,7 @@ void client::begin_transaction()
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
     if (!(allocation_info && allocation_info->stack_allocator_list()->size() > 0))
     {
-        throw memory_manager_error("Failed to fetch memory from the server at begin transaction.");
+        throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
     }
     load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
@@ -536,7 +536,7 @@ static address_offset_t stack_allocator_allocate(
 
         if (free_allocators.empty())
         {
-            throw memory_manager_error("Unable to obtain memory from server.");
+            throw memory_allocation_error("Unable to obtain memory from server.");
         }
 
         // Try allocating object. If current stack allocator memory isn't enough, then fetch
@@ -557,7 +557,7 @@ static address_offset_t stack_allocator_allocate(
 
     if (result != error_code_t::success)
     {
-        throw memory_manager_error("Stack allocation failure!", result);
+        throw memory_allocation_error("Stack allocation failure!", result);
     }
 
     retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
