@@ -53,7 +53,7 @@ void event_manager_t::init()
     init(settings);
 }
 
-void event_manager_t::init(event_manager_settings_t& settings)
+void event_manager_t::init(const event_manager_settings_t& settings)
 {
     unique_lock<recursive_mutex> lock(m_init_lock);
 
@@ -73,7 +73,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(count_worker_threads, *m_stats_manager);
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
 
     if (settings.enable_catalog_checks)
     {
@@ -97,8 +98,6 @@ void event_manager_t::shutdown()
         return;
     }
 
-    m_is_initialized = false;
-
     // Stop new events from coming in.
     set_commit_trigger(nullptr);
 
@@ -106,6 +105,9 @@ void event_manager_t::shutdown()
     m_invocations.reset();
     m_stats_manager.reset();
     m_rule_checker.reset();
+
+    // Don't uninitialize until we've shutdown the thread pool.
+    m_is_initialized = false;
 
     // Ensure we can re-initialize by dropping our subscription state.
     unsubscribe_rules();
