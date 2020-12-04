@@ -8,7 +8,7 @@ These instructions assume you have installed the SDK and have installed the *cla
 ```
 mkdir incubator_demo
 cd incubator_demo
-cp -r /opt/gaia/examples/incubator_demo .
+cp -r /opt/gaia/examples/incubator_demo/* .
 ```
 2. Create a build directory (in this case it is under the current *incubator_demo/* folder and build.
 ```
