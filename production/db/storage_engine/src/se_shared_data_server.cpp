@@ -23,9 +23,9 @@ gaia::db::data* gaia::db::get_shared_data()
     return gaia::db::server::s_data;
 }
 
-memory_manager::address_offset_t gaia::db::allocate_object(
+gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
     gaia_locator_t locator,
-    memory_manager::address_offset_t old_slot_offset,
+    gaia::db::memory_manager::address_offset_t old_slot_offset,
     size_t size)
 {
     return gaia::db::server::allocate_object(locator, old_slot_offset, size);

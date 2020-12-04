@@ -27,7 +27,6 @@ namespace db
 {
 
 using namespace gaia::common;
-using namespace gaia::db::memory_manager;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
 
@@ -44,9 +43,9 @@ class server
 {
     friend gaia::db::locators* gaia::db::get_shared_locators();
     friend gaia::db::data* gaia::db::get_shared_data();
-    friend memory_manager::address_offset_t gaia::db::allocate_object(
+    friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
-        memory_manager::address_offset_t old_slot_offset,
+        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
 public:
@@ -54,14 +53,6 @@ public:
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 
 private:
-    // Allocate 128 KB per stack allocator.
-    // If the largest object size if 64KB - it won't fit into a stack allocator of size 64KB due to other metadata created by the stack allocator.
-    // Hence allocate 128KB so each stack allocator is at least large enough to fit a gaia object of maximum size.
-    // Or alternatively this could be 64KB + minimum size required by stack allocator metadata (rounded up to a factor of 2)
-    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 64 * 1024 + 128;
-    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 2;
-    static constexpr size_t max_memory_request_size_bytes = 16 * 64 * 1024;
-    // Set a maximum on how much virtual memory can be allocated to a transaction at a time from s_data->objects
     static constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size = 1 << 10;
@@ -81,13 +72,13 @@ private:
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
-    static inline std::unique_ptr<memory_manager_t> memory_manager{};
+    static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> memory_manager{};
 
     // Keeps track of stack allocators belonging to the current transaction executing on this thread.
     // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
     // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
     // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
-    thread_local static inline std::vector<std::unique_ptr<stack_allocator_t>> s_active_stack_allocators{};
+    thread_local static inline std::vector<std::unique_ptr<gaia::db::memory_manager::stack_allocator_t>> s_active_stack_allocators{};
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
@@ -153,18 +144,12 @@ private:
         session_state_t old_state,
         session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
-        const stack_allocator_t* const new_stack_allocator = nullptr);
+        const gaia::db::memory_manager::stack_allocator_t* const new_stack_allocator = nullptr);
 
     static void clear_shared_memory();
 
-    static size_t calculate_allotment_count(
-        session_event_t event,
-        size_t txn_memory_request_size_hint);
-
-    static void allocate_stack_allocator(
-        session_event_t event,
-        size_t txn_memory_request_size_bytes,
-        stack_allocator_t* new_stack_allocator);
+    static gaia::db::memory_manager::stack_allocator_t allocate_stack_allocator(
+        size_t txn_memory_request_size_bytes);
 
     static void init_memory_manager();
 
@@ -201,9 +186,9 @@ private:
 
     static bool txn_commit();
 
-    static address_offset_t allocate_object(
+    static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
-        address_offset_t old_slot_offset,
+        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 };
 

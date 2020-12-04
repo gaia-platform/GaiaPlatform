@@ -320,13 +320,14 @@ void client::begin_session()
 
 void client::load_stack_allocator(const memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr)
 {
-    auto stack_allocator_info = allocation_info->stack_allocator();
+    auto stack_allocator_info = allocation_info->stack_allocator_info();
 
     // Create and load stack allocator.
     stack_allocator_t stack_allocator;
     stack_allocator.load(data_mapping_base_addr, stack_allocator_info->stack_allocator_offset(), stack_allocator_info->stack_allocator_size());
     // Set the current stack allocator.
-    s_current_stack_allocator.reset(&stack_allocator);
+    s_current_stack_allocator.reset();
+    s_current_stack_allocator = std::make_unique<stack_allocator_t>(stack_allocator);
 }
 
 void client::end_session()
@@ -340,7 +341,7 @@ void client::begin_transaction()
 {
     verify_session_active();
     verify_no_txn();
-
+    retail_assert(s_txn_memory_request_size == c_initial_txn_memory_size_bytes, "Memory request size should have been reset when beginning a new transaction!");
     // First we allocate a new log segment and map it in our own process.
     int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
     if (fd_log == -1)
@@ -376,7 +377,7 @@ void client::begin_transaction()
     });
 
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::BEGIN_TXN);
+    build_client_request(builder, session_event_t::BEGIN_TXN, c_initial_txn_memory_size_bytes);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id from the server.
@@ -394,7 +395,7 @@ void client::begin_transaction()
 
     // Obtain transaction memory allocation information.
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
-    if (allocation_info || allocation_info->stack_allocator())
+    if (!allocation_info || !allocation_info->stack_allocator_info())
     {
         throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
     }
@@ -423,6 +424,8 @@ void client::rollback_transaction()
     s_events.clear();
     // Reset current stack allocator.
     s_current_stack_allocator.reset();
+    // Reset initial memory allocation size for the current transaction.
+    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -485,6 +488,8 @@ void client::commit_transaction()
     s_events.clear();
     // Reset current stack allocator.
     s_current_stack_allocator.reset();
+    // Reset initial memory allocation size for the current transaction.
+    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 }
 
 void client::request_memory()
@@ -492,8 +497,8 @@ void client::request_memory()
     verify_txn_active();
 
     FlatBufferBuilder builder;
-    txn_memory_request_size_hint_bytes = txn_memory_request_size_hint_bytes * memory_request_size_multiplier;
-    build_client_request(builder, session_event_t::REQUEST_MEMORY, txn_memory_request_size_hint_bytes);
+    s_txn_memory_request_size = std::min(s_txn_memory_request_size, c_max_memory_request_size_bytes);
+    build_client_request(builder, session_event_t::REQUEST_MEMORY, s_txn_memory_request_size);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Receive memory allocation information from the server.
@@ -505,8 +510,10 @@ void client::request_memory()
     const server_reply_t* reply = msg->msg_as_reply();
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
 
-    retail_assert(allocation_info && allocation_info->stack_allocator(), "Failed to fetch memory from the server.");
+    retail_assert(allocation_info && allocation_info->stack_allocator_info(), "Failed to fetch memory from the server.");
     load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
+    // Update memory request size for the next request memory call for the current transaction.
+    s_txn_memory_request_size = s_txn_memory_request_size * c_memory_request_size_multiplier;
 }
 
 address_offset_t client::stack_allocator_allocate(
@@ -515,15 +522,15 @@ address_offset_t client::stack_allocator_allocate(
     size_t size)
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");
+    size_t c_max_allocation_attempts = 2;
     error_code_t result = error_code_t::not_set;
     address_offset_t allocated_memory_offset = c_invalid_offset;
     // We should only need two attempts to allocate memory.
-    // If more than two attempts are required then it means the newly obtained free stack allocator
+    // If more than two attempts are required then it means that the newly obtained free stack allocator
     // doesn't have enough memory for the current object - which should not happen.
-    for (size_t allocation_attempt = 0; allocation_attempt < 2; allocation_attempt++)
+    for (size_t allocation_attempt = 0; allocation_attempt < c_max_allocation_attempts; allocation_attempt++)
     {
-        // If free list is empty, make an IPC call to request more memory from the server.
-        // Note that this call can crash the server in case the server runs out of memory.
+        // Fetch a new stack allocator from the server if none is assigned to the client.
         if (!s_current_stack_allocator)
         {
             client::request_memory();
@@ -534,11 +541,11 @@ address_offset_t client::stack_allocator_allocate(
             throw memory_allocation_error("Unable to obtain memory from server.");
         }
 
-        // Try allocating object. If current stack allocator memory isn't enough, then fetch
-        // another allocator from the free list.
+        // Try allocating memory from the current stack allocator.
         result = s_current_stack_allocator->allocate(locator, old_slot_offset, size, allocated_memory_offset);
 
-        // The stack allocator size may not be sufficient for the current object, so get a new one.
+        // If the first allocator no longer has sufficient memory for the current object,
+        // we will have to stop using it and start using the next available allocator.
         if (result == error_code_t::insufficient_memory_size || result == error_code_t::memory_size_too_large)
         {
             s_current_stack_allocator.reset();
@@ -549,11 +556,7 @@ address_offset_t client::stack_allocator_allocate(
         }
     }
 
-    if (result != error_code_t::success)
-    {
-        throw memory_allocation_error("Stack allocation failure!", result);
-    }
-
+    retail_assert(result == error_code_t::success, "Stack allocation failure when allocating memory for a new object.");
     retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
 
     return allocated_memory_offset;
@@ -565,6 +568,7 @@ address_offset_t client::allocate_object(
     size_t size)
 {
     address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size);
+
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);
 

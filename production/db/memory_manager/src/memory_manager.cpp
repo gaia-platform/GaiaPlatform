@@ -197,8 +197,6 @@ error_code_t memory_manager_t::free_stack_allocator(
 
     // This doesn't prevent another copy of this stack allocator from attempting to do a redundant free,
     // but it's better than no protection at all.
-    // Marking the stack allocator as free has zero implication on whether old offsets will get overwritten;
-    // since new stack allocators are only allocated from a free list of memory.
     stack_allocator->mark_as_freed();
 
     if (m_execution_flags.enable_console_output)

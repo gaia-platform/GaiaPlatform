@@ -41,14 +41,14 @@ using namespace std;
 
 using namespace gaia::db;
 using namespace gaia::db::messages;
+using namespace gaia::db::memory_manager;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-void server::allocate_stack_allocator(
-    session_event_t event,
-    size_t txn_memory_request_size_bytes,
-    stack_allocator_t* new_stack_allocator)
+stack_allocator_t server::allocate_stack_allocator(
+    size_t txn_memory_request_size_bytes)
 {
+    retail_assert(txn_memory_request_size_bytes > 0, "Requested allocation size for the allocate_raw API should be greater than 0");
     // Offset gets assigned; no need to set it.
     address_offset_t stack_allocator_offset;
     auto error = memory_manager->allocate_raw(txn_memory_request_size_bytes, stack_allocator_offset);
@@ -64,8 +64,8 @@ void server::allocate_stack_allocator(
     }
     // Add created stack_allocator to the list of active stack allocators.
     s_active_stack_allocators.push_back(std::move(stack_allocator));
-    // Assign raw pointer to 'new_stack_allocator' .
-    new_stack_allocator = s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
+    // Return stack allocator object.
+    return *s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
 }
 
 void server::handle_connect(
@@ -99,11 +99,10 @@ void server::handle_begin_txn(
     s_txn_id = allocate_txn_id();
 
     auto request = static_cast<const client_request_t*>(event_data);
-    if (request->data_type() == request_data_t::memory_info
-        && reinterpret_cast<const bool*>(request->data()))
+    if (request->data_type() == request_data_t::memory_info)
     {
-        stack_allocator_t stack_allocator;
-        allocate_stack_allocator(session_event_t::BEGIN_TXN, 0, &stack_allocator);
+        auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
+        auto stack_allocator = allocate_stack_allocator(txn_memory_request_size_bytes);
         build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &stack_allocator);
     }
     else
@@ -203,8 +202,7 @@ void server::handle_request_memory(
     auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
 
     FlatBufferBuilder builder;
-    stack_allocator_t stack_allocator;
-    allocate_stack_allocator(session_event_t::REQUEST_MEMORY, txn_memory_request_size_bytes, &stack_allocator);
+    auto stack_allocator = allocate_stack_allocator(txn_memory_request_size_bytes);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &stack_allocator);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }

@@ -20,9 +20,9 @@ gaia::db::locators* get_shared_locators();
 gaia::db::data* get_shared_data();
 
 // Allocate an object from the "data" shared memory segment.
-memory_manager::address_offset_t allocate_object(
+gaia::db::memory_manager::address_offset_t allocate_object(
     gaia_locator_t locator,
-    memory_manager::address_offset_t old_slot_offset,
+    gaia::db::memory_manager::address_offset_t old_slot_offset,
     size_t size);
 
 } // namespace db

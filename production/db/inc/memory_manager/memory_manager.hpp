@@ -42,12 +42,11 @@ public:
     // These allocations are NOT prefixed with a metadata block.
     error_code_t allocate_raw(size_t memory_size, address_offset_t& allocated_memory_offset);
 
-    // Adds the stack allocator's unused memory to the list of free memory.
-    // This API additionally frees up allocation records too.
+    // Adds the stack allocator's unused memory and allocation records to the list of free memory.
     error_code_t free_stack_allocator(
         const std::unique_ptr<stack_allocator_t>& stack_allocator);
 
-    // Adds objects at old objects to the list of free memory.
+    // Adds object memory at the provided offsets to the list of free memory.
     void free_old_offsets(
         const std::list<address_offset_t>& offsets);
 

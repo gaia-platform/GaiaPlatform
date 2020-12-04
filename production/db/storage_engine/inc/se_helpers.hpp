@@ -60,14 +60,14 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&data->last_locator, 1);
 }
 
-inline gaia_offset_t get_gaia_offset(memory_manager::address_offset_t offset)
+inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
 {
     return offset / sizeof(uint64_t);
 }
 
 inline void update_locator(
     gaia_locator_t locator,
-    memory_manager::address_offset_t offset)
+    gaia::db::memory_manager::address_offset_t offset)
 {
     locators* locators = gaia::db::get_shared_locators();
     if (!locators)
