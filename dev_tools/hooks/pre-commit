@@ -21,7 +21,7 @@ excluded_files=(
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp/etc..
-for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
     format_file=true
 
     # Check if the file exists (renamed files they may not exists)
