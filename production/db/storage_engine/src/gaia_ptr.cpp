@@ -7,8 +7,6 @@
 
 #include <cstring>
 
-#include <stack>
-
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "retail_assert.hpp"

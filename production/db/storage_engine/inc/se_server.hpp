@@ -8,7 +8,6 @@
 #include <csignal>
 
 #include <functional>
-#include <map>
 #include <optional>
 #include <shared_mutex>
 #include <thread>
@@ -53,6 +52,7 @@ public:
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 
 private:
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     static constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size = 1 << 10;

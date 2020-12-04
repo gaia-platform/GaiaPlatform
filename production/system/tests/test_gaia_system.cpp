@@ -54,7 +54,7 @@ public:
 
         // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.
         // Currently this is under production/schemas/test/addr_book.
-        const char* ddl_file = "/home/ubuntu/GaiaPlatform/production/schemas/test/addr_book/addr_book.ddl";
+        const char* ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.

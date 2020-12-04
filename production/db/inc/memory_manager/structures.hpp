@@ -19,6 +19,8 @@ struct execution_flags_t
 {
     // Requests execution status to be output to console.
     bool enable_console_output;
+
+    // Requests additional validations to be performed during execution.
     bool enable_extra_validations;
 
     execution_flags_t()

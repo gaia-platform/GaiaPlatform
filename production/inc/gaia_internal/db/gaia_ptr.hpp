@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <stack>
-
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
 #include "retail_assert.hpp"

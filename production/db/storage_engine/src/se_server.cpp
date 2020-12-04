@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <map>
 #include <memory>
 #include <shared_mutex>
 #include <thread>
@@ -130,7 +129,7 @@ void server::get_memory_info_from_request_and_free(session_event_t event, bool c
 {
     retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
 
-    // Deallocate stack allocator in case of an abort.
+    // Deallocate stack allocator in case of an abort or rollback.
     bool deallocate_stack_allocator = !commit_success;
     free_stack_allocators(deallocate_stack_allocator);
 

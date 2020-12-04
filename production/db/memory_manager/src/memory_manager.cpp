@@ -57,6 +57,8 @@ error_code_t memory_manager_t::manage(
 
     if (m_execution_flags.enable_console_output)
     {
+        cout << "  Configuration - enable_extra_validations = " << m_execution_flags.enable_extra_validations << endl;
+
         output_debugging_information("manage");
     }
 

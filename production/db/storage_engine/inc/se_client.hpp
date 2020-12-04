@@ -66,7 +66,7 @@ public:
     // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<gaia::common::gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
-    // Make IPC call to the server requesting more memory for the current session
+    // Make IPC call to the server requesting more memory for the current transaction
     // in case the client runs out of memory mid transaction.
     static void request_memory();
 
