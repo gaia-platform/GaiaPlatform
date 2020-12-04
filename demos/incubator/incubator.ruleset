@@ -3,9 +3,10 @@
 
 using namespace std;
 
-extern atomic<int> TIMESTAMP;
-const double FAN_SPEED_LIMIT = 5000.0;
-const double FAN_SPEED_INCREMENT = 500;
+extern atomic<int> g_timestamp;
+constexpr float c_fan_speed_limit = 5000.0;
+constexpr float c_fan_speed_increment = 500.0;
+constexpr float c_fan_threshold = 0.7f;
 
 ruleset incubator_ruleset
 {
@@ -22,13 +23,13 @@ ruleset incubator_ruleset
 
         if (sensor.value >= incubator.max_temp)
         {
-            actuator.value = min(FAN_SPEED_LIMIT, @actuator.value + FAN_SPEED_INCREMENT);
-            actuator.timestamp = TIMESTAMP;
+            actuator.value = min(c_fan_speed_limit, @actuator.value + c_fan_speed_increment);
+            actuator.timestamp = g_timestamp;
         }
         else if (sensor.value <= incubator.min_temp)
         {
-            actuator.value = max(0.0, @actuator.value - (2*FAN_SPEED_INCREMENT));
-            actuator.timestamp   = TIMESTAMP;
+            actuator.value = max(0.0f, @actuator.value - (2*c_fan_speed_increment));
+            actuator.timestamp   = g_timestamp;
         }
     }
 
@@ -37,44 +38,21 @@ ruleset incubator_ruleset
         if (!incubator.is_on)
         {
             actuator.value = 0;
-            actuator.timestamp = TIMESTAMP;
+            actuator.timestamp = g_timestamp;
         }
     }
 
     // Rule 3:  If the fan is at 70% of its limit and the temperature is still too hot then
     // set the fan to its maximum speed.
     {
-        if (actuator.value == FAN_SPEED_LIMIT)
+        if (actuator.value == c_fan_speed_limit)
         {
             return;
         }
 
-        if (actuator.value > 0.7 * FAN_SPEED_LIMIT && @sensor.value > @incubator.max_temp)
+        if (actuator.value > c_fan_threshold * c_fan_speed_limit && @sensor.value > @incubator.max_temp)
         {
-            actuator.value = FAN_SPEED_LIMIT;
+            actuator.value = c_fan_speed_limit;
         }
     }
-
-/*
-    // Rule 4 on power on, turn on each actuator to make sure it is working.
-    {
-        if (incubator.is_on) 
-        {
-            actuator.value = 1500;
-        }
-    }
-*/
-
-/*
-    // Rule 4 improvement: only run the POST for the first power-on on the incubator.
-    // Requires a schema change to add "post_complete" field to the incubator.  Intended
-    // to demonstrate a possible developer workflow.
-    {
-        if (is_on && !@post_complete) 
-        {
-            actuator.value = 1500;
-        }
-        post_complete = true;
-    }
-*/
 }

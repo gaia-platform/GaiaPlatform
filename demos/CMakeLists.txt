@@ -17,8 +17,6 @@ include(GoogleTest)
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-# Add clang-tidy
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
 # Set some global variables.
