@@ -429,21 +429,6 @@ void client::begin_transaction()
     verify_session_active();
     verify_no_txn();
 
-    // Allocate a new log segment and map it in our own process.
-    int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
-    if (fd_log == -1)
-    {
-        throw_system_error("memfd_create failed");
-    }
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(fd_log);
-    });
-    truncate_fd(fd_log, c_initial_log_size);
-    map_fd(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(s_log, c_initial_log_size);
-    });
-
     // Map a private COW view of the locator shared memory segment.
     retail_assert(!s_locators, "Locators segment should be uninitialized!");
     map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
@@ -479,6 +464,26 @@ void client::begin_transaction()
         "Begin timestamp should not be invalid!");
     std::cerr << "Begin timestamp: " << s_txn_id << std::endl;
 
+    // Allocate a new log segment and map it in our own process.
+    std::stringstream memfd_name;
+    memfd_name << c_sch_mem_log << ':' << s_txn_id;
+    int fd_log = ::memfd_create(memfd_name.str().c_str(), MFD_ALLOW_SEALING);
+    if (fd_log == -1)
+    {
+        throw_system_error("memfd_create failed");
+    }
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(fd_log);
+    });
+    truncate_fd(fd_log, c_initial_log_size);
+    map_fd(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
+    auto cleanup_log_mapping = make_scope_guard([&]() {
+        unmap_fd(s_log, c_initial_log_size);
+    });
+
+    // Update the log header with our begin timestamp.
+    s_log->begin_ts = s_txn_id;
+
     // Apply all txn logs received from server to our snapshot, in order. The
     // generator will close the stream socket when it's exhausted, but we need
     // to close the stream socket if the generator throws an exception.
@@ -505,6 +510,7 @@ void client::begin_transaction()
 
 void client::apply_txn_log(int log_fd)
 {
+    retail_assert(s_locators, "Locators segment must be mapped!");
     log* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {

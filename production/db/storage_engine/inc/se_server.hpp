@@ -46,6 +46,7 @@ class server
 public:
     static void run(bool disable_persistence = false);
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+    static void register_object_deallocator(std::function<void(gaia_locator_t, gaia_offset_t)>);
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
@@ -107,10 +108,6 @@ private:
     // entry. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     static inline std::atomic<uint64_t>* s_txn_info = nullptr;
-    // This is the "watermark": the begin timestamp of the oldest active txn.
-    // When a txn log's commit timestamp is older than the watermark, both the
-    // undo versions in the log and the log itself can be safely deallocated.
-    static inline std::atomic<gaia_txn_id_t> s_oldest_active_txn_begin_ts = c_invalid_gaia_txn_id;
     // This is the commit timestamp of the latest txn known to have been fully
     // applied to the shared locator view. Since the shared view is updated
     // non-atomically, there may be later txns partially or fully applied to the
@@ -118,8 +115,14 @@ private:
     // have already been partially or fully applied to the shared view. We
     // always apply a full prefix of committed txns to the shared view; there
     // can be no gaps in the sequence of committed txns that have been applied
-    // to the view.
+    // to the view (and no commit_ts within the prefix can be undecided).
     static inline std::atomic<gaia_txn_id_t> s_last_applied_txn_commit_ts = c_invalid_gaia_txn_id;
+    // This is an extension point called by the transactional system when the
+    // "watermark" advances (i.e., the oldest active txn terminates or commits),
+    // allowing all the superseded object versions in txns with commit
+    // timestamps before the watermark to be freed (since they are no longer
+    // visible to any present or future txns).
+    static inline std::function<void(gaia_locator_t, gaia_offset_t)> s_object_deallocator_fn{};
 
     // Transaction timestamp entry constants.
     static constexpr uint64_t c_txn_status_entry_bits{64ULL};
@@ -157,6 +160,10 @@ private:
     static constexpr uint64_t c_txn_entry_unknown{0ULL};
     // The first 3 bits of this value are unused for any txn state.
     static constexpr uint64_t c_txn_entry_invalid{0b101ULL << c_txn_status_flags_shift};
+    // Since we restrict all fds to 16 bits, this is the largest possible value
+    // in that range, which we reserve to indicate an invalidated fd (i.e., one
+    // which was claimed for deallocation by a maintenance thread).
+    static constexpr uint16_t c_invalid_txn_log_fd_bits{std::numeric_limits<uint16_t>::max()};
 
     // Function pointer type that executes side effects of a state transition.
     // REVIEW: replace void* with std::any?
@@ -244,24 +251,28 @@ private:
     template <typename element_type>
     static void stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
 
-    static void fd_stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<int>()> generator_fn);
+    static void fd_stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
 
     template <typename element_type>
     static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
 
-    static void start_fd_stream_producer(int stream_socket, std::function<std::optional<int>()> generator_fn);
+    static void start_fd_stream_producer(int stream_socket, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
 
     static std::function<std::optional<gaia_id_t>()>
     get_id_generator_for_type(gaia_type_t type);
 
-    static std::function<std::optional<int>()>
-    get_log_fd_generator_for_begin_ts(gaia_txn_id_t begin_ts);
+    static std::function<std::optional<gaia_txn_id_t>()>
+    get_commit_ts_generator_for_begin_ts(gaia_txn_id_t begin_ts);
 
     static gaia_txn_id_t txn_begin();
 
     static void txn_rollback();
 
     static bool txn_commit();
+
+    static void update_apply_watermark(gaia_txn_id_t);
+
+    static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
     static bool invalidate_ts(gaia_txn_id_t ts);
 
@@ -299,9 +310,15 @@ private:
 
     static int get_txn_log_fd(gaia_txn_id_t commit_ts);
 
+    static int get_txn_log_fd_from_entry(uint64_t commit_ts_entry);
+
+    static bool execute_with_log_fd_from_ts(gaia_txn_id_t commit_ts, std::function<void(int log_fd)> fn, bool close_dup_fd_on_exit = true);
+
+    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
+
     static bool register_txn_log(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd);
 
-    static bool set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
+    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
 
     static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
 
@@ -314,6 +331,10 @@ private:
     static bool validate_txn(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool in_committing_txn = true);
 
     static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
+
+    static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
+
+    static bool apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 

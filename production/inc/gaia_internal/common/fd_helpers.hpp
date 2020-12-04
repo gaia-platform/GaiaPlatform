@@ -7,11 +7,18 @@
 
 #include <unistd.h>
 
+#include <iostream>
+#include <ostream>
 #include <stdexcept>
 
 #include <libexplain/close.h>
+#include <libexplain/dup.h>
+#include <libexplain/eventfd.h>
 #include <libexplain/fstat.h>
 #include <libexplain/ftruncate.h>
+#include <libexplain/pread.h>
+#include <libexplain/read.h>
+#include <libexplain/write.h>
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 
@@ -23,6 +30,20 @@ namespace gaia
 {
 namespace common
 {
+
+/**
+ * Thrown when a read returns fewer bytes than expected.
+ */
+class incomplete_read_error : public gaia_exception
+{
+public:
+    explicit incomplete_read_error(size_t expected_bytes_read, size_t actual_bytes_read)
+    {
+        std::stringstream message;
+        message << "Expected to read " << expected_bytes_read << " bytes but actually read " << actual_bytes_read << " bytes.";
+        m_message = message.str();
+    }
+};
 
 inline size_t get_fd_size(int fd)
 {
@@ -36,10 +57,30 @@ inline size_t get_fd_size(int fd)
     return st.st_size;
 }
 
+// NB: this should only be used for asserts, not for ordinary program logic!
+// Your program should never have to ask whether an fd is valid!
+inline bool is_fd_valid(int fd)
+{
+    return (::fcntl(fd, F_GETFD) != -1 || errno != EBADF);
+}
+
+inline bool is_fd_regular_file(int fd)
+{
+    struct stat st;
+    if (-1 == ::fstat(fd, &st))
+    {
+        int err = errno;
+        const char* reason = ::explain_fstat(fd, &st);
+        throw system_error(reason, err);
+    }
+    return S_ISREG(st.st_mode);
+}
+
 inline void close_fd(int& fd)
 {
     if (fd != -1)
     {
+        std::cerr << "Closing fd " << fd << std::endl;
         int tmp = fd;
         fd = -1;
         if (-1 == ::close(tmp))
@@ -59,6 +100,40 @@ inline void truncate_fd(int fd, size_t length)
         const char* reason = ::explain_ftruncate(fd, static_cast<off_t>(length));
         throw system_error(reason, err);
     }
+}
+
+inline int dup_fd(int fd)
+{
+    int new_fd = ::dup(fd);
+    if (new_fd == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_dup(fd);
+        throw system_error(reason, err);
+    }
+    return new_fd;
+}
+
+inline size_t read_fd_at_offset(
+    int fd, size_t offset, void* buffer, size_t buffer_len, bool allow_partial_read = false)
+{
+    ssize_t bytes_read_or_error = ::pread(fd, buffer, buffer_len, offset);
+    retail_assert(bytes_read_or_error >= -1, "Return value of pread() should be non-negative or -1!");
+    if (bytes_read_or_error == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_pread(fd, buffer, buffer_len, offset);
+        throw system_error(reason, err);
+    }
+    size_t bytes_read = static_cast<size_t>(bytes_read_or_error);
+    if (!allow_partial_read)
+    {
+        if (bytes_read < buffer_len)
+        {
+            throw incomplete_read_error(buffer_len, bytes_read);
+        }
+    }
+    return bytes_read;
 }
 
 inline int make_eventfd()
@@ -82,7 +157,9 @@ inline int make_eventfd()
     int eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
     if (eventfd == -1)
     {
-        throw_system_error("eventfd failed");
+        int err = errno;
+        const char* reason = ::explain_eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+        throw system_error(reason, err);
     }
     return eventfd;
 }
@@ -98,7 +175,9 @@ inline void signal_eventfd(int eventfd)
     ssize_t bytes_written = ::write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
     if (bytes_written == -1)
     {
-        throw_system_error("write(eventfd) failed");
+        int err = errno;
+        const char* reason = ::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
+        throw system_error(reason, err);
     }
     retail_assert(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
 }
@@ -110,7 +189,9 @@ inline void consume_eventfd(int eventfd)
     ssize_t bytes_read = ::read(eventfd, &val, sizeof(val));
     if (bytes_read == -1)
     {
-        throw_system_error("read(eventfd) failed");
+        int err = errno;
+        const char* reason = ::explain_read(eventfd, &val, sizeof(val));
+        throw system_error(reason, err);
     }
     retail_assert(bytes_read == sizeof(val), "Failed to fully read data!");
     retail_assert(val == 1, "Unexpected value!");

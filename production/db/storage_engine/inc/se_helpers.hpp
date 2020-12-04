@@ -110,5 +110,13 @@ inline se_object_t* locator_to_ptr(gaia_locator_t locator)
     return offset_to_ptr(locator_to_offset(locator));
 }
 
+// This is only meant for "fuzzy snapshots" of the current last_txn_id; there
+// are no memory barriers.
+inline gaia_txn_id_t get_last_txn_id()
+{
+    data* data = gaia::db::get_shared_data();
+    return data->last_txn_id;
+}
+
 } // namespace db
 } // namespace gaia

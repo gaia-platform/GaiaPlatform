@@ -74,6 +74,7 @@ struct hash_node
 
 struct log
 {
+    gaia_txn_id_t begin_ts;
     size_t count;
 
     struct log_record
