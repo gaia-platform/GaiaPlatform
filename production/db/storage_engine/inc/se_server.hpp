@@ -153,7 +153,7 @@ private:
         session_state_t old_state,
         session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
-        const std::vector<stack_allocator_t>* const stack_allocators = nullptr);
+        const stack_allocator_t* const new_stack_allocator = nullptr);
 
     static void clear_shared_memory();
 
@@ -161,10 +161,10 @@ private:
         session_event_t event,
         size_t txn_memory_request_size_hint);
 
-    static void allocate_stack_allocators(
+    static void allocate_stack_allocator(
         session_event_t event,
-        size_t txn_memory_request_size_hint,
-        std::vector<stack_allocator_t>* new_memory_allotment);
+        size_t txn_memory_request_size_bytes,
+        stack_allocator_t* new_stack_allocator);
 
     static void init_memory_manager();
 

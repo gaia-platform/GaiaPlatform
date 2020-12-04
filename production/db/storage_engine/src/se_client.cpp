@@ -169,7 +169,7 @@ static void build_client_request(
     if (event == session_event_t::REQUEST_MEMORY || event == session_event_t::BEGIN_TXN)
     {
         // Request more memory from the server in case session thread is running low.
-        auto alloc_info = Creatememory_allocation_info_tDirect(builder, nullptr, memory_request_size_hint);
+        auto alloc_info = Creatememory_allocation_info_t(builder, 0, memory_request_size_hint);
         client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
     }
     else
@@ -260,7 +260,7 @@ void client::begin_session()
     retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
     retail_assert(s_log == nullptr, "Log segment uninitialized");
     retail_assert(s_locators == nullptr, "Locators segment uninitialized");
-    retail_assert(s_free_stack_allocators.empty(), "No memory should be reserved yet");
+    retail_assert(s_current_stack_allocator == nullptr, "No memory should be reserved yet");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -318,19 +318,15 @@ void client::begin_session()
     cleanup_session_socket.dismiss();
 }
 
-void client::load_stack_allocators(const memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr)
+void client::load_stack_allocator(const memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr)
 {
-    auto stack_allocators = allocation_info->stack_allocator_list();
+    auto stack_allocator_info = allocation_info->stack_allocator();
 
-    for (size_t i = 0; i < stack_allocators->size(); i++)
-    {
-        auto allocator = stack_allocators->Get(i);
-
-        // Create and load stack allocator.
-        stack_allocator_t stack_allocator;
-        stack_allocator.load(data_mapping_base_addr, allocator->stack_allocator_offset(), allocator->stack_allocator_size());
-        s_free_stack_allocators.push_back(stack_allocator);
-    }
+    // Create and load stack allocator.
+    stack_allocator_t stack_allocator;
+    stack_allocator.load(data_mapping_base_addr, stack_allocator_info->stack_allocator_offset(), stack_allocator_info->stack_allocator_size());
+    // Set the current stack allocator.
+    s_current_stack_allocator.reset(&stack_allocator);
 }
 
 void client::end_session()
@@ -398,11 +394,11 @@ void client::begin_transaction()
 
     // Obtain transaction memory allocation information.
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
-    if (!(allocation_info && allocation_info->stack_allocator_list()->size() > 0))
+    if (allocation_info || allocation_info->stack_allocator())
     {
         throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
     }
-    load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
+    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
     cleanup_log_fd.dismiss();
     cleanup_log_mapping.dismiss();
@@ -425,8 +421,8 @@ void client::rollback_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset stack allocator vector.
-    s_free_stack_allocators.clear();
+    // Reset current stack allocator.
+    s_current_stack_allocator.reset();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -487,8 +483,8 @@ void client::commit_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset stack allocator vector.
-    s_free_stack_allocators.clear();
+    // Reset current stack allocator.
+    s_current_stack_allocator.reset();
 }
 
 void client::request_memory()
@@ -509,15 +505,14 @@ void client::request_memory()
     const server_reply_t* reply = msg->msg_as_reply();
     const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
 
-    retail_assert(allocation_info && allocation_info->stack_allocator_list()->size() > 0, "Failed to fetch memory from the server.");
-    load_stack_allocators(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
+    retail_assert(allocation_info && allocation_info->stack_allocator(), "Failed to fetch memory from the server.");
+    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 }
 
-static address_offset_t stack_allocator_allocate(
+address_offset_t client::stack_allocator_allocate(
     gaia_locator_t locator,
     address_offset_t old_slot_offset,
-    size_t size,
-    std::vector<stack_allocator_t>& free_allocators)
+    size_t size)
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");
     error_code_t result = error_code_t::not_set;
@@ -529,25 +524,24 @@ static address_offset_t stack_allocator_allocate(
     {
         // If free list is empty, make an IPC call to request more memory from the server.
         // Note that this call can crash the server in case the server runs out of memory.
-        if (free_allocators.empty())
+        if (!s_current_stack_allocator)
         {
             client::request_memory();
         }
 
-        if (free_allocators.empty())
+        if (!s_current_stack_allocator)
         {
             throw memory_allocation_error("Unable to obtain memory from server.");
         }
 
         // Try allocating object. If current stack allocator memory isn't enough, then fetch
         // another allocator from the free list.
-        auto current_allocator = free_allocators.front();
-        result = current_allocator.allocate(locator, old_slot_offset, size, allocated_memory_offset);
+        result = s_current_stack_allocator->allocate(locator, old_slot_offset, size, allocated_memory_offset);
 
         // The stack allocator size may not be sufficient for the current object, so get a new one.
         if (result == error_code_t::insufficient_memory_size || result == error_code_t::memory_size_too_large)
         {
-            free_allocators.erase(free_allocators.begin());
+            s_current_stack_allocator.reset();
         }
         else
         {
@@ -570,7 +564,7 @@ address_offset_t client::allocate_object(
     address_offset_t old_slot_offset,
     size_t size)
 {
-    address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size, client::s_free_stack_allocators);
+    address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size);
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);
 

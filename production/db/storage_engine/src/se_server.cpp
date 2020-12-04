@@ -44,57 +44,28 @@ using namespace gaia::db::messages;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-/**
- * Calculate the number of stack allocators to reserve for a transaction.
- */
-size_t server::calculate_allotment_count(
+void server::allocate_stack_allocator(
     session_event_t event,
-    size_t txn_memory_request_size_hint)
+    size_t txn_memory_request_size_bytes,
+    stack_allocator_t* new_stack_allocator)
 {
-    // Ignore hint when assigning initial memory for the transaction.
-    if (event == session_event_t::BEGIN_TXN || txn_memory_request_size_hint == 0)
+    // Offset gets assigned; no need to set it.
+    address_offset_t stack_allocator_offset;
+    auto error = memory_manager->allocate_raw(txn_memory_request_size_bytes, stack_allocator_offset);
+    if (error != error_code_t::success)
     {
-        return STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
+        throw memory_allocation_error("Memory manager allocate_raw failure.", error);
     }
-    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect session event received when requesting the server for more memory");
-
-    // Ignore memory size hint if it is greater than max_memory_request_size_bytes
-    txn_memory_request_size_hint = std::min(txn_memory_request_size_hint, max_memory_request_size_bytes);
-
-    // Best effort to find allotment count; at least send back 1 stack allocator.
-    size_t allotment_count = txn_memory_request_size_hint / STACK_ALLOCATOR_SIZE_BYTES + 1;
-
-    return allotment_count;
-}
-
-void server::allocate_stack_allocators(
-    session_event_t event,
-    size_t txn_memory_request_size_hint,
-    std::vector<stack_allocator_t>* new_memory_allotment)
-{
-    // The server will allocate stack allocators of the same size.
-    size_t allocation_count = calculate_allotment_count(event, txn_memory_request_size_hint);
-
-    for (size_t i = 0; i < allocation_count; i++)
+    std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
+    error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
+    if (error != error_code_t::success)
     {
-        // Offset gets assigned; no need to set it.
-        address_offset_t stack_allocator_offset;
-        auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
-        if (error != error_code_t::success)
-        {
-            throw memory_allocation_error("Memory manager allocate_raw failure.", error);
-        }
-        std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
-        error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
-        if (error != error_code_t::success)
-        {
-            throw memory_allocation_error("Stack allocator initialization failure.", error);
-        }
-        // Add created stack_allocator to the list of active stack allocators.
-        s_active_stack_allocators.push_back(std::move(stack_allocator));
-        // Copy stack allocator object into container.
-        new_memory_allotment->push_back(*s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get());
+        throw memory_allocation_error("Stack allocator initialization failure.", error);
     }
+    // Add created stack_allocator to the list of active stack allocators.
+    s_active_stack_allocators.push_back(std::move(stack_allocator));
+    // Assign raw pointer to 'new_stack_allocator' .
+    new_stack_allocator = s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
 }
 
 void server::handle_connect(
@@ -131,9 +102,9 @@ void server::handle_begin_txn(
     if (request->data_type() == request_data_t::memory_info
         && reinterpret_cast<const bool*>(request->data()))
     {
-        std::vector<stack_allocator_t> new_memory_allotment;
-        allocate_stack_allocators(session_event_t::BEGIN_TXN, 0, &new_memory_allotment);
-        build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
+        stack_allocator_t stack_allocator;
+        allocate_stack_allocator(session_event_t::BEGIN_TXN, 0, &stack_allocator);
+        build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &stack_allocator);
     }
     else
     {
@@ -229,12 +200,12 @@ void server::handle_request_memory(
         request->data_type() == request_data_t::memory_info,
         "Unexpected request data type");
 
-    auto memory_size_hint = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
+    auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
 
     FlatBufferBuilder builder;
-    std::vector<stack_allocator_t> new_memory_allotment;
-    allocate_stack_allocators(session_event_t::REQUEST_MEMORY, memory_size_hint, &new_memory_allotment);
-    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
+    stack_allocator_t stack_allocator;
+    allocate_stack_allocator(session_event_t::REQUEST_MEMORY, txn_memory_request_size_bytes, &stack_allocator);
+    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &stack_allocator);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -380,24 +351,17 @@ void server::apply_transition(session_event_t event, const void* event_data, int
 
 static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offset(
     FlatBufferBuilder& builder,
-    const std::vector<stack_allocator_t>* const stack_allocators)
+    const stack_allocator_t* const stack_allocator)
 {
-    flatbuffers::Offset<memory_allocation_info_t> memory_allocation_reply = 0;
-    if (stack_allocators)
+    flatbuffers::Offset<stack_allocator_info_t> stack_allocator_info = 0;
+    if (stack_allocator)
     {
-        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation_info;
-        for (auto& stack_allocator : *stack_allocators)
-        {
-            const auto stack_allocator_info = Createstack_allocator_info_t(
-                builder,
-                stack_allocator.get_base_memory_offset(),
-                stack_allocator.get_total_memory_size());
-
-            memory_allocation_info.push_back(stack_allocator_info);
-        }
-        memory_allocation_reply = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation_info));
+        stack_allocator_info = Createstack_allocator_info_t(
+            builder,
+            stack_allocator->get_base_memory_offset(),
+            stack_allocator->get_total_memory_size());
     }
-    return memory_allocation_reply;
+    return Creatememory_allocation_info_t(builder, stack_allocator_info);
 }
 
 void server::build_server_reply(
@@ -406,10 +370,10 @@ void server::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    const std::vector<stack_allocator_t>* const stack_allocators)
+    const stack_allocator_t* const new_stack_allocator)
 {
     const auto server_reply = [&] {
-        auto memory_allocation_reply = get_memory_allocation_offset(builder, stack_allocators);
+        auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
         if (txn_id)
         {
             const auto transaction_info = Createtransaction_info_t(builder, txn_id);

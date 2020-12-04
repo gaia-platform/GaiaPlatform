@@ -81,6 +81,7 @@ private:
     thread_local static inline data* s_data = nullptr;
     thread_local static inline int s_session_socket = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    thread_local static inline std::unique_ptr<gaia::db::memory_manager::stack_allocator_t> s_current_stack_allocator{};
 
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
@@ -101,16 +102,17 @@ private:
     static constexpr int memory_request_size_multiplier = 2;
     thread_local static inline size_t txn_memory_request_size_hint_bytes = 1064;
 
-    // Allot stack allocators to the ongoing transaction from this list.
-    // Unused memory from this list is deallocted upon session end.
-    thread_local static inline std::vector<memory_manager::stack_allocator_t> s_free_stack_allocators{};
-
     // Load server initialized stack allocators on the client.
-    static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
+    static void load_stack_allocator(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
 
-    static memory_manager::address_offset_t allocate_object(
+    static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
-        memory_manager::address_offset_t old_slot_offset,
+        gaia::db::memory_manager::address_offset_t old_slot_offset,
+        size_t size);
+
+    static gaia::db::memory_manager::address_offset_t stack_allocator_allocate(
+        gaia_locator_t locator,
+        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
     static void txn_cleanup();
