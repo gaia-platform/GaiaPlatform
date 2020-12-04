@@ -1219,7 +1219,7 @@ void server::fd_stream_producer_handler(
                             // The standard is somewhat unclear, but apparently clear() will
                             // not change the capacity in any recent implementation of the
                             // standard library (https://cplusplus.github.io/LWG/issue1102).
-                            // First we need to close every dup fd in the buffer.
+                            // First we need to close each dup fd in the buffer.
                             for (auto& dup_fd : batch_buffer)
                             {
                                 close_fd(dup_fd);
@@ -1819,6 +1819,15 @@ bool server::validate_txn(
     // Iterate over all txns in conflict window, and test all committed txns for conflicts.
     for (gaia_txn_id_t ts = begin_ts + 1; ts < commit_ts; ++ts)
     {
+        // Invalidate all unknown timestamps. This marks a "fence" after which
+        // any submitted txns with commit timestamps in our conflict window must
+        // already be registered under their commit_ts (they must abort
+        // otherwise).
+        if (invalidate_ts(ts))
+        {
+            continue;
+        }
+
         if (is_commit_ts(ts) && is_txn_committed(ts))
         {
             // Remember each committed txn commit_ts so we don't test it again.
@@ -1826,37 +1835,19 @@ bool server::validate_txn(
             // Eagerly test committed txns for conflicts to give undecided
             // txns more time for validation (and submitted txns more time
             // for registration).
+            // NB: Because we don't allow the watermark to advance past the
+            // begin_ts of an undecided txn, we don't have to worry about log
+            // fds being invalidated and closed by other threads concurrently
+            // advancing the watermark. If we relaxed this requirement, then we
+            // would have to handle this scenario (e.g. by using
+            // execute_with_log_fd_from_ts()).
             int committed_log_fd = get_txn_log_fd(ts);
-            // We're getting EBADF on a closed fd here. We could handle this
-            // with execute_with_log_fd_from_ts() as elsewhere, but the simplest
-            // solution might be to just not advance the apply watermark past a
-            // begin_ts unless it's either terminated or submitted with a
-            // validated commit_ts. That way no txn in our conflict window could
-            // have its log fd closed until we've finished validating. Also,
-            // that way we don't need to ever test for conflicts with the shared
-            // locator view, just with the txns in our conflict window. Note
-            // this behavior implies that a submitted txn should not advance the
-            // watermark until it's been validated, since it should be able to
-            // advance the watermark past itself if there are no earlier
-            // blocking txns.
-            // This change should have a minimal effect on begin/commit txn
-            // latency, since txns should generally take much longer to execute
-            // than to validate.
             if (txn_logs_conflict(log_fd, committed_log_fd))
             {
                 cerr << "Aborted (conflict with committed txn) top-level txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
                 return false;
             }
         }
-    }
-
-    // Iterate over all txns in conflict window, and invalidate all unknown
-    // timestamps. This marks a "fence" after which any submitted txns with
-    // commit timestamps in our conflict window must already be registered under
-    // their commit_ts (they must abort otherwise).
-    for (gaia_txn_id_t ts = begin_ts + 1; ts < commit_ts; ++ts)
-    {
-        invalidate_ts(ts);
     }
 
     // Find the latest undecided conflicting txn, to determine when we can stop
@@ -2013,6 +2004,7 @@ bool server::execute_with_log_fd_from_ts(
             throw;
         }
     }
+
     // Ensure we close the dup log fd.
     auto cleanup_local_log_fd = make_scope_guard([&]() {
         cerr << "Closing local log fd " << local_log_fd << " (apply_txn_log_from_ts)" << endl;
@@ -2090,13 +2082,14 @@ bool server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     });
 }
 
-// This method is called by an active txn when it becomes inactive (due to
-// rollback or commit). It finds the current oldest active txn and applies the
-// redo logs of all committed txns preceding that txn's begin_ts to the shared
-// view, frees object versions in their undo logs, and finally deallocates the
-// logs themselves. Finally, it updates a saved "watermark" variable with the
-// commit_ts of the latest txn applied to the shared view, so we know which logs
-// to apply during snapshot reconstruction.
+// This method is called by an active txn when it is terminated or validated. It
+// finds the current oldest terminated or validated txn and applies the redo
+// logs of all committed txns preceding that txn's begin_ts to the shared view.
+// Then it advances a saved "watermark" variable to the commit_ts of the latest
+// txn it applied to the shared locator view, so we know which logs to apply
+// during snapshot reconstruction. Finally, it frees object versions in the undo
+// logs of committed txns that were applied to the shared locator view, and then
+// deallocates the logs themselves.
 //
 // TODO: deallocate physical pages backing s_txn_info for addresses preceding
 // the watermark (via madvise(MADV_FREE)).
@@ -2108,27 +2101,10 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
     // The txn for this begin_ts should no longer be active.
     retail_assert(!is_txn_active(begin_ts), "update_watermark() called from active txn!");
 
-    // Scan the timestamp array backward to the previous saved watermark to see
-    // if there are any active txns preceding begin_ts. (There are guaranteed to
-    // be no active txns preceding the watermark.) If so, then exit immediately
-    // since this was not the oldest active txn. If not, then scan forward to
-    // the last commit timestamp to find the oldest active txn after this txn.
-    // Advance the watermark to the last committed commit_ts preceding the
-    // oldest active txn. If there are no active txns, then just advance the
-    // watermark to the last committed commit_ts, first validating all undecided
-    // txns preceding that commit_ts. If there are no committed txns past the
-    // current watermark, then do nothing.
-
     // First get a fuzzy snapshot of the timestamp counter (we don't know yet if
     // this is a begin_ts or commit_ts).
     gaia_txn_id_t last_allocated_ts = get_last_txn_id();
     gaia_txn_id_t last_applied_commit_ts = s_last_applied_txn_commit_ts;
-
-    // FIXME: do we need to invalidate all unknown ts entries we scan over?
-    // Otherwise, couldn't we conclude there was no active txn earlier or later
-    // than this txn, only to have one pop up later due to the race between
-    // allocating and registering timestamps? That could make us advance the
-    // watermark past an active txn!
 
     // Scan from the saved watermark to the last known timestamp, to find the
     // oldest active txn (if any) after begin_ts and the newest committed txn
@@ -2187,6 +2163,7 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
     // concurrently synchronizing the shared view, so we have to CAS all
     // timestamp entry updates and assume that txn log fds could be invalid or
     // reused.
+    //
     // REVIEW: We could reduce the overhead of mapping all these small files by
     // using pread(), at the cost of considerably more complexity. (We can't use
     // ordinary read() because this code has unrestricted concurrency and read()
@@ -2202,7 +2179,7 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             "Unknown or undecided txn found!");
 
         // If the current timestamp entry holds a committed txn, then apply its
-        // log to the shared view, invalidate the log fd, and close it.
+        // log to the shared locator view, invalidate the log fd, and close it.
         if (is_commit_ts(ts) && is_txn_committed(ts))
         {
             // Concurrent updates could advance the global
@@ -2234,12 +2211,13 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             // NB: any commit_ts at or before the watermark should be assumed to
             // have had its txn log invalidated and freed. Any code using txn
             // log fds should keep in mind that the watermark can advance
-            // concurrently with its execution, and a commit_ts after a saved
-            // value of the watermark may now be behind the watermark. Such code
-            // (e.g. the code that applies txn logs to the shared locator view
-            // and the code that applies txn logs to the snapshot of a new txn)
-            // must be robust against the log fds of committed txns being
-            // invalidated and freed.
+            // concurrently with its execution, and a commit_ts newer than a
+            // saved value of the watermark may now be older than the current
+            // watermark. Such code (e.g. the code that applies txn logs to the
+            // shared locator view and the code that applies txn logs to the
+            // snapshot of a new txn) must be robust against the log fds of
+            // committed txns being invalidated and freed. The helper
+            // execute_with_log_fd_from_ts() was designed for such scenarios.
             if (advance_watermark_ts(s_last_applied_txn_commit_ts, ts))
             {
                 cerr << "Advanced last applied commit watermark to commit_ts " << ts << endl;
@@ -2247,16 +2225,17 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
 
             // REVIEW: In order to allow freeing physical pages of the
             // s_txn_info array, we probably need to introduce a "reclaim"
-            // watermark to track the last reclaimed txn. We would need to
-            // ensure that the "reclaim" watermark couldn't be advanced while
-            // there were readers using the previous value of the watermark.
-            // Maybe an epoch-based approach would work?
+            // watermark to track the last reclaimed txn (which would always lag
+            // the "apply" watermark). We would need to ensure that the
+            // "reclaim" watermark couldn't be advanced while there were readers
+            // using the previous value of the watermark. Maybe an epoch-based
+            // approach would work?
 
             // Set the txn log fd in the commit_ts entry to an invalid value
             // (-1), to indicate that the log has been applied to the shared
-            // view, its undo versions have been freed, and the log itself
-            // will be freed (and is no longer accessible since its fd has
-            // been overwritten).
+            // locator view, its undo versions have been freed, and the log
+            // itself will be freed (and is no longer accessible since its fd
+            // has been overwritten).
 
             // First get the log fd. If it has already been invalidated, do
             // nothing.
