@@ -1,6 +1,6 @@
 Summary: Gaia
 Name: Gaia
-Version: 1.0.0
+Version: 0.1.0
 Release: 1
 Group: Applications/System
 License: Gaia License
@@ -22,9 +22,11 @@ pkill -f -KILL gaia_se_server
 
 %files
 %defattr(-,root,root)
-/usr/local/include/gaia/*
-/usr/local/bin/*
-/usr/local/lib/*
+/opt/gaia/include/*
+/opt/gaia/bin/*
+/opt/gaia/lib/*
+/opt/gaia/examples/*
+/etc/opt/gaia/*
 
 %changelog
 * Mon Sep 14 2020  Gaia

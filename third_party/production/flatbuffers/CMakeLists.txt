@@ -39,6 +39,8 @@ option(FLATBUFFERS_BUILD_LEGACY
        "Run C++ code generator with '--cpp-std c++0x' switch."
        OFF)
 
+set(FLATBUFFERS_INSTALL OFF)
+
 if(NOT FLATBUFFERS_BUILD_FLATC AND FLATBUFFERS_BUILD_TESTS)
     message(WARNING
     "Cannot build tests without building the compiler. Tests will be disabled.")

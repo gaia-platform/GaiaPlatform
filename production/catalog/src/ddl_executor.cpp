@@ -526,11 +526,21 @@ gaia_id_t ddl_executor_t::create_table_impl(
     set<string> field_names;
     for (const auto& field : fields)
     {
-        if (field_names.find(field->name) != field_names.end())
+        string field_name = field->name;
+
+        // Note: anonymous references are on path of deprecation
+        if (field_name.empty())
         {
-            throw duplicate_field(field->name);
+            retail_assert(field->field_type == field_type_t::reference, "Only references can have empty name");
+            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
+            field_name = ref_field->parent_table.second;
         }
-        field_names.insert(field->name);
+
+        if (field_names.find(field_name) != field_names.end())
+        {
+            throw duplicate_field(field_name);
+        }
+        field_names.insert(field_name);
     }
 
     string fbs{generate_fbs(db_name, table_name, fields)};

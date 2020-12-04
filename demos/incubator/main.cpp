@@ -231,19 +231,24 @@ void simulation() {
 
 void list_rules() {
     subscription_list_t subs;
+    const char * subscription_format = "%-18s|%-30s|%5s|%-10s|%5s\n";
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
     printf("Number of rules for incubator: %ld\n", subs.size());
     if (subs.size() > 0) {
         printf("\n");
-        printf(" rule set | rule name | event \n");
-        printf("------------------------------\n");
+        printf(subscription_format, "ruleset", "rule", "type", "event", "field");
+        printf("-------------------------------------------------------------------------\n");
     }
     map<event_type_t, const char*> event_names;
     event_names[event_type_t::row_update] = "Row update";
     event_names[event_type_t::row_insert] = "Row insert";
     for (auto &s : subs) {
-        printf("%-10s|%-11s|%-7s\n", s->ruleset_name, s->rule_name,
-               event_names[s->event_type]);
+        printf(subscription_format, 
+            s->ruleset_name,
+            s->rule_name,
+            to_string(s->gaia_type).c_str(), 
+            event_names[s->event_type],
+            to_string(s->field).c_str());
     }
     printf("\n");
 }

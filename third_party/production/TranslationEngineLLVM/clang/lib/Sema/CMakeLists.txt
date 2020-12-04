@@ -10,12 +10,11 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ${GAIA_SOURCE}/production/catalog/inc
-  ${GAIA_SOURCE}/production/inc/gaia_internal/catalog
-  ${GAIA_SOURCE}/production/inc/
-  ${GAIA_SOURCE}/production/inc/gaia_internal/common
-  ${GAIA_SOURCE}/production/inc/gaia_internal/db
-  ${GAIA_SOURCE}/third_party/production/flatbuffers/include
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/catalog
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
+  ${FLATBUFFERS_INC}
 )
 
 add_clang_library(clangSema
@@ -74,6 +73,7 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
+  gaia_system
   )
 
 # We should not need this right now because we are not pulling any headers that

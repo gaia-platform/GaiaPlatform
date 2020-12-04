@@ -53,7 +53,7 @@ void event_manager_t::init()
     init(settings);
 }
 
-void event_manager_t::init(event_manager_settings_t& settings)
+void event_manager_t::init(const event_manager_settings_t& settings)
 {
     unique_lock<recursive_mutex> lock(m_init_lock);
 
@@ -73,7 +73,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(count_worker_threads, *m_stats_manager);
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
 
     if (settings.enable_catalog_checks)
     {
@@ -97,8 +98,6 @@ void event_manager_t::shutdown()
         return;
     }
 
-    m_is_initialized = false;
-
     // Stop new events from coming in.
     set_commit_trigger(nullptr);
 
@@ -106,6 +105,9 @@ void event_manager_t::shutdown()
     m_invocations.reset();
     m_stats_manager.reset();
     m_rule_checker.reset();
+
+    // Don't uninitialize until we've shutdown the thread pool.
+    m_is_initialized = false;
 
     // Ensure we can re-initialize by dropping our subscription state.
     unsubscribe_rules();
@@ -382,7 +384,8 @@ void event_manager_t::unsubscribe_rules()
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type_ptr,
-    const event_type_t* event_type_ptr, const uint16_t* field_ptr,
+    const event_type_t* event_type_ptr,
+    const field_position_t* field_ptr,
     subscription_list_t& subscriptions)
 {
     subscriptions.clear();
@@ -427,7 +430,7 @@ void event_manager_t::add_subscriptions(
     const rule_list_t& rules,
     gaia_type_t gaia_type,
     event_type_t event_type,
-    uint16_t field,
+    field_position_t field,
     const char* ruleset_filter)
 {
     for (auto rule : rules)
@@ -594,8 +597,41 @@ void gaia::rules::unsubscribe_rules()
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type,
-    const event_type_t* event_type, const uint16_t* field,
+    const event_type_t* event_type,
+    const field_position_t* field,
     subscription_list_t& subscriptions)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type, event_type, field, subscriptions);
+}
+
+// Note: this function is not used anywhere outside this module hence the linker will not export
+// it defined into it's own file. The linker does not consider single functions but entire object
+// files for export (unless specified otherwise). Since this file is used outside of this module,
+// putting this function here will make the linker export it.
+last_operation_t gaia::rules::rule_context_t::last_operation(gaia_type_t other_gaia_type) const
+{
+    last_operation_t operation = last_operation_t::none;
+
+    if (other_gaia_type != gaia_type)
+    {
+        return operation;
+    }
+
+    switch (event_type)
+    {
+    case db::triggers::event_type_t::row_delete:
+        operation = last_operation_t::row_delete;
+        break;
+    case db::triggers::event_type_t::row_insert:
+        operation = last_operation_t::row_insert;
+        break;
+    case db::triggers::event_type_t::row_update:
+        operation = last_operation_t::row_update;
+        break;
+    default:
+        // Ignore other event types.
+        break;
+    }
+
+    return operation;
 }

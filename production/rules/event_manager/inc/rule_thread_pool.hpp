@@ -52,6 +52,7 @@ public:
         std::variant<rule_invocation_t, log_events_invocation_t> args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
+        uint32_t num_retries{0};
     };
 
     /**
@@ -70,7 +71,7 @@ public:
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */
-    rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager);
+    rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -107,17 +108,14 @@ private:
     void inline invoke_rule(invocation_t& invocation)
     {
         const char* rule_id = invocation.rule_id;
-        m_stats_manager.inc_executed(rule_id);
         if (invocation_type_t::rule == invocation.type)
         {
+            m_stats_manager.inc_executed(rule_id);
             invoke_user_rule(invocation);
         }
         else
         {
-            m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
-            auto fn_start = gaia::common::timer_t::get_time_point();
             log_events(invocation);
-            m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
         }
     }
 
@@ -142,6 +140,11 @@ private:
      * user rule if desired.
      */
     rule_stats_manager_t& m_stats_manager;
+
+    /**
+     * Maximum number of times to retry a rule when getting transaction update conflicts.
+     */
+    const uint32_t m_max_rule_retries;
 
     /**
      * OS threads waiting to do work

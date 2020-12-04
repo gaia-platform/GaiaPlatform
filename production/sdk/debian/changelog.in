@@ -1,0 +1,5 @@
+@CPACK_PACKAGE_NAME@ (0.1.0-0) unstable; urgency=low
+
+  * Initial release
+
+ -- Gaia Platflorm <@CPACK_DEBIAN_PACKAGE_MAINTAINER@>  Mon, 30 Nov 2020 10:00:00 -0800
