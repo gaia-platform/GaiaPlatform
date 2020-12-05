@@ -205,7 +205,7 @@ try:
         psutil.Popen([config.gaia_binary_dir + "/db/storage_engine/gaia_se_server"])
         time.sleep(1)
     if os.path.exists(config.gaia_binary_dir + '/catalog/gaiac'):
-        psutil.Popen([config.gaia_binary_dir + "/catalog/gaiac/gaiac", config.gaia_source_dir + "/third_party/production/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])
+        psutil.Popen([config.gaia_binary_dir + "/catalog/gaiac/gaiac", "-destroy_db " + config.gaia_source_dir + "/third_party/production/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])
 except ImportError:
     lit_config.warning('Could not import psutil. Some tests will be skipped and'
                        ' the --timeout command line argument will not work.')

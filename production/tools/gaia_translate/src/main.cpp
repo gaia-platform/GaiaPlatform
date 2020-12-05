@@ -1249,9 +1249,9 @@ public:
             {
                 g_generated_subscription_code
                     += "namespace " + g_current_ruleset
-                    + "{\nvoid subscribeRuleset_" + ruleset_declaration->getName().str()
+                    + "{\nvoid subscribeRuleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_subscription
-                    + "}\nvoid unsubscribeRuleset_" + ruleset_declaration->getName().str()
+                    + "}\nvoid unsubscribeRuleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
             }
             g_current_ruleset = ruleset_declaration->getName().str();
