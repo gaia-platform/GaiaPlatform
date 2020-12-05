@@ -1005,6 +1005,7 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
+                        g_active_fields[table_name].insert(field_name);
                         m_rewriter.InsertTextAfterToken(
                             op->getEndLoc(), "; w.update_row();return w." + field_name + ";}() ");
                     }
@@ -1673,5 +1674,11 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    if (result != 0 || g_generation_error)
+    {
+        return 1;
+    }
+
+    return 0;
 }

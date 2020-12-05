@@ -1,0 +1,9 @@
+// RUN: not %gaiat %s -output t.cpp -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    {
+
+    }
+}
+// CHECK: No active fields for the rule

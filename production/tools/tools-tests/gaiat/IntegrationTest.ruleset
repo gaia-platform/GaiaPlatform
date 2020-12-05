@@ -1,0 +1,19 @@
+// RUN: %gaiat %s -output t.cpp --
+
+ruleset test
+{
+}
+
+ruleset test1
+{
+    {
+        min_temp+=1;
+    }
+}
+
+ruleset test2
+{
+    {
+        max_temp=min_temp + 1;
+    }
+}
