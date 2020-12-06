@@ -1,0 +1,122 @@
+create table if not exists campus (
+      name : string,
+      in_emergency : bool active
+);
+
+create table if not exists building (
+      name : string,
+      references campus
+);
+
+create table if not exists person (
+      name : string,
+      is_threat : uint64 active,
+      location : string active,
+      references campus
+);
+
+create table if not exists locations (
+      name : string
+      references campus
+);
+
+create table if not exists Persons (
+      PersonId : string,      
+      FirstName : string,      
+      LastName : string,      
+      BirthDate : string,      
+      FaceSignature : string
+);
+
+create table if not exists Staff (
+      PersonId : string, 
+      StaffPersonId : string,      
+      HiredDate : string,
+      references Persons
+);
+
+create table if not exists Students (
+      PersonId : string, 
+      StudentId : string,        
+      Father : string,        
+      Mother : string,      
+      Number : uint64,
+      references Persons
+);
+
+create table if not exists Parents (
+      PersonId : string, 
+      ParentId : string,        
+      ForM : bool,        
+      references Persons
+);
+
+create table if not exists Family (
+      FamilyID : string,
+      ParentId : string,        
+      StudentId : string,       
+      students references Students,
+      parents references Parents
+);
+
+create table if not exists Events (
+      EventId : string,
+      Name : string,
+      Teacher : string,        
+      EventDate : string,         
+      StartTime : string,         
+      EndTime : string,       
+      EventActualEnrolled : uint64,
+      EventRoom : string,
+      Enrollment : uint64,
+      references Staff
+);
+
+create table if not exists Registration (
+      RegistrationID : string,
+      Student : string,        
+      Event : string,      
+      RegistrationDate : string,         
+      RegistrationTime : string,   
+      students references Students,
+      events references Events
+);
+
+create table if not exists Buildings (
+      BuildingId : string, 
+      BuildingName : string
+);
+
+create table if not exists Rooms (
+      RoomId : string, 
+      BuildingId : string, 
+      RoomNumber: string,      
+      RoomName: string,      
+      FloorNumber: string,        
+      references Buildings
+);
+
+create table if not exists Cameras (
+      CameraId : string, 
+      RoomId : string, 
+      DoorClosed bool,          
+      references Rooms
+);
+
+create table if not exists Strangers (
+      StrangerId : string, 
+      FirstScanned : string, 
+      ScanCount uint64
+);
+
+create table if not exists FaceScanLog (
+      FaceScanLogId : string, 
+      ScanSignature : string, 
+      ScanSignatureId: string,      
+      Building: string,      
+      ScanDate: string,           
+      ScanTime: string,        
+      persons references Persons,      
+      strangers references Strangers
+);
+

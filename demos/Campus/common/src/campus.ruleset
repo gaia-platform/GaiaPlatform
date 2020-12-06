@@ -23,6 +23,11 @@ ruleset campus_ruleset
             char buffer[256];
             sprintf(buffer, "'%s' is not threatening anyone", @person.name);
             cbc->cb_alert("All Clear", buffer, 0, "");
-        }    
+        }   
+
+        /*if( Parents.LastOperation == INSERT )
+        {
+            Enrollment += 1;
+        }*/
     }
 }
