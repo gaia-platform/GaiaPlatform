@@ -653,7 +653,7 @@ void init()
 * @throws 
 * @exceptsafe yes
 */  
-int main()
+int mainy()
 {
     terminal_menu tm;
     tm.init();
@@ -667,4 +667,5 @@ int main()
         std::cout << "nope";
     }
     
+    return 0;
 }

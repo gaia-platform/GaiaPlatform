@@ -95,6 +95,7 @@ add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path 
 
 add_executable(campus 
+    common/src/event_form.cpp
     common/src/campus_demo.cpp
     common/src/campus_demo_term.cpp
     common/tests/test_campus_demo.cpp 
