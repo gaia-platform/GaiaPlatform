@@ -16,6 +16,7 @@
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/exception.hpp"
+#include "fd_helpers.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "se_types.hpp"
@@ -280,6 +281,8 @@ private:
 
     static bool is_invalid_ts(gaia_txn_id_t ts);
 
+    static bool is_begin_ts(gaia_txn_id_t ts);
+
     static bool is_commit_ts(gaia_txn_id_t ts);
 
     static bool is_txn_entry_submitted(uint64_t ts_entry);
@@ -295,6 +298,10 @@ private:
     static bool is_txn_entry_committed(uint64_t ts_entry);
 
     static bool is_txn_committed(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_aborted(uint64_t ts_entry);
+
+    static bool is_txn_aborted(gaia_txn_id_t commit_ts);
 
     static bool is_txn_active(gaia_txn_id_t begin_ts);
 
@@ -316,7 +323,7 @@ private:
 
     static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
 
-    static bool register_txn_log(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd);
+    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
 
     static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
 
@@ -328,17 +335,123 @@ private:
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
-    static bool validate_txn(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool in_committing_txn = true);
+    static bool validate_txn(gaia_txn_id_t commit_ts);
 
     static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
 
     static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
-    static bool apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
+    static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
     static const char* status_to_str(uint64_t ts_entry);
+
+    class invalid_log_fd : public gaia_exception
+    {
+    public:
+        invalid_log_fd(gaia_txn_id_t commit_ts)
+            : m_commit_ts(commit_ts)
+        {
+        }
+
+        gaia_txn_id_t get_ts() const
+        {
+            return m_commit_ts;
+        }
+
+    private:
+        gaia_txn_id_t m_commit_ts{c_invalid_gaia_txn_id};
+    };
+
+    // This class allows txn code to safely use a txn log fd embedded in a commit_ts
+    // entry even while it is concurrently invalidated (i.e. the fd is closed and
+    // its embedded value set to -1). The constructor throws an invalid_log_fd
+    // exception if the fd is invalidated during construction.
+    class safe_fd_from_ts
+    {
+    public:
+        safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true)
+            : m_auto_close_fd(auto_close_fd)
+        {
+            retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
+            // If the log fd was invalidated, it is either closed or soon will be
+            // closed, and therefore we cannot use it.
+            int log_fd = get_txn_log_fd(commit_ts);
+            if (log_fd == -1)
+            {
+                throw invalid_log_fd(commit_ts);
+            }
+
+            // To avoid races from the log fd being closed out from under us by a
+            // concurrent updater, we first dup() the fd, and then if the dup was
+            // successful, test the log fd entry again to ensure we aren't reusing a
+            // closed log fd. If the log fd was invalidated, then we need to close our
+            // dup fd and return false.
+            try
+            {
+                m_local_log_fd = dup_fd(log_fd);
+            }
+            catch (const system_error& e)
+            {
+                // The log fd was already closed by another thread (after being
+                // invalidated).
+                // NB: This does not handle the case of the log fd being closed and then
+                // reused before our dup() call. That case is handled below, where we
+                // check for invalidation.
+                if (e.get_errno() == EBADF)
+                {
+                    // The log fd must be invalidated before it is closed.
+                    retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
+                    // We lost the race because the log fd was invalidated and closed after our check.
+                    throw invalid_log_fd(commit_ts);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            // If we were able to duplicate the log fd, check to be sure it wasn't
+            // invalidated (and thus possibly closed before dup), so we know we aren't
+            // reusing a closed fd.
+            if (get_txn_log_fd(commit_ts) == -1)
+            {
+                throw invalid_log_fd(commit_ts);
+            }
+        }
+
+        // The "rule of 3" doesn't apply here since we never pass this object
+        // directly to a function; we always extract the safe fd value first.
+        safe_fd_from_ts() = delete;
+        safe_fd_from_ts(const safe_fd_from_ts&) = delete;
+        safe_fd_from_ts& operator=(const safe_fd_from_ts&) = delete;
+
+        ~safe_fd_from_ts()
+        {
+            // Ensure we close the dup log fd. If the original log fd was closed
+            // already (indicated by get_txn_log_fd() returning -1), this will free
+            // the shared-memory object referenced by the fd.
+            if (m_auto_close_fd)
+            {
+                // If the constructor fails, this will handle an invalid fd (-1)
+                // correctly.
+                close_fd(m_local_log_fd);
+            }
+        }
+
+        // This is the only public API. Callers are expected to call this method on
+        // a stack-constructed instance of the class before they pass an fd to a
+        // function that does not expect it to be concurrently closed.
+        int get_fd() const
+        {
+            return m_local_log_fd;
+        }
+
+    private:
+        int m_local_log_fd{-1};
+        bool m_auto_close_fd{true};
+    };
 };
 
 } // namespace db

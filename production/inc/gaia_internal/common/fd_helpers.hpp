@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -61,6 +62,9 @@ inline size_t get_fd_size(int fd)
 // Your program should never have to ask whether an fd is valid!
 inline bool is_fd_valid(int fd)
 {
+    // Querying fd flags seems like the lowest-overhead way to check the
+    // validity of an fd, since it only accesses the per-process fd table, not
+    // the global open file table.
     return (::fcntl(fd, F_GETFD) != -1 || errno != EBADF);
 }
 
@@ -80,7 +84,7 @@ inline void close_fd(int& fd)
 {
     if (fd != -1)
     {
-        std::cerr << "Closing fd " << fd << std::endl;
+        // std::cerr << "Closing fd " << fd << std::endl;
         int tmp = fd;
         fd = -1;
         if (-1 == ::close(tmp))
