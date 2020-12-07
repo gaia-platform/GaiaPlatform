@@ -73,7 +73,7 @@ stack_allocator_t server::allocate_stack_allocator(
 }
 
 // This assignment is non-atomic since there seems to be no reason to expect concurrent invocations.
-void server::register_object_deallocator(std::function<void(gaia_locator_t, gaia_offset_t)> deallocator_fn)
+void server::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
 {
     s_object_deallocator_fn = deallocator_fn;
 }
@@ -543,6 +543,11 @@ void server::init_memory_manager()
     memory_manager = make_unique<memory_manager_t>();
     memory_manager->set_execution_flags(execution_flags);
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
+
+    auto deallocate_object_fn = [=](gaia_offset_t offset) {
+        memory_manager->free_old_offset(offset);
+    };
+    register_object_deallocator(deallocate_object_fn);
 }
 
 address_offset_t server::allocate_object(
@@ -2362,7 +2367,7 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         // object deallocator (if it exists).
         if (lr->old_offset && s_object_deallocator_fn)
         {
-            s_object_deallocator_fn(lr->locator, lr->old_offset);
+            s_object_deallocator_fn(lr->old_offset);
         }
         // Now update the shared locator view with each redo version
         // (i.e., the version created or updated by the txn). This

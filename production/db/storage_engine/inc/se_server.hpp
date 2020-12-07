@@ -53,7 +53,7 @@ class server
 public:
     static void run(bool disable_persistence = false);
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
-    static void register_object_deallocator(std::function<void(gaia_locator_t, gaia_offset_t)>);
+    static void register_object_deallocator(std::function<void(gaia_offset_t)>);
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
@@ -138,7 +138,7 @@ private:
     // allowing all the superseded object versions in txns with commit
     // timestamps before the watermark to be freed (since they are no longer
     // visible to any present or future txns).
-    static inline std::function<void(gaia_locator_t, gaia_offset_t)> s_object_deallocator_fn{};
+    static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
     // Transaction timestamp entry constants.
     static constexpr uint64_t c_txn_status_entry_bits{64ULL};

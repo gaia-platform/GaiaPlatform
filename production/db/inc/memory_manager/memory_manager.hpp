@@ -50,6 +50,8 @@ public:
     void free_old_offsets(
         const std::list<address_offset_t>& offsets);
 
+    void free_old_offset(const address_offset_t offset);
+
 private:
     // This structure is used for tracking information about a memory block.
     struct memory_record_t

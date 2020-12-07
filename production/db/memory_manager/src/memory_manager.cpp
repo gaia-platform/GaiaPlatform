@@ -231,6 +231,21 @@ void memory_manager_t::free_old_offsets(const std::list<address_offset_t>& offse
     }
 }
 
+void memory_manager_t::free_old_offset(const address_offset_t offset)
+{
+    retail_assert(offset != c_invalid_offset, "Invalid offset received when trying to deallocate object.");
+    memory_allocation_metadata_t* allocation_metadata
+        = read_allocation_metadata(offset);
+    address_offset_t allocation_metadata_offset
+        = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
+
+    // Add allocation to free memory block list.
+    unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+    m_free_memory_list.emplace_back(
+        allocation_metadata_offset,
+        allocation_metadata->allocation_size);
+}
+
 size_t memory_manager_t::get_main_memory_available_size() const
 {
     size_t available_size = m_base_memory_offset + m_total_memory_size - m_next_allocation_offset;
