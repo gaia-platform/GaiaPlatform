@@ -12,6 +12,7 @@
 #include <string.h> 
 #include <functional>
 #include "../inc/campus_demo.hpp"
+#include "../inc/nv_form.hpp"
 
 #if defined MESSAGE_BUS_MONOLITH
 #include "../../monolith/inc/message_bus_monolith.hpp"
@@ -48,7 +49,7 @@ bool _show_all_messages = true;
 // the name of the client on the message bus
 const std::string _sender_name = "termUi";
 
-// singletonish
+// singleton
 inline static terminal_menu* _lastInstance = nullptr;
 
 // callback method type
@@ -653,8 +654,29 @@ void init()
 * @throws 
 * @exceptsafe yes
 */  
-int mainy()
+int main()
 {
+    /*nv_form ef;
+
+    std::vector<form_nv_field> fields = { 
+        form_nv_field("name", "Name:", ""),          
+        form_nv_field("teacher", "Teacher:", ""),          
+        form_nv_field("date", "Date:", ""),          
+        form_nv_field("startTime", "Start:", ""),          
+        form_nv_field("endTime", "End:", ""),         
+        form_nv_field("room", "Room:", "") 
+    };
+
+    ef.init("Event", fields);
+    ef.run();
+
+    auto feelds = ef.get_fields();
+
+        for(auto feeld : feelds){
+        auto the_val = feeld.get_value().c_str();
+        std::cout << the_val;
+    }*/
+
     terminal_menu tm;
     tm.init();
 
