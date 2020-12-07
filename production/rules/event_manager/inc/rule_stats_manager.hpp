@@ -64,7 +64,9 @@ private:
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
     // Signal to stop logging on shutdown.
-    std::atomic_bool m_keep_logging;
+    static bool s_keep_logging;
+    // Ensure we don't shutdown while we are logging
+    static std::mutex s_rule_logging_lock;
 };
 
 } // namespace rules
