@@ -6,6 +6,7 @@
 #pragma once
 
 #include <iostream>
+#include <ostream>
 #include <stdexcept>
 
 #include <sys/socket.h>
@@ -20,8 +21,13 @@ namespace gaia
 namespace common
 {
 
-// Current protocols never send or receive > 2 fds at a time.
-constexpr size_t c_max_fd_count = 2;
+// 1K oughta be enough for anybody...
+constexpr size_t c_max_msg_size = 1 << 10;
+
+// This is the value of SCM_MAX_FD according to the manpage for unix(7).
+// constexpr size_t c_max_fd_count = 253;
+// This seems to be the largest value that doesn't make sendmsg() return EINVAL.
+constexpr size_t c_max_fd_count = 4;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
@@ -82,8 +88,8 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         retail_assert(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
     }
 
-    struct msghdr msg;
-    struct iovec iov;
+    struct msghdr msg = {0};
+    struct iovec iov = {0};
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
@@ -91,6 +97,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         struct cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
+    ::memset(&control.buf, 0, sizeof(control.buf));
     iov.iov_base = data;
     iov.iov_len = data_size;
     msg.msg_name = nullptr;
@@ -146,18 +153,21 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     return bytes_written;
 }
 
-inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* data, size_t data_size)
+inline size_t recv_msg_with_fds(
+    int sock, int* fds, size_t* pfd_count, void* data,
+    size_t data_size, bool throw_on_zero_bytes_read = true)
 {
     // *pfd_count has initial value equal to length of fds array,
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
+        std::cerr << "Expected " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         retail_assert(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
     }
-    struct msghdr msg;
-    struct iovec iov;
+    struct msghdr msg = {0};
+    struct iovec iov = {0};
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
@@ -165,6 +175,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         struct cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
+    ::memset(&control.buf, 0, sizeof(control.buf));
     iov.iov_base = data;
     iov.iov_len = data_size;
     msg.msg_name = nullptr;
@@ -189,15 +200,26 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     }
     else if (bytes_read == 0)
     {
-        // For seqpacket and datagram sockets, we cannot distinguish between
-        // a zero-length datagram and a disconnected client, so we assume the
-        // application protocol doesn't allow zero-length datagrams.
-        throw peer_disconnected();
+        // For seqpacket and datagram sockets, we cannot distinguish between a
+        // zero-length datagram and a disconnected client, so we assume the
+        // application protocol doesn't allow zero-length datagrams. If the
+        // client specifies `throw_on_zero_bytes_read = false`, we assume it is
+        // expecting EOF, so we just return 0 bytes read through the normal
+        // codepath.
+        if (throw_on_zero_bytes_read)
+        {
+            throw peer_disconnected();
+        }
     }
-    else if (msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC))
+    else if (msg.msg_flags & MSG_TRUNC)
     {
         throw system_error(
-            "recvmsg: control or data payload truncated on read");
+            "recvmsg: data payload truncated on read");
+    }
+    else if (msg.msg_flags & MSG_CTRUNC)
+    {
+        throw system_error(
+            "recvmsg: control payload truncated on read");
     }
 
     if (fds)
@@ -205,6 +227,16 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         if (cmsg)
         {
+            // If `throw_on_zero_bytes_read == false`, we assume that a
+            // zero-length data read means the client interprets it as EOF. In
+            // that case, the server shouldn't try to attach any fds, even
+            // though Linux (unlike POSIX) can apparently attach ancillary data
+            // to a zero-length datagram. All our existing protocols assume that
+            // an empty datagram signifies EOF and the client should expect no
+            // ancillary data to be attached.
+            retail_assert(
+                bytes_read > 0,
+                "Ancillary data was attached to a zero-length datagram!");
             // message contains some fds, extract them
             retail_assert(cmsg->cmsg_level == SOL_SOCKET, "Invalid message header level!");
             retail_assert(cmsg->cmsg_type == SCM_RIGHTS, "Invalid message header type!");
@@ -220,6 +252,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
             }
             // *pfd_count has final value equal to number of fds returned
             *pfd_count = fd_count;
+            std::cerr << "Received " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         }
         else
         {
@@ -227,6 +260,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
             *pfd_count = 0;
         }
     }
+    std::cerr << "Read " << bytes_read << " bytes from recv_msg_with_fds" << std::endl;
     return static_cast<size_t>(bytes_read);
 }
 

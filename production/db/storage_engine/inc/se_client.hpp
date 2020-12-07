@@ -120,6 +120,12 @@ private:
 
     static void txn_cleanup();
 
+    static void sort_log();
+
+    static void dedup_log();
+
+    static void apply_txn_log(int log_fd);
+
     static int get_session_socket();
 
     static int get_id_cursor_socket_for_type(gaia_type_t type);
@@ -129,6 +135,9 @@ private:
     template <typename T_element_type>
     static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(int stream_socket);
+
+    static std::function<std::optional<int>()>
+    get_fd_stream_generator_for_socket(int stream_socket);
 
     /**
      *  Check if an event should be generated for a given type.
@@ -176,11 +185,21 @@ private:
         gaia_offset_t old_offset,
         gaia_offset_t new_offset,
         gaia_operation_t operation,
-        // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
+        // `deleted_id` is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia::common::gaia_id_t deleted_id = 0)
+        gaia::common::gaia_id_t deleted_id = c_invalid_gaia_id)
     {
-        gaia::common::retail_assert(s_log->count < c_max_log_records, "Log count exceeds maximum log record count!");
+        if (operation == gaia_operation_t::remove)
+        {
+            gaia::common::retail_assert(
+                deleted_id != c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
+                "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
+        }
+        // We never allocate more than `c_max_log_records` of space in the log.
+        gaia::common::retail_assert(
+            s_log->count < c_max_log_records,
+            "Log count exceeds maximum log record count!");
+        // Initialize the new record and increment the record count.
         log::log_record* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;

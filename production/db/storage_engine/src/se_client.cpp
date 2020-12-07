@@ -148,6 +148,63 @@ client::get_stream_generator_for_socket(int stream_socket)
     };
 }
 
+// This generator wraps a socket which reads a stream of fds from the server.
+// Because the socket interfaces for file descriptor passing are so specialized,
+// we can't reuse the generic stream socket generator implementation.
+std::function<std::optional<int>()>
+client::get_fd_stream_generator_for_socket(int stream_socket)
+{
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
+    // The userspace buffer that we use to receive a batch datagram message.
+    std::vector<int> batch_buffer;
+    // The definition of the generator we return.
+    return [stream_socket, batch_buffer]() mutable -> std::optional<int> {
+        // We shouldn't be called again after we received EOF from the server.
+        retail_assert(stream_socket != -1, "Stream socket is invalid!");
+        // If buffer is empty, block until a new batch is available.
+        if (batch_buffer.size() == 0)
+        {
+            // We only need a 1-byte buffer due to our datagram size convention.
+            uint8_t msg_buf[1] = {0};
+            // Resize the vector for maximum fd count, since we don't know
+            // beforehand how many we'll get.
+            batch_buffer.resize(c_max_fd_count);
+            size_t fd_count = batch_buffer.size();
+            std::cerr << "Calling recv_msg_with_fds from get_fd_stream_generator_for_socket" << std::endl;
+            // We need to set throw_on_zero_bytes_read=false in this call, since
+            // we expect EOF to be returned when the stream is exhausted.
+            size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
+            // Our datagrams contain one byte by convention, since we need to
+            // distinguish empty datagrams from EOF (even though Linux allows
+            // ancillary data with empty datagrams).
+            if (datagram_size == 0)
+            {
+                // We received EOF from the server, so close
+                // client socket and stop iteration.
+                close_fd(stream_socket);
+                // Tell the caller to stop iteration.
+                return std::nullopt;
+            }
+            // The datagram size must be 1 byte according to our protocol.
+            retail_assert(datagram_size == 1, "Unexpected datagram size!");
+            retail_assert(
+                fd_count > 0 && fd_count <= c_max_fd_count,
+                "Unexpected fd count!");
+            std::cerr << "Received " << fd_count << " fds in get_fd_stream_generator_for_socket" << std::endl;
+            // Resize the vector to its actual fd count.
+            batch_buffer.resize(fd_count);
+        }
+        // At this point we know our buffer is non-empty.
+        retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+        // Loop through the buffer and return entries in FIFO order
+        // (the server reversed the original buffer before sending).
+        int next_fd = batch_buffer.back();
+        batch_buffer.pop_back();
+        return next_fd;
+    };
+}
+
 std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type)
 {
@@ -178,6 +235,63 @@ static void build_client_request(
     }
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
+}
+
+// Sorts log records by ascending order of locator value.
+void client::sort_log()
+{
+    retail_assert(s_log, "Transaction log must be mapped!");
+    // We use stable_sort() to preserve the order of multiple updates to the same locator.
+    std::stable_sort(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) {
+        return lhs.locator < rhs.locator;
+    });
+}
+
+// Coalesces multiple updates to a single locator into the last update.
+// In the future, some intermediate update log records can be eliminated by
+// updating objects in-place, but not all of them (e.g., any size-changing
+// updates to variable-size fields must copy the whole object first).
+void client::dedup_log()
+{
+    retail_assert(s_log, "Transaction log must be mapped!");
+    // This is a bit weird: we want to preserve the *last* update to a locator,
+    // but std::unique preserves the *first* duplicate it encounters.
+    // So we reverse the sorted array so that the last update will be the first
+    // that std::unique sees, then reverse the deduplicated array so that locators
+    // are again in ascending order.
+    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+    // More weirdness: we need to record the initial offset of the first log
+    // record for each locator, so we can fix up the initial offset of its last
+    // log record (the one we will keep) with this offset. Otherwise we'll get
+    // bogus write conflicts because the initial offset of the last log record
+    // for a locator doesn't match its last known offset in the locator segment.
+    // Since the array is reversed, we'll see the first log record for a locator
+    // last, so we get the desired behavior if we overwrite the last seen entry.
+    std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
+    for (size_t i = 0; i < s_log->count; i++)
+    {
+        gaia_locator_t locator = s_log->log_records[i].locator;
+        gaia_offset_t initial_offset = s_log->log_records[i].old_offset;
+        initial_offsets[locator] = initial_offset;
+    }
+    log::log_record* unique_array_end = std::unique(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) -> bool {
+        return lhs.locator == rhs.locator;
+    });
+    size_t unique_array_len = unique_array_end - s_log->log_records;
+    s_log->count = unique_array_len;
+    // Now that all log records for each locator are deduplicated, reverse the
+    // array again to order by locator value in ascending order.
+    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+    // Now we need to fix up each log record with the initial offset we recorded earlier.
+    retail_assert(
+        s_log->count == initial_offsets.size(),
+        "Count of deduped log records must equal number of unique initial offsets!");
+    for (size_t i = 0; i < s_log->count; i++)
+    {
+        gaia_locator_t locator = s_log->log_records[i].locator;
+        gaia_offset_t initial_offset = initial_offsets[locator];
+        s_log->log_records[i].old_offset = initial_offset;
+    }
 }
 
 // This function must be called before establishing a new session. It ensures
@@ -282,6 +396,7 @@ void client::begin_session()
     size_t fd_count = c_fd_count;
     constexpr size_t c_data_fd_index = 0;
     constexpr size_t c_locators_fd_index = 1;
+    std::cerr << "Calling recv_msg_with_fds from begin_session" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
@@ -342,8 +457,45 @@ void client::begin_transaction()
     verify_session_active();
     verify_no_txn();
     retail_assert(s_txn_memory_request_size == c_initial_txn_memory_size_bytes, "Memory request size should have been reset when beginning a new transaction!");
-    // First we allocate a new log segment and map it in our own process.
-    int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
+
+    // Map a private COW view of the locator shared memory segment.
+    retail_assert(!s_locators, "Locators segment should be uninitialized!");
+    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
+    auto cleanup_locator_mapping = make_scope_guard([&]() {
+        unmap_fd(s_locators, sizeof(locators));
+    });
+
+    FlatBufferBuilder builder;
+    build_client_request(builder, session_event_t::BEGIN_TXN, c_initial_txn_memory_size_bytes);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    // Block to receive transaction id and txn logs from the server.
+    uint8_t msg_buf[c_max_msg_size] = {0};
+    int stream_socket = -1;
+    size_t fd_count = 1;
+    std::cerr << "Calling recv_msg_with_fds from begin_transaction" << std::endl;
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
+    retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(fd_count == 1, "Unexpected fd count!");
+    retail_assert(stream_socket != -1, "Invalid stream socket!");
+    auto cleanup_stream_socket = make_scope_guard([&]() {
+        close_fd(stream_socket);
+    });
+
+    // Extract the transaction id and cache it; it needs to be reset for the next transaction.
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
+    const transaction_info_t* txn_info = reply->data()->transaction_info();
+    s_txn_id = txn_info->transaction_id();
+    retail_assert(
+        s_txn_id != c_invalid_gaia_txn_id,
+        "Begin timestamp should not be invalid!");
+    std::cerr << "Begin timestamp: " << s_txn_id << std::endl;
+
+    // Allocate a new log segment and map it in our own process.
+    std::stringstream memfd_name;
+    memfd_name << c_sch_mem_log << ':' << s_txn_id;
+    int fd_log = ::memfd_create(memfd_name.str().c_str(), MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
         throw_system_error("memfd_create failed");
@@ -357,39 +509,22 @@ void client::begin_transaction()
         unmap_fd(s_log, c_initial_log_size);
     });
 
-    // Now we map a private COW view of the locator shared memory segment.
-    if (::flock(s_fd_locators, LOCK_SH) < 0)
+    // Update the log header with our begin timestamp.
+    s_log->begin_ts = s_txn_id;
+
+    // Apply all txn logs received from server to our snapshot, in order. The
+    // generator will close the stream socket when it's exhausted, but we need
+    // to close the stream socket if the generator throws an exception.
+    // REVIEW: might need to think about clearer ownership of the stream socket.
+    auto fd_generator = get_fd_stream_generator_for_socket(stream_socket);
+    auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
+    for (int txn_log_fd : txn_log_fds)
     {
-        throw_system_error("flock failed");
+        std::cerr << "Applying txn log with fd " << txn_log_fd << " to snapshot with begin_ts " << s_txn_id << std::endl;
+        apply_txn_log(txn_log_fd);
+        close_fd(txn_log_fd);
     }
-    auto cleanup_flock = make_scope_guard([&]() {
-        if (-1 == ::flock(s_fd_locators, LOCK_UN))
-        {
-            // Per C++11 semantics, throwing an exception from a destructor
-            // will just call std::terminate(), no undefined behavior.
-            throw_system_error("flock failed");
-        }
-    });
 
-    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0);
-    auto cleanup_locator_mapping = make_scope_guard([&]() {
-        unmap_fd(s_locators, sizeof(locators));
-    });
-
-    FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::BEGIN_TXN, c_initial_txn_memory_size_bytes);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Block to receive transaction id from the server.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
-
-    // Extract the transaction id and cache it; it needs to be reset for the next transaction.
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data()->transaction_info();
-    s_txn_id = txn_info->transaction_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
@@ -401,9 +536,27 @@ void client::begin_transaction()
     }
     load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
-    cleanup_log_fd.dismiss();
-    cleanup_log_mapping.dismiss();
+    // If we exhausted the generator without throwing an exception, then the
+    // generator already closed the stream socket.
+    cleanup_stream_socket.dismiss();
     cleanup_locator_mapping.dismiss();
+    cleanup_log_mapping.dismiss();
+    cleanup_log_fd.dismiss();
+}
+
+void client::apply_txn_log(int log_fd)
+{
+    retail_assert(s_locators, "Locators segment must be mapped!");
+    log* txn_log;
+    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
+    auto cleanup_log_mapping = make_scope_guard([&]() {
+        unmap_fd(txn_log, get_fd_size(log_fd));
+    });
+    for (size_t i = 0; i < txn_log->count; i++)
+    {
+        auto lr = txn_log->log_records + i;
+        (*s_locators)[lr->locator] = lr->new_offset;
+    }
 }
 
 void client::rollback_transaction()
@@ -418,7 +571,7 @@ void client::rollback_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Reset transaction id.
-    s_txn_id = 0;
+    s_txn_id = c_invalid_gaia_txn_id;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -434,16 +587,31 @@ void client::rollback_transaction()
 void client::commit_transaction()
 {
     verify_txn_active();
+    retail_assert(s_log, "Transaction log must be mapped!");
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // Unmap the log segment so we can seal it.
+    // Sort log records by locator value.
+    sort_log();
+
+    // Remove intermediate update log records.
+    // FIXME: this leaks all intermediate object versions!!!
+    dedup_log();
+
+    // Get final size of log.
+    size_t log_size = s_log->size();
+
+    // Unmap the log segment so we can truncate and seal it.
     unmap_fd(s_log, c_initial_log_size);
-    // Seal the txn log memfd for writes before sending it to the server.
-    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
+
+    // Truncate the log segment to its final size.
+    truncate_fd(s_fd_log, log_size);
+
+    // Seal the txn log memfd for writes/resizing before sending it to the server.
+    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
-        throw_system_error("fcntl(F_SEAL_WRITE) failed");
+        throw_system_error("fcntl(F_ADD_SEALS) failed");
     }
 
     // Send the server the commit event with the log segment fd.
@@ -453,6 +621,7 @@ void client::commit_transaction()
 
     // Block on the server's commit decision.
     uint8_t msg_buf[c_max_msg_size] = {0};
+    std::cerr << "Calling recv_msg_with_fds from commit_transaction" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
 
@@ -467,8 +636,15 @@ void client::commit_transaction()
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Throw an exception on server-side abort.
-    // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
+    // REVIEW: We could include the gaia_ids of conflicting objects in
+    // transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
+    // REVIEW: currently `DECIDE_TXN_ABORT` can mean either update conflict or
+    // failure to claim a commit timestamp entry (because it was invalidated by
+    // another beginning or committing txn). We handle this scenario in
+    // `begin_transaction()` by throwing `transaction_concurrency_failure`, and
+    // we should probably do the same here, unless there's no benefit to
+    // clients.
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict();
@@ -482,7 +658,7 @@ void client::commit_transaction()
         s_txn_commit_trigger(s_txn_id, s_events);
     }
     // Reset transaction id.
-    s_txn_id = 0;
+    s_txn_id = c_invalid_gaia_txn_id;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();

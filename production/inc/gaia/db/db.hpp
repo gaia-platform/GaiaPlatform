@@ -61,6 +61,15 @@ public:
     }
 };
 
+class transaction_concurrency_failure : public common::gaia_exception
+{
+public:
+    transaction_concurrency_failure()
+    {
+        m_message = "Transaction was aborted due to a concurrency error.";
+    }
+};
+
 class duplicate_id : public common::gaia_exception
 {
 public:
