@@ -109,15 +109,20 @@ private:
     // entry. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     static inline std::atomic<uint64_t>* s_txn_info = nullptr;
-    // This is the commit timestamp of the latest txn known to have been fully
-    // applied to the shared locator view. Since the shared view is updated
-    // non-atomically, there may be later txns partially or fully applied to the
-    // log. But since log replay is idempotent, we can safely replay logs that
-    // have already been partially or fully applied to the shared view. We
-    // always apply a full prefix of committed txns to the shared view; there
-    // can be no gaps in the sequence of committed txns that have been applied
-    // to the view (and no commit_ts within the prefix can be undecided).
-    static inline std::atomic<gaia_txn_id_t> s_last_applied_txn_commit_ts = c_invalid_gaia_txn_id;
+    // This marks a boundary at or before which every committed commit_ts may be
+    // assumed to have been applied to the shared locator view, and after which
+    // no commit_ts may be assumed to have had its txn log invalidated or freed
+    // (even if it aborted). No undecided commit_ts may precede the boundary,
+    // nor may any active or validating begin_ts. Since the shared view is
+    // updated non-atomically, there may be a commit_ts later than the boundary
+    // which is partially or fully applied to the shared locator view. But since
+    // log replay is idempotent, we can safely replay logs that have already
+    // been partially or fully applied to the shared view, starting with the
+    // last commit_ts at or before the boundary. We always apply a full prefix
+    // of committed txns to the shared view; there can be no gaps in the
+    // sequence of committed txns that have been applied to the view (since no
+    // commit_ts before the boundary can be undecided).
+    static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
     // allowing all the superseded object versions in txns with commit
@@ -275,19 +280,25 @@ private:
 
     static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
-    static bool invalidate_ts(gaia_txn_id_t ts);
+    static bool invalidate_unknown_ts(gaia_txn_id_t ts);
 
     static bool is_unknown_ts(gaia_txn_id_t ts);
 
     static bool is_invalid_ts(gaia_txn_id_t ts);
 
+    static bool is_txn_entry_begin_ts(uint64_t ts_entry);
+
     static bool is_begin_ts(gaia_txn_id_t ts);
+
+    static bool is_txn_entry_commit_ts(uint64_t ts_entry);
 
     static bool is_commit_ts(gaia_txn_id_t ts);
 
     static bool is_txn_entry_submitted(uint64_t ts_entry);
 
     static bool is_txn_submitted(gaia_txn_id_t begin_ts);
+
+    static bool is_txn_entry_validating(uint64_t ts_entry);
 
     static bool is_txn_validating(gaia_txn_id_t commit_ts);
 
@@ -303,7 +314,11 @@ private:
 
     static bool is_txn_aborted(gaia_txn_id_t commit_ts);
 
+    static bool is_txn_entry_active(uint64_t ts_entry);
+
     static bool is_txn_active(gaia_txn_id_t begin_ts);
+
+    static bool is_txn_entry_terminated(uint64_t ts_entry);
 
     static bool is_txn_terminated(gaia_txn_id_t begin_ts);
 
@@ -341,7 +356,9 @@ private:
 
     static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
-    static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
+    static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
+
+    static void gc_txn_undo_log(int log_fd);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
