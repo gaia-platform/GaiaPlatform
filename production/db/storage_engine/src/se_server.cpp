@@ -1017,7 +1017,18 @@ void server::session_handler(int session_socket)
                 retail_assert(false, "Unexpected fd!");
             }
             retail_assert(event != session_event_t::NOP, "Unexpected event type!");
-            apply_transition(event, event_data, fds, fd_count);
+            // The transition handlers are the only places we currently call
+            // send_msg_with_fds(). We need to handle a peer_disconnected
+            // exception thrown from that method (translated from EPIPE).
+            try
+            {
+                apply_transition(event, event_data, fds, fd_count);
+            }
+            catch (const peer_disconnected& e)
+            {
+                cerr << "client socket error: " << e.what() << endl;
+                s_session_shutdown = true;
+            }
         }
     }
 }
@@ -2428,6 +2439,18 @@ void server::gc_txn_undo_log(int log_fd)
 // same timestamp entry repeatedly with the is_txn_*(ts) functions, but to be on
 // the safe side we could just read each ts entry once and use the
 // is_txn_entry_*(entry) functions instead.
+//
+// REVIEW: This algorithm uses a CAS on every step of the traversal, which is
+// very expensive and might cause a lot of cache-coherency traffic on many-core
+// machines. We do abort the traversal when concurrency is detected via CAS
+// failure, but this will help only if uncontended CAS is cheaper than contended
+// CAS (which may not be true on all architectures). I think it should be
+// possible to design an algorithm that only does CAS at the very end of the
+// traversal, when we try to install the new watermark. Such an algorithm might
+// require two watermarks: an "apply" watermark and an "invalidate" watermark,
+// where "apply" and "invalidate" operations would be executed after their
+// respective watermarks had advanced (right now "apply" is done before
+// advancing the watermark and "invalidate" is done after).
 //
 // TODO: deallocate physical pages backing s_txn_info for addresses preceding
 // the watermark (via madvise(MADV_FREE)).
