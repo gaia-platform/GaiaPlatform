@@ -872,7 +872,18 @@ void server::session_handler(int session_socket)
                 retail_assert(false, "Unexpected fd!");
             }
             retail_assert(event != session_event_t::NOP, "Unexpected event type!");
-            apply_transition(event, event_data, fds, fd_count);
+            // The transition handlers are the only places we currently call
+            // send_msg_with_fds(). We need to handle a peer_disconnected
+            // exception thrown from that method (translated from EPIPE).
+            try
+            {
+                apply_transition(event, event_data, fds, fd_count);
+            }
+            catch (const peer_disconnected& e)
+            {
+                cerr << "client socket error: " << e.what() << endl;
+                s_session_shutdown = true;
+            }
         }
     }
 }
