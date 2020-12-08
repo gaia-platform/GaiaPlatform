@@ -187,7 +187,7 @@ gaia_ptr::gaia_ptr(gaia_id_t id)
 gaia_ptr::gaia_ptr(gaia_locator_t locator, address_offset_t offset)
 {
     m_locator = locator;
-    client::txn_log(m_locator, 0, get_gaia_offset(offset), gaia_operation_t::create);
+    client::txn_log(m_locator, 0, address_offset_to_gaia_offset(offset), gaia_operation_t::create);
 }
 
 se_object_t* gaia_ptr::to_ptr() const

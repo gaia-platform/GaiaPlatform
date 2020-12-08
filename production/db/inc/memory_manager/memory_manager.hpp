@@ -46,10 +46,7 @@ public:
     error_code_t free_stack_allocator(
         const std::unique_ptr<stack_allocator_t>& stack_allocator);
 
-    // Adds object memory at the provided offsets to the list of free memory.
-    void free_old_offsets(
-        const std::list<address_offset_t>& offsets);
-
+    // Adds object memory at the provided offset to the list of free memory.
     void free_old_offset(const address_offset_t offset);
 
 private:

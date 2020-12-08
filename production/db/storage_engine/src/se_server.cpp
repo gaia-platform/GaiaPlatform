@@ -545,7 +545,7 @@ void server::init_memory_manager()
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        memory_manager->free_old_offset(offset);
+        memory_manager->free_old_offset(gaia_offset_to_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }

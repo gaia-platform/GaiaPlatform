@@ -60,9 +60,19 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&data->last_locator, 1);
 }
 
-inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
+inline size_t get_gaia_alignment_unit()
 {
-    return offset / sizeof(uint64_t);
+    return sizeof(uint64_t);
+}
+
+inline gaia_offset_t address_offset_to_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
+{
+    return offset / get_gaia_alignment_unit();
+}
+
+inline gaia::db::memory_manager::address_offset_t gaia_offset_to_address_offset(gaia_offset_t offset)
+{
+    return offset * get_gaia_alignment_unit();
 }
 
 inline void update_locator(
@@ -75,7 +85,7 @@ inline void update_locator(
         throw no_open_transaction();
     }
 
-    (*locators)[locator] = get_gaia_offset(offset);
+    (*locators)[locator] = address_offset_to_gaia_offset(offset);
 }
 
 inline bool locator_exists(gaia_locator_t locator)
