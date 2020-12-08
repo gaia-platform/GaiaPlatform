@@ -2410,7 +2410,7 @@ void server::gc_txn_undo_log(int log_fd)
         // object deallocator (if it exists).
         if (lr->old_offset && s_object_deallocator_fn)
         {
-            s_object_deallocator_fn(lr->locator, lr->old_offset);
+            s_object_deallocator_fn(lr->old_offset);
         }
     }
 }
