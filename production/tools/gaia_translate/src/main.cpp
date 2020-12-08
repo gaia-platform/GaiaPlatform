@@ -377,7 +377,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     {
         g_generation_error = true;
         llvm::errs()
-            << "Table " << anchor_table << " doesn't reference any table and not referenced by any other tables";
+            << "No path between " << anchor_table << " and other tables";
         return navigation_code_data_t();
     }
     auto parent_itr = g_table_relationship_1.equal_range(anchor_table);

@@ -14,6 +14,13 @@ ruleset test1
 ruleset test2
 {
     {
-        max_temp=min_temp + 1;
+        max_temp++;
+    }
+}
+
+ruleset test3
+{
+    {
+      animal.age++;
     }
 }
