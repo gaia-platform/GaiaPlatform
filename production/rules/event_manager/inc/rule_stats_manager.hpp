@@ -53,7 +53,7 @@ protected:
     // Manages individual rule statistics.  The key is generated from the translation engine.
     std::map<std::string, rule_stats_t> m_rule_stats_map;
     // Write column headers every c_stats_group_size.
-    static const uint8_t c_stats_group_size;
+    inline static const uint8_t c_stats_group_size{40};
     // Tracks how many log rows have been written out.  We write a header initially and
     // then every c_stats_group_size thereafter.
     uint8_t m_count_entries_logged;
@@ -64,9 +64,9 @@ private:
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
     // Signal to stop logging on shutdown.
-    static bool s_keep_logging;
+    inline static bool s_keep_logging{true};
     // Ensure we don't shutdown while we are logging
-    static std::mutex s_rule_logging_lock;
+    inline static std::mutex s_rule_logging_lock;
 };
 
 } // namespace rules
