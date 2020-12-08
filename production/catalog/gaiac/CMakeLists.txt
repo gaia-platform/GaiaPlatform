@@ -30,3 +30,5 @@ add_dependencies(gaiac gaia_se_server)
 target_link_libraries(gaiac PRIVATE rt gaia_common gaia_catalog gaia_parser flatbuffers tabulate)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+
+install(TARGETS gaiac DESTINATION ${CMAKE_INSTALL_BINDIR})

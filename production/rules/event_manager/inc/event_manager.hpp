@@ -143,7 +143,7 @@ private:
 
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
-    friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
+    friend void gaia::rules::test::initialize_rules_engine(const event_manager_settings_t& settings);
     friend void gaia::rules::test::commit_trigger(gaia_txn_id_t, const trigger_event_t*, size_t count_events);
 
     // Well known trigger function called by the storage engine after commit.
@@ -156,7 +156,7 @@ private:
         event_binding_t& binding,
         const trigger_event_t& event,
         std::chrono::steady_clock::time_point& start_time);
-    void init(event_manager_settings_t& settings);
+    void init(const event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);

@@ -14,11 +14,8 @@ namespace db
 
 /**
  * Sets the DB client's commit trigger function.
- * Can only be called once.
- * Returns true if the trigger was successfully initialized,
- * false if it was already set.
  */
-bool set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
+void set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 
 /**
  * Reinitializes the DB client's shared memory structures.

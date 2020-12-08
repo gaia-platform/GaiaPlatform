@@ -38,9 +38,9 @@ void gaia::db::commit_transaction()
     gaia::db::client::commit_transaction();
 }
 
-bool gaia::db::set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn)
+void gaia::db::set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn)
 {
-    return gaia::db::client::set_commit_trigger(trigger_fn);
+    gaia::db::client::set_commit_trigger(trigger_fn);
 }
 
 void gaia::db::clear_shared_memory()

@@ -51,6 +51,18 @@ public:
     unhandled_field_type(size_t field_type);
 };
 
+class cannot_set_null_string_value : public gaia::common::gaia_exception
+{
+public:
+    cannot_set_null_string_value();
+};
+
+class cannot_update_null_string_value : public gaia::common::gaia_exception
+{
+public:
+    cannot_update_null_string_value();
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // GENERAL FIELD ACCESS API NOTES
 //

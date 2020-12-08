@@ -1,8 +1,0 @@
-Package: gaia
-Version: 0.1.0-0
-Section: custom
-Priority: optional
-Architecture: amd64
-Maintainer: gaiaplatform.io
-Description: Gaia Platform binaries
-Depends: libexplain51, libcap2

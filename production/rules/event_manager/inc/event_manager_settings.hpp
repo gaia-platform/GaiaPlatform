@@ -34,7 +34,7 @@ struct event_manager_settings_t
         , enable_catalog_checks(true)
         , enable_rule_stats(false)
         , stats_log_interval(10)
-        , num_rule_retries(1)
+        , max_rule_retries(1)
     {
     }
 
@@ -51,9 +51,9 @@ struct event_manager_settings_t
     // Specifies the interval in seconds that performance statistics
     // are logged to the logger file. Set to 0 to disable logging statistics.
     uint32_t stats_log_interval;
-    // Specifies the number of times to retry executing a rule if an update
+    // Specifies the maximum number of times to retry executing a rule if an update
     // conflict is detected.  If set to 0 then no retry attempts are made.
-    uint32_t num_rule_retries;
+    uint32_t max_rule_retries;
 };
 
 } // namespace rules
