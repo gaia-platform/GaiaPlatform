@@ -84,7 +84,7 @@ inline void close_fd(int& fd)
 {
     if (fd != -1)
     {
-        // std::cerr << "Closing fd " << fd << std::endl;
+        std::cerr << "Closing fd " << fd << std::endl;
         int tmp = fd;
         fd = -1;
         if (-1 == ::close(tmp))
