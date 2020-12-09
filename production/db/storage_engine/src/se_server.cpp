@@ -2240,22 +2240,13 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
 
     for (log::log_record* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
     {
-        // Free each undo version (i.e., the version superseded by
-        // an update or delete operation), using the registered
-        // object deallocator (if it exists).
-        if (lr->old_offset && s_object_deallocator_fn)
-        {
-            s_object_deallocator_fn(lr->locator, lr->old_offset);
-        }
-        // Now update the shared locator view with each redo version
-        // (i.e., the version created or updated by the txn). This
-        // is safe as long as the committed txn being applied has
-        // commit_ts older than the oldest active txn's begin_ts (so
-        // it can't overwrite any versions visible in that txn's
-        // snapshot). This update is non-atomic since log
-        // application is idempotent and therefore a txn log can be
-        // re-applied over the same txn's partially-applied log
-        // during snapshot reconstruction.
+        // Update the shared locator view with each redo version (i.e., the
+        // version created or updated by the txn). This is safe as long as the
+        // committed txn being applied has commit_ts older than the oldest
+        // active txn's begin_ts (so it can't overwrite any versions visible in
+        // that txn's snapshot). This update is non-atomic since log application
+        // is idempotent and therefore a txn log can be re-applied over the same
+        // txn's partially-applied log during snapshot reconstruction.
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
 }
@@ -2271,9 +2262,9 @@ void server::gc_txn_undo_log(int log_fd)
 
     for (log::log_record* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
     {
-        // Free each undo version (i.e., the version superseded by
-        // an update or delete operation), using the registered
-        // object deallocator (if it exists).
+        // Free each undo version (i.e., the version superseded by an update or
+        // delete operation), using the registered object deallocator (if it
+        // exists).
         if (lr->old_offset && s_object_deallocator_fn)
         {
             s_object_deallocator_fn(lr->locator, lr->old_offset);
