@@ -1,0 +1,25 @@
+#include <string.h>
+#include "rule_helpers.h"
+
+ruleset event_planner : table(Staff, Buildings)
+{
+    // Create an Event.
+    // Requires:  Room <- register later?
+    //  Requires: Building
+    // Requires:  Staff <- register later
+    //  Requires: Person
+    {
+        if (Buildings.LastOperation == INSERT)
+        {
+            auto building = gaia::gaia_u::Buildings_t::get(Buildings.gaia_id());
+            my_func(building);
+        }
+    }
+
+    {
+        if (DoorLocked)
+        {
+            DoorLocked = false;
+        }
+    }
+}
