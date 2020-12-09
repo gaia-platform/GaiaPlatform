@@ -15,6 +15,11 @@ create table if not exists person (
       references campus
 );
 
+create table if not exists role (
+      name : string,
+      references person
+);
+
 create table if not exists locations (
       name : string,
       references campus

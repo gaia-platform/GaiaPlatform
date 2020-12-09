@@ -266,7 +266,7 @@ void campus_demo::campus::restore_default_values() {
 }
 
 void campus_demo::campus::init_storage() {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    gaia::direct_access::auto_transaction_t tx(gaia::direct_access::auto_transaction_t::no_auto_begin);
 
     if (gaia::campus::person_t::get_first()) {
         restore_default_values();

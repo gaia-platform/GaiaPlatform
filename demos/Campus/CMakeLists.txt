@@ -20,8 +20,9 @@ find_package(spdlog REQUIRED)
 #find_package(gaia REQUIRED)
 #find_package(GMock REQUIRED)
 
-set(GAIA_INC "/usr/local/include/gaia")                                                     #TODO: remove fixed path
-set(GAIA_BIN "/usr/local/bin")                                                              #TODO: remove fixed path
+set(GAIA_INC "/opt/gaia/include")                     #TODO: remove fixed path
+set(GAIA_BIN "/opt/gaia/bin")                         #TODO: remove fixed path
+set(GAIA_LIB "/opt/gaia/lib")                         #TODO: remove fixed path
 
 find_library(MENU_LIBRARY menu)
 
@@ -36,12 +37,11 @@ set(GAIA_CAMPUS_DEMO_INCLUDES
   ${GTEST_INCLUDE_DIRS}
   ${CURSES_INCLUDE_DIR}
   #${GMOCK_INCLUDE_DIRS}
-  ${GAIA_INC}/catalog
-  ${GAIA_INC}/common
-  ${GAIA_INC}/db
-  ${GAIA_INC}/direct_access
-  ${GAIA_INC}/rules
-  ${GAIA_INC}/system
+  ${GAIA_INC}
+  ${GAIA_INC}/gaia
+  ${GAIA_INC}/gaia/db
+  ${GAIA_INC}/gaia/direct_access
+  ${GAIA_INC}/gaia/rules
   ${FLATBUFFERS_INC}
   ${GENERATED_OUTPUTS}
 )
@@ -92,7 +92,7 @@ add_custom_target(translate_campus_ruleset ALL
 #--- Done with D&T ---
 
 add_library(gaia SHARED IMPORTED GLOBAL)
-set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path 
+set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB}/libgaia.so)  
 
 add_executable(campus 
     common/src/campus_demo.cpp

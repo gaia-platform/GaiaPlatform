@@ -8,7 +8,7 @@
 #include <iostream>
 #include "message.hpp" 
 #include "message_bus.hpp"
-#include "gaia_system.hpp"
+#include "system.hpp"
 #include "rules.hpp"
 
 #include <algorithm>
