@@ -80,7 +80,9 @@ rule_thread_pool_t::~rule_thread_pool_t()
 {
     if (m_threads.size() > 0)
     {
+        unique_lock lock(m_lock);
         m_exit = true;
+        lock.unlock();
         m_invocations_signal.notify_all();
         for (thread& worker : m_threads)
         {
@@ -131,7 +133,7 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     {
         if (m_threads.size() > 0)
         {
-            unique_lock<mutex> lock(m_lock);
+            unique_lock lock(m_lock);
             m_invocations.push(invocation);
             lock.unlock();
             m_invocations_signal.notify_one();
@@ -150,7 +152,7 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
 // Thread worker function.
 void rule_thread_pool_t::rule_worker()
 {
-    unique_lock<mutex> lock(m_lock, defer_lock);
+    unique_lock lock(m_lock, defer_lock);
     begin_session();
     while (true)
     {
