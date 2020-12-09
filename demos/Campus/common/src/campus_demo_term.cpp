@@ -27,16 +27,16 @@
 #define CTRLD 4
 
 // These will be pulled from DB
-char * choices1[] = {(char*)"Person", (char*)"Car", (char*)"Exit", (char*)NULL};
-char * people[] = {(char*)"Unidentified", (char*)"Bob Kabob", (char*)"Sam Kabam", (char*)"Exit", (char*)NULL};
-char * cars[] = {(char*)"Unidentified", (char*)"Ford Fairlane", (char*)"Purple Lambo", (char*)"Exit", (char*)NULL};
+char * m_choices1[] = {(char*)"Person", (char*)"Car", (char*)"Exit", (char*)NULL};
+char * m_people[] = {(char*)"Unidentified", (char*)"Bob Kabob", (char*)"Sam Kabam", (char*)"Exit", (char*)NULL};
+char * m_cars[] = {(char*)"Unidentified", (char*)"Ford Fairlane", (char*)"Purple Lambo", (char*)"Exit", (char*)NULL};
 
-char * personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
-char * carAction[] = {(char*)"Move To", (char*)"Exit", (char*)NULL};
+char * m_personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
+char * m_carAction[] = {(char*)"Move To", (char*)"Exit", (char*)NULL};
 
-char * personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall", (char*)"Exit", (char*)NULL};
-char * personRoles[] = {(char*)"Stranger", (char*)"Student", (char*)"Teacher", (char*)"Parent", (char*)"Exit", (char*)NULL};
-char * carLocations[] = {(char*)"Entry", (char*)"Garage", (char*)"Concourse", (char*)"Exit", (char*)NULL};
+char * m_personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall", (char*)"Exit", (char*)NULL};
+char * m_personRoles[] = {(char*)"Stranger", (char*)"Student", (char*)"Teacher", (char*)"Parent", (char*)"Exit", (char*)NULL};
+char * m_carLocations[] = {(char*)"Entry", (char*)"Garage", (char*)"Concourse", (char*)"Exit", (char*)NULL};
 
 class terminal_menu
 {
@@ -44,13 +44,13 @@ class terminal_menu
 private:
 
 // should the UI show all mesages received?
-bool _show_all_messages = true;
+bool m_show_all_messages = true;
 
 // the name of the client on the message bus
-const std::string _sender_name = "termUi";
+const std::string m_sender_name = "termUi";
 
 // singleton
-inline static terminal_menu* _lastInstance = nullptr;
+inline static terminal_menu* m_lastInstance = nullptr;
 
 // callback method type
 typedef void (terminal_menu::*callback_type)(char * name);  
@@ -62,20 +62,20 @@ struct callback_cont_struct
 };
 
 // the message bus we want to use
-std::shared_ptr<message::i_message_bus> _messageBus = nullptr;
+std::shared_ptr<message::i_message_bus> m_messageBus = nullptr;
 
 // message header data
-int _sequenceID = 0;
-int _senderID = 0;
-std::string _senderName = _sender_name;
-int _destID = 0;
-std::string _destName = "*";
+int m_sequenceID = 0;
+int m_senderID = 0;
+std::string m_senderName = m_sender_name;
+int m_destID = 0;
+std::string m_destName = "*";
 
 // action data
-std::string _actorType;
-std::string _actorName;
-std::string _actionName;
-std::string _arg1;
+std::string m_actorType;
+std::string m_actorName;
+std::string m_actionName;
+std::string m_arg1;
 
 /**
 * ---
@@ -318,8 +318,8 @@ void show_message(std::shared_ptr<bus_messages::message> msg)
     {
         auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
-        sprintf(buffer, "Change detected: %s %s %s", action_message->_actor.c_str(), 
-            action_message->_action.c_str(), action_message->_arg1.c_str());
+        sprintf(buffer, "Change detected: %s %s %s", action_message->m_actor.c_str(), 
+            action_message->m_action.c_str(), action_message->m_arg1.c_str());
     }
     else if(messageType == bus_messages::message_types::alert_message)
     {
@@ -327,7 +327,7 @@ void show_message(std::shared_ptr<bus_messages::message> msg)
 
         std::string sev_level = "Unknown"; 
 
-        switch(alertMessage->_severity)
+        switch(alertMessage->m_severity)
         {
             case bus_messages::alert_message::severity_level_enum::alert :
                 sev_level = "Alert";
@@ -341,8 +341,8 @@ void show_message(std::shared_ptr<bus_messages::message> msg)
         }
 
         sprintf(buffer, "Alert Level: %s, %s : %s %s", sev_level.c_str(),
-            alertMessage->_title.c_str(), alertMessage->_body.c_str(), 
-            alertMessage->_arg1.c_str());
+            alertMessage->m_title.c_str(), alertMessage->m_body.c_str(), 
+            alertMessage->m_arg1.c_str());
     }
 
     show_text_message(buffer);
@@ -359,18 +359,18 @@ void show_message(std::shared_ptr<bus_messages::message> msg)
 void actor_type_selected(char *name)
 {       
     // set action values
-    _actorType = name;
-    _actorName = "";
-    _actionName = "";
-    _arg1 = "";
+    m_actorType = name;
+    m_actorName = "";
+    m_actionName = "";
+    m_arg1 = "";
 
     //showSelection(name);
 
     // show sub menu
     if(0 == strcmp(name, "Person"))
-        put_menu((char *)"Actor", people, &terminal_menu::person_selected, ARRAY_SIZE(people), 10, 40, 4, 44);
+        put_menu((char *)"Actor", m_people, &terminal_menu::person_selected, ARRAY_SIZE(m_people), 10, 40, 4, 44);
     else if(0 == strcmp(name, "Car"))
-        put_menu((char *)"Actor", cars, &terminal_menu::car_selected, ARRAY_SIZE(cars), 10, 40, 4, 44);     
+        put_menu((char *)"Actor", m_cars, &terminal_menu::car_selected, ARRAY_SIZE(m_cars), 10, 40, 4, 44);     
 } 
 
 /**
@@ -384,14 +384,14 @@ void actor_type_selected(char *name)
 void person_selected(char *name)
 {        
     // set action values
-    _actorName = name;
-    _actionName = "";
-    _arg1 = "";
+    m_actorName = name;
+    m_actionName = "";
+    m_arg1 = "";
 
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(personAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", m_personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(m_personAction), 10, 40, 4, 84);   
 } 
 
 /**
@@ -405,14 +405,14 @@ void person_selected(char *name)
 void car_selected(char *name)
 {        
     // set action values
-    _actorName = name;
-    _actionName = "";
-    _arg1 = "";
+    m_actorName = name;
+    m_actionName = "";
+    m_arg1 = "";
 
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(carAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", m_carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(m_carAction), 10, 40, 4, 84);   
 } 
 
 /**
@@ -426,16 +426,16 @@ void car_selected(char *name)
 void persons_action_selected(char *name)
 {        
     // set action values
-    _actionName = name;
-    _arg1 = "";
+    m_actionName = name;
+    m_arg1 = "";
 
     //showSelection(name);
 
     // show sub menu
     if(0 == strcmp(name, "Move To"))
-        put_menu((char *)"Location", personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(personLocations), 10, 40, 4, 124);
+        put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, 4, 124);
     else if(0 == strcmp(name, "Change Role"))
-        put_menu((char *)"New Role", personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);   
+        put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, 4, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
         do_the_change();    
     else if(0 == strcmp(name, "Disarm"))
@@ -453,10 +453,10 @@ void persons_action_selected(char *name)
 void car_action_selected(char *name)
 {        
     // set action values
-    _actionName = name;
-    _arg1 = "";
+    m_actionName = name;
+    m_arg1 = "";
 
-    put_menu((char *)"Location", carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(carLocations), 10, 40, 4, 124);   
+    put_menu((char *)"Location", m_carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(m_carLocations), 10, 40, 4, 124);   
 } 
 
 /**
@@ -470,7 +470,7 @@ void car_action_selected(char *name)
 void persons_action_moveto_selected(char *name)
 {        
     // set action values
-    _arg1 = name;
+    m_arg1 = name;
 
     //do the change  
     do_the_change();
@@ -487,7 +487,7 @@ void persons_action_moveto_selected(char *name)
 void persons_action_change_role_selected(char *name)
 {        
     // set action values
-    _arg1 = name;
+    m_arg1 = name;
 
     //do the change  
     do_the_change();  
@@ -504,7 +504,7 @@ void persons_action_change_role_selected(char *name)
 void car_action_change_location_selected(char *name)
 {        
     // set action values
-    _arg1 = name;
+    m_arg1 = name;
 
     //do the change  
     do_the_change();
@@ -519,27 +519,27 @@ void car_action_change_location_selected(char *name)
 */  
 void do_the_change()
 {
-    if(nullptr == _messageBus)
+    if(nullptr == m_messageBus)
         return;
 
-    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
 
     std::shared_ptr<bus_messages::message> msg = 
-        std::make_shared<bus_messages::action_message>(mh, _actorType, _actorName, _actionName, _arg1);
+        std::make_shared<bus_messages::action_message>(mh, m_actorType, m_actorName, m_actionName, m_arg1);
 
-    _messageBus->send_message(msg);
+    m_messageBus->send_message(msg);
 }
 
 public:
 
 static terminal_menu* get_last_instance()
 {
-    return _lastInstance;
+    return m_lastInstance;
 }
 
 std::shared_ptr<message::i_message_bus> get_message_bus()
 {
-    return _messageBus;
+    return m_messageBus;
 }
 
 /**
@@ -551,9 +551,9 @@ std::shared_ptr<message::i_message_bus> get_message_bus()
 * @throws 
 * @exceptsafe yes
 */  
-void Run()
+void run()
 {    
-    put_menu((char *)"Actor Type", choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(choices1), 10, 40, 4, 4); 
+    put_menu((char *)"Actor Type", m_choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(m_choices1), 10, 40, 4, 4); 
     endwin();
 }
 
@@ -567,7 +567,7 @@ void Run()
 */  
 void message_callback(std::shared_ptr<bus_messages::message> msg)
 {
-    if(_show_all_messages)
+    if(m_show_all_messages)
         show_message(msg);
 
     auto messageType = msg->get_message_type_name();
@@ -613,7 +613,7 @@ static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
 */  
 void init()
 {   
-    _lastInstance = this;
+    m_lastInstance = this;
 
     // Initialize ncurses
     initscr();
@@ -630,8 +630,8 @@ void init()
     try
     {
         // Initialize message bus
-        _messageBus = std::make_shared<message::message_bus>();
-        _messageBus->register_message_callback(&terminal_menu::static_message_callback, _sender_name);        
+        m_messageBus = std::make_shared<message::message_bus>();
+        m_messageBus->register_message_callback(&terminal_menu::static_message_callback, m_sender_name);        
     }
     catch(const std::exception& e)
     {
@@ -683,7 +683,7 @@ int main()
     campus_demo::campus cd;
 
     if( 0 == cd.init(tm.get_message_bus()))
-        tm.Run();
+        tm.run();
     else
     {
         std::cout << "nope";

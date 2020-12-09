@@ -33,21 +33,21 @@ class callback_registration{
 
 private:
 
-    message_callback_type _callback = nullptr;
-    std::string _regsitrantName = "";
+    message_callback_type m_callback = nullptr;
+    std::string m_regsitrantName = "";
 
 public:
 
     message_callback_type get_callback(){
-        return _callback;
+        return m_callback;
     }
 
     std::string get_registrant_name(){
-        return _regsitrantName;
+        return m_regsitrantName;
     }   
 
     callback_registration(message_callback_type callback, std::string regsitrantName) :
-        _callback(callback), _regsitrantName(regsitrantName){}
+        m_callback(callback), m_regsitrantName(regsitrantName){}
 };
 
 /**
@@ -58,7 +58,7 @@ class i_message_bus
 public:
   
     //std::vector<message_callback_type> _messageCallbacks;
-    std::vector<callback_registration> _messageCallbacks;
+    std::vector<callback_registration> m_messageCallbacks;
 
     // send a message to the message bus
     virtual int send_message(std::shared_ptr<bus_messages::message> msg)
@@ -77,7 +77,7 @@ public:
     // register a callback on which to receive messages
     virtual int register_message_callback(message_callback_type callback, std::string regsitrantName) 
     {
-        _messageCallbacks.push_back(callback_registration(callback, regsitrantName));
+        m_messageCallbacks.push_back(callback_registration(callback, regsitrantName));
         return 0;
     }
     

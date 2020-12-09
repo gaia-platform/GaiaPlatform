@@ -11,12 +11,12 @@ namespace bus_messages {
 class message_header{
 private:
 
-    unsigned int _sequenceID = 0;
-    time_t _timeSent;
-    unsigned int _senderID;
-    std::string _senderName;    
-    unsigned int _destID;
-    std::string _destName;
+    unsigned int m_sequenceID = 0;
+    time_t m_timeSent;
+    unsigned int m_senderID;
+    std::string m_senderName;    
+    unsigned int m_destID;
+    std::string m_destName;
 
 public:
 
@@ -30,13 +30,13 @@ public:
      */
     message_header()
     {
-        _timeSent  = time(nullptr);
+        m_timeSent  = time(nullptr);
         
-        _sequenceID++;
-        _senderID = 0;
-        _senderName = "*";    
-        _destID = 0;
-        _destName = "*";
+        m_sequenceID++;
+        m_senderID = 0;
+        m_senderName = "*";    
+        m_destID = 0;
+        m_destName = "*";
     };
 
     /**
@@ -56,10 +56,10 @@ public:
         std::string senderName,    
         unsigned int destID,
         std::string destName) : 
-        _sequenceID(sequenceID), _senderID(senderID), 
-        _senderName(senderName), _destID(destID), _destName(destName)
+        m_sequenceID(sequenceID), m_senderID(senderID), 
+        m_senderName(senderName), m_destID(destID), m_destName(destName)
     {
-        _timeSent  = time(nullptr);
+        m_timeSent  = time(nullptr);
         fix_vals();
     };
 
@@ -82,8 +82,8 @@ public:
         std::string senderName,    
         unsigned int destID,
         std::string destName) : 
-        _sequenceID(sequenceID), _timeSent(timeSent), _senderID(senderID), 
-        _senderName(senderName), _destID(destID), _destName(destName)
+        m_sequenceID(sequenceID), m_timeSent(timeSent), m_senderID(senderID), 
+        m_senderName(senderName), m_destID(destID), m_destName(destName)
     {
         fix_vals();
     };
@@ -94,35 +94,35 @@ public:
 
     void fix_vals()
     {
-        if( "" == _senderName ) 
-         _senderName = "*";
+        if( "" == m_senderName ) 
+         m_senderName = "*";
 
-        if( "" == _destName) 
-          _destName = "*";
+        if( "" == m_destName) 
+          m_destName = "*";
     }
 
     unsigned int get_sequenceID(){
-        return _sequenceID;
+        return m_sequenceID;
     }
 
     time_t get_timeSent(){
-        return _timeSent;
+        return m_timeSent;
     }
     
     unsigned int get_senderID(){
-        return _senderID;
+        return m_senderID;
     }
 
     std::string get_senderName(){
-        return _senderName;
+        return m_senderName;
     }    
 
     unsigned int get_destID(){
-        return _destID;
+        return m_destID;
     }
 
     std::string get_destName(){
-        return _destName;
+        return m_destName;
     }
 };
 
@@ -159,9 +159,9 @@ class message{
 
 protected:
 
-    message_header _messageHeader;    
-    void * _payload;
-    std::string _messageTypeName = "";
+    message_header m_messageHeader;    
+    void * m_payload;
+    std::string m_messageTypeName = "";
     
 public:
 
@@ -176,9 +176,9 @@ public:
      */    
     template <class T>    
     message(message_header header, T payload) : 
-        _messageHeader(header)
+        m_messageHeader(header)
     {
-        _payload = payload;
+        m_payload = payload;
     }
 
     /**
@@ -190,21 +190,21 @@ public:
      * @exceptsafe yes
      */    
     message(message_header header) : 
-        _messageHeader(header)
+        m_messageHeader(header)
     {}
 
     message(){}
 
     message_header get_header(){
-        return _messageHeader;
+        return m_messageHeader;
     }
 
     std::string get_sender_name(){
-        return _messageHeader.get_senderName();
+        return m_messageHeader.get_senderName();
     }
 
     std::string get_message_type_name(){
-        return _messageTypeName;
+        return m_messageTypeName;
     }
 
     int demo_test(){
@@ -233,22 +233,22 @@ class action_message : public message
 {
 private:
 
-    std::string _typeName = message_types::action_message;
+    std::string m_typeName = message_types::action_message;
 
 public:
 
-    std::string _actorType;
-    std::string _actor;
-    std::string _action;
-    std::string _arg1;
+    std::string m_actorType;
+    std::string m_actor;
+    std::string m_action;
+    std::string m_arg1;
 
     action_message(message_header header, std::string actorType, std::string actor, std::string action, std::string arg1) :
-        message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1){ 
-        _messageTypeName = message_types::action_message;
+        message(header), m_actorType(actorType), m_actor(actor), m_action(action), m_arg1(arg1){ 
+        m_messageTypeName = message_types::action_message;
     }
 
     action_message(){ 
-        _messageTypeName = message_types::action_message;
+        m_messageTypeName = message_types::action_message;
     }
 
     int demo_test(){
@@ -263,30 +263,30 @@ class alert_message : public message
 {
 private:
 
-    std::string _typeName = message_types::alert_message;
+    std::string m_typeName = message_types::alert_message;
 
 public:
 
     enum severity_level_enum {notice, alert, emergency};
 
-    std::string _title;
-    std::string _body;
-    severity_level_enum _severity;
-    std::string _arg1;
+    std::string m_title;
+    std::string m_body;
+    severity_level_enum m_severity;
+    std::string m_arg1;
 
     alert_message(message_header header, std::string title, std::string body, severity_level_enum severity, std::string arg1) :
-        message(header), _title(title), _body(body), _severity(severity), _arg1(arg1){ 
-        _messageTypeName = message_types::alert_message;
+        message(header), m_title(title), m_body(body), m_severity(severity), m_arg1(arg1){ 
+        m_messageTypeName = message_types::alert_message;
     }
 
     alert_message(message_header header, std::string title, std::string body, int severity, std::string arg1) :
-        message(header), _title(title), _body(body), _arg1(arg1){ 
-        _severity = static_cast<severity_level_enum>(severity); //TODO : catch arg problems
-        _messageTypeName = message_types::alert_message;
+        message(header), m_title(title), m_body(body), m_arg1(arg1){ 
+        m_severity = static_cast<severity_level_enum>(severity); //TODO : catch arg problems
+        m_messageTypeName = message_types::alert_message;
     }
 
     alert_message(){ 
-        _messageTypeName = message_types::alert_message;
+        m_messageTypeName = message_types::alert_message;
     }
 
     int demo_test(){

@@ -94,7 +94,7 @@ private:
                 }
 
                 // send message to each registered callback
-                for(callback_registration cbr : _messageCallbacks)
+                for(callback_registration cbr : m_messageCallbacks)
                 {
                     try {
                         // Don't echo messages back to sender

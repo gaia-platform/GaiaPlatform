@@ -9,7 +9,7 @@
 #define UNUSED(...) (void)(__VA_ARGS__)
 
 campus_demo::campus::campus(){
-    _lastInstance = this;
+    m_lastInstance = this;
 }
 
 campus_demo::campus::~campus(){}
@@ -19,7 +19,7 @@ int campus_demo::campus::demo_test(){
 }
 
 campus_demo::campus* campus_demo::campus::get_last_instance(){
-    return _lastInstance;
+    return m_lastInstance;
 }
 
 void campus_demo::campus::log_this(std::string prefix, const std::exception& e){
@@ -38,14 +38,14 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
 
     //if we can't find them in the DB then exit. 
     //obviously this is not how we would proceed in production, an unidentified thing may be a security issue
-    if( !get_person(msg->_actor.c_str(), found_person))
+    if( !get_person(msg->m_actor.c_str(), found_person))
     {
         //TODO: log message
         return;
     }
 
     //what kind of action?
-    if(msg->_action == "Brandish Weapon")
+    if(msg->m_action == "Brandish Weapon")
     {
         begin_transaction();
         //update that person as a threat
@@ -53,24 +53,24 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
         commit_transaction();
 
         //rule trigger fake, bypasses rules, for development only
-        if(_rule_trigger_fake){
+        if(m_rule_trigger_fake){
 
-            if(nullptr == _messageBus)
+            if(nullptr == m_messageBus)
                 return;
 
-            bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+            bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
 
             char buffer[256];
-            sprintf(buffer, "'%s' is brandishing a weapon", msg->_actor.c_str());
+            sprintf(buffer, "'%s' is brandishing a weapon", msg->m_actor.c_str());
 
             std::shared_ptr<bus_messages::message> msg = 
                 std::make_shared<bus_messages::alert_message>(mh, "Deadly Threat", 
                     buffer, bus_messages::alert_message::severity_level_enum::emergency, "");
 
-            _messageBus->send_message(msg);
+            m_messageBus->send_message(msg);
         }
     }    
-    else if(msg->_action == "Disarm")
+    else if(msg->m_action == "Disarm")
     {
         begin_transaction();
         //update that person as a threat
@@ -97,7 +97,7 @@ void campus_demo::campus::message_callback(std::shared_ptr<bus_messages::message
             auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
 
             //at this point we have our action message, update the DB
-            if(action_message->_actorType == "Person")
+            if(action_message->m_actorType == "Person")
                 got_person_action_message(action_message);
         }
     }
@@ -132,14 +132,14 @@ int campus_demo::campus::run_async(){
 
 void campus_demo::campus::worker(){
     //Initialize Gaia
-    gaia::system::initialize(_config_file_name.c_str());     
+    gaia::system::initialize(m_config_file_name.c_str());     
 
     init_storage();
 
     //dump_db();
 
     while(true){
-        usleep(_sleepTime);
+        usleep(m_sleepTime);
     }
 }
 
@@ -160,11 +160,11 @@ int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus
             throw std::invalid_argument("argument messageBus cannot be null");
         
         //Save the message bus and register a callback
-        _messageBus = messageBus;
-        _messageBus->register_message_callback(&campus_demo::campus::static_message_callback, _sender_name);
+        m_messageBus = messageBus;
+        m_messageBus->register_message_callback(&campus_demo::campus::static_message_callback, m_sender_name);
 
         //Initialize Gaia
-        gaia::system::initialize(_config_file_name.c_str());     
+        gaia::system::initialize(m_config_file_name.c_str());     
 
         init_storage();    
     }
@@ -185,29 +185,29 @@ int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus
 void campus_demo::campus::cb_action( std::string actorType, 
     std::string actorName, std::string actionName, std::string arg1){
 
-    if(nullptr == _messageBus)
+    if(nullptr == m_messageBus)
         return;
 
-    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
 
     std::shared_ptr<bus_messages::message> msg = 
         std::make_shared<bus_messages::action_message>(mh, actorType, actorName, actionName, arg1);
 
-    _messageBus->send_message(msg);
+    m_messageBus->send_message(msg);
 }
 
 void campus_demo::campus::cb_alert( std::string title, 
         std::string body, int severity, std::string arg1){
 
-    if(nullptr == _messageBus)
+    if(nullptr == m_messageBus)
         return;
 
-    bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
 
     std::shared_ptr<bus_messages::message> msg = 
         std::make_shared<bus_messages::alert_message>(mh, title, body, severity, arg1);
 
-    _messageBus->send_message(msg);
+    m_messageBus->send_message(msg);
 }
 
 //*** DB Procedural ***

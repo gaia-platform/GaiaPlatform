@@ -35,34 +35,34 @@ class campus : i_Campus, std::enable_shared_from_this<campus> {
 private:
 
     //Run the rule trigger fake
-    bool _rule_trigger_fake = false; 
+    bool m_rule_trigger_fake = false; 
 
     //std::thread* _workerThread;
 
     //sleep time of worker in ms
-    useconds_t _sleepTime = 10;
+    useconds_t m_sleepTime = 10;
 
     //TODO: this is a hack to store persons to work around a thread issue
     //std::vector<gaia::campus::person_t> _persons_v;
 
     // the name of the client on the message bus
-    const std::string _sender_name = "campus";    
+    const std::string m_sender_name = "campus";    
 
     // message header data
-    int _sequenceID = 0;
-    int _senderID = 0;
-    std::string _senderName = _sender_name;
-    int _destID = 0;
-    std::string _destName = "*";
+    int m_sequenceID = 0;
+    int m_senderID = 0;
+    std::string m_senderName = m_sender_name;
+    int m_destID = 0;
+    std::string m_destName = "*";
 
     // the config file
-    const std::string _config_file_name = "./gaia_conf.toml"; //TODO: Is that path ok?
+    const std::string m_config_file_name = "./gaia_conf.toml"; //TODO: Is that path ok?
     
     // singletonish
-    inline static campus* _lastInstance = nullptr;
+    inline static campus* m_lastInstance = nullptr;
 
     // the message bus we want to use
-    std::shared_ptr<message::i_message_bus> _messageBus = nullptr;
+    std::shared_ptr<message::i_message_bus> m_messageBus = nullptr;
 
     static campus* get_last_instance();
 
