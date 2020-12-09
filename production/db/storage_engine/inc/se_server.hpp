@@ -43,8 +43,9 @@ class server
     friend gaia::db::data* gaia::db::get_shared_data();
 
 public:
-    static void run(bool disable_persistence = false);
+    static void run(bool disable_persistence = false, bool reinitialize_persistent_store = false);
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+    static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
@@ -67,6 +68,7 @@ private:
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
+    static inline bool s_reinitialize_persistent_store = false;
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
