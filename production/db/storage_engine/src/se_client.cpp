@@ -589,6 +589,14 @@ void client::commit_transaction()
     verify_txn_active();
     retail_assert(s_log, "Transaction log must be mapped!");
 
+    // This optimization to treat committing a read-only txn as a rollback
+    // allows us to avoid any special cases in the server for empty txn logs.
+    if (s_log->count == 0)
+    {
+        rollback_transaction();
+        return;
+    }
+
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
