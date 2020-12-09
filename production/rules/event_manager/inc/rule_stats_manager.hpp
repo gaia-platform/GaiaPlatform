@@ -66,7 +66,7 @@ private:
     // Signal to stop logging on shutdown.
     inline static bool s_keep_logging{true};
     // Ensure we don't shutdown while we are logging
-    inline static std::mutex s_rule_logging_lock;
+    inline static std::mutex s_logging_lock;
 };
 
 } // namespace rules

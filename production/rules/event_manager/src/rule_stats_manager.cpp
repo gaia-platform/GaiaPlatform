@@ -31,7 +31,7 @@ rule_stats_manager_t::~rule_stats_manager_t()
     // the thread because we don't want to wait for the log_interval to expire before allowing
     // the process to exit.  But in the case where someone does an init/shutdown/init we only
     // want a single logger thread around.
-    unique_lock lock(s_rule_logging_lock);
+    unique_lock lock(s_logging_lock);
     s_keep_logging = false;
 }
 
@@ -45,7 +45,7 @@ void rule_stats_manager_t::log_stats_thread_fn(uint32_t log_interval)
         std::this_thread::sleep_for(interval);
         if (s_keep_logging)
         {
-            unique_lock lock(s_rule_logging_lock);
+            unique_lock lock(s_logging_lock);
             if (s_keep_logging)
             {
                 log_stats();
