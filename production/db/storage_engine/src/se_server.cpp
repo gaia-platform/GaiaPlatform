@@ -317,6 +317,10 @@ void server::recover_db()
         if (!rdb)
         {
             rdb = make_unique<gaia::db::persistent_store_manager>();
+            if (s_reinitialize_persistent_store)
+            {
+                rdb->destroy_persistent_store();
+            }
             rdb->open();
             rdb->recover();
         }
@@ -950,10 +954,17 @@ bool server::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run(bool disable_persistence)
+void server::run(bool disable_persistence, bool reinitialize_persistent_store)
 {
+    if (reinitialize_persistent_store)
+    {
+        retail_assert(
+            !disable_persistence,
+            "remove_persistent_store can only be set if disable_persistence is unset!");
+    }
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_disable_persistence = disable_persistence;
+    s_reinitialize_persistent_store = reinitialize_persistent_store;
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
     while (true)
