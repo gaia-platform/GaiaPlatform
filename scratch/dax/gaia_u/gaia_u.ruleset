@@ -1,7 +1,7 @@
 #include <string.h>
-#include "rule_helpers.h"
+#include "rule_helpers.hpp"
 
-ruleset event_planner : table(Staff, Buildings)
+ruleset event_planner
 {
     // Create an Event.
     // Requires:  Room <- register later?
@@ -12,7 +12,7 @@ ruleset event_planner : table(Staff, Buildings)
         if (Buildings.LastOperation == INSERT)
         {
             auto building = gaia::gaia_u::Buildings_t::get(Buildings.gaia_id());
-            my_func(building);
+            //my_func(building);
         }
     }
 
@@ -20,6 +20,40 @@ ruleset event_planner : table(Staff, Buildings)
         if (DoorLocked)
         {
             DoorLocked = false;
+        }
+    }
+
+    //
+    // Cancel event involves removing the event from the Staff_t.Teacher_Events_list()
+    // and the Rooms_Events_list.
+    // Note that this is not currently possible if the event has any reference defined
+    //
+    {
+        if (Events.LastOperation == DELETE)
+        {
+            event_planner::cancel_event(Events.gaia_id());
+        }
+    }
+
+    // When a new room is added then adjust the restricted capacity
+    // according to the restriction
+    {
+        if (Rooms.LastOperation == INSERT)
+        {
+            auto restrictions = gaia::gaia_u::Restrictions_t::get_first();
+            float percent = restrictions.PercentFull() / 100.0;
+            RestrictedCapacity = Capacity * percent;
+        }
+    }
+
+    // If a restriction changes, then update all the rooms
+    // capacity.
+    {
+        for (auto room : gaia::gaia_u::Rooms_t::list())
+        {
+            auto w = room.writer();
+            w.RestrictedCapacity = w.Capacity * (static_cast<float>(PercentFull) / 100.0);
+            w.update_row();
         }
     }
 }

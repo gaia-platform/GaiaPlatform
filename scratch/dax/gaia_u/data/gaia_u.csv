@@ -1,7 +1,8 @@
 #fake id, non-reference fields, reference fields
 #nulls are simply omitted, i.e. ,, or ,[EOL]
-Persons, 1, John, Smith, 1/1/2002,
-Persons, 2, Brad, Smith, 6/14/1972,
+Restrictions, 50
+Persons, 1, John, Smith, 1/1/2002
+Persons, 2, Brad, Smith, 6/14/1972
 Persons, 3, Marsha, Smith, 8/3/1974
 Persons, 4, Mike, Hawkins, 4/4/2003
 Persons, 5, Delilah, Hendricks, 5/5/2003
@@ -9,11 +10,11 @@ Persons, 6, Richard, Feynman, 5/11/1918
 Persons, 7, Douglas, Hofstadter, 2/15/1945
 Buildings, 1, Fruit Hall
 Buildings, 2, Vegetable
-Rooms, 1, 1, Apple, 1, 10, 1
-Rooms, 2, 2, Banana, 1, 20, 1
-Rooms, 3, 3, Orange, 1, 30, 1
-Rooms, 4, 1, Onion, 1, 500, 2
-Rooms, 5, 2, Broccoli, 3, 120, 2
+Rooms, 1, 1, Apple, 1, 10, 10, 1
+Rooms, 2, 2, Banana, 1, 20, 20, 1
+Rooms, 3, 3, Orange, 1, 30, 30, 1
+Rooms, 4, 1, Onion, 1, 500, 500, 2
+Rooms, 5, 2, Broccoli, 3, 120, 120, 2
 Students, 1, 1000, 1
 Students, 2, 1001, 4
 Students, 3, 1002, 5
