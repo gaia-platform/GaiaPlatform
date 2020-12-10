@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "utils.hpp"
 #include <map>
 #include <fstream>
 #include <string>
@@ -11,6 +10,7 @@
 
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
+#include "data_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -87,7 +87,7 @@ void gaia_u_loader_t::load_Persons(row_t& row)
     auto gaia_id = Persons_t::insert_row(
         row[2].c_str(), // FirstName
         row[3].c_str(), // LastName
-        utils_t::convert_date(row[4].c_str()), //BirthDate
+        event_planner::convert_date(row[4].c_str()), //BirthDate
         nullptr //"FaceSignature"
     );
 
@@ -105,22 +105,30 @@ void gaia_u_loader_t::load_Buildings(row_t& row)
     m_buildings_ids.insert(make_pair(id, gaia_id));
 }
 
+void gaia_u_loader_t::load_Restrictions(row_t& row)
+{
+    uint8_t percent = stoul(row[1]);
+    Restrictions_t::insert_row(percent);
+}
+
 void gaia_u_loader_t::load_Rooms(row_t& row)
 {
     uint32_t id = stoul(row[1]);
     uint16_t number = static_cast<uint16_t>(stoul(row[2]));
     uint8_t floor = static_cast<uint8_t>(stoul(row[4]));
     uint16_t capacity = static_cast<uint16_t>(stoul(row[5]));
+    uint16_t restricted = static_cast<uint16_t>(stoul(row[6]));
 
     auto gaia_room_id = Rooms_t::insert_row(
         number, // RoomNumber
         row[3].c_str(), //RoomName
         floor, //FloorNumber
-        capacity //Capacity
+        capacity, //Capacity
+        restricted //RestrictedCapacity
     );
 
     // Insert the room into the referenced building
-    uint32_t building_id = stoul(row[6]);
+    uint32_t building_id = stoul(row[7]);
     auto gaia_building_id = m_buildings_ids[building_id];
     if (c_invalid_gaia_id == gaia_building_id)
     {
@@ -153,7 +161,7 @@ void gaia_u_loader_t::load_Staff(row_t& row)
 {
     uint32_t id = stoul(row[1]);
     auto gaia_staff_id = Staff_t::insert_row(
-        utils_t::convert_date(row[2].c_str())); //BirthDate
+        event_planner::convert_date(row[2].c_str())); //BirthDate
 
     // Insert the staff into the referenced Person
     uint32_t person_id = stoul(row[3]);
@@ -173,9 +181,9 @@ void gaia_u_loader_t::load_Events(row_t& row)
     uint32_t enrolled = stoul(row[6]);
     auto gaia_event_id = Events_t::insert_row(
         row[2].c_str(), // Name
-        utils_t::convert_date(row[3].c_str()), //Date
-        utils_t::convert_time(row[4].c_str()), //StartTime
-        utils_t::convert_time(row[5].c_str()), //EndTime
+        event_planner::convert_date(row[3].c_str()), //Date
+        event_planner::convert_time(row[4].c_str()), //StartTime
+        event_planner::convert_time(row[5].c_str()), //EndTime
         enrolled // Enrolled
     );
 
@@ -226,6 +234,8 @@ bool gaia_u_loader_t::load(const char* data_file)
     uint32_t count_students = 0;
     uint32_t count_parents = 0;
     uint32_t count_staff = 0;
+    uint32_t count_restrictions = 0;
+
     csv_row_t row;
     {
         auto_transaction_t tx(auto_transaction_t::no_auto_begin);
@@ -283,12 +293,17 @@ bool gaia_u_loader_t::load(const char* data_file)
                 load_Events(data);
                 count_events++;
             }
-
+            else
+            if (row[0].compare("Restrictions") == 0)
+            {
+                load_Restrictions(data);
+                count_restrictions++;
+            }
         }
         tx.commit();
     }
-    printf("Added: \n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n%u Parents\n%u Staff\n", 
-        count_persons, count_events, count_buildings, count_rooms, count_students, count_parents, count_staff);
+    printf("Added: \n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n%u Parents\n%u Staff\n%u Restrictions", 
+        count_persons, count_events, count_buildings, count_rooms, count_students, count_parents, count_staff, count_restrictions);
 
     return true;
 }

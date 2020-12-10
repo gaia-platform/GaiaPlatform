@@ -51,6 +51,7 @@ create table if not exists Rooms
       RoomName : string,
       FloorNumber : uint8,
       Capacity : uint16,
+      RestrictedCapacity : uint16,
       references Buildings
 );
 
@@ -63,6 +64,11 @@ create table if not exists Events
       Enrolled : uint32,
       Teacher references Staff,
       Room references Rooms
+);
+
+create table if not exists Restrictions
+(
+      PercentFull : int8 active
 );
 
 create table if not exists Registration 

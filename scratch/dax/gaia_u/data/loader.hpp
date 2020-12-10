@@ -43,6 +43,7 @@ private:
     void load_Events(row_t& row);
     void load_Students(row_t& row);
     void load_Parents(row_t& row);
+    void load_Restrictions(row_t& row);
 
 private:
     std::map<uint32_t, gaia::common::gaia_id_t> m_persons_ids;

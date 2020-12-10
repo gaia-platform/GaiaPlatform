@@ -19,6 +19,7 @@ set(GAIA_INCLUDES
   ${GAIA_INC}
   ${GENERATED_OUTPUTS}
   .
+  ./data
 )
 
 set(GAIA_GENERATE "${GAIA}/bin/gaiac")
@@ -58,6 +59,9 @@ set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${LOCAL}/lib/libgaia.so)
 
 add_executable(planner
     main.cpp
+    rule_helpers.cpp
+    data/data_helpers.cpp
+    data/loader.cpp
     ${PROJECT_BINARY_DIR}/gaia_u_rules.cpp
 )
 
@@ -69,14 +73,3 @@ add_dependencies(planner translate_ruleset)
 set_target_properties(planner PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(planner PRIVATE ${GAIA_INCLUDES})
 target_link_libraries(planner PRIVATE rt pthread gaia)
-
-add_executable(loader
-  data/main.cpp
-  data/utils.cpp
-  data/loader.cpp
-)
-
-add_dependencies(loader generate_headers)
-target_include_directories(loader PRIVATE ${GAIA_INCLUDES})
-set_target_properties(loader PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-target_link_libraries(loader PRIVATE rt pthread gaia)
