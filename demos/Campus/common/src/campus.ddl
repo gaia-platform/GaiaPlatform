@@ -25,3 +25,96 @@ create table if not exists locations (
       LocationsCampus references campus
 );
 
+create table if not exists Persons (
+      PersonId : string,      
+      FirstName : string,      
+      LastName : string,      
+      BirthDate : string,      
+      FaceSignature : string,
+      PersonsCampus references campus
+);
+
+create table if not exists Staff (
+      StaffId : string active,     
+      HiredDate : string,
+      StaffPersons references Persons
+);
+
+create table if not exists Students (
+      StudentId : string,        
+      Father : string,        
+      Mother : string,      
+      Number : uint64,
+      StudentsPersons references Persons
+);
+
+create table if not exists Parents (
+      ParentId : string,        
+      ForM : bool,        
+      ParentsPersons references Persons
+);
+
+create table if not exists Family (
+      FamilyID : string, 
+      FamilyStudents references Students,
+      FamilyParents references Parents
+);
+
+create table if not exists Events (
+      EventId : string,
+      Name : string, 
+      EventDate : string,         
+      StartTime : string,         
+      EndTime : string,       
+      EventActualEnrolled : uint64,
+      EventRoom : string,
+      Enrollment : uint64,
+      EventsStaff references Staff
+);
+
+create table if not exists Registration (
+      RegistrationID : string,    
+      RegistrationDate : string,         
+      RegistrationTime : string,   
+      RegsitrationStudents references Students,
+      RegistrationEvents references Events
+);
+
+create table if not exists Buildings (
+      BuildingId : string, 
+      BuildingName : string,
+      BuildingsCampus references campus
+);
+
+create table if not exists Rooms (
+      RoomId : string, 
+      RoomNumber: string,      
+      RoomName: string,      
+      FloorNumber: string,        
+      RoomsBuildings references Buildings,
+      RoomsEvents references Events
+);
+
+create table if not exists Cameras (
+      CameraId : string, 
+      DoorClosed bool,          
+      CamerasRooms references Rooms
+);
+
+create table if not exists Strangers (
+      StrangerId : string, 
+      FirstScanned : string, 
+      ScanCount uint64,
+      StrangersPersons references Persons
+);
+
+create table if not exists FaceScanLog (
+      FaceScanLogId : string, 
+      ScanSignature : string, 
+      ScanSignatureId: string,      
+      Building: string,      
+      ScanDate: string,           
+      ScanTime: string,        
+      FaceScanLogPersons references Persons,      
+      FaceScanLogStrangers references Strangers
+);

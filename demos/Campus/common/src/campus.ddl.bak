@@ -82,7 +82,8 @@ create table if not exists Registration (
 
 create table if not exists Buildings (
       BuildingId : string, 
-      BuildingName : string
+      BuildingName : string,
+      BuildingsCampus references campus
 );
 
 create table if not exists Rooms (
@@ -103,7 +104,8 @@ create table if not exists Cameras (
 create table if not exists Strangers (
       StrangerId : string, 
       FirstScanned : string, 
-      ScanCount uint64
+      ScanCount uint64,
+      StrangersPersons references Persons
 );
 
 create table if not exists FaceScanLog (
