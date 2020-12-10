@@ -1,0 +1,46 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <iostream>
+#include <string>
+
+#include "gaia_hello.h"
+
+using namespace std;
+
+ruleset school_ruleset
+{
+    // Rule 1: Whenever a name row is inserted or updated
+    // insert a new greeting into the greetings table.
+    {
+        cout << "Rule 1 was triggered!" << endl;
+
+        if (names.LastOperation == INSERT || names.LastOperation == UPDATE)
+        {
+            // Get the name.
+            // This will also indicate to the system
+            // that this rule should be triggered by any changes made to this table field.
+            string new_name = names.name;
+
+            // Form the greeting.
+            string new_greeting = "Hello " + new_name + "!";
+
+            // Insert the greeting.
+            gaia::hello::greetings_t::insert_row(new_greeting.c_str());
+        }
+    }
+    // Rule 2: Whenever a greeting row is inserted or updated
+    // output it to the console.
+    {
+        cout << "Rule 2 was triggered!" << endl;
+
+        if (greetings.LastOperation == INSERT || greetings.LastOperation == UPDATE)
+        {
+            // As in Rule 1, this referencing of the field
+            // indicates that this rule should be triggered by any changes made to it.
+            cout << endl << greetings.greeting << endl;
+        }
+    }
+}
