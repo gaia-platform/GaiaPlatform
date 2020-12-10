@@ -275,9 +275,9 @@ void campus_demo::campus::init_storage() {
     }
 
     gaia::campus::campus_t campus = gaia::campus::campus_t::get(insert_campus("AAA", false));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Unidentified", 0, "*"));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Bob Kabob", 0, "*"));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Sam Kabam", 0, "*"));
+    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Unidentified", 0, "*"));
+    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Bob Kabob", 0, "*"));
+    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Sam Kabam", 0, "*"));
 
     tx.commit();
 }

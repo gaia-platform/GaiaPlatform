@@ -26,6 +26,16 @@ ruleset campus_ruleset
             sprintf(buffer, "'%s' is not threatening anyone", @person.name);
             cbc->cb_alert("All Clear", buffer, 0, "");
         }   
+              
+        if( campus.in_emergency )
+        {
+            auto cbc = i_Campus::get_callback_class();
+            cbc->cb_alert("Campus Emergency", "---", 1, "");
+        }    
+
+        /*if( 0 == strcmp( Staff.StaffId, "aa" ) )
+        {
+        }*/   
 
         /*if( Parents.LastOperation == INSERT )
         {

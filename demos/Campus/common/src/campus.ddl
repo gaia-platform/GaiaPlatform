@@ -5,23 +5,23 @@ create table if not exists campus (
 
 create table if not exists building (
       name : string,
-      references campus
+      BuildingCampus references campus
 );
 
 create table if not exists person (
       name : string,
       is_threat : uint64 active,
       location : string active,
-      references campus
+      PersonCampus references campus
 );
 
 create table if not exists role (
       name : string,
-      references person
+      RolePerson references person
 );
 
 create table if not exists locations (
       name : string,
-      references campus
+      LocationsCampus references campus
 );
 

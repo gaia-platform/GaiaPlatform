@@ -43,6 +43,12 @@ class terminal_menu
 
 private:
 
+// starting row (top) of menu
+int m_menu_row = 8;
+
+// message window
+WINDOW *m_message_window;
+
 // should the UI show all mesages received?
 bool m_show_all_messages = true;
 
@@ -270,7 +276,7 @@ void print_in_middle(WINDOW* win, int starty, int startx, int width, char* strin
 }
 
 /**
-* ---
+* Show a selected item message
 *
 * @param[in] char *name
 * @return void
@@ -286,7 +292,27 @@ void show_selection(char * name)
 }
 
 /**
-* ---
+* Create a scrolling text window to hold messages
+*
+* @param[in] int row
+* @param[in] int col
+* @param[in] int rows
+* @param[in] int cols
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
+void create_message_window(int row, int col, int rows, int cols)
+{
+    //int i = 2, height, width;
+    //getmaxyx(stdscr, height, width);
+
+    m_message_window = newwin(rows, cols, row, col);
+    scrollok(m_message_window,TRUE);
+}
+
+/**
+* Show a text message
 *
 * @param[in] char *textMessage
 * @return void
@@ -295,10 +321,13 @@ void show_selection(char * name)
 */  
 void show_text_message(char * textMessage)
 {
-    move(2, 0);        
-    clrtoeol();        
-    mvprintw(2, 0, "%s", textMessage);
-    refresh();
+    //move(2, 0);        
+    //clrtoeol();        
+    //mvprintw(2, 0, "%s", textMessage);
+    //refresh();
+
+    wprintw(m_message_window, "%s\n", textMessage);
+    wrefresh(m_message_window);
 }
 
 /**
@@ -368,9 +397,9 @@ void actor_type_selected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Person"))
-        put_menu((char *)"Actor", m_people, &terminal_menu::person_selected, ARRAY_SIZE(m_people), 10, 40, 4, 44);
+        put_menu((char *)"Actor", m_people, &terminal_menu::person_selected, ARRAY_SIZE(m_people), 10, 40, m_menu_row, 44);
     else if(0 == strcmp(name, "Car"))
-        put_menu((char *)"Actor", m_cars, &terminal_menu::car_selected, ARRAY_SIZE(m_cars), 10, 40, 4, 44);     
+        put_menu((char *)"Actor", m_cars, &terminal_menu::car_selected, ARRAY_SIZE(m_cars), 10, 40, m_menu_row, 44);     
 } 
 
 /**
@@ -391,7 +420,7 @@ void person_selected(char *name)
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", m_personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(m_personAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", m_personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(m_personAction), 10, 40, m_menu_row, 84);   
 } 
 
 /**
@@ -412,7 +441,7 @@ void car_selected(char *name)
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", m_carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(m_carAction), 10, 40, 4, 84);   
+    put_menu((char *)"Action", m_carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(m_carAction), 10, 40, m_menu_row, 84);   
 } 
 
 /**
@@ -433,9 +462,9 @@ void persons_action_selected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Move To"))
-        put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, 4, 124);
+        put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, m_menu_row, 124);
     else if(0 == strcmp(name, "Change Role"))
-        put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, 4, 124);   
+        put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
         do_the_change();    
     else if(0 == strcmp(name, "Disarm"))
@@ -456,7 +485,7 @@ void car_action_selected(char *name)
     m_actionName = name;
     m_arg1 = "";
 
-    put_menu((char *)"Location", m_carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(m_carLocations), 10, 40, 4, 124);   
+    put_menu((char *)"Location", m_carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(m_carLocations), 10, 40, m_menu_row, 124);   
 } 
 
 /**
@@ -553,8 +582,14 @@ std::shared_ptr<message::i_message_bus> get_message_bus()
 */  
 void run()
 {    
-    put_menu((char *)"Actor Type", m_choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(m_choices1), 10, 40, 4, 4); 
+    // show first menu
+    put_menu((char *)"Actor Type", m_choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(m_choices1), 10, 40, m_menu_row, 4); 
+
+    // shut down ncurses
     endwin();
+
+    // shut down Gaia
+    gaia::system::shutdown();
 }
 
 /**
@@ -624,6 +659,8 @@ void init()
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_CYAN, COLOR_BLACK); 
 
+    create_message_window(1, 1, 6, 0);
+
     // function of member
     //std::function<void(terminalMenu&, std::shared_ptr<bus_messages::message> msg)> mcb = &terminalMenu::MessageCallback;
 
@@ -691,3 +728,4 @@ int main()
     
     return 0;
 }
+

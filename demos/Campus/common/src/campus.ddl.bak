@@ -5,19 +5,24 @@ create table if not exists campus (
 
 create table if not exists building (
       name : string,
-      references campus
+      BuildingCampus references campus
 );
 
 create table if not exists person (
       name : string,
       is_threat : uint64 active,
       location : string active,
-      references campus
+      PersonCampus references campus
+);
+
+create table if not exists role (
+      name : string,
+      RolePerson references person
 );
 
 create table if not exists locations (
-      name : string
-      references campus
+      name : string,
+      LocationsCampus references campus
 );
 
 create table if not exists Persons (
@@ -25,61 +30,54 @@ create table if not exists Persons (
       FirstName : string,      
       LastName : string,      
       BirthDate : string,      
-      FaceSignature : string
+      FaceSignature : string,
+      PersonsCampus references campus
 );
 
 create table if not exists Staff (
-      PersonId : string, 
-      StaffPersonId : string,      
+      StaffId : string active,     
       HiredDate : string,
-      references Persons
+      StaffPersons references Persons
 );
 
 create table if not exists Students (
-      PersonId : string, 
       StudentId : string,        
       Father : string,        
       Mother : string,      
       Number : uint64,
-      references Persons
+      StudentsPersons references Persons
 );
 
 create table if not exists Parents (
-      PersonId : string, 
       ParentId : string,        
       ForM : bool,        
-      references Persons
+      ParentsPersons references Persons
 );
 
 create table if not exists Family (
-      FamilyID : string,
-      ParentId : string,        
-      StudentId : string,       
-      students references Students,
-      parents references Parents
+      FamilyID : string, 
+      FamilyStudents references Students,
+      FamilyParents references Parents
 );
 
 create table if not exists Events (
       EventId : string,
-      Name : string,
-      Teacher : string,        
+      Name : string, 
       EventDate : string,         
       StartTime : string,         
       EndTime : string,       
       EventActualEnrolled : uint64,
       EventRoom : string,
       Enrollment : uint64,
-      references Staff
+      EventsStaff references Staff
 );
 
 create table if not exists Registration (
-      RegistrationID : string,
-      Student : string,        
-      Event : string,      
+      RegistrationID : string,    
       RegistrationDate : string,         
       RegistrationTime : string,   
-      students references Students,
-      events references Events
+      RegsitrationStudents references Students,
+      RegistrationEvents references Events
 );
 
 create table if not exists Buildings (
@@ -89,18 +87,17 @@ create table if not exists Buildings (
 
 create table if not exists Rooms (
       RoomId : string, 
-      BuildingId : string, 
       RoomNumber: string,      
       RoomName: string,      
       FloorNumber: string,        
-      references Buildings
+      RoomsBuildings references Buildings,
+      RoomsEvents references Events
 );
 
 create table if not exists Cameras (
       CameraId : string, 
-      RoomId : string, 
       DoorClosed bool,          
-      references Rooms
+      CamerasRooms references Rooms
 );
 
 create table if not exists Strangers (
@@ -116,7 +113,7 @@ create table if not exists FaceScanLog (
       Building: string,      
       ScanDate: string,           
       ScanTime: string,        
-      persons references Persons,      
-      strangers references Strangers
+      FaceScanLogPersons references Persons,      
+      FaceScanLogStrangers references Strangers
 );
 
