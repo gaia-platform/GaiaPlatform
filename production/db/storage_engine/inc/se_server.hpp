@@ -51,9 +51,10 @@ class server
         size_t size);
 
 public:
-    static void run(bool disable_persistence = false);
-    static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+    static void run(bool disable_persistence = false, bool reinitialize_persistent_store = false);
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
+    static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+    static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
@@ -76,6 +77,7 @@ private:
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
+    static inline bool s_reinitialize_persistent_store = false;
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> memory_manager{};
 
     // Keeps track of stack allocators belonging to the current transaction executing on this thread.
