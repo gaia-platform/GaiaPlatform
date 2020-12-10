@@ -18,8 +18,6 @@ int main(int argc, const char** argv)
 {
     cout
         << "Hello example is running..."
-        << endl
-        << "Give it a couple of seconds to print its greeting and then press any key to terminate."
         << endl;
 
     gaia::system::initialize("gaia.conf");
