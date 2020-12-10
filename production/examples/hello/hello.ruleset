@@ -15,7 +15,7 @@ ruleset school_ruleset
     // Rule 1: Whenever a name row is inserted or updated
     // insert a new greeting into the greetings table.
     {
-        cout << "Rule 1 was triggered!" << endl;
+        cout << endl << "Rule 1 was triggered!" << endl;
 
         if (names.LastOperation == INSERT || names.LastOperation == UPDATE)
         {
@@ -34,7 +34,7 @@ ruleset school_ruleset
     // Rule 2: Whenever a greeting row is inserted or updated
     // output it to the console.
     {
-        cout << "Rule 2 was triggered!" << endl;
+        cout << endl << "Rule 2 was triggered!" << endl;
 
         if (greetings.LastOperation == INSERT || greetings.LastOperation == UPDATE)
         {

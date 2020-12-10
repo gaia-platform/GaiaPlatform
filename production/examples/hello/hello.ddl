@@ -7,4 +7,3 @@ create table if not exists greetings
 (
     greeting string active
 );
-
