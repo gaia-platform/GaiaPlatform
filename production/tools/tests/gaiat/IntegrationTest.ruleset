@@ -24,3 +24,12 @@ ruleset test3
       animal.age++;
     }
 }
+
+ruleset test4
+{
+    {
+        if (sensor.LastOperation == INSERT)
+        {
+        }
+    }
+}

@@ -1725,8 +1725,8 @@ int main(int argc, const char** argv)
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
     if (result != 0 || g_generation_error)
     {
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
