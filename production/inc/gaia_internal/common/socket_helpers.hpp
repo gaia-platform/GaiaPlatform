@@ -161,7 +161,6 @@ inline size_t recv_msg_with_fds(
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
-        std::cerr << "Expected " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         retail_assert(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
@@ -252,7 +251,6 @@ inline size_t recv_msg_with_fds(
             }
             // *pfd_count has final value equal to number of fds returned
             *pfd_count = fd_count;
-            std::cerr << "Received " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         }
         else
         {
@@ -260,7 +258,6 @@ inline size_t recv_msg_with_fds(
             *pfd_count = 0;
         }
     }
-    std::cerr << "Read " << bytes_read << " bytes from recv_msg_with_fds" << std::endl;
     return static_cast<size_t>(bytes_read);
 }
 

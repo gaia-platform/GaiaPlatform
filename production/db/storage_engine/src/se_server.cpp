@@ -91,9 +91,6 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
     int send_fds[] = {s_fd_data, s_fd_locators};
-    cerr << "s_fd_data: " << s_fd_data << ", size: " << get_fd_size(s_fd_data) << endl;
-    cerr << "s_fd_locators: " << s_fd_locators << ", size: " << get_fd_size(s_fd_locators) << endl;
-    cerr << "s_session_socket: " << s_session_socket << endl;
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -124,7 +121,6 @@ void server::handle_begin_txn(
         begin_ts = txn_begin();
         retry_count++;
     }
-    cerr << "Allocated begin timestamp " << begin_ts << " after " << retry_count << " tries." << endl;
     s_txn_id = begin_ts;
     // Ensure that there are no undecided txns in our snapshot window.
     validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
@@ -133,7 +129,6 @@ void server::handle_begin_txn(
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
-    cerr << "Opened server stream socket " << server_socket << " (handle_begin_txn)" << endl;
     // The client socket should unconditionally be closed on exit since it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
@@ -196,7 +191,6 @@ void server::handle_rollback_txn(
     // Update the saved watermark and perform associated maintenance tasks.
     // We set terminated status first so we can advance the watermark past our
     // own begin_ts.
-    cerr << "Calling update_apply_watermark with begin_ts " << s_txn_id << " (handle_rollback_txn)" << endl;
     update_apply_watermark(s_txn_id);
     s_txn_id = c_invalid_gaia_txn_id;
     get_memory_info_from_request_and_free(event, false);
@@ -214,14 +208,12 @@ void server::handle_commit_txn(
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
     retail_assert(s_fd_log != -1, "Uninitialized fd log!");
-    cerr << "Received log fd " << s_fd_log << " (handle_commit_txn)" << endl;
     // We need to keep the log fd around until it's applied to the shared
     // locator view, so we only close the log fd if an exception is thrown.
     // Aborted txns only have their log fds invalidated and closed after the
     // watermark advances, to preserve the invariant that invalidation can only
     // follow the watermark.
     auto cleanup_log_fd = make_scope_guard([&]() {
-        cerr << "Closing log fd " << s_fd_log << " (handle_commit_txn)" << endl;
         close_fd(s_fd_log);
     });
     // Check that the log memfd was sealed for writes.
@@ -302,7 +294,6 @@ void server::handle_decide_txn(
     // all maintenance asynchronously in the background. Allowing this work to
     // delay beginning new transactions but not delay committing the current
     // transaction seems like a good compromise.
-    cerr << "Calling update_apply_watermark with begin_ts " << s_txn_id << " (handle_decide_txn)" << endl;
     update_apply_watermark(s_txn_id);
 }
 
@@ -636,7 +627,6 @@ void server::init_txn_info()
     // need it.
     if (s_txn_info)
     {
-        cerr << "Unmapping s_txn_info from address " << s_txn_info << endl;
         unmap_fd(s_txn_info, c_size_in_bytes);
     }
     map_fd(
@@ -646,7 +636,6 @@ void server::init_txn_info()
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         -1,
         0);
-    cerr << "Initialized s_txn_info to " << c_size_in_bytes << " bytes at address " << s_txn_info << endl;
 }
 
 void server::recover_db()
@@ -984,7 +973,6 @@ void server::session_handler(int session_socket)
                         !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
                     // Read client message with possible file descriptors.
-                    cerr << "Calling recv_msg_with_fds from session_handler" << endl;
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
@@ -1220,7 +1208,6 @@ void server::fd_stream_producer_handler(
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
-        cerr << "Closing server stream socket " << stream_socket << " (fd_stream_producer_handler)" << endl;
         close_fd(stream_socket);
     });
     // Verify the socket is the correct type for the semantics we assume.
@@ -1328,12 +1315,13 @@ void server::fd_stream_producer_handler(
                             safe_fd_from_ts committed_txn_log_fd(next_ts, false);
                             int local_log_fd = committed_txn_log_fd.get_fd();
 
-                            cerr << "Pushing fd " << local_log_fd << " onto send buffer" << endl;
                             batch_buffer.push_back(local_log_fd);
                         }
                         catch (const invalid_log_fd&)
                         {
-                            cerr << "Couldn't send invalidated txn log fd from commit_ts " << next_ts << endl;
+                            // We ignore an invalidated fd since its log has
+                            // already been applied to the shared locator view,
+                            // so we don't need to send it to the client anyway.
                         }
 
                         ++gen_iter;
@@ -1345,14 +1333,11 @@ void server::fd_stream_producer_handler(
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
-                        cerr << "Send buffer size: " << batch_buffer.size() << endl;
-                        cerr << "Max FD count: " << c_max_fd_count << endl;
                         retail_assert(
                             batch_buffer.size() <= c_max_fd_count,
                             "Buffer has more than the maximum allowed number of fds!");
                         for (auto& fd : batch_buffer)
                         {
-                            cerr << "checking if fd " << fd << " is still valid" << endl;
                             retail_assert(is_fd_valid(fd), "invalid fd!");
                         }
                         // To simplify client state management by allowing the client to
@@ -1361,7 +1346,6 @@ void server::fd_stream_producer_handler(
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
                         // We only need a 1-byte buffer due to our datagram size convention.
                         uint8_t msg_buf[1] = {0};
-                        cerr << "About to call send_msg_with_fds on socket " << stream_socket << endl;
                         ssize_t bytes_written = send_msg_with_fds(
                             stream_socket, batch_buffer.data(), batch_buffer.size(), msg_buf, sizeof(msg_buf));
                         if (bytes_written == -1)
@@ -1482,7 +1466,6 @@ void server::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts
 
 std::function<std::optional<gaia_txn_id_t>()> server::get_commit_ts_generator_for_begin_ts(gaia_txn_id_t begin_ts)
 {
-    cerr << "Getting log fd generator for begin_ts " << begin_ts << " (watermark commit_ts: " << s_last_applied_commit_ts_upper_bound << ")" << endl;
     gaia_txn_id_t ts = s_last_applied_commit_ts_upper_bound;
     return [=]() mutable -> std::optional<int> {
         while (++ts && ts < begin_ts)
@@ -1496,7 +1479,6 @@ std::function<std::optional<gaia_txn_id_t>()> server::get_commit_ts_generator_fo
                     "Undecided commit_ts found in snapshot window!");
                 if (is_txn_committed(ts))
                 {
-                    cerr << "Sending commit_ts " << ts << " to apply to view of txn begin_ts " << begin_ts << endl;
                     return ts;
                 }
             }
@@ -1528,7 +1510,6 @@ const char* server::status_to_str(uint64_t ts_entry)
     case c_txn_status_aborted:
         return "ABORTED";
     default:
-        cerr << "Unknown status: " << status << endl;
         retail_assert(false, "Unexpected status flags!");
     }
     return nullptr;
@@ -1603,10 +1584,6 @@ inline bool server::invalidate_unknown_ts(gaia_txn_id_t ts)
         retail_assert(
             expected_entry != c_txn_entry_unknown,
             "An unknown timestamp entry cannot fail to be invalidated!");
-    }
-    else
-    {
-        cerr << "Invalidated unknown entry for timestamp " << ts << endl;
     }
 
     return invalidated;
@@ -1787,7 +1764,6 @@ inline int server::get_txn_log_fd_from_entry(uint64_t commit_ts_entry)
 
 inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 {
-    cerr << "invalidating log fd " << get_txn_log_fd(commit_ts) << " for commit_ts " << commit_ts << endl;
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
     retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
     // The txn log fd is the 16 bits of the ts entry after the 3 status bits. We
@@ -1885,14 +1861,8 @@ gaia_txn_id_t server::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
     // Alocate a new commit_ts and initialize its entry to our begin_ts and log fd.
     gaia_txn_id_t commit_ts = register_commit_ts(begin_ts, log_fd);
 
-    cerr << "Initial value for commit_ts " << commit_ts << ":" << endl;
-    dump_ts_entry(commit_ts);
-
     // Now update the active txn entry.
     set_active_txn_submitted(begin_ts, commit_ts);
-
-    cerr << "Final value for begin_ts " << begin_ts << ":" << endl;
-    dump_ts_entry(begin_ts);
 
     return commit_ts;
 }
@@ -2024,7 +1994,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
     // Find commit timestamps of all committed and undecided txns in conflict window.
     std::unordered_set<gaia_txn_id_t> committed_txns;
-    cerr << "Validating txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
 
     // Iterate over all txns in conflict window, and test all committed txns for conflicts.
     for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
@@ -2058,7 +2027,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
                 if (txn_logs_conflict(validating_fd.get_fd(), committed_fd.get_fd()))
                 {
-                    cerr << "Aborted (conflict with committed txn) top-level txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
                     return false;
                 }
             }
@@ -2191,7 +2159,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
                     if (txn_logs_conflict(validating_fd.get_fd(), new_committed_fd.get_fd()))
                     {
-                        cerr << "Aborted (conflict with previously-undecided committed txn) top-level txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
                         return false;
                     }
                 }
@@ -2244,7 +2211,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
     // If there are no potentially conflicting undecided txns, we are done.
     if (last_undecided_conflicting_txn_commit_ts == c_invalid_gaia_txn_id)
     {
-        cerr << "Committing: no conflicting txns found for top-level txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
         return true;
     }
 
@@ -2264,8 +2230,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
             // Recursively validate the current undecided txn.
             bool committed = validate_txn(ts);
 
-            cerr << (committed ? "Committed" : "Aborted") << " validated txn with begin_ts " << get_begin_ts(ts) << ", commit_ts " << ts << endl;
-
             // Update the current txn's decided status.
             update_txn_decision(ts, committed);
 
@@ -2284,7 +2248,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
                     if (txn_logs_conflict(validating_fd.get_fd(), new_committed_fd.get_fd()))
                     {
-                        cerr << "Aborted (conflict with validated committed txn) top-level txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
                         return false;
                     }
                 }
@@ -2337,7 +2300,6 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
     // At this point, there are no undecided txns that could possibly conflict
     // with this txn, and all committed txns have been tested for conflicts, so
     // we can commit.
-    cerr << "Committed top-level txn with begin_ts " << get_begin_ts(commit_ts) << ", commit_ts " << commit_ts << endl;
     return true;
 }
 
@@ -2452,8 +2414,6 @@ void server::gc_txn_undo_log(int log_fd)
 
 void server::update_apply_watermark(gaia_txn_id_t begin_ts)
 {
-    cerr << "Updating watermark from txn with begin_ts " << begin_ts << " terminating or validating" << endl;
-
     // The ts supplied must be a begin_ts.
     retail_assert(is_begin_ts(begin_ts), "update_apply_watermark() called with a non-begin_ts!");
 
@@ -2462,7 +2422,6 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
     gaia_txn_id_t last_allocated_ts = get_last_txn_id();
     // Now get a snapshot of the watermark, so we can scan forward from there.
     gaia_txn_id_t last_applied_commit_ts_upper_bound = s_last_applied_commit_ts_upper_bound;
-    cerr << "Initial watermark ts from txn with begin_ts " << begin_ts << ": " << last_applied_commit_ts_upper_bound << endl;
 
     // Scan from the saved watermark to the last known timestamp, to find the
     // oldest active txn (if any) after begin_ts and the newest committed txn
@@ -2471,8 +2430,6 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
 
     for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
     {
-        dump_ts_entry(ts);
-
         // We need to invalidate unknown entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
         invalidate_unknown_ts(ts);
@@ -2485,20 +2442,17 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
         {
             if (is_txn_validating(ts))
             {
-                cerr << "Not advancing watermark to undecided commit_ts " << ts << endl;
                 break;
             }
 
             if (is_txn_committed(ts))
             {
-                cerr << "Applying txn log for commit_ts " << ts << endl;
                 try
                 {
                     apply_txn_redo_log_from_ts(ts);
                 }
                 catch (const invalid_log_fd&)
                 {
-                    cerr << "Not applying txn log for commit_ts " << ts << " since fd was invalidated, aborting advancing watermark" << endl;
                     // If apply_txn_log_from_ts() throws invalid_log_fd, then
                     // the log fd has already been invalidated and (presumably)
                     // closed. Since the log fd can only be invalidated after
@@ -2523,26 +2477,19 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
         {
             if (is_txn_active(ts))
             {
-                cerr << "Not advancing watermark to active begin_ts " << ts << endl;
                 break;
             }
 
             if (is_txn_submitted(ts) && is_txn_validating(get_commit_ts(ts)))
             {
-                cerr << "Not advancing watermark to validating begin_ts " << ts << endl;
                 break;
             }
         }
 
-        if (advance_watermark_ts(s_last_applied_commit_ts_upper_bound, ts))
-        {
-            cerr << "txn at begin_ts " << begin_ts << " advanced watermark to ts " << ts << endl;
-        }
-        else
+        if (!advance_watermark_ts(s_last_applied_commit_ts_upper_bound, ts))
         {
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
-            cerr << "Concurrent update detected from txn " << begin_ts << ", aborting advancing watermark at ts " << ts << endl;
             retail_assert(
                 s_last_applied_commit_ts_upper_bound > last_applied_commit_ts_upper_bound,
                 "The watermark must have advanced if advance_watermark_ts failed!");
@@ -2561,16 +2508,12 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             // other thread could have invalidated the log fd.
 
             int log_fd = get_txn_log_fd(ts);
-            cerr << "log fd to invalidate and close: " << log_fd << endl;
             retail_assert(log_fd != -1, "log fd cannot be invalidated if we advanced the watermark first!");
             retail_assert(is_fd_valid(log_fd), "log fd cannot be closed if we advanced the watermark first!");
             // Invalidate the log fd, GC the undo versions in the log, and close the fd.
             bool invalidated = invalidate_txn_log_fd(ts);
             retail_assert(invalidated, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
-            cerr << "Successfully invalidated log fd " << log_fd << " from commit_ts " << ts << " update_apply_watermark() called by txn with begin_ts " << begin_ts << endl;
-            cerr << "Freeing undo versions from txn log with fd " << log_fd << endl;
             gc_txn_undo_log(log_fd);
-            cerr << "Closing log fd " << log_fd << " (update_watermark)" << endl;
             close_fd(log_fd);
         }
     }
@@ -2588,20 +2531,16 @@ gaia_txn_id_t server::txn_begin()
     // All other bits should be 0.
     constexpr uint64_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
     std::bitset<c_txn_status_entry_bits> begin_ts_bits(c_begin_ts_entry);
-    cerr << "begin_ts_entry: " << begin_ts_bits << endl;
     // We're possibly racing another beginning or committing txn that wants to
     // invalidate our begin_ts entry.
     uint64_t expected_entry = c_txn_entry_unknown;
     std::bitset<c_txn_status_entry_bits> expected_bits(expected_entry);
-    cerr << "expected_entry: " << expected_bits << endl;
     bool set_new_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
 
     // Only the txn thread can transition its begin_ts entry from
     // c_txn_entry_unknown to any state except c_txn_entry_invalid.
     if (!set_new_entry)
     {
-        cerr << "Lost race to initialize entry for begin timestamp " << begin_ts << endl;
-        dump_ts_entry(begin_ts);
         retail_assert(
             expected_entry == c_txn_entry_invalid,
             "Only an invalid value can be set on an empty begin_ts entry by another thread!");
@@ -2609,8 +2548,6 @@ gaia_txn_id_t server::txn_begin()
         // Return c_invalid_gaia_txn_id to indicate failure.
         begin_ts = c_invalid_gaia_txn_id;
     }
-    cerr << "Initial value for begin_ts " << begin_ts << ":" << endl;
-    dump_ts_entry(begin_ts);
 
     return begin_ts;
 }

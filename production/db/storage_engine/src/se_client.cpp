@@ -171,7 +171,6 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
             // beforehand how many we'll get.
             batch_buffer.resize(c_max_fd_count);
             size_t fd_count = batch_buffer.size();
-            std::cerr << "Calling recv_msg_with_fds from get_fd_stream_generator_for_socket" << std::endl;
             // We need to set throw_on_zero_bytes_read=false in this call, since
             // we expect EOF to be returned when the stream is exhausted.
             size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
@@ -191,7 +190,6 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
             retail_assert(
                 fd_count > 0 && fd_count <= c_max_fd_count,
                 "Unexpected fd count!");
-            std::cerr << "Received " << fd_count << " fds in get_fd_stream_generator_for_socket" << std::endl;
             // Resize the vector to its actual fd count.
             batch_buffer.resize(fd_count);
         }
@@ -396,7 +394,6 @@ void client::begin_session()
     size_t fd_count = c_fd_count;
     constexpr size_t c_data_fd_index = 0;
     constexpr size_t c_locators_fd_index = 1;
-    std::cerr << "Calling recv_msg_with_fds from begin_session" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
@@ -473,7 +470,6 @@ void client::begin_transaction()
     uint8_t msg_buf[c_max_msg_size] = {0};
     int stream_socket = -1;
     size_t fd_count = 1;
-    std::cerr << "Calling recv_msg_with_fds from begin_transaction" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == 1, "Unexpected fd count!");
@@ -490,7 +486,6 @@ void client::begin_transaction()
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
-    std::cerr << "Begin timestamp: " << s_txn_id << std::endl;
 
     // Allocate a new log segment and map it in our own process.
     std::stringstream memfd_name;
@@ -520,7 +515,6 @@ void client::begin_transaction()
     auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
     for (int txn_log_fd : txn_log_fds)
     {
-        std::cerr << "Applying txn log with fd " << txn_log_fd << " to snapshot with begin_ts " << s_txn_id << std::endl;
         apply_txn_log(txn_log_fd);
         close_fd(txn_log_fd);
     }
@@ -629,7 +623,6 @@ void client::commit_transaction()
 
     // Block on the server's commit decision.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    std::cerr << "Calling recv_msg_with_fds from commit_transaction" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
 
