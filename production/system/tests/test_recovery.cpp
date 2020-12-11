@@ -14,11 +14,13 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "db_test_helpers.hpp"
+#include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "logger.hpp"
 #include "schema_loader.hpp"
 #include "se_test_util.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
@@ -92,6 +94,8 @@ protected:
         s_server.stop();
         s_server.start();
         begin_session();
+        type_id_mapping_t::instance().clear();
+        gaia::catalog::ddl_executor_t::get().reset();
         schema_loader_t::instance().load_schema("addr_book.ddl");
         end_session();
         s_server.stop();
@@ -243,7 +247,7 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
         {
             cout << "Crash during load" << endl;
             end_session();
-            s_server.start();
+            s_server.start_and_retain_persistent_dir();
             begin_session();
             validate_data();
         }
@@ -322,7 +326,7 @@ void recovery_test::delete_all(int initial_record_count)
 void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload)
 {
     int initial_record_count;
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     initial_record_count = get_count();
     delete_all(initial_record_count);
@@ -333,7 +337,7 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
     // Restart server, modify & validate data.
     for (int i = 0; i < crash_validate_loop_count; i++)
     {
-        s_server.start();
+        s_server.start_and_retain_persistent_dir();
         begin_session();
         cout << "Count post recovery: " << get_count() << endl;
         validate_data();
@@ -344,13 +348,13 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
         end_session();
     }
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     delete_all(initial_record_count);
     end_session();
 
     // Validate all data deleted.
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     ASSERT_TRUE(get_count() == initial_record_count || get_count() == 0);
     end_session();
@@ -360,7 +364,7 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
 void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test()
 {
     gaia_id_t id;
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     begin_transaction();
     auto e1 = generate_employee_record();
@@ -368,7 +372,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
     rollback_transaction();
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     begin_transaction();
     ASSERT_FALSE(employee_t::get(id));
@@ -385,7 +389,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
 void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn()
 {
     gaia_id_t id;
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     begin_transaction();
     auto e1 = generate_employee_record();
@@ -393,7 +397,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     rollback_transaction();
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     begin_transaction();
     ASSERT_FALSE(employee_t::get(id));
@@ -411,7 +415,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
 
 TEST_F(recovery_test, reference_update_test)
 {
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     gaia_id_t address_id{c_invalid_gaia_id};
     {
@@ -458,7 +462,7 @@ TEST_F(recovery_test, reference_update_test)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     std::set<gaia_id_t> recovered_phone_ids;
     {
@@ -481,7 +485,7 @@ TEST_F(recovery_test, reference_update_test)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     begin_transaction();
     auto phone_list = address_t::get(address_id).phone_list();
@@ -497,7 +501,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     gaia_id_t parent_id;
     std::vector<gaia_id_t> children_ids{};
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     {
         auto_transaction_t txn;
@@ -532,7 +536,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
 
     begin_session();
     {
@@ -578,7 +582,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
 
     begin_session();
     {
@@ -600,7 +604,7 @@ TEST_F(recovery_test, reference_update_test_new)
     gaia_id_t child_id;
     gaia_id_t new_parent_id;
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
     begin_session();
     {
         auto_transaction_t txn;
@@ -625,7 +629,7 @@ TEST_F(recovery_test, reference_update_test_new)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
 
     begin_session();
     {
@@ -643,7 +647,7 @@ TEST_F(recovery_test, reference_update_test_new)
     }
     end_session();
 
-    s_server.start();
+    s_server.start_and_retain_persistent_dir();
 
     begin_session();
     {

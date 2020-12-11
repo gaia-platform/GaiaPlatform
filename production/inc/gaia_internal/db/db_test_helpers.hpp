@@ -118,7 +118,7 @@ public:
         set_path(db_server_path);
     }
 
-    void inline start(bool stop_server = true)
+    void inline start(bool stop_server = true, bool remove_persistent_dir = true)
     {
         if (stop_server)
         {
@@ -132,7 +132,7 @@ public:
             cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
         }
-        if (m_reinitialize_on_startup)
+        if (m_reinitialize_on_startup && remove_persistent_dir)
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
@@ -144,6 +144,11 @@ public:
         std::cerr << "Waiting for server to initialize..." << std::endl;
         wait_for_server_init();
         m_server_started = true;
+    }
+
+    void inline start_and_retain_persistent_dir()
+    {
+        start(true, false);
     }
 
     void inline stop()
