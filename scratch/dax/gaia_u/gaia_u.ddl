@@ -6,10 +6,22 @@ create table if not exists Persons
       FaceSignature : string
 );
 
-create table if not exists Buildings 
+create table if not exists Campus
+(
+      Name : string
+);
+
+create table if not exists Buildings
 (
       BuildingName : string,
-      DoorLocked : bool active
+      DoorLocked : bool active,
+      references Campus
+);
+
+create table if not exists Restrictions
+(
+      PercentFull : int8 active,
+      references Campus
 );
 
 create table if not exists Staff 
@@ -64,11 +76,6 @@ create table if not exists Events
       Enrolled : uint32,
       Teacher references Staff,
       Room references Rooms
-);
-
-create table if not exists Restrictions
-(
-      PercentFull : int8 active
 );
 
 create table if not exists Registration 

@@ -97,18 +97,50 @@ void gaia_u_loader_t::load_Persons(row_t& row)
 void gaia_u_loader_t::load_Buildings(row_t& row)
 {
     uint32_t id = stoul(row[1]);
-    auto gaia_id = Buildings_t::insert_row(
+    bool locked = true;
+    if (row[3].compare("false") == 0)
+    {
+        locked = false;
+    }
+
+    auto gaia_building_id = Buildings_t::insert_row(
         row[2].c_str(), // BuildingName
-        true // DoorLocked
+        locked // DoorLocked
     );
 
-    m_buildings_ids.insert(make_pair(id, gaia_id));
+    // Add the building to the campus
+    uint32_t campus_id = stoul(row[4]);
+    auto gaia_campus_id = m_campus_ids[campus_id];
+    if (c_invalid_gaia_id == gaia_campus_id)
+    {
+        throw gaia_exception("Invalid Campus id\n");
+    }
+    auto campus = Campus_t::get(gaia_campus_id);
+    campus.Buildings_list().insert(gaia_building_id);
+    m_buildings_ids.insert(make_pair(id, gaia_building_id));
+}
+
+void gaia_u_loader_t::load_Campus(row_t & row)
+{
+    uint32_t id = stoul(row[1]);
+    auto gaia_campus_id = Campus_t::insert_row(row[2].c_str());
+    m_campus_ids.insert(make_pair(id, gaia_campus_id));
 }
 
 void gaia_u_loader_t::load_Restrictions(row_t& row)
 {
     uint8_t percent = stoul(row[1]);
-    Restrictions_t::insert_row(percent);
+    auto gaia_restriction_id = Restrictions_t::insert_row(percent);
+
+    // Add the restrictions to the campus
+    uint32_t campus_id = stoul(row[2]);
+    auto gaia_campus_id = m_campus_ids[campus_id];
+    if (c_invalid_gaia_id == gaia_campus_id)
+    {
+        throw gaia_exception("Invalid Campus id\n");
+    }
+    auto campus = Campus_t::get(gaia_campus_id);
+    campus.Restrictions_list().insert(gaia_restriction_id);
 }
 
 void gaia_u_loader_t::load_Rooms(row_t& row)
@@ -235,6 +267,7 @@ bool gaia_u_loader_t::load(const char* data_file)
     uint32_t count_parents = 0;
     uint32_t count_staff = 0;
     uint32_t count_restrictions = 0;
+    uint32_t count_campus = 0;
 
     csv_row_t row;
     {
@@ -299,11 +332,19 @@ bool gaia_u_loader_t::load(const char* data_file)
                 load_Restrictions(data);
                 count_restrictions++;
             }
+            else
+            if (row[0].compare("Campus") == 0)
+            {
+                load_Campus(data);
+                count_campus++;
+            }
         }
         tx.commit();
     }
-    printf("Added: \n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n%u Parents\n%u Staff\n%u Restrictions", 
-        count_persons, count_events, count_buildings, count_rooms, count_students, count_parents, count_staff, count_restrictions);
+    printf("Added: \n%u Campus\n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n%u Parents\n%u Staff\n%u Restrictions", 
+        count_campus, count_persons, count_events,
+        count_buildings, count_rooms, count_students,
+        count_parents, count_staff, count_restrictions);
 
     return true;
 }

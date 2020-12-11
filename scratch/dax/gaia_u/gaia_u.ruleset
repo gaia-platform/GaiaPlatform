@@ -40,47 +40,41 @@ ruleset event_planner
     {
         if (Rooms.LastOperation == INSERT)
         {
-            auto restrictions = gaia::gaia_u::Restrictions_t::get_first();
-            float percent = restrictions.PercentFull() / 100.0;
-            RestrictedCapacity = Capacity * percent;
+            RestrictedCapacity = Capacity * (PercentFull / 100.0);
         }
     }
 
-    // If a restriction changes, then update all the rooms
+    // If a restriction to PercentFull changes, then update all the rooms Restricted Capacity
     // capacity.
     {
-        for (auto room : gaia::gaia_u::Rooms_t::list())
-        {
-            auto w = room.writer();
-            w.RestrictedCapacity = w.Capacity * (static_cast<float>(PercentFull) / 100.0);
-            w.update_row();
-        }
+        RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
     // Overall algorithm.
     // 1) restriction changes
     // 2) capacity changes for every room
     // 3) for each room, see what events it is booked for
-    // 4) if the new capacity exceeds enrollment, attempt to change the location
+    // 4) if the new capacity is less than the enrollment, attempt to change the location
     // 4.a) update the event and registrations
-    // 5) if you cannot change the location, then change the data
+    // 5) if you cannot change the location, then change the date
     // 5.a) update the event and registrations
 
-    // If the room capacity has changed
+    // If the room capacity has changed and is less than the enrollment then remove the room
     {
         // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
         if (RestrictedCapacity < @Enrolled)
         {
-            printf("Room '%s' cannot support Event '%s'\n", @RoomName, @Name);
+            printf("Room '%s' cannot support Event '%s'\n", @RoomName, @Events.Name);
             printf("Event '%s' has '%u' enrollments but the restricted capcacity is '%u'\n",
-                @Name, @Enrolled, RestrictedCapacity);
+                @Events.Name, @Enrolled, RestrictedCapacity);
             
             // This room cannot accomodate this event. We need to remove the room from the 
             // event.
+            // Would like to do this
+            //Events.Room_Rooms.Room_Events_list.erase(Events);
             auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
             event.Room_Rooms().Room_Events_list().erase(event);
         }
     }
-
     // Now follow up with moving rooms around, schedule conflicts, etc
 }

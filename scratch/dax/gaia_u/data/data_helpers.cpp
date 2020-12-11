@@ -52,10 +52,40 @@ string event_planner::convert_time(int64_t timestamp)
     return string(buffer);
 }
 
+void event_planner::show_campus_t(Campus_t& campus)
+{
+    printf("%lu: %s", campus.gaia_id(), campus.Name());
+}
+
+void event_planner::show_campus()
+{
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    printf("Campus Table\n");
+    printf("--------\n");
+    for (auto c : Campus_t::list())
+    {
+        show_campus_t(c);
+        printf("\n");
+    }
+    printf("--------\n");
+}
+
+void event_planner::delete_campus()
+{
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    for (auto campus = Campus_t::get_first() ; campus ; campus = Campus_t::get_first())
+    {
+        campus.delete_row();
+    }
+    tx.commit();
+}
 
 void event_planner::show_building(Buildings_t& building)
 {
-    printf("%lu: %s", building.gaia_id(), building.BuildingName());
+    auto c= building.Campus();
+    printf("%lu: %s [Campus]{", building.gaia_id(), building.BuildingName());
+    show_campus_t(c);
+    printf("}");
 }
 
 void event_planner::show_buildings()
@@ -76,6 +106,9 @@ void event_planner::delete_buildings()
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
     for (auto building = Buildings_t::get_first() ; building ; building = Buildings_t::get_first())
     {
+        //Disconnect from campus
+        auto campus = building.Campus();
+        campus.Buildings_list().erase(building);
         building.delete_row();
     }
     tx.commit();
@@ -291,7 +324,10 @@ void event_planner::show_restrictions()
     printf("--------\n");
     for (auto r : Restrictions_t::list())
     {
-        printf("%lu: %u\n", r.gaia_id(), r.PercentFull());
+        auto c = r.Campus();
+        printf("%lu: %u [Campus]{", r.gaia_id(), r.PercentFull());
+        show_campus_t(c);
+        printf("}\n");
     }
     printf("--------\n");
 }
@@ -301,6 +337,9 @@ void event_planner::delete_restrictions()
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
     for (auto r = Restrictions_t::get_first() ; r; r = Restrictions_t::get_first())
     {
+        //Disconnect from campus
+        auto campus = r.Campus();
+        campus.Restrictions_list().erase(r);
         r.delete_row();
     }
     tx.commit();
@@ -308,6 +347,7 @@ void event_planner::delete_restrictions()
 
 void event_planner::show_all()
 {
+    show_campus();
     show_restrictions();
     show_buildings();
     show_rooms();
@@ -324,6 +364,7 @@ void event_planner::delete_all()
     delete_events();
     delete_rooms();
     delete_buildings();
+    delete_campus();
     delete_students();
     delete_parents();
     delete_staff();

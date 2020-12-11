@@ -44,6 +44,7 @@ private:
     void load_Students(row_t& row);
     void load_Parents(row_t& row);
     void load_Restrictions(row_t& row);
+    void load_Campus(row_t& row);
 
 private:
     std::map<uint32_t, gaia::common::gaia_id_t> m_persons_ids;
@@ -53,4 +54,5 @@ private:
     std::map<uint32_t, gaia::common::gaia_id_t> m_staff_ids;
     std::map<uint32_t, gaia::common::gaia_id_t> m_rooms_ids;
     std::map<uint32_t, gaia::common::gaia_id_t> m_events_ids;
+    std::map<uint32_t, gaia::common::gaia_id_t> m_campus_ids;
 };
