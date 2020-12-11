@@ -45,7 +45,19 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
     }
 
     //what kind of action?
-    if(msg->m_action == "Brandish Weapon")
+    if(msg->m_action == "Move To")
+    {
+        begin_transaction();
+        //-------
+        commit_transaction();
+    }
+    else if(msg->m_action == "Change Role")
+    {
+        begin_transaction();
+        //---------
+        commit_transaction();
+    }
+    else if(msg->m_action == "Brandish Weapon")
     {
         begin_transaction();
         //update that person as a threat
@@ -76,6 +88,13 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
         //update that person as a threat
         update_person(found_person,false,found_person.location());
         commit_transaction();
+    }    
+    else if(msg->m_action == "Register For Event")
+    {
+        //begin_transaction();
+        //Regsiter person for event
+        insert_event_registration(found_person,msg->m_arg1);
+        //commit_transaction();
     }
 }
 
@@ -229,6 +248,23 @@ bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t &f
     return did_find;
 }
 
+bool campus_demo::campus::get_event(const char* name, gaia::campus::Events_t &found_event)
+{
+    bool did_find = false;
+
+    begin_transaction();
+    for (auto& evnt : gaia::campus::Events_t::list())
+    {
+        if (strcmp(evnt.Name(), name) == 0) {
+            found_event = evnt;
+            did_find = true;
+            break;
+        }
+    }
+    commit_transaction();
+    return did_find;
+}
+
 gaia_id_t campus_demo::campus::insert_campus(const char* name, bool in_emergency) {
     gaia::campus::campus_writer cw;
     cw.name = name;
@@ -256,6 +292,40 @@ void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_
     p.is_threat = is_threat;
     p.location = location;
     p.update_row();
+}
+
+void campus_demo::campus::insert_event_registration(gaia::campus::person_t& person, std::string event_name) {
+
+    gaia::campus::Events_t found_event;
+
+    //if we can't find the event in the DB then exit. 
+    //obviously this is not how we would proceed in production, user must be notified
+    if( !get_event(event_name.c_str(), found_event))
+    {
+        //TODO: log message
+        return;
+    }
+
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer [80];
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+    strftime (buffer,80,"%I:%M%p.",timeinfo);
+
+    begin_transaction();
+
+    // create registration
+    auto id = gaia::campus::Registration_t::insert_row("ER1", buffer, buffer);
+    auto registration = gaia::campus::Registration_t::get(id);
+
+    // add the person to the registration
+    registration.PersonRegsitration_person_list().insert(person);
+
+    // add registration to event
+    found_event.RegistrationEvents_Registration_list().insert(registration);
+
+    commit_transaction();
 }
 
 //*** public access ***********************

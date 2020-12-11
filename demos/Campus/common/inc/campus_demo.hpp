@@ -122,10 +122,12 @@ private:
     void got_person_action_message(const bus_messages::action_message *msg);
 
     bool get_person(const char* name, gaia::campus::person_t &found_person);
+    bool get_event(const char* name, gaia::campus::Events_t &found_event);
     gaia_id_t insert_campus(const char* name, bool in_emergency);
     void update_campus(gaia::campus::campus_t& camp, bool in_emergency);
     gaia_id_t insert_person(const char* name, bool is_threat, const std::string location);
     void update_person(gaia::campus::person_t& person, bool is_threat, const std::string location);
+    void insert_event_registration(gaia::campus::person_t& person, std::string event_name);
 
     void restore_default_values(); 
     void init_storage();

@@ -8,18 +8,6 @@ create table if not exists building (
       BuildingCampus references campus
 );
 
-create table if not exists person (
-      name : string,
-      is_threat : uint64 active,
-      location : string active,
-      PersonCampus references campus
-);
-
-create table if not exists role (
-      name : string,
-      RolePerson references person
-);
-
 create table if not exists locations (
       name : string,
       LocationsCampus references campus
@@ -49,6 +37,26 @@ create table if not exists Persons (
       FaceSignature : string,
       PersonsCampus references campus,
       PersonsStaff references Staff
+);
+
+create table if not exists Registration (
+      RegistrationID : string,    
+      RegistrationDate : string,         
+      RegistrationTime : string,   
+      RegistrationEvents references Events
+);
+
+create table if not exists person (
+      name : string,
+      is_threat : uint64 active,
+      location : string active,
+      PersonCampus references campus,
+      PersonRegsitration references Registration
+);
+
+create table if not exists role (
+      name : string,
+      RolePerson references person
 );
 
 create table if not exists Students (
@@ -84,14 +92,6 @@ create table if not exists Rooms (
       Capacity: uint32,
       RoomsBuildings references Buildings,
       RoomEvents references Events
-);
-
-create table if not exists Registration (
-      RegistrationID : string,    
-      RegistrationDate : string,         
-      RegistrationTime : string,   
-      RegsitrationStudents references Students,
-      RegistrationEvents references Events
 );
 
 create table if not exists Cameras (
