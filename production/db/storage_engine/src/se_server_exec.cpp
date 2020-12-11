@@ -11,11 +11,12 @@
 static void usage()
 {
     std::cerr
+        << "\nCopyright (c) Gaia Platform LLC\n\n"
         << "Usage: gaia_se_server ["
         << gaia::db::server::c_disable_persistence_flag
-        << "] ["
+        << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag
-        << "]"
+        << "]\n"
         << std::endl;
     std::exit(1);
 }
@@ -28,6 +29,7 @@ int main(int argc, char* argv[])
     // We currently accept only one argument.
     if (argc > 2)
     {
+        std::cerr << "\nToo many arguments (maximum 1)." << std::endl;
         usage();
     }
 
@@ -43,6 +45,7 @@ int main(int argc, char* argv[])
         }
         else
         {
+            std::cerr << "\nUnrecognized argument." << std::endl;
             usage();
         }
     }

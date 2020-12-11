@@ -35,7 +35,8 @@ using std::string;
 class recovery_test : public ::testing::Test
 {
 public:
-    static inline db_server_t s_server;
+    // Empty server path, enable persistence, reinitialize on startup.
+    static inline db_server_t s_server{nullptr, false, true};
 
     static void set_server_path(const char* server_path)
     {
@@ -89,7 +90,6 @@ protected:
     void SetUp() override
     {
         s_server.stop();
-        remove_persistent_store();
         s_server.start();
         begin_session();
         schema_loader_t::instance().load_schema("addr_book.ddl");
@@ -100,7 +100,6 @@ protected:
     void TearDown() override
     {
         s_server.stop();
-        remove_persistent_store();
     }
 
 private:

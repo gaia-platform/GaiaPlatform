@@ -30,17 +30,8 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // Duplicated from production/db/storage_engine/inc/se_server.hpp.
 // (That header should not be included by anything but the code that
 // instantiates the server.)
-constexpr char c_disable_persistence_flag[] = " --disable-persistence";
-
-// Erase the contents of the persistent directory but not the directory itself.
-inline void remove_persistent_store()
-{
-    std::string cmd = "rm -rf ";
-    cmd.append(c_persistent_directory_path);
-    cmd.append("/*");
-    std::cerr << cmd << std::endl;
-    ::system(cmd.c_str());
-}
+constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 inline void wait_for_server_init()
 {
@@ -118,8 +109,11 @@ public:
         set_path(nullptr);
     }
 
-    explicit db_server_t(const char* db_server_path, bool disable_persistence = false)
-        : m_disable_persistence(disable_persistence)
+    explicit db_server_t(
+        const char* db_server_path,
+        bool disable_persistence = false,
+        bool reinitialize_on_startup = false)
+        : m_disable_persistence(disable_persistence), m_reinitialize_on_startup(reinitialize_on_startup)
     {
         set_path(db_server_path);
     }
@@ -135,7 +129,13 @@ public:
         std::string cmd = c_daemonize_command + m_server_path;
         if (m_disable_persistence)
         {
+            cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
+        }
+        if (m_reinitialize_on_startup)
+        {
+            cmd.append(" ");
+            cmd.append(c_reinitialize_persistent_store_flag);
         }
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
@@ -175,6 +175,16 @@ public:
         }
     }
 
+    void inline disable_persistence()
+    {
+        m_disable_persistence = true;
+    }
+
+    void inline reinitialize_on_startup()
+    {
+        m_reinitialize_on_startup = true;
+    }
+
 private:
     // Add a trailing '/' if not provided.
     static void inline terminate_path(std::string& path)
@@ -187,6 +197,7 @@ private:
 
     std::string m_server_path;
     bool m_disable_persistence = false;
+    bool m_reinitialize_on_startup = false;
     bool m_server_started = false;
 };
 

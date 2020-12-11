@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-destroy_db"))
         {
-            remove_persistent_store();
+            server.reinitialize_on_startup();
         }
         else
         {

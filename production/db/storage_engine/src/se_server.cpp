@@ -956,17 +956,17 @@ bool server::txn_commit()
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
 void server::run(bool disable_persistence, bool reinitialize_persistent_store)
 {
-    if (reinitialize_persistent_store)
-    {
-        retail_assert(
-            !disable_persistence,
-            "remove_persistent_store can only be set if disable_persistence is unset!");
-    }
+    retail_assert(
+        !(disable_persistence && reinitialize_persistent_store),
+        "disable_persistence and reinitialize_persistent_store cannot both be enabled!");
+
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_disable_persistence = disable_persistence;
     s_reinitialize_persistent_store = reinitialize_persistent_store;
+
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
     while (true)
     {
         // Create eventfd shutdown event.
@@ -979,18 +979,23 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
             // handler executes.
             close_fd(s_server_shutdown_eventfd);
         });
+
         // Launch signal handler thread.
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
         init_shared_memory();
         std::thread client_dispatch_thread(client_dispatch_handler);
+
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
         client_dispatch_thread.join();
+
         // The signal handler thread will only return after a blocked signal is pending.
         signal_handler_thread.join();
+
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
+
         // We special-case SIGHUP to force reinitialization of the server.
         // This is only enabled if persistence is disabled, because otherwise
         // data would disappear on reset, only to reappear when the database is
@@ -1001,6 +1006,7 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
             {
                 cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
             }
+
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.
             // We may have already received other pending signals by the time
