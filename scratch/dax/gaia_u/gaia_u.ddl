@@ -51,7 +51,7 @@ create table if not exists Rooms
       RoomName : string,
       FloorNumber : uint8,
       Capacity : uint16,
-      RestrictedCapacity : uint16,
+      RestrictedCapacity : uint16 active,
       references Buildings
 );
 

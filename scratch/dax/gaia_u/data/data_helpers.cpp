@@ -83,6 +83,11 @@ void event_planner::delete_buildings()
 
 void event_planner::show_room(Rooms_t& room)
 {
+    if (!room)
+    {
+        printf("<none>");
+        return;
+    }
     auto b = room.Buildings();
     printf("%lu: %u, %s, %u, %u %u [Building]{",
         room.gaia_id(), room.RoomNumber(), room.RoomName(), room.FloorNumber(), room.Capacity(), room.RestrictedCapacity());
@@ -267,8 +272,12 @@ void event_planner::delete_events()
     {
         // Disconnect from Staff
         e.Teacher_Staff().Teacher_Events_list().erase(e);
+        
         // Disconnect from Room
-        e.Room_Rooms().Room_Events_list().erase(e);
+        if (e.Room_Rooms())
+        {
+            e.Room_Rooms().Room_Events_list().erase(e);
+        }
 
         e.delete_row();
     }
@@ -324,8 +333,12 @@ void event_planner::delete_all()
 void event_planner::update_restriction(uint8_t percent)
 {
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
-    auto w = Restrictions_t::get_first().writer();
-    w.PercentFull = percent;
-    w.update_row();
-    tx.commit();
+    auto restrictions = Restrictions_t::get_first();
+    if (restrictions)
+    {
+        auto w = restrictions.writer();
+        w.PercentFull = percent;
+        w.update_row();
+        tx.commit();
+    }
 }

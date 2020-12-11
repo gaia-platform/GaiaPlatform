@@ -1,6 +1,6 @@
 #fake id, non-reference fields, reference fields
 #nulls are simply omitted, i.e. ,, or ,[EOL]
-Restrictions, 50
+Restrictions, 100
 Persons, 1, John, Smith, 1/1/2002
 Persons, 2, Brad, Smith, 6/14/1972
 Persons, 3, Marsha, Smith, 8/3/1974
@@ -22,5 +22,5 @@ Parents, 1, Father, 2
 Parents, 2, Mother, 3
 Staff, 1, 6/14/2016, 6
 Staff, 2, 7/1/2013, 7
-Events, 1, I am not Joking, 5/5/2021, 2:30 PM, 5:30 PM, 0, 1, 4
-Events, 2, Strange Loops, 10/10/2021, 1:00 PM, 2:00 PM, 0, 2, 3
+Events, 1, I am not Joking, 5/5/2021, 2:30 PM, 5:30 PM, 175, 1, 4
+Events, 2, Strange Loops, 10/10/2021, 1:00 PM, 2:00 PM, 25, 2, 3
