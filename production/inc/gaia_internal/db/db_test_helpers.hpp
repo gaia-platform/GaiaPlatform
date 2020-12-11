@@ -111,9 +111,8 @@ public:
 
     explicit db_server_t(
         const char* db_server_path,
-        bool disable_persistence = false,
-        bool reinitialize_on_startup = false)
-        : m_disable_persistence(disable_persistence), m_reinitialize_on_startup(reinitialize_on_startup)
+        bool disable_persistence = false)
+        : m_disable_persistence(disable_persistence)
     {
         set_path(db_server_path);
     }
@@ -132,7 +131,7 @@ public:
             cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
         }
-        if (m_reinitialize_on_startup && remove_persistent_dir)
+        if (remove_persistent_dir)
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
@@ -185,11 +184,6 @@ public:
         m_disable_persistence = true;
     }
 
-    void inline reinitialize_on_startup()
-    {
-        m_reinitialize_on_startup = true;
-    }
-
 private:
     // Add a trailing '/' if not provided.
     static void inline terminate_path(std::string& path)
@@ -202,7 +196,6 @@ private:
 
     std::string m_server_path;
     bool m_disable_persistence = false;
-    bool m_reinitialize_on_startup = false;
     bool m_server_started = false;
 };
 
