@@ -25,19 +25,30 @@ create table if not exists locations (
       LocationsCampus references campus
 );
 
+create table if not exists Events (
+      EventId : string,
+      Name : string, 
+      EventDate : string,         
+      StartTime : string,         
+      EndTime : string,       
+      Enrolled : uint64,
+      EventsCampus references campus
+);
+
+create table if not exists Staff (
+      StaffId : string active,     
+      HiredDate : string,
+      StaffEvents references Events
+);
+
 create table if not exists Persons (
       PersonId : string,      
       FirstName : string,      
       LastName : string,      
       BirthDate : string,      
       FaceSignature : string,
-      PersonsCampus references campus
-);
-
-create table if not exists Staff (
-      StaffId : string active,     
-      HiredDate : string,
-      StaffPersons references Persons
+      PersonsCampus references campus,
+      PersonsStaff references Staff
 );
 
 create table if not exists Students (
@@ -60,16 +71,19 @@ create table if not exists Family (
       FamilyParents references Parents
 );
 
-create table if not exists Events (
-      EventId : string,
-      Name : string, 
-      EventDate : string,         
-      StartTime : string,         
-      EndTime : string,       
-      EventActualEnrolled : uint64,
-      EventRoom : string,
-      Enrollment : uint64,
-      EventsStaff references Staff
+create table if not exists Buildings (
+      BuildingId : string, 
+      BuildingName : string,
+      BuildingsCampus references campus
+);
+
+create table if not exists Rooms (
+      RoomNumber: string,      
+      RoomName: string,      
+      FloorNumber: string,        
+      Capacity: uint32,
+      RoomsBuildings references Buildings,
+      RoomEvents references Events
 );
 
 create table if not exists Registration (
@@ -78,21 +92,6 @@ create table if not exists Registration (
       RegistrationTime : string,   
       RegsitrationStudents references Students,
       RegistrationEvents references Events
-);
-
-create table if not exists Buildings (
-      BuildingId : string, 
-      BuildingName : string,
-      BuildingsCampus references campus
-);
-
-create table if not exists Rooms (
-      RoomId : string, 
-      RoomNumber: string,      
-      RoomName: string,      
-      FloorNumber: string,        
-      RoomsBuildings references Buildings,
-      RoomsEvents references Events
 );
 
 create table if not exists Cameras (

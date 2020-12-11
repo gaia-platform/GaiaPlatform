@@ -274,10 +274,77 @@ void campus_demo::campus::init_storage() {
         return;
     }
 
-    gaia::campus::campus_t campus = gaia::campus::campus_t::get(insert_campus("AAA", false));
-    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Unidentified", 0, "*"));
-    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Bob Kabob", 0, "*"));
-    campus.PersonCampus_person_list().insert(gaia::campus::person_t::insert_row("Sam Kabam", 0, "*"));
+    // campus
+
+    gaia::campus::campus_t campus = gaia::campus::campus_t::get(insert_campus("School 17", false));
+
+    // buildings
+
+    auto bldg = gaia::campus::Buildings_t::insert_row("B1", "Shasta");
+    campus.BuildingsCampus_Buildings_list().insert(bldg);  
+    auto bldg_shasta = gaia::campus::Buildings_t::get(bldg);     
+    
+    bldg = gaia::campus::Buildings_t::insert_row("B2", "Everest");
+    campus.BuildingsCampus_Buildings_list().insert(bldg);    
+    auto bldg_everest = gaia::campus::Buildings_t::get(bldg);   
+
+    bldg = gaia::campus::Buildings_t::insert_row("B3", "Garage");
+    campus.BuildingsCampus_Buildings_list().insert(bldg);   
+    auto bldg_garage = gaia::campus::Buildings_t::get(bldg);    
+
+    bldg = gaia::campus::Buildings_t::insert_row("B4", "Security");
+    campus.BuildingsCampus_Buildings_list().insert(bldg);
+    auto bldg_security = gaia::campus::Buildings_t::get(bldg);   
+
+    // rooms
+
+    auto room = gaia::campus::Rooms_t::insert_row("26", "Eagle", "2", 50);
+    bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
+    auto room_eagle = gaia::campus::Rooms_t::get(room);
+
+    room = gaia::campus::Rooms_t::insert_row("1", "Crow", "1", 100);
+    bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
+    auto room_crow = gaia::campus::Rooms_t::get(room);
+
+    // persons
+
+    auto person = gaia::campus::person_t::insert_row("Unidentified", 0, "*");
+    campus.PersonCampus_person_list().insert(person);
+    auto person_unidentified = gaia::campus::person_t::get(person);
+
+    person = gaia::campus::person_t::insert_row("Bob Kabob", 0, "*");
+    campus.PersonCampus_person_list().insert(person);
+    auto person_bob = gaia::campus::person_t::get(person);
+
+    person = gaia::campus::person_t::insert_row("Sam Kabam", 0, "*");
+    campus.PersonCampus_person_list().insert(person);
+    auto person_sam = gaia::campus::person_t::get(person);
+
+    // staff
+
+    auto staff = gaia::campus::Staff_t::insert_row("S1", "4/4/1044");
+    auto staff_bob = gaia::campus::Staff_t::get(staff);
+    staff_bob.PersonsStaff_Persons_list().insert(person_bob.gaia_id());
+
+    // events
+
+    // event 1
+
+    auto evnt = gaia::campus::Events_t::insert_row("E1", "Orientation", "5/10/2020", "16:00", "18:00", 0);
+    campus.EventsCampus_Events_list().insert(evnt);
+    auto evnt_orientation = gaia::campus::Events_t::get(evnt);
+
+    evnt_orientation.RoomEvents_Rooms_list().insert(room_eagle);
+    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
+
+    // event 2
+
+    evnt = gaia::campus::Events_t::insert_row("E2", "Prom", "5/11/2020", "16:00", "18:00", 0);
+    campus.EventsCampus_Events_list().insert(evnt);
+    auto evnt_prom = gaia::campus::Events_t::get(evnt);
+
+    evnt_orientation.RoomEvents_Rooms_list().insert(room_crow);
+    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
 
     tx.commit();
 }

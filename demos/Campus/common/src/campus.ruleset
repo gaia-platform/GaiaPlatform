@@ -35,9 +35,10 @@ ruleset campus_ruleset
 
         /*if( 0 == strcmp( Staff.StaffId, "aa" ) )
         {
-        }*/   
+            auto pid = @PersonId;
+        }
 
-        /*if( Parents.LastOperation == INSERT )
+        if( Parents.LastOperation == INSERT )
         {
             Enrollment += 1;
         }*/

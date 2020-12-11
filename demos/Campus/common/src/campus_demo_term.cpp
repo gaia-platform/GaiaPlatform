@@ -31,12 +31,14 @@ char * m_choices1[] = {(char*)"Person", (char*)"Car", (char*)"Exit", (char*)NULL
 char * m_people[] = {(char*)"Unidentified", (char*)"Bob Kabob", (char*)"Sam Kabam", (char*)"Exit", (char*)NULL};
 char * m_cars[] = {(char*)"Unidentified", (char*)"Ford Fairlane", (char*)"Purple Lambo", (char*)"Exit", (char*)NULL};
 
-char * m_personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
+char * m_personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Register For Event", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
 char * m_carAction[] = {(char*)"Move To", (char*)"Exit", (char*)NULL};
 
 char * m_personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall", (char*)"Exit", (char*)NULL};
 char * m_personRoles[] = {(char*)"Stranger", (char*)"Student", (char*)"Teacher", (char*)"Parent", (char*)"Exit", (char*)NULL};
 char * m_carLocations[] = {(char*)"Entry", (char*)"Garage", (char*)"Concourse", (char*)"Exit", (char*)NULL};
+
+char * m_events[] = {(char*)"Orientation", (char*)"Graduation", (char*)"Prom", (char*)"Neil DeGrasse Tyson Roast", (char*)"Exit", (char*)NULL};
 
 class terminal_menu
 {
@@ -463,6 +465,8 @@ void persons_action_selected(char *name)
     // show sub menu
     if(0 == strcmp(name, "Move To"))
         put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, m_menu_row, 124);
+    else if(0 == strcmp(name, "Register For Event"))
+        put_menu((char *)"Register For Event", m_events, &terminal_menu::persons_action_register_for_event_selected, ARRAY_SIZE(m_events), 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Change Role"))
         put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
@@ -497,6 +501,23 @@ void car_action_selected(char *name)
 * @exceptsafe yes
 */  
 void persons_action_moveto_selected(char *name)
+{        
+    // set action values
+    m_arg1 = name;
+
+    //do the change  
+    do_the_change();
+} 
+
+/**
+* ---
+*
+* @param[in] char *name
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
+void persons_action_register_for_event_selected(char *name)
 {        
     // set action values
     m_arg1 = name;
