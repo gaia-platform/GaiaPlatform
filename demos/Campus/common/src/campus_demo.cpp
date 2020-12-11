@@ -170,11 +170,11 @@ int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus
     }
     catch(const std::exception& e){
         log_this("campus_demo::campus::Init()", e);
-        return -1;
+        throw;
     }
     catch(...){
         log_this("Exception in campus_demo::campus::Init() ...");
-        return -1;
+        throw;
     }
     
     return 0;
@@ -258,6 +258,24 @@ void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_
     p.update_row();
 }
 
+//*** public access ***********************
+
+std::vector<std::string> campus_demo::campus::get_event_list()
+{
+    std::vector<std::string> event_name_list;
+
+    begin_transaction();
+    for (auto& evnt : gaia::campus::Events_t::list()){
+        //auto en = gaia::campus::Events_t::get(evnt.gaia_id());
+        //en.Name = evnt.Name;
+        event_name_list.push_back(evnt.Name());
+    }
+    commit_transaction();
+    return event_name_list;
+}
+
+//*** Initialization ***********************
+
 void campus_demo::campus::restore_default_values() {
     for (auto& person : gaia::campus::person_t::list()) {
         //_persons_v.push_back(person);
@@ -268,7 +286,7 @@ void campus_demo::campus::restore_default_values() {
 void campus_demo::campus::init_storage() {
     gaia::direct_access::auto_transaction_t tx(gaia::direct_access::auto_transaction_t::no_auto_begin);
 
-    if (gaia::campus::person_t::get_first()) {
+    if (gaia::campus::Persons_t::get_first()) {
         restore_default_values();
         tx.commit();
         return;
@@ -306,7 +324,16 @@ void campus_demo::campus::init_storage() {
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_crow = gaia::campus::Rooms_t::get(room);
 
-    // persons
+ 
+    room = gaia::campus::Rooms_t::insert_row("2", "Nuthedge", "1", 10);
+    bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
+    auto room_nuthedge = gaia::campus::Rooms_t::get(room);
+
+    room = gaia::campus::Rooms_t::insert_row("3", "Falcon", "1", 5);
+    bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
+    auto room_falcon = gaia::campus::Rooms_t::get(room);
+
+    // person
 
     auto person = gaia::campus::person_t::insert_row("Unidentified", 0, "*");
     campus.PersonCampus_person_list().insert(person);
@@ -320,11 +347,25 @@ void campus_demo::campus::init_storage() {
     campus.PersonCampus_person_list().insert(person);
     auto person_sam = gaia::campus::person_t::get(person);
 
+   // persons
+
+    auto persons = gaia::campus::Persons_t::insert_row("P1", "Unidentified", "Unidentified", "1/2/1999", "0xFEDCBV");
+    campus.PersonsCampus_Persons_list().insert(persons);
+    auto persons_unidentified = gaia::campus::Persons_t::get(persons);
+
+    persons = gaia::campus::Persons_t::insert_row("P1", "Bob", "Kabob", "1/2/1999", "0xFEDCBV");
+    campus.PersonsCampus_Persons_list().insert(persons);
+    auto persons_bob = gaia::campus::Persons_t::get(persons);
+
+    persons = gaia::campus::Persons_t::insert_row("P1", "Sam", "Kabam", "1/2/1999", "0xFEDCBV");
+    campus.PersonsCampus_Persons_list().insert(persons);
+    auto persons_sam = gaia::campus::Persons_t::get(persons);
+
     // staff
 
     auto staff = gaia::campus::Staff_t::insert_row("S1", "4/4/1044");
     auto staff_bob = gaia::campus::Staff_t::get(staff);
-    staff_bob.PersonsStaff_Persons_list().insert(person_bob.gaia_id());
+    //staff_bob.PersonsStaff_Persons_list().insert(persons_bob);
 
     // events
 
@@ -344,6 +385,24 @@ void campus_demo::campus::init_storage() {
     auto evnt_prom = gaia::campus::Events_t::get(evnt);
 
     evnt_orientation.RoomEvents_Rooms_list().insert(room_crow);
+    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
+
+    // event 3
+
+    evnt = gaia::campus::Events_t::insert_row("E3", "Graduation", "5/11/2020", "16:00", "18:00", 0);
+    campus.EventsCampus_Events_list().insert(evnt);
+    auto evnt_grad = gaia::campus::Events_t::get(evnt);
+
+    evnt_orientation.RoomEvents_Rooms_list().insert(room_nuthedge);
+    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
+
+    // event 4
+
+    evnt = gaia::campus::Events_t::insert_row("E4", "Neil DeGrasse Tyson Roast", "5/11/2020", "16:00", "18:00", 0);
+    campus.EventsCampus_Events_list().insert(evnt);
+    auto evnt_ndtr = gaia::campus::Events_t::get(evnt);
+
+    evnt_orientation.RoomEvents_Rooms_list().insert(room_falcon);
     evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
 
     tx.commit();

@@ -239,6 +239,49 @@ void put_menu(char *name, char* items[], callback_type handler, int count, int h
 /**
 * ---
 *
+* @param[in] char *name
+* @param[in] std::vector<std::string> items
+* @param[in] CallbackType handler
+* @param[in] int h
+* @param[in] int w
+* @param[in] int row
+* @param[in] int col
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
+void put_menu(char *name, std::vector<std::string> items, callback_type handler, int h, int w, int row, int col)
+{
+    ITEM** menuItems;
+    int n_choices, i;
+
+    n_choices = items.size();
+    menuItems = (ITEM**)calloc(n_choices+2, sizeof(ITEM*));
+
+    callback_cont_struct cbc;
+    cbc.Callback = handler;
+
+    for (i = 0; i < n_choices; ++i)
+    {
+        menuItems[i] = new_item(items[i].c_str(), ""); 
+        set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
+    }
+
+    menuItems[i] = new_item("Exit", ""); 
+    set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
+
+    menuItems[i+1] = new_item((char*)NULL, ""); 
+    set_item_userptr(menuItems[i+1], reinterpret_cast<void *>(&cbc));
+
+    put_menu((char *)name, menuItems, h, w, row, col);
+
+    for (i = 0; i < n_choices+2; ++i)
+        free_item(menuItems[i]);
+}
+
+/**
+* ---
+*
 * @param[in] WINDOW* win
 * @param[in] int starty
 * @param[in] int startx
@@ -466,7 +509,7 @@ void persons_action_selected(char *name)
     if(0 == strcmp(name, "Move To"))
         put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, m_menu_row, 124);
     else if(0 == strcmp(name, "Register For Event"))
-        put_menu((char *)"Register For Event", m_events, &terminal_menu::persons_action_register_for_event_selected, ARRAY_SIZE(m_events), 10, 40, m_menu_row, 124);   
+        put_menu((char *)"Register For Event", m_cdp->get_event_list(), &terminal_menu::persons_action_register_for_event_selected, 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Change Role"))
         put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
@@ -658,6 +701,8 @@ static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
     li->message_callback(msg);
 }
 
+std::shared_ptr<campus_demo::campus> m_cdp;
+
 /**
 * Initialize curses
 *
@@ -667,9 +712,10 @@ static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
 * @throws 
 * @exceptsafe yes
 */  
-void init()
+void init(std::shared_ptr<campus_demo::campus> cdp)
 {   
     m_lastInstance = this;
+    m_cdp = cdp;
 
     // Initialize ncurses
     initscr();
@@ -735,16 +781,29 @@ int main()
         std::cout << the_val;
     }*/
 
-    terminal_menu tm;
-    tm.init();
-
-    campus_demo::campus cd;
-
-    if( 0 == cd.init(tm.get_message_bus()))
-        tm.run();
-    else
+    try
     {
-        std::cout << "nope";
+        //campus_demo::campus cd;        
+        terminal_menu tm;
+
+        std::shared_ptr<campus_demo::campus> cdp = make_shared<campus_demo::campus>();
+
+        tm.init(cdp);
+
+        if( 0 == cdp->init(tm.get_message_bus()))
+            tm.run();
+        else
+        {
+            std::cout << "nope";
+        }        
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    catch(...)
+    {
+        std::cerr << "Exception ..." << '\n';
     }
     
     return 0;

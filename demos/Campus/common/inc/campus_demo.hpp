@@ -126,6 +126,7 @@ private:
     void update_campus(gaia::campus::campus_t& camp, bool in_emergency);
     gaia_id_t insert_person(const char* name, bool is_threat, const std::string location);
     void update_person(gaia::campus::person_t& person, bool is_threat, const std::string location);
+
     void restore_default_values(); 
     void init_storage();
 
@@ -163,6 +164,8 @@ public:
     int run_async();
 
     int demo_test();
+
+    std::vector<std::string> get_event_list();
 
 }; // class campus
 } // namespace campus_demo
