@@ -117,7 +117,7 @@ public:
         set_path(db_server_path);
     }
 
-    void inline start(bool stop_server = true, bool remove_persistent_dir = true)
+    void inline start(bool stop_server = true, bool remove_persistent_store = true)
     {
         if (stop_server)
         {
@@ -131,7 +131,7 @@ public:
             cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
         }
-        if (remove_persistent_dir)
+        if (remove_persistent_store)
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
