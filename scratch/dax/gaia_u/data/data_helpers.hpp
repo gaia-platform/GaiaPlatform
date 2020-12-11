@@ -7,6 +7,9 @@ namespace event_planner
     extern const char* c_date_format;
     extern const char* c_time_format;
 
+    void show_campus_t(gaia::gaia_u::Campus_t& campus);
+    void show_campus();
+    void delete_campus();
     void show_buildings();
     void delete_buildings();
     void show_building(gaia::gaia_u::Buildings_t& building);
