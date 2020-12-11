@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                server.start_and_retain_persistent_dir();
+                server.start_and_retain_persistent_store();
             }
         }
         else if (argv[i] == string("-o"))

@@ -145,7 +145,7 @@ public:
         m_server_started = true;
     }
 
-    void inline start_and_retain_persistent_dir()
+    void inline start_and_retain_persistent_store()
     {
         start(true, false);
     }
