@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <unistd.h>
-
 #include <iostream>
 
 #include "gaia/system.hpp"
@@ -17,13 +15,15 @@ int main(int argc, const char** argv)
     cout
         << "Hello example is running..."
         << endl
-        << "Please wait for greeting to be printed, then terminate execution by pressing any key."
+        << "Please wait for greetings to be printed, then terminate execution by pressing Enter."
         << endl;
 
     gaia::system::initialize("gaia.conf");
 
     gaia::db::begin_transaction();
-    gaia::hello::names_t::insert_row("George");
+    gaia::hello::names_t::insert_row("Alice");
+    gaia::hello::names_t::insert_row("Bob");
+    gaia::hello::names_t::insert_row("Charles");
     gaia::db::commit_transaction();
 
     // Wait for user input.
