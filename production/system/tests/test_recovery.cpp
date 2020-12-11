@@ -14,13 +14,11 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "db_test_helpers.hpp"
-#include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "logger.hpp"
 #include "schema_loader.hpp"
 #include "se_test_util.hpp"
-#include "type_id_mapping.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
@@ -94,8 +92,6 @@ protected:
         s_server.stop();
         s_server.start();
         begin_session();
-        type_id_mapping_t::instance().clear();
-        gaia::catalog::ddl_executor_t::get().reset();
         schema_loader_t::instance().load_schema("addr_book.ddl");
         end_session();
         s_server.stop();
