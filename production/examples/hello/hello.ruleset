@@ -10,7 +10,7 @@
 
 using namespace std;
 
-ruleset school_ruleset
+ruleset hello_ruleset
 {
     // Rule 1: Whenever a name is inserted,
     // insert a new greeting into the greetings table.
