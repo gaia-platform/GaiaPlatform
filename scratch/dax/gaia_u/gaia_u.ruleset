@@ -65,16 +65,159 @@ ruleset event_planner
         if (RestrictedCapacity < @Enrolled)
         {
             printf("Room '%s' cannot support Event '%s'\n", @RoomName, @Events.Name);
-            printf("Event '%s' has '%u' enrollments but the restricted capcacity is '%u'\n",
+            printf("Event '%s' has '%u' enrollments but the restricted capacity is '%u'\n",
                 @Events.Name, @Enrolled, RestrictedCapacity);
             
-            // This room cannot accomodate this event. We need to remove the room from the 
-            // event.
-            // Would like to do this
+            // Would like to do this but the translation engine can't currently understand reference fields for 
+            // explicit navigation
             //Events.Room_Rooms.Room_Events_list.erase(Events);
-            auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
-            event.Room_Rooms().Room_Events_list().erase(event);
+            ChangeLocation = true;
         }
     }
-    // Now follow up with moving rooms around, schedule conflicts, etc
+
+    // If we needto change the location, go find a room that meets the
+    // following criteria:
+    // - RestrictedCapacity >= number of students enrolled in the event
+    // - It is not already booked for another event
+    //
+    // Search for room in the same building first and then
+    // expand to other rooms if required.
+     {
+        if (!ChangeLocation)
+        {
+            return;
+        }
+
+        ChangeLocation = false;
+
+        // If the room can hold the number of students enrolled then
+        // then is no need find another room.
+        if (@RestrictedCapacity >= @Enrolled)
+        {
+            return;
+        }
+
+        printf("'%s' needs a new location because room '%s' doesn't have the capacity.\n",
+            @Events.Name, @RoomName);
+
+        // Try to find a room that works in the same building
+        auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
+        auto this_room = event.Room_Rooms();
+        gaia::gaia_u::Buildings_t this_building;
+
+        // We may find a room that meets the capacity requirements but it is not
+        // available on the date we need.  Remember this so that we can reschedule
+        // the event to the room and then reschedule the event to a date when the
+        // room is available.
+        gaia::gaia_u::Rooms_t candidate_room;
+
+        // Search for a room in the same building.
+        if (this_room)
+        {
+            this_building = this_room.Buildings();
+            for (auto& room : this_building.Rooms_list())
+            {
+                if (room == this_room)
+                {
+                    continue;
+                }
+
+                if (room.RestrictedCapacity() >= @Enrolled)
+                {
+                    if (event_planner::is_room_available(event, room))
+                    {
+                        event_planner::move_event_room(event, this_room, room);
+                        // We are done!
+                        return;
+                    }
+                    else
+                    {
+                        if (!candidate_room)
+                        {
+                            candidate_room = room;
+                        }
+                    }
+                    
+                }
+            }
+        }
+
+        // Couldn't find a room in the same building so look in other buildings.
+        for (auto building : gaia::gaia_u::Buildings_t::list())
+        {
+            if (building == this_building)
+            {
+                continue;
+            }
+
+            for (auto& room : building.Rooms_list())
+            {
+                if (room.RestrictedCapacity() >= @Enrolled)
+                {
+                    if (event_planner::is_room_available(event, room))
+                    {
+                        event_planner::move_event_room(event, this_room, room);
+                        // We are done!
+                        return;
+                    }
+                    else
+                    {
+                        if (!candidate_room)
+                        {
+                            candidate_room = room;
+                        }
+                    }
+                    
+                }
+            }
+        }
+
+        // If we have a candidate room it means we found a room that can fit the capacity
+        // but not on the date we need.  Go ahead and move the room and then change the date.
+        if (candidate_room)
+        {
+            printf("Found a room but need to reschedule ...\n");
+            event_planner::move_event_room(event, this_room, candidate_room);
+            ChangeDate = true;
+        }
+        else
+        {
+            printf("Could not find a room.  Need to start dropping enrollments ...\n");
+            DropEnrollments = true;
+        }
+    }
+
+    {
+        if (!ChangeDate)
+        {
+            return;
+        }
+
+        ChangeDate = false;
+        time_t old_date = @Date;
+        auto date_info = localtime(&old_date);
+        auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
+        auto this_room = event.Room_Rooms();
+              
+        // Just pick the next week day until there is no conflict
+        while (true)
+        {
+            date_info->tm_mday++;
+            time_t new_date =  mktime(date_info);
+            if (event_planner::is_room_available(new_date, this_room))
+            {
+                Date = new_date;
+                break;
+            }
+        }
+    }
+
+    // A new date was set so we need to update the regsistration infomration
+    // 
+    {
+        if (Date != 0)
+        {
+            // Date changed so send email to students who have registered for the event.
+        }
+    }
 }

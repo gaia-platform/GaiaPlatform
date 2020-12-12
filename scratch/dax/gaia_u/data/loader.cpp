@@ -216,7 +216,10 @@ void gaia_u_loader_t::load_Events(row_t& row)
         event_planner::convert_date(row[3].c_str()), //Date
         event_planner::convert_time(row[4].c_str()), //StartTime
         event_planner::convert_time(row[5].c_str()), //EndTime
-        enrolled // Enrolled
+        enrolled, // Enrolled
+        false, // ChangeLocation
+        false, // ChangeDate 
+        false // DropEnrollments
     );
 
     // Insert the event for the staff
