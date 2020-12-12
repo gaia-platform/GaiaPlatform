@@ -14,8 +14,9 @@ Buildings, 2, Vegetable, true, 1
 Rooms, 1, 1, Apple, 1, 10, 10, 1
 Rooms, 2, 2, Banana, 1, 20, 20, 1
 Rooms, 3, 3, Orange, 1, 30, 30, 1
-Rooms, 4, 1, Onion, 1, 500, 500, 2
-Rooms, 5, 2, Broccoli, 3, 120, 120, 2
+Rooms, 4, 4, Strawberry, 2, 60, 60, 1
+Rooms, 5, 1, Onion, 1, 500, 500, 2./
+Rooms, 6, 2, Broccoli, 3, 120, 120, 2
 Students, 1, 1000, 1
 Students, 2, 1001, 4
 Students, 3, 1002, 5
@@ -23,5 +24,7 @@ Parents, 1, Father, 2
 Parents, 2, Mother, 3
 Staff, 1, 6/14/2016, 6
 Staff, 2, 7/1/2013, 7
-Events, 1, I am not Joking, 5/5/2021, 2:30 PM, 5:30 PM, 175, 1, 4
+Events, 1, I am not Joking, 5/5/2021, 2:30 PM, 5:30 PM, 300, 1, 5
 Events, 2, Strange Loops, 10/10/2021, 1:00 PM, 2:00 PM, 25, 2, 3
+Events, 3, Throwing Dice, 11/11/2021, 1:00 PM, 2:00 PM, 50, 1, 4
+Events, 4, Reusable Rockets, 5/5/2021, 2:30 PM, 5:30 PM, 100, 2, 6

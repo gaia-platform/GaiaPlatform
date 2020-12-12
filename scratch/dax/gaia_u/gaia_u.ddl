@@ -70,10 +70,13 @@ create table if not exists Rooms
 create table if not exists Events 
 (
       Name : string,
-      Date : int64,
+      Date : int64 active,
       StartTime : int64,
       EndTime : int64,
-      Enrolled : uint32,
+      Enrolled : uint32 active,
+      ChangeLocation : bool active,
+      ChangeDate : bool active,
+      DropEnrollments : bool active,
       Teacher references Staff,
       Room references Rooms
 );
