@@ -391,7 +391,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     {
         g_generation_error = true;
         llvm::errs()
-            << "Table " << anchor_table << " doesn't reference any table and not referenced by any other tables";
+            << "No path between " << anchor_table << " and other tables";
         return navigation_code_data_t();
     }
     auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
@@ -1049,6 +1049,7 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
+                        g_active_fields[table_name].insert(field_name);
                         m_rewriter.InsertTextAfterToken(
                             op->getEndLoc(), "; w.update_row();return w." + field_name + ";}() ");
                     }
@@ -1292,9 +1293,9 @@ public:
             {
                 g_generated_subscription_code
                     += "namespace " + g_current_ruleset
-                    + "{\nvoid subscribe_ruleset_" + ruleset_declaration->getName().str()
+                    + "{\nvoid subscribe_ruleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_subscription
-                    + "}\nvoid unsubscribe_ruleset_" + ruleset_declaration->getName().str()
+                    + "}\nvoid unsubscribe_ruleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
             }
             g_current_ruleset = ruleset_declaration->getName().str();
@@ -1721,5 +1722,11 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    if (result != 0 || g_generation_error)
+    {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }

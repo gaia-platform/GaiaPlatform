@@ -913,6 +913,8 @@ if( LLVM_INCLUDE_TESTS )
     add_subdirectory(utils/unittest)
   endif()
 
+  add_subdirectory(${GAIA_REPO}/production/tools/tests tools-tests)
+
   if (WIN32)
     # This utility is used to prevent crashing tests from calling Dr. Watson on
     # Windows.
@@ -1081,7 +1083,3 @@ if (LLVM_INCLUDE_BENCHMARKS)
   add_subdirectory(utils/benchmark)
   add_subdirectory(benchmarks)
 endif()
-
-
-
-
