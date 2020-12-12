@@ -43,8 +43,10 @@ public:
 
 class server
 {
-    friend gaia::db::locators* gaia::db::get_shared_locators();
-    friend gaia::db::data* gaia::db::get_shared_data();
+    friend gaia::db::locators_t* gaia::db::get_shared_locators();
+    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
+    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
+    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         gaia::db::memory_manager::address_offset_t old_slot_offset,
@@ -63,11 +65,15 @@ private:
     static constexpr size_t c_stream_batch_size{1ULL << 10};
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
-    static inline int s_fd_data = -1;
-    static inline data* s_data = nullptr;
     static inline int s_fd_locators = -1;
-    static inline locators* s_shared_locators = nullptr;
-    thread_local static inline log* s_log = nullptr;
+    static inline locators_t* s_shared_locators = nullptr;
+    static inline int s_fd_counters = -1;
+    static inline shared_counters_t* s_counters = nullptr;
+    static inline int s_fd_data = -1;
+    static inline shared_data_t* s_data = nullptr;
+    static inline int s_fd_id_index = -1;
+    static inline shared_id_index_t* s_id_index = nullptr;
+    thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     static inline std::unique_ptr<persistent_store_manager> rdb{};
@@ -268,6 +274,7 @@ private:
     static void init_shared_memory();
 
     static void request_memory();
+
     static void init_txn_info();
 
     static void recover_db();

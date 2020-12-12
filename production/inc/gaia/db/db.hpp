@@ -61,12 +61,12 @@ public:
     }
 };
 
-class transaction_concurrency_failure : public common::gaia_exception
+class transaction_object_limit_exceeded : public common::gaia_exception
 {
 public:
-    transaction_concurrency_failure()
+    transaction_object_limit_exceeded()
     {
-        m_message = "Transaction was aborted due to a concurrency error.";
+        m_message = "Transaction attempted to update more objects than the system limit.";
     }
 };
 

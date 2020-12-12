@@ -27,12 +27,15 @@ class client
     /**
      * @throws no_open_transaction if there is no active transaction.
      */
-    friend gaia::db::locators* gaia::db::get_shared_locators();
+    friend gaia::db::locators_t* gaia::db::get_shared_locators();
 
     /**
      * @throws no_active_session if there is no active session.
      */
-    friend gaia::db::data* gaia::db::get_shared_data();
+    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
+    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
+    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         gaia::db::memory_manager::address_offset_t old_slot_offset,
@@ -71,14 +74,16 @@ public:
     static void request_memory();
 
 private:
-    // s_fd_log & s_locators have transaction lifetime.
-    thread_local static inline log* s_log = nullptr;
+    // These fields have transaction lifetime.
+    thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
-    thread_local static inline locators* s_locators = nullptr;
+    thread_local static inline locators_t* s_locators = nullptr;
 
-    // s_fd_locators, s_data, s_session_socket have session lifetime.
+    // These fields have session lifetime.
     thread_local static inline int s_fd_locators = -1;
-    thread_local static inline data* s_data = nullptr;
+    thread_local static inline shared_counters_t* s_counters = nullptr;
+    thread_local static inline shared_data_t* s_data = nullptr;
+    thread_local static inline shared_id_index_t* s_id_index = nullptr;
     thread_local static inline int s_session_socket = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline std::unique_ptr<gaia::db::memory_manager::stack_allocator_t> s_current_stack_allocator{};
@@ -195,12 +200,15 @@ private:
                 deleted_id != c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
                 "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
         }
-        // We never allocate more than `c_max_log_records` of space in the log.
-        gaia::common::retail_assert(
-            s_log->count < c_max_log_records,
-            "Log count exceeds maximum log record count!");
+
+        // We never allocate more than `c_max_log_records` records in the log.
+        if (s_log->count == c_max_log_records)
+        {
+            throw transaction_object_limit_exceeded();
+        }
+
         // Initialize the new record and increment the record count.
-        log::log_record* lr = s_log->log_records + s_log->count++;
+        txn_log_t::log_record_t* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

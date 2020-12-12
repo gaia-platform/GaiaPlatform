@@ -57,7 +57,7 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     // TODO this constructor allows creating a gaia_ptr in an invalid state
     //  the se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
-    hash_node* hash_node = se_hash_map::insert(id);
+    hash_node_t* hash_node = se_hash_map::insert(id);
     size_t object_size = total_len + sizeof(se_object_t);
     hash_node->locator = allocate_locator();
     address_offset_t offset = client::allocate_object(hash_node->locator, 0, object_size);
@@ -204,13 +204,13 @@ gaia_offset_t gaia_ptr::to_offset() const
 
 void gaia_ptr::find_next(gaia_type_t type)
 {
-    gaia::db::data* data = gaia::db::get_shared_data();
+    gaia::db::shared_counters_t* counters = gaia::db::get_shared_counters();
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
     // Search for objects of this type within the range of used locators.
-    while (++m_locator && m_locator <= data->last_locator)
+    while (++m_locator && m_locator <= counters->last_locator)
     {
         if (is(type))
         {
@@ -223,7 +223,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
-    gaia::db::locators* locators = gaia::db::get_shared_locators();
+    gaia::db::locators_t* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type))

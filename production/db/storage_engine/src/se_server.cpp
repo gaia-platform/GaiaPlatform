@@ -90,7 +90,7 @@ void server::handle_connect(
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
-    int send_fds[] = {s_fd_data, s_fd_locators};
+    int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -463,31 +463,26 @@ void server::build_server_reply(
     gaia_txn_id_t txn_id,
     const stack_allocator_t* const new_stack_allocator)
 {
-    const auto server_reply = [&] {
-        auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
-        if (txn_id)
-        {
-            const auto transaction_info = Createtransaction_info_t(builder, txn_id);
-            const auto reply_data = Createreply_data_t(builder, transaction_info, memory_allocation_reply);
-            return Createserver_reply_t(
-                builder, event, old_state, new_state, reply_data);
-        }
-        else
-        {
-            const auto reply_data = Createreply_data_t(builder, 0, memory_allocation_reply);
-            return Createserver_reply_t(builder, event, old_state, new_state, reply_data);
-        }
-    }();
+    const auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
+    const auto transaction_info = Createtransaction_info_t(builder, txn_id, memory_allocation_reply);
+    const auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
 
 void server::clear_shared_memory()
 {
-    unmap_fd(s_shared_locators, sizeof(locators));
+    unmap_fd(s_shared_locators, sizeof(*s_shared_locators));
     close_fd(s_fd_locators);
-    unmap_fd(s_data, sizeof(data));
+
+    unmap_fd(s_counters, sizeof(*s_counters));
+    close_fd(s_fd_counters);
+
+    unmap_fd(s_data, sizeof(*s_data));
     close_fd(s_fd_data);
+
+    unmap_fd(s_id_index, sizeof(*s_id_index));
+    close_fd(s_fd_id_index);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -500,10 +495,25 @@ void server::init_shared_memory()
     clear_shared_memory();
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
-    retail_assert(s_fd_data == -1 && s_fd_locators == -1, "Data and locator fds should not be valid!");
-    retail_assert(!s_data && !s_shared_locators, "Data and locators memory should be reset!");
+
+    retail_assert(s_fd_locators == -1, "Locator fd should not be valid!");
+    retail_assert(s_fd_counters == -1, "Counters fd should not be valid!");
+    retail_assert(s_fd_data == -1, "Data fd should not be valid!");
+    retail_assert(s_fd_id_index == -1, "ID index fd should not be valid!");
+
+    retail_assert(!s_shared_locators, "Locators memory should be reset!");
+    retail_assert(!s_counters, "Counters memory should be reset!");
+    retail_assert(!s_data, "Data memory should be reset!");
+    retail_assert(!s_id_index, "ID index memory should be reset!");
+
     s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
     if (s_fd_locators == -1)
+    {
+        throw_system_error("memfd_create failed");
+    }
+
+    s_fd_counters = ::memfd_create(c_sch_mem_counters, MFD_ALLOW_SEALING);
+    if (s_fd_counters == -1)
     {
         throw_system_error("memfd_create failed");
     }
@@ -512,10 +522,44 @@ void server::init_shared_memory()
     {
         throw_system_error("memfd_create failed");
     }
-    truncate_fd(s_fd_locators, sizeof(locators));
-    truncate_fd(s_fd_data, sizeof(data));
-    map_fd(s_shared_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0);
-    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0);
+    s_fd_id_index = ::memfd_create(c_sch_mem_id_index, MFD_ALLOW_SEALING);
+    if (s_fd_id_index == -1)
+    {
+        throw_system_error("memfd_create failed");
+    }
+
+    truncate_fd(s_fd_locators, sizeof(*s_shared_locators));
+    truncate_fd(s_fd_counters, sizeof(*s_counters));
+    truncate_fd(s_fd_data, sizeof(*s_data));
+    truncate_fd(s_fd_id_index, sizeof(*s_id_index));
+
+    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
+    //
+    // s_data uses (64B) * c_max_locators = 256GB of virtual address space.
+    //
+    // s_id_index uses (32B) * c_max_locators = 128GB of virtual address space
+    // (assuming 4-byte alignment). We could eventually shrink this to
+    // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
+    // gaia_ids are sequentially allocated and seldom deleted, so we can just
+    // use an array of locators indexed by gaia_id.
+    //
+    // Note that unless we supply the MAP_POPULATE flag to mmap(), only the
+    // pages we actually use will ever be allocated. However, Linux may refuse
+    // to allocate the virtual memory we requested if overcommit is disabled
+    // (i.e., /proc/sys/vm/overcommit_memory = 2). Using MAP_NORESERVE (don't
+    // reserve swap space) should ensure that overcommit always succeeds, unless
+    // it is disabled. We may need to document the requirement that overcommit
+    // is not disabled (i.e., /proc/sys/vm/overcommit_memory != 2).
+    //
+    // Alternatively, we could use the more tedious but reliable approach of
+    // using mmap(PROT_NONE) and calling mprotect(PROT_READ|PROT_WRITE) on any
+    // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
+    // followed by VirtualAlloc(MEM_COMMIT) in Windows).
+    map_fd(s_shared_locators, sizeof(*s_shared_locators), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_locators, 0);
+    map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_counters, 0);
+    map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_data, 0);
+    map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_id_index, 0);
+
     init_memory_manager();
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -1414,7 +1458,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
 {
     gaia_locator_t locator = 0;
     // Fix end of locator segment for length of scan, since it can change during scan.
-    gaia_locator_t last_locator = s_data->last_locator;
+    gaia_locator_t last_locator = s_counters->last_locator;
     return [=]() mutable -> std::optional<gaia_id_t> {
         // REVIEW: Now that the locator segment is no longer locked, we have no
         // transactional guarantees when reading from it. We need to either have
@@ -1914,12 +1958,12 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 {
     // First map the two fds.
-    log* log1;
+    txn_log_t* log1;
     map_fd(log1, get_fd_size(log_fd1), PROT_READ, MAP_PRIVATE, log_fd1, 0);
     auto cleanup_log1 = make_scope_guard([&]() {
         unmap_fd(log1, get_fd_size(log_fd1));
     });
-    log* log2;
+    txn_log_t* log2;
     map_fd(log2, get_fd_size(log_fd2), PROT_READ, MAP_PRIVATE, log_fd2, 0);
     auto cleanup_log2 = make_scope_guard([&]() {
         unmap_fd(log2, get_fd_size(log_fd2));
@@ -1928,8 +1972,8 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
     size_t log1_idx = 0, log2_idx = 0;
     while (log1_idx < log1->count && log2_idx < log2->count)
     {
-        log::log_record* lr1 = log1->log_records + log1_idx;
-        log::log_record* lr2 = log2->log_records + log2_idx;
+        txn_log_t::log_record_t* lr1 = log1->log_records + log1_idx;
+        txn_log_t::log_record_t* lr2 = log2->log_records + log2_idx;
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -2337,7 +2381,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     safe_fd_from_ts committed_txn_log_fd(commit_ts);
     int local_log_fd = committed_txn_log_fd.get_fd();
 
-    log* txn_log;
+    txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(local_log_fd), PROT_READ, MAP_PRIVATE, local_log_fd, 0);
     // Ensure the fd is unmapped when we exit this scope.
     auto cleanup_log_mapping = make_scope_guard([&]() {
@@ -2349,7 +2393,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (log::log_record* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
+    for (txn_log_t::log_record_t* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2364,14 +2408,14 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
 
 void server::gc_txn_undo_log(int log_fd)
 {
-    log* txn_log;
+    txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     // Ensure the fd is unmapped when we exit this scope.
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, txn_log->size());
     });
 
-    for (log::log_record* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
+    for (txn_log_t::log_record_t* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
     {
         // Free each undo version (i.e., the version superseded by an update or
         // delete operation), using the registered object deallocator (if it

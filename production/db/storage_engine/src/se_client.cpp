@@ -240,9 +240,12 @@ void client::sort_log()
 {
     retail_assert(s_log, "Transaction log must be mapped!");
     // We use stable_sort() to preserve the order of multiple updates to the same locator.
-    std::stable_sort(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) {
-        return lhs.locator < rhs.locator;
-    });
+    std::stable_sort(
+        &s_log->log_records[0],
+        &s_log->log_records[s_log->count],
+        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
+            return lhs.locator < rhs.locator;
+        });
 }
 
 // Coalesces multiple updates to a single locator into the last update.
@@ -272,9 +275,12 @@ void client::dedup_log()
         gaia_offset_t initial_offset = s_log->log_records[i].old_offset;
         initial_offsets[locator] = initial_offset;
     }
-    log::log_record* unique_array_end = std::unique(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) -> bool {
-        return lhs.locator == rhs.locator;
-    });
+    txn_log_t::log_record_t* unique_array_end = std::unique(
+        &s_log->log_records[0],
+        &s_log->log_records[s_log->count],
+        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
+            return lhs.locator == rhs.locator;
+        });
     size_t unique_array_len = unique_array_end - s_log->log_records;
     s_log->count = unique_array_len;
     // Now that all log records for each locator are deduplicated, reverse the
@@ -300,7 +306,7 @@ void client::clear_shared_memory()
     // This is intended to be called before a session is established.
     verify_no_session();
     // We closed our original fd for the data segment, so we only need to unmap it.
-    unmap_fd(s_data, sizeof(data));
+    unmap_fd(s_data, sizeof(*s_data));
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     close_fd(s_fd_locators);
@@ -313,7 +319,7 @@ void client::txn_cleanup()
     // Destroy the log fd.
     close_fd(s_fd_log);
     // Destroy the locator mapping.
-    unmap_fd(s_locators, sizeof(locators));
+    unmap_fd(s_locators, sizeof(*s_locators));
 }
 
 int client::get_session_socket()
@@ -389,25 +395,30 @@ void client::begin_session()
 
     // Extract the data and locator shared memory segment fds from the server's response.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    constexpr size_t c_fd_count = 2;
+    constexpr size_t c_fd_count = 4;
     int fds[c_fd_count] = {-1};
     size_t fd_count = c_fd_count;
-    constexpr size_t c_data_fd_index = 0;
-    constexpr size_t c_locators_fd_index = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
+    auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
-    int fd_data = fds[c_data_fd_index];
-    retail_assert(fd_data != -1, "Invalid data fd detected!");
-    auto cleanup_data_fd = make_scope_guard([&]() {
-        // We can unconditionally close the data fd, since it's not saved
-        // anywhere and the mapping increments the shared memory segment's
-        // refcount.
-        close_fd(fd_data);
-    });
-    int fd_locators = fds[c_locators_fd_index];
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
-    auto cleanup_locator_fd = make_scope_guard([&]() {
+    retail_assert(fd_counters != -1, "Invalid counters fd detected!");
+    retail_assert(fd_data != -1, "Invalid data fd detected!");
+    retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
+    // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
+    auto cleanup_mapping_fds = make_scope_guard([fd_counters = fd_counters,
+                                                 fd_data = fd_data,
+                                                 fd_id_index = fd_id_index]() mutable {
+        // We can unconditionally close all the fds of shared mappings, since
+        // they're not saved anywhere and each mapping increments its shared
+        // memory segment's refcount.
+        close_fd(fd_counters);
+        close_fd(fd_data);
+        close_fd(fd_id_index);
+    });
+    // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
+    auto cleanup_locator_fd = make_scope_guard([fd_locators = fd_locators]() mutable {
         // We should only close the locator fd if we are unwinding from an
         // exception, since we cache it to map later.
         close_fd(fd_locators);
@@ -418,11 +429,10 @@ void client::begin_session()
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
 
-    // Since the data and locator fds are global, we need to atomically update them
-    // (but only if they're not already initialized).
-
-    // Set up the shared data segment mapping.
-    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0);
+    // Set up the shared-memory mappings (see notes in se_server.cpp).
+    map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_counters, 0);
+    map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_data, 0);
+    map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_id_index, 0);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
@@ -457,9 +467,9 @@ void client::begin_transaction()
 
     // Map a private COW view of the locator shared memory segment.
     retail_assert(!s_locators, "Locators segment should be uninitialized!");
-    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
+    map_fd(s_locators, sizeof(*s_locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, s_fd_locators, 0);
     auto cleanup_locator_mapping = make_scope_guard([&]() {
-        unmap_fd(s_locators, sizeof(locators));
+        unmap_fd(s_locators, sizeof(*s_locators));
     });
 
     FlatBufferBuilder builder;
@@ -481,7 +491,7 @@ void client::begin_transaction()
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data()->transaction_info();
+    const transaction_info_t* txn_info = reply->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
@@ -489,7 +499,7 @@ void client::begin_transaction()
 
     // Allocate a new log segment and map it in our own process.
     std::stringstream memfd_name;
-    memfd_name << c_sch_mem_log << ':' << s_txn_id;
+    memfd_name << c_sch_mem_txn_log << ':' << s_txn_id;
     int fd_log = ::memfd_create(memfd_name.str().c_str(), MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
@@ -523,7 +533,7 @@ void client::begin_transaction()
     s_fd_log = fd_log;
 
     // Obtain transaction memory allocation information.
-    const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
+    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
     if (!allocation_info || !allocation_info->stack_allocator_info())
     {
         throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
@@ -541,7 +551,7 @@ void client::begin_transaction()
 void client::apply_txn_log(int log_fd)
 {
     retail_assert(s_locators, "Locators segment must be mapped!");
-    log* txn_log;
+    txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, get_fd_size(log_fd));
@@ -633,19 +643,13 @@ void client::commit_transaction()
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         "Unexpected event received!");
-    const transaction_info_t* txn_info = reply->data()->transaction_info();
+    const transaction_info_t* txn_info = reply->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
     // transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
-    // REVIEW: currently `DECIDE_TXN_ABORT` can mean either update conflict or
-    // failure to claim a commit timestamp entry (because it was invalidated by
-    // another beginning or committing txn). We handle this scenario in
-    // `begin_transaction()` by throwing `transaction_concurrency_failure`, and
-    // we should probably do the same here, unless there's no benefit to
-    // clients.
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict();
@@ -685,7 +689,8 @@ void client::request_memory()
 
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const memory_allocation_info_t* allocation_info = reply->data()->memory_allocation_info();
+    const transaction_info_t* txn_info = reply->data_as_transaction_info();
+    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
 
     retail_assert(allocation_info && allocation_info->stack_allocator_info(), "Failed to fetch memory from the server.");
     load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));

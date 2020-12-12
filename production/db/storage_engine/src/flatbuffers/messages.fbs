@@ -50,14 +50,13 @@ table memory_allocation_info_t {
     memory_request_size_hint: uint64;
 }
 
-// FlatBuffers doesn't allow scalar fields in a union.
 table transaction_info_t {
     transaction_id: uint64;
+    memory_allocation_info: memory_allocation_info_t;
 }
 
-table reply_data_t {
-    transaction_info: transaction_info_t;
-    memory_allocation_info: memory_allocation_info_t;
+union reply_data_t {
+    transaction_info: transaction_info_t,
 }
 
 table server_reply_t {

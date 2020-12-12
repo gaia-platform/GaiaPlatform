@@ -52,7 +52,7 @@ public:
      * We expect writes to the RocksDB WAL to just work; this
      * method will sigabrt otherwise.
      */
-    void prepare_wal_for_write(gaia::db::log* log, const std::string& txn_name);
+    void prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name);
 
     /**
      * This method will append a commit marker with the appropriate
@@ -81,8 +81,8 @@ public:
 
 private:
     static inline const std::string c_data_dir = c_persistent_directory_path;
-    gaia::db::data* m_data = nullptr;
-    gaia::db::locators* m_locators = nullptr;
+    gaia::db::shared_counters_t* m_counters = nullptr;
+    gaia::db::locators_t* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
 };
 
