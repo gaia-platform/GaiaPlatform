@@ -2574,11 +2574,9 @@ gaia_txn_id_t server::txn_begin()
     // The begin_ts entry must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
     constexpr uint64_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
-    std::bitset<c_txn_status_entry_bits> begin_ts_bits(c_begin_ts_entry);
     // We're possibly racing another beginning or committing txn that wants to
     // invalidate our begin_ts entry.
     uint64_t expected_entry = c_txn_entry_unknown;
-    std::bitset<c_txn_status_entry_bits> expected_bits(expected_entry);
     bool set_new_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
 
     // Only the txn thread can transition its begin_ts entry from

@@ -41,7 +41,7 @@ public:
     explicit incomplete_read_error(size_t expected_bytes_read, size_t actual_bytes_read)
     {
         std::stringstream message;
-        message << "Expected to read " << expected_bytes_read << " bytes but actually read " << actual_bytes_read << " bytes.";
+        message << "Expected to read " << expected_bytes_read << " bytes, but actually read " << actual_bytes_read << " bytes.";
         m_message = message.str();
     }
 };
@@ -105,7 +105,7 @@ inline void truncate_fd(int fd, size_t length)
     }
 }
 
-inline int dup_fd(int fd)
+inline int duplicate_fd(int fd)
 {
     int new_fd = ::dup(fd);
     if (new_fd == -1)

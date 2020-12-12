@@ -98,7 +98,17 @@ struct txn_log_t
 
         friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
         {
-            os << "locator: " << lr.locator << "\told_offset: " << lr.old_offset << "\tnew_offset: " << lr.new_offset << "\tdeleted_id: " << lr.deleted_id << "\toperation: " << lr.operation << std::endl;
+            os << "locator: "
+               << lr.locator
+               << "\told_offset: "
+               << lr.old_offset
+               << "\tnew_offset: "
+               << lr.new_offset
+               << "\tdeleted_id: "
+               << lr.deleted_id
+               << "\toperation: "
+               << lr.operation
+               << std::endl;
             return os;
         }
     };

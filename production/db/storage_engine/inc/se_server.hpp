@@ -92,39 +92,40 @@ private:
     // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
     thread_local static inline std::vector<std::unique_ptr<gaia::db::memory_manager::stack_allocator_t>> s_active_stack_allocators{};
 
-    // function pointer type that executes side effects of a state transition
     // This is an "endless" array of timestamp entries, indexed by the txn
     // timestamp counter and containing all information for every txn that has
     // been submitted to the system. Entries may be "unknown" (uninitialized),
     // "invalid" (initialized with a special "junk" value and forbidden to be
     // used afterward), or initialized with txn information, consisting of 3
     // status bits, 16 bits for a txn log fd, 3 reserved bits, and 42 bits for a
-    // timestamp reference (the begin timestamp of a submitted txn that
-    // allocated a commit timestamp, or the commit timestamp of a submitted txn
-    // that allocated a begin timestamp). The 3 status bits use the high bit to
-    // distinguish begin timestamps from commit timestamps, and 2 bits to store
-    // the state of an active or submitted txn. The array is always accessed
-    // without any locking, but its entries have read and write barriers (via
-    // std::atomic) that ensure a happens-before relationship between any
-    // threads that read or write the same entry. Any writes to entries that may
-    // be written by multiple threads use CAS operations (via
+    // timestamp reference (the commit timestamp of a submitted txn embedded in
+    // its begin timestamp entry, or the begin timestamp of a submitted txn
+    // embedded in its commit timestamp entry). The 3 status bits use the high
+    // bit to distinguish begin timestamps from commit timestamps, and 2 bits to
+    // store the state of an active or submitted txn. The array is always
+    // accessed without any locking, but its entries have read and write
+    // barriers (via std::atomic) that ensure a happens-before relationship
+    // between any threads that read or write the same entry. Any writes to
+    // entries that may be written by multiple threads use CAS operations (via
     // std::atomic::compare_exchange_strong).
     //
     // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
     // virtual address space (1/8 of the total virtual address space available
     // to the process), but allocate physical pages only on first access. When a
     // range of timestamp entries falls behind the watermark, its physical pages
-    // can be deallocated via madvise(MADV_FREE). Since we reserve 2^45 bytes of
-    // virtual address space and each array entry is 8 bytes, we can address the
-    // whole range using 2^42 timestamps. If we allocate 2^10 timestamps/second,
-    // we will use up all our timestamps in 2^32 seconds, or about 2^7 years. If
-    // we allocate 2^20 timestamps/second, we will use up all our timestamps in
-    // 2^22 seconds, or about a month and a half. If this is an issue, then we
-    // could treat the array as a circular buffer, using a separate wraparound
-    // counter to calculate the array offset from a timestamp, and we can use
-    // the 3 reserved bits in the timestamp entry to extend our range by a
-    // factor of 8, so we could allocate 2^20 timestamps/second for a full year.
-    // If we need a still larger timestamp range (say 64-bit timestamps, with
+    // can be deallocated via madvise(MADV_FREE).
+
+    // REVIEW: Since we reserve 2^45 bytes of virtual address space and each
+    // array entry is 8 bytes, we can address the whole range using 2^42
+    // timestamps. If we allocate 2^10 timestamps/second, we will use up all our
+    // timestamps in 2^32 seconds, or about 2^7 years. If we allocate 2^20
+    // timestamps/second, we will use up all our timestamps in 2^22 seconds, or
+    // about a month and a half. If this is an issue, then we could treat the
+    // array as a circular buffer, using a separate wraparound counter to
+    // calculate the array offset from a timestamp, and we can use the 3
+    // reserved bits in the timestamp entry to extend our range by a factor of
+    // 8, so we could allocate 2^20 timestamps/second for a full year. If we
+    // need a still larger timestamp range (say 64-bit timestamps, with
     // wraparound), we could just store the difference between a commit
     // timestamp and its txn's begin timestamp, which should be possible to
     // bound to no more than half the bits we use for the full timestamp, so we
@@ -132,6 +133,7 @@ private:
     // entry. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     static inline std::atomic<uint64_t>* s_txn_info = nullptr;
+
     // This marks a boundary at or before which every committed commit_ts may be
     // assumed to have been applied to the shared locator view, and after which
     // no commit_ts may be assumed to have had its txn log invalidated or freed
@@ -146,6 +148,7 @@ private:
     // sequence of committed txns that have been applied to the view (since no
     // commit_ts before the boundary can be undecided).
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
     // allowing all the superseded object versions in txns with commit
@@ -194,9 +197,11 @@ private:
     // which was claimed for deallocation by a maintenance thread).
     static constexpr uint16_t c_invalid_txn_log_fd_bits{std::numeric_limits<uint16_t>::max()};
 
-    // Function pointer type that executes side effects of a state transition.
+    // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state);
+
+    // Session state transition handler functions.
     static void handle_connect(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_begin_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_rollback_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
@@ -378,8 +383,6 @@ private:
 
     static int get_txn_log_fd_from_entry(uint64_t commit_ts_entry);
 
-    static bool execute_with_log_fd_from_ts(gaia_txn_id_t commit_ts, std::function<void(int log_fd)> fn, bool close_dup_fd_on_exit = true);
-
     static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
@@ -436,8 +439,9 @@ private:
             : m_auto_close_fd(auto_close_fd)
         {
             retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
-            // If the log fd was invalidated, it is either closed or soon will be
-            // closed, and therefore we cannot use it.
+            // If the log fd was invalidated, it is either closed or soon will
+            // be closed, and therefore we cannot use it. We return early if the
+            // fd has already been invalidated to avoid the dup(2) call.
             int log_fd = get_txn_log_fd(commit_ts);
             if (log_fd == -1)
             {
@@ -445,24 +449,24 @@ private:
             }
 
             // To avoid races from the log fd being closed out from under us by a
-            // concurrent updater, we first dup() the fd, and then if the dup was
+            // concurrent updater, we first dup(2) the fd, and then if the dup was
             // successful, test the log fd entry again to ensure we aren't reusing a
             // closed log fd. If the log fd was invalidated, then we need to close our
             // dup fd and return false.
             try
             {
-                m_local_log_fd = dup_fd(log_fd);
+                m_local_log_fd = duplicate_fd(log_fd);
             }
             catch (const system_error& e)
             {
                 // The log fd was already closed by another thread (after being
                 // invalidated).
                 // NB: This does not handle the case of the log fd being closed and then
-                // reused before our dup() call. That case is handled below, where we
+                // reused before our dup(2) call. That case is handled below, where we
                 // check for invalidation.
                 if (e.get_errno() == EBADF)
                 {
-                    // The log fd must be invalidated before it is closed.
+                    // The log fd must have been invalidated before it was closed.
                     retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
                     // We lost the race because the log fd was invalidated and closed after our check.
                     throw invalid_log_fd(commit_ts);
@@ -473,9 +477,9 @@ private:
                 }
             }
 
-            // If we were able to duplicate the log fd, check to be sure it wasn't
-            // invalidated (and thus possibly closed before dup), so we know we aren't
-            // reusing a closed fd.
+            // If we were able to duplicate the log fd, check to be sure it
+            // wasn't invalidated (and thus possibly closed and reused before
+            // the call to dup(2)), so we know we aren't reusing a closed fd.
             if (get_txn_log_fd(commit_ts) == -1)
             {
                 throw invalid_log_fd(commit_ts);
