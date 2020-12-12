@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+	if (actuator.value < 5)
+	{
+		animal.age = 5;
+	}
+    }
+}
+// CHECK: No path between tables actuator and animal
+
