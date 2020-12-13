@@ -319,6 +319,15 @@ void campus_demo::campus::insert_event_registration(gaia::campus::person_t& pers
     auto id = gaia::campus::Registration_t::insert_row("ER1", buffer, buffer);
     auto registration = gaia::campus::Registration_t::get(id);
 
+    /*for(auto per : registration.PersonRegsitration_person_list())
+    {
+        if(0 == strcmp(per.name(), person.name()) )
+        {
+            commit_transaction();
+            return;
+        }
+    }*/
+
     // add the person to the registration
     registration.PersonRegsitration_person_list().insert(person);
 

@@ -31,7 +31,19 @@ ruleset campus_ruleset
         {
             auto cbc = i_Campus::get_callback_class();
             cbc->cb_alert("Campus Emergency", "---", 1, "");
-        }    
+        }   
+    }
+    {
+        if( Registration.LastOperation == INSERT )
+        {
+            Enrolled += 1;
+        } 
+
+        if( Events.LastOperation == UPDATE )
+        {
+            auto cbc = i_Campus::get_callback_class();
+            cbc->cb_alert("Enrolled", Events.Name, 0, "");
+        } 
 
         /*if( 0 == strcmp( Staff.StaffId, "aa" ) )
         {
