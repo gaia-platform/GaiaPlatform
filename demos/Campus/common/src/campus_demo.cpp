@@ -45,19 +45,19 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
     }
 
     //what kind of action?
-    if(msg->m_action == "Move To")
+    if(msg->m_action == m_person_action[person_action_enum::move_to])
     {
         begin_transaction();
         //-------
         commit_transaction();
     }
-    else if(msg->m_action == "Change Role")
+    else if(msg->m_action == m_person_action[person_action_enum::change_role])
     {
         begin_transaction();
         //---------
         commit_transaction();
     }
-    else if(msg->m_action == "Brandish Weapon")
+    else if(msg->m_action == m_person_action[person_action_enum::brandish_weapon])
     {
         begin_transaction();
         //update that person as a threat
@@ -82,14 +82,14 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
             m_messageBus->send_message(msg);
         }
     }    
-    else if(msg->m_action == "Disarm")
+    else if(msg->m_action == m_person_action[person_action_enum::disarm])
     {
         begin_transaction();
         //update that person as a threat
         update_person(found_person,false,found_person.location());
         commit_transaction();
     }    
-    else if(msg->m_action == "Register For Event")
+    else if(msg->m_action == m_person_action[person_action_enum::regsiter_for_event])
     {
         //begin_transaction();
         //Regsiter person for event
@@ -329,7 +329,7 @@ void campus_demo::campus::insert_event_registration(gaia::campus::person_t& pers
     }*/
 
     // add the person to the registration
-    registration.PersonRegsitration_person_list().insert(person);
+    person.RegistrationPerson_Registration_list().insert(registration);
 
     // add registration to event
     found_event.RegistrationEvents_Registration_list().insert(registration);
@@ -339,18 +339,107 @@ void campus_demo::campus::insert_event_registration(gaia::campus::person_t& pers
 
 //*** public access ***********************
 
-std::vector<std::string> campus_demo::campus::get_event_list()
+std::vector<std::string> campus_demo::campus::get_event_name_list()
 {
-    std::vector<std::string> event_name_list;
+    std::vector<std::string> out_list;
 
     begin_transaction();
     for (auto& evnt : gaia::campus::Events_t::list()){
-        //auto en = gaia::campus::Events_t::get(evnt.gaia_id());
-        //en.Name = evnt.Name;
-        event_name_list.push_back(evnt.Name());
+        out_list.push_back(evnt.Name());
     }
     commit_transaction();
-    return event_name_list;
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_person_name_list()
+{
+    std::vector<std::string> out_list;
+
+    begin_transaction();
+    for (auto& person : gaia::campus::person_t::list()){
+        out_list.push_back(person.name());
+    }
+    commit_transaction();
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_person_action_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_person_action){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_actor_type_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_actor_type){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_person_role_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_person_roles){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+//------------------------------------------
+
+std::vector<std::string> campus_demo::campus::get_person_location_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_person_locations){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_car_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_cars){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_car_action_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_car_action){
+        out_list.push_back(action);
+    }
+
+    return out_list;
+}
+
+std::vector<std::string> campus_demo::campus::get_car_location_list()
+{
+    std::vector<std::string> out_list;
+
+    for (auto& action : m_car_locations){
+        out_list.push_back(action);
+    }
+
+    return out_list;
 }
 
 //*** Initialization ***********************
@@ -399,12 +488,12 @@ void campus_demo::campus::init_storage() {
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_eagle = gaia::campus::Rooms_t::get(room);
 
-    room = gaia::campus::Rooms_t::insert_row("1", "Crow", "1", 100);
+    room = gaia::campus::Rooms_t::insert_row("1", "Crow", "1", 2);
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_crow = gaia::campus::Rooms_t::get(room);
 
  
-    room = gaia::campus::Rooms_t::insert_row("2", "Nuthedge", "1", 10);
+    room = gaia::campus::Rooms_t::insert_row("2", "Nuthedge", "1", 1);
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_nuthedge = gaia::campus::Rooms_t::get(room);
 
@@ -454,35 +543,35 @@ void campus_demo::campus::init_storage() {
     campus.EventsCampus_Events_list().insert(evnt);
     auto evnt_orientation = gaia::campus::Events_t::get(evnt);
 
-    evnt_orientation.RoomEvents_Rooms_list().insert(room_eagle);
-    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
-
+    room_eagle.EventsRooms_Events_list().insert(evnt_orientation);
+    staff_bob.EventsStaff_Events_list().insert(evnt_orientation);
+    
     // event 2
 
     evnt = gaia::campus::Events_t::insert_row("E2", "Prom", "5/11/2020", "16:00", "18:00", 0);
     campus.EventsCampus_Events_list().insert(evnt);
     auto evnt_prom = gaia::campus::Events_t::get(evnt);
 
-    evnt_orientation.RoomEvents_Rooms_list().insert(room_crow);
-    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
-
+    room_crow.EventsRooms_Events_list().insert(evnt_prom);
+    staff_bob.EventsStaff_Events_list().insert(evnt_prom);
+    
     // event 3
 
     evnt = gaia::campus::Events_t::insert_row("E3", "Graduation", "5/11/2020", "16:00", "18:00", 0);
     campus.EventsCampus_Events_list().insert(evnt);
     auto evnt_grad = gaia::campus::Events_t::get(evnt);
 
-    evnt_orientation.RoomEvents_Rooms_list().insert(room_nuthedge);
-    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
-
+    room_nuthedge.EventsRooms_Events_list().insert(evnt_grad);
+    staff_bob.EventsStaff_Events_list().insert(evnt_grad);
+    
     // event 4
 
     evnt = gaia::campus::Events_t::insert_row("E4", "Neil DeGrasse Tyson Roast", "5/11/2020", "16:00", "18:00", 0);
     campus.EventsCampus_Events_list().insert(evnt);
     auto evnt_ndtr = gaia::campus::Events_t::get(evnt);
 
-    evnt_orientation.RoomEvents_Rooms_list().insert(room_falcon);
-    evnt_orientation.StaffEvents_Staff_list().insert(staff_bob);
+    room_falcon.EventsRooms_Events_list().insert(evnt_ndtr);
+    staff_bob.EventsStaff_Events_list().insert(evnt_ndtr);
 
     tx.commit();
 }

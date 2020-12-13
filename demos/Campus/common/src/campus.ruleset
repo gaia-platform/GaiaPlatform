@@ -37,13 +37,27 @@ ruleset campus_ruleset
         if( Registration.LastOperation == INSERT )
         {
             Enrolled += 1;
+            Rooms.Capacity = 2;
+
+            auto cbc = i_Campus::get_callback_class();
+            char buffer[256];
+            sprintf(buffer, "Event: %s, Regsitrant: %s, Enrolled: %hu, Capacity %hu", 
+                @Events.Name, @person.name, @Enrolled, @Rooms.Capacity);
+            cbc->cb_alert("Registration", buffer, 0, "");
+
+            if(@Enrolled > @Rooms.Capacity)
+            {
+                sprintf(buffer, "Event: %s, Enrolled: %hu, Capacity %hu", 
+                    @Events.Name, @Enrolled, @Rooms.Capacity);
+                cbc->cb_alert("Event over room capacty", buffer, 0, "");                
+            }
         } 
 
-        if( Events.LastOperation == UPDATE )
+        /*if( Events.LastOperation == UPDATE )
         {
             auto cbc = i_Campus::get_callback_class();
             cbc->cb_alert("Enrolled", Events.Name, 0, "");
-        } 
+        }*/ 
 
         /*if( 0 == strcmp( Staff.StaffId, "aa" ) )
         {

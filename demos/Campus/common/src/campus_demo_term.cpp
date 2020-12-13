@@ -26,20 +26,6 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0])) 
 #define CTRLD 4
 
-// These will be pulled from DB
-char * m_choices1[] = {(char*)"Person", (char*)"Car", (char*)"Exit", (char*)NULL};
-char * m_people[] = {(char*)"Unidentified", (char*)"Bob Kabob", (char*)"Sam Kabam", (char*)"Exit", (char*)NULL};
-char * m_cars[] = {(char*)"Unidentified", (char*)"Ford Fairlane", (char*)"Purple Lambo", (char*)"Exit", (char*)NULL};
-
-char * m_personAction[] = {(char*)"Move To", (char*)"Change Role", (char*)"Register For Event", (char*)"Brandish Weapon", (char*)"Disarm", (char*)"Exit", (char*)NULL};
-char * m_carAction[] = {(char*)"Move To", (char*)"Exit", (char*)NULL};
-
-char * m_personLocations[] = {(char*)"Front Door", (char*)"Lab", (char*)"Main Hall", (char*)"Exit", (char*)NULL};
-char * m_personRoles[] = {(char*)"Stranger", (char*)"Student", (char*)"Teacher", (char*)"Parent", (char*)"Exit", (char*)NULL};
-char * m_carLocations[] = {(char*)"Entry", (char*)"Garage", (char*)"Concourse", (char*)"Exit", (char*)NULL};
-
-char * m_events[] = {(char*)"Orientation", (char*)"Graduation", (char*)"Prom", (char*)"Neil DeGrasse Tyson Roast", (char*)"Exit", (char*)NULL};
-
 class terminal_menu
 {
 
@@ -133,7 +119,7 @@ void put_menu(char *name, ITEM** items, int h, int w, int row, int col)
     wrefresh(menuWindow);
     attron(COLOR_PAIR(2));
     mvprintw(LINES - 2, 0, "Use PageUp and PageDown to scoll down or up a page of items");
-    mvprintw(LINES - 1, 0, "Arrow Keys to navigate (F1 to Exit)");
+    mvprintw(LINES - 1, 0, "Arrow Keys to navigate");
     attroff(COLOR_PAIR(2));
     refresh();
 
@@ -442,9 +428,9 @@ void actor_type_selected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Person"))
-        put_menu((char *)"Actor", m_people, &terminal_menu::person_selected, ARRAY_SIZE(m_people), 10, 40, m_menu_row, 44);
+        put_menu((char *)"Actor", m_cdp->get_person_name_list(), &terminal_menu::person_selected, 10, 40, m_menu_row, 44);
     else if(0 == strcmp(name, "Car"))
-        put_menu((char *)"Actor", m_cars, &terminal_menu::car_selected, ARRAY_SIZE(m_cars), 10, 40, m_menu_row, 44);     
+        put_menu((char *)"Actor", m_cdp->get_car_list(), &terminal_menu::car_selected, 10, 40, m_menu_row, 44);     
 } 
 
 /**
@@ -465,7 +451,7 @@ void person_selected(char *name)
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", m_personAction, &terminal_menu::persons_action_selected, ARRAY_SIZE(m_personAction), 10, 40, m_menu_row, 84);   
+    put_menu((char *)"Action", m_cdp->get_person_action_list(), &terminal_menu::persons_action_selected, 10, 40, m_menu_row, 84);   
 } 
 
 /**
@@ -486,7 +472,7 @@ void car_selected(char *name)
     //showSelection(name);
 
     // show sub menu
-    put_menu((char *)"Action", m_carAction, &terminal_menu::car_action_selected, ARRAY_SIZE(m_carAction), 10, 40, m_menu_row, 84);   
+    put_menu((char *)"Action", m_cdp->get_car_action_list(), &terminal_menu::car_action_selected, 10, 40, m_menu_row, 84);   
 } 
 
 /**
@@ -507,11 +493,11 @@ void persons_action_selected(char *name)
 
     // show sub menu
     if(0 == strcmp(name, "Move To"))
-        put_menu((char *)"Location", m_personLocations, &terminal_menu::persons_action_moveto_selected, ARRAY_SIZE(m_personLocations), 10, 40, m_menu_row, 124);
+        put_menu((char *)"Location", m_cdp->get_person_location_list(), &terminal_menu::persons_action_moveto_selected, 10, 40, m_menu_row, 124);
     else if(0 == strcmp(name, "Register For Event"))
-        put_menu((char *)"Register For Event", m_cdp->get_event_list(), &terminal_menu::persons_action_register_for_event_selected, 10, 40, m_menu_row, 124);   
+        put_menu((char *)"Register For Event", m_cdp->get_event_name_list(), &terminal_menu::persons_action_register_for_event_selected, 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Change Role"))
-        put_menu((char *)"New Role", m_personRoles, &terminal_menu::persons_action_change_role_selected, ARRAY_SIZE(m_personRoles), 10, 40, m_menu_row, 124);   
+        put_menu((char *)"New Role", m_cdp->get_person_role_list(), &terminal_menu::persons_action_change_role_selected, 10, 40, m_menu_row, 124);   
     else if(0 == strcmp(name, "Brandish Weapon"))
         do_the_change();    
     else if(0 == strcmp(name, "Disarm"))
@@ -532,7 +518,7 @@ void car_action_selected(char *name)
     m_actionName = name;
     m_arg1 = "";
 
-    put_menu((char *)"Location", m_carLocations, &terminal_menu::car_action_change_location_selected, ARRAY_SIZE(m_carLocations), 10, 40, m_menu_row, 124);   
+    put_menu((char *)"Location", m_cdp->get_car_location_list(), &terminal_menu::car_action_change_location_selected, 10, 40, m_menu_row, 124);   
 } 
 
 /**
@@ -647,7 +633,7 @@ std::shared_ptr<message::i_message_bus> get_message_bus()
 void run()
 {    
     // show first menu
-    put_menu((char *)"Actor Type", m_choices1, &terminal_menu::actor_type_selected, ARRAY_SIZE(m_choices1), 10, 40, m_menu_row, 4); 
+    put_menu((char *)"Actor Type", m_cdp->get_actor_type_list(), &terminal_menu::actor_type_selected, 10, 40, m_menu_row, 4); 
 
     // shut down ncurses
     endwin();

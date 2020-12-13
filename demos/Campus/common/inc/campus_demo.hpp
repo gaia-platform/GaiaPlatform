@@ -139,6 +139,21 @@ private:
     void cb_alert( std::string title, std::string body, 
         int severity, std::string arg1) override;
 
+    enum person_action_enum {move_to = 0, change_role = 1, regsiter_for_event = 2, brandish_weapon = 3, disarm = 4 };
+    std::string m_person_action[5] = {"Move To", "Change Role", "Register For Event", "Brandish Weapon", "Disarm"};
+
+    std::string m_actor_type[2] = {"Person", "Car"};
+
+    std::string m_person_roles[4] = {"Stranger", "Student", "Teacher", "Parent"};
+
+    std::string m_cars[3] = {"Unidentified", "Ford Fairlane", "Purple Lambo"};
+
+    std::string m_car_action[1] = {"Move To"};
+
+    std::string m_person_locations[3] = {"Front Door", "Lab", "Main Hall"};
+
+    std::string m_car_locations[3] = {"Entry", "Garage", "Concourse"};
+
 public:
 
     campus();
@@ -167,7 +182,23 @@ public:
 
     int demo_test();
 
-    std::vector<std::string> get_event_list();
+    std::vector<std::string> get_actor_type_list();
+
+    std::vector<std::string> get_person_role_list();
+
+    std::vector<std::string> get_event_name_list();
+
+    std::vector<std::string> get_person_name_list();
+
+    std::vector<std::string> get_person_action_list();
+
+    std::vector<std::string> get_person_location_list();
+
+    std::vector<std::string> get_car_list();
+
+    std::vector<std::string> get_car_action_list();
+
+    std::vector<std::string> get_car_location_list();
 
 }; // class campus
 } // namespace campus_demo
