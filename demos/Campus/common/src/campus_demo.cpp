@@ -294,6 +294,31 @@ void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_
     p.update_row();
 }
 
+string campus_demo::campus::get_date_time_string(datetime_format format){
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer [80];
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+
+    switch(format)
+    {
+        case datetime_format::dat:
+        strftime (buffer,80,"%F",timeinfo);
+        break;        
+        
+        case datetime_format::tim:
+        strftime (buffer,80,"%T",timeinfo);
+        break;     
+
+        default:
+        strftime (buffer,80,"%F %T",timeinfo);
+        break;
+    }
+
+    return buffer;
+}
+
 void campus_demo::campus::insert_event_registration(gaia::campus::person_t& person, std::string event_name) {
 
     gaia::campus::Events_t found_event;
@@ -306,27 +331,14 @@ void campus_demo::campus::insert_event_registration(gaia::campus::person_t& pers
         return;
     }
 
-    time_t rawtime;
-    struct tm * timeinfo;
-    char buffer [80];
-    time (&rawtime);
-    timeinfo = localtime (&rawtime);
-    strftime (buffer,80,"%I:%M%p.",timeinfo);
+    auto dat = get_date_time_string(datetime_format::dat);
+    auto tim = get_date_time_string(datetime_format::tim);
 
     begin_transaction();
 
     // create registration
-    auto id = gaia::campus::Registration_t::insert_row("ER1", buffer, buffer);
+    auto id = gaia::campus::Registration_t::insert_row("ER1", dat.c_str(), tim.c_str());
     auto registration = gaia::campus::Registration_t::get(id);
-
-    /*for(auto per : registration.PersonRegsitration_person_list())
-    {
-        if(0 == strcmp(per.name(), person.name()) )
-        {
-            commit_transaction();
-            return;
-        }
-    }*/
 
     // add the person to the registration
     person.RegistrationPerson_Registration_list().insert(registration);
@@ -395,8 +407,6 @@ std::vector<std::string> campus_demo::campus::get_person_role_list()
 
     return out_list;
 }
-
-//------------------------------------------
 
 std::vector<std::string> campus_demo::campus::get_person_location_list()
 {

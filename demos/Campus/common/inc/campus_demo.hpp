@@ -128,6 +128,8 @@ private:
     gaia_id_t insert_person(const char* name, bool is_threat, const std::string location);
     void update_person(gaia::campus::person_t& person, bool is_threat, const std::string location);
     void insert_event_registration(gaia::campus::person_t& person, std::string event_name);
+    enum datetime_format {dat, tim, dattim};
+    string get_date_time_string(datetime_format format);
 
     void restore_default_values(); 
     void init_storage();
@@ -138,6 +140,8 @@ private:
         std::string actionName, std::string arg1) override;
     void cb_alert( std::string title, std::string body, 
         int severity, std::string arg1) override;
+
+    //*** literals etc ************************************
 
     enum person_action_enum {move_to = 0, change_role = 1, regsiter_for_event = 2, brandish_weapon = 3, disarm = 4 };
     std::string m_person_action[5] = {"Move To", "Change Role", "Register For Event", "Brandish Weapon", "Disarm"};
