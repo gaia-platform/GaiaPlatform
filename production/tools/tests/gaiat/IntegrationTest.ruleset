@@ -30,6 +30,7 @@ ruleset test4
     {
         if (sensor.LastOperation == INSERT)
         {
+            sensor.delete_row();
         }
     }
 }

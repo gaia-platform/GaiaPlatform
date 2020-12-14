@@ -58,6 +58,7 @@
 #include <deque>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace llvm {
@@ -4156,7 +4157,7 @@ public:
       Scope *S, CXXScopeSpec &SS, SourceLocation TemplateKWLoc,
       UnqualifiedId &Id, bool HasTrailingLParen, bool IsAddressOfOperand,
       std::unique_ptr<CorrectionCandidateCallback> CCC = nullptr,
-      bool IsInlineAsmIdentifier = false, Token *KeywordReplacement = nullptr, 
+      bool IsInlineAsmIdentifier = false, Token *KeywordReplacement = nullptr,
       bool isGaiaFieldTable = false);
 
   void DecomposeUnqualifiedId(const UnqualifiedId &Id,
@@ -4594,20 +4595,21 @@ public:
   CXXRecordDecl *getStdBadAlloc() const;
   EnumDecl *getStdAlignValT() const;
 
-  Decl *ActOnRulesetDefStart(Scope *S, 
+  Decl *ActOnRulesetDefStart(Scope *S,
                                SourceLocation RulesetLoc,
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
-  void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace); 
+  void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,  bool isGaiaFieldTable);
+  std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
+
+private:
   QualType getFieldType (IdentifierInfo *id, SourceLocation loc) ;
   QualType getTableType (IdentifierInfo *id, SourceLocation loc) ;
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
-  
 
-private:
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value
   // of a ComparisonCategoryType enumerator.
@@ -9189,7 +9191,7 @@ public:
                                        SourceLocation StartLoc,
                                        SourceLocation LParenLoc,
                                        SourceLocation EndLoc);
-  
+
   OMPClause *ActOnOpenMPSingleExprWithArgClause(
       OpenMPClauseKind Kind, ArrayRef<unsigned> Arguments, Expr *Expr,
       SourceLocation StartLoc, SourceLocation LParenLoc,
@@ -9244,7 +9246,7 @@ public:
   /// Called on well-formed 'unified_address' clause.
   OMPClause *ActOnOpenMPUnifiedSharedMemoryClause(SourceLocation StartLoc,
                                                   SourceLocation EndLoc);
-  
+
   /// Called on well-formed 'reverse_offload' clause.
   OMPClause *ActOnOpenMPReverseOffloadClause(SourceLocation StartLoc,
                                              SourceLocation EndLoc);

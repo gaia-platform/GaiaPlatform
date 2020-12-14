@@ -123,6 +123,32 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
     return retVal;
 }
 
+unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
+{
+    unordered_set<string>  retVal;
+    try
+    {
+        DBMonitor monitor;
+
+        for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
+        {
+            catalog::gaia_table_t tbl = field.gaia_table();
+            if (!tbl)
+            {
+                Diag(loc, diag::err_invalid_table_field) << field.name();
+                return unordered_set<string>();
+            }
+            retVal.emplace(tbl.name());
+        }
+    }
+    catch (exception e)
+    {
+        Diag(loc, diag::err_catalog_exception) << e.what();
+        return unordered_set<string>();
+    }
+
+    return retVal;
+}
 
 void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceLocation loc) const
 {
@@ -196,7 +222,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    for (const auto f : tableDescription->second)
+    for (const auto &f : tableDescription->second)
     {
         string fieldName = f.first;
         QualType fieldType = f.second;
@@ -253,6 +279,8 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
     vector<string> tables;
     RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
     RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
+
     if (attr != nullptr)
     {
         for (const IdentifierInfo * id : attr->tables())
@@ -260,9 +288,7 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
             tables.push_back(id->getName().str());
         }
     }
-
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
-    if (tables.size() == 0)
+    else
     {
         for (auto it : tableData)
         {
@@ -279,7 +305,6 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
             Diag(loc,diag::err_invalid_table_name) << tableName;
             return Context.VoidTy;
         }
-
         auto fieldDescription = tableDescription->second.find(fieldName);
         if(fieldDescription != tableDescription->second.end())
         {
