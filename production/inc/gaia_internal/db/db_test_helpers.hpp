@@ -147,7 +147,8 @@ public:
 
     void inline start_and_retain_persistent_store()
     {
-        start(true, false);
+        bool stop_server = true, remove_persistent_store = false;
+        start(stop_server, remove_persistent_store);
     }
 
     void inline stop()
