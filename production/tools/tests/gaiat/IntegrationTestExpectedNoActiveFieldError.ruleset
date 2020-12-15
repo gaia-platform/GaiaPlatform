@@ -1,0 +1,10 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+
+    }
+}
+// CHECK: No active fields for the rule
+

@@ -84,49 +84,63 @@ struct navigation_code_data_t
     string postfix;
 };
 
+// Suppress these clang-tidy warnings for now.
+const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
+const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+
 string generate_general_subscription_code()
 {
-    string return_value = "namespace gaia {\n namespace rules{\nextern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
+    string return_value;
+    return_value
+        .append("namespace gaia\n")
+        .append("{\n")
+        .append("namespace rules\n")
+        .append("{\n")
+        .append("extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n")
+        .append("{\n");
 
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("if (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n{\n::")
-            .append(ruleset)
-            .append("::subscribeRuleset_")
-            .append(ruleset)
-            .append("();\nreturn;\n}\n");
+            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("    {\n")
+            .append("        ::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("        return;\n")
+            .append("    }\n");
     }
 
-    return_value += "throw ruleset_not_found(ruleset_name);\n}\n"
-                    "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n{\n";
+    return_value
+        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append("}\n")
+        .append("extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n")
+        .append("{\n");
 
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("if (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n{\n::")
-            .append(ruleset)
-            .append("::unsubscribeRuleset_")
-            .append(ruleset)
-            .append("();\nreturn;\n}\n");
+            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("    {\n")
+            .append("        ::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("        return;\n")
+            .append("    }\n");
     }
 
-    return_value += "throw ruleset_not_found(ruleset_name);\n}\n"
-                    "extern \"C\" void initialize_rules()\n{\n";
+    return_value
+        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append("}\n")
+        .append("extern \"C\" void initialize_rules()\n")
+        .append("{\n");
+
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("::")
-            .append(ruleset)
-            .append("::subscribeRuleset_")
-            .append(ruleset)
-            .append("();\n");
+            .append("    ::" + ruleset)
+            .append("::subscribe_ruleset_" + ruleset + "();\n");
     }
-    return_value += "}\n}\n}";
+    return_value
+        .append("}\n")
+        .append("} // namespace rules\n")
+        .append("} // namespace gaia\n");
 
     return return_value;
 }
@@ -377,7 +391,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     {
         g_generation_error = true;
         llvm::errs()
-            << "Table " << anchor_table << " doesn't reference any table and not referenced by any other tables";
+            << "No path between " << anchor_table << " and other tables";
         return navigation_code_data_t();
     }
     auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
@@ -465,13 +479,28 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
                             if (p.linking_field.empty())
                             {
                                 return_value.prefix
-                                    += "for (auto " + p.name + " : " + source_table + "." + p.name + "_list())\n{\n";
+                                    .append(c_nolint_range_copy)
+                                    .append("\nfor (auto ")
+                                    .append(p.name)
+                                    .append(" : ")
+                                    .append(source_table)
+                                    .append(".")
+                                    .append(p.name)
+                                    .append("_list())\n{\n");
                             }
                             else
                             {
                                 return_value.prefix
-                                    += "for (auto " + p.name + " : "
-                                    + source_table + "." + p.linking_field + "_" + p.name + "_list())\n{\n";
+                                    .append(c_nolint_range_copy)
+                                    .append("\nfor (auto ")
+                                    .append(p.name)
+                                    .append(" : ")
+                                    .append(source_table)
+                                    .append(".")
+                                    .append(p.linking_field)
+                                    .append("_")
+                                    .append(p.name)
+                                    .append("_list())\n{\n");
                             }
 
                             return_value.postfix += "}\n";
@@ -521,7 +550,8 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
                 if (linking_field.empty())
                 {
                     return_value.prefix
-                        .append("for (auto ")
+                        .append(c_nolint_range_copy)
+                        .append("\nfor (auto ")
                         .append(table)
                         .append(" : ")
                         .append(anchor_table)
@@ -532,7 +562,8 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
                 else
                 {
                     return_value.prefix
-                        .append("for (auto ")
+                        .append(c_nolint_range_copy)
+                        .append("\nfor (auto ")
                         .append(table)
                         .append(" : ")
                         .append(anchor_table)
@@ -587,7 +618,10 @@ void generate_rules(Rewriter& rewriter)
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         common_subscription_code
-            .append("rule_binding_t ")
+            .append("    ")
+            .append(c_nolint_identifier_naming)
+            .append("\n")
+            .append("    rule_binding_t ")
             .append(rule_name)
             .append("binding(\"")
             .append(g_current_ruleset)
@@ -605,7 +639,12 @@ void generate_rules(Rewriter& rewriter)
             .append("::")
             .append(rule_name)
             .append(");\n");
-        field_subscription_code = "field_position_list_t fields_" + rule_name + ";\n";
+
+        field_subscription_code
+            .append("    ")
+            .append(c_nolint_identifier_naming)
+            .append("\n")
+            .append("    field_position_list_t fields_" + rule_name + ";\n");
 
         if (fd.second.find("LastOperation") != fd.second.end())
         {
@@ -633,7 +672,7 @@ void generate_rules(Rewriter& rewriter)
                 }
 
                 field_subscription_code
-                    += "fields_" + rule_name + ".push_back(" + to_string(g_field_data.position) + ");\n";
+                    += "    fields_" + rule_name + ".push_back(" + to_string(g_field_data.position) + ");\n";
             }
         }
 
@@ -651,7 +690,7 @@ void generate_rules(Rewriter& rewriter)
         {
             g_current_ruleset_subscription
                 .append(field_subscription_code)
-                .append("subscribe_rule(gaia::")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -662,7 +701,7 @@ void generate_rules(Rewriter& rewriter)
                 .append("binding);\n");
             g_current_ruleset_unsubscription
                 .append(field_subscription_code)
-                .append("unsubscribe_rule(gaia::")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -676,13 +715,14 @@ void generate_rules(Rewriter& rewriter)
         if (contains_last_operation)
         {
             g_current_ruleset_subscription
-                .append("subscribe_rule(gaia::")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
                 .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
                 .append(rule_name)
-                .append("binding);\nsubscribe_rule(gaia::")
+                .append("binding);\n")
+                .append("    subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -693,7 +733,7 @@ void generate_rules(Rewriter& rewriter)
             if (g_delete_operation_in_rule)
             {
                 g_current_ruleset_subscription
-                    .append("subscribe_rule(gaia::")
+                    .append("    subscribe_rule(gaia::")
                     .append(g_table_db_data[table])
                     .append("::")
                     .append(table)
@@ -703,13 +743,14 @@ void generate_rules(Rewriter& rewriter)
             }
 
             g_current_ruleset_unsubscription
-                .append("unsubscribe_rule(gaia::")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
                 .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
                 .append(rule_name)
-                .append("binding);\nunsubscribe_rule(gaia::")
+                .append("binding);\n")
+                .append("    unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -719,7 +760,7 @@ void generate_rules(Rewriter& rewriter)
             if (g_delete_operation_in_rule)
             {
                 g_current_ruleset_unsubscription
-                    .append("unsubscribe_rule(gaia::")
+                    .append("    unsubscribe_rule(gaia::")
                     .append(g_table_db_data[table])
                     .append("::")
                     .append(table)
@@ -729,13 +770,20 @@ void generate_rules(Rewriter& rewriter)
             }
         }
 
+        g_current_ruleset_subscription.append("\n");
+        g_current_ruleset_unsubscription.append("\n");
+
         navigation_code_data_t navigation_code = generate_navigation_code(table);
+        string function_header = "\n";
+        function_header
+            .append(c_nolint_identifier_naming)
+            .append("\nvoid ")
+            .append(rule_name)
+            .append("(const rule_context_t* context)\n");
 
         if (rule_count == 1)
         {
-            rewriter.InsertText(
-                g_current_rule_declaration->getLocation(),
-                "\nvoid " + rule_name + "(const rule_context_t* context)\n");
+            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_header);
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 navigation_code.prefix);
@@ -745,12 +793,8 @@ void generate_rules(Rewriter& rewriter)
         }
         else
         {
-            rewriter.InsertTextBefore(
-                g_current_rule_declaration->getLocation(),
-                "\nvoid " + rule_name + "(const rule_context_t* context)\n"
-                    + insert_rule_preamble(
-                        rule_code + navigation_code.postfix,
-                        navigation_code.prefix));
+            function_header.append(insert_rule_preamble(rule_code + navigation_code.postfix, navigation_code.prefix));
+            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_header);
         }
 
         rule_count++;
@@ -1005,6 +1049,7 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
+                        g_active_fields[table_name].insert(field_name);
                         m_rewriter.InsertTextAfterToken(
                             op->getEndLoc(), "; w.update_row();return w." + field_name + ";}() ");
                     }
@@ -1248,9 +1293,9 @@ public:
             {
                 g_generated_subscription_code
                     += "namespace " + g_current_ruleset
-                    + "{\nvoid subscribeRuleset_" + ruleset_declaration->getName().str()
+                    + "{\nvoid subscribe_ruleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_subscription
-                    + "}\nvoid unsubscribeRuleset_" + ruleset_declaration->getName().str()
+                    + "}\nvoid unsubscribe_ruleset_" + g_current_ruleset
                     + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
             }
             g_current_ruleset = ruleset_declaration->getName().str();
@@ -1265,7 +1310,7 @@ public:
                     SourceRange(
                         ruleset_declaration->getBeginLoc(),
                         ruleset_declaration->getEndLoc()),
-                    "namespace " + g_current_ruleset + "\n{\n}\n");
+                    "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n");
             }
             else
             {
@@ -1275,6 +1320,9 @@ public:
                         ruleset_declaration->getBeginLoc(),
                         ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
                     "namespace " + g_current_ruleset + "\n{\n");
+
+                // Replace closing brace with namespace comment.
+                m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
             }
         }
     }
@@ -1627,8 +1675,9 @@ public:
 
         g_generated_subscription_code
             += "namespace " + g_current_ruleset
-            + "{\nvoid subscribeRuleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription + "}\n"
-            + "void unsubscribeRuleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n"
+            + "{\nvoid subscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription + "}\n"
+            + "void unsubscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_unsubscription + "}\n"
+            + "} // namespace " + g_current_ruleset + "\n"
             + generate_general_subscription_code();
 
         if (!shouldEraseOutputFiles() && !g_generation_error && !g_translation_engine_output_option.empty())
@@ -1673,5 +1722,11 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    if (result != 0 || g_generation_error)
+    {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }

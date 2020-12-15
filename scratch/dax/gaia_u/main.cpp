@@ -81,8 +81,8 @@ int main(int argc, const char**argv) {
     {
         show_all();
         // test refs.
-        test_refs();
-        show_all();
+        //test_refs();
+        //show_all();
     }
     else
     if (argc == 2 && (strcmp(argv[1], "-d") == 0))
