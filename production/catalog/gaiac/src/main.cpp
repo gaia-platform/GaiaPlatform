@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
+    bool remove_persistent_store = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -220,7 +221,14 @@ int main(int argc, char* argv[])
             }
             const char* path_to_db_server = argv[i];
             server.set_path(path_to_db_server);
-            server.start();
+            if (remove_persistent_store)
+            {
+                server.start();
+            }
+            else
+            {
+                server.start_and_retain_persistent_store();
+            }
         }
         else if (argv[i] == string("-o"))
         {
@@ -248,7 +256,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-destroy_db"))
         {
-            remove_persistent_store();
+            remove_persistent_store = true;
         }
         else
         {

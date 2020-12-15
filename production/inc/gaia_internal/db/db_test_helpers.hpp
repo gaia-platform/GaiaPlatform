@@ -30,17 +30,8 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // Duplicated from production/db/storage_engine/inc/se_server.hpp.
 // (That header should not be included by anything but the code that
 // instantiates the server.)
-constexpr char c_disable_persistence_flag[] = " --disable-persistence";
-
-// Erase the contents of the persistent directory but not the directory itself.
-inline void remove_persistent_store()
-{
-    std::string cmd = "rm -rf ";
-    cmd.append(c_persistent_directory_path);
-    cmd.append("/*");
-    std::cerr << cmd << std::endl;
-    ::system(cmd.c_str());
-}
+constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 inline void wait_for_server_init()
 {
@@ -118,13 +109,15 @@ public:
         set_path(nullptr);
     }
 
-    explicit db_server_t(const char* db_server_path, bool disable_persistence = false)
+    explicit db_server_t(
+        const char* db_server_path,
+        bool disable_persistence = false)
         : m_disable_persistence(disable_persistence)
     {
         set_path(db_server_path);
     }
 
-    void inline start(bool stop_server = true)
+    void inline start(bool stop_server = true, bool remove_persistent_store = true)
     {
         if (stop_server)
         {
@@ -135,7 +128,13 @@ public:
         std::string cmd = c_daemonize_command + m_server_path;
         if (m_disable_persistence)
         {
+            cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
+        }
+        if (remove_persistent_store)
+        {
+            cmd.append(" ");
+            cmd.append(c_reinitialize_persistent_store_flag);
         }
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
@@ -144,6 +143,12 @@ public:
         std::cerr << "Waiting for server to initialize..." << std::endl;
         wait_for_server_init();
         m_server_started = true;
+    }
+
+    void inline start_and_retain_persistent_store()
+    {
+        bool stop_server = true, remove_persistent_store = false;
+        start(stop_server, remove_persistent_store);
     }
 
     void inline stop()
@@ -173,6 +178,11 @@ public:
             terminate_path(m_server_path);
             m_server_path.append(gaia::db::c_se_server_exec_name);
         }
+    }
+
+    void inline disable_persistence()
+    {
+        m_disable_persistence = true;
     }
 
 private:

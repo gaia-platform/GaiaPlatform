@@ -2784,12 +2784,9 @@ bool server::txn_commit()
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
 void server::run(bool disable_persistence, bool reinitialize_persistent_store)
 {
-    if (reinitialize_persistent_store)
-    {
-        retail_assert(
-            !disable_persistence,
-            "remove_persistent_store can only be set if disable_persistence is unset!");
-    }
+    retail_assert(
+        !(disable_persistence && reinitialize_persistent_store),
+        "disable_persistence and reinitialize_persistent_store cannot both be enabled!");
 
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_disable_persistence = disable_persistence;
@@ -2820,6 +2817,7 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
 
         std::thread client_dispatch_thread(client_dispatch_handler);
+
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
         client_dispatch_thread.join();
