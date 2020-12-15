@@ -30,6 +30,6 @@ struct execution_flags_t
     }
 };
 
-}
-}
-}
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia
