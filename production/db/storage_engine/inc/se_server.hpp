@@ -267,7 +267,7 @@ private:
 
     static void clear_shared_memory();
 
-    static gaia::db::memory_manager::stack_allocator_t allocate_stack_allocator(
+    static gaia::db::memory_manager::stack_allocator_t allocate_from_stack_allocator(
         size_t txn_memory_request_size_bytes);
 
     static void init_memory_manager();

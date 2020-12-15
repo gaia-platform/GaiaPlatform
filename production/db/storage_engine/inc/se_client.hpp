@@ -103,15 +103,21 @@ private:
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
         static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
-    // If the largest object size if 64KB - it won't fit into a stack allocator of size 64KB due to other metadata created by the stack allocator.
+    // The largest object size of 64KB won't fit into a stack allocator of size 64KB
+    // due to other metadata created by the stack allocator, which is why we allot an additional 128 bytes of memory
+    // to the initial stack allocator size per transaction.
     static constexpr size_t c_initial_txn_memory_size_bytes = 64 * 1024 + 128;
+
+    // Note that the transaction will incrementally request more memory for the stack allocator upto a certain maximum size
+    // if it keeps running out of memory.
     static constexpr size_t c_max_memory_request_size_bytes = 16 * c_initial_txn_memory_size_bytes;
     static constexpr int c_memory_request_size_multiplier = 2;
+
     // Maintain a thread local variable to track the requested memory allocation size for the current transaction.
     thread_local static inline size_t s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 
-    // Load server initialized stack allocators on the client.
-    static void load_stack_allocator(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
+    // Load server initialized stack allocator on the client.
+    static void load_stack_allocator(const messages::memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr);
 
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,

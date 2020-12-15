@@ -49,7 +49,7 @@ using namespace gaia::db::memory_manager;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-stack_allocator_t server::allocate_stack_allocator(
+stack_allocator_t server::allocate_from_stack_allocator(
     size_t txn_memory_request_size_bytes)
 {
     retail_assert(txn_memory_request_size_bytes > 0, "Requested allocation size for the allocate_raw API should be greater than 0");
@@ -143,7 +143,7 @@ void server::handle_begin_txn(
     server_socket_cleanup.dismiss();
 
     auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
-    auto stack_allocator = allocate_stack_allocator(txn_memory_request_size_bytes);
+    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
 
     // The client must throw an appropriate exception if txn_begin() returns
     // c_invalid_gaia_txn_id. This can only happen when another beginning or
@@ -262,7 +262,7 @@ void server::handle_request_memory(
     auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
 
     FlatBufferBuilder builder;
-    auto stack_allocator = allocate_stack_allocator(txn_memory_request_size_bytes);
+    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &stack_allocator);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -568,16 +568,12 @@ void server::init_shared_memory()
 
 void server::init_memory_manager()
 {
-    execution_flags_t execution_flags;
-    execution_flags.enable_console_output = false;
-
     memory_manager.reset();
     memory_manager = make_unique<memory_manager_t>();
-    memory_manager->set_execution_flags(execution_flags);
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        memory_manager->free_old_offset(gaia_offset_to_address_offset(offset));
+        memory_manager->free_old_offset(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }
