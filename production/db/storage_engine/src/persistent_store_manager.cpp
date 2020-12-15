@@ -29,7 +29,7 @@ using namespace rocksdb;
 // Todo (Mihir) Take as input to some options file. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-323
 
 persistent_store_manager::persistent_store_manager()
-    : m_data(get_shared_data()), m_locators(get_shared_locators())
+    : m_counters(get_shared_counters()), m_locators(get_shared_locators())
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
@@ -115,7 +115,7 @@ void persistent_store_manager::append_wal_rollback_marker(const std::string& txn
     m_rdb_internal->rollback(txn_name);
 }
 
-void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, const std::string& txn_name)
+void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name)
 {
     retail_assert(log, "Transaction log is null!");
     // The key_count variable represents the number of puts + deletes.
@@ -191,8 +191,8 @@ void persistent_store_manager::recover()
     }
     // Check for any errors found during the scan
     m_rdb_internal->handle_rdb_error(it->status());
-    m_data->last_id = max_id;
-    m_data->last_type_id = max_type_id;
+    m_counters->last_id = max_id;
+    m_counters->last_type_id = max_type_id;
 
     // Ensure that other threads (with appropriate acquire barriers) immediately
     // observe the changed value. (This could be changed to a release barrier.)

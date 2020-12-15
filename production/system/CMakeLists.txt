@@ -19,6 +19,7 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
   "${GAIA_INTERNAL_INC}/rules"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
+  "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/schemas/loader/inc"
   "${GAIA_REPO}/production/db/storage_engine/inc"
   "${GAIA_REPO}/production/db/storage_engine/tests/" # TODO remove once RI is supported in EDC

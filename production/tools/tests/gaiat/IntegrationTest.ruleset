@@ -1,0 +1,35 @@
+// RUN: %gaiat %s -output t.cpp --
+
+ruleset test
+{
+}
+
+ruleset test1
+{
+    {
+        min_temp+=1;
+    }
+}
+
+ruleset test2
+{
+    {
+        max_temp++;
+    }
+}
+
+ruleset test3
+{
+    {
+      animal.age++;
+    }
+}
+
+ruleset test4
+{
+    {
+        if (sensor.LastOperation == INSERT)
+        {
+        }
+    }
+}

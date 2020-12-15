@@ -81,7 +81,7 @@ size_t base_memory_manager_t::calculate_raw_allocation_size(size_t requested_siz
         return c_allocation_alignment;
     }
 
-    size_t allocation_size = 0;
+    size_t allocation_size = requested_size;
     size_t extra_block_size = requested_size % c_allocation_alignment;
 
     if (extra_block_size > 0)

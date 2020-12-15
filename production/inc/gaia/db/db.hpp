@@ -61,6 +61,15 @@ public:
     }
 };
 
+class transaction_object_limit_exceeded : public common::gaia_exception
+{
+public:
+    transaction_object_limit_exceeded()
+    {
+        m_message = "Transaction attempted to update more objects than the system limit.";
+    }
+};
+
 class duplicate_id : public common::gaia_exception
 {
 public:
