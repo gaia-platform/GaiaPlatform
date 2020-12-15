@@ -129,21 +129,18 @@ error_code_t memory_manager_t::allocate_internal(
         return error_code_t::insufficient_memory_size;
     }
 
-    if (m_execution_flags.enable_extra_validations)
+    // Verify proper allocation alignment.
+    if (add_allocation_metadata)
     {
-        // Verify proper allocation alignment.
-        if (add_allocation_metadata)
-        {
-            retail_assert(
-                allocated_memory_offset % c_allocation_alignment == 0,
-                "Memory allocation was not made on a 64B boundary!");
-        }
-        else
-        {
-            retail_assert(
-                allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
-                "Raw memory allocation is not offset by 56B from a 64B boundary!");
-        }
+        retail_assert(
+            allocated_memory_offset % c_allocation_alignment == 0,
+            "Memory allocation was not made on a 64B boundary!");
+    }
+    else
+    {
+        retail_assert(
+            allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
+            "Raw memory allocation is not offset by 56B from a 64B boundary!");
     }
 
     return error_code_t::success;
@@ -175,27 +172,6 @@ error_code_t memory_manager_t::free_stack_allocator(
     }
     else
     {
-        // Iterate over all stack_allocator_t allocations and collect old memory offsets in free memory records.
-        for (size_t allocation_number = 1; allocation_number <= count_allocations; ++allocation_number)
-        {
-            stack_allocator_allocation_t* allocation_record = stack_allocator->get_allocation_record(allocation_number);
-            retail_assert(allocation_record != nullptr, "An unexpected null allocation record was retrieved!");
-
-            if (allocation_record->old_memory_offset != c_invalid_offset)
-            {
-                memory_allocation_metadata_t* allocation_metadata
-                    = read_allocation_metadata(allocation_record->old_memory_offset);
-                address_offset_t allocation_metadata_offset
-                    = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
-
-                // Add allocation to free memory block list.
-                unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
-                m_free_memory_list.emplace_back(
-                    allocation_metadata_offset,
-                    allocation_metadata->allocation_size);
-            }
-        }
-
         // Get the stack_allocator_t metadata.
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
         address_offset_t stack_allocator_metadata_offset
@@ -232,6 +208,25 @@ error_code_t memory_manager_t::free_stack_allocator(
     }
 
     return error_code_t::success;
+}
+
+void memory_manager_t::free_old_offset(const address_offset_t offset)
+{
+    retail_assert(offset != c_invalid_offset, "Invalid address_offset received when trying to deallocate object.");
+    memory_allocation_metadata_t* allocation_metadata
+        = read_allocation_metadata(offset);
+
+    retail_assert(allocation_metadata, "Allocation metadata during object deallocation should be valid.");
+    address_offset_t allocation_metadata_offset
+        = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
+
+    retail_assert(allocation_metadata_offset && allocation_metadata_offset != c_invalid_offset, "allocation_metadata_offset of object to be deallocated should be valid.");
+
+    // Add allocation to free memory block list.
+    unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+    m_free_memory_list.emplace_back(
+        allocation_metadata_offset,
+        allocation_metadata->allocation_size);
 }
 
 size_t memory_manager_t::get_main_memory_available_size() const

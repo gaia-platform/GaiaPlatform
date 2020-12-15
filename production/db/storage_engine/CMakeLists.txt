@@ -25,6 +25,8 @@ set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/storage_engine"
   "${GAIA_DB_INC}/storage_engine/inc"
+  "${GAIA_DB_INC}/inc/memory_manager"
+  "${GAIA_REPO}/production/db/inc/memory_manager"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
@@ -92,7 +94,7 @@ target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_client PUBLIC gaia_common)
-target_link_libraries(gaia_se_client PRIVATE gaia_payload_types ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_se_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -133,7 +135,7 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_se_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads rocks_wrapper ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
@@ -192,6 +194,7 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
 )
 
@@ -204,7 +207,7 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLA
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_se_client "tests/test_se_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client;gaia_direct")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct;gaia_memory_manager")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
 
 add_gtest(test_catalog_core
