@@ -19,7 +19,7 @@ namespace gaia
 namespace common
 {
 
-// Use a template to avoid a cast from void* in the caller.
+// We use a template to avoid a cast from void* in the caller.
 template <typename T>
 inline void map_fd(T*& addr, size_t length, int protection, int flags, int fd, size_t offset)
 {
@@ -33,7 +33,7 @@ inline void map_fd(T*& addr, size_t length, int protection, int flags, int fd, s
     addr = static_cast<T*>(mapping);
 }
 
-// We have to use a template because the compiler won't convert T* to void*&.
+// We use a template because the compiler won't convert T* to void*&.
 template <typename T>
 inline void unmap_fd(T*& addr, size_t length)
 {

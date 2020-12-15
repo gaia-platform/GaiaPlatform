@@ -7,7 +7,10 @@
 
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
+#include "retail_assert.hpp"
 #include "se_object.hpp"
+#include "stack_allocator.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -262,7 +265,7 @@ public:
     }
 
 protected:
-    gaia_ptr(gaia_id_t id, size_t size);
+    gaia_ptr(gaia_locator_t locator, gaia_offset_t offset);
 
     void allocate(size_t size);
 

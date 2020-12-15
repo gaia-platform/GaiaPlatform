@@ -157,13 +157,10 @@ error_code_t stack_allocator_t::allocate(
         allocation_record->memory_offset = next_allocation_offset + sizeof(memory_allocation_metadata_t);
         allocated_memory_offset = allocation_record->memory_offset;
 
-        if (m_execution_flags.enable_extra_validations)
-        {
-            // Verify proper allocation alignment.
-            retail_assert(
-                allocated_memory_offset % c_allocation_alignment == 0,
-                "Stack allocator memory allocation was not made on a 64B boundary!");
-        }
+        // Verify proper allocation alignment.
+        retail_assert(
+            allocated_memory_offset % c_allocation_alignment == 0,
+            "Stack allocator memory allocation was not made on a 64B boundary!");
     }
 
     m_metadata->next_allocation_offset += size_to_allocate;
