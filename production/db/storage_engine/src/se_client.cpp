@@ -698,7 +698,7 @@ void client::request_memory()
     s_txn_memory_request_size = s_txn_memory_request_size * c_memory_request_size_multiplier;
 }
 
-address_offset_t client::stack_allocator_allocate(
+address_offset_t client::allocate_from_stack_allocator(
     gaia_locator_t locator,
     address_offset_t old_slot_offset,
     size_t size)
@@ -749,7 +749,7 @@ address_offset_t client::allocate_object(
     address_offset_t old_slot_offset,
     size_t size)
 {
-    address_offset_t allocated_memory_offset = stack_allocator_allocate(locator, old_slot_offset, size);
+    address_offset_t allocated_memory_offset = allocate_from_stack_allocator(locator, old_slot_offset, size);
 
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);

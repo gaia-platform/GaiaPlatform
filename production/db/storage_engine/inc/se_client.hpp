@@ -124,7 +124,7 @@ private:
         gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
-    static gaia::db::memory_manager::address_offset_t stack_allocator_allocate(
+    static gaia::db::memory_manager::address_offset_t allocate_from_stack_allocator(
         gaia_locator_t locator,
         gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
