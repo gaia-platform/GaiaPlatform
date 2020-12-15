@@ -18,105 +18,98 @@ stack_allocator_t::stack_allocator_t()
     m_has_been_freed = false;
 }
 
-error_code_t stack_allocator_t::initialize(
+void stack_allocator_t::initialize(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
     size_t memory_size)
 {
     bool initialize_memory = true;
-    return initialize_internal(base_memory_address, memory_offset, memory_size, initialize_memory);
+    initialize_internal(base_memory_address, memory_offset, memory_size, initialize_memory);
 }
 
-error_code_t stack_allocator_t::load(
+void stack_allocator_t::load(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
     size_t memory_size)
 {
     bool initialize_memory = false;
-    return initialize_internal(base_memory_address, memory_offset, memory_size, initialize_memory);
+    initialize_internal(base_memory_address, memory_offset, memory_size, initialize_memory);
 }
 
-error_code_t stack_allocator_t::initialize_internal(
+void stack_allocator_t::initialize_internal(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
     size_t memory_size,
     bool initialize_memory)
 {
-    if (base_memory_address == nullptr || memory_offset == c_invalid_offset || memory_size == 0)
-    {
-        return error_code_t::invalid_argument_value;
-    }
+    retail_assert(
+        base_memory_address != nullptr,
+        "stack_allocator_t::initialize_internal was called with a null memory address!");
+    retail_assert(
+        memory_offset != c_invalid_offset,
+        "stack_allocator_t::initialize_internal was called with an invalid memory offset!");
+    retail_assert(
+        memory_size > 0,
+        "stack_allocator_t::initialize_internal was called with a 0 memory size!");
 
-    if (!validate_address_alignment(base_memory_address))
-    {
-        return error_code_t::memory_address_not_aligned;
-    }
+    validate_address_alignment(base_memory_address);
+    validate_offset_alignment(memory_offset);
+    validate_size_alignment(memory_size);
 
-    if (!validate_offset_alignment(memory_offset))
-    {
-        return error_code_t::memory_offset_not_aligned;
-    }
-
-    if (!validate_size_alignment(memory_size))
-    {
-        return error_code_t::memory_size_not_aligned;
-    }
-
-    if (memory_size < sizeof(stack_allocator_metadata_t))
-    {
-        return error_code_t::insufficient_memory_size;
-    }
+    retail_assert(
+        memory_size > sizeof(stack_allocator_metadata_t),
+        "Stack allocator was initialized with too little memory!");
 
     // Save our parameters.
     m_base_memory_address = base_memory_address;
-    m_base_memory_offset = memory_offset;
+    m_start_memory_offset = memory_offset;
     m_total_memory_size = memory_size;
+
+    // Now that we set our parameters, we can do one last sanity check.
+    validate_managed_memory_range();
 
     // Map the metadata information for quick reference.
     uint8_t* metadata_address
-        = m_base_memory_address + m_base_memory_offset + m_total_memory_size - sizeof(stack_allocator_metadata_t);
+        = m_base_memory_address + m_start_memory_offset + m_total_memory_size - sizeof(stack_allocator_metadata_t);
     m_metadata = reinterpret_cast<stack_allocator_metadata_t*>(metadata_address);
 
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->next_allocation_offset = m_base_memory_offset;
+        m_metadata->next_allocation_offset = m_start_memory_offset;
     }
 
     if (m_execution_flags.enable_console_output)
     {
         output_debugging_information(initialize_memory ? "initialize" : "load");
     }
-
-    return error_code_t::success;
 }
 
-error_code_t stack_allocator_t::allocate(
+address_offset_t stack_allocator_t::allocate(
     slot_id_t slot_id,
     address_offset_t old_slot_offset,
-    size_t memory_size,
-    address_offset_t& allocated_memory_offset) const
+    size_t memory_size) const
 {
-    allocated_memory_offset = c_invalid_offset;
+    address_offset_t allocated_memory_offset = c_invalid_offset;
 
-    if (m_metadata == nullptr)
-    {
-        return error_code_t::not_initialized;
-    }
+    retail_assert(m_metadata != nullptr, "Stack allocator was not initialized!");
 
-    if (old_slot_offset != c_invalid_offset
-        && !validate_offset_alignment(old_slot_offset))
+    if (old_slot_offset != c_invalid_offset)
     {
-        return error_code_t::memory_offset_not_aligned;
+        validate_offset_alignment(old_slot_offset);
     }
 
     // Adjust the requested memory size, to ensure proper alignment.
     if (memory_size != 0)
     {
         memory_size = calculate_allocation_size(memory_size);
-        retail_assert(
-            validate_size(memory_size) == error_code_t::success,
-            "Adjusted memory sizes should always be multiples of 8 bytes!");
+        validate_size(memory_size);
+    }
+
+    // Quick exit for memory requests that are way too large.
+    if (memory_size > m_total_memory_size)
+    {
+        return allocated_memory_offset;
     }
 
     // Each allocation will get its own metadata.
@@ -131,7 +124,7 @@ error_code_t stack_allocator_t::allocate(
     if (next_allocation_offset + size_to_allocate
         > metadata_offset - (count_allocations + 1) * sizeof(stack_allocator_allocation_t))
     {
-        return error_code_t::insufficient_memory_size;
+        return allocated_memory_offset;
     }
 
     if (size_to_allocate > 0)
@@ -171,33 +164,25 @@ error_code_t stack_allocator_t::allocate(
         output_debugging_information(context);
     }
 
-    return error_code_t::success;
+    return allocated_memory_offset;
 }
 
-error_code_t stack_allocator_t::deallocate(slot_id_t slot_id, address_offset_t slot_offset) const
+void stack_allocator_t::deallocate(slot_id_t slot_id, address_offset_t slot_offset) const
 {
-    address_offset_t allocated_offset;
-
-    error_code_t error_code = allocate(slot_id, slot_offset, 0, allocated_offset);
+    address_offset_t allocated_offset = allocate(slot_id, slot_offset, 0);
 
     retail_assert(
         allocated_offset == c_invalid_offset,
         "allocate(0) should have returned a c_invalid_offset offset!");
-
-    return error_code;
 }
 
-error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) const
+void stack_allocator_t::deallocate(size_t count_allocations_to_keep) const
 {
-    if (m_metadata == nullptr)
-    {
-        return error_code_t::not_initialized;
-    }
+    retail_assert(m_metadata != nullptr, "Stack allocator was not initialized!");
 
-    if (count_allocations_to_keep > m_metadata->count_allocations)
-    {
-        return error_code_t::allocation_count_too_large;
-    }
+    retail_assert(
+        count_allocations_to_keep <= m_metadata->count_allocations,
+        "stack_allocator_t::deallocate() was called with more allocations than were made!");
 
     m_metadata->count_allocations = count_allocations_to_keep;
 
@@ -208,8 +193,6 @@ error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) con
     {
         output_debugging_information("deallocate");
     }
-
-    return error_code_t::success;
 }
 
 stack_allocator_metadata_t* stack_allocator_t::get_metadata() const
@@ -259,7 +242,7 @@ address_offset_t stack_allocator_t::calculate_next_allocation_offset() const
     // Default to starting to allocate from beginning.
     // This will get overwritten if we find any allocation in the list of our allocation entries
     // (which may consist only of deallocations).
-    address_offset_t next_allocation_offset = m_base_memory_offset;
+    address_offset_t next_allocation_offset = m_start_memory_offset;
 
     // Iterate backwards over our allocation entries
     // and find out the offset at which we can next allocate memory

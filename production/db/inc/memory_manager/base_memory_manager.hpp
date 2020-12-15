@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "error_codes.hpp"
 #include "memory_types.hpp"
 #include "structures.hpp"
 
@@ -47,7 +46,7 @@ public:
 
     // Basic accessors.
     uint8_t* get_base_memory_address() const;
-    address_offset_t get_base_memory_offset() const;
+    address_offset_t get_start_memory_offset() const;
     size_t get_total_memory_size() const;
 
     // Sets stack_allocator_t execution flags.
@@ -58,13 +57,15 @@ public:
     static size_t calculate_raw_allocation_size(size_t requested_size);
 
     // Sanity checks.
-    static bool validate_address_alignment(const uint8_t* const memory_address);
-    static bool validate_offset_alignment(address_offset_t memory_offset);
-    static bool validate_size_alignment(size_t memory_size);
+    static void validate_address_alignment(const uint8_t* const memory_address);
+    static void validate_offset_alignment(address_offset_t memory_offset);
+    static void validate_size_alignment(size_t memory_size);
 
-    error_code_t validate_address(const uint8_t* const memory_address) const;
-    error_code_t validate_offset(address_offset_t memory_offset) const;
-    error_code_t validate_size(size_t memory_size) const;
+    void validate_managed_memory_range() const;
+
+    void validate_address(const uint8_t* const memory_address) const;
+    void validate_offset(address_offset_t memory_offset) const;
+    void validate_size(size_t memory_size) const;
 
     // Gets the offset corresponding to a memory address.
     address_offset_t get_offset(const uint8_t* const memory_address) const;
@@ -79,8 +80,8 @@ protected:
     // The base memory address relative to which we compute our offsets.
     uint8_t* m_base_memory_address;
 
-    // The base memory offset at which our buffer starts (in case we only own a window into a larger memory block).
-    address_offset_t m_base_memory_offset;
+    // The memory offset at which our buffer starts (in case we only own a window into a larger memory block).
+    address_offset_t m_start_memory_offset;
 
     // The total size of the memory segment in which we operate.
     size_t m_total_memory_size;

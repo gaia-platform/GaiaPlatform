@@ -57,20 +57,15 @@ stack_allocator_t server::allocate_from_stack_allocator(
         "Requested allocation size for the allocate_raw API should be greater than 0!");
 
     // Offset gets assigned; no need to set it.
-    address_offset_t stack_allocator_offset;
-
-    auto error = memory_manager->allocate_raw(txn_memory_request_size_bytes, stack_allocator_offset);
-    if (error != error_code_t::success)
+    address_offset_t stack_allocator_offset = memory_manager->allocate_raw(txn_memory_request_size_bytes);
+    if (stack_allocator_offset == c_invalid_offset)
     {
-        throw memory_allocation_error("Memory manager allocate_raw failure.", error);
+        throw memory_allocation_error("Memory manager ran out of memory during allocate_raw() call!");
     }
 
     std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
-    error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
-    if (error != error_code_t::success)
-    {
-        throw memory_allocation_error("Stack allocator initialization failure.", error);
-    }
+    stack_allocator->initialize(
+        reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
 
     // Add created stack_allocator to the list of active stack allocators.
     s_active_stack_allocators.push_back(std::move(stack_allocator));
@@ -520,7 +515,7 @@ static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offse
     {
         stack_allocator_info = Createstack_allocator_info_t(
             builder,
-            stack_allocator->get_base_memory_offset(),
+            stack_allocator->get_start_memory_offset(),
             stack_allocator->get_total_memory_size());
     }
     return Creatememory_allocation_info_t(builder, stack_allocator_info);
@@ -660,13 +655,11 @@ address_offset_t server::allocate_object(
     size_t size)
 {
     retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
-    address_offset_t offset = c_invalid_offset;
-    error_code_t error = memory_manager->allocate(size + sizeof(se_object_t), offset);
-    if (error != error_code_t::success)
+    address_offset_t offset = memory_manager->allocate(size + sizeof(se_object_t));
+    if (offset == c_invalid_offset)
     {
-        throw memory_allocation_error("Error when creating objects.", error);
+        throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
     }
-    retail_assert(offset != -c_invalid_offset, "Invalid offset post object creation.");
     update_locator(locator, offset);
     return offset;
 }
