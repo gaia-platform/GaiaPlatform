@@ -1,5 +1,6 @@
 #include <string.h>
 #include "rule_helpers.hpp"
+#include "data/data_helpers.hpp"
 
 ruleset event_planner
 {
@@ -9,6 +10,7 @@ ruleset event_planner
     // Requires:  Staff <- register later
     //  Requires: Person
     {
+        event_planner::log("Rule 1");
         if (Buildings.LastOperation == INSERT)
         {
             auto building = gaia::gaia_u::Buildings_t::get(Buildings.gaia_id());
@@ -17,6 +19,7 @@ ruleset event_planner
     }
 
     {
+        event_planner::log("Rule 2");
         if (DoorLocked)
         {
             DoorLocked = false;
@@ -29,6 +32,7 @@ ruleset event_planner
     // Note that this is not currently possible if the event has any reference defined
     //
     {
+        event_planner::log("Rule 3");
         if (Events.LastOperation == DELETE)
         {
             event_planner::cancel_event(Events.gaia_id());
@@ -38,15 +42,17 @@ ruleset event_planner
     // When a new room is added then adjust the restricted capacity
     // according to the restriction
     {
+        event_planner::log("Rule 4");
         if (Rooms.LastOperation == INSERT)
         {
-            RestrictedCapacity = Capacity * (PercentFull / 100.0);
+            RestrictedCapacity = @Capacity * (PercentFull / 100.0);
         }
     }
 
     // If a restriction to PercentFull changes, then update all the rooms Restricted Capacity
     // capacity.
     {
+        event_planner::log("Rule 5");
         RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
@@ -61,16 +67,16 @@ ruleset event_planner
 
     // If the room capacity has changed and is less than the enrollment then remove the room
     {
+        event_planner::log("Rule 6");
         // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
         if (RestrictedCapacity < @Enrolled)
         {
-            printf("Room '%s' cannot support Event '%s'\n", @RoomName, @Events.Name);
-            printf("Event '%s' has '%u' enrollments but the restricted capacity is '%u'\n",
+            char buffer[128];
+            sprintf(buffer, "Event '%s' has '%u' enrollments but the restricted capacity is '%u'.  Attempting to change location.",
                 @Events.Name, @Enrolled, RestrictedCapacity);
             
-            // Would like to do this but the translation engine can't currently understand reference fields for 
-            // explicit navigation
-            //Events.Room_Rooms.Room_Events_list.erase(Events);
+            event_planner::log(buffer);
+            //printf("DBG:  Setting ChangeLocation for event '%s'\n", @Events.Name);
             ChangeLocation = true;
         }
     }
@@ -83,8 +89,11 @@ ruleset event_planner
     // Search for room in the same building first and then
     // expand to other rooms if required.
      {
+        char buffer[128];
+        event_planner::log("Rule 7");
         if (!ChangeLocation)
         {
+            event_planner::log("!ChangeLocation", @Events.Name);
             return;
         }
 
@@ -94,11 +103,13 @@ ruleset event_planner
         // then is no need find another room.
         if (@RestrictedCapacity >= @Enrolled)
         {
+            event_planner::log("@RestrictedCapacity >= @Enrolled", @Events.Name);
             return;
         }
 
-        printf("'%s' needs a new location because room '%s' doesn't have the capacity.\n",
+        sprintf(buffer,"ChangeLocation:  Event '%s' needs a new location because room '%s' doesn't have the capacity.",
             @Events.Name, @RoomName);
+        event_planner::log(buffer);
 
         // Try to find a room that works in the same building
         auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
@@ -130,19 +141,17 @@ ruleset event_planner
                         // We are done!
                         return;
                     }
-                    else
+
+                    if (!candidate_room)
                     {
-                        if (!candidate_room)
-                        {
-                            candidate_room = room;
-                        }
+                        candidate_room = room;
                     }
-                    
                 }
             }
         }
 
         // Couldn't find a room in the same building so look in other buildings.
+        // Even if we found a candidate_room above we may find one that is available.
         for (auto building : gaia::gaia_u::Buildings_t::list())
         {
             if (building == this_building)
@@ -160,14 +169,10 @@ ruleset event_planner
                         // We are done!
                         return;
                     }
-                    else
+                    if (!candidate_room)
                     {
-                        if (!candidate_room)
-                        {
-                            candidate_room = room;
-                        }
+                        candidate_room = room;
                     }
-                    
                 }
             }
         }
@@ -176,18 +181,20 @@ ruleset event_planner
         // but not on the date we need.  Go ahead and move the room and then change the date.
         if (candidate_room)
         {
-            printf("Found a room but need to reschedule ...\n");
+            event_planner::log("Found a room for event but need to reschedule ...", @Events.Name);
             event_planner::move_event_room(event, this_room, candidate_room);
             ChangeDate = true;
         }
         else
         {
-            printf("Could not find a room.  Need to start dropping enrollments ...\n");
+            event_planner::log("Could not find a room for event.  Need to drop enrollments ...", @Events.Name);
             DropEnrollments = true;
         }
     }
 
     {
+        char buffer[128];
+        event_planner::log("Rule 8");
         if (!ChangeDate)
         {
             return;
@@ -206,6 +213,10 @@ ruleset event_planner
             time_t new_date =  mktime(date_info);
             if (event_planner::is_room_available(new_date, this_room))
             {
+                sprintf(buffer, "Changing date for event '%s' from '%s' to '%s'", @Events.Name,
+                    event_planner::convert_date(@Date).c_str(),
+                    event_planner::convert_date(new_date).c_str());
+                event_planner::log(buffer);
                 Date = new_date;
                 break;
             }
@@ -215,9 +226,44 @@ ruleset event_planner
     // A new date was set so we need to update the regsistration infomration
     // 
     {
+        event_planner::log("Rule 9");
         if (Date != 0)
         {
+            printf("[Date] %s\n", @Events.Name);
             // Date changed so send email to students who have registered for the event.
         }
     }
+
+    // We don't have a room anywhere on campus that can fit the number of enrollments so
+    // we need to stop dropping enrollments
+    {
+        char buffer[128];
+        event_planner::log("Rule 10");
+        // Send out notifications to all those who have registered
+        if (!DropEnrollments)
+        {
+            return;
+        }
+        DropEnrollments = false;
+        event_planner::log("DropEnrollments", @Events.Name);
+
+        // If the room size can accomadate the number of students enrolled
+        // then we are done.
+        if (@Enrolled <= @RestrictedCapacity)
+        {
+            return;
+        }
+
+        sprintf(buffer, "Dropping number of enrollments for event '%s' from '%u' to '%u'",
+            @Events.Name, @Enrolled, @RestrictedCapacity);
+        event_planner::log(buffer);
+
+        // Drop the enrollments to match the capacity we have.
+        Enrolled = @RestrictedCapacity;
+
+        // Drop registrations on a first come, first serve basis.
+        {
+        }
+    }
+
 }
