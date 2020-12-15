@@ -13,13 +13,14 @@ set(GAIA_MEMORY_MANAGER_INCLUDES
 message(VERBOSE "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.
-add_library(gaia_memory_manager SHARED
+add_library(gaia_memory_manager STATIC
   src/access_control.cpp
   src/base_memory_manager.cpp
   src/memory_manager.cpp
   src/stack_allocator.cpp)
 target_include_directories(gaia_memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
 set_target_properties(gaia_memory_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_property (TARGET gaia_memory_manager PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(gaia_memory_manager PRIVATE gaia_common)
 
 # Our unit tests.
