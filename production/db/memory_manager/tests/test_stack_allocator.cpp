@@ -17,9 +17,10 @@ using namespace gaia::db::memory_manager;
 
 void output_allocation_information(size_t requested_size, size_t allocated_size, address_offset_t offset)
 {
-    cout << endl
-         << requested_size << " bytes were requested and "
-         << allocated_size << " bytes were allocated at offset " << offset << "." << endl;
+    cout
+        << endl
+        << requested_size << " bytes were requested and "
+        << allocated_size << " bytes were allocated at offset " << offset << "." << endl;
 }
 
 void validate_allocation_record(
@@ -121,8 +122,9 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
-    cout << endl
-         << "Deallocate all but the first allocation." << endl;
+    cout
+        << endl
+        << "Deallocate all but the first allocation." << endl;
     stack_allocator->deallocate(1);
 
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
@@ -145,8 +147,9 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
-    cout << endl
-         << "Deallocate all allocations." << endl;
+    cout
+        << endl
+        << "Deallocate all allocations." << endl;
     stack_allocator->deallocate(0);
 
     ASSERT_EQ(0, stack_allocator->get_allocation_count());
