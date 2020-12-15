@@ -131,8 +131,6 @@ private:
 
     static void txn_cleanup();
 
-    static void sort_log();
-
     static void dedup_log();
 
     static void apply_txn_log(int log_fd);

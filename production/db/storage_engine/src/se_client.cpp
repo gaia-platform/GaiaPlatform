@@ -84,19 +84,24 @@ template <typename T_element_type>
 std::function<std::optional<T_element_type>()>
 client::get_stream_generator_for_socket(int stream_socket)
 {
-    // Verify the socket is the correct type for the semantics we assume.
+    // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
+
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_txn_active();
     gaia_txn_id_t owning_txn_id = s_txn_id;
+
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<T_element_type> batch_buffer;
+
     // The definition of the generator we return.
     return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket != -1, "Stream socket is invalid!");
+
         // The cursor should only be called from within the scope of its owning transaction.
         retail_assert(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
+
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
         {
@@ -111,6 +116,7 @@ client::get_stream_generator_for_socket(int stream_socket)
             {
                 throw_system_error("recv(MSG_PEEK) failed");
             }
+
             if (datagram_size == 0)
             {
                 // We received EOF from the server, so close
@@ -119,11 +125,14 @@ client::get_stream_generator_for_socket(int stream_socket)
                 // Tell the caller to stop iteration.
                 return std::nullopt;
             }
+
             // The datagram size must be an integer multiple of our datum size.
             retail_assert(datagram_size % sizeof(T_element_type) == 0, "Unexpected datagram size!");
+
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
             batch_buffer.resize(datagram_size);
+
             // Get the actual data.
             // This is a nonblocking read, since the previous blocking
             // read will not return until data is available.
@@ -134,12 +143,15 @@ client::get_stream_generator_for_socket(int stream_socket)
                 retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
                 throw_system_error("recv failed");
             }
+
             // Since our buffer is exactly the same size as the datagram,
             // we should read exactly the number of bytes in the datagram.
             retail_assert(bytes_read == datagram_size, "Bytes read differ from datagram size!");
         }
+
         // At this point we know our buffer is non-empty.
         retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
@@ -154,26 +166,32 @@ client::get_stream_generator_for_socket(int stream_socket)
 std::function<std::optional<int>()>
 client::get_fd_stream_generator_for_socket(int stream_socket)
 {
-    // Verify the socket is the correct type for the semantics we assume.
+    // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
+
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<int> batch_buffer;
+
     // The definition of the generator we return.
     return [stream_socket, batch_buffer]() mutable -> std::optional<int> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket != -1, "Stream socket is invalid!");
+
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
         {
             // We only need a 1-byte buffer due to our datagram size convention.
             uint8_t msg_buf[1] = {0};
+
             // Resize the vector for maximum fd count, since we don't know
             // beforehand how many we'll get.
             batch_buffer.resize(c_max_fd_count);
             size_t fd_count = batch_buffer.size();
+
             // We need to set throw_on_zero_bytes_read=false in this call, since
             // we expect EOF to be returned when the stream is exhausted.
             size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
+
             // Our datagrams contain one byte by convention, since we need to
             // distinguish empty datagrams from EOF (even though Linux allows
             // ancillary data with empty datagrams).
@@ -182,19 +200,24 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
                 // We received EOF from the server, so close
                 // client socket and stop iteration.
                 close_fd(stream_socket);
+
                 // Tell the caller to stop iteration.
                 return std::nullopt;
             }
+
             // The datagram size must be 1 byte according to our protocol.
             retail_assert(datagram_size == 1, "Unexpected datagram size!");
             retail_assert(
                 fd_count > 0 && fd_count <= c_max_fd_count,
                 "Unexpected fd count!");
+
             // Resize the vector to its actual fd count.
             batch_buffer.resize(fd_count);
         }
+
         // At this point we know our buffer is non-empty.
         retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
         int next_fd = batch_buffer.back();
@@ -235,62 +258,76 @@ static void build_client_request(
     builder.Finish(message);
 }
 
-// Sorts log records by ascending order of locator value.
-void client::sort_log()
+// Coalesces multiple updates to a single locator into the last update. In the
+// future, some intermediate update log records can be eliminated by updating
+// objects in-place, but not all of them (e.g., any size-changing updates to
+// variable-size fields must copy the whole object first).
+//
+// REVIEW: Currently we leak all object versions from "duplicate" log records
+// removed by this method! We need to pass a list of the offsets of removed
+// versions to the memory manager for deallocation, possibly in a separate
+// shared memory object.
+void client::dedup_log()
 {
     retail_assert(s_log, "Transaction log must be mapped!");
-    // We use stable_sort() to preserve the order of multiple updates to the same locator.
+
+    // First sort the record array so we can call std::unique() on it. We use
+    // stable_sort() to preserve the order of multiple updates to the same
+    // locator.
     std::stable_sort(
         &s_log->log_records[0],
         &s_log->log_records[s_log->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
-}
 
-// Coalesces multiple updates to a single locator into the last update.
-// In the future, some intermediate update log records can be eliminated by
-// updating objects in-place, but not all of them (e.g., any size-changing
-// updates to variable-size fields must copy the whole object first).
-void client::dedup_log()
-{
-    retail_assert(s_log, "Transaction log must be mapped!");
     // This is a bit weird: we want to preserve the *last* update to a locator,
     // but std::unique preserves the *first* duplicate it encounters.
     // So we reverse the sorted array so that the last update will be the first
     // that std::unique sees, then reverse the deduplicated array so that locators
     // are again in ascending order.
     std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+
     // More weirdness: we need to record the initial offset of the first log
     // record for each locator, so we can fix up the initial offset of its last
     // log record (the one we will keep) with this offset. Otherwise we'll get
     // bogus write conflicts because the initial offset of the last log record
     // for a locator doesn't match its last known offset in the locator segment.
     // Since the array is reversed, we'll see the first log record for a locator
-    // last, so we get the desired behavior if we overwrite the last seen entry.
+    // last, so we get the desired behavior if we overwrite the last seen entry
+    // in the initial offsets map.
     std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
-    for (size_t i = 0; i < s_log->count; i++)
+
+    for (size_t i = 0; i < s_log->count; ++i)
     {
         gaia_locator_t locator = s_log->log_records[i].locator;
         gaia_offset_t initial_offset = s_log->log_records[i].old_offset;
         initial_offsets[locator] = initial_offset;
     }
+
     txn_log_t::log_record_t* unique_array_end = std::unique(
         &s_log->log_records[0],
         &s_log->log_records[s_log->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
             return lhs.locator == rhs.locator;
         });
+
+    // It's OK to leave the duplicate log records at the end of the array, since
+    // they'll be removed when we truncate the txn log memfd before sending it
+    // to the server.
     size_t unique_array_len = unique_array_end - s_log->log_records;
     s_log->count = unique_array_len;
+
     // Now that all log records for each locator are deduplicated, reverse the
     // array again to order by locator value in ascending order.
     std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+
     // Now we need to fix up each log record with the initial offset we recorded earlier.
     retail_assert(
         s_log->count == initial_offsets.size(),
         "Count of deduped log records must equal number of unique initial offsets!");
-    for (size_t i = 0; i < s_log->count; i++)
+
+    for (size_t i = 0; i < s_log->count; ++i)
     {
         gaia_locator_t locator = s_log->log_records[i].locator;
         gaia_offset_t initial_offset = initial_offsets[locator];
@@ -305,8 +342,10 @@ void client::clear_shared_memory()
 {
     // This is intended to be called before a session is established.
     verify_no_session();
+
     // We closed our original fd for the data segment, so we only need to unmap it.
     unmap_fd(s_data, sizeof(*s_data));
+
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     close_fd(s_fd_locators);
@@ -316,8 +355,10 @@ void client::txn_cleanup()
 {
     // Destroy the log memory mapping.
     unmap_fd(s_log, c_initial_log_size);
+
     // Destroy the log fd.
     close_fd(s_fd_log);
+
     // Destroy the locator mapping.
     unmap_fd(s_locators, sizeof(*s_locators));
 }
@@ -331,18 +372,23 @@ int client::get_session_socket()
     {
         throw_system_error("socket creation failed");
     }
+
     auto cleanup_session_socket = make_scope_guard([&]() {
         close_fd(session_socket);
     });
+
     sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
+
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
     retail_assert(strlen(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
+
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
     ::strncpy(&server_addr.sun_path[1], c_se_server_socket_name, sizeof(server_addr.sun_path) - 1);
+
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
@@ -350,6 +396,7 @@ int client::get_session_socket()
     {
         throw_system_error("connect failed");
     }
+
     cleanup_session_socket.dismiss();
     return session_socket;
 }
@@ -370,8 +417,10 @@ void client::begin_session()
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
+
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
+
     // Assert relevant fd's and pointers are in clean state.
     retail_assert(s_data == nullptr, "Data segment uninitialized");
     retail_assert(s_fd_locators == -1, "Locators file descriptor uninitialized");
@@ -406,6 +455,7 @@ void client::begin_session()
     retail_assert(fd_counters != -1, "Invalid counters fd detected!");
     retail_assert(fd_data != -1, "Invalid data fd detected!");
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
+
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto cleanup_mapping_fds = make_scope_guard([fd_counters = fd_counters,
                                                  fd_data = fd_data,
@@ -417,6 +467,7 @@ void client::begin_session()
         close_fd(fd_data);
         close_fd(fd_id_index);
     });
+
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto cleanup_locator_fd = make_scope_guard([fd_locators = fd_locators]() mutable {
         // We should only close the locator fd if we are unwinding from an
@@ -447,6 +498,7 @@ void client::load_stack_allocator(const memory_allocation_info_t* allocation_inf
     // Create and load stack allocator.
     stack_allocator_t stack_allocator;
     stack_allocator.load(data_mapping_base_addr, stack_allocator_info->stack_allocator_offset(), stack_allocator_info->stack_allocator_size());
+
     // Set the current stack allocator.
     s_current_stack_allocator.reset();
     s_current_stack_allocator = std::make_unique<stack_allocator_t>(stack_allocator);
@@ -556,7 +608,7 @@ void client::apply_txn_log(int log_fd)
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, get_fd_size(log_fd));
     });
-    for (size_t i = 0; i < txn_log->count; i++)
+    for (size_t i = 0; i < txn_log->count; ++i)
     {
         auto lr = txn_log->log_records + i;
         (*s_locators)[lr->locator] = lr->new_offset;
@@ -603,9 +655,6 @@ void client::commit_transaction()
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
-
-    // Sort log records by locator value.
-    sort_log();
 
     // Remove intermediate update log records.
     // FIXME: this leaks all intermediate object versions!!!

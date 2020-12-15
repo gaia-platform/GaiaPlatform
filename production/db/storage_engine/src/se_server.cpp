@@ -52,22 +52,29 @@ using namespace gaia::common::scope_guard;
 stack_allocator_t server::allocate_from_stack_allocator(
     size_t txn_memory_request_size_bytes)
 {
-    retail_assert(txn_memory_request_size_bytes > 0, "Requested allocation size for the allocate_raw API should be greater than 0");
+    retail_assert(
+        txn_memory_request_size_bytes > 0,
+        "Requested allocation size for the allocate_raw API should be greater than 0!");
+
     // Offset gets assigned; no need to set it.
     address_offset_t stack_allocator_offset;
+
     auto error = memory_manager->allocate_raw(txn_memory_request_size_bytes, stack_allocator_offset);
     if (error != error_code_t::success)
     {
         throw memory_allocation_error("Memory manager allocate_raw failure.", error);
     }
+
     std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
     error = stack_allocator->initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
     if (error != error_code_t::success)
     {
         throw memory_allocation_error("Stack allocator initialization failure.", error);
     }
+
     // Add created stack_allocator to the list of active stack allocators.
     s_active_stack_allocators.push_back(std::move(stack_allocator));
+
     // Return stack allocator object.
     return *s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
 }
@@ -82,6 +89,7 @@ void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
+
     // This message should only be received after the client thread was first initialized.
     retail_assert(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
@@ -90,6 +98,7 @@ void server::handle_connect(
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
+
     int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
@@ -98,37 +107,47 @@ void server::handle_begin_txn(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::BEGIN_TXN, "Unexpected event received!");
+
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         "Current event is inconsistent with state transition!");
+
     // Validate that no memory is allocated for current transaction.
-    retail_assert(s_active_stack_allocators.empty(), "Stale memory allocations should not exist on current session.");
+    retail_assert(
+        s_active_stack_allocators.empty(),
+        "Stale memory allocations should not exist in current session.");
 
     auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(request->data_type() == request_data_t::memory_info, "A call to begin_transaction() must provide memory allocation information.");
+    retail_assert(
+        request->data_type() == request_data_t::memory_info,
+        "A call to begin_transaction() must provide memory allocation information.");
+
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
+
     // This allocates a new begin_ts for this txn and initializes its entry.
     // Since it can fail spuriously (by having the begin_ts entry invalidated
     // before it can be initialized), we loop until it succeeds. This seems
     // preferable to exposing a spurious failure in begin_transaction() to
     // clients.
     gaia_txn_id_t begin_ts = c_invalid_gaia_txn_id;
-    size_t retry_count = 0;
     while (begin_ts == c_invalid_gaia_txn_id)
     {
         begin_ts = txn_begin();
-        retry_count++;
     }
     s_txn_id = begin_ts;
+
     // Ensure that there are no undecided txns in our snapshot window.
     validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
+
     // Open a stream socket to send all applicable txn log fds to the client.
     auto commit_ts_generator = get_commit_ts_generator_for_begin_ts(s_txn_id);
+
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
+
     // The client socket should unconditionally be closed on exit since it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
@@ -138,7 +157,9 @@ void server::handle_begin_txn(
     auto server_socket_cleanup = make_scope_guard([&]() {
         close_fd(server_socket);
     });
+
     start_fd_stream_producer(server_socket, commit_ts_generator);
+
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
 
@@ -170,7 +191,9 @@ void server::free_stack_allocators(bool deallocate_stack_allocator)
 
 void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Cleanup stack allocators on commit/rollback only.");
+    retail_assert(
+        event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN,
+        "Cleanup stack allocators on commit/rollback only.");
 
     // Deallocate stack allocator in case of an abort or rollback.
     bool deallocate_stack_allocator = !commit_success;
@@ -183,15 +206,18 @@ void server::handle_rollback_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
+
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
         "Current event is inconsistent with state transition!");
+
+    // Set our txn status to TXN_TERMINATED.
     set_active_txn_terminated(s_txn_id);
+
     // Update the saved watermark and perform associated maintenance tasks.
-    // We set terminated status first so we can advance the watermark past our
-    // own begin_ts.
     update_apply_watermark(s_txn_id);
+
     s_txn_id = c_invalid_gaia_txn_id;
     get_memory_info_from_request_and_free(event, false);
 }
@@ -200,14 +226,17 @@ void server::handle_commit_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::COMMIT_TXN, "Unexpected event received!");
+
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
         "Current event is inconsistent with state transition!");
+
     // Get the log fd and mmap it.
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
     retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+
     // We need to keep the log fd around until it's applied to the shared
     // locator view, so we only close the log fd if an exception is thrown.
     // Aborted txns only have their log fds invalidated and closed after the
@@ -216,6 +245,7 @@ void server::handle_commit_txn(
     auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(s_fd_log);
     });
+
     // Check that the log memfd was sealed for writes.
     int seals = ::fcntl(s_fd_log, F_GET_SEALS);
     if (seals == -1)
@@ -223,6 +253,7 @@ void server::handle_commit_txn(
         throw_system_error("fcntl(F_GET_SEALS) failed");
     }
     retail_assert(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
+
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
     map_fd(s_log, get_fd_size(s_fd_log), PROT_READ, MAP_PRIVATE, s_fd_log, 0);
@@ -230,8 +261,10 @@ void server::handle_commit_txn(
     auto cleanup_log = make_scope_guard([]() {
         unmap_fd(s_log, s_log->size());
     });
+
     // Actually commit the transaction.
     bool success = txn_commit();
+
     // Ideally, we would immediately clean up the log of an aborted txn, but
     // this complicates reasoning about safe concurrent validation (we want to
     // maintain the invariant that a log is never cleaned up until the watermark
@@ -249,11 +282,20 @@ void server::handle_commit_txn(
 void server::handle_request_memory(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect event type for requesting more memory.");
+    retail_assert(
+        event == session_event_t::REQUEST_MEMORY,
+        "Incorrect event type for requesting more memory.");
+
     // This event never changes session state.
-    retail_assert(old_state == new_state, "Requesting more memory shouldn't cause session state to change.");
+    retail_assert(
+        old_state == new_state,
+        "Requesting more memory shouldn't cause session state to change.");
+
     // This API is only invoked mid transaction.
-    retail_assert(old_state == session_state_t::TXN_IN_PROGRESS, "Old state when requesting more memory from server should be TXN_IN_PROGRESS.");
+    retail_assert(
+        old_state == session_state_t::TXN_IN_PROGRESS,
+        "Old state when requesting more memory from server should be TXN_IN_PROGRESS.");
+
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::memory_info,
@@ -273,18 +315,22 @@ void server::handle_decide_txn(
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         "Unexpected event received!");
+
     retail_assert(
         old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
         "Current event is inconsistent with state transition!");
+
     // We need to clear transactional state after the decision has been
     // returned, but don't need to free any resources.
     auto cleanup = make_scope_guard([&]() {
         s_txn_id = c_invalid_gaia_txn_id;
         s_fd_log = -1;
     });
+
     FlatBufferBuilder builder;
     build_server_reply(builder, event, old_state, new_state, s_txn_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
     // Update the saved watermark and perform associated maintenance tasks. This
     // will block new transactions on this session thread, but that is a
     // feature, not a bug, since it provides natural backpressure on clients who
@@ -300,10 +346,14 @@ void server::handle_decide_txn(
 void server::handle_client_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::CLIENT_SHUTDOWN, "Unexpected event received!");
+    retail_assert(
+        event == session_event_t::CLIENT_SHUTDOWN,
+        "Unexpected event received!");
+
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
         "Current event is inconsistent with state transition!");
+
     // If this event is received, the client must have closed the write end of the socket
     // (equivalent of sending a FIN), so we need to do the same. Closing the socket
     // will send a FIN to the client, so they will read EOF and can close the socket
@@ -320,10 +370,14 @@ void server::handle_client_shutdown(
 void server::handle_server_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::SERVER_SHUTDOWN, "Unexpected event received!");
+    retail_assert(
+        event == session_event_t::SERVER_SHUTDOWN,
+        "Unexpected event received!");
+
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
         "Current event is inconsistent with state transition!");
+
     // This transition should only be triggered on notification of the server shutdown event.
     // Since we are about to shut down, we can't wait for acknowledgment from the client and
     // should just close the session socket. As noted above, setting the shutdown flag will
@@ -338,21 +392,23 @@ std::pair<int, int> server::get_stream_socket_pair()
     // We use SOCK_SEQPACKET because it supports both datagram and connection
     // semantics: datagrams allow buffering without framing, and a connection
     // ensures that client returns EOF after server has called shutdown(SHUT_WR).
-    int socket_pair[2];
-    constexpr int c_client_index = 0;
-    constexpr int c_server_index = 1;
+    int socket_pair[2] = {-1};
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
     {
         throw_system_error("socketpair failed");
     }
-    int client_socket = socket_pair[c_client_index];
-    int server_socket = socket_pair[c_server_index];
-    auto socket_cleanup = make_scope_guard([&]() {
+
+    auto [client_socket, server_socket] = socket_pair;
+    // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
+    auto socket_cleanup = make_scope_guard([client_socket = client_socket,
+                                            server_socket = server_socket]() mutable {
         close_fd(client_socket);
         close_fd(server_socket);
     });
+
     // Set server socket to be nonblocking, since we use it within an epoll loop.
     set_non_blocking(server_socket);
+
     socket_cleanup.dismiss();
     return std::pair{client_socket, server_socket};
 }
@@ -360,7 +416,10 @@ std::pair<int, int> server::get_stream_socket_pair()
 void server::handle_request_stream(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
+    retail_assert(
+        event == session_event_t::REQUEST_STREAM,
+        "Unexpected event received!");
+
     // This event never changes session state.
     retail_assert(
         old_state == new_state,
@@ -379,11 +438,14 @@ void server::handle_request_stream(
     retail_assert(
         request->data_type() == request_data_t::table_scan,
         "Unexpected request data type");
+
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
+
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
+
     // The client socket should unconditionally be closed on exit since it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
@@ -393,9 +455,12 @@ void server::handle_request_stream(
     auto server_socket_cleanup = make_scope_guard([&]() {
         close_fd(server_socket);
     });
+
     start_stream_producer(server_socket, id_generator);
+
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
+
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
@@ -409,6 +474,7 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     {
         return;
     }
+
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     for (auto t : s_valid_transitions)
@@ -416,20 +482,25 @@ void server::apply_transition(session_event_t event, const void* event_data, int
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
         {
             session_state_t new_state = t.transition.new_state;
+
             // If the transition's new state is ANY, then keep the state the same.
             if (new_state == session_state_t::ANY)
             {
                 new_state = s_session_state;
             }
+
             session_state_t old_state = s_session_state;
             s_session_state = new_state;
+
             if (t.transition.handler)
             {
                 t.transition.handler(fds, fd_count, event, event_data, old_state, s_session_state);
             }
+
             return;
         }
     }
+
     // If we get here, we haven't found any compatible transition.
     // TODO: consider propagating exception back to client?
     throw invalid_session_transition(
@@ -465,7 +536,8 @@ void server::build_server_reply(
 {
     const auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, memory_allocation_reply);
-    const auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    const auto server_reply = Createserver_reply_t(
+        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -491,8 +563,10 @@ void server::init_shared_memory()
 {
     // The listening socket must not be open.
     retail_assert(s_listening_socket == -1, "Listening socket should not be open!");
+
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
+
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
@@ -561,8 +635,10 @@ void server::init_shared_memory()
     map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_id_index, 0);
 
     init_memory_manager();
+
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
     cleanup_memory.dismiss();
 }
 
@@ -701,15 +777,18 @@ sigset_t server::mask_signals()
 {
     sigset_t sigset;
     ::sigemptyset(&sigset);
+
     // We now special-case SIGHUP to disconnect all sessions and reinitialize all shared memory.
     ::sigaddset(&sigset, SIGHUP);
     ::sigaddset(&sigset, SIGINT);
     ::sigaddset(&sigset, SIGTERM);
     ::sigaddset(&sigset, SIGQUIT);
+
     // Per POSIX, we must use pthread_sigmask() rather than sigprocmask()
     // in a multithreaded program.
     // REVIEW: should this be SIG_SETMASK?
     ::pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+
     return sigset;
 }
 
@@ -718,7 +797,9 @@ void server::signal_handler(sigset_t sigset, int& signum)
     // Wait until a signal is delivered.
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
+
     cerr << "Caught signal " << ::strsignal(signum) << endl;
+
     signal_eventfd(s_server_shutdown_eventfd);
 }
 
@@ -741,9 +822,11 @@ void server::init_listening_socket()
     // Initialize the socket address structure.
     sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
+
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
     static_assert(sizeof(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
+
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
@@ -808,6 +891,7 @@ void server::client_dispatch_handler()
     {
         throw_system_error("epoll_create1 failed");
     }
+
     // We close the epoll descriptor before closing the listening socket, so any
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
@@ -843,7 +927,8 @@ void server::client_dispatch_handler()
             }
             throw_system_error("epoll_wait failed");
         }
-        for (int i = 0; i < ready_fd_count; i++)
+
+        for (int i = 0; i < ready_fd_count; ++i)
         {
             epoll_event ev = events[i];
             // We never register for anything but EPOLLIN,
@@ -863,8 +948,10 @@ void server::client_dispatch_handler()
                     throw_system_error("shutdown eventfd error");
                 }
             }
+
             // At this point, we should only get EPOLLIN.
             retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
+
             if (ev.data.fd == s_listening_socket)
             {
                 int session_socket = ::accept(s_listening_socket, nullptr, nullptr);
@@ -918,6 +1005,7 @@ void server::session_handler(int session_socket)
         throw_system_error("epoll_create1 failed");
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
     {
@@ -931,6 +1019,7 @@ void server::session_handler(int session_socket)
         }
     }
     epoll_event events[std::size(fds)];
+
     // Event to signal session-owned threads to terminate.
     s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
@@ -972,7 +1061,7 @@ void server::session_handler(int session_socket)
         size_t fd_buf_size = std::size(fd_buf);
         int* fds = nullptr;
         size_t fd_count = 0;
-        for (int i = 0; i < ready_fd_count && !s_session_shutdown; i++)
+        for (int i = 0; i < ready_fd_count && !s_session_shutdown; ++i)
         {
             epoll_event ev = events[i];
             if (ev.data.fd == s_session_socket)
@@ -1071,23 +1160,29 @@ void server::stream_producer_handler(
 {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
+
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
         close_fd(stream_socket);
     });
-    // Verify the socket is the correct type for the semantics we assume.
+
+    // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
-    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
+
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
+
+    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
+
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
         throw_system_error("epoll_create1 failed");
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
@@ -1098,6 +1193,7 @@ void server::stream_producer_handler(
     {
         throw_system_error("epoll_ctl failed");
     }
+
     epoll_event cancel_ev = {0};
     cancel_ev.events = EPOLLIN;
     cancel_ev.data.fd = cancel_eventfd;
@@ -1105,12 +1201,16 @@ void server::stream_producer_handler(
     {
         throw_system_error("epoll_ctl failed");
     }
+
     epoll_event events[2];
     bool producer_shutdown = false;
+
     // The userspace buffer that we use to construct a batch datagram message.
     std::vector<T_element_type> batch_buffer;
+
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
+
     while (!producer_shutdown)
     {
         // Block forever (we will be notified of shutdown).
@@ -1127,7 +1227,7 @@ void server::stream_producer_handler(
             }
             throw_system_error("epoll_wait failed");
         }
-        for (int i = 0; i < ready_fd_count && !producer_shutdown; i++)
+        for (int i = 0; i < ready_fd_count && !producer_shutdown; ++i)
         {
             epoll_event ev = events[i];
             if (ev.data.fd == stream_socket)
@@ -1141,6 +1241,7 @@ void server::stream_producer_handler(
                     // This flag is unmaskable, so we don't need to register for it.
                     int error = 0;
                     socklen_t err_len = sizeof(error);
+
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     cerr << "stream socket error: " << ::strerror(error) << endl;
@@ -1158,6 +1259,7 @@ void server::stream_producer_handler(
                     retail_assert(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
+
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
                     while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
                     {
@@ -1165,10 +1267,12 @@ void server::stream_producer_handler(
                         batch_buffer.push_back(next_val);
                         ++gen_iter;
                     }
+
                     // We need to send any pending data in the buffer, followed by EOF
                     // if we reached end of iteration. We let the client decide when to
                     // close the socket, since their next read may be arbitrarily delayed
                     // (and they may still have pending data).
+
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
@@ -1176,11 +1280,13 @@ void server::stream_producer_handler(
                         // dequeue entries in FIFO order using std::vector.pop_back(),
                         // we reverse the order of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
+
                         // We don't want to handle signals, so set
                         // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
                         ssize_t bytes_written = ::send(
                             stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element_type),
                             MSG_NOSIGNAL);
+
                         if (bytes_written == -1)
                         {
                             // It should never happen that the socket is no longer writable
@@ -1201,6 +1307,7 @@ void server::stream_producer_handler(
                             batch_buffer.clear();
                         }
                     }
+
                     // If we reached end of iteration, send EOF to client.
                     // (We still need to wait for the client to close their socket,
                     // since they may still have unread data, so we don't set the
@@ -1250,17 +1357,22 @@ void server::fd_stream_producer_handler(
         // since we hold the only fd pointing to this socket.
         close_fd(stream_socket);
     });
-    // Verify the socket is the correct type for the semantics we assume.
+
+    // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
-    auto gen_iter = generator_iterator_t<gaia_txn_id_t>(ts_generator_fn);
+
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
+
+    auto gen_iter = generator_iterator_t<gaia_txn_id_t>(ts_generator_fn);
+
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
         throw_system_error("epoll_create1 failed");
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
@@ -1278,12 +1390,16 @@ void server::fd_stream_producer_handler(
     {
         throw_system_error("epoll_ctl failed");
     }
+
     epoll_event events[2];
     bool producer_shutdown = false;
+
     // The userspace buffer that we use to construct batched ancillary data.
     std::vector<int> batch_buffer;
+
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_max_fd_count);
+
     while (!producer_shutdown)
     {
         // Block forever (we will be notified of shutdown).
@@ -1300,7 +1416,8 @@ void server::fd_stream_producer_handler(
             }
             throw_system_error("epoll_wait failed");
         }
-        for (int i = 0; i < ready_fd_count && !producer_shutdown; i++)
+
+        for (int i = 0; i < ready_fd_count && !producer_shutdown; ++i)
         {
             epoll_event ev = events[i];
             if (ev.data.fd == stream_socket)
@@ -1314,6 +1431,7 @@ void server::fd_stream_producer_handler(
                     // This flag is unmaskable, so we don't need to register for it.
                     int error = 0;
                     socklen_t err_len = sizeof(error);
+
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     cerr << "fd stream socket error: " << ::strerror(error) << endl;
@@ -1376,18 +1494,22 @@ void server::fd_stream_producer_handler(
                         retail_assert(
                             batch_buffer.size() <= c_max_fd_count,
                             "Buffer has more than the maximum allowed number of fds!");
+
                         for (auto& fd : batch_buffer)
                         {
                             retail_assert(is_fd_valid(fd), "invalid fd!");
                         }
+
                         // To simplify client state management by allowing the client to
                         // dequeue entries in FIFO order using std::vector.pop_back(),
                         // we reverse the order of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
+
                         // We only need a 1-byte buffer due to our datagram size convention.
                         uint8_t msg_buf[1] = {0};
                         ssize_t bytes_written = send_msg_with_fds(
                             stream_socket, batch_buffer.data(), batch_buffer.size(), msg_buf, sizeof(msg_buf));
+
                         if (bytes_written == -1)
                         {
                             // It should never happen that the socket is no longer writable
@@ -1453,8 +1575,10 @@ void server::start_fd_stream_producer(int stream_socket, std::function<std::opti
 std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type)
 {
     gaia_locator_t locator = 0;
+
     // Fix end of locator segment for length of scan, since it can change during scan.
     gaia_locator_t last_locator = s_counters->last_locator;
+
     return [=]() mutable -> std::optional<gaia_id_t> {
         // REVIEW: Now that the locator segment is no longer locked, we have no
         // transactional guarantees when reading from it. We need to either have
@@ -1477,6 +1601,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
                 return obj->id;
             }
         }
+
         // Signal end of iteration.
         return std::nullopt;
     };
@@ -1528,7 +1653,7 @@ std::function<std::optional<gaia_txn_id_t>()> server::get_commit_ts_generator_fo
     };
 }
 
-const char* server::status_to_str(uint64_t ts_entry)
+const char* server::status_to_str(ts_entry_t ts_entry)
 {
     retail_assert(
         (ts_entry != c_txn_entry_unknown) && (ts_entry != c_txn_entry_invalid),
@@ -1559,31 +1684,37 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
 {
     // NB: We generally cannot use the is_*_ts() functions since the entry could
     // change while we're reading it!
-    uint64_t entry = s_txn_info[ts];
+    ts_entry_t entry = s_txn_info[ts];
     std::bitset<c_txn_status_entry_bits> entry_bits(entry);
+
     cerr << "Timestamp entry for ts " << ts << ": " << entry_bits << endl;
+
     if (entry == c_txn_entry_unknown)
     {
         cerr << "UNKNOWN" << endl;
         return;
     }
+
     if (entry == c_txn_entry_invalid)
     {
         cerr << "INVALID" << endl;
         return;
     }
+
     cerr << "Type: " << (is_txn_entry_commit_ts(entry) ? "COMMIT" : "ACTIVE") << endl;
     cerr << "Status: " << status_to_str(entry) << endl;
+
     if (is_txn_entry_commit_ts(entry))
     {
         gaia_txn_id_t begin_ts = get_begin_ts(ts);
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
-        uint64_t entry = s_txn_info[begin_ts];
+        ts_entry_t entry = s_txn_info[begin_ts];
         std::bitset<c_txn_status_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for commit_ts entry's begin_ts " << begin_ts << ": " << entry_bits << endl;
         cerr << "Log FD for commit_ts entry: " << get_txn_log_fd(ts) << endl;
     }
+
     if (is_txn_entry_begin_ts(entry) && is_txn_entry_submitted(entry))
     {
         gaia_txn_id_t commit_ts = get_commit_ts(ts);
@@ -1591,7 +1722,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         {
             // We can't recurse here since we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
-            uint64_t entry = s_txn_info[commit_ts];
+            ts_entry_t entry = s_txn_info[commit_ts];
             std::bitset<c_txn_status_entry_bits> entry_bits(entry);
             cerr << "Timestamp entry for begin_ts entry's commit_ts " << commit_ts << ": " << entry_bits << endl;
         }
@@ -1614,19 +1745,21 @@ inline bool server::invalidate_unknown_ts(gaia_txn_id_t ts)
         return false;
     }
 
-    uint64_t expected_entry = c_txn_entry_unknown;
-    uint64_t invalid_entry = c_txn_entry_invalid;
-    bool invalidated = s_txn_info[ts].compare_exchange_strong(expected_entry, invalid_entry);
+    ts_entry_t expected_entry = c_txn_entry_unknown;
+    ts_entry_t invalid_entry = c_txn_entry_invalid;
+
+    bool has_invalidated_entry = s_txn_info[ts].compare_exchange_strong(expected_entry, invalid_entry);
     // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
     // submitting thread can transition the txn to these states.
-    if (!invalidated)
+    if (!has_invalidated_entry)
     {
+        // NB: expected_entry is an inout argument holding the previous value on failure!
         retail_assert(
             expected_entry != c_txn_entry_unknown,
             "An unknown timestamp entry cannot fail to be invalidated!");
     }
 
-    return invalidated;
+    return has_invalidated_entry;
 }
 
 inline bool server::is_unknown_ts(gaia_txn_id_t ts)
@@ -1639,7 +1772,7 @@ inline bool server::is_invalid_ts(gaia_txn_id_t ts)
     return s_txn_info[ts] == c_txn_entry_invalid;
 }
 
-inline bool server::is_txn_entry_begin_ts(uint64_t ts_entry)
+inline bool server::is_txn_entry_begin_ts(ts_entry_t ts_entry)
 {
     // The "unknown" value has the commit bit unset, so we need to check it as well.
     return ((ts_entry != c_txn_entry_unknown) && ((ts_entry & c_txn_status_commit_mask) == 0));
@@ -1647,11 +1780,11 @@ inline bool server::is_txn_entry_begin_ts(uint64_t ts_entry)
 
 inline bool server::is_begin_ts(gaia_txn_id_t ts)
 {
-    uint64_t ts_entry = s_txn_info[ts];
+    ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_begin_ts(ts_entry);
 }
 
-inline bool server::is_txn_entry_commit_ts(uint64_t ts_entry)
+inline bool server::is_txn_entry_commit_ts(ts_entry_t ts_entry)
 {
     // The "invalid" value has the commit bit set, so we need to check it as well.
     return ((ts_entry != c_txn_entry_invalid) && ((ts_entry & c_txn_status_commit_mask) == c_txn_status_commit_mask));
@@ -1659,11 +1792,11 @@ inline bool server::is_txn_entry_commit_ts(uint64_t ts_entry)
 
 inline bool server::is_commit_ts(gaia_txn_id_t ts)
 {
-    uint64_t ts_entry = s_txn_info[ts];
+    ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_commit_ts(ts_entry);
 }
 
-inline bool server::is_txn_entry_submitted(uint64_t ts_entry)
+inline bool server::is_txn_entry_submitted(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_submitted);
 }
@@ -1671,11 +1804,11 @@ inline bool server::is_txn_entry_submitted(uint64_t ts_entry)
 inline bool server::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
-    uint64_t begin_ts_entry = s_txn_info[begin_ts];
+    ts_entry_t begin_ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_submitted(begin_ts_entry);
 }
 
-inline bool server::is_txn_entry_validating(uint64_t ts_entry)
+inline bool server::is_txn_entry_validating(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_validating);
 }
@@ -1683,11 +1816,11 @@ inline bool server::is_txn_entry_validating(uint64_t ts_entry)
 inline bool server::is_txn_validating(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_validating(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_decided(uint64_t ts_entry)
+inline bool server::is_txn_entry_decided(ts_entry_t ts_entry)
 {
     constexpr uint64_t c_decided_mask = c_txn_status_decided << c_txn_status_flags_shift;
     return ((ts_entry & c_decided_mask) == c_decided_mask);
@@ -1695,12 +1828,12 @@ inline bool server::is_txn_entry_decided(uint64_t ts_entry)
 
 inline bool server::is_txn_decided(gaia_txn_id_t commit_ts)
 {
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     retail_assert(is_txn_entry_commit_ts(commit_ts_entry), "Not a commit timestamp!");
     return is_txn_entry_decided(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_committed(uint64_t ts_entry)
+inline bool server::is_txn_entry_committed(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_committed);
 }
@@ -1708,11 +1841,11 @@ inline bool server::is_txn_entry_committed(uint64_t ts_entry)
 inline bool server::is_txn_committed(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_committed(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_aborted(uint64_t ts_entry)
+inline bool server::is_txn_entry_aborted(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_aborted);
 }
@@ -1720,11 +1853,11 @@ inline bool server::is_txn_entry_aborted(uint64_t ts_entry)
 inline bool server::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_aborted(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_active(uint64_t ts_entry)
+inline bool server::is_txn_entry_active(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_active);
 }
@@ -1733,11 +1866,11 @@ inline bool server::is_txn_active(gaia_txn_id_t begin_ts)
 {
     retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
-    uint64_t ts_entry = s_txn_info[begin_ts];
+    ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_active(ts_entry);
 }
 
-inline bool server::is_txn_entry_terminated(uint64_t ts_entry)
+inline bool server::is_txn_entry_terminated(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_terminated);
 }
@@ -1746,7 +1879,7 @@ inline bool server::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
     retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
-    uint64_t ts_entry = s_txn_info[begin_ts];
+    ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_terminated(ts_entry);
 }
 
@@ -1755,11 +1888,11 @@ inline uint64_t server::get_status(gaia_txn_id_t ts)
     retail_assert(
         !is_unknown_ts(ts) && !is_invalid_ts(ts),
         "Invalid timestamp entry!");
-    uint64_t ts_entry = s_txn_info[ts];
+    ts_entry_t ts_entry = s_txn_info[ts];
     return get_status_from_entry(ts_entry);
 }
 
-inline uint64_t server::get_status_from_entry(uint64_t ts_entry)
+inline uint64_t server::get_status_from_entry(ts_entry_t ts_entry)
 {
     return ((ts_entry & c_txn_status_flags_mask) >> c_txn_status_flags_shift);
 }
@@ -1767,7 +1900,7 @@ inline uint64_t server::get_status_from_entry(uint64_t ts_entry)
 inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     // The begin_ts is the low 42 bits of the ts entry.
     auto begin_ts = static_cast<gaia_txn_id_t>(commit_ts_entry & c_txn_ts_mask);
     retail_assert(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
@@ -1778,7 +1911,7 @@ inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
-    uint64_t begin_ts_entry = s_txn_info[begin_ts];
+    ts_entry_t begin_ts_entry = s_txn_info[begin_ts];
     // The commit_ts is the low 42 bits of the begin_ts entry.
     auto commit_ts = static_cast<gaia_txn_id_t>(begin_ts_entry & c_txn_ts_mask);
     if (is_txn_submitted(begin_ts))
@@ -1794,7 +1927,7 @@ inline int server::get_txn_log_fd(gaia_txn_id_t commit_ts)
     return get_txn_log_fd_from_entry(s_txn_info[commit_ts]);
 }
 
-inline int server::get_txn_log_fd_from_entry(uint64_t commit_ts_entry)
+inline int server::get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry)
 {
     // The txn log fd is the 16 bits of the ts entry after the 3 status bits.
     uint16_t fd = (commit_ts_entry & c_txn_log_fd_mask) >> c_txn_log_fd_shift;
@@ -1816,9 +1949,11 @@ inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
     // NB: we use compare_exchange_weak() for the global update since we need to
     // retry anyway on concurrent updates, so tolerating spurious failures
     // requires no additional logic.
-    uint64_t commit_ts_entry = s_txn_info[commit_ts];
+    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     do
     {
+        // NB: commit_ts_entry is an inout argument holding the previous value
+        // on failure!
         if (get_txn_log_fd_from_entry(commit_ts_entry) == -1)
         {
             return false;
@@ -1837,7 +1972,7 @@ inline void server::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id
     // Transition the begin_ts entry to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags = c_txn_status_submitted << c_txn_status_flags_shift;
     // A submitted begin_ts entry has the commit_ts in its low bits.
-    uint64_t submitted_begin_ts_entry = c_submitted_flags | static_cast<uint64_t>(commit_ts);
+    ts_entry_t submitted_begin_ts_entry = c_submitted_flags | static_cast<ts_entry_t>(commit_ts);
     // We don't need a CAS here since only the session thread can submit or terminate a txn,
     // and an active txn cannot be invalidated.
     s_txn_info[begin_ts] = submitted_begin_ts_entry;
@@ -1852,8 +1987,8 @@ inline void server::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     // and an active txn cannot be invalidated.
     // Mask out the existing status flags and mask in the new ones.
     constexpr uint64_t c_terminated_flags = c_txn_status_terminated << c_txn_status_flags_shift;
-    uint64_t old_entry = s_txn_info[begin_ts];
-    uint64_t new_entry = c_terminated_flags | (old_entry & ~c_txn_status_flags_mask);
+    ts_entry_t old_entry = s_txn_info[begin_ts];
+    ts_entry_t new_entry = c_terminated_flags | (old_entry & ~c_txn_status_flags_mask);
     s_txn_info[begin_ts] = new_entry;
 }
 
@@ -1863,14 +1998,14 @@ inline gaia_txn_id_t server::register_commit_ts(gaia_txn_id_t begin_ts, int log_
     // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
     constexpr uint64_t c_shifted_status_flags = c_txn_status_validating << c_txn_status_flags_shift;
-    uint64_t commit_ts_entry = c_shifted_status_flags | shifted_log_fd | begin_ts;
+    ts_entry_t commit_ts_entry = c_shifted_status_flags | shifted_log_fd | begin_ts;
 
     // We're possibly racing another beginning or committing txn that wants to
     // invalidate our commit_ts entry. We use compare_exchange_weak() since we
     // need to loop until success anyway. A spurious failure will just waste a
     // timestamp, and the uninitialized entry will eventually be invalidated.
     gaia_txn_id_t commit_ts;
-    uint64_t expected_entry;
+    ts_entry_t expected_entry;
     do
     {
         // Allocate a new commit timestamp.
@@ -1917,7 +2052,7 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 
     uint64_t decided_status_flags = committed ? c_txn_status_committed : c_txn_status_aborted;
     // We can just reuse the log fd and begin_ts from the existing entry.
-    uint64_t expected_entry = s_txn_info[commit_ts];
+    ts_entry_t expected_entry = s_txn_info[commit_ts];
     // We may have already been validated by another committing txn.
     if (is_txn_entry_decided(expected_entry))
     {
@@ -1929,10 +2064,11 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
     }
     // It's safe to just OR in the new flags since the preceding states don't set
     // any bits not present in the flags.
-    uint64_t commit_ts_entry = expected_entry | (decided_status_flags << c_txn_status_flags_shift);
-    bool set_new_entry = s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
-    if (!set_new_entry)
+    ts_entry_t commit_ts_entry = expected_entry | (decided_status_flags << c_txn_status_flags_shift);
+    bool has_set_entry = s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
+    if (!has_set_entry)
     {
+        // NB: expected_entry is an inout argument holding the previous value on failure!
         retail_assert(
             is_txn_entry_decided(expected_entry),
             "commit_ts entry in validating state can only transition to a decided state!");
@@ -2355,10 +2491,13 @@ bool server::advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_tx
     gaia_txn_id_t last_watermark_ts = watermark;
     do
     {
+        // NB: last_watermark_ts is an inout argument holding the previous value
+        // on failure!
         if (ts <= last_watermark_ts)
         {
             return false;
         }
+
     } while (!watermark.compare_exchange_weak(last_watermark_ts, ts));
 
     return true;
@@ -2389,7 +2528,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (txn_log_t::log_record_t* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
+    for (size_t i = 0; i < txn_log->count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2398,6 +2537,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         // that txn's snapshot). This update is non-atomic since log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
+        txn_log_t::log_record_t* lr = &(txn_log->log_records[i]);
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
 }
@@ -2411,14 +2551,15 @@ void server::gc_txn_undo_log(int log_fd)
         unmap_fd(txn_log, txn_log->size());
     });
 
-    for (txn_log_t::log_record_t* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->count; ++lr)
+    for (size_t i = 0; i < txn_log->count; ++i)
     {
         // Free each undo version (i.e., the version superseded by an update or
         // delete operation), using the registered object deallocator (if it
         // exists).
-        if (lr->old_offset && s_object_deallocator_fn)
+        gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
+        if (old_offset && s_object_deallocator_fn)
         {
-            s_object_deallocator_fn(lr->old_offset);
+            s_object_deallocator_fn(old_offset);
         }
     }
 }
@@ -2551,8 +2692,8 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             retail_assert(log_fd != -1, "log fd cannot be invalidated if we advanced the watermark first!");
             retail_assert(is_fd_valid(log_fd), "log fd cannot be closed if we advanced the watermark first!");
             // Invalidate the log fd, GC the undo versions in the log, and close the fd.
-            bool invalidated = invalidate_txn_log_fd(ts);
-            retail_assert(invalidated, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
+            bool has_invalidated_fd = invalidate_txn_log_fd(ts);
+            retail_assert(has_invalidated_fd, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
             gc_txn_undo_log(log_fd);
             close_fd(log_fd);
         }
@@ -2567,21 +2708,25 @@ gaia_txn_id_t server::txn_begin()
 
     // The begin_ts entry must fit in 42 bits.
     retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
+
     // The begin_ts entry must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
-    constexpr uint64_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
+    constexpr ts_entry_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
+
     // We're possibly racing another beginning or committing txn that wants to
     // invalidate our begin_ts entry.
-    uint64_t expected_entry = c_txn_entry_unknown;
-    bool set_new_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
+    ts_entry_t expected_entry = c_txn_entry_unknown;
+    bool has_set_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
 
     // Only the txn thread can transition its begin_ts entry from
     // c_txn_entry_unknown to any state except c_txn_entry_invalid.
-    if (!set_new_entry)
+    if (!has_set_entry)
     {
+        // NB: expected_entry is an inout argument holding the previous value on failure!
         retail_assert(
             expected_entry == c_txn_entry_invalid,
             "Only an invalid value can be set on an empty begin_ts entry by another thread!");
+
         // If our begin_ts entry was already invalidated, the txn must abort.
         // Return c_invalid_gaia_txn_id to indicate failure.
         begin_ts = c_invalid_gaia_txn_id;
@@ -2596,6 +2741,7 @@ gaia_txn_id_t server::txn_begin()
 bool server::txn_commit()
 {
     retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
 
@@ -2611,6 +2757,8 @@ bool server::txn_commit()
 
     // Validate the txn against all other committed txns in the conflict window.
     retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+
+    // Validate the committing txn.
     bool committed = validate_txn(commit_ts);
 
     // Update the txn entry with our commit decision.
@@ -2642,11 +2790,14 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
             !disable_persistence,
             "remove_persistent_store can only be set if disable_persistence is unset!");
     }
+
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_disable_persistence = disable_persistence;
     s_reinitialize_persistent_store = reinitialize_persistent_store;
+
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
     while (true)
     {
         // Create eventfd shutdown event.
@@ -2659,20 +2810,26 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
             // handler executes.
             close_fd(s_server_shutdown_eventfd);
         });
+
         // Launch signal handler thread.
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
+
         init_shared_memory();
         init_txn_info();
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
         std::thread client_dispatch_thread(client_dispatch_handler);
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
         client_dispatch_thread.join();
+
         // The signal handler thread will only return after a blocked signal is pending.
         signal_handler_thread.join();
+
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
+
         // We special-case SIGHUP to force reinitialization of the server.
         // This is only enabled if persistence is disabled, because otherwise
         // data would disappear on reset, only to reappear when the database is
@@ -2683,6 +2840,7 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
             {
                 cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
             }
+
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.
             // We may have already received other pending signals by the time

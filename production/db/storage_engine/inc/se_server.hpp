@@ -132,7 +132,15 @@ private:
     // would still need only 32 bits for a timestamp reference in the timestamp
     // entry. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
-    static inline std::atomic<uint64_t>* s_txn_info = nullptr;
+    //
+    // Timestamp entry format:
+    // 64 bits: status(3) | log fd (16) | reserved (3) | logical timestamp (42)
+
+    typedef uint64_t ts_entry_t;
+    static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
+    // This should always be true on any 64-bit platform, but we assert since we
+    // never want to fall back to a lock-based implementation of atomics.
+    static_assert(std::atomic<ts_entry_t>::is_always_lock_free);
 
     // This marks a boundary at or before which every committed commit_ts may be
     // assumed to have been applied to the shared locator view, and after which
@@ -172,26 +180,31 @@ private:
     static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
 
     // Transaction status flags.
+    // These are all begin_ts status values.
     static constexpr uint64_t c_txn_status_active{0b010ULL};
     static constexpr uint64_t c_txn_status_submitted{0b011ULL};
     static constexpr uint64_t c_txn_status_terminated{0b001ULL};
-    // This is a mask, not a value.
+    // This is the bitwise intersection of all commit_ts status values.
     static constexpr uint64_t c_txn_status_commit_ts{0b100ULL};
     static constexpr uint64_t c_txn_status_commit_mask{
         c_txn_status_commit_ts << c_txn_status_flags_shift};
-    static constexpr uint64_t c_txn_status_validating{0b100ULL};
-    // This is a mask, not a value.
+    // This is the bitwise intersection of all commit_ts decided status values
+    // (i.e., committed or aborted).
     static constexpr uint64_t c_txn_status_decided{0b110ULL};
     static constexpr uint64_t c_txn_status_decided_mask{
         c_txn_status_decided << c_txn_status_flags_shift};
+    // These are all commit_ts status values.
+    static constexpr uint64_t c_txn_status_validating{0b100ULL};
     static constexpr uint64_t c_txn_status_committed{0b111ULL};
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
 
     // Transaction special values.
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_txn_entry_unknown{0ULL};
+    static constexpr ts_entry_t c_txn_entry_unknown{0ULL};
+    // This must always be 0 because a newly-allocated page is initialized to 0.
+    static_assert(c_txn_entry_unknown == 0);
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_txn_entry_invalid{0b101ULL << c_txn_status_flags_shift};
+    static constexpr ts_entry_t c_txn_entry_invalid{0b101ULL << c_txn_status_flags_shift};
     // Since we restrict all fds to 16 bits, this is the largest possible value
     // in that range, which we reserve to indicate an invalidated fd (i.e., one
     // which was claimed for deallocation by a maintenance thread).
@@ -335,45 +348,45 @@ private:
 
     static bool is_invalid_ts(gaia_txn_id_t ts);
 
-    static bool is_txn_entry_begin_ts(uint64_t ts_entry);
+    static bool is_txn_entry_begin_ts(ts_entry_t ts_entry);
 
     static bool is_begin_ts(gaia_txn_id_t ts);
 
-    static bool is_txn_entry_commit_ts(uint64_t ts_entry);
+    static bool is_txn_entry_commit_ts(ts_entry_t ts_entry);
 
     static bool is_commit_ts(gaia_txn_id_t ts);
 
-    static bool is_txn_entry_submitted(uint64_t ts_entry);
+    static bool is_txn_entry_submitted(ts_entry_t ts_entry);
 
     static bool is_txn_submitted(gaia_txn_id_t begin_ts);
 
-    static bool is_txn_entry_validating(uint64_t ts_entry);
+    static bool is_txn_entry_validating(ts_entry_t ts_entry);
 
     static bool is_txn_validating(gaia_txn_id_t commit_ts);
 
-    static bool is_txn_entry_decided(uint64_t ts_entry);
+    static bool is_txn_entry_decided(ts_entry_t ts_entry);
 
     static bool is_txn_decided(gaia_txn_id_t commit_ts);
 
-    static bool is_txn_entry_committed(uint64_t ts_entry);
+    static bool is_txn_entry_committed(ts_entry_t ts_entry);
 
     static bool is_txn_committed(gaia_txn_id_t commit_ts);
 
-    static bool is_txn_entry_aborted(uint64_t ts_entry);
+    static bool is_txn_entry_aborted(ts_entry_t ts_entry);
 
     static bool is_txn_aborted(gaia_txn_id_t commit_ts);
 
-    static bool is_txn_entry_active(uint64_t ts_entry);
+    static bool is_txn_entry_active(ts_entry_t ts_entry);
 
     static bool is_txn_active(gaia_txn_id_t begin_ts);
 
-    static bool is_txn_entry_terminated(uint64_t ts_entry);
+    static bool is_txn_entry_terminated(ts_entry_t ts_entry);
 
     static bool is_txn_terminated(gaia_txn_id_t begin_ts);
 
     static uint64_t get_status(gaia_txn_id_t ts);
 
-    static uint64_t get_status_from_entry(uint64_t ts_entry);
+    static uint64_t get_status_from_entry(ts_entry_t ts_entry);
 
     static gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
 
@@ -381,7 +394,7 @@ private:
 
     static int get_txn_log_fd(gaia_txn_id_t commit_ts);
 
-    static int get_txn_log_fd_from_entry(uint64_t commit_ts_entry);
+    static int get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry);
 
     static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
 
@@ -409,7 +422,7 @@ private:
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
-    static const char* status_to_str(uint64_t ts_entry);
+    static const char* status_to_str(ts_entry_t ts_entry);
 
     class invalid_log_fd : public gaia_exception
     {
