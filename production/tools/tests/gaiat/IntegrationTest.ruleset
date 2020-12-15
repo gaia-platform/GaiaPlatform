@@ -34,3 +34,38 @@ ruleset test4
         }
     }
 }
+
+typedef enum
+{
+    undefined = 0,
+    actuators = 1,
+    sensors = 2,
+    incubators = 3
+} hardware_type;
+
+ruleset test5
+{
+    {
+	if (actuator.value < 5)
+	{
+		actuator.value = 5;
+	}
+    }
+}
+
+typedef enum
+{
+    values = 0,
+    types = 1,
+    defs = 2
+} testEnum;
+
+ruleset test6 : table (sensor)
+{
+  {
+	  if (value < 5)
+	  {
+		  value = 5;
+	  }
+  }
+}

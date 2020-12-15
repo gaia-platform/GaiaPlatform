@@ -1511,6 +1511,31 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
   IdentifierInfo *Name = Tok.getIdentifierInfo();
   SourceLocation NameLoc = Tok.getLocation();
 
+  bool useTypoCorrection = true;
+  if ( Actions.getCurScope()->isInRulesetScope())
+  {
+      if (Actions.getCurScope()->getFnParent() != nullptr)
+      {
+        DeclContext *DC = Actions.getCurScope()->getFnParent()->getEntity();
+
+        if (DC)
+        {
+            if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
+            {
+                if (FD->hasAttr<RuleAttr>())
+                {
+                  auto tableData = Actions.getCatalogTableList(NameLoc);
+                  if (tableData.find(Name->getName()) != tableData.end())
+                  {
+                    useTypoCorrection = false;
+                  }
+                }
+            }
+        }
+      }
+  }
+
+
   // FIXME: Move the tentative declaration logic into ClassifyName so we can
   // typo-correct to tentatively-declared identifiers.
   if (isTentativelyDeclared(Name)) {
@@ -1529,7 +1554,7 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
   // jump back into scope specifier parsing).
   Sema::NameClassification Classification = Actions.ClassifyName(
       getCurScope(), SS, Name, NameLoc, Next, IsAddressOfOperand,
-      SS.isEmpty() ? std::move(CCC) : nullptr);
+      SS.isEmpty() && useTypoCorrection ? std::move(CCC) : nullptr);
 
   switch (Classification.getKind()) {
   case Sema::NC_Error:
