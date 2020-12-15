@@ -9,6 +9,7 @@
 #include "gtest/gtest.h"
 
 #include "memory_manager.hpp"
+#include "retail_assert.hpp"
 #include "stack_allocator.hpp"
 
 using namespace std;
@@ -183,15 +184,7 @@ TEST(memory_manager, advanced_operation)
     memory_manager.free_stack_allocator(stack_allocator);
 
     // Verify that double freeing fails.
-    try
-    {
-        memory_manager.free_stack_allocator(stack_allocator);
-        // Should not reach the next line.
-        ASSERT_TRUE(false);
-    }
-    catch (const exception& e)
-    {
-    }
+    ASSERT_THROW(memory_manager.free_stack_allocator(stack_allocator), gaia::common::retail_assertion_failure);
 
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.
