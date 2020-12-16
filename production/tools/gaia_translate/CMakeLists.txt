@@ -54,9 +54,9 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 
 add_custom_command(
   OUTPUT  ${GAIA_GENERATED_SCHEMAS}/test.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
+  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server --disable-persistence &
   COMMAND sleep 1
-  COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
+  COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
   COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
