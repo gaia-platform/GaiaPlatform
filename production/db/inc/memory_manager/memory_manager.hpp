@@ -28,22 +28,22 @@ public:
     //
     // All addresses will be offsets relative to the beginning of this block
     // and will be represented as address_offset_t.
-    error_code_t manage(
+    void manage(
         uint8_t* memory_address,
         size_t memory_size);
 
     // Allocates a new block of memory.
     // This is used for the initial load of data in memory.
     // Each allocation will get prefixed by a metadata block.
-    error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset);
+    address_offset_t allocate(size_t memory_size);
 
     // Allocates a new block of memory.
     // This is used for allocating memory blocks to be used with stack allocators.
     // These allocations are NOT prefixed with a metadata block.
-    error_code_t allocate_raw(size_t memory_size, address_offset_t& allocated_memory_offset);
+    address_offset_t allocate_raw(size_t memory_size);
 
     // Adds the stack allocator's unused memory and allocation records to the list of free memory.
-    error_code_t free_stack_allocator(
+    void free_stack_allocator(
         const std::unique_ptr<stack_allocator_t>& stack_allocator);
 
     // Adds object memory at the provided offset to the list of free memory.
@@ -82,9 +82,8 @@ private:
         bool add_allocation_metadata) const;
 
     // Allocates a new block of memory.
-    error_code_t allocate_internal(
+    address_offset_t allocate_internal(
         size_t memory_size,
-        address_offset_t& allocated_memory_offset,
         bool add_allocation_metadata);
 
     // Attempt to allocate from our main memory block.

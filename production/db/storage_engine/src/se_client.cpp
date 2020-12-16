@@ -754,7 +754,6 @@ address_offset_t client::allocate_from_stack_allocator(
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");
     size_t c_max_allocation_attempts = 2;
-    error_code_t result = error_code_t::not_set;
     address_offset_t allocated_memory_offset = c_invalid_offset;
     // We should only need two attempts to allocate memory.
     // If more than two attempts are required then it means that the newly obtained free stack allocator
@@ -773,11 +772,11 @@ address_offset_t client::allocate_from_stack_allocator(
         }
 
         // Try allocating memory from the current stack allocator.
-        result = s_current_stack_allocator->allocate(locator, old_slot_offset, size, allocated_memory_offset);
+        allocated_memory_offset = s_current_stack_allocator->allocate(locator, old_slot_offset, size);
 
         // If the first allocator no longer has sufficient memory for the current object,
         // we will have to stop using it and start using the next available allocator.
-        if (result == error_code_t::insufficient_memory_size || result == error_code_t::memory_size_too_large)
+        if (allocated_memory_offset == c_invalid_offset)
         {
             s_current_stack_allocator.reset();
         }
@@ -787,7 +786,6 @@ address_offset_t client::allocate_from_stack_allocator(
         }
     }
 
-    retail_assert(result == error_code_t::success, "Stack allocation failure when allocating memory for a new object.");
     retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
 
     return allocated_memory_offset;

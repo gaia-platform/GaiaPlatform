@@ -23,7 +23,7 @@ public:
 
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
-    error_code_t initialize(
+    void initialize(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,
         size_t memory_size);
@@ -31,7 +31,7 @@ public:
     // Load a specific memory buffer from which memory has already been allocated.
     // This method can be used to read the allocations made by another stack allocator instance.
     // The start of the buffer is specified as an offset from a base address.
-    error_code_t load(
+    void load(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,
         size_t memory_size);
@@ -39,17 +39,16 @@ public:
     // Allocate a new memory block that will be designated by the provided slot id.
     // The old memory offset of the slot id is also provided, for later garbage collection.
     // A memory size of 0 indicates a deletion, but for clarity, use deallocate() method instead.
-    error_code_t allocate(
+    address_offset_t allocate(
         slot_id_t slot_id,
         address_offset_t old_slot_offset,
-        size_t memory_size,
-        address_offset_t& allocated_memory_offset) const;
+        size_t memory_size) const;
 
     // Memory deallocation method.
-    error_code_t deallocate(slot_id_t slot_id, address_offset_t slot_offset) const;
+    void deallocate(slot_id_t slot_id, address_offset_t slot_offset) const;
 
     // Deallocate all allocations made after the first N. This allows a transaction to quickly rollback changes.
-    error_code_t deallocate(size_t count_allocations_to_keep) const;
+    void deallocate(size_t count_allocations_to_keep) const;
 
     // Returns a pointer to the metadata structure, for direct access.
     stack_allocator_metadata_t* get_metadata() const;
@@ -83,7 +82,7 @@ private:
 private:
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
-    error_code_t initialize_internal(
+    void initialize_internal(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,
         size_t memory_size,
