@@ -184,7 +184,7 @@ TEST(memory_manager, advanced_operation)
     memory_manager.free_stack_allocator(stack_allocator);
 
     // Verify that double freeing fails.
-    ASSERT_THROW(memory_manager.free_stack_allocator(stack_allocator), gaia::common::retail_assertion_failure);
+    EXPECT_THROW(memory_manager.free_stack_allocator(stack_allocator), gaia::common::retail_assertion_failure);
 
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.
