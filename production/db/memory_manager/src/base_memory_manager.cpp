@@ -7,6 +7,8 @@
 
 #include <unistd.h>
 
+#include <sstream>
+
 #include "retail_assert.hpp"
 
 using namespace gaia::common;
@@ -15,7 +17,7 @@ using namespace gaia::db::memory_manager;
 base_memory_manager_t::base_memory_manager_t()
 {
     m_base_memory_address = nullptr;
-    m_base_memory_offset = c_invalid_offset;
+    m_start_memory_offset = c_invalid_offset;
     m_total_memory_size = 0;
 }
 
@@ -24,9 +26,9 @@ uint8_t* base_memory_manager_t::get_base_memory_address() const
     return m_base_memory_address;
 }
 
-address_offset_t base_memory_manager_t::get_base_memory_offset() const
+address_offset_t base_memory_manager_t::get_start_memory_offset() const
 {
-    return m_base_memory_offset;
+    return m_start_memory_offset;
 }
 
 size_t base_memory_manager_t::get_total_memory_size() const
@@ -95,84 +97,96 @@ size_t base_memory_manager_t::calculate_raw_allocation_size(size_t requested_siz
     return (allocation_size < requested_size) ? 0 : allocation_size;
 }
 
-bool base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)
+void base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)
 {
     auto memory_address_as_integer = reinterpret_cast<size_t>(memory_address);
-    return (memory_address_as_integer % c_memory_alignment == 0);
+    retail_assert(
+        memory_address_as_integer % c_memory_alignment == 0,
+        "Misaligned memory address!");
 }
 
-bool base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset)
+void base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset)
 {
-    return (memory_offset % c_memory_alignment == 0);
+    retail_assert(
+        memory_offset % c_memory_alignment == 0,
+        "Misaligned memory offset!");
 }
 
-bool base_memory_manager_t::validate_size_alignment(size_t memory_size)
+void base_memory_manager_t::validate_size_alignment(size_t memory_size)
 {
-    return (memory_size % c_memory_alignment == 0);
+    retail_assert(
+        memory_size % c_memory_alignment == 0,
+        "Misaligned memory size!");
 }
 
-error_code_t base_memory_manager_t::validate_address(const uint8_t* const memory_address) const
+void base_memory_manager_t::validate_managed_memory_range() const
 {
-    if (!validate_address_alignment(memory_address))
-    {
-        return error_code_t::memory_address_not_aligned;
-    }
+    std::stringstream message1;
+    message1
+        << "Total memory size (" << m_total_memory_size
+        << ") is too large for start memory offset (" << m_start_memory_offset
+        << ")!";
+    retail_assert(
+        m_start_memory_offset + m_total_memory_size > m_start_memory_offset,
+        message1.str());
 
-    if (memory_address < m_base_memory_address + m_base_memory_offset
-        || memory_address > m_base_memory_address + m_base_memory_offset + m_total_memory_size)
-    {
-        return error_code_t::memory_address_out_of_range;
-    }
+    auto base_memory_address_as_integer = reinterpret_cast<size_t>(m_base_memory_address);
+    std::stringstream message2;
+    message2
+        << "Start memory offset (" << m_start_memory_offset
+        << ") is too large for base memory address (" << base_memory_address_as_integer
+        << ")!";
+    retail_assert(
+        base_memory_address_as_integer + m_start_memory_offset >= base_memory_address_as_integer,
+        message2.str());
 
-    return error_code_t::success;
+    size_t start_memory_address_as_integer = base_memory_address_as_integer + m_start_memory_offset;
+    std::stringstream message3;
+    message3
+        << "Total memory size (" << m_total_memory_size
+        << ") is too large for start memory address (" << start_memory_address_as_integer
+        << ")!";
+    retail_assert(
+        start_memory_address_as_integer + m_total_memory_size > start_memory_address_as_integer,
+        message3.str());
 }
 
-error_code_t base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
+void base_memory_manager_t::validate_address(const uint8_t* const memory_address) const
 {
-    if (memory_offset == c_invalid_offset)
-    {
-        return error_code_t::invalid_memory_offset;
-    }
+    validate_address_alignment(memory_address);
 
-    if (!validate_offset_alignment(memory_offset))
-    {
-        return error_code_t::memory_offset_not_aligned;
-    }
-
-    if (memory_offset < m_base_memory_offset
-        || memory_offset > m_base_memory_offset + m_total_memory_size)
-    {
-        return error_code_t::memory_offset_out_of_range;
-    }
-
-    return error_code_t::success;
+    retail_assert(
+        memory_address >= m_base_memory_address + m_start_memory_offset
+            && memory_address <= m_base_memory_address + m_start_memory_offset + m_total_memory_size,
+        "Memory address is outside managed memory range!");
 }
 
-error_code_t base_memory_manager_t::validate_size(size_t memory_size) const
+void base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
-    if (!validate_size_alignment(memory_size))
-    {
-        return error_code_t::memory_size_not_aligned;
-    }
+    retail_assert(
+        memory_offset != c_invalid_offset,
+        "Memory offset is invalid!");
 
-    if (memory_size == 0)
-    {
-        return error_code_t::memory_size_cannot_be_zero;
-    }
+    validate_offset_alignment(memory_offset);
 
-    if (memory_size > m_total_memory_size)
-    {
-        return error_code_t::memory_size_too_large;
-    }
+    retail_assert(
+        memory_offset >= m_start_memory_offset
+            && memory_offset <= m_start_memory_offset + m_total_memory_size,
+        "Memory offset is outside managed memory range!");
+}
 
-    return error_code_t::success;
+void base_memory_manager_t::validate_size(size_t memory_size) const
+{
+    validate_size_alignment(memory_size);
+
+    retail_assert(
+        memory_size > 0,
+        "Memory size should not be 0!");
 }
 
 address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_address) const
 {
-    retail_assert(
-        validate_address(memory_address) == error_code_t::success,
-        "get_offset() was called with an invalid address!");
+    validate_address(memory_address);
 
     size_t memory_offset = memory_address - m_base_memory_address;
 
@@ -181,9 +195,7 @@ address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_a
 
 uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) const
 {
-    retail_assert(
-        validate_offset(memory_offset) == error_code_t::success,
-        "get_address() was called with an invalid offset!");
+    validate_offset(memory_offset);
 
     uint8_t* memory_address = m_base_memory_address + memory_offset;
 
@@ -192,9 +204,7 @@ uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) cons
 
 memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memory_offset) const
 {
-    retail_assert(
-        validate_offset(memory_offset) == error_code_t::success,
-        "read_allocation_metadata() was called with an invalid offset!");
+    validate_offset(memory_offset);
 
     retail_assert(
         memory_offset >= sizeof(memory_allocation_metadata_t),
