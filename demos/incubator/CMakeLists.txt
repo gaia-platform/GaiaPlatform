@@ -63,4 +63,4 @@ configure_file("${PROJECT_SOURCE_DIR}/gaia_log.conf" "${PROJECT_BINARY_DIR}/gaia
 add_dependencies(incubator translate_incubator_ruleset)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(incubator PRIVATE ${GAIA_INCUBATOR_DEMO_INCLUDES})
-target_link_libraries(incubator PRIVATE rt pthread gaia)
+target_link_libraries(incubator PRIVATE gaia rt pthread)
