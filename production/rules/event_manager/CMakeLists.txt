@@ -40,7 +40,7 @@ add_library(gaia_rules STATIC
 
 add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_rules PROPERTIES LINK_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_rules PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 target_include_directories(gaia_rules PUBLIC ${GAIA_EVENT_MANAGER_PUBLIC_INCLUDES})
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES})

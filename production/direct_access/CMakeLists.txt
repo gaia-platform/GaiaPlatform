@@ -33,6 +33,7 @@ target_include_directories(gaia_direct PUBLIC ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUD
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES})
 target_link_libraries(gaia_direct PUBLIC gaia_se_client)
 set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_direct PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_direct PROPERTY POSITION_INDEPENDENT_CODE ON)
 
