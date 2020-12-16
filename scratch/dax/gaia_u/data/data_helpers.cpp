@@ -44,6 +44,22 @@ int64_t event_planner::convert_time(const char* time)
     return mktime(&the_time);
 }
 
+int64_t event_planner::get_timestamp(int64_t datestamp, int64_t timestamp)
+{
+    tm ts; // timestamp
+    memset(&ts, 0, sizeof(tm));
+
+    tm* tm_ptr = localtime(&datestamp);
+    ts.tm_mday = tm_ptr->tm_mday;
+    ts.tm_mon = tm_ptr->tm_mon;
+    ts.tm_year = tm_ptr->tm_year;
+    tm_ptr = localtime(&timestamp);
+    ts.tm_sec = tm_ptr->tm_sec;
+    ts.tm_min = tm_ptr->tm_min;
+    ts.tm_hour = tm_ptr->tm_hour;
+    return mktime(&ts);
+}
+
 string event_planner::convert_time(int64_t timestamp)
 {
     char buffer[12];
@@ -156,7 +172,7 @@ void event_planner::show_rooms()
 
 void event_planner::show_person(Persons_t& person)
 {
-    printf("%lu: %s, %s, %s",
+    printf("%lu: %s %s, %s",
         person.gaia_id(),
         person.FirstName(),
         person.LastName(),
@@ -186,6 +202,14 @@ void event_planner::delete_persons()
     tx.commit();
 }
 
+void event_planner::show_student(Students_t& student)
+{
+        auto p = student.Persons();
+        printf("%lu: %u [Person]{", student.gaia_id(), student.Number());
+        show_person(p);
+        printf("}");
+}
+
 void event_planner::show_students()
 {
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
@@ -193,10 +217,8 @@ void event_planner::show_students()
     printf("--------\n");
     for (auto s : Students_t::list())
     {
-        auto p = s.Persons();
-        printf("%lu: %u [Person]{", s.gaia_id(), s.Number());
-        show_person(p);
-        printf("}\n");
+        show_student(s);
+        printf("\n");
     }
     printf("--------\n");
 }
@@ -274,6 +296,57 @@ void event_planner::delete_parents()
     tx.commit();
 }
 
+void event_planner::show_registrations()
+{
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    printf("Registrations Table\n");
+    printf("--------\n");
+    for (auto reg : Registrations_t::list())
+    {
+        auto s = reg.Student_Students();
+        auto e = reg.Event_Events();
+        printf("%lu: %s %s [Student]{", reg.gaia_id(),
+            convert_date(reg.RegistrationDate()).c_str(),
+            convert_time(reg.RegistrationTime()).c_str());
+        show_student(s);
+        printf("} [Event]{");
+        show_event(e);
+        printf("}\n");
+    }
+    printf("--------\n");
+}
+
+void event_planner::delete_registrations()
+{
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    for (auto r = Registrations_t::get_first() ; r; r = Registrations_t::get_first())
+    {
+        // Disconnect from Event
+        r.Event_Events().Event_Registrations_list().erase(r);
+        // Disconnect from Student
+        r.Student_Students().Student_Registrations_list().erase(r);
+        r.delete_row();
+    }
+    tx.commit();
+}
+
+void event_planner::show_event(Events_t& event)
+{
+    auto s = event.Teacher_Staff();
+    auto r = event.Room_Rooms();
+    printf("%lu: %s %s %s %s %u [Staff]{", event.gaia_id(),
+        event.Name(),
+        convert_date(event.Date()).c_str(),
+        convert_time(event.StartTime()).c_str(),
+        convert_time(event.EndTime()).c_str(),
+        event.Enrolled()
+    );
+    show_staff_t(s);
+    printf("} [Room]{");
+    show_room(r);
+    printf("}");
+}
+
 void event_planner::show_events()
 {
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
@@ -281,19 +354,8 @@ void event_planner::show_events()
     printf("--------\n");
     for (auto event : Events_t::list())
     {
-        auto s = event.Teacher_Staff();
-        auto r = event.Room_Rooms();
-        printf("%lu: %s %s %s %s %u [Staff]{", event.gaia_id(),
-            event.Name(),
-            convert_date(event.Date()).c_str(),
-            convert_time(event.StartTime()).c_str(),
-            convert_time(event.EndTime()).c_str(),
-            event.Enrolled()
-        );
-        show_staff_t(s);
-        printf("} [Room]{");
-        show_room(r);
-        printf("}\n");
+        show_event(event);
+        printf("\n");
     }
     printf("--------\n");
 }
@@ -356,11 +418,13 @@ void event_planner::show_all()
     show_parents();
     show_staff();
     show_events();
+    show_registrations();
 }
 
 void event_planner::delete_all()
 {
     delete_restrictions();
+    delete_registrations();
     delete_events();
     delete_rooms();
     delete_buildings();

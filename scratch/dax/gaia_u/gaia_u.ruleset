@@ -10,7 +10,7 @@ ruleset event_planner
     // Requires:  Staff <- register later
     //  Requires: Person
     {
-        event_planner::log("Rule 1");
+        event_planner::log("Rule 1", true);
         if (Buildings.LastOperation == INSERT)
         {
             auto building = gaia::gaia_u::Buildings_t::get(Buildings.gaia_id());
@@ -19,7 +19,7 @@ ruleset event_planner
     }
 
     {
-        event_planner::log("Rule 2");
+        event_planner::log("Rule 2",true);
         if (DoorLocked)
         {
             DoorLocked = false;
@@ -32,7 +32,7 @@ ruleset event_planner
     // Note that this is not currently possible if the event has any reference defined
     //
     {
-        event_planner::log("Rule 3");
+        event_planner::log("Rule 3", true);
         if (Events.LastOperation == DELETE)
         {
             event_planner::cancel_event(Events.gaia_id());
@@ -42,7 +42,7 @@ ruleset event_planner
     // When a new room is added then adjust the restricted capacity
     // according to the restriction
     {
-        event_planner::log("Rule 4");
+        event_planner::log("Rule 4", true);
         if (Rooms.LastOperation == INSERT)
         {
             RestrictedCapacity = @Capacity * (PercentFull / 100.0);
@@ -52,7 +52,7 @@ ruleset event_planner
     // If a restriction to PercentFull changes, then update all the rooms Restricted Capacity
     // capacity.
     {
-        event_planner::log("Rule 5");
+        event_planner::log("Rule 5", true);
         RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
@@ -67,7 +67,7 @@ ruleset event_planner
 
     // If the room capacity has changed and is less than the enrollment then remove the room
     {
-        event_planner::log("Rule 6");
+        event_planner::log("Rule 6", true);
         // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
         if (RestrictedCapacity < @Enrolled)
         {
@@ -89,11 +89,10 @@ ruleset event_planner
     // Search for room in the same building first and then
     // expand to other rooms if required.
      {
-        char buffer[128];
-        event_planner::log("Rule 7");
+        char buffer[256];
+        event_planner::log("Rule 7", true);
         if (!ChangeLocation)
         {
-            event_planner::log("!ChangeLocation", @Events.Name);
             return;
         }
 
@@ -103,7 +102,6 @@ ruleset event_planner
         // then is no need find another room.
         if (@RestrictedCapacity >= @Enrolled)
         {
-            event_planner::log("@RestrictedCapacity >= @Enrolled", @Events.Name);
             return;
         }
 
@@ -113,7 +111,7 @@ ruleset event_planner
 
         // Try to find a room that works in the same building
         auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
-        auto this_room = event.Room_Rooms();
+        auto this_room = gaia::gaia_u::Rooms_t::get(Rooms.gaia_id());
         gaia::gaia_u::Buildings_t this_building;
 
         // We may find a room that meets the capacity requirements but it is not
@@ -123,6 +121,7 @@ ruleset event_planner
         gaia::gaia_u::Rooms_t candidate_room;
 
         // Search for a room in the same building.
+        // UNDONE:  clean this rule up! (consolidate iteration code; it's too long and inelegant)
         if (this_room)
         {
             this_building = this_room.Buildings();
@@ -138,7 +137,7 @@ ruleset event_planner
                     if (event_planner::is_room_available(event, room))
                     {
                         event_planner::move_event_room(event, this_room, room);
-                        // We are done!
+                        NotifyReason = event_planner::notify_reason_t::change_location;
                         return;
                     }
 
@@ -166,6 +165,7 @@ ruleset event_planner
                     if (event_planner::is_room_available(event, room))
                     {
                         event_planner::move_event_room(event, this_room, room);
+                        NotifyReason = event_planner::notify_reason_t::change_location;
                         // We are done!
                         return;
                     }
@@ -181,20 +181,22 @@ ruleset event_planner
         // but not on the date we need.  Go ahead and move the room and then change the date.
         if (candidate_room)
         {
-            event_planner::log("Found a room for event but need to reschedule ...", @Events.Name);
+            sprintf(buffer, "Found a room for event '%s' but need to reschedule.", @Events.Name);
+            event_planner::log(buffer);
             event_planner::move_event_room(event, this_room, candidate_room);
             ChangeDate = true;
         }
         else
         {
-            event_planner::log("Could not find a room for event.  Need to drop enrollments ...", @Events.Name);
+            sprintf(buffer, "Could not find a room for event '%s'.  Need to drop enrollments.", @Events.Name);
+            event_planner::log(buffer);
             DropEnrollments = true;
         }
     }
 
     {
         char buffer[128];
-        event_planner::log("Rule 8");
+        event_planner::log("Rule 8", true);
         if (!ChangeDate)
         {
             return;
@@ -218,34 +220,125 @@ ruleset event_planner
                     event_planner::convert_date(new_date).c_str());
                 event_planner::log(buffer);
                 Date = new_date;
+                NotifyReason = event_planner::notify_reason_t::change_both;
                 break;
             }
         }
     }
 
-    // A new date was set so we need to update the regsistration infomration
-    // 
+    // If someone registers for an event then bump the number of enrollments
     {
-        event_planner::log("Rule 9");
-        if (Date != 0)
+        event_planner::log("Rule 9", true);
+        if (Registrations.LastOperation == INSERT)
         {
-            printf("[Date] %s\n", @Events.Name);
-            // Date changed so send email to students who have registered for the event.
+            // Subtle: if you had use Enrolled++ this would have caused a second rule to
+            // be generated That could be triggered by a change to the 'Enrolled' active
+            // field.
+            Enrolled = @Enrolled +1;
         }
     }
+
+    // Notify staff of event changes
+    {
+        event_planner::log("Rule 10", true);
+
+        std::string staff_email = "Notifying staff '";
+        std::string student_email = "Notifying student '";
+        std::string reason = "' that event '";
+
+        // Pull in field from Events table to get the related staff
+        if (NotifyReason == event_planner::notify_reason_t::none)
+        {
+            return;
+        }
+
+        // Event is related to persons via Staff so we can address
+        // person fields directly.
+        staff_email.append(@FirstName);
+        staff_email.append(" ");
+        staff_email.append(@LastName);
+
+        reason.append(@Events.Name);
+        reason.append("' has the following changes:  ");
+
+        if (NotifyReason == event_planner::notify_reason_t::change_both || 
+            NotifyReason == event_planner::notify_reason_t::change_date)
+        {
+            reason.append("The new date is '");
+            reason.append(event_planner::convert_date(@Date));
+            reason.append("'.");
+        }
+        if (NotifyReason == event_planner::notify_reason_t::change_both || 
+            NotifyReason == event_planner::notify_reason_t::change_location)
+        {
+            reason.append("The new location is in building '");
+            reason.append(@BuildingName);
+            reason.append("', room '");
+            reason.append(@RoomName);
+            reason.append("'.");
+        }
+        staff_email.append(reason);
+        event_planner::log(staff_email.c_str());
+    }
+
+    // Notify registered students of event changes
+    {
+        event_planner::log("Rule 11", true);
+        std::string student_email = "Notifying student '";
+        std::string reason = "' that event '";
+
+        // Pull in field from Events table to get the related staff
+        if (NotifyReason == event_planner::notify_reason_t::none)
+        {
+            return;
+        }
+
+        if (@RegistrationDate)
+        {
+            // Get the registrations for this event.
+            auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
+            auto person = registration.Student_Students().Persons();
+            student_email.append(person.FirstName());
+            student_email.append(" ");
+            student_email.append(person.LastName());
+        }
+
+        reason.append(@Events.Name);
+        reason.append("' has the following changes:  ");
+
+        if (NotifyReason == event_planner::notify_reason_t::change_both || 
+            NotifyReason == event_planner::notify_reason_t::change_date)
+        {
+            reason.append("The new date is '");
+            reason.append(event_planner::convert_date(@Date));
+            reason.append("'.");
+        }
+        if (NotifyReason == event_planner::notify_reason_t::change_both || 
+            NotifyReason == event_planner::notify_reason_t::change_location)
+        {
+            reason.append("The new location is in building '");
+            reason.append(@BuildingName);
+            reason.append("', room '");
+            reason.append(@RoomName);
+            reason.append("'.");
+        }
+        student_email.append(reason);
+        event_planner::log(student_email.c_str());
+    }
+
 
     // We don't have a room anywhere on campus that can fit the number of enrollments so
     // we need to stop dropping enrollments
     {
         char buffer[128];
-        event_planner::log("Rule 10");
+        event_planner::log("Rule 12", true);
         // Send out notifications to all those who have registered
         if (!DropEnrollments)
         {
             return;
         }
         DropEnrollments = false;
-        event_planner::log("DropEnrollments", @Events.Name);
+        //event_planner::log("DropEnrollments", @Events.Name);
 
         // If the room size can accomadate the number of students enrolled
         // then we are done.
@@ -258,12 +351,61 @@ ruleset event_planner
             @Events.Name, @Enrolled, @RestrictedCapacity);
         event_planner::log(buffer);
 
-        // Drop the enrollments to match the capacity we have.
+        uint32_t count_registrations_to_drop = @Enrolled - @RestrictedCapacity;
+
+        // Drop the enrollments to match the capacity we have.  Drop the people who registered the latest.
         Enrolled = @RestrictedCapacity;
 
-        // Drop registrations on a first come, first serve basis.
+        auto this_event = gaia::gaia_u::Events_t::get(Events.gaia_id());
+        std::map<int64_t, gaia::gaia_u::Registrations_t> registrations_to_drop;
+
+        // populate our map
+        for (auto& registration : this_event.Event_Registrations_list())
         {
+            int64_t timestamp = event_planner::get_timestamp(registration.RegistrationDate(), registration.RegistrationTime());
+            registrations_to_drop.insert(std::make_pair(timestamp, registration));
+        }
+
+        for (auto it = registrations_to_drop.rbegin(); 
+            count_registrations_to_drop > 0 && it != registrations_to_drop.rend();
+             ++it)
+        {
+            auto registration = it->second;
+            auto w = registration.writer();
+            w.NotifyDrop = true;
+            w.update_row();
+            count_registrations_to_drop--;
         }
     }
 
+    // Notify student that they have been dropped from the enrollment
+    // And delete the registration from the event
+    {
+        event_planner::log("Rule 13", true);
+        std::string student_email = "Notifying student '";
+        std::string reason = "' that they have been unregistered for event '";
+
+        if (!NotifyDrop)
+        {
+            return;
+        }
+        NotifyDrop = false;
+
+        student_email.append(@FirstName);
+        student_email.append(" ");
+        student_email.append(@LastName);
+        reason.append(@Events.Name);
+        reason.append("'.");
+        student_email.append(reason);
+        event_planner::log(student_email.c_str());
+
+        // Drop registration
+        // Remove the event and the student and drop the registration
+        /*
+        auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
+        registration.Event_Events().Event_Registrations_list().erase(registration);
+        registration.Student_Students().Student_Registrations_list().erase(registration);
+        registration.delete_row();
+        */
+    }
 }

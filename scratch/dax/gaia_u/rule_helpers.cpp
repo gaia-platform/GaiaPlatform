@@ -13,24 +13,29 @@ using namespace std::chrono;
 
 namespace event_planner 
 {
-    // This should not be needed!
-    std::mutex safe_move;
+    bool is_verbose = false;
 }
 
-void event_planner::log(const char* text, const char * event_name)
+void event_planner::log(const char* text, bool is_verbose)
 {
-    pid_t tid;
-    tid = syscall(SYS_gettid);
-    milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    if (event_name)
+    // If this log entry is only verbose mode and we are not in verbose
+    // mode then don't output anything
+    if (is_verbose && !event_planner::is_verbose)
     {
-        printf("[%lu][%d] %s, event '%s'\n", ms.count(), tid, text, event_name);
+        return;
+    }
+
+    if (event_planner::is_verbose)
+    {
+        pid_t tid;
+        tid = syscall(SYS_gettid);
+        milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+        printf("[%lu][%d] %s\n", ms.count(), tid, text);
     }
     else
     {
-        printf("[%lu][%d] %s\n", ms.count(), tid, text);
+        printf("%s\n", text);
     }
-    
 }
 
 //void my_func(gaia::gaia_u::Buildings_t& building);
@@ -65,11 +70,11 @@ void event_planner::move_event_room(
         }
 
         sprintf(buffer, "Erase '%s' from '%s'", event.Name(), old_room.RoomName());
-        event_planner::log(buffer);                
+        event_planner::log(buffer, true);
         old_room.Room_Events_list().erase(event);
     }
     sprintf(buffer, "Insert '%s' into '%s'", event.Name(), new_room.RoomName());
-    event_planner::log(buffer);                    
+    event_planner::log(buffer, true);
     new_room.Room_Events_list().insert(event);
 }
 
@@ -95,7 +100,7 @@ bool event_planner::is_room_available(
             if ((other_event.EndTime() > start_time) &&
                 (other_event.StartTime() < end_time))
             {
-                sprintf(buffer, "Conflict!  Event '%s' conflicts with event '%s' for room '%s'.",
+                sprintf(buffer, "Room Conflict:  Event '%s' conflicts with event '%s' for room '%s'.",
                     event.Name(), other_event.Name(), room.RoomName());
                 event_planner::log(buffer);
                 return false;

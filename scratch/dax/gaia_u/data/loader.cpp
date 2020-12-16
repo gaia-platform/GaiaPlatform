@@ -11,6 +11,7 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
 #include "data_helpers.hpp"
+#include "rule_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -207,29 +208,58 @@ void gaia_u_loader_t::load_Staff(row_t& row)
     m_staff_ids.insert(make_pair(id, gaia_staff_id));
 }
 
+void gaia_u_loader_t::load_Registrations(row_t& row)
+{
+    //uint32_t id = stoul(row[1]);
+    auto gaia_registration_id = Registrations_t::insert_row(
+        event_planner::convert_date(row[1].c_str()), // RegistrationDate
+        event_planner::convert_time(row[2].c_str()),
+        false); // NotifyDrop
+
+    // Add Event
+    uint32_t event_id = stoul(row[3]);
+    auto gaia_event_id = m_events_ids[event_id];
+    if (c_invalid_gaia_id == gaia_event_id)
+    {
+        throw gaia_exception("Invalid event id\n");
+    }
+    auto event = Events_t::get(gaia_event_id);
+    event.Event_Registrations_list().insert(gaia_registration_id);
+
+    // Add Student
+    uint32_t student_id = stoul(row[4]);
+    auto gaia_student_id = m_students_ids[student_id];
+    if (c_invalid_gaia_id == gaia_student_id)
+    {
+        throw gaia_exception("Invalid student id\n");
+    }
+    auto student = Students_t::get(gaia_student_id);
+    student.Student_Registrations_list().insert(gaia_registration_id);
+}
+
 void gaia_u_loader_t::load_Events(row_t& row)
 {
     uint32_t id = stoul(row[1]);
-    uint32_t enrolled = stoul(row[6]);
     auto gaia_event_id = Events_t::insert_row(
         row[2].c_str(), // Name
         event_planner::convert_date(row[3].c_str()), //Date
         event_planner::convert_time(row[4].c_str()), //StartTime
         event_planner::convert_time(row[5].c_str()), //EndTime
-        enrolled, // Enrolled
+        0, // Enrolled
         false, // ChangeLocation
         false, // ChangeDate 
-        false // DropEnrollments
+        false, // DropEnrollments
+        event_planner::notify_reason_t::none // NotifyDate
     );
 
     // Insert the event for the staff
-    uint32_t staff_id = stoul(row[7]);
+    uint32_t staff_id = stoul(row[6]);
     auto gaia_staff_id = m_staff_ids[staff_id];
     auto staff = Staff_t::get(gaia_staff_id);
     staff.Teacher_Events_list().insert(gaia_event_id);
 
     // Insert the event for the room
-    uint32_t room_id = stoul(row[8]);
+    uint32_t room_id = stoul(row[7]);
     auto gaia_room_id = m_rooms_ids[room_id];
     auto room = Rooms_t::get(gaia_room_id);
     room.Room_Events_list().insert(gaia_event_id);
@@ -270,6 +300,7 @@ bool gaia_u_loader_t::load(const char* data_file)
     uint32_t count_parents = 0;
     uint32_t count_staff = 0;
     uint32_t count_restrictions = 0;
+    uint32_t count_registrations = 0;
     uint32_t count_campus = 0;
 
     csv_row_t row;
@@ -336,6 +367,12 @@ bool gaia_u_loader_t::load(const char* data_file)
                 count_restrictions++;
             }
             else
+            if (row[0].compare("Registrations") == 0)
+            {
+                load_Registrations(data);
+                count_registrations++;
+            }            
+            else
             if (row[0].compare("Campus") == 0)
             {
                 load_Campus(data);
@@ -344,10 +381,11 @@ bool gaia_u_loader_t::load(const char* data_file)
         }
         tx.commit();
     }
-    printf("Added: \n%u Campus\n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n%u Parents\n%u Staff\n%u Restrictions", 
+    printf("Added: \n%u Campus\n%u Persons\n%u Events\n%u Buildings\n%u Rooms\n%u Students\n"
+        "%u Parents\n%u Staff\n%u Restrictions\n%u Registrations\n", 
         count_campus, count_persons, count_events,
         count_buildings, count_rooms, count_students,
-        count_parents, count_staff, count_restrictions);
+        count_parents, count_staff, count_restrictions, count_registrations);
 
     return true;
 }

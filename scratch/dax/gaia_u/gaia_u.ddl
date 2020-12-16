@@ -77,14 +77,16 @@ create table if not exists Events
       ChangeLocation : bool active,
       ChangeDate : bool active,
       DropEnrollments : bool active,
+      NotifyReason : int8 active,
       Teacher references Staff,
       Room references Rooms
 );
 
-create table if not exists Registration 
+create table if not exists Registrations 
 (
       RegistrationDate : int64,
       RegistrationTime : int64,
+      NotifyDrop : bool active,
       Event references Events,
       Student references Students
 );

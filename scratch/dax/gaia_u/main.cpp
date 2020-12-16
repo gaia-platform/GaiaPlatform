@@ -6,6 +6,7 @@
 #include "gaia/rules/rules.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "data_helpers.hpp"
+#include "rule_helpers.hpp"
 #include "loader.hpp"
 
 
@@ -21,7 +22,7 @@ using namespace event_planner;
 
 void usage(const char*command) 
 {
-    printf("Usage: %s [-d] [-r Percentage] [-l filename] \n", command);
+    printf("Usage: %s [-d] [-r[v] Percentage] [-l filename]\n", command);
 }
 
 void move_event_room()
@@ -77,6 +78,9 @@ int main(int argc, const char**argv) {
     printf("-----------------------------------------\n");
     gaia::system::initialize("./gaia.conf");
 
+    event_planner::is_verbose = false;
+
+    bool show_usage = false;
     if (argc == 1)
     {
         show_all();
@@ -102,11 +106,24 @@ int main(int argc, const char**argv) {
         {
             update_restriction(stoul(argv[2]));
         }
+        else
+        if (strcmp(argv[1], "-rv")== 0)
+        {
+            event_planner::is_verbose = true;
+            update_restriction(stoul(argv[2]));
+        }
+        else
+        {
+            show_usage = true;
+        }
     }
     else
     {
-        usage(argv[0]);
+        show_usage = true;
     }
+
+    if (show_usage) usage(argv[0]);
+
     
     // UNDONE:  Let the rules finish, investigate whether you have a latest edition with all the shutdown fixes ...
     // You shouldn't need this

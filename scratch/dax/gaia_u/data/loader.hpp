@@ -44,6 +44,7 @@ private:
     void load_Students(row_t& row);
     void load_Parents(row_t& row);
     void load_Restrictions(row_t& row);
+    void load_Registrations(row_t& row);
     void load_Campus(row_t& row);
 
 private:

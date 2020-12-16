@@ -2,6 +2,17 @@
 
 namespace event_planner
 {
+
+extern bool is_verbose;
+
+enum notify_reason_t : int8_t 
+{
+    none,
+    change_location,
+    change_date,
+    change_both
+};
+
 void my_func(gaia::gaia_u::Buildings_t& building);
 void cancel_event(gaia::common::gaia_id_t event_id);
 void move_event_room(
@@ -14,5 +25,6 @@ bool is_room_available(
 bool is_room_available(
     time_t date,
     gaia::gaia_u::Rooms_t& room);
-void log(const char* text, const char* event_name = nullptr);
+void log(const char* text, bool is_verbose = false);
+
 } // namespace event_planner
