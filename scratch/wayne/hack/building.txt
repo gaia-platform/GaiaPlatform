@@ -1,0 +1,31 @@
+# Register Students and Parents.
+\s1 register student wayne warren 1954
+\s2 register student walter warren 1956
+\p1 register parent larry warren 1927 father
+\p2 register parent liz petersen 1933 mother
+# Connect wayne to parents.
+\f1 register family \p1 \s1
+register family \p2 \s1
+# Connect walter to parents.
+\f2 register family \p1 \s2
+register family \p2 \s2
+# Two buildings, home and office.
+\b1 register building home 1
+\b2 register building office 1
+# One room in each building.
+\r1 register room \b1 1 HomeOffice 1 1
+\r2 register room \b2 1050 Gaia 10 40
+# One teacher.
+\st1 register staff Ed Baily 1942
+# Two events at Gaia office
+\e1 register event \st1 \r2 sdk101 2020 1000 1100
+\e2 register event \st1 \r2 sdk201 2020 1300 1400
+# Enroll both students in events.
+register enrollment \s1 \e2 2020 0900
+register enrollment \s2 \e1 2020 0915
+# Face scans.
+register facescanlog \b2 PER000 waynesig 2020 2200
+register facescanlog \b2 unknown who 2020 2201
+register facescanlog \b2 unknown who 2020 2202
+register facescanlog \b1 PER000 waynesig 2020 1700
+register facescanlog \b1 unknown who 2020 2203
