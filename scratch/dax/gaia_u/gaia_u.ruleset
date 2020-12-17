@@ -1,7 +1,28 @@
 #include <string.h>
+
 #include "rule_helpers.hpp"
 #include "data/data_helpers.hpp"
 
+/**
+ * Rule Index
+ * 1) [unused] proof-of-concept, sharing rule-context object with function
+ * 2) [unused] not-working, can't get gaia_id from deleted event (issue logged)
+ * 3) If a room is inserted, use the PercentFull restriction to adjust the RestrictedCapacity of the Room
+ * 4) If someone registers for an event, increase the number of enrollments for that event
+ * 5) If a restriction changes (PercentFull), then update every rooms RestrictedCapacity
+ * 6) If a room capacity changes and it cannot fit the number of people enrolled for an event, 
+ *    we need to change the location of the event
+ * 7) If an Event needs to change the location, go find a room that meets the criteria:
+ *    - Can fit the number of enrollments for the event.
+ *    - Is in the same building
+ *    - Decide whether if it can find a room is their a time conflict
+ *    - Decide if a room cannot be found for the event and need to change enrollments
+ * 8) Reschedule Event
+ * 9) Notify the staff (an instructor) of any event changes
+ * 10) Notify registered students for an event of any changes.
+ * 11) If we need to drop enrollments, then drop enrollments based on "first come, first serve".
+ * 12) Notify students if their registration is cancelled because their enrollment was dropped
+ */
 ruleset event_planner
 {
     // Create an Event.
@@ -18,21 +39,13 @@ ruleset event_planner
         }
     }
 
-    {
-        event_planner::log("Rule 2",true);
-        if (DoorLocked)
-        {
-            DoorLocked = false;
-        }
-    }
-
     //
     // Cancel event involves removing the event from the Staff_t.Teacher_Events_list()
     // and the Rooms_Events_list.
     // Note that this is not currently possible if the event has any reference defined
     //
     {
-        event_planner::log("Rule 3", true);
+        event_planner::log("Rule 2", true);
         if (Events.LastOperation == DELETE)
         {
             event_planner::cancel_event(Events.gaia_id());
@@ -42,10 +55,22 @@ ruleset event_planner
     // When a new room is added then adjust the restricted capacity
     // according to the restriction
     {
-        event_planner::log("Rule 4", true);
+        event_planner::log("Rule 3", true);
         if (Rooms.LastOperation == INSERT)
         {
             RestrictedCapacity = @Capacity * (PercentFull / 100.0);
+        }
+    }
+
+    // If someone registers for an event then bump the number of enrollments
+    {
+        event_planner::log("Rule 4", true);
+        if (Registrations.LastOperation == INSERT)
+        {
+            // Subtle: if you had use Enrolled++ this would have caused a second rule to
+            // be generated That could be triggered by a change to the 'Enrolled' active
+            // field.
+            Enrolled = @Enrolled +1;
         }
     }
 
@@ -56,16 +81,7 @@ ruleset event_planner
         RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
-    // Overall algorithm.
-    // 1) restriction changes
-    // 2) capacity changes for every room
-    // 3) for each room, see what events it is booked for
-    // 4) if the new capacity is less than the enrollment, attempt to change the location
-    // 4.a) update the event and registrations
-    // 5) if you cannot change the location, then change the date
-    // 5.a) update the event and registrations
-
-    // If the room capacity has changed and is less than the enrollment then remove the room
+    // If the room capacity has changed and is less than the enrollment for the event then move the room
     {
         event_planner::log("Rule 6", true);
         // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
@@ -188,12 +204,15 @@ ruleset event_planner
         }
         else
         {
+            // Could not find a room, so use the one we have an drop enrollments until
+            // we meet the restricted capacity
             sprintf(buffer, "Could not find a room for event '%s'.  Need to drop enrollments.", @Events.Name);
             event_planner::log(buffer);
             DropEnrollments = true;
         }
     }
 
+    // Reschedule an event.  Found a room but we need to change the date.
     {
         char buffer[128];
         event_planner::log("Rule 8", true);
@@ -226,21 +245,9 @@ ruleset event_planner
         }
     }
 
-    // If someone registers for an event then bump the number of enrollments
-    {
-        event_planner::log("Rule 9", true);
-        if (Registrations.LastOperation == INSERT)
-        {
-            // Subtle: if you had use Enrolled++ this would have caused a second rule to
-            // be generated That could be triggered by a change to the 'Enrolled' active
-            // field.
-            Enrolled = @Enrolled +1;
-        }
-    }
-
     // Notify staff of event changes
     {
-        event_planner::log("Rule 10", true);
+        event_planner::log("Rule 9", true);
 
         std::string staff_email = "Notifying staff '";
         std::string student_email = "Notifying student '";
@@ -283,7 +290,7 @@ ruleset event_planner
 
     // Notify registered students of event changes
     {
-        event_planner::log("Rule 11", true);
+        event_planner::log("Rule 10", true);
         std::string student_email = "Notifying student '";
         std::string reason = "' that event '";
 
@@ -331,7 +338,7 @@ ruleset event_planner
     // we need to stop dropping enrollments
     {
         char buffer[128];
-        event_planner::log("Rule 12", true);
+        event_planner::log("Rule 11", true);
         // Send out notifications to all those who have registered
         if (!DropEnrollments)
         {
@@ -381,7 +388,7 @@ ruleset event_planner
     // Notify student that they have been dropped from the enrollment
     // And delete the registration from the event
     {
-        event_planner::log("Rule 13", true);
+        event_planner::log("Rule 12", true);
         std::string student_email = "Notifying student '";
         std::string reason = "' that they have been unregistered for event '";
 
@@ -389,7 +396,6 @@ ruleset event_planner
         {
             return;
         }
-        NotifyDrop = false;
 
         student_email.append(@FirstName);
         student_email.append(" ");
@@ -401,11 +407,9 @@ ruleset event_planner
 
         // Drop registration
         // Remove the event and the student and drop the registration
-        /*
-        auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
-        registration.Event_Events().Event_Registrations_list().erase(registration);
-        registration.Student_Students().Student_Registrations_list().erase(registration);
-        registration.delete_row();
-        */
+        //auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
+        //registration.Event_Events().Event_Registrations_list().erase(registration);
+        //registration.Student_Students().Student_Registrations_list().erase(registration);
+        //registration.delete_row();
     }
 }
