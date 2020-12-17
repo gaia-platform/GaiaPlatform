@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include <atomic>
 #include <algorithm>
 
@@ -15,7 +20,7 @@ ruleset incubator_ruleset
     {
         // Prefixing an active field that is being read with '@' signals to the Gaia Platform that this 
         // rule should not be called if the field changes. If the '@' were not present, then this rule 
-        // would be if the incubator turned on or off.
+        // would be called if the incubator turned on or off.
         if (!@incubator.is_on)
         {
             return;

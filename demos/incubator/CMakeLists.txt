@@ -24,25 +24,20 @@ file(MAKE_DIRECTORY ${GENERATED_OUTPUTS})
 
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_incubator.h
-  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
-  COMMAND sleep 1
   COMMAND ${GAIA_GENERATE} -o ${GENERATED_OUTPUTS} -g ${INCUBATOR_DDL}
   DEPENDS ${INCUBATOR_DDL}
   COMMENT "Compiled incubator.ddl."
 )
-
 add_custom_target(generate_incubator_headers ALL
   DEPENDS ${GENERATED_OUTPUTS}/gaia_incubator.h
 )
+
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/incubator_rules.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
-  COMMAND sleep 1
-  COMMAND ${GAIA_TRANSLATE} ${INCUBATOR_RULESET} -output ${GENERATED_OUTPUTS}/incubator_rules.cpp -- -I /usr/lib/gcc/x86_64-linux-gnu/8/include/
+  COMMAND ${GAIA_TRANSLATE} ${INCUBATOR_RULESET} -output ${GENERATED_OUTPUTS}/incubator_rules.cpp -- -I /usr/lib/clang/10/include/
   DEPENDS ${INCUBATOR_RULESET}
   COMMENT "Translating incubator.ruleset."
 )
-
 add_custom_target(translate_incubator_ruleset ALL
   DEPENDS generate_incubator_headers
   DEPENDS ${GENERATED_OUTPUTS}/incubator_rules.cpp
