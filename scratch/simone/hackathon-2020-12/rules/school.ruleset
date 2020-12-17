@@ -1,0 +1,211 @@
+#include <iostream>
+
+#include <gaia/rules/rules.hpp>
+#include <gaia/stream/Stream.h>
+#include <gaia/stream/StreamOperators.h>
+#include "gaia_school.h"
+#include "logger.h"
+#include "person_type.h"
+
+using namespace std;
+using namespace gaia::common;
+using namespace stream;
+using namespace stream::op;
+
+using LOG = rule_logger_t;
+
+#ifdef __JETBRAINS_IDE__
+#define ruleset void
+#define school_ruleset school_ruleset()
+
+#endif
+
+ruleset school_ruleset
+{
+    // students register to event
+    {
+        LOG(debug, 1) << "-----";
+
+        if (registration.LastOperation == INSERT)
+        {
+            auto reg_obj = gaia::school::registration_t::get(registration.gaia_id());
+            auto event_obj = gaia::school::events_t::get(events.gaia_id());
+            auto student_obj = gaia::school::students_t::get(students.gaia_id());
+
+            int num_participants = reg_obj.event_events().event_registration_list().stream()
+                | count();
+
+            if (num_participants > @rooms.capacity)
+            {
+                LOG(info, 1) << @room_name << " is full " << @first_name << " registration rejected!";
+
+                student_obj.reg_student_registration_list().erase(reg_obj);
+                event_obj.event_registration_list().erase(reg_obj);
+                reg_obj.delete_row();
+            }
+            else
+            {
+                LOG(info, 1) << "Registration of  " << @first_name << " " << @last_name << " accepted!";
+            }
+        }
+    }
+
+    // Person enters building
+    {
+        LOG(debug, 2) << "-----";
+
+        if (face_scan_log.LastOperation == INSERT)
+        {
+            LOG(info, 2) << @building_name << " camera scanned face with id: " << @scan_signature;
+
+            try
+            {
+                auto person = gaia::school::persons_t::stream()
+                    | filter(gaia::school::persons_t::fn::face_signature == scan_signature)
+                    | first();
+
+                LOG(info, 2) << "Person recognized as: " << person.first_name() << " " << person.last_name();
+
+                person.singature_id_face_scan_log_list().insert(face_scan_log.gaia_id());
+                face_scan_log.person_type = person.person_type();
+            }
+            catch (stream::EmptyStreamException&)
+            {
+                LOG(info, 2) << "Person is unknown";
+                face_scan_log.person_type = person_type::sconosciuto;
+            }
+        }
+    }
+
+    // Handle student entering the building
+    {
+        LOG(debug, 3) << "-----";
+
+        if (face_scan_log.person_type == person_type::student)
+        {
+            auto scan_obj = gaia::school::face_scan_log_t::get(face_scan_log.gaia_id());
+            auto student_obj = scan_obj.singature_id_persons().student_person_students_list().stream() | first();
+
+            vector<gaia::school::events_t> events_in_building = scan_obj.building_log_buildings().stream()
+                | flat_map(gaia::school::buildings_t::fn::building_rooms_list)
+                | flat_map(gaia::school::rooms_t::fn::room_events_list)
+                | to_vector();
+
+            vector<gaia::school::events_t> registered_events;
+
+            for (auto& event : events_in_building)
+            {
+                int registered_to_event = event.event_registration_list().stream()
+                    | map_(gaia::school::registration_t::fn::reg_student_students)
+                    | filter([&](gaia::school::students_t& s) { return s == student_obj; })
+                    | count();
+
+                if (registered_to_event)
+                {
+                    registered_events.push_back(event);
+                }
+            }
+
+            if (registered_events.empty())
+            {
+                LOG(info, 3) << @persons.first_name << " " << @persons.last_name << " is not registered to any event, not opening the door.";
+                return;
+            }
+
+            stringstream strstream;
+            for (auto& event : registered_events)
+            {
+                strstream << event.name() << ", ";
+            }
+
+            LOG(info, 3) << "Student " << @persons.first_name << " " << @persons.last_name << " is registered to: " << strstream.str();
+
+            LOG(info, 3) << "Unlocking door for: " << @persons.first_name << " " << @persons.last_name;
+            buildings.door_closed = false;
+        }
+    }
+
+    // Handle staff entering the building
+    {
+        LOG(debug, 4) << "-----";
+
+        if (face_scan_log.person_type == person_type::staff)
+        {
+            LOG(info, 4) << "Unlocking door for staff member: " << @persons.first_name << " " << @persons.last_name;
+            buildings.door_closed = false;
+        }
+    }
+
+    // Handle parent entering the building
+    {
+        LOG(debug, 5) << "-----";
+
+        if (face_scan_log.person_type == person_type::parent)
+        {
+            LOG(info, 5) << "Not allowing parent " << @persons.first_name << " " << @persons.last_name << " into the building 'cus I'm not in the mood of writing the logic for it";
+            buildings.door_closed = false;
+        }
+    }
+
+    // Handling strangers
+    {
+        LOG(debug, 6) << "-----";
+
+        if (face_scan_log.person_type == person_type::sconosciuto)
+        {
+            // manually retrieve the scan log because it is impossible to do so via declarative code
+            auto scan_log = gaia::school::face_scan_log_t::stream()
+                | filter(gaia::school::face_scan_log_t::fn::scan_signature == scan_signature)
+                | first();
+
+            auto strangers = gaia::school::strangers_t::stream()
+                | filter([&](gaia::school::strangers_t s) { return s.face_scan_face_scan_log() == scan_log; })
+                | to_vector();
+
+            if (strangers.empty())
+            {
+                LOG(info, 6) << "It is the first time that this stranger approaches the building " << @building_name;
+                gaia_id_t stranger_id = gaia::school::strangers_t::insert_row(1);
+                scan_log.face_scan_strangers_list().insert(stranger_id);
+            }
+            else
+            {
+                auto writer = strangers[0].writer();
+                writer.scan_count = strangers[0].scan_count() + 1;
+                writer.update_row();
+                LOG(info, 6) << "It is the " << strangers[0].scan_count() << " time that this stranger approaches the building " << @building_name;
+            }
+        }
+    }
+
+    // Call the police if a stranger tries entering the building more than 3 times (these could be further split in multiple rules)
+    {
+        LOG(debug, 7) << "-----";
+
+        if (strangers.scan_count <= 2)
+        {
+            LOG(info, 7) << "Keeping door closed!";
+        }
+
+        if (@strangers.scan_count <= 3)
+        {
+            LOG(info, 7) << "Stranger tried to enter the building " << strangers.scan_count << " times, calling the police...";
+        }
+
+        if (@strangers.scan_count > 3)
+        {
+            LOG(info, 7) << "This sucker is really persistent, calling the Avengers...";
+        }
+    }
+
+    // Closing building door after it has been opened.
+    {
+        LOG(debug, 8) << "-----";
+
+        if (!buildings.door_closed)
+        {
+            LOG(info, 8) << "Closing " << @buildings.building_name << " door";
+            buildings.door_closed = true;
+        }
+    }
+}

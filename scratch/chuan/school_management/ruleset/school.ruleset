@@ -1,0 +1,24 @@
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+ruleset school_ruleset
+{
+    // Close the door automatically after 10 seconds.
+    {
+        if (!building.door_closed) {
+            std::chrono::seconds duration(10);
+            std::this_thread::sleep_for(duration);
+            building.door_closed = true;
+        }
+    }
+
+    // Open the building door if there is a regonized face
+    {
+        if (face_scan.LastOperation == INSERT) {
+            if (@face_scan.recognized) {
+                building.door_closed = false;
+            }
+        }
+    }
+}
