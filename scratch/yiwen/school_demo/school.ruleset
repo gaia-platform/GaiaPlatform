@@ -1,0 +1,376 @@
+#include <iostream>
+#include <iomanip>
+#include <cstring>
+#include <sstream>
+#include <ctime>
+#include "gaia_school.h"
+#include "school_sim.h"
+
+using namespace std;
+using namespace gaia::common;
+using namespace gaia::direct_access;
+
+void record_stranger(gaia::school::FaceScanLog_t& log) {
+      // have we seen this stranger before???
+      bool new_stranger = true;
+      for (auto s : gaia::school::stranger_t::list()) {
+        auto fsl = s.FirstScanned_FaceScanLog();
+        if (fsl.ScanSignature() == log.ScanSignature()) {
+          // Yes, we have seen them. Increment their count.
+          auto w = s.writer();
+          w.FaceScanCount = s.FaceScanCount() + 1;
+          w.update_row();
+          new_stranger = false;
+          break;
+        }
+      } // stranger search
+      if (new_stranger) {
+        // new person...! Record this incident.
+        gaia::school::stranger_writer w;
+        w.FaceScanCount = 1;
+        auto stranger_id = w.insert_row();
+
+        log.FirstScanned_stranger_list().insert(stranger_id);
+      }
+}
+
+void lock_building(gaia::school::building_t& b) {
+  auto w = b.writer();
+  w.DoorClosed = true;
+  w.update_row();
+
+  std::cout << b.BuildingName() << " is locked." << std::endl;
+}
+
+void unlock_building(gaia::school::building_t& b) {
+  auto w = b.writer();
+  w.DoorClosed = false;
+  w.update_row();
+
+  std::cout << b.BuildingName() << " is unlocked." << std::endl;
+}
+
+bool event_overlap(const gaia::school::event_t& e1, const gaia::school::event_t& e2) {
+  return e1.StartTime() <= e2.EndTime() && e2.StartTime() <= e1.EndTime(); 
+}
+
+bool is_happening(const gaia::school::event_t& e) {
+  bool retval = school_now() >= e.StartTime() && school_now() <= e.EndTime();
+  return retval; 
+}
+
+bool event_deregister_on_conflict(gaia::school::student_t& s, gaia::school::registration_t& r) {
+    bool conflicts = false;
+    auto evt = r.Event_event();
+    for (auto sr : s.Student_registration_list()) {
+      if (sr.gaia_id() == r.gaia_id()) {
+        continue;
+      }
+
+      auto e = sr.Event_event();
+      if (event_overlap(e, evt)) {
+        conflicts = true;
+        
+        std::ostringstream msg;
+        msg << "Event " << evt.Name() << " deregistered due to conflict with " << e.Name() << std::endl;
+        msg_number(std::string(s.Number()), msg.str());
+        break;
+      }
+    }
+
+  if (conflicts) {
+    s.Student_registration_list().erase(r);
+    evt.Event_registration_list().erase(r);
+    r.delete_row();
+  }
+  
+  return conflicts;
+}
+
+void deregister_and_notify_all(gaia::school::event_t& e) {
+  while (e.Event_registration_list().begin() != e.Event_registration_list().end()) {
+    auto r = *e.Event_registration_list().begin();
+    auto s = r.Student_student();
+
+    s.Student_registration_list().erase(r);
+    e.Event_registration_list().erase(r);
+
+    std::ostringstream msg;
+    msg << e.Name() << " has been cancelled." << std::endl;
+    msg_number(std::string(s.Number()), msg.str());
+
+    r.delete_row();
+  }
+}
+
+void notify_event_change(gaia::school::event_t& e) {
+  for (auto r: e.Event_registration_list()) {
+    auto s = r.Student_student();
+    
+    bool conflicts = event_deregister_on_conflict(s, r);
+
+    if (!conflicts) {
+      std::ostringstream msg;
+      time_t start = static_cast<time_t>(e.StartTime());
+      time_t end = static_cast<time_t>(e.EndTime());
+      auto tm = std::gmtime(&start);
+      msg << "Event Details: " << e.Name() << std::endl;
+      msg << "Date: " << std::put_time(tm, "%Y-%m-%d") << std::endl; 
+      msg << "Start: " <<  std::put_time(tm, "%I:%M") << std::endl;
+      tm = std::gmtime(&end);
+      msg << "End: " << std::put_time(tm, "%I:%M");
+      msg << std::endl;
+      msg << "Location: " << e.EventRoom_room().RoomName() << std::endl; 
+      msg_number(std::string(s.Number()), msg.str());
+    }
+  }
+}
+
+void notify_active(gaia::school::student_t& s) {
+  bool happening = false;
+  for (auto r: s.Student_registration_list()) {
+    auto e = r.Event_event();
+    if (is_happening(e)) {
+      happening = true;
+      std::ostringstream msg;
+      msg << s.StudentAsPerson_person().FirstName() << ", " << std::endl;
+      msg << "Your event " << e.Name() << " is at " << e.EventRoom_room().InBuilding_building().BuildingName() << std::endl; 
+      msg_number(std::string(s.Number()), msg.str());
+    }
+  }
+
+  if (!happening) {
+    std::ostringstream msg;
+    msg << "You have no events now." << std::endl;
+    msg_number(std::string(s.Number()), msg.str());
+  }
+}
+
+void notify_active_events(gaia::school::person_t& p) {
+  // person is a student
+  if (p.StudentAsPerson_student_list().begin() != p.StudentAsPerson_student_list().end()) {
+    notify_active(*p.StudentAsPerson_student_list().begin());
+  }
+}
+
+void record_attendance(gaia::school::event_t& e) {
+  auto w = e.writer();
+  w.EventActualEnrolled = e.EventActualEnrolled() + 1;
+  w.update_row();
+}
+
+bool is_attendee(gaia::school::event_t& e, gaia::school::student_t& s, bool record = false) {
+  for (auto r: s.Student_registration_list()) {
+    if (r.Event_event().gaia_id() == e.gaia_id()) {
+      if (record){
+        record_attendance(e);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool is_attendee(gaia::school::event_t& e, gaia::school::person_t& p) {
+  // person is a parent
+  if (p.ParentAsPerson_parent_list().begin() != p.ParentAsPerson_parent_list().end()) { 
+    auto parent = p.ParentAsPerson_parent_list().begin();
+
+    if (parent->MotherFather()) {
+      for (auto s : parent->Mother_student_list()) {
+        if (is_attendee(e, s)) {
+          return true;
+        }
+      }
+    } else {
+      for (auto s : parent->Father_student_list()) {
+        if (is_attendee(e, s)) {
+          return true;
+        }
+      }
+    }
+  }
+  // person is a student
+  if (p.StudentAsPerson_student_list().begin() != p.StudentAsPerson_student_list().end()) {
+    return is_attendee(e, *p.StudentAsPerson_student_list().begin(), true);
+  }
+
+  return false;
+}
+
+bool is_authorized(gaia::school::person_t& p, gaia::school::building_t& b) {
+  // is staff, they are authorized
+  if (p.StaffAsPerson_staff_list().begin() != p.StaffAsPerson_staff_list().end()) {
+    std::cout << p.FirstName() << " " << p.LastName() << " is authorized as staff. " <<std::endl;
+    return true;
+  }
+
+  // get a list of rooms for this building let them in if they have an event
+  for (auto room : b.InBuilding_room_list()) {
+    for (auto evt: room.EventRoom_event_list()) {
+      if (is_happening(evt) && is_attendee(evt, p)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool room_can_accomodate(gaia::school::room_t& r, gaia::school::event_t& e, uint32_t extra = 0) {
+  if (r.Capacity() <= e.Enrollment() + extra) {
+    return false;
+  }
+
+  for (auto const& evt: r.EventRoom_event_list())
+  {
+    if (evt.gaia_id() != e.gaia_id() && event_overlap(evt, e)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+gaia::school::room_t new_room_for_evt(gaia::school::event_t& evt) {
+  for (auto r : gaia::school::room_t::list()) {
+    if (room_can_accomodate(r, evt, 5)) {
+      return r;
+    }
+  }
+  throw 0;
+}
+
+ruleset school_ruleset
+{
+  // new registration/check for conflicts
+  {
+    if (registration.LastOperation == INSERT) {
+      auto reg = gaia::school::registration_t::get(registration.gaia_id());
+      auto task = gaia::school::CheckConflictTask_t::get(gaia::school::CheckConflictTask_t::insert_row(false));
+      reg.IsConflict_CheckConflictTask_list().insert(task);
+    }
+  }
+  // new registration
+  {
+    if (registration.LastOperation == INSERT) {
+      auto reg = gaia::school::registration_t::get(registration.gaia_id());
+      auto evt = reg.Event_event();
+      auto w = evt.writer();
+      w.Enrollment = evt.Enrollment() + 1;
+      w.update_row();
+    }
+  }
+  // Check capacity... and bump?
+  {
+    auto evt = gaia::school::event_t::get(event.gaia_id());
+    auto room = evt.EventRoom_room();
+    if (event.Enrollment > room.Capacity()) {
+      // first erase the room
+      room.EventRoom_event_list().erase(evt);
+      try {
+        new_room_for_evt(evt).EventRoom_event_list().insert(evt);
+        auto w = evt.writer();
+        w.Version = evt.Version() + 1; // HAX... bump the version to generate update row event
+        w.update_row();
+      } catch(...) {
+        std::cout << "can't find room :( " << std::endl;
+      }
+    }
+  }
+  // Event updated let attendees know / cancel conflicts
+  {
+    if (event.Version) {
+      auto evt = gaia::school::event_t::get(event.gaia_id());
+      notify_event_change(evt);
+    }
+  }
+  // new scan, who dis?
+  {
+    if (FaceScanLog.LastOperation == INSERT) {
+      bool stranger = true;
+      auto fsl = gaia::school::FaceScanLog_t::get(FaceScanLog.gaia_id());
+      auto build = fsl.Building_building();
+
+      for (auto p : gaia::school::person_t::list()) {
+        if (p.FaceSignature() == @FaceScanLog.ScanSignature) {
+          stranger = false;
+
+          if (is_authorized (p,build)) {
+            unlock_building(build);
+          } else {
+            lock_building(build);
+            notify_active_events(p);
+          }
+          break;
+        }
+      }
+      if (stranger) {
+        lock_building(build);
+        record_stranger(fsl);
+      }
+    } // INSERTED
+  }
+  // remove registration.
+  {
+    if (registration.LastOperation == DELETE) {
+      auto reg = gaia::school::registration_t::get(registration.gaia_id());
+      auto e = reg.Event_event();
+      auto w = e.writer();
+      w.Enrollment = e.Enrollment() - 1;
+      w.update_row();
+    }
+  }
+  // Event cancellation via tombstone version
+  {
+    if (event.Version == 0) {
+      auto e = gaia::school::event_t::get(event.gaia_id());
+      auto teacher = e.Teacher_staff();
+      teacher.Teacher_event_list().erase(e);
+
+      auto room = e.EventRoom_room();
+      room.EventRoom_event_list().erase(e);
+      deregister_and_notify_all(e);
+      e.delete_row();
+    }
+  }
+  // Time advances rule
+  {
+      time_t t = sim.now;
+      struct tm* timeinfo = std::gmtime(&t);
+
+      if (timeinfo->tm_hour >= 9) {
+        t = sim.now + 24 * 60 * 60;
+        timeinfo = std::gmtime(&t);
+      }
+      timeinfo->tm_hour = 9;
+      timeinfo->tm_min = 0;
+      timeinfo->tm_sec = 0;
+      sim.NextDay = ::timegm(timeinfo);
+  }
+  // print a message once it is sent
+  {
+    if (msg.LastOperation == INSERT) {
+        std::cout << std::endl;
+        std::cout << std::endl;
+        std::cout << "Message sent for number: " << @msg.Number << std::endl;
+        std::cout << std::endl;
+        std::cout << @msg.Text << std::endl;
+        std::cout << std::endl;
+    }
+  }
+  // queued task pattern
+  {
+    if (CheckConflictTask.LastOperation == INSERT) {
+      auto task = gaia::school::CheckConflictTask_t::get(CheckConflictTask.gaia_id());
+      auto r = task.IsConflict_registration();
+      auto s = r.Student_student();
+
+      // unlink and delete yourself
+      r.IsConflict_CheckConflictTask_list().erase(task);
+      task.delete_row();
+
+      event_deregister_on_conflict(s, r);
+    }
+  }
+}
