@@ -16,4 +16,5 @@ add_library(gaia_triggers SHARED
   src/events.cpp)
 target_include_directories(gaia_triggers PUBLIC ${GAIA_TRIGGERS_INCLUDES})
 set_target_properties(gaia_triggers PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_triggers PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_triggers PRIVATE "gaia_common")
