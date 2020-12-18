@@ -46,7 +46,7 @@ add_custom_target(translate_incubator_ruleset ALL
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB})
 
-add_executable(incubator 
+add_executable(incubator
     incubator.cpp
     ${PROJECT_BINARY_DIR}/incubator_rules.cpp
 )
