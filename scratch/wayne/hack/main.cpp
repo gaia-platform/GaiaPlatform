@@ -305,7 +305,7 @@ void show_help()
     printf("   Run interactively, or redirect a text file to stdin for batch operation.\n");
 }
 
-int main(int argc, const char**) {
+int main(int, const char**) {
     std::string server;
     string message;
 
@@ -313,120 +313,112 @@ int main(int argc, const char**) {
 
     init_storage();
 
-    if (argc > 0)
+    // Command Format:
+    //   [memory-location] command person-type parameters
+    //   where memory-location is optional word staring with '\'.
+    //   a parameter that starts with '\' and matches the word
+    //   will be replaced with the ID of the REGISTER result.
+    string line;
+    map<string, string> register_map;
+    string command;
+    string person_type;
+    string param;
+    string memory;
+    while (getline(cin, line))
     {
-        // Command Format:
-        //   [memory-location] command person-type parameters
-        //   where memory-location is optional word staring with '\'.
-        //   a parameter that starts with '\' and matches the word
-        //   will be replaced with the ID of the REGISTER result.
-        string line;
-        map<string, string> register_map;
-        string command;
-        string person_type;
-        string param;
-        string memory;
-        while (getline(cin, line))
+        stringstream part(line);
+        getline(part, command, ' ');
+
+        // Check for comment - '#' as first character.
+        if (command[0] == '#')
         {
-            stringstream part(line);
+            continue;
+        }
+
+        // Save memory name if present
+        memory.clear();
+        if (command[0] == c_mem)
+        {
+            memory = command;
             getline(part, command, ' ');
-
-            // Check for comment - '#' as first character.
-            if (command[0] == '#')
+        }
+        getline(part, person_type, ' ');
+        // Perform substitutions on the parameters.
+        string parameters;
+        while (getline(part, param, ' '))
+        {
+            if (param[0] == c_mem)
             {
-                continue;
-            }
-
-            // Save memory name if present
-            memory.clear();
-            if (command[0] == c_mem)
-            {
-                memory = command;
-                getline(part, command, ' ');
-            }
-            getline(part, person_type, ' ');
-            // Perform substitutions on the parameters.
-            string parameters;
-            while (getline(part, param, ' '))
-            {
-                if (param[0] == c_mem)
+                if (register_map.find(param) == register_map.end())
                 {
-                    if (register_map.find(param) == register_map.end())
-                    {
-                        printf("cannot find substutution value for %s\n", param.c_str());
-                        parameters += ' ' + param;
-                    }
-                    else
-                    {
-                        parameters += ' ' + register_map[param];
-                    }
+                    printf("cannot find substutution value for %s\n", param.c_str());
+                    parameters += ' ' + param;
                 }
                 else
                 {
-                    parameters += ' ' + param;
+                    parameters += ' ' + register_map[param];
                 }
             }
-            // There's always an extra space at the start that should be eliminated.
-            parameters.erase(0,1);
-            to_upper(command);
-            to_upper(person_type);
-
-            if (command == c_list)
+            else
             {
-                show_list(person_type);
-                continue;
-            }
-
-            if (command == c_quit)
-            {
-                break;
-            }
-
-            if (command == c_dump)
-            {
-                dump_db();
-                continue;
-            }
-
-            if (command == c_help)
-            {
-                show_help();
-                continue;
-            }
-
-            // Insert this command into the command log. This should trigger the appropriate action.
-            Command_writer commands;
-            commands.command_timestamp = time(NULL);
-            commands.command_operation = command;
-            commands.command_person_type = person_type;
-            commands.command_parameters = parameters;
-            printf("%s %s %s\n", command.c_str(), person_type.c_str(), parameters.c_str());
-            begin_transaction();
-            commands.insert_row();
-            commit_transaction();
-
-            // Read/print/delete messages from the rules.
-            int delay = 0;
-            while (!check_messages(message))
-            {
-                usleep(1000);
-                // Prevent infinite loops when no message is sent.
-                if (++delay > 10)
-                {
-                    printf("Timed out waiting for rule message. Bad command?\n");
-                    break;
-                }
-            }
-            if (memory.size())
-            {
-                register_map[memory] = message;
+                parameters += ' ' + param;
             }
         }
-    }
-    else 
-    {
-        simulation_t sim;
-        sim.run();
+        // There's always an extra space at the start that should be eliminated.
+        parameters.erase(0,1);
+        to_upper(command);
+        to_upper(person_type);
+
+        if (command == c_list)
+        {
+            show_list(person_type);
+            continue;
+        }
+
+        if (command == c_quit)
+        {
+            break;
+        }
+
+        if (command == c_dump)
+        {
+            dump_db();
+            continue;
+        }
+
+        if (command == c_help)
+        {
+            show_help();
+            continue;
+        }
+
+        // Insert this command into the command log. This should trigger the appropriate action.
+        Command_writer commands;
+        commands.command_timestamp = time(NULL);
+        commands.command_operation = command;
+        commands.command_person_type = person_type;
+        commands.command_parameters = parameters;
+        printf("%s %s %s\n", command.c_str(), person_type.c_str(), parameters.c_str());
+        begin_transaction();
+        commands.insert_row();
+        commit_transaction();
+
+        // Read/print/delete messages from the rules.
+        int delay = 0;
+        while (!check_messages(message))
+        {
+            usleep(1000);
+            // Prevent infinite loops when no message is sent.
+            if (++delay > 10)
+            {
+                printf("Timed out waiting for rule message. Bad command?\n");
+                break;
+            }
+        }
+        if (memory.size())
+        {
+            register_map[memory] = message;
+        }
     }
 
     int delay = 0;

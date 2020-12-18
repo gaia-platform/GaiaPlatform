@@ -18,7 +18,7 @@ user@5322301c1438:~$
  - Install the SDK (assuming it was in the mounted volume).
 ```
 cd /home/user/hack
-sudo apt install gaia-0.1.0_amd64.deb
+sudo apt install ./gaia-0.1.0_amd64.deb
 ```
  - Start the server running (preferrably in a separate ssh to container.
 ```
