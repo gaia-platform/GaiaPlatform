@@ -3,6 +3,7 @@
     const std::string c_delete = "DELETE";
     const std::string c_list = "LIST";
     const std::string c_dump = "DUMP";
+    const std::string c_help = "HELP";
     const std::string c_quit = "QUIT";
 
     // Entity type options.

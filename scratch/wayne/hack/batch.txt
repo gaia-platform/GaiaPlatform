@@ -14,11 +14,11 @@ REGISTER FAMILY \p2 \s2
 REGISTER FAMILY \p4 \s3
 \b1 register building work 1
 \r0 register room \b1 3 Home 1 5
-\st0 register staff judy wilson 1980
+\st0 register staff judy wilson 1980 2019
 \e1 register event \st0 \r0 MATH101 2021 800 1000
 \en1 register enrollment \s1 \e1 2021 1100
 \r1 register room \b1 3 Home 1 5
-\st1 register staff joe schmoe 1995
+\st1 register staff joe schmoe 1995 2018
 \e2 register event \st1 \r1 math201 1 2 3
 \en2 register enrollment \s1 \e2 4 5
 # start deleting

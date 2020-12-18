@@ -16,7 +16,7 @@ register family \p2 \s2
 \r1 register room \b1 1 HomeOffice 1 1
 \r2 register room \b2 1050 Gaia 10 40
 # One teacher.
-\st1 register staff Ed Baily 1942
+\st1 register staff Ed Baily 1942 2015
 # Two events at Gaia office
 \e1 register event \st1 \r2 sdk101 2020 1000 1100
 \e2 register event \st1 \r2 sdk201 2020 1300 1400

@@ -159,127 +159,6 @@ string to_upper(string& word)
     return word;
 }
 
-void usage(const char*command) {
-    printf("Usage: %s [batch_file_name]\n", command);
-    printf(" batch_file_name: File containing People commands.\n");
-    printf(" default: read from stdin\n");
-}
-
-class simulation_t
-{
-public:
-    bool handle_main()
-    {
-        // Interactive (vs. batch) command composition.
-        printf("\n");
-        printf("%s / %s / %s / %s\n", c_register.c_str(), c_delete.c_str(), c_list.c_str(), c_quit.c_str());
-        printf("enter command> ");
-
-        get_upper(m_command);
-        if (m_command == c_quit)
-        {
-            return false;
-        }
-        if (m_command != c_register && m_command != c_delete && m_command != c_list)
-        {
-            printf("Must be \"register\", \"delete\" or \"list\"\n");
-            return true;
-        }
-
-        printf("\n");
-        printf("%s / %s / %s", c_student.c_str(), c_staff.c_str(), c_parent.c_str());
-        if (m_command == c_list)
-        {
-            printf(" / %s", c_family.c_str());
-        }
-        printf(" / %s\n", c_quit.c_str());
-        printf("enter person-type> ");
-
-        get_upper(m_person_type);
-
-        if (m_command == c_quit)
-        {
-            return false;
-        }
-
-        if (m_person_type != c_student && m_person_type != c_staff && m_person_type != c_parent && m_person_type != c_family)
-        {
-            printf("Must be \"student\", \"staff\", \"parent\" or \"family\"\n");
-            return true;
-        }
-
-        if (m_command == c_register)
-        {
-            if (m_person_type == c_student)
-            {
-                printf("enter first-name last-name birthdate> ");
-            }
-            else if (m_person_type == c_staff)
-            {
-                printf("enter first-name last-name birthdate hiredate> ");
-            }
-            else if (m_person_type == c_parent)
-            {
-                printf("enter first-name last-name birthdate student-ID father/mother> ");
-            }
-        }
-
-        if (m_command == c_delete)
-        {
-            printf("%s-ID> ", m_person_type.c_str());
-        }
-
-        if (m_command == c_quit)
-        {
-            return false;
-        }
-
-        getline(cin, m_parameters);
-        // Insert this command into the command log. This should trigger the appropriate action.
-        Command_writer commands;
-        commands.command_timestamp = time(NULL);
-        commands.command_operation = m_command;
-        commands.command_person_type = m_person_type;
-        commands.command_parameters = m_parameters;
-        begin_transaction();
-        commands.insert_row();
-        commit_transaction();
-        return true;
-    }
-
-    bool is_equal(const string s1, const string s2)
-    {
-        return strcasecmp(s1.c_str(), s2.c_str()) == 0;
-    }
-    
-    // Read next token from command-line.
-    void get_upper(string& input)
-    {
-        getline(cin, input);
-        to_upper(input);
-    }
-
-    int run() {
-        string message;
-        while (true) {
-            if (!handle_main()) {
-                return EXIT_SUCCESS;
-            }
-            check_messages(message);
-        }
-    }
-
-private:
-    string m_input;
-    string m_command;
-    string m_person_type;
-    string m_parameters;
-    Person_t m_current_Person;
-    const char* m_current_Person_name;
-    thread m_simulation_thread[1];
-    int m_current_menu = 0;
-};
-
 constexpr char c_mem = '\\';
 
 void show_list(string person_type)
@@ -390,6 +269,42 @@ void show_list(string person_type)
     commit_transaction();
 }
 
+void show_help()
+{
+    printf("   REGISTER STUDENT firstname lastname birthdate\n");
+    printf("   REGISTER STAFF firstname lastname birthdate\n");
+    printf("   REGISTER PARENT firstname lastname birthdate role\n");
+    printf("      where role = \"father\" or \"mother\"\n");
+    printf("   REGISTER PARENT firstname lastname birthdate hiredate\n");
+    printf("   REGISTER FAMILY parentId studentId\n");
+    printf("   REGISTER BUILDING buildingname camera#\n");
+    printf("      where camera is integer\n");
+    printf("   REGISTER ROOM buildingId roomnumber roomname floornumber capacity\n");
+    printf("      where floornumber and capacity are integers\n");
+    printf("   REGISTER EVENT staffId roomId eventname eventdate starttime endtime\n");
+    printf("      where starttime and endtime are integers\n");
+    printf("   REGISTER ENROLLMENT studentId eventId firstname enrolldate enrolltime\n");
+    printf("      where enrolltime is integer\n");
+    printf("   REGISTER FACESCANLOG buildingId personId scansignature scandate scantime\n");
+    printf("      where scantime is integer\n");
+    printf("\n");
+    printf("    Note every REGISTER returns an ID of the registered record.\n");
+    printf("    Use the following\n");
+    printf("    notation to capture the ID in a named variable:\n");
+    printf("       \\s1 REGISTER STUDENT jose jimenez 19800518\n");
+    printf("       \\p1 REGISTER PARENT juan jimenez 19500311 father\n");
+    printf("    Then use the variable wherever the ID is required:\n");
+    printf("       \\f REGISTER FAMILY \\p1 \\s1\n");
+    printf("\n");
+    printf("   DELETE STUDENT|PARENT|STAFF|FAMILY|BUILDING|ROOM|EVENT|ENROLLMENT recordId\n");
+    printf("   LIST STUDENT|PARENT|STAFF|FAMILY|BUILDING|ROOM|EVENT|ENROLLMENT\n");
+    printf("   DUMP\n");
+    printf("   HELP\n");
+    printf("   QUIT\n");
+    printf("\n");
+    printf("   Run interactively, or redirect a text file to stdin for batch operation.\n");
+}
+
 int main(int argc, const char**) {
     std::string server;
     string message;
@@ -470,6 +385,12 @@ int main(int argc, const char**) {
             if (command == c_dump)
             {
                 dump_db();
+                continue;
+            }
+
+            if (command == c_help)
+            {
+                show_help();
                 continue;
             }
 
