@@ -11,6 +11,7 @@ project(hello)
 set(CMAKE_CXX_STANDARD 17)
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GAIA_LINK_FLAGS "-ggdb")
 
 set(GAIA "/opt/gaia")
 set(LOCAL "/usr/local")
@@ -62,11 +63,12 @@ add_executable(hello
 )
 
 # The hello example uses a system configuration and logger configuration file.
-configure_file("${GAIA}/etc/gaia.conf" "${PROJECT_BINARY_DIR}/gaia.conf")
-configure_file("${GAIA}/etc/gaia_log.conf" "${PROJECT_BINARY_DIR}/gaia_log.conf")
+configure_file(${GAIA}/etc/gaia.conf ${PROJECT_BINARY_DIR}/gaia.conf)
+configure_file(${GAIA}/etc/gaia_log.conf ${PROJECT_BINARY_DIR}/gaia_log.conf)
 
 add_dependencies(hello translate_hello_ruleset)
-set_target_properties(hello PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(hello PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
+set_target_properties(hello PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 target_include_directories(hello PRIVATE ${GAIA_INC})
 target_include_directories(hello PRIVATE ${PROJECT_BINARY_DIR})
 target_link_libraries(hello PRIVATE rt pthread gaia)
