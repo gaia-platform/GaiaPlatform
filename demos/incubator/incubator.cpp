@@ -398,7 +398,7 @@ public:
                 list_rules();
                 break;
             case c_cmd_manage_incubators:
-                m_current_menu = 1;
+                m_current_menu = menu_t::incubators;
                 break;
             case c_cmd_print_state:
                 dump_db();
@@ -461,14 +461,14 @@ public:
             {
             case c_cmd_choose_chickens:
                 get_incubator(c_chicken);
-                m_current_menu = 2;
+                m_current_menu = menu_t::settings;
                 break;
             case c_cmd_choose_puppies:
                 get_incubator(c_puppy);
-                m_current_menu = 2;
+                m_current_menu = menu_t::settings;
                 break;
             case c_cmd_back:
-                m_current_menu = 0;
+                m_current_menu = menu_t::main;
                 break;
             default:
                 printf("%s\n", c_wrong_input);
@@ -500,10 +500,10 @@ public:
             switch (m_input[0])
             {
             case c_cmd_back:
-                m_current_menu = 1;
+                m_current_menu = menu_t::incubators;
                 break;
             case c_cmd_main:
-                m_current_menu = 0;
+                m_current_menu = menu_t::main;
                 break;
             default:
                 printf("%s\n", c_wrong_input);
@@ -620,13 +620,13 @@ public:
         {
             switch (m_current_menu)
             {
-            case 0:
+            case menu_t::main:
                 has_input = handle_main();
                 break;
-            case 1:
+            case menu_t::incubators:
                 has_input = handle_incubators();
                 break;
-            case 2:
+            case menu_t::settings:
                 has_input = handle_incubator_settings();
                 break;
             default:
@@ -639,11 +639,17 @@ public:
     }
 
 private:
+    enum menu_t
+    {
+        main,
+        incubators,
+        settings
+    };
     string m_input;
     incubator_t m_current_incubator;
     const char* m_current_incubator_name;
     thread m_simulation_thread[1];
-    int m_current_menu = 0;
+    menu_t m_current_menu = menu_t::main;
 };
 
 int main(int argc, const char** argv)

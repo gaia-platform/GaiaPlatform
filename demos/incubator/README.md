@@ -175,4 +175,4 @@ Do a clean build of your project to load the incubator schema into the database 
 make clean
 make
 ```
-This will populate the catalog with the incubator schema as well as re-generate the required headers.
+This will populate the catalog with the incubator schema as well as regenerate the required headers.
