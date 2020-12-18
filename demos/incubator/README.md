@@ -6,11 +6,11 @@ These instructions assume you have installed the SDK and have installed the *cla
 
 1. We suggest copying the sources to a new directory so that you always have a backup in the installed folder if you want to go back.
 ```
-mkdir incubator_demo
-cd incubator_demo
-cp -r /opt/gaia/examples/incubator_demo/* .
+mkdir incubator
+cd incubator
+cp -r /opt/gaia/examples/incubator/* .
 ```
-2. Create a build directory (in this case it is under the current *incubator_demo/* folder and build.
+2. Create a build directory (in this case it is under the current *incubator/* folder and build.
 ```
 mkdir build
 cd build/

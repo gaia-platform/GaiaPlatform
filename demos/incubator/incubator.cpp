@@ -296,7 +296,7 @@ void add_fan_control_rule()
     {
         subscribe_ruleset("incubator_ruleset");
     }
-    catch (duplicate_rule)
+    catch (const duplicate_rule&)
     {
         printf("The ruleset has already been added.\n");
     }
@@ -504,6 +504,7 @@ public:
                 break;
             case c_cmd_main:
                 m_current_menu = 0;
+                break;
             default:
                 printf("%s\n", c_wrong_input);
                 break;
