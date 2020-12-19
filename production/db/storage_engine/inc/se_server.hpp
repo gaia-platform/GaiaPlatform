@@ -285,9 +285,7 @@ private:
 
     static void init_memory_manager();
 
-    static void get_memory_info_from_request_and_free(
-        session_event_t event,
-        bool commit_success);
+    static void get_memory_info_from_request_and_free(bool commit_success);
 
     static void init_shared_memory();
 
