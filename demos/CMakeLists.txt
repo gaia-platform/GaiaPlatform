@@ -30,6 +30,12 @@ set(GAIA_INC "${GAIA_PROD}/inc")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
+# Enable AddressSanitizer in debug mode.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+endif()
+
 # Helper function for setting up our tests.
 function(set_test target arg result)
   add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})

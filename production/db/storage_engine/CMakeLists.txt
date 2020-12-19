@@ -190,6 +190,9 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
     se_jni_headers)
   set_target_properties(jni_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(jni_se_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(jni_se_client PRIVATE "-shared-libasan")
+  endif()
 endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
