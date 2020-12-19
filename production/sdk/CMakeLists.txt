@@ -16,10 +16,13 @@ set(SDK_LINK_LIBRARIES
   gaia_system
   -Wl,--no-whole-archive
 )
-
 target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_options(gaia PRIVATE "-shared-libasan")
+endif()
 
 install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
