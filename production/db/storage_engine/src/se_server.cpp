@@ -57,7 +57,7 @@ stack_allocator_t server::allocate_from_stack_allocator(
         "Requested allocation size for the allocate_raw API should be greater than 0!");
 
     // Offset gets assigned; no need to set it.
-    address_offset_t stack_allocator_offset = memory_manager->allocate_raw(txn_memory_request_size_bytes);
+    address_offset_t stack_allocator_offset = s_memory_manager->allocate_raw(txn_memory_request_size_bytes);
     if (stack_allocator_offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during allocate_raw() call!");
@@ -170,7 +170,7 @@ void server::handle_begin_txn(
 
 void server::free_stack_allocators(bool deallocate_stack_allocator)
 {
-    for (auto& stack_allocator : server::s_active_stack_allocators)
+    for (auto& stack_allocator : s_active_stack_allocators)
     {
         if (deallocate_stack_allocator)
         {
@@ -178,7 +178,7 @@ void server::free_stack_allocators(bool deallocate_stack_allocator)
             stack_allocator->deallocate(0);
         }
         // Free up unused space.
-        server::memory_manager->free_stack_allocator(stack_allocator);
+        s_memory_manager->free_stack_allocator(stack_allocator);
     }
 }
 
@@ -256,11 +256,10 @@ void server::handle_commit_txn(
     cleanup_log_fd.dismiss();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
 
-    // REVIEW: Is this deliberately avoiding freeing memory even on abort so we don't
-    // double-free the undo versions later when the txn log is invalidated?
-    // Otherwise we should do this:
-    // get_memory_info_from_request_and_free(success);
-    get_memory_info_from_request_and_free(true);
+    // If the txn aborts, then this frees all redo versions, and we ignore all
+    // undo versions when we invalidate the txn log fd, so there is nothing to
+    // do at that point except close the log fd.
+    get_memory_info_from_request_and_free(success);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -350,13 +349,17 @@ void server::handle_client_shutdown(
     // is another reason to just close the socket.)
     s_session_shutdown = true;
 
-    // REVIEW: do we still need to call free_stack_allocators() when there's no
-    // active txn?
-
+    // If the session had an active txn, clean up all its resources.
     if (s_txn_id != c_invalid_gaia_txn_id)
     {
         txn_rollback();
     }
+
+    // If the session had an active txn, any allocations should be cleaned up by
+    // now. If not, there should be no allocations to clean up.
+    retail_assert(
+        s_active_stack_allocators.empty(),
+        "There should be no outstanding allocations in this session!");
 }
 
 void server::handle_server_shutdown(
@@ -636,12 +639,12 @@ void server::init_shared_memory()
 
 void server::init_memory_manager()
 {
-    memory_manager.reset();
-    memory_manager = make_unique<memory_manager_t>();
-    memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
+    s_memory_manager.reset();
+    s_memory_manager = make_unique<memory_manager_t>();
+    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        memory_manager->free_old_offset(get_address_offset(offset));
+        s_memory_manager->free_old_offset(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }
@@ -652,7 +655,7 @@ address_offset_t server::allocate_object(
     size_t size)
 {
     retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
-    address_offset_t offset = memory_manager->allocate(size + sizeof(se_object_t));
+    address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
     if (offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
@@ -2691,7 +2694,14 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             // Invalidate the log fd, GC the undo versions in the log, and close the fd.
             bool has_invalidated_fd = invalidate_txn_log_fd(ts);
             retail_assert(has_invalidated_fd, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
-            gc_txn_undo_log(log_fd);
+            // We only want to deallocate undo versions if this txn committed.
+            // Otherwise we do nothing since the undo versions are still visible
+            // and the redo versions were already freed in the txn abort
+            // handler.
+            if (is_txn_committed(ts))
+            {
+                gc_txn_undo_log(log_fd);
+            }
             close_fd(log_fd);
         }
     }
@@ -2738,7 +2748,7 @@ void server::txn_rollback()
 {
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
-        "txn_rollback() was called without a current transaction!");
+        "txn_rollback() was called without an active transaction!");
 
     // Set our txn status to TXN_TERMINATED.
     set_active_txn_terminated(s_txn_id);
