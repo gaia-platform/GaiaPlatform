@@ -21,8 +21,12 @@ using namespace gaia::rules;
 using namespace gaia::addr_book;
 using namespace gaia::db::triggers;
 
+uint32_t g_initialize_rules_called = 0;
+
 extern "C" void initialize_rules()
 {
+    // Verify this initialize_rules() is called
+    g_initialize_rules_called = 1;
 }
 
 void rule(const rule_context_t* ctx)
@@ -40,6 +44,8 @@ TEST(sdk_test, app_check)
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
     gaia::system::initialize("./gaia.conf");
+
+    EXPECT_EQ(g_initialize_rules_called, 1);
     gaia_type_t type_id = gaia::addr_book::employee_t::s_gaia_type;
 
     // Force a s_gaia_type creation in the Catalog (assumes that the Catalog is empty and the

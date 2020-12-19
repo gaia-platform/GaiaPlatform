@@ -15,10 +15,6 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-extern "C" void initialize_rules()
-{
-}
-
 class auto_transaction_test : public db_test_base_t
 {
 };

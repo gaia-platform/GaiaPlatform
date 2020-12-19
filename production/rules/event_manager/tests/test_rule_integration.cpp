@@ -168,10 +168,6 @@ void rule_conflict(const rule_context_t* context)
     }
 }
 
-extern "C" void initialize_rules()
-{
-}
-
 // Waits for the rules to be called by checking
 // for the counter to reach 0.
 class rule_monitor_t

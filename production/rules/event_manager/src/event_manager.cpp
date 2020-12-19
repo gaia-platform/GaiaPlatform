@@ -30,6 +30,12 @@ using namespace std::chrono;
 // rule infrastructure to write to our event log, so this internal rule needs an id.
 const char* event_manager_t::s_gaia_log_event_rule = "gaia::rules::log_event";
 
+// Provide a weak reference for intialize_rules() so that the user doesn't have to
+// provide one.  When the user does provide one, the linker will choose the strong one.
+extern "C" void __attribute__((weak)) initialize_rules()
+{
+}
+
 /**
  * Class implementation
  */
