@@ -115,7 +115,7 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
             retVal[tbl.name()] = fields;
         }
     }
-    catch (exception e)
+    catch (const exception &e)
     {
         s->Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_map<string, unordered_map<string, QualType>>();
@@ -141,7 +141,7 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
             retVal.emplace(tbl.name());
         }
     }
-    catch (exception e)
+    catch (const exception &e)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_set<string>();

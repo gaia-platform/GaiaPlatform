@@ -1511,6 +1511,9 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
   IdentifierInfo *Name = Tok.getIdentifierInfo();
   SourceLocation NameLoc = Tok.getLocation();
 
+  // Check if name is in the rule scope and has a name
+  // which is a name of a table
+  // if it is disable suggestions to let gaia logic to run
   bool useTypoCorrection = true;
   if ( Actions.getCurScope()->isInRulesetScope())
   {
@@ -1534,7 +1537,6 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
         }
       }
   }
-
 
   // FIXME: Move the tentative declaration logic into ClassifyName so we can
   // typo-correct to tentatively-declared identifiers.
