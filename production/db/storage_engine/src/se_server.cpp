@@ -57,7 +57,7 @@ stack_allocator_t server::allocate_from_stack_allocator(
         "Requested allocation size for the allocate_raw API should be greater than 0!");
 
     // Offset gets assigned; no need to set it.
-    address_offset_t stack_allocator_offset = memory_manager->allocate_raw(txn_memory_request_size_bytes);
+    address_offset_t stack_allocator_offset = s_memory_manager->allocate_raw(txn_memory_request_size_bytes);
     if (stack_allocator_offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during allocate_raw() call!");
@@ -121,11 +121,9 @@ void server::handle_begin_txn(
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
 
-    // This allocates a new begin_ts for this txn and initializes its entry.
-    // Since it can fail spuriously (by having the begin_ts entry invalidated
-    // before it can be initialized), we loop until it succeeds. This seems
-    // preferable to exposing a spurious failure in begin_transaction() to
-    // clients.
+    // Allocate a new begin_ts for this txn and initialize its entry. Loop until
+    // we are able to install the entry before being invalidated by another
+    // thread.
     gaia_txn_id_t begin_ts = c_invalid_gaia_txn_id;
     while (begin_ts == c_invalid_gaia_txn_id)
     {
@@ -172,7 +170,7 @@ void server::handle_begin_txn(
 
 void server::free_stack_allocators(bool deallocate_stack_allocator)
 {
-    for (auto& stack_allocator : server::s_active_stack_allocators)
+    for (auto& stack_allocator : s_active_stack_allocators)
     {
         if (deallocate_stack_allocator)
         {
@@ -180,16 +178,12 @@ void server::free_stack_allocators(bool deallocate_stack_allocator)
             stack_allocator->deallocate(0);
         }
         // Free up unused space.
-        server::memory_manager->free_stack_allocator(stack_allocator);
+        s_memory_manager->free_stack_allocator(stack_allocator);
     }
 }
 
-void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
+void server::get_memory_info_from_request_and_free(bool commit_success)
 {
-    retail_assert(
-        event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN,
-        "Cleanup stack allocators on commit/rollback only.");
-
     // Deallocate stack allocator in case of an abort or rollback.
     bool deallocate_stack_allocator = !commit_success;
     free_stack_allocators(deallocate_stack_allocator);
@@ -207,14 +201,8 @@ void server::handle_rollback_txn(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
         "Current event is inconsistent with state transition!");
 
-    // Set our txn status to TXN_TERMINATED.
-    set_active_txn_terminated(s_txn_id);
-
-    // Update the saved watermark and perform associated maintenance tasks.
-    update_apply_watermark(s_txn_id);
-
-    s_txn_id = c_invalid_gaia_txn_id;
-    get_memory_info_from_request_and_free(event, false);
+    // Release all txn resources and mark the txn's begin_ts entry as terminated.
+    txn_rollback();
 }
 
 void server::handle_commit_txn(
@@ -268,7 +256,10 @@ void server::handle_commit_txn(
     cleanup_log_fd.dismiss();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
 
-    get_memory_info_from_request_and_free(event, true);
+    // If the txn aborts, then this frees all redo versions, and we ignore all
+    // undo versions when we invalidate the txn log fd, so there is nothing to
+    // do at that point except close the log fd.
+    get_memory_info_from_request_and_free(success);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -358,8 +349,17 @@ void server::handle_client_shutdown(
     // is another reason to just close the socket.)
     s_session_shutdown = true;
 
-    // Free all unused or uncommitted session stack allocators.
-    free_stack_allocators(true);
+    // If the session had an active txn, clean up all its resources.
+    if (s_txn_id != c_invalid_gaia_txn_id)
+    {
+        txn_rollback();
+    }
+
+    // If the session had an active txn, any allocations should be cleaned up by
+    // now. If not, there should be no allocations to clean up.
+    retail_assert(
+        s_active_stack_allocators.empty(),
+        "There should be no outstanding allocations in this session!");
 }
 
 void server::handle_server_shutdown(
@@ -639,12 +639,12 @@ void server::init_shared_memory()
 
 void server::init_memory_manager()
 {
-    memory_manager.reset();
-    memory_manager = make_unique<memory_manager_t>();
-    memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
+    s_memory_manager.reset();
+    s_memory_manager = make_unique<memory_manager_t>();
+    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        memory_manager->free_old_offset(get_address_offset(offset));
+        s_memory_manager->free_old_offset(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }
@@ -655,7 +655,7 @@ address_offset_t server::allocate_object(
     size_t size)
 {
     retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
-    address_offset_t offset = memory_manager->allocate(size + sizeof(se_object_t));
+    address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
     if (offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
@@ -1054,6 +1054,8 @@ void server::session_handler(int session_socket)
         size_t fd_buf_size = std::size(fd_buf);
         int* fds = nullptr;
         size_t fd_count = 0;
+        // If the shutdown flag is set, we need to exit immediately before
+        // processing the next ready fd.
         for (int i = 0; i < ready_fd_count && !s_session_shutdown; ++i)
         {
             epoll_event ev = events[i];
@@ -1220,6 +1222,8 @@ void server::stream_producer_handler(
             }
             throw_system_error("epoll_wait failed");
         }
+        // If the shutdown flag is set, we need to exit immediately before
+        // processing the next ready fd.
         for (int i = 0; i < ready_fd_count && !producer_shutdown; ++i)
         {
             epoll_event ev = events[i];
@@ -1410,6 +1414,8 @@ void server::fd_stream_producer_handler(
             throw_system_error("epoll_wait failed");
         }
 
+        // If the shutdown flag is set, we need to exit immediately before
+        // processing the next ready fd.
         for (int i = 0; i < ready_fd_count && !producer_shutdown; ++i)
         {
             epoll_event ev = events[i];
@@ -2333,17 +2339,18 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                 }
                 catch (const invalid_log_fd& e)
                 {
-                    // invalid_log_fd can only be thrown if the
-                    // log fd of the commit_ts it references has been invalidated, which can only happen if the
-                    // watermark has advanced past the commit_ts.
-                    // The watermark cannot advance past our begin_ts unless our txn
-                    // has already been validated, so if either of the fds we are
-                    // testing for conflicts is invalidated, it must mean that our
-                    // txn has already been validated. Since our commit_ts always
-                    // follows the commit_ts of the undecided txn we are testing for
-                    // conflicts, and the watermark always advances in order, it
-                    // cannot be the case that this txn's log fd has not been
-                    // invalidated while our txn's log fd has been invalidated.
+                    // invalid_log_fd can only be thrown if the log fd of the
+                    // commit_ts it references has been invalidated, which can
+                    // only happen if the watermark has advanced past the
+                    // commit_ts. The watermark cannot advance past our begin_ts
+                    // unless our txn has already been validated, so if either
+                    // of the fds we are testing for conflicts is invalidated,
+                    // it must mean that our txn has already been validated.
+                    // Since our commit_ts always follows the commit_ts of the
+                    // undecided txn we are testing for conflicts, and the
+                    // watermark always advances in order, it cannot be the case
+                    // that this txn's log fd has not been invalidated while our
+                    // txn's log fd has been invalidated.
                     gaia_txn_id_t invalidated_commit_ts = e.get_ts();
                     retail_assert(
                         is_txn_decided(invalidated_commit_ts),
@@ -2687,7 +2694,14 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             // Invalidate the log fd, GC the undo versions in the log, and close the fd.
             bool has_invalidated_fd = invalidate_txn_log_fd(ts);
             retail_assert(has_invalidated_fd, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
-            gc_txn_undo_log(log_fd);
+            // We only want to deallocate undo versions if this txn committed.
+            // Otherwise we do nothing since the undo versions are still visible
+            // and the redo versions were already freed in the txn abort
+            // handler.
+            if (is_txn_committed(ts))
+            {
+                gc_txn_undo_log(log_fd);
+            }
             close_fd(log_fd);
         }
     }
@@ -2720,12 +2734,33 @@ gaia_txn_id_t server::txn_begin()
             expected_entry == c_txn_entry_invalid,
             "Only an invalid value can be set on an empty begin_ts entry by another thread!");
 
-        // If our begin_ts entry was already invalidated, the txn must abort.
-        // Return c_invalid_gaia_txn_id to indicate failure.
+        // Return c_invalid_gaia_txn_id to indicate failure. The caller can
+        // retry with a new timestamp.
+        // REVIEW: should we do this loop internally using compare_exchange_weak
+        // and allocate a new begin_ts on each retry?
         begin_ts = c_invalid_gaia_txn_id;
     }
 
     return begin_ts;
+}
+
+void server::txn_rollback()
+{
+    retail_assert(
+        s_txn_id != c_invalid_gaia_txn_id,
+        "txn_rollback() was called without an active transaction!");
+
+    // Set our txn status to TXN_TERMINATED.
+    set_active_txn_terminated(s_txn_id);
+
+    // Update the saved watermark and perform associated maintenance tasks.
+    update_apply_watermark(s_txn_id);
+
+    // This session now has no active txn.
+    s_txn_id = c_invalid_gaia_txn_id;
+
+    // Free all unused or uncommitted session stack allocators.
+    get_memory_info_from_request_and_free(false);
 }
 
 // Before this method is called, we have already received the log fd from the client
