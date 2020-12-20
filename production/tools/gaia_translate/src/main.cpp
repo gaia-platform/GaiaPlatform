@@ -1687,6 +1687,7 @@ public:
 
             if (!output_file.has_error())
             {
+                output_file << "#include <cstring>\n";
                 for (const string& db : g_used_dbs)
                 {
                     output_file << "#include \"gaia_" << db << ".h\"\n";

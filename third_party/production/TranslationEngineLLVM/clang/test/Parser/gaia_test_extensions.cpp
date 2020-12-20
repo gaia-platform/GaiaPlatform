@@ -4,7 +4,7 @@ ruleset test : table(sensor, incubator), SerialStream(ttt)
 {
 
 {
-  min_temp+=@value; 
+  min_temp+=@value;
   max_temp += min_temp/2;
   switch (sensor.LastOperation)
   {
@@ -24,7 +24,7 @@ ruleset test : table(sensor, incubator), SerialStream(ttt)
 // CHECK:      RulesetDecl{{.*}} test
 // CHECK-NEXT:     RulesetTableAttr 0x{{[^ ]*}} <col:16, col:39> 0x{{[^ ]*}} 0x{{[^ ]*}}
 // CHECK-NEXT:     -SerialStreamAttr 0x{{[^ ]*}} <col:42, col:58> ttt
-// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)' 
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:14> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'float' lvalue Var 0x{{[^ ]*}} 'max_temp' 'float'
@@ -34,14 +34,14 @@ ruleset test : table(sensor, incubator), SerialStream(ttt)
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'UPDATE' 'const int'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'INSERT' 'const int'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'NONE' 'const int'
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:1> 
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:1>
 
 
-ruleset test1 
+ruleset test1
 {
 
 {
-  incubator.min_temp+=@sensor.value; 
+  incubator.min_temp+=@sensor.value;
   incubator.max_temp += incubator.min_temp/2;
   if (incubator.LastOperation == DELETE)
   {
@@ -49,7 +49,7 @@ ruleset test1
 }
 }
 // CHECK:      RulesetDecl{{.*}} test1
-// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)' 
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:3, col:13> 'float' lvalue .min_temp 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:24, col:31> 'float' lvalue .value 0x{{[^ ]*}}
@@ -62,3 +62,47 @@ ruleset test1
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:34> 'const int' lvalue Var 0x{{[^ ]*}} 'DELETE' 'const int'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:43:1>
 
+
+typedef enum
+{
+    undefined = 0,
+    actuators = 1,
+    sensors = 2,
+    incubators = 3
+} hardware_type;
+
+ruleset test2
+{
+  {
+	  if (actuator.value < 5)
+	  {
+		  actuator.value = 5;
+	  }
+  }
+}
+
+// CHECK:      RulesetDecl{{.*}} test2
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:8, col:17> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:14> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:76:3>
+
+
+typedef enum
+{
+    values = 0,
+    types = 1,
+    defs = 2
+} testEnum;
+
+ruleset test3 : table (sensor)
+{
+  {
+	  if (value < 5)
+	  {
+		  value = 5;
+	  }
+  }
+}
