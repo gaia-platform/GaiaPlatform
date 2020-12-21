@@ -15,10 +15,11 @@
 #include <string>
 #include <thread>
 
+#include "gaia_internal/common/logger_internal.hpp"
+
 #include "gaia/db/db.hpp"
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
-#include "logger.hpp"
 #include "system_error.hpp"
 
 namespace gaia

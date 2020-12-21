@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 using namespace std;
 
@@ -19,9 +19,10 @@ void verify_uninitialized_loggers()
 {
     EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::db(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::rules_stats(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::re(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::re_stats(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
 }
 
 TEST(logger_test, logger_api)
@@ -33,9 +34,10 @@ TEST(logger_test, logger_api)
     vector<gaia_log::logger_t> loggers = {
         gaia_log::sys(),
         gaia_log::catalog(),
-        gaia_log::rules(),
+        gaia_log::re(),
         gaia_log::db(),
-        gaia_log::rules_stats()};
+        gaia_log::re_stats(),
+        gaia_log::rules()};
 
     for (auto logger : loggers)
     {

@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "logger.hpp"
+#include "gaia/logger.hpp"
 
 namespace gaia
 {
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    debug_logger_t(const std::string& logger_name);
+    explicit debug_logger_t(const std::string& logger_name);
 };
 
 /**

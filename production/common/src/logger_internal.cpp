@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 #include <iostream>
 
@@ -81,9 +81,9 @@ logger_t& db()
     return logger_manager_t::get().db_logger();
 }
 
-logger_t& rules()
+logger_t& re()
 {
-    return logger_manager_t::get().rules_logger();
+    return logger_manager_t::get().re_logger();
 }
 
 logger_t& catalog()
@@ -94,9 +94,14 @@ logger_t& catalog()
 //
 // Stats loggers.
 //
-logger_t& rules_stats()
+logger_t& re_stats()
 {
-    return logger_manager_t::get().rules_stats_logger();
+    return logger_manager_t::get().re_stats_logger();
+}
+
+logger_t& rules()
+{
+    return logger_manager_t::get().rules_logger();
 }
 
 } // namespace gaia::common::logging

@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 namespace gaia::common::logging
 {

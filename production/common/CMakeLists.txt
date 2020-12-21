@@ -27,7 +27,7 @@ add_library(gaia_common STATIC
   src/exceptions.cpp
   src/file.cpp
   src/timer.cpp
-  src/logger.cpp
+  src/logger_internal.cpp
   src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 

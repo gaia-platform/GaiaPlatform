@@ -4,7 +4,8 @@
 /////////////////////////////////////////////
 #include "scheduler_stats.hpp"
 
-#include "logger.hpp"
+#include "gaia_internal/common/logger_internal.hpp"
+
 #include "timer.hpp"
 
 using namespace gaia::common;
@@ -42,7 +43,7 @@ void scheduler_stats_t::log(bool print_header)
 
     if (print_header)
     {
-        gaia_log::rules_stats().info(
+        gaia_log::re_stats().info(
             "{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", "",
             "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat",
             "avg exec", "max exec");

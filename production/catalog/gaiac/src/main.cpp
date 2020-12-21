@@ -9,6 +9,7 @@
 #include <string>
 
 #include "flatbuffers/idl.h"
+#include "gaia_internal/common/logger_internal.hpp"
 
 #include "gaia/db/db.hpp"
 #include "catalog_internal.hpp"
@@ -16,7 +17,6 @@
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_parser.hpp"
-#include "logger.hpp"
 
 using namespace std;
 using namespace gaia::catalog;

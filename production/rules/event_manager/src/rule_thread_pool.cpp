@@ -7,8 +7,9 @@
 
 #include <cstring>
 
+#include "gaia_internal/common/logger_internal.hpp"
+
 #include "event_manager.hpp"
-#include "logger.hpp"
 #include "retail_assert.hpp"
 
 using namespace std;
@@ -201,9 +202,9 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
             // Invoke the rule.
             auto fn_start = gaia::common::timer_t::get_time_point();
-            gaia_log::rules().trace("call: {}", rule_id);
+            gaia_log::re().trace("call: {}", rule_id);
             rule_invocation.rule_fn(&context);
-            gaia_log::rules().trace("return: {}", rule_id);
+            gaia_log::re().trace("return: {}", rule_id);
             m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
             should_schedule = true;
@@ -234,7 +235,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
+        gaia_log::re().warn("exception: {}, {}", rule_id, e.what());
     }
 
     process_pending_invocations(should_schedule);

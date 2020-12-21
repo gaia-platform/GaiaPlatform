@@ -54,16 +54,21 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 
 add_custom_command(
   OUTPUT  ${GAIA_GENERATED_SCHEMAS}/test.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
+#  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
-  COMMAND pkill -f -KILL gaia_se_server &
+      -DSPDLOG_FMT_EXTERNAL
+      -I ${GAIA_INC}
+      -I /usr/lib/gcc/x86_64-linux-gnu/9/include/
+      -I /usr/local/include
+      -std=c++17
+#  COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
   DEPENDS ${INCUBATOR_RULESET}
-  COMMENT "Compiled test.ruleset."
+  COMMENT "Compiling test.ruleset."
 )
 
 add_custom_target(generate_incubator_rules ALL
@@ -76,7 +81,7 @@ add_custom_target(generate_incubator_rules ALL
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"
   "${TRANSLATION_ENGINE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia_system;gaia_parser"
+  "rt;gaia_system;gaia_parser;gaia_db_catalog_test"
   "generate_incubator_rules" ""
   "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
   )

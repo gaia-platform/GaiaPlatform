@@ -13,6 +13,7 @@
 #include "spdlog/sinks/ostream_sink.h"
 
 #include "debug_logger.hpp"
+#include "logger_internal.hpp"
 #include "rule_stats_manager.hpp"
 
 using namespace gaia::common;

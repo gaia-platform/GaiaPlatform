@@ -5,13 +5,9 @@
 
 #pragma once
 
-#include <shared_mutex>
-#include <sstream>
-#include <string>
-#include <unordered_map>
+#include <spdlog/spdlog.h>
 
 #include "gaia/exception.hpp"
-#include "logger_spdlog.hpp"
 
 namespace gaia
 {
@@ -27,6 +23,7 @@ namespace common
  */
 namespace logging
 {
+
 /**
  * Contains Gaia logging API. At the moment it is a wrapper around spdlog logger.
  * This namespace is aliased to gaia_log.
@@ -87,22 +84,19 @@ enum class log_level_t
     off = 6
 };
 
-class logger_t;
-typedef std::shared_ptr<logger_t> logger_ptr_t;
+// Forward declarations of internal classes.
+class logger_manager_t;
+class debug_logger_t;
 
 /**
 * Gaia Logger API.
 */
 class logger_t
 {
-public:
-    /**
-     * Initialize a logger with the given name. If the logger already
-     * exists in the underlying framework it reuses it. Otherwsie a
-     * new logger is created cloning `gaia-root' logger.
-     */
-    explicit logger_t(const std::string& logger_name);
+    friend class logger_manager_t;
+    friend class debug_logger_t;
 
+public:
     const std::string& get_name() const
     {
         return m_logger_name;
@@ -154,6 +148,12 @@ protected:
     std::shared_ptr<spdlog::logger> m_spdlogger;
 
 private:
+    /**
+     * Initialize a logger with the given name. If the logger already
+     * exists it is reused. Otherwise a new logger is created.
+     */
+    explicit logger_t(const std::string& logger_name);
+
     static spdlog::level::level_enum to_spdlog_level(log_level_t level);
 
     std::string m_logger_name;
@@ -168,27 +168,8 @@ public:
     }
 };
 
-/**
- *
- * Initializes all loggers from the passed in configuration. If the configuration
- * does not contain one of the required loggers (g_sys etc..) a default logger is
- * instantiated.
- */
-void initialize(const std::string& config_path);
-
-/**
- * Release the resources used by the logging framework.
- */
-void shutdown();
-
-/**
- * Exposed loggers. Filled in by initialize and destroyed on shutdown.
- */
-logger_t& sys();
-logger_t& db();
+/** Logger to be use at application layer */
 logger_t& rules();
-logger_t& catalog();
-logger_t& rules_stats();
 
 /*@}*/
 } // namespace logging
