@@ -138,10 +138,21 @@ install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSC
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
 # Place incubator examples
-install(FILES ${GAIA_REPO}/demos/incubator/gaia.conf DESTINATION examples/incubator_demo)
-install(FILES ${GAIA_REPO}/demos/incubator/gaia_log.conf DESTINATION examples/incubator_demo)
-install(FILES ${GAIA_REPO}/demos/incubator/incubator.ddl DESTINATION examples/incubator_demo)
-install(FILES ${GAIA_REPO}/demos/incubator/incubator.ruleset DESTINATION examples/incubator_demo)
-install(FILES ${GAIA_REPO}/demos/incubator/main.cpp DESTINATION examples/incubator_demo)
-install(FILES ${GAIA_REPO}/demos/incubator/README.md DESTINATION examples/incubator_demo)
-install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt DESTINATION examples/incubator_demo RENAME CMakeLists.txt)
+set(GAIA_GENERATE "/usr/local/bin/gaiac")
+set(GAIA_TRANSLATE "/usr/local/bin/gaiat")
+set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
+set(GAIA_LIB "/usr/local/lib/libgaia.so")
+configure_file(${GAIA_REPO}/demos/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
+# The following two commands will create a CMakeLists.txt appropriate for the SDK build environment
+# by substituting in the correct CMAKE VARS into the incubator CMakeLists text file.
+configure_file(${GAIA_REPO}/demos/incubator/cmake_sdk.sed ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed)
+add_custom_target(install_incubator ALL
+  COMMAND sed -i -f ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt
+)
+install(FILES ${GAIA_REPO}/demos/incubator/gaia.conf DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/gaia_log.conf DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/incubator.ddl DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/incubator.ruleset DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/main.cpp DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/README.md DESTINATION examples/incubator)
+install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
