@@ -40,10 +40,6 @@ void rule1(const rule_context_t*)
     g_rule_count++;
 }
 
-extern "C" void initialize_rules()
-{
-}
-
 class gaia_system_test : public db_test_base_t
 {
 public:

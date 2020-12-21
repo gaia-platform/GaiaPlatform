@@ -74,10 +74,6 @@ void load_catalog()
     commit_transaction();
 }
 
-extern "C" void initialize_rules()
-{
-}
-
 class rule_checker_test : public db_test_base_t
 {
 public:

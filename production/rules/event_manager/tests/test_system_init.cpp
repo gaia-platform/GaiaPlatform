@@ -24,10 +24,6 @@ using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
 
-extern "C" void initialize_rules()
-{
-}
-
 class system_init_test : public db_test_base_t
 {
 public:
