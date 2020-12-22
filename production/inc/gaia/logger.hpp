@@ -53,91 +53,59 @@ namespace logging
  * @{
  */
 
-enum class log_level_t
-{
-
-    /** Finer-grained informational events than debug.
-     *  The enum is initialized to this value if nothing
-     *  is specified.*/
-    trace = 0,
-
-    /** Fine-grained informational events that are most
-     *  useful to debug an application. */
-    debug = 1,
-
-    /** Informational messages that highlight the progress
-     *  of the application at coarse-grained level. */
-    info = 2,
-
-    /** Potentially harmful situations. */
-    warn = 3,
-
-    /** Error events that might still allow the application to
-     *  continue running */
-    error = 4,
-
-    /** Very severe error events that will presumably lead the
-     *  application to abort */
-    critical = 5,
-
-    /** Turn the logging off */
-    off = 6
-};
-
 // Forward declarations of internal classes.
-class logger_manager_t;
-class debug_logger_t;
+class internal_logger_t;
 
 /**
 * Gaia Logger API.
 */
 class logger_t
 {
-    friend class logger_manager_t;
-    friend class debug_logger_t;
+    friend class internal_logger_t;
 
 public:
-    const std::string& get_name() const
-    {
-        return m_logger_name;
-    }
-
-    template <typename... T_args>
-    void log(log_level_t level, const char* format, const T_args&... args)
-    {
-        m_spdlogger->log(to_spdlog_level(level), format, args...);
-    }
-
+    /** Finer-grained informational events than debug.
+     *  The enum is initialized to this value if nothing
+     *  is specified.*/
     template <typename... T_args>
     void trace(const char* format, const T_args&... args)
     {
         m_spdlogger->trace(format, args...);
     }
 
+    /** Fine-grained informational events that are most
+     *  useful to debug an application. */
     template <typename... T_args>
     void debug(const char* format, const T_args&... args)
     {
         m_spdlogger->debug(format, args...);
     }
 
+    /** Informational messages that highlight the progress
+     *  of the application at coarse-grained level. */
     template <typename... T_args>
     void info(const char* format, const T_args&... args)
     {
         m_spdlogger->info(format, args...);
     }
 
+    /** Informational messages that highlight the progress
+     *  of the application at coarse-grained level. */
     template <typename... T_args>
     void warn(const char* format, const T_args&... args)
     {
         m_spdlogger->warn(format, args...);
     }
 
+    /** Potentially harmful situations. */
     template <typename... T_args>
     void error(const char* format, const T_args&... args)
     {
         m_spdlogger->error(format, args...);
     }
 
+    /** Very severe error events that will presumably lead the
+     *  application to abort */
     template <typename... T_args>
     void critical(const char* format, const T_args&... args)
     {
@@ -153,10 +121,6 @@ private:
      * exists it is reused. Otherwise a new logger is created.
      */
     explicit logger_t(const std::string& logger_name);
-
-    static spdlog::level::level_enum to_spdlog_level(log_level_t level);
-
-    std::string m_logger_name;
 };
 
 class logger_exception_t : public gaia_exception

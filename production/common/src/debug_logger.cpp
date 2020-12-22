@@ -24,12 +24,12 @@ debug_logger_t* debug_logger_t::create(const char* logger_name)
 }
 
 debug_logger_t::debug_logger_t(const std::string& logger_name)
-    : logger_t(logger_name){};
+    : internal_logger_t(logger_name){};
 
 // Note that this is a friend function of the logger manager class.
 // It will replace the existing rules_stats logger and make a shared
 // reference to it.
-void set_rules_stats(logger_t* logger_ptr)
+void set_re_stats(logger_t* logger_ptr)
 {
     logger_manager_t::get().m_re_stats_logger.reset(logger_ptr);
 }

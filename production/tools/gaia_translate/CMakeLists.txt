@@ -60,7 +60,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
       -DSPDLOG_FMT_EXTERNAL
       -I ${GAIA_INC}
-      -I /usr/lib/gcc/x86_64-linux-gnu/9/include/
+      -I /usr/include/clang/8/include/
       -I /usr/local/include
       -std=c++17
   COMMAND pkill -f -KILL gaia_se_server &

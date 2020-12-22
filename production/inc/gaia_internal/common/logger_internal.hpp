@@ -29,8 +29,17 @@ namespace common
 namespace logging
 {
 
-class logger_t;
 typedef std::shared_ptr<logger_t> logger_ptr_t;
+
+/**
+ * Expose a public constructor to build logger_t objects internally.
+ */
+class internal_logger_t : public logger_t
+{
+public:
+    explicit internal_logger_t(const std::string& logger_name)
+        : logger_t(logger_name){};
+};
 
 /**
  * Initializes all loggers from the passed in configuration. If the configuration

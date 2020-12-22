@@ -20,7 +20,6 @@ namespace gaia::common::logging
 // logger_t implementation.
 //
 logger_t::logger_t(const string& logger_name)
-    : m_logger_name(logger_name)
 {
     auto logger = spdlog::get(logger_name);
 
@@ -31,29 +30,6 @@ logger_t::logger_t(const string& logger_name)
     else
     {
         m_spdlogger = spdlog_defaults::create_logger_with_default_settings(logger_name);
-    }
-}
-
-spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_level)
-{
-    switch (gaia_level)
-    {
-    case log_level_t::trace:
-        return spdlog::level::trace;
-    case log_level_t::debug:
-        return spdlog::level::debug;
-    case log_level_t::info:
-        return spdlog::level::info;
-    case log_level_t::warn:
-        return spdlog::level::warn;
-    case log_level_t::error:
-        return spdlog::level::err;
-    case log_level_t::critical:
-        return spdlog::level::critical;
-    case log_level_t::off:
-        return spdlog::level::off;
-    default:
-        throw logger_exception_t("Unsupported logging level: " + std::to_string(static_cast<std::underlying_type_t<log_level_t>>(gaia_level)));
     }
 }
 

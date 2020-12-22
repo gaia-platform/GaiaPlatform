@@ -53,9 +53,6 @@ TEST(logger_test, logger_api)
         logger.error("error const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
         logger.critical("critical");
         logger.critical("critical const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
-
-        logger.log(gaia_log::log_level_t::info, "Static message");
-        logger.log(gaia_log::log_level_t::info, "Dynamic const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
     }
 
     gaia_log::shutdown();

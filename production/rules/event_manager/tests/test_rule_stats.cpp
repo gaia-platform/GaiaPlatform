@@ -305,7 +305,7 @@ protected:
         // Now set the underlying rule statistics logger.  Setting the logger will
         // transfer ownership of it to the gaia_log sub-system so don't delete
         // the debug_logger pointer here.
-        gaia_log::set_rules_stats(debug_logger);
+        gaia_log::set_re_stats(debug_logger);
     }
 
     // The debug logger will write into this string stream
