@@ -15,12 +15,11 @@
 
 #include <sstream>
 
-#include "gaia_internal/common/logger_internal.hpp"
-
 #include "catalog_core.hpp"
 #include "catalog_internal.hpp"
 #include "field_access.hpp"
 #include "gaia_catalog.h"
+#include "logger_internal.hpp"
 
 using namespace std;
 

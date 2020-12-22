@@ -4,8 +4,7 @@
 /////////////////////////////////////////////
 #include "scheduler_stats.hpp"
 
-#include "gaia_internal/common/logger_internal.hpp"
-
+#include "logger_internal.hpp"
 #include "timer.hpp"
 
 using namespace gaia::common;

@@ -3,14 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_internal/common/logger_internal.hpp"
-
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 #include "cpptoml.h"
+#include "logger_internal.hpp"
 #include "rules_config.hpp"
 #include "scope_guard.hpp"
 

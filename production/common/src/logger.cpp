@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger_internal.hpp"
-
 #include <iostream>
 
 #include "spdlog/sinks/basic_file_sink.h"
 
+#include "logger_internal.hpp"
 #include "logger_manager.hpp"
 #include "logger_spdlog.hpp"
 

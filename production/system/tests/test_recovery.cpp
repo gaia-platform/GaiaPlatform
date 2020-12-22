@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "gaia_internal/common/logger_internal.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
@@ -18,6 +17,7 @@
 #include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
+#include "logger_internal.hpp"
 #include "schema_loader.hpp"
 #include "se_test_util.hpp"
 #include "type_id_mapping.hpp"

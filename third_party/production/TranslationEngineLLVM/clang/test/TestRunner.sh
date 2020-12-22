@@ -7,7 +7,7 @@ Dir=$(dirname $(which $0))
 AbsDir=$(cd $Dir; pwd)
 
 # Find 'lit', assuming standard layout.
-lit=/home/simone/repos/GaiaPlatform/third_party/production/TranslationEngineLLVM/llvm/utils/lit/lit.py
+lit=$AbsDir/../../../utils/lit/lit.py
 
 # Dispatch to lit.
-python3 $lit "$@"
+$lit "$@"
