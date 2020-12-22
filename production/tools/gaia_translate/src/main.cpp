@@ -230,7 +230,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             fill_table_db_data(parent_table);
         }
     }
-    catch (exception e)
+    catch (const exception& e)
     {
         llvm::errs() << "Exception while processing the catalog " << e.what() << "\n";
         g_generation_error = true;
@@ -1687,6 +1687,7 @@ public:
 
             if (!output_file.has_error())
             {
+                output_file << "#include <cstring>\n";
                 for (const string& db : g_used_dbs)
                 {
                     output_file << "#include \"gaia_" << db << ".h\"\n";
@@ -1713,20 +1714,22 @@ private:
 int main(int argc, const char** argv)
 {
     g_field_data = get_table_data();
-    // Parse the command-line args passed to your code.
-    CommonOptionsParser op(argc, argv, g_translation_engine_category);
-    if (g_translation_engine_verbose_option)
+    if (!g_generation_error)
     {
-        g_verbose = true;
+        // Parse the command-line args passed to your code.
+        CommonOptionsParser op(argc, argv, g_translation_engine_category);
+        if (g_translation_engine_verbose_option)
+        {
+            g_verbose = true;
+        }
+        // Create a new Clang Tool instance (a LibTooling environment).
+        ClangTool tool(op.getCompilations(), op.getSourcePathList());
+        tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
+        int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+        if (result == 0 && !g_generation_error)
+        {
+            return EXIT_SUCCESS;
+        }
     }
-    // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(op.getCompilations(), op.getSourcePathList());
-    tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
-    if (result != 0 || g_generation_error)
-    {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }

@@ -14,3 +14,19 @@ To inspect the data, connect to Postgres as user *postgres*, then execute:
 select * from hello_fdw.names;
 select * from hello_fdw.greetings;
 ```
+
+You can also build this code with the `cmake` and `make` tools, by using the included CMakeLists.txt file. Before doing this, you should specify the clang compiler by setting the following variables in your environment:
+
+```
+export CC=/usr/bin/clang-8
+export CXX=/usr/bin/clang++-8
+```
+
+The steps for the cmake build are:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```

@@ -2005,7 +2005,7 @@ static void handleCPUSpecificAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
         AL.getAttributeSpellingListIndex()));
 }
 
-static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     if (!checkAttributeAtLeastNumArgs(S, AL, 1))
     {
@@ -2014,15 +2014,22 @@ static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         return;
     }
     SmallVector<IdentifierInfo *, 8> tables;
-    for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo) 
+    auto tableData = S.getCatalogTableList(AL.getLoc());
+    for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo)
     {
-        if (!AL.isArgIdent(ArgNo)) 
+        if (!AL.isArgIdent(ArgNo))
         {
             S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
                 << AL << AANT_ArgumentIdentifier;
             return;
         }
         IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
+        if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
+        {
+          S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+                << tableArg->Ident->getName();
+            return;
+        }
         tables.push_back(tableArg->Ident);
     }
     D->addAttr(::new (S.Context) RulesetTableAttr(
@@ -2033,7 +2040,7 @@ static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     IdentifierLoc *streamArg = AL.getArgAsIdent(0);
-    if (!AL.isArgIdent(0)) 
+    if (!AL.isArgIdent(0))
     {
         S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
             << AL << AANT_ArgumentIdentifier;
@@ -2047,7 +2054,7 @@ static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 static void handleFieldTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     IdentifierLoc *tableArg = AL.getArgAsIdent(0);
-    if (!AL.isArgIdent(0)) 
+    if (!AL.isArgIdent(0))
     {
         S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
             << AL << AANT_ArgumentIdentifier;
@@ -7132,7 +7139,7 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     break;
 
   case ParsedAttr::AT_RulesetTable:
-    handleRulesetAttr(S, D, AL);
+    handleRulesetTableAttr(S, D, AL);
     break;
   case ParsedAttr::AT_Rule:
     handleRuleAttr(S, D, AL);
@@ -7165,7 +7172,7 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     handleFieldTableAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaLastOperationNONE:
-    handleGaiaLastOperationNoneAttr(S, D, AL); 
+    handleGaiaLastOperationNoneAttr(S, D, AL);
     break;
 
   }

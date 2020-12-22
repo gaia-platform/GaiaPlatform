@@ -84,7 +84,7 @@ private:
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
     static inline bool s_reinitialize_persistent_store = false;
-    static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> memory_manager{};
+    static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
 
     // Keeps track of stack allocators belonging to the current transaction executing on this thread.
     // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
@@ -285,9 +285,7 @@ private:
 
     static void init_memory_manager();
 
-    static void get_memory_info_from_request_and_free(
-        session_event_t event,
-        bool commit_success);
+    static void get_memory_info_from_request_and_free(bool commit_success);
 
     static void init_shared_memory();
 

@@ -6,11 +6,11 @@ These instructions assume you have installed the SDK and have installed the *cla
 
 1. We suggest copying the sources to a new directory so that you always have a backup in the installed folder if you want to go back.
 ```
-mkdir incubator_demo
-cd incubator_demo
-cp -r /opt/gaia/examples/incubator_demo/* .
+mkdir incubator
+cd incubator
+cp -r /opt/gaia/examples/incubator/* .
 ```
-2. Create a build directory (in this case it is under the current *incubator_demo/* folder and build.
+2. Create a build directory (in this case it is under the current *incubator/* folder and build.
 ```
 mkdir build
 cd build/
@@ -112,3 +112,67 @@ chicken>
 ```
 
 Happy Incubating!
+
+# Troubleshooting
+The following are some common errors that can occur when you try to run the demo.
+
+## No output when using /show
+### Problem
+Running `incubator /show` before running `incubator /sim` for the first time results in no output.  This just means that there is no data loaded into the database for the incubator, sensor, and actuator tables.
+```
+$ ./incubator show
+
+$
+```
+### Solution
+Run `incubator /sim` at least once to load the simulation in the database.
+```
+$ ./incubator sim
+-----------------------------------------
+Gaia Incubator
+
+No chickens or puppies were harmed in the
+development or presentation of this demo.
+-----------------------------------------
+
+(b) | begin simulation
+(e) | end simulation
+(l) | list rules
+(d) | disable rules
+(r) | re-enable rules
+(p) | print current state
+(m) | manage incubators
+(q) | quit
+
+main> q
+Exiting...
+```
+## Connection refuesd
+### Problem
+The database has not been started yet.
+```
+terminate called after throwing an instance of 'gaia::common::system_error'
+  what():  connect failed - Connection refused
+Aborted
+```
+### Solution
+To start the database, restart the gaia service.  For example:
+```
+systemctl restart gaia
+```
+
+## Table (type : N) was not found in the catalog
+### Problem
+The catalog does not have the incubator schema loaded and therefore couldn't find the incubator types.
+```
+terminate called after throwing an instance of 'gaia::rules::invalid_subscription'
+  what():  Table (type:4) was not found in the catalog.
+Aborted
+```
+### Solution
+Do a clean build of your project to load the incubator schema into the database catalog and re-generate headers based on this schema.
+```
+make clean
+make
+```
+This will populate the catalog with the incubator schema as well as regenerate the required headers.

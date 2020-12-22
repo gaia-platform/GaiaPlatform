@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
+#include "db_catalog_test_base.hpp"
 #include "db_test_base.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_barn_storage.h"
@@ -26,9 +27,12 @@ const float c_g_incubator_max_temperature = 102.0;
 const int c_g_expected_sensor_value = 6;
 const int c_g_expected_actuator_value = 1000;
 
-class translation_engine_test : public db_test_base_t
+class translation_engine_test : public db_catalog_test_base_t
 {
 public:
+    translation_engine_test()
+        : db_catalog_test_base_t("barn_storage.ddl"){};
+
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {
         gaia::barn_storage::incubator_writer w;
@@ -48,32 +52,17 @@ public:
     }
 
 protected:
-    static void SetUpTestSuite()
-    {
-        // NOTE: to run this test manually, you need to set the env variable INCUBATOR_DDL_FILE
-        // to the location of barn_storage.ddl.  Currently this is under production/schemas/test/incubator.
-        reset_server();
-        const char* incubator_ddl_file = getenv("INCUBATOR_DDL_FILE");
-        ASSERT_NE(incubator_ddl_file, nullptr);
-        gaia::db::begin_session();
-        gaia::catalog::load_catalog(incubator_ddl_file);
-        gaia::rules::initialize_rules_engine();
-    }
-
-    static void TearDownTestSuite()
-    {
-        gaia::db::end_session();
-    }
-
-    // Ensure SetUp and TearDown don't do anything.  When we run the test
-    // directly, we only want SetUpTestSuite and TearDownTestSuite
     void SetUp() override
     {
+        db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
     }
 
     void TearDown() override
     {
+        db_catalog_test_base_t::TearDown();
         unsubscribe_rules();
+        gaia::rules::shutdown_rules_engine();
     }
 };
 

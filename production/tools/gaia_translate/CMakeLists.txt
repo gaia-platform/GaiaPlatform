@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.17)
 enable_testing()
 project(gaiat VERSION 0.0.0)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-
 set(TRANSLATION_ENGINE_INCLUDES
   ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/clang/include
   ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm/include
@@ -31,6 +29,8 @@ link_directories(
 
 add_executable(gaiat ${GAIAT_SRCS})
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
+set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaiat PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaiat
   PRIVATE
   rt
@@ -54,9 +54,9 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 
 add_custom_command(
   OUTPUT  ${GAIA_GENERATED_SCHEMAS}/test.cpp
-#  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
+#  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server --disable-persistence &
   COMMAND sleep 1
-  COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
+  COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
       -DSPDLOG_FMT_EXTERNAL
       -I ${GAIA_INC}

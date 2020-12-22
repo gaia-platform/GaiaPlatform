@@ -20,10 +20,6 @@ using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace std;
 
-extern "C" void initialize_rules()
-{
-}
-
 class component_init_test : public db_test_base_t
 {
 protected:
