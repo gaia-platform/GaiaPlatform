@@ -155,4 +155,4 @@ install(FILES ${GAIA_REPO}/demos/incubator/incubator.ddl DESTINATION examples/in
 install(FILES ${GAIA_REPO}/demos/incubator/incubator.ruleset DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/demos/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/demos/incubator/README.md DESTINATION examples/incubator)
-install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists_incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
