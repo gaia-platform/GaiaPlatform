@@ -750,19 +750,27 @@ void server::init_txn_info()
 void server::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
-    if (!s_disable_persistence)
+    if (!(s_persistence_mode == persistence_mode_t::e_disabled))
     {
-        // Open RocksDB just once.
+        // We could get here after a server reset with --disable-persistence-after-recovery,
+        // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
             rdb = make_unique<gaia::db::persistent_store_manager>();
-            if (s_reinitialize_persistent_store)
+            if (s_persistence_mode == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
             }
             rdb->open();
             rdb->recover();
         }
+    }
+
+    // If persistence is disabled after recovery, then destroy the RocksDB
+    // instance.
+    if (s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)
+    {
+        rdb.reset();
     }
 }
 
@@ -2776,7 +2784,7 @@ bool server::txn_commit()
     // This is only used for persistence.
     std::string txn_name;
 
-    if (!s_disable_persistence)
+    if (rdb)
     {
         txn_name = rdb->begin_txn(s_txn_id);
         // Prepare log for transaction.
@@ -2793,7 +2801,7 @@ bool server::txn_commit()
     update_txn_decision(commit_ts, committed);
 
     // Append commit or rollback marker to the WAL.
-    if (!s_disable_persistence)
+    if (rdb)
     {
         if (committed)
         {
@@ -2810,15 +2818,10 @@ bool server::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run(bool disable_persistence, bool reinitialize_persistent_store)
+void server::run(persistence_mode_t persistence_mode)
 {
-    retail_assert(
-        !(disable_persistence && reinitialize_persistent_store),
-        "disable_persistence and reinitialize_persistent_store cannot both be enabled!");
-
     // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_disable_persistence = disable_persistence;
-    s_reinitialize_persistent_store = reinitialize_persistent_store;
+    s_persistence_mode = persistence_mode;
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2860,7 +2863,9 @@ void server::run(bool disable_persistence, bool reinitialize_persistent_store)
         // This is only enabled if persistence is disabled, because otherwise
         // data would disappear on reset, only to reappear when the database is
         // restarted and recovers from the persistent store.
-        if (!(caught_signal == SIGHUP && s_disable_persistence))
+        if (!(caught_signal == SIGHUP
+              && (s_persistence_mode == persistence_mode_t::e_disabled
+                  || s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)))
         {
             if (caught_signal == SIGHUP)
             {
