@@ -190,6 +190,8 @@ static string generate_constant_list(const gaia_id_t db_id)
 
         for (auto& relationship : relationships)
         {
+            bool is_named_relationship = (0 < strlen(relationship.name()));
+
             code.SetValue("REF_NAME", relationship.name());
             code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
 
@@ -198,7 +200,7 @@ static string generate_constant_list(const gaia_id_t db_id)
                 // relationship where table_record appears as parent
                 code.SetValue("FIRST_CHILD_OFFSET", to_string(relationship.first_child_offset()));
                 code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-                if (strlen(relationship.name()))
+                if (is_named_relationship)
                 {
                     code += "constexpr int c_first_{{REF_NAME}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
                 }
@@ -217,7 +219,7 @@ static string generate_constant_list(const gaia_id_t db_id)
                 code.SetValue("PARENT_OFFSET", to_string(relationship.parent_offset()));
                 code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
                 code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-                if (strlen(relationship.name()))
+                if (is_named_relationship)
                 {
                     code += "constexpr int c_parent_{{REF_NAME}}_{{CHILD_TABLE}} = {{PARENT_OFFSET}};";
                     code += "constexpr int c_next_{{REF_NAME}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
@@ -275,11 +277,13 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
         code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
         code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
         code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
 
-        if (strlen(relationship.name()))
+        if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
 
@@ -362,10 +366,12 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table is the child
     for (auto& relationship : child_relationships)
     {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
         code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
         code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
 
-        if (strlen(relationship.name()))
+        if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
             code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() {";
@@ -394,9 +400,11 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
         code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
 
-        if (strlen(relationship.name()))
+        if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
 
