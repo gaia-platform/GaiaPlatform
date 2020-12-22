@@ -35,7 +35,8 @@ public:
 class configuration_error : public gaia::common::gaia_exception
 {
 public:
-    configuration_error(const char* key, int value);
+    explicit configuration_error(const char* key, int value);
+    explicit configuration_error(const char* filename);
 };
 
 /*@}*/

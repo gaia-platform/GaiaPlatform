@@ -24,16 +24,36 @@ using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
 
+void rule(const rule_context_t*)
+{
+}
+
 class system_init_test : public db_test_base_t
 {
 public:
-    gaia_type_t load_catalog()
+    static constexpr char c_test_table[] = "system_init_test";
+    gaia_type_t add_table()
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
         ddl::field_def_list_t fields;
         fields.emplace_back(make_unique<ddl::data_field_def_t>("id", data_type_t::e_string, 1));
-        // The type of the table is the row id of table in the catalog.
-        return create_table("system_init_test", fields);
+        return create_table("", c_test_table, fields, false);
+    }
+
+    void verify_initialized()
+    {
+        rule_binding_t binding("ruleset", "rulename", rule);
+        subscription_list_t subscriptions;
+
+        // Just run some code that won't work if things aren't setup properly.
+        gaia_id_t table_id = add_table();
+        begin_transaction();
+        gaia_type_t type_id = gaia_table_t::get(table_id).type();
+        commit_transaction();
+        subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
+        EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));
+        unsubscribe_rules();
+        list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
     }
 
 protected:
@@ -57,41 +77,66 @@ TEST_F(system_init_test, system_not_initialized_error)
     EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care), initialization_error);
 }
 
-void rule(const rule_context_t*)
+TEST_F(system_init_test, system_initialized_valid_conf_both_args)
 {
+    // Should be a no-op if the system has not been initialized
+    gaia::system::shutdown();
+
+    gaia::system::initialize("./gaia.conf", "./gaia_log.conf");
+    verify_initialized();
+    gaia::system::shutdown();
 }
 
 TEST_F(system_init_test, system_initialized_valid_conf)
 {
+    // Should be a no-op if the system has not been initialized
+    gaia::system::shutdown();
 
-    rule_binding_t binding("ruleset", "rulename", rule);
-    subscription_list_t subscriptions;
+    gaia::system::initialize();
+    verify_initialized();
+    gaia::system::shutdown();
+}
+
+TEST_F(system_init_test, system_initialized_valid_conf_gaia_arg)
+{
 
     // Should be a no-op if the system has not been initialized
     gaia::system::shutdown();
 
     gaia::system::initialize("./gaia.conf");
-    gaia_id_t table_id = load_catalog();
-    begin_transaction();
-    gaia_type_t type_id = gaia_table_t::get(table_id).type();
-    commit_transaction();
-
-    subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
-    EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));
-    unsubscribe_rules();
-    list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
-
+    verify_initialized();
     gaia::system::shutdown();
+}
+
+TEST_F(system_init_test, system_initialized_valid_conf_logger_arg)
+{
+
+    // Should be a no-op if the system has not been initialized
+    gaia::system::shutdown();
+
+    gaia::system::initialize(nullptr, "./gaia_log.conf");
+    verify_initialized();
+    gaia::system::shutdown();
+}
+
+TEST_F(system_init_test, system_invalid_gaia_conf_path)
+{
+    EXPECT_THROW(gaia::system::initialize("./bogus_file.conf"), configuration_error);
+}
+
+TEST_F(system_init_test, system_invalid_gaia_log_conf_path)
+{
+    EXPECT_THROW(gaia::system::initialize(nullptr, "./bogus_file.conf"), configuration_error);
 }
 
 TEST_F(system_init_test, system_invalid_conf_path)
 {
-    EXPECT_THROW(gaia::system::initialize("./bogus_file.conf"), std::exception);
+    EXPECT_THROW(gaia::system::initialize("./bogus_file.conf", "./bogus_file.conf"), configuration_error);
 }
 
 TEST_F(system_init_test, system_invalid_conf)
 {
-    EXPECT_THROW(gaia::system::initialize("./invalid_gaia.conf"), std::exception);
+    EXPECT_THROW(gaia::system::initialize("./invalid_gaia.conf"), configuration_error);
 }
 
 TEST_F(system_init_test, system_invalid_setting_conf)
