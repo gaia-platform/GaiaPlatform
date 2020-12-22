@@ -58,9 +58,9 @@ create table FaceScanLog (
     ScanSignatureId string,  // References a Person? Not used.
     ScanDate string,
     ScanTime int32,
-    person_scan references Person,
-    building_scan references Building,
-    stranger_scan references Stranger
+    references Person,
+    references Building,
+    references Stranger
 );
 create table Room (
     RoomId string,
