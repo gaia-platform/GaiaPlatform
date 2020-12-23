@@ -190,22 +190,24 @@ static string generate_constant_list(const gaia_id_t db_id)
 
         for (auto& relationship : relationships)
         {
-            if (strlen(relationship.name()))
-            {
-                code.SetValue("REF_NAME", relationship.name());
-            }
-            else
-            {
-                // Anonymous relationship
-                code.SetValue("REF_NAME", relationship.child_gaia_table().name());
-            }
+            bool is_named_relationship = (0 < strlen(relationship.name()));
+
+            code.SetValue("REF_NAME", relationship.name());
+            code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
 
             if (table_record == relationship.parent_gaia_table())
             {
                 // relationship where table_record appears as parent
                 code.SetValue("FIRST_CHILD_OFFSET", to_string(relationship.first_child_offset()));
                 code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-                code += "constexpr int c_first_{{REF_NAME}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
+                if (is_named_relationship)
+                {
+                    code += "constexpr int c_first_{{REF_NAME}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
+                }
+                else
+                {
+                    code += "constexpr int c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
+                }
                 const_count++;
             }
 
@@ -217,8 +219,16 @@ static string generate_constant_list(const gaia_id_t db_id)
                 code.SetValue("PARENT_OFFSET", to_string(relationship.parent_offset()));
                 code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
                 code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-                code += "constexpr int c_parent_{{REF_NAME}}_{{PARENT_TABLE}} = {{PARENT_OFFSET}};";
-                code += "constexpr int c_next_{{REF_NAME}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
+                if (is_named_relationship)
+                {
+                    code += "constexpr int c_parent_{{REF_NAME}}_{{CHILD_TABLE}} = {{PARENT_OFFSET}};";
+                    code += "constexpr int c_next_{{REF_NAME}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
+                }
+                else
+                {
+                    code += "constexpr int c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{PARENT_OFFSET}};";
+                    code += "constexpr int c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
+                }
                 const_count += 2;
             }
         }
@@ -257,37 +267,40 @@ static string generate_edc_struct(
     code.SetValue("TABLE_NAME", table_record.name());
     code.SetValue("POSITION", to_string(table_type_id));
 
-    // Iterate over the relationships where the current table appear as parent
-    for (auto& relationship : parent_relationships)
-    {
-        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
-
-        if (strlen(relationship.name()))
-        {
-            code.SetValue("REF_NAME", relationship.name());
-
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
-                    "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> "
-                    "{{REF_NAME}}_{{REF_TABLE}}_list_t;";
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
-
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
-                    "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list_t;";
-        }
-    }
-
     code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, "
             "c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
     code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
             "{{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
 
     code.IncrementIdentLevel();
+
+    // Iterate over the relationships where the current table appear as parent
+    for (auto& relationship : parent_relationships)
+    {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
+        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+
+        if (is_named_relationship)
+        {
+            code.SetValue("REF_NAME", relationship.name());
+
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_t, "
+                    "c_parent_{{REF_NAME}}_{{CHILD_TABLE}}, "
+                    "c_first_{{REF_NAME}}_{{CHILD_TABLE}}, c_next_{{REF_NAME}}_{{CHILD_TABLE}}> "
+                    "{{REF_NAME}}_{{CHILD_TABLE}}_list_t;";
+        }
+        else
+        {
+            // This relationship is anonymous.
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_t, "
+                    "c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}, "
+                    "c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}}, c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}}> "
+                    "{{CHILD_TABLE}}_list_t;";
+        }
+    }
 
     // Default public constructor.
     code += "{{TABLE_NAME}}_t() : gaia_object_t(\"{{TABLE_NAME}}_t\") {}";
@@ -350,25 +363,27 @@ static string generate_edc_struct(
     code.DecrementIdentLevel();
     code += "}";
 
-    // Iterate over the relationships where the current table appear as child
+    // Iterate over the relationships where the current table is the child
     for (auto& relationship : child_relationships)
     {
-        if (strlen(relationship.name()))
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+
+        if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
-            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
-            code += "{{REF_TABLE}}_t {{REF_NAME}}_{{REF_TABLE}}() {";
+            code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() {";
             code.IncrementIdentLevel();
-            code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{REF_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
         }
         else
         {
             // This relationship is anonymous.
-            code.SetValue("REF_NAME", relationship.parent_gaia_table().name());
-            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
-            code += "{{REF_TABLE}}_t {{REF_NAME}}() {";
+            code += "{{PARENT_TABLE}}_t {{PARENT_TABLE}}() {";
             code.IncrementIdentLevel();
-            code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{TABLE_NAME}}_{{REF_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
         }
         code.DecrementIdentLevel();
         code += "}";
@@ -385,27 +400,26 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
-        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
+        bool is_named_relationship = (0 < strlen(relationship.name()));
 
-        if (strlen(relationship.name()))
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+
+        if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
 
-            code += "{{REF_NAME}}_{{REF_TABLE}}_list_t "
-                    "{{REF_NAME}}_{{REF_TABLE}}_list() {";
+            code += "{{REF_NAME}}_{{CHILD_TABLE}}_list_t {{REF_NAME}}_{{CHILD_TABLE}}_list() {";
 
             code.IncrementIdentLevel();
-            code += "return {{REF_NAME}}_{{REF_TABLE}}_list_t(gaia_id());";
+            code += "return {{REF_NAME}}_{{CHILD_TABLE}}_list_t(gaia_id());";
         }
         else
         {
             // This relationship is anonymous.
-            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
-
-            code += "{{REF_NAME}}_list_t {{REF_NAME}}_list() {";
+            code += "{{CHILD_TABLE}}_list_t {{CHILD_TABLE}}_list() {";
 
             code.IncrementIdentLevel();
-            code += "return {{REF_NAME}}_list_t(gaia_id());";
+            code += "return {{CHILD_TABLE}}_list_t(gaia_id());";
         }
         code.DecrementIdentLevel();
         code += "}";
