@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <csignal>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -184,6 +186,8 @@ void LogCompilerError(const std::string& err)
 int main(int argc, char* argv[])
 {
     gaia_log::initialize({});
+
+    //    raise(SIGTRAP);
 
     int res = EXIT_SUCCESS;
     db_server_t server;

@@ -267,10 +267,10 @@ static string generate_edc_struct(
     code.SetValue("TABLE_NAME", table_record.name());
     code.SetValue("POSITION", to_string(table_type_id));
 
-    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, "
+    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, "
             "c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
     code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
-            "{{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
+            "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
 
     code.IncrementIdentLevel();
 
@@ -351,7 +351,7 @@ static string generate_edc_struct(
     code.IncrementIdentLevel();
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.SetValue("DIRECT", has_string ? "Direct" : "");
-    param_list = "b.Finish(Create{{TABLE_NAME}}{{DIRECT}}(b";
+    param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
     for (auto const& f : field_strings)
     {
         param_list += ", ";
@@ -429,8 +429,8 @@ static string generate_edc_struct(
     code.DecrementIdentLevel();
     code += "private:";
     code.IncrementIdentLevel();
-    code += "friend struct gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, "
-            "{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+    code += "friend struct gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+            "internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
     code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
