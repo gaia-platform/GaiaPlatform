@@ -25,36 +25,6 @@ namespace gaia
 namespace system
 {
 
-// The system library will read the system level keys.
-// Subsystems should manage their own keys and section names.
-// See gaia.conf file for expected section and key names.
-shared_ptr<cpptoml::table> parse_system_settings(
-    const char* gaia_config_file,
-    string& logger_config_file)
-{
-    static const char* c_system_section = "System";
-    static const char* c_logger_config_key = "logger_config";
-    shared_ptr<cpptoml::table> root_config;
-
-    root_config = cpptoml::parse_file(gaia_config_file);
-    if (!root_config)
-    {
-        return root_config;
-    }
-
-    shared_ptr<cpptoml::table> system_config = root_config->get_table(c_system_section);
-    if (system_config)
-    {
-        auto logger_config_setting = system_config->get_as<string>(c_logger_config_key);
-        if (logger_config_setting)
-        {
-            logger_config_file = *logger_config_setting;
-        }
-    }
-
-    return root_config;
-}
-
 bool file_exists(const char* filename)
 {
     ifstream the_file(filename);
