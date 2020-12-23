@@ -130,15 +130,15 @@ static string dump_node(gaia_ptr& node_ptr, bool references, bool payload, int& 
 }
 
 // If id is 'in' type_vec, return true.
-bool type_in(gaia_id_t id, type_vector type_vec)
+bool type_in(gaia_type_t obj_type, type_vector type_vec)
 {
     if (type_vec.size() == 0)
     {
         return true;
     }
-    for (auto& l : type_vec)
+    for (auto& type : type_vec)
     {
-        if (id == l)
+        if (obj_type == type)
         {
             return true;
         }
@@ -146,7 +146,7 @@ bool type_in(gaia_id_t id, type_vector type_vec)
     return false;
 }
 
-string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, bool catalog, int& line_limit, type_vector type_vec)
+string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, bool catalog, int line_limit, type_vector type_vec)
 {
     gaia_id_t id;
     string dump;
