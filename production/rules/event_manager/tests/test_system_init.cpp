@@ -13,7 +13,7 @@
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
-#include "db_test_base.hpp"
+#include "db_catalog_test_base.hpp"
 #include "gaia_catalog.h"
 
 using namespace gaia::common;
@@ -28,7 +28,7 @@ void rule(const rule_context_t*)
 {
 }
 
-class system_init_test : public db_test_base_t
+class system_init_test : public db_catalog_test_base_t
 {
 public:
     static constexpr char c_test_table[] = "system_init_test";
@@ -59,10 +59,8 @@ public:
 protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
-    // Also disable persistence.  There is no way to clear the cache of table names from the
-    // ddl_executor_t class.
     system_init_test()
-        : db_test_base_t(true, false)
+        : db_catalog_test_base_t("", true)
     {
     }
 };
