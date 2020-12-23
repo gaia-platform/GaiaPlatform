@@ -80,7 +80,7 @@ create table if not exists Events (
       EventDate : string,         
       StartTime : string,         
       EndTime : string,       
-      Enrolled : uint16,
+      Enrolled : uint16 active,
       EventsCampus references campus,
       EventsRooms references Rooms,
       EventsStaff references Staff

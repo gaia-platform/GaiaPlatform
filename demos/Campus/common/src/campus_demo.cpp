@@ -48,7 +48,8 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
     if(msg->m_action == m_person_action[person_action_enum::move_to])
     {
         begin_transaction();
-        //-------
+        //update that person's location
+        update_person(found_person,found_person.is_threat(),msg->m_arg1);
         commit_transaction();
     }
     else if(msg->m_action == m_person_action[person_action_enum::change_role])
@@ -85,16 +86,13 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
     else if(msg->m_action == m_person_action[person_action_enum::disarm])
     {
         begin_transaction();
-        //update that person as a threat
+        //update that person as a not threat
         update_person(found_person,false,found_person.location());
         commit_transaction();
     }    
     else if(msg->m_action == m_person_action[person_action_enum::regsiter_for_event])
     {
-        //begin_transaction();
-        //Regsiter person for event
         insert_event_registration(found_person,msg->m_arg1);
-        //commit_transaction();
     }
 }
 
@@ -229,6 +227,11 @@ void campus_demo::campus::cb_alert( std::string title,
     m_messageBus->send_message(msg);
 }
 
+std::string campus_demo::campus::cb_find_new_event_room( std::string eventName){
+    UNUSED(eventName);
+    return "Eagle";
+}
+
 //*** DB Procedural ***
 
 bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t &found_person)
@@ -295,6 +298,7 @@ void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_
 }
 
 string campus_demo::campus::get_date_time_string(datetime_format format){
+
     time_t rawtime;
     struct tm * timeinfo;
     char buffer [80];

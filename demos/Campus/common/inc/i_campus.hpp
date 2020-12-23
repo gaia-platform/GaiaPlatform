@@ -66,6 +66,16 @@ public:
         std::string body, int severity, std::string arg1) = 0;
 
     /**
+     * Call this from within a ruleset rule to find a new room for an event
+     * 
+     * @param[in] std::string eventName
+     * @return std::string
+     * @throws 
+     * @exceptsafe yes
+     */   
+    virtual std::string cb_find_new_event_room( std::string eventName) = 0;
+
+    /**
      * Constructor
      * 
      * @throws 

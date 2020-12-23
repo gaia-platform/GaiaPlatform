@@ -140,6 +140,7 @@ private:
         std::string actionName, std::string arg1) override;
     void cb_alert( std::string title, std::string body, 
         int severity, std::string arg1) override;
+    std::string cb_find_new_event_room( std::string eventName) override;
 
     //*** literals etc ************************************
 
