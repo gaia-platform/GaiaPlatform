@@ -20,7 +20,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 
 set(GAIAT_SRCS
   src/main.cpp
-  )
+)
 
 link_directories(
   ${GAIA_PROD_BUILD}/lib
@@ -44,7 +44,7 @@ target_link_libraries(gaiat
   ${LIB_EXPLAIN}
   ${LIB_CAP}
   dl
-  )
+)
 
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -69,14 +69,14 @@ add_custom_target(generate_incubator_rules ALL
   DEPENDS ${GAIA_GENERATED_SCHEMAS}/test.cpp
   # Add previous target to realize parallel builds.
   DEPENDS generate_incubator_headers
-  )
+)
 
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"
   "${TRANSLATION_ENGINE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
   "rt;gaia_system;gaia_db_catalog_test"
   "generate_incubator_rules" ""
-  )
+)
 
 # Test declarative code mixed with cpp
 
