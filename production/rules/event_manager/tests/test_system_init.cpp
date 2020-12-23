@@ -59,8 +59,10 @@ public:
 protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
+    // Also disable persistence.  There is no way to clear the cache of table names from the
+    // ddl_executor_t class.
     system_init_test()
-        : db_test_base_t(true)
+        : db_test_base_t(true, false)
     {
     }
 };
@@ -136,7 +138,8 @@ TEST_F(system_init_test, system_invalid_conf_path)
 
 TEST_F(system_init_test, system_invalid_conf)
 {
-    EXPECT_THROW(gaia::system::initialize("./invalid_gaia.conf"), configuration_error);
+    // Let through the more informative parse error
+    EXPECT_THROW(gaia::system::initialize("./invalid_gaia.conf"), std::exception);
 }
 
 TEST_F(system_init_test, system_invalid_setting_conf)
