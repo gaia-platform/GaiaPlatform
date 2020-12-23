@@ -38,7 +38,7 @@ public:
     static constexpr char c_re_logger[] = "re";
     static constexpr char c_re_stats_logger[] = "re_stats";
     static constexpr char c_catalog_logger[] = "catalog";
-    static constexpr char c_rules_logger[] = "rules";
+    static constexpr char c_app_logger[] = "app";
 
     /** Default logging path used if none is specified via configuration. */
     static constexpr char c_default_log_path[] = "logs/gaia.log";
@@ -100,13 +100,13 @@ public:
         return *m_re_stats_logger;
     }
 
-    logger_t& rules_logger()
+    logger_t& app_logger()
     {
         if (!m_is_log_initialized)
         {
             uninitialized_failure();
         }
-        return *m_rules_logger;
+        return *m_app_logger;
     }
 
     bool init_logging(const std::string& config_path);
@@ -136,7 +136,7 @@ private:
     logger_ptr_t m_catalog_logger;
 
     // public loggers
-    logger_ptr_t m_rules_logger;
+    logger_ptr_t m_app_logger;
 };
 
 /*@}*/

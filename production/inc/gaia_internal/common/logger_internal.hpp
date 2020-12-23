@@ -29,6 +29,28 @@ namespace common
 namespace logging
 {
 
+/**
+ * Gaia Internal logging API. Please use the loggers defined in this file.
+ *
+ * The logging system MUST be initialized calling `initialize(const string& config_path)`.
+ *
+ * The logging is performed via logger_t objects. Each instance of this class represent
+ * a separated logger. Different submodules should use different loggers.
+ * FUnctions for the different submodules are provided: sys(), db(), scheduler() etc..
+ *
+ * Calling:
+ *
+ *  gaia_log::sys().info("I'm the Sys logger")
+ *  gaia_log::db().info("I'm the Storage Engine logger")
+ *  gaia_log::scheduler().info("I'm the Rules logger")
+ *
+ * Dynamic creation of logger is not supported and generally discouraged. If you want to
+ * add a new logger add a constant in this file.
+ *
+ * \addtogroup Logging
+ * @{
+ */
+
 typedef std::shared_ptr<logger_t> logger_ptr_t;
 
 /**

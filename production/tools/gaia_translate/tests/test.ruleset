@@ -9,7 +9,7 @@ int g_delete_called = 0;
 ruleset test
 {
     {
-        gaia_log::rules().warn("[rule-1] begin {} {} {}", "str", 1, 1.0);
+        gaia_log::app().warn("[rule-1] begin {} {} {}", "str", 1, 1.0);
 
         max_temp = sensor.value + 4;
         if (@actuator.value > 0)

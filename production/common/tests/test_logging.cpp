@@ -22,7 +22,7 @@ void verify_uninitialized_loggers()
     EXPECT_THROW(gaia_log::re(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::re_stats(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::app(), gaia_log::logger_exception_t);
 }
 
 TEST(logger_test, logger_api)
@@ -37,7 +37,7 @@ TEST(logger_test, logger_api)
         gaia_log::re(),
         gaia_log::db(),
         gaia_log::re_stats(),
-        gaia_log::rules()};
+        gaia_log::app()};
 
     for (auto logger : loggers)
     {

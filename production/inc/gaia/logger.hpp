@@ -25,29 +25,27 @@ namespace logging
 {
 
 /**
- * Contains Gaia logging API. At the moment it is a wrapper around spdlog logger.
- * This namespace is aliased to gaia_log.
+ * Gaia logging API. Logging is performed via instances of logger_t.
+ * Direct instantiation of logger_t is disabled. You can access predefined instances
+ * of logger_t using the methods provided in this namespace (i.e. app()).
  *
- * The logging system MUST be initialized calling `initialize(const string& config_path)`.
+ * This namespace is aliased to gaia_log, which means you can call:
  *
- * The logging is performed via logger_t objects. Each instance of this class represent
- * a separated logger. Different submodules should use different loggers.
- * FUnctions for the different submodules are provided: sys(), db(), scheduler() etc..
+ *  gaia_log::app().info("Hello world")
+ *  gaia_log::app().info("Formatting '{}' {}", "string", 1.0)
+ *  gaia_log::app().warn("Warning message!")
  *
- * Calling:
+ * Which outputs:
  *
- *  gaia_log::sys().info("I'm the Sys logger")
- *  gaia_log::db().info("I'm the Storage Engine logger")
- *  gaia_log::scheduler().info("I'm the Rules logger")
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <app>: Hello world
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <app>: Formatting 'string' 1.0
+ *  [2020-09-15T11:00:23-04:00] [warn] [392311 392311] <app>: Warning message!
  *
- * Outputs:
+ * Internally we use spdlog and we support file configuration via spdlog_setup:
+ * - https://github.com/gabime/spdlog
+ * - https://github.com/guangie88/spdlog_setup
  *
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <sys>: I'm the Sys logger
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <db>: I'm the Storage Engine logger
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <scheduler>: I'm the Rules logger
- *
- * Dynamic creation of logger is not supported and generally discouraged. If you want to
- * add a new logger add a constant in this file.
+ * The logging configuration file location can be customized from gaia.conf.
  *
  * \addtogroup Logging
  * @{
@@ -64,48 +62,60 @@ class logger_t
     friend class internal_logger_t;
 
 public:
-    /** Finer-grained informational events than debug.
-     *  The enum is initialized to this value if nothing
-     *  is specified.*/
+    /**
+     * Finer-grained informational events than debug.
+     * The enum is initialized to this value if nothing
+     * is specified.
+     */
     template <typename... T_args>
     void trace(const char* format, const T_args&... args)
     {
         m_spdlogger->trace(format, args...);
     }
 
-    /** Fine-grained informational events that are most
-     *  useful to debug an application. */
+    /**
+     * Fine-grained informational events that are most
+     * useful to debug an application.
+     */
     template <typename... T_args>
     void debug(const char* format, const T_args&... args)
     {
         m_spdlogger->debug(format, args...);
     }
 
-    /** Informational messages that highlight the progress
-     *  of the application at coarse-grained level. */
+    /**
+     * Informational messages that highlight the progress
+     *  of the application at coarse-grained level.
+     */
     template <typename... T_args>
     void info(const char* format, const T_args&... args)
     {
         m_spdlogger->info(format, args...);
     }
 
-    /** Informational messages that highlight the progress
-     *  of the application at coarse-grained level. */
+    /**
+     * Informational messages that highlight the progress
+     * of the application at coarse-grained level.
+     */
     template <typename... T_args>
     void warn(const char* format, const T_args&... args)
     {
         m_spdlogger->warn(format, args...);
     }
 
-    /** Potentially harmful situations. */
+    /**
+     * Potentially harmful situations.
+     */
     template <typename... T_args>
     void error(const char* format, const T_args&... args)
     {
         m_spdlogger->error(format, args...);
     }
 
-    /** Very severe error events that will presumably lead the
-     *  application to abort */
+    /**
+     * Very severe error events that will presumably lead the
+     * application to abort.
+     */
     template <typename... T_args>
     void critical(const char* format, const T_args&... args)
     {
@@ -132,8 +142,10 @@ public:
     }
 };
 
-/** Logger to be use at application layer */
-logger_t& rules();
+/**
+ * Logger to be used in the application layer.
+ */
+logger_t& app();
 
 /*@}*/
 } // namespace logging

@@ -74,9 +74,9 @@ logger_t& re_stats()
     return logger_manager_t::get().re_stats_logger();
 }
 
-logger_t& rules()
+logger_t& app()
 {
-    return logger_manager_t::get().rules_logger();
+    return logger_manager_t::get().app_logger();
 }
 
 } // namespace gaia::common::logging
