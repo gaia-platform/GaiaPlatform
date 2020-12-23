@@ -4,6 +4,8 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <condition_variable>
+
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -63,10 +65,11 @@ private:
     std::mutex m_rule_stats_lock;
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
-    // Signal to stop logging on shutdown.
-    inline static bool s_keep_logging{true};
-    // Ensure we don't shutdown while we are logging
-    inline static std::mutex s_logging_lock;
+    // Management of stats logger thread
+    std::thread m_logger_thread;
+    std::mutex m_logging_lock;
+    std::condition_variable m_exit_signal;
+    bool m_exit;
 };
 
 } // namespace rules
