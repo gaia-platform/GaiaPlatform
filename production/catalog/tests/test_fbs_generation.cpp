@@ -80,5 +80,5 @@ TEST_F(fbs_generation_test, get_bfbs)
 
     auto& schema = *reflection::GetSchema(bfbs.data());
     auto root_table = schema.root_table();
-    ASSERT_STREQ(root_table->name()->c_str(), (c_gaia_namespace + "." + test_table_name).c_str());
+    ASSERT_STREQ(root_table->name()->c_str(), (c_gaia_namespace + "." + c_internal_suffix + "." + test_table_name).c_str());
 }
