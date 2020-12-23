@@ -13,7 +13,7 @@
 
 using namespace gaia::db;
 
-// duplicated from production/db/storage_engine/inc/se_server.hpp
+// duplicated from production/db/storage_engine/inc/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)

@@ -35,7 +35,7 @@ target_link_libraries(gaiat
   PRIVATE
   rt
   clangTooling
-  gaia_se_client
+  gaia_db_client
   gaia_catalog
   gaia_direct
   gaia_payload_types
@@ -54,11 +54,11 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 
 add_custom_command(
   OUTPUT  ${GAIA_GENERATED_SCHEMAS}/test.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server --disable-persistence &
+  COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
-  COMMAND pkill -f -KILL gaia_se_server &
+  COMMAND pkill -f -KILL gaia_db_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}

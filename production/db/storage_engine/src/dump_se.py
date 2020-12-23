@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-from se_client import *;
+from db_client import *;
 
 begin_session();
 

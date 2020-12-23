@@ -52,7 +52,7 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
     return os;
 }
 
-constexpr char c_server_connect_socket_name[] = "gaia_se_server";
+constexpr char c_server_connect_socket_name[] = "gaia_db_server";
 constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
 constexpr char c_sch_mem_counters[] = "gaia_mem_counters";
 constexpr char c_sch_mem_data[] = "gaia_mem_data";

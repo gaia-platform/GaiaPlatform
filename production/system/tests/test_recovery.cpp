@@ -698,7 +698,7 @@ int main(int argc, char** argv)
 
     if (argc != 2)
     {
-        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
+        gaia_log::db().critical("You must specify the gaia_db_server path. eg:\n\n "
                                 " test_recovery \"production/build/db/storage_engine\"");
         exit(1);
     }

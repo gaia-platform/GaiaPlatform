@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "se_client.hpp"
+#include "db_client.hpp"
 
 #include <unistd.h>
 
@@ -382,12 +382,12 @@ int client::get_session_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
+    retail_assert(strlen(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], c_se_server_socket_name, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], c_db_server_socket_name, sizeof(server_addr.sun_path) - 1);
 
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -480,7 +480,7 @@ void client::begin_session()
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
 
-    // Set up the shared-memory mappings (see notes in se_server.cpp).
+    // Set up the shared-memory mappings (see notes in db_server.cpp).
     map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_counters, 0);
     map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_data, 0);
     map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_id_index, 0);

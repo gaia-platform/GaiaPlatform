@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "se_server.hpp"
+#include "db_server.hpp"
 
 static void usage()
 {
@@ -15,7 +15,7 @@ static void usage()
         << "Copyright (c) Gaia Platform LLC"
         << std::endl
         << std::endl
-        << "Usage: gaia_se_server ["
+        << "Usage: gaia_db_server ["
         << gaia::db::server::c_disable_persistence_flag
         << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag

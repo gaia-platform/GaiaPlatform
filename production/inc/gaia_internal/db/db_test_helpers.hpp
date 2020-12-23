@@ -27,7 +27,7 @@ namespace db
 {
 
 constexpr char c_daemonize_command[] = "daemonize ";
-// Duplicated from production/db/storage_engine/inc/se_server.hpp.
+// Duplicated from production/db/storage_engine/inc/db_server.hpp.
 // (That header should not be included by anything but the code that
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = "--disable-persistence";
@@ -57,7 +57,7 @@ inline void wait_for_server_init()
                 if (counter % c_print_error_interval == 0)
                 {
                     gaia_log::sys().warn(
-                        "Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
+                        "Cannot connect to Gaia Server, you may need to start the gaia_db_server process");
                     counter = 1;
                 }
                 else
@@ -93,7 +93,7 @@ inline void reset_server()
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.
-    ::system((std::string("pkill -f -HUP ") + c_se_server_exec_name).c_str());
+    ::system((std::string("pkill -f -HUP ") + c_db_server_exec_name).c_str());
     // Wait a bit for the server's listening socket to be closed.
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
@@ -170,13 +170,13 @@ public:
     {
         if (!db_server_path)
         {
-            m_server_path = gaia::db::c_se_server_exec_name;
+            m_server_path = gaia::db::c_db_server_exec_name;
         }
         else
         {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
-            m_server_path.append(gaia::db::c_se_server_exec_name);
+            m_server_path.append(gaia::db::c_db_server_exec_name);
         }
     }
 
