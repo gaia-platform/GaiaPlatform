@@ -77,9 +77,9 @@ struct gaia_container_t
     }
     gaia_container_t() = default;
 
-    gaia_iterator_t<T_class> begin();
+    gaia_iterator_t<T_class> begin() const;
     static gaia_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
-    static gaia_iterator_t<T_class> end();
+    gaia_iterator_t<T_class> end() const;
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;

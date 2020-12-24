@@ -32,6 +32,11 @@ namespace catalog
 // The top level namespace for all the Gaia generated code.
 const std::string c_gaia_namespace = "gaia";
 
+// Last element of the namespace for all Gaia generated code that is not meant
+// for public usage. This helps avoiding conflicts between generated names
+// and application code.
+const std::string c_internal_suffix = "internal";
+
 // Catalog's notion for the empty database similar to Epsilon for the empty
 // string. Specifically, when a user create a table without specifying a
 // database, it is created in this construct. Users cannot use '()' in database
