@@ -3,14 +3,16 @@
 # All rights reserved.
 #############################################
 
-project(CampusDemo)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_testing()
+
+# Set the project name.
+project(campus_demo)
 
 find_package(Curses REQUIRED)
 find_package(GTest REQUIRED)
@@ -23,18 +25,6 @@ set(GAIA_BIN "/opt/gaia/bin")                         #TODO: remove fixed path
 set(GAIA_LIB "/opt/gaia/lib")                         #TODO: remove fixed path
 
 find_library(MENU_LIBRARY menu)
-
-# make sure we can find the ThingAPI package...
-if(NOT TARGET ThingAPI::ThingAPI)
-	if("$ENV{EDGE_SDK_HOME}" STREQUAL "")
-	    message(FATAL_ERROR "Environment variable EDGE_SDK_HOME is not set. Please run config_env_variables.com/bat script to set the environment variables")
-	endif()
-
-    file(TO_CMAKE_PATH "$ENV{EDGE_SDK_HOME}" EDGE_SDK_HOME_PATH)
-	list(APPEND CMAKE_MODULE_PATH "${EDGE_SDK_HOME_PATH}/cmake")
-
-	find_package(ThingAPI REQUIRED)
-endif()
 
 include(GoogleTest)
 
@@ -57,10 +47,10 @@ set(GAIA_CAMPUS_DEMO_INCLUDES
 )
 
 set(GAIA_GENERATE ${GAIA_BIN}/gaiac)                             
-set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)     
+set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)    
 
-#add_compile_definitions(MESSAGE_BUS_MONOLITH)
-add_compile_definitions(MESSAGE_BUS_EDGE)
+add_compile_definitions(MESSAGE_BUS_MONOLITH)
+#add_compile_definitions(MESSAGE_BUS_EDGE)
 #add_compile_definitions(MESSAGE_BUS_ROS1)
 #add_compile_definitions(MESSAGE_BUS_ROS2)
 
@@ -102,14 +92,13 @@ add_custom_target(translate_campus_ruleset ALL
 #--- Done with D&T ---
 
 add_library(gaia SHARED IMPORTED GLOBAL)
-set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB}/libgaia.so) 
+set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB}/libgaia.so)  
 
 add_executable(campus 
     common/src/campus_demo.cpp
     common/src/campus_demo_term.cpp
     common/tests/test_campus_demo.cpp 
-    ${GENERATED_OUTPUTS}/campus_rules.cpp    
-    #edge/src/person_thing.cpp 
+    ${GENERATED_OUTPUTS}/campus_rules.cpp     
 )
 
 # The campus demo uses a system configuration and logger configuration file.
@@ -122,33 +111,6 @@ target_include_directories(campus PRIVATE ${GAIA_CAMPUS_DEMO_INCLUDES})
 #1target_link_libraries(campus PRIVATE rt pthread gaia gaia_semock gaia_rules gaia_direct)
 
 #set(SPDLOG_BUILD_SHARED OFF)
-target_link_libraries(campus PUBLIC spdlog::spdlog ThingAPI::ThingAPI) 
+target_link_libraries(campus PUBLIC spdlog::spdlog) 
 target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread gaia)
-
-###########################################################################
-
-add_custom_target(${PROJECT_NAME}_copy_config_files ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory config
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/PersonProperties.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/UIProperties.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/config/CampusProperties.json
-        config
-)
-
-add_custom_target(${PROJECT_NAME}_copy_definition_files ALL 
-    COMMAND ${CMAKE_COMMAND} -E make_directory definitions/TagGroup/io.gaiaplatform.campus
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/PersonTagGroup.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/ActionTagGroup.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/TagGroup/io.gaiaplatfom.campus/AlertTagGroup.json
-        definitions/TagGroup/io.gaiaplatform.campus
-    COMMAND ${CMAKE_COMMAND} -E make_directory definitions/ThingClass/io.gaiaplatform.campus
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different      
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/PersonThingClass.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/CampusThingClass.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/edge/definitions/ThingClass/io.gaiaplatform.campus/UIThingClass.json
-        definitions/ThingClass/io.gaiaplatform.campus
-)
-
 

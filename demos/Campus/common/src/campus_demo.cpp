@@ -8,164 +8,181 @@
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
 
-campus_demo::campus::campus(){
-    m_lastInstance = this;
+campus_demo::campus::campus()
+{
+    m_last_instance = this;
 }
 
-campus_demo::campus::~campus(){}
+campus_demo::campus::~campus()
+{
+}
 
-int campus_demo::campus::demo_test(){
+int campus_demo::campus::demo_test()
+{
     return 0;
 }
 
-campus_demo::campus* campus_demo::campus::get_last_instance(){
-    return m_lastInstance;
+campus_demo::campus* campus_demo::campus::get_last_instance()
+{
+    return m_last_instance;
 }
 
-void campus_demo::campus::log_this(std::string prefix, const std::exception& e){
+void campus_demo::campus::log_this(std::string prefix, const std::exception& e)
+{
     auto ew = e.what();
     UNUSED(ew);
     std::cout << "Exception: " << prefix << " : " << e.what();
 }
 
-void campus_demo::campus::log_this(std::string prefix){
+void campus_demo::campus::log_this(std::string prefix)
+{
     std::cout << prefix;
 }
 
-void campus_demo::campus::got_person_action_message(const bus_messages::action_message *msg){
-    
+void campus_demo::campus::got_person_action_message(const bus_messages::action_message* msg)
+{
+
     gaia::campus::person_t found_person;
 
-    //if we can't find them in the DB then exit. 
+    //if we can't find them in the DB then exit.
     //obviously this is not how we would proceed in production, an unidentified thing may be a security issue
-    if( !get_person(msg->m_actor.c_str(), found_person))
+    if (!get_person(msg->m_actor.c_str(), found_person))
     {
         //TODO: log message
         return;
     }
 
     //what kind of action?
-    if(msg->m_action == m_person_action[person_action_enum::move_to])
+    if (msg->m_action == m_person_action[person_action_enum::move_to])
     {
         begin_transaction();
         //update that person's location
-        update_person(found_person,found_person.is_threat(),msg->m_arg1);
+        update_person(found_person, found_person.is_threat(), msg->m_arg1);
         commit_transaction();
     }
-    else if(msg->m_action == m_person_action[person_action_enum::change_role])
+    else if (msg->m_action == m_person_action[person_action_enum::change_role])
     {
         begin_transaction();
         //---------
         commit_transaction();
     }
-    else if(msg->m_action == m_person_action[person_action_enum::brandish_weapon])
+    else if (msg->m_action == m_person_action[person_action_enum::brandish_weapon])
     {
         begin_transaction();
         //update that person as a threat
-        update_person(found_person,true,found_person.location());
+        update_person(found_person, true, found_person.location());
         commit_transaction();
 
         //rule trigger fake, bypasses rules, for development only
-        if(m_rule_trigger_fake){
+        if (m_rule_trigger_fake)
+        {
 
-            if(nullptr == m_messageBus)
+            if (nullptr == m_messageBus)
                 return;
 
-            bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
+            bus_messages::message_header mh(m_sequenceID++, m_senderID, m_sender_name, m_destID, m_dest_name);
 
             char buffer[256];
             sprintf(buffer, "'%s' is brandishing a weapon", msg->m_actor.c_str());
 
-            std::shared_ptr<bus_messages::message> msg = 
-                std::make_shared<bus_messages::alert_message>(mh, "Deadly Threat", 
-                    buffer, bus_messages::alert_message::severity_level_enum::emergency, "");
+            std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::alert_message>(mh, "Deadly Threat", buffer, bus_messages::alert_message::severity_level_enum::emergency, "");
 
             m_messageBus->send_message(msg);
         }
-    }    
-    else if(msg->m_action == m_person_action[person_action_enum::disarm])
+    }
+    else if (msg->m_action == m_person_action[person_action_enum::disarm])
     {
         begin_transaction();
         //update that person as a not threat
-        update_person(found_person,false,found_person.location());
+        update_person(found_person, false, found_person.location());
         commit_transaction();
-    }    
-    else if(msg->m_action == m_person_action[person_action_enum::regsiter_for_event])
+    }
+    else if (msg->m_action == m_person_action[person_action_enum::regsiter_for_event])
     {
-        insert_event_registration(found_person,msg->m_arg1);
+        insert_event_registration(found_person, msg->m_arg1);
     }
 }
 
-void campus_demo::campus::message_callback(std::shared_ptr<bus_messages::message> msg){
-    
-    bool gotSession = false;
+void campus_demo::campus::message_callback(std::shared_ptr<bus_messages::message> msg)
+{
+
+    bool got_session = false;
 
     try
     {
         // what kind of message do we have?
-        auto messageType = msg->get_message_type_name();
+        auto message_type = msg->get_message_type_name();
 
-        if(messageType == bus_messages::message_types::action_message)
+        if (message_type == bus_messages::message_types::action_message)
         {
             // begin a Gaia DB session
-            begin_session();   
-            gotSession = true;         
-        
-            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
+            begin_session();
+            got_session = true;
+
+            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());
 
             //at this point we have our action message, update the DB
-            if(action_message->m_actorType == "Person")
+            if (action_message->m_actor_type == "Person")
                 got_person_action_message(action_message);
         }
     }
-    catch(const std::exception& e){
+    catch (const std::exception& e)
+    {
         log_this("campus_demo::campus::MessageCallback()", e);
     }
-    catch(...){
+    catch (...)
+    {
         log_this("Exception in campus_demo::campus::MessageCallback() ...");
     }
 
-    if(gotSession){
+    if (got_session)
+    {
         // end the Gaia DB session
         end_session();
     }
 }
 
-void campus_demo::campus::static_message_callback(std::shared_ptr<bus_messages::message> msg){
-    
+void campus_demo::campus::static_message_callback(std::shared_ptr<bus_messages::message> msg)
+{
+
     auto li = get_last_instance();
 
-    if(nullptr == li) //TODO: notify user
+    if (nullptr == li) //TODO: notify user
         return;
 
-    li->message_callback(msg);        
+    li->message_callback(msg);
 }
 
-int campus_demo::campus::run_async(){
+int campus_demo::campus::run_async()
+{
     // start a new thread and ...
 
     return 0;
 }
 
-void campus_demo::campus::worker(){
+void campus_demo::campus::worker()
+{
     //Initialize Gaia
-    gaia::system::initialize(m_config_file_name.c_str());     
+    gaia::system::initialize(m_config_file_name.c_str());
 
     init_storage();
 
     //dump_db();
 
-    while(true){
+    while (true)
+    {
         usleep(m_sleepTime);
     }
 }
 
-int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus){
+int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> message_bus)
+{
 
-    try{
+    try
+    {
         //Disregard all this for now
         //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(this);
-        //auto bbb = std::shared_ptr<campus_demo::Campus>(this);    
+        //auto bbb = std::shared_ptr<campus_demo::Campus>(this);
         //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(reinterpret_cast<i_Campus*>(this))
         //campus_ruleset_p_campus = std::shared_ptr<i_Campus>(reinterpret_cast<i_Campus*>(this));
         //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<i_Campus>>(shared_from_this());
@@ -173,75 +190,77 @@ int campus_demo::campus::init(std::shared_ptr<message::i_message_bus> messageBus
         //TODO : yes, I know, make this modern
         campus_ruleset_p_campus = reinterpret_cast<i_Campus*>(this);
 
-        if(nullptr == messageBus)
+        if (nullptr == message_bus)
             throw std::invalid_argument("argument messageBus cannot be null");
-        
+
         //Save the message bus and register a callback
-        m_messageBus = messageBus;
+        m_messageBus = message_bus;
         m_messageBus->register_message_callback(&campus_demo::campus::static_message_callback, m_sender_name);
 
         //Initialize Gaia
-        gaia::system::initialize(m_config_file_name.c_str());     
+        gaia::system::initialize(m_config_file_name.c_str());
 
-        init_storage();    
+        init_storage();
     }
-    catch(const std::exception& e){
+    catch (const std::exception& e)
+    {
         log_this("campus_demo::campus::Init()", e);
         throw;
     }
-    catch(...){
+    catch (...)
+    {
         log_this("Exception in campus_demo::campus::Init() ...");
         throw;
     }
-    
+
     return 0;
 }
 
 //*** i_Campus interface ***
 
-void campus_demo::campus::cb_action( std::string actorType, 
-    std::string actorName, std::string actionName, std::string arg1){
+void campus_demo::campus::cb_action(std::string actor_type, std::string actor_name, std::string action_name, std::string arg1)
+{
 
-    if(nullptr == m_messageBus)
+    if (nullptr == m_messageBus)
         return;
 
-    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
+    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_sender_name, m_destID, m_dest_name);
 
-    std::shared_ptr<bus_messages::message> msg = 
-        std::make_shared<bus_messages::action_message>(mh, actorType, actorName, actionName, arg1);
+    std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::action_message>(mh, actor_type, actor_name, action_name, arg1);
 
     m_messageBus->send_message(msg);
 }
 
-void campus_demo::campus::cb_alert( std::string title, 
-        std::string body, int severity, std::string arg1){
+void campus_demo::campus::cb_alert(std::string title, std::string body, int severity, std::string arg1)
+{
 
-    if(nullptr == m_messageBus)
+    if (nullptr == m_messageBus)
         return;
 
-    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
+    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_sender_name, m_destID, m_dest_name);
 
-    std::shared_ptr<bus_messages::message> msg = 
-        std::make_shared<bus_messages::alert_message>(mh, title, body, severity, arg1);
+    std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::alert_message>(mh, title, body, severity, arg1);
 
     m_messageBus->send_message(msg);
 }
 
-std::string campus_demo::campus::cb_find_new_event_room( std::string eventName){
-    UNUSED(eventName);
+std::string campus_demo::campus::cb_find_new_event_room(std::string event_name)
+{
+    UNUSED(event_name);
     return "Eagle";
 }
 
 //*** DB Procedural ***
 
-bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t &found_person)
+bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t& found_person)
 {
     bool did_find = false;
 
     begin_transaction();
     for (auto& person : gaia::campus::person_t::list())
     {
-        if (strcmp(person.name(), name) == 0) {
+        if (strcmp(person.name(), name) == 0)
+        {
             found_person = person;
             did_find = true;
             break;
@@ -251,14 +270,15 @@ bool campus_demo::campus::get_person(const char* name, gaia::campus::person_t &f
     return did_find;
 }
 
-bool campus_demo::campus::get_event(const char* name, gaia::campus::Events_t &found_event)
+bool campus_demo::campus::get_event(const char* name, gaia::campus::Events_t& found_event)
 {
     bool did_find = false;
 
     begin_transaction();
     for (auto& evnt : gaia::campus::Events_t::list())
     {
-        if (strcmp(evnt.Name(), name) == 0) {
+        if (strcmp(evnt.Name(), name) == 0)
+        {
             found_event = evnt;
             did_find = true;
             break;
@@ -268,7 +288,8 @@ bool campus_demo::campus::get_event(const char* name, gaia::campus::Events_t &fo
     return did_find;
 }
 
-gaia_id_t campus_demo::campus::insert_campus(const char* name, bool in_emergency) {
+gaia_id_t campus_demo::campus::insert_campus(const char* name, bool in_emergency)
+{
     gaia::campus::campus_writer cw;
     cw.name = name;
     cw.in_emergency = in_emergency;
@@ -276,13 +297,15 @@ gaia_id_t campus_demo::campus::insert_campus(const char* name, bool in_emergency
     return cw.insert_row();
 }
 
-void campus_demo::campus::update_campus(gaia::campus::campus_t& camp, bool in_emergency) {
+void campus_demo::campus::update_campus(gaia::campus::campus_t& camp, bool in_emergency)
+{
     auto c = camp.writer();
     c.in_emergency = in_emergency;
     c.update_row();
 }
 
-gaia_id_t campus_demo::campus::insert_person(const char* name, bool is_threat, const std::string location) {
+gaia_id_t campus_demo::campus::insert_person(const char* name, bool is_threat, const std::string location)
+{
     gaia::campus::person_writer p;
     p.name = name;
     p.is_threat = is_threat;
@@ -290,46 +313,48 @@ gaia_id_t campus_demo::campus::insert_person(const char* name, bool is_threat, c
     return p.insert_row();
 }
 
-void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_threat, const std::string location) {
+void campus_demo::campus::update_person(gaia::campus::person_t& person, bool is_threat, const std::string location)
+{
     auto p = person.writer();
     p.is_threat = is_threat;
     p.location = location;
     p.update_row();
 }
 
-string campus_demo::campus::get_date_time_string(datetime_format format){
-
+string campus_demo::campus::get_date_time_string(datetime_format format)
+{
     time_t rawtime;
-    struct tm * timeinfo;
-    char buffer [80];
-    time (&rawtime);
-    timeinfo = localtime (&rawtime);
+    struct tm* timeinfo;
+    char buffer[m_time_size];
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
 
-    switch(format)
+    switch (format)
     {
-        case datetime_format::dat:
-        strftime (buffer,80,"%F",timeinfo);
-        break;        
-        
-        case datetime_format::tim:
-        strftime (buffer,80,"%T",timeinfo);
-        break;     
+    case datetime_format::dat:
+        strftime(buffer, m_time_size, "%F", timeinfo);
+        break;
 
-        default:
-        strftime (buffer,80,"%F %T",timeinfo);
+    case datetime_format::tim:
+        strftime(buffer, m_time_size, "%T", timeinfo);
+        break;
+
+    default:
+        strftime(buffer, m_time_size, "%F %T", timeinfo);
         break;
     }
 
     return buffer;
 }
 
-void campus_demo::campus::insert_event_registration(gaia::campus::person_t& person, std::string event_name) {
+void campus_demo::campus::insert_event_registration(gaia::campus::person_t& person, std::string event_name)
+{
 
     gaia::campus::Events_t found_event;
 
-    //if we can't find the event in the DB then exit. 
+    //if we can't find the event in the DB then exit.
     //obviously this is not how we would proceed in production, user must be notified
-    if( !get_event(event_name.c_str(), found_event))
+    if (!get_event(event_name.c_str(), found_event))
     {
         //TODO: log message
         return;
@@ -360,7 +385,8 @@ std::vector<std::string> campus_demo::campus::get_event_name_list()
     std::vector<std::string> out_list;
 
     begin_transaction();
-    for (auto& evnt : gaia::campus::Events_t::list()){
+    for (auto& evnt : gaia::campus::Events_t::list())
+    {
         out_list.push_back(evnt.Name());
     }
     commit_transaction();
@@ -372,7 +398,8 @@ std::vector<std::string> campus_demo::campus::get_person_name_list()
     std::vector<std::string> out_list;
 
     begin_transaction();
-    for (auto& person : gaia::campus::person_t::list()){
+    for (auto& person : gaia::campus::person_t::list())
+    {
         out_list.push_back(person.name());
     }
     commit_transaction();
@@ -383,7 +410,8 @@ std::vector<std::string> campus_demo::campus::get_person_action_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_person_action){
+    for (auto& action : m_person_action)
+    {
         out_list.push_back(action);
     }
 
@@ -394,7 +422,8 @@ std::vector<std::string> campus_demo::campus::get_actor_type_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_actor_type){
+    for (auto& action : m_actor_type)
+    {
         out_list.push_back(action);
     }
 
@@ -405,7 +434,8 @@ std::vector<std::string> campus_demo::campus::get_person_role_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_person_roles){
+    for (auto& action : m_person_roles)
+    {
         out_list.push_back(action);
     }
 
@@ -416,7 +446,8 @@ std::vector<std::string> campus_demo::campus::get_person_location_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_person_locations){
+    for (auto& action : m_person_locations)
+    {
         out_list.push_back(action);
     }
 
@@ -427,7 +458,8 @@ std::vector<std::string> campus_demo::campus::get_car_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_cars){
+    for (auto& action : m_cars)
+    {
         out_list.push_back(action);
     }
 
@@ -438,7 +470,8 @@ std::vector<std::string> campus_demo::campus::get_car_action_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_car_action){
+    for (auto& action : m_car_action)
+    {
         out_list.push_back(action);
     }
 
@@ -449,7 +482,8 @@ std::vector<std::string> campus_demo::campus::get_car_location_list()
 {
     std::vector<std::string> out_list;
 
-    for (auto& action : m_car_locations){
+    for (auto& action : m_car_locations)
+    {
         out_list.push_back(action);
     }
 
@@ -458,17 +492,21 @@ std::vector<std::string> campus_demo::campus::get_car_location_list()
 
 //*** Initialization ***********************
 
-void campus_demo::campus::restore_default_values() {
-    for (auto& person : gaia::campus::person_t::list()) {
+void campus_demo::campus::restore_default_values()
+{
+    for (auto& person : gaia::campus::person_t::list())
+    {
         //_persons_v.push_back(person);
         update_person(person, false, "*");
     }
 }
 
-void campus_demo::campus::init_storage() {
+void campus_demo::campus::init_storage()
+{
     gaia::direct_access::auto_transaction_t tx(gaia::direct_access::auto_transaction_t::no_auto_begin);
 
-    if (gaia::campus::Persons_t::get_first()) {
+    if (gaia::campus::Persons_t::get_first())
+    {
         restore_default_values();
         tx.commit();
         return;
@@ -481,20 +519,20 @@ void campus_demo::campus::init_storage() {
     // buildings
 
     auto bldg = gaia::campus::Buildings_t::insert_row("B1", "Shasta");
-    campus.BuildingsCampus_Buildings_list().insert(bldg);  
-    auto bldg_shasta = gaia::campus::Buildings_t::get(bldg);     
-    
+    campus.BuildingsCampus_Buildings_list().insert(bldg);
+    auto bldg_shasta = gaia::campus::Buildings_t::get(bldg);
+
     bldg = gaia::campus::Buildings_t::insert_row("B2", "Everest");
-    campus.BuildingsCampus_Buildings_list().insert(bldg);    
-    auto bldg_everest = gaia::campus::Buildings_t::get(bldg);   
+    campus.BuildingsCampus_Buildings_list().insert(bldg);
+    auto bldg_everest = gaia::campus::Buildings_t::get(bldg);
 
     bldg = gaia::campus::Buildings_t::insert_row("B3", "Garage");
-    campus.BuildingsCampus_Buildings_list().insert(bldg);   
-    auto bldg_garage = gaia::campus::Buildings_t::get(bldg);    
+    campus.BuildingsCampus_Buildings_list().insert(bldg);
+    auto bldg_garage = gaia::campus::Buildings_t::get(bldg);
 
     bldg = gaia::campus::Buildings_t::insert_row("B4", "Security");
     campus.BuildingsCampus_Buildings_list().insert(bldg);
-    auto bldg_security = gaia::campus::Buildings_t::get(bldg);   
+    auto bldg_security = gaia::campus::Buildings_t::get(bldg);
 
     // rooms
 
@@ -506,7 +544,6 @@ void campus_demo::campus::init_storage() {
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_crow = gaia::campus::Rooms_t::get(room);
 
- 
     room = gaia::campus::Rooms_t::insert_row("2", "Nuthedge", "1", 1);
     bldg_shasta.RoomsBuildings_Rooms_list().insert(room);
     auto room_nuthedge = gaia::campus::Rooms_t::get(room);
@@ -529,7 +566,7 @@ void campus_demo::campus::init_storage() {
     campus.PersonCampus_person_list().insert(person);
     auto person_sam = gaia::campus::person_t::get(person);
 
-   // persons
+    // persons
 
     auto persons = gaia::campus::Persons_t::insert_row("P1", "Unidentified", "Unidentified", "1/2/1999", "0xFEDCBV");
     campus.PersonsCampus_Persons_list().insert(persons);
@@ -559,7 +596,7 @@ void campus_demo::campus::init_storage() {
 
     room_eagle.EventsRooms_Events_list().insert(evnt_orientation);
     staff_bob.EventsStaff_Events_list().insert(evnt_orientation);
-    
+
     // event 2
 
     evnt = gaia::campus::Events_t::insert_row("E2", "Prom", "5/11/2020", "16:00", "18:00", 0);
@@ -568,7 +605,7 @@ void campus_demo::campus::init_storage() {
 
     room_crow.EventsRooms_Events_list().insert(evnt_prom);
     staff_bob.EventsStaff_Events_list().insert(evnt_prom);
-    
+
     // event 3
 
     evnt = gaia::campus::Events_t::insert_row("E3", "Graduation", "5/11/2020", "16:00", "18:00", 0);
@@ -577,7 +614,7 @@ void campus_demo::campus::init_storage() {
 
     room_nuthedge.EventsRooms_Events_list().insert(evnt_grad);
     staff_bob.EventsStaff_Events_list().insert(evnt_grad);
-    
+
     // event 4
 
     evnt = gaia::campus::Events_t::insert_row("E4", "Neil DeGrasse Tyson Roast", "5/11/2020", "16:00", "18:00", 0);

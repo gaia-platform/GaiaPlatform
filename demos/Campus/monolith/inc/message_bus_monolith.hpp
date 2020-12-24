@@ -2,19 +2,19 @@
 
 #include "../../common/inc/message_bus.hpp"
 
-namespace message {
+namespace message
+{
 /**
  * @brief A local in process message bus
  */
 class message_bus : public i_message_bus
 {
 private:
-
-    std::thread* _workerThread;
-    std::queue<std::shared_ptr<bus_messages::message>> _messageQueue;
-    std::mutex m;
-    std::condition_variable cv;
-    bool _stop = false;
+    std::thread* m_workerThread;
+    std::queue<std::shared_ptr<bus_messages::message>> m_messageQueue;
+    std::mutex m_mut;
+    std::condition_variable m_cv;
+    bool m_stop = false;
 
     /**
      * Log message to stdout
@@ -24,8 +24,9 @@ private:
      * @return void
      * @throws 
      * @exceptsafe yes
-     */      
-    void log_this(std::string prefix, const std::exception& e){
+     */
+    void log_this(std::string prefix, const std::exception& e)
+    {
         std::cout << "Exception: " << prefix << " : " << e.what();
     }
 
@@ -36,8 +37,9 @@ private:
      * @return void
      * @throws 
      * @exceptsafe yes
-     */      
-    void log_this(std::string prefix){
+     */
+    void log_this(std::string prefix)
+    {
         std::cout << prefix;
     }
 
@@ -49,17 +51,16 @@ private:
      * @return true if the same, false if not the same
      * @throws std::invalid_argument
      * @exceptsafe yes
-     */  
-    bool is_registrant_sender(std::shared_ptr<bus_messages::message> msg, 
-        callback_registration registration)
+     */
+    bool is_registrant_sender(std::shared_ptr<bus_messages::message> msg, callback_registration registration)
     {
-        if(nullptr == msg)
+        if (nullptr == msg)
             throw std::invalid_argument("argument msg cannot be null");
 
         //auto registrant_name = registration.get_registrant_name();
         //auto sender_name = msg->get_sender_name();
 
-        return 0 == registration.get_registrant_name().compare(msg->get_sender_name()) ? true : false;    
+        return 0 == registration.get_registrant_name().compare(msg->get_sender_name()) ? true : false;
     }
 
     /**
@@ -68,39 +69,42 @@ private:
      * @return 
      * @throws 
      * @exceptsafe yes
-     */    
+     */
     void worker()
     {
-        while(!_stop)
+        while (!m_stop)
         {
             // Wait until a message is received
-            std::unique_lock<std::mutex> lk(m);
-            cv.wait(lk);
+            std::unique_lock<std::mutex> lk(m_mut);
+            m_cv.wait(lk);
 
-            if(_stop)
+            if (m_stop)
                 break;
 
             // empty the queue
-            while(!_messageQueue.empty())
+            while (!m_messageQueue.empty())
             {
                 // get the first message
-                std::shared_ptr<bus_messages::message> msg = _messageQueue.front();
-                _messageQueue.pop();
+                std::shared_ptr<bus_messages::message> msg = m_messageQueue.front();
+                m_messageQueue.pop();
 
-                if(nullptr == msg)
+                if (nullptr == msg)
                 {
                     log_this("messge == null");
                     continue;
                 }
 
                 // send message to each registered callback
-                for(callback_registration cbr : m_messageCallbacks)
+                for (callback_registration cbr : m_messageCallbacks)
                 {
-                    try {
+                    try
+                    {
                         // Don't echo messages back to sender
-                        if(!is_registrant_sender( msg, cbr))
+                        if (!is_registrant_sender(msg, cbr))
                             cbr.get_callback()(msg);
-                    } catch(const std::exception& e) {
+                    }
+                    catch (const std::exception& e)
+                    {
                         log_this("Processing callback", e);
                     }
                 }
@@ -109,14 +113,13 @@ private:
     }
 
 public:
-
     /**
      * constructor
      *
      * @return 
      * @throws 
      * @exceptsafe yes
-     */  
+     */
     message_bus()
     {
         run();
@@ -129,15 +132,15 @@ public:
      * @return int
      * @throws 
      * @exceptsafe yes
-     */  
+     */
     int send_message(std::shared_ptr<bus_messages::message> msg) override
     {
         {
             //std::lock_guard<std::mutex> lk(m);
-            _messageQueue.push(msg);
+            m_messageQueue.push(msg);
         }
 
-        cv.notify_one();
+        m_cv.notify_one();
         return 0;
     }
 
@@ -147,10 +150,10 @@ public:
      * @return int
      * @throws 
      * @exceptsafe yes
-     */  
+     */
     int run()
     {
-        _workerThread = new std::thread(&message_bus::worker, this);        
+        m_workerThread = new std::thread(&message_bus::worker, this);
         return 0;
     }
 
@@ -159,18 +162,17 @@ public:
      *
      * @throws 
      * @exceptsafe yes
-     */  
+     */
     void stop()
     {
-        _stop = true;
+        m_stop = true;
 
         {
-            std::lock_guard<std::mutex> lk(m);
+            std::lock_guard<std::mutex> lk(m_mut);
         }
 
-        cv.notify_one();
+        m_cv.notify_one();
     }
-
 };
 
 } // namespace message

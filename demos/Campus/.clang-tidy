@@ -1,0 +1,78 @@
+# Complete list of checks: https://clang.llvm.org/extra/clang-tidy/checks/list.html
+Checks: '-*,
+clang-analyzer-*,
+performance-*,
+modernize-*,
+readability-identifier-naming,
+cppcoreguidelines-avoid-magic-numbers,
+cppcoreguidelines-macro-usage,
+cppcoreguidelines-narrowing-conversions,
+cppcoreguidelines-no-malloc,
+cppcoreguidelines-pro-type-cstyle-cast,
+cppcoreguidelines-pro-type-const-cast,
+google-readability-namespace-comments,
+google-default-arguments,
+google-explicit-constructor,
+google-runtime-operator,
+google-readability-casting,
+-performance-unnecessary-value-param,
+-modernize-use-trailing-return-type,
+-modernize-avoid-c-arrays,
+-modernize-concat-nested-namespaces,
+-modernize-use-using,
+-modernize-use-nodiscard
+'
+
+# TODO: headers are disabled for now, they produce too many warnings.
+#HeaderFilterRegex: "GaiaPlatform/production/.*inc/.*(hpp|inc|h)$"
+
+CheckOptions:
+  #  - { key: readability-identifier-naming.ClassSuffix,           value: _t } can't do this because of exceptions
+  - { key: readability-identifier-naming.PrivateMemberPrefix,             value: m_ }
+  - { key: readability-identifier-naming.StructSuffix,                    value: _t }
+  - { key: readability-identifier-naming.GlobalVariablePrefix,            value: g_ }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,            value: c_ }
+  - { key: readability-identifier-naming.ConstantPrefix,                  value: c_ }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix,         value: c_ }
+  - { key: readability-identifier-naming.TypeTemplateParameterPrefix,     value: T_ }
+  - { key: readability-identifier-naming.AbstractClassCase,               value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,                       value: lower_case }
+  - { key: readability-identifier-naming.ClassConstantCase,               value: lower_case }
+  - { key: readability-identifier-naming.ClassMemberCase,                 value: lower_case }
+  - { key: readability-identifier-naming.ClassMethodCase,                 value: lower_case }
+  - { key: readability-identifier-naming.ConstantCase,                    value: lower_case }
+  - { key: readability-identifier-naming.ConstexprFunctionCase,           value: lower_case }
+  - { key: readability-identifier-naming.ConstexprMethodCase,             value: lower_case }
+  - { key: readability-identifier-naming.ConstexprVariableCase,           value: lower_case }
+  - { key: readability-identifier-naming.EnumCase,                        value: lower_case }
+  - { key: readability-identifier-naming.EnumConstantCase,                value: lower_case }
+  - { key: readability-identifier-naming.FunctionCase,                    value: lower_case }
+  - { key: readability-identifier-naming.GlobalConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalFunctionCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.InlineNamespaceCase,             value: lower_case }
+  - { key: readability-identifier-naming.LocalConstantCase,               value: lower_case }
+  - { key: readability-identifier-naming.LocalVariableCase,               value: lower_case }
+  - { key: readability-identifier-naming.MemberCase,                      value: lower_case }
+  - { key: readability-identifier-naming.ConstantMemberCase,              value: lower_case }
+  - { key: readability-identifier-naming.PublicMemberCase,                value: lower_case }
+  - { key: readability-identifier-naming.MethodCase,                      value: lower_case }
+  - { key: readability-identifier-naming.NamespaceCase,                   value: lower_case }
+  - { key: readability-identifier-naming.ParameterCase,                   value: lower_case }
+  - { key: readability-identifier-naming.ConstantParameterCase,           value: lower_case }
+  - { key: readability-identifier-naming.ParameterPackCase,               value: lower_case }
+  - { key: readability-identifier-naming.PureFunctionCase,                value: lower_case }
+  - { key: readability-identifier-naming.PureMethodCase,                  value: lower_case }
+  - { key: readability-identifier-naming.StaticConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.StaticVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.StructCase,                      value: lower_case }
+  - { key: readability-identifier-naming.TemplateParameterCase,           value: lower_case }
+  - { key: readability-identifier-naming.TemplateTemplateParameterCase,   value: lower_case }
+  - { key: readability-identifier-naming.TemplateUsingCase,               value: lower_case }
+  - { key: readability-identifier-naming.TypeTemplateParameterCase,       value: lower_case }
+  - { key: readability-identifier-naming.TypedefCase,                     value: lower_case }
+  - { key: readability-identifier-naming.UnionCase,                       value: lower_case }
+  - { key: readability-identifier-naming.UsingCase,                       value: lower_case }
+  - { key: readability-identifier-naming.ValueTemplateParameterCase,      value: lower_case }
+  - { key: readability-identifier-naming.VariableCase,                    value: lower_case }
+  - { key: readability-identifier-naming.VirtualMethodCase,               value: lower_case }

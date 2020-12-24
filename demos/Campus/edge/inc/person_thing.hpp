@@ -5,16 +5,18 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
-#include <thread>
+#include <thing_IoTData.h>
+
 #include <chrono>
 
 #include <IoTDataThing.hpp>
 #include <JSonThingAPI.hpp>
-#include <thing_IoTData.h>
 #include <ThingAPIException.hpp>
+#include <iostream>
+#include <thread>
 
 #include "../../common/inc/message_bus.hpp"
+
 #include "I_edge_notified.hpp"
 #include "data_listener.hpp"
 
@@ -26,13 +28,13 @@ using namespace com::adlinktech::iot;
 * @brief UI Thing
 */
 
-class person_thing : I_edge_notified {
+class person_thing : I_edge_notified
+{
 
 private:
-
     string m_thingPropertiesUri;
     DataRiver m_dataRiver;
-    Thing m_thing = create_thing();    
+    Thing m_thing = create_thing();
     data_listener m_dataListener;
     message::i_message_bus* m_callbackClass;
 
@@ -52,8 +54,9 @@ private:
      * @return Thing
      * @throws ThingAPIException
      * @exceptsafe yes
-     */  
-    Thing create_thing(){
+     */
+    Thing create_thing()
+    {
 
         //TODO: it appears that creating a unique tag group more than once does not result in an error
         // 1) verify this, 2) find a way to check if a tag group exists
@@ -76,11 +79,10 @@ private:
         // Create a Thing based on properties specified in a JSON resource file.
         JSonThingProperties tp;
         tp.readPropertiesFromURI(m_thingPropertiesUri);
-        return m_dataRiver.createThing(tp);            
+        return m_dataRiver.createThing(tp);
     }
 
 public:
-
     /**
     * Constructor
     *
@@ -89,9 +91,10 @@ public:
     * @param[in] string thingPropertiesUri
     * @throws ThingAPIException
     * @exceptsafe yes
-    */  
-    person_thing(DataRiver dataRiver, message::i_message_bus* callbackClass, string thingPropertiesUri) 
-        :m_thingPropertiesUri(thingPropertiesUri), m_dataRiver(dataRiver), m_callbackClass(callbackClass) {
+    */
+    person_thing(DataRiver dataRiver, message::i_message_bus* callbackClass, string thingPropertiesUri)
+        : m_thingPropertiesUri(thingPropertiesUri), m_dataRiver(dataRiver), m_callbackClass(callbackClass)
+    {
 
         m_dataListener.register_listener(this);
         m_thing.addListener(m_dataListener);
@@ -103,8 +106,9 @@ public:
     * Destructor
     *
     * @exceptsafe yes
-    */     
-    ~person_thing() {
+    */
+    ~person_thing()
+    {
         //cout << "Person Thing stopped" << endl;
     }
 
@@ -115,37 +119,38 @@ public:
     * @return int
     * @throws 
     * @exceptsafe yes
-    */  
-    int send_message(std::shared_ptr<bus_messages::message> msg){
+    */
+    int send_message(std::shared_ptr<bus_messages::message> msg)
+    {
 
         auto messageType = msg->get_message_type_name();
 
-        if(messageType == bus_messages::message_types::action_message){
+        if (messageType == bus_messages::message_types::action_message)
+        {
 
-            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
+            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());
 
-            IOT_VALUE actorType_v;            
-            IOT_VALUE actor_v;            
-            IOT_VALUE action_v;            
+            IOT_VALUE actorType_v;
+            IOT_VALUE actor_v;
+            IOT_VALUE action_v;
             IOT_VALUE arg1_v;
 
-            actorType_v.iotv_string(action_message->_actorType);            
-            actor_v.iotv_string(action_message->_actor);            
-            action_v.iotv_string(action_message->_action);            
-            actorType_v.iotv_string(action_message->_arg1);
+            actorType_v.iotv_string(action_message->m_actor_type);
+            actor_v.iotv_string(action_message->m_actor);
+            action_v.iotv_string(action_message->m_action);
+            actorType_v.iotv_string(action_message->m_arg1);
 
             IOT_NVP_SEQ actionData = {
-                IOT_NVP(string("actorType"), actorType_v),                
-                IOT_NVP(string("actor"), actor_v),                
-                IOT_NVP(string("action"), action_v),                
-                IOT_NVP(string("arg1"), arg1_v)
-            };            
+                IOT_NVP(string("actorType"), actorType_v),
+                IOT_NVP(string("actor"), actor_v),
+                IOT_NVP(string("action"), action_v),
+                IOT_NVP(string("arg1"), arg1_v)};
 
             m_thing.write("action", actionData);
         }
         else
             return -1;
-        
+
         return 0;
     }
 
@@ -156,18 +161,19 @@ public:
      * @return int
      * @throws 
      * @exceptsafe yes
-     */  
-    void notify_data_available(const std::vector<DataSample<IOT_NVP_SEQ> >& dataIn) {
-       
+     */
+    void notify_data_available(const std::vector<DataSample<IOT_NVP_SEQ>>& dataIn)
+    {
+
         //TODO : determine what kind of message we have here
 
         //cout << "Got Data" << endl;
 
-        if(nullptr == m_callbackClass)
+        if (nullptr == m_callbackClass)
             return;
 
         // extract data values
-        for( auto data : dataIn) 
+        for (auto data : dataIn)
         {
             std::string actorType = "Person";
             std::string actorName = "";
@@ -176,7 +182,7 @@ public:
 
             auto dat = data.getData();
 
-            for(auto dv : dat)
+            for (auto dv : dat)
             {
                 auto name = dv.name();
                 auto value = dv.value();
@@ -184,17 +190,25 @@ public:
                 auto type = dv.value_._d();
 
                 // check if we got nuthin
-                if( type == com::adlinktech::iot::IOT_TYPE::TYPE_NONE)
+                if (type == com::adlinktech::iot::IOT_TYPE::TYPE_NONE)
                     continue;
 
-                if(name == "actorType")
-                { actorType = value.iotv_string(); }
-                else if(name == "actor")
-                {actorName = value.iotv_string();}
-                else if(name == "action")
-                {actionName = value.iotv_string();}
-                else if(name == "arg1")
-                {arg1 = value.iotv_string();}
+                if (name == "actorType")
+                {
+                    actorType = value.iotv_string();
+                }
+                else if (name == "actor")
+                {
+                    actorName = value.iotv_string();
+                }
+                else if (name == "action")
+                {
+                    actionName = value.iotv_string();
+                }
+                else if (name == "arg1")
+                {
+                    arg1 = value.iotv_string();
+                }
             }
 
             actorType = "Person";
@@ -202,12 +216,10 @@ public:
             // create message payload
             bus_messages::message_header mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
 
-            std::shared_ptr<bus_messages::message> msg = 
-                std::make_shared<bus_messages::action_message>(mh, actorType, actorName, actionName, arg1);
+            std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::action_message>(mh, actorType, actorName, actionName, arg1);
 
             // notify internal bus of new message
             m_callbackClass->message_received_from_bus(msg);
         }
     }
 };
-

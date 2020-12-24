@@ -9,10 +9,12 @@
 #include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
+
 #include <functional>
+
 #include "../inc/campus_demo.hpp"
- #include "../inc/nv_form.hpp"
+#include "../inc/nv_form.hpp"
 
 #if defined MESSAGE_BUS_MONOLITH
 #include "../../monolith/inc/message_bus_monolith.hpp"
@@ -23,55 +25,54 @@
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0])) 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define CTRLD 4
 
 class terminal_menu
 {
 
 private:
+    // starting row (top) of menu
+    const int m_menu_row = 8;
 
-// starting row (top) of menu
-int m_menu_row = 8;
+    // message window
+    WINDOW* m_message_window;
 
-// message window
-WINDOW *m_message_window;
+    // should the UI show all mesages received?
+    bool m_show_all_messages = true;
 
-// should the UI show all mesages received?
-bool m_show_all_messages = true;
+    // the name of the client on the message bus
+    const std::string m_sender_name_c = "termUi";
 
-// the name of the client on the message bus
-const std::string m_sender_name = "termUi";
+    // singleton
+    inline static terminal_menu* m_last_instance = nullptr;
 
-// singleton
-inline static terminal_menu* m_lastInstance = nullptr;
+    // callback method type
+    typedef void (terminal_menu::*callback_type)(char* name);
 
-// callback method type
-typedef void (terminal_menu::*callback_type)(char * name);  
+    // callback method container
+    struct callback_cont_struct
+    {
+        callback_type callback;
+    };
 
-// callback method container
-struct callback_cont_struct
-{
-    callback_type Callback;
-};
+    // the message bus we want to use
+    std::shared_ptr<message::i_message_bus> m_messageBus = nullptr;
 
-// the message bus we want to use
-std::shared_ptr<message::i_message_bus> m_messageBus = nullptr;
+    // message header data
+    int m_sequenceID = 0;
+    int m_senderID = 0;
+    std::string m_sender_name = m_sender_name_c;
+    int m_destID = 0;
+    std::string m_dest_name = "*";
 
-// message header data
-int m_sequenceID = 0;
-int m_senderID = 0;
-std::string m_senderName = m_sender_name;
-int m_destID = 0;
-std::string m_destName = "*";
+    // action data
+    std::string m_actorType;
+    std::string m_actorName;
+    std::string m_actionName;
+    std::string m_arg1;
 
-// action data
-std::string m_actorType;
-std::string m_actorName;
-std::string m_actionName;
-std::string m_arg1;
-
-/**
+    /**
 * ---
 *
 * @param[in] char *name
@@ -84,107 +85,105 @@ std::string m_arg1;
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void put_menu(char *name, ITEM** items, int h, int w, int row, int col)
-{
-    int c;
-    MENU* theMenu;
-    WINDOW* menuWindow;
-    bool exit = false;
-
-    // Create menu 
-    theMenu = new_menu((ITEM**)items); 
-    
-    // Create the window to be associated with the menu 
-    menuWindow = newwin(h,w,row,col);
-    keypad(menuWindow, TRUE); 
-    
-    // Set main window and sub window 
-    set_menu_win(theMenu, menuWindow);
-    set_menu_sub(theMenu, derwin(menuWindow, 6, 38, 3, 1));
-    set_menu_format(theMenu, 5, 1); 
-    
-    // Set menu mark to the string " * " 
-    set_menu_mark(theMenu, " * "); 
-    
-    // Print a border around the main window and print a title 
-    box(menuWindow, 0, 0);
-    print_in_middle(menuWindow, 1, 0, 40, name, COLOR_PAIR(1));
-    mvwaddch(menuWindow, 2, 0, ACS_LTEE);
-    mvwhline(menuWindow, 2, 1, ACS_HLINE, 38);
-    mvwaddch(menuWindow, 2, 39, ACS_RTEE); 
-    
-    // Post the menu 
-    post_menu(theMenu);
-    wrefresh(menuWindow);
-    attron(COLOR_PAIR(2));
-    mvprintw(LINES - 2, 0, "Use PageUp and PageDown to scoll down or up a page of items");
-    mvprintw(LINES - 1, 0, "Arrow Keys to navigate");
-    attroff(COLOR_PAIR(2));
-    refresh();
-
-    while ((c = wgetch(menuWindow)) != KEY_F(1))
+*/
+    void put_menu(char* name, ITEM** items, int h, int w, int row, int col)
     {
-        switch (c)
+        int c;
+        MENU* the_menu;
+        WINDOW* menu_mindow;
+        bool exit = false;
+
+        // Create menu
+        the_menu = new_menu((ITEM**)items);
+
+        // Create the window to be associated with the menu
+        menu_mindow = newwin(h, w, row, col);
+        keypad(menu_mindow, TRUE);
+
+        // Set main window and sub window
+        set_menu_win(the_menu, menu_mindow);
+        set_menu_sub(the_menu, derwin(menu_mindow, 6, 38, 3, 1));
+        set_menu_format(the_menu, 5, 1);
+
+        // Set menu mark to the string " * "
+        set_menu_mark(the_menu, " * ");
+
+        // Print a border around the main window and print a title
+        box(menu_mindow, 0, 0);
+        print_in_middle(menu_mindow, 1, 0, 40, name, COLOR_PAIR(1));
+        mvwaddch(menu_mindow, 2, 0, ACS_LTEE);
+        mvwhline(menu_mindow, 2, 1, ACS_HLINE, 38);
+        mvwaddch(menu_mindow, 2, 39, ACS_RTEE);
+
+        // Post the menu
+        post_menu(the_menu);
+        wrefresh(menu_mindow);
+        attron(COLOR_PAIR(2));
+        mvprintw(LINES - 2, 0, "Use PageUp and PageDown to scoll down or up a page of items");
+        mvprintw(LINES - 1, 0, "Arrow Keys to navigate");
+        attroff(COLOR_PAIR(2));
+        refresh();
+
+        while ((c = wgetch(menu_mindow)) != KEY_F(1))
         {
-        case KEY_DOWN:
-            menu_driver(theMenu, REQ_DOWN_ITEM);
-            break;
-        case KEY_UP:
-            menu_driver(theMenu, REQ_UP_ITEM);
-            break;
-        case KEY_NPAGE:
-            menu_driver(theMenu, REQ_SCR_DPAGE);
-            break;
-        case KEY_PPAGE:
-            menu_driver(theMenu, REQ_SCR_UPAGE);
-            break;
+            switch (c)
+            {
+            case KEY_DOWN:
+                menu_driver(the_menu, REQ_DOWN_ITEM);
+                break;
+            case KEY_UP:
+                menu_driver(the_menu, REQ_UP_ITEM);
+                break;
+            case KEY_NPAGE:
+                menu_driver(the_menu, REQ_SCR_DPAGE);
+                break;
+            case KEY_PPAGE:
+                menu_driver(the_menu, REQ_SCR_UPAGE);
+                break;
 
-        case 10: // Enter                   
-            {       
-                ITEM *cur;                                                      
-                cur = current_item(theMenu);        
+            case 10: // Enter
+            {
+                ITEM* cur;
+                cur = current_item(the_menu);
 
-                if(0 == strcmp(item_name(cur),"Exit"))     
+                if (0 == strcmp(item_name(cur), "Exit"))
                     exit = true;
                 else
                 {
-                    callback_cont_struct* cbc = reinterpret_cast<callback_cont_struct*>(item_userptr(cur));    
-                    std::invoke(cbc->Callback, this, (char *)item_name(cur));
-                    pos_menu_cursor(theMenu);                     
+                    auto cbc = reinterpret_cast<callback_cont_struct*>(item_userptr(cur));
+                    std::invoke(cbc->callback, this, (char*)item_name(cur));
+                    pos_menu_cursor(the_menu);
                 }
-                                            
-                break;                        
-            }                        
+
+                break;
+            }
             break;
+            }
+            wrefresh(menu_mindow);
 
-
+            if (exit)
+                break;
         }
-        wrefresh(menuWindow);
 
-        if(exit)
-            break;
-    } 
-    
-    // Remove menu
-    unpost_menu(theMenu);
-    free_menu(theMenu);    
+        // Remove menu
+        unpost_menu(the_menu);
+        free_menu(the_menu);
 
-    // Remove window
-    wborder(menuWindow, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '); // Erase frame around the window
-    wrefresh(menuWindow); 
-    delwin(menuWindow); 
+        // Remove window
+        wborder(menu_mindow, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '); // Erase frame around the window
+        wrefresh(menu_mindow);
+        delwin(menu_mindow);
 
-    // Clear header
-    move(row+1, col);
-    clrtoeol();     
-    move(row+2, col);
-    clrtoeol(); 
+        // Clear header
+        move(row + 1, col);
+        clrtoeol();
+        move(row + 2, col);
+        clrtoeol();
 
-    refresh();
-}
+        refresh();
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
@@ -198,31 +197,31 @@ void put_menu(char *name, ITEM** items, int h, int w, int row, int col)
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void put_menu(char *name, char* items[], callback_type handler, int count, int h, int w, int row, int col)
-{
-    ITEM** menuItems;
-    int n_choices, i;
-
-    n_choices = count;
-    menuItems = (ITEM**)calloc(n_choices, sizeof(ITEM*));
-
-    callback_cont_struct cbc;
-    cbc.Callback = handler;
-
-    for (i = 0; i < n_choices; ++i)
+*/
+    void put_menu(char* name, char* items[], callback_type handler, int count, int h, int w, int row, int col)
     {
-        menuItems[i] = new_item(items[i], ""); 
-        set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
+        ITEM** menu_items;
+        int n_choices, i;
+
+        n_choices = count;
+        menu_items = (ITEM**)calloc(n_choices, sizeof(ITEM*));
+
+        callback_cont_struct cbc;
+        cbc.callback = handler;
+
+        for (i = 0; i < n_choices; ++i)
+        {
+            menu_items[i] = new_item(items[i], "");
+            set_item_userptr(menu_items[i], reinterpret_cast<void*>(&cbc));
+        }
+
+        put_menu((char*)name, menu_items, h, w, row, col);
+
+        for (i = 0; i < n_choices; ++i)
+            free_item(menu_items[i]);
     }
 
-    put_menu((char *)name, menuItems, h, w, row, col);
-
-    for (i = 0; i < n_choices; ++i)
-        free_item(menuItems[i]);
-}
-
-/**
+    /**
 * ---
 *
 * @param[in] char *name
@@ -235,37 +234,37 @@ void put_menu(char *name, char* items[], callback_type handler, int count, int h
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void put_menu(char *name, std::vector<std::string> items, callback_type handler, int h, int w, int row, int col)
-{
-    ITEM** menuItems;
-    int n_choices, i;
-
-    n_choices = items.size();
-    menuItems = (ITEM**)calloc(n_choices+2, sizeof(ITEM*));
-
-    callback_cont_struct cbc;
-    cbc.Callback = handler;
-
-    for (i = 0; i < n_choices; ++i)
+*/
+    void put_menu(char* name, std::vector<std::string> items, callback_type handler, int h, int w, int row, int col)
     {
-        menuItems[i] = new_item(items[i].c_str(), ""); 
-        set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
+        ITEM** menu_items;
+        int n_choices, i;
+
+        n_choices = items.size();
+        menu_items = (ITEM**)calloc(n_choices + 2, sizeof(ITEM*));
+
+        callback_cont_struct cbc;
+        cbc.callback = handler;
+
+        for (i = 0; i < n_choices; ++i)
+        {
+            menu_items[i] = new_item(items[i].c_str(), "");
+            set_item_userptr(menu_items[i], reinterpret_cast<void*>(&cbc));
+        }
+
+        menu_items[i] = new_item("Exit", "");
+        set_item_userptr(menu_items[i], reinterpret_cast<void*>(&cbc));
+
+        menu_items[i + 1] = new_item((char*)NULL, "");
+        set_item_userptr(menu_items[i + 1], reinterpret_cast<void*>(&cbc));
+
+        put_menu((char*)name, menu_items, h, w, row, col);
+
+        for (i = 0; i < n_choices + 2; ++i)
+            free_item(menu_items[i]);
     }
 
-    menuItems[i] = new_item("Exit", ""); 
-    set_item_userptr(menuItems[i], reinterpret_cast<void *>(&cbc));
-
-    menuItems[i+1] = new_item((char*)NULL, ""); 
-    set_item_userptr(menuItems[i+1], reinterpret_cast<void *>(&cbc));
-
-    put_menu((char *)name, menuItems, h, w, row, col);
-
-    for (i = 0; i < n_choices+2; ++i)
-        free_item(menuItems[i]);
-}
-
-/**
+    /**
 * ---
 *
 * @param[in] WINDOW* win
@@ -277,52 +276,52 @@ void put_menu(char *name, std::vector<std::string> items, callback_type handler,
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void print_in_middle(WINDOW* win, int starty, int startx, int width, char* string, chtype color)
-{
-    int length, x, y;
-    float temp;
+*/
+    void print_in_middle(WINDOW* win, int starty, int startx, int width, char* string, chtype color)
+    {
+        int length, x, y;
+        float temp;
 
-    if (win == NULL)
-        win = stdscr;
+        if (win == nullptr)
+            win = stdscr;
 
-    getyx(win, y, x);
+        getyx(win, y, x);
 
-    if (startx != 0)
-        x = startx;
+        if (startx != 0)
+            x = startx;
 
-    if (starty != 0)
-        y = starty;
+        if (starty != 0)
+            y = starty;
 
-    if (width == 0)
-        width = 80;
+        if (width == 0)
+            width = 80;
 
-    length = strlen(string);
-    temp = (width - length) / 2;
-    x = startx + (int)temp;
-    wattron(win, color);
-    mvwprintw(win, y, x, "%s", string);
-    wattroff(win, color);
-    refresh();
-}
+        length = strlen(string);
+        temp = (width - length) / 2;
+        x = startx + (int)temp;
+        wattron(win, color);
+        mvwprintw(win, y, x, "%s", string);
+        wattroff(win, color);
+        refresh();
+    }
 
-/**
+    /**
 * Show a selected item message
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void show_selection(char * name)
-{
-    move(2, 0);        
-    clrtoeol();        
-    mvprintw(2, 0, "Item selected is : %s", name);
-    refresh();
-}
+*/
+    void show_selection(char* name)
+    {
+        move(2, 0);
+        clrtoeol();
+        mvprintw(2, 0, "Item selected is : %s", name);
+        refresh();
+    }
 
-/**
+    /**
 * Create a scrolling text window to hold messages
 *
 * @param[in] int row
@@ -332,296 +331,291 @@ void show_selection(char * name)
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void create_message_window(int row, int col, int rows, int cols)
-{
-    //int i = 2, height, width;
-    //getmaxyx(stdscr, height, width);
+*/
+    void create_message_window(int row, int col, int rows, int cols)
+    {
+        //int i = 2, height, width;
+        //getmaxyx(stdscr, height, width);
 
-    m_message_window = newwin(rows, cols, row, col);
-    scrollok(m_message_window,TRUE);
-}
+        m_message_window = newwin(rows, cols, row, col);
+        scrollok(m_message_window, TRUE);
+    }
 
-/**
+    /**
 * Show a text message
 *
 * @param[in] char *textMessage
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void show_text_message(char * textMessage)
-{
-    //move(2, 0);        
-    //clrtoeol();        
-    //mvprintw(2, 0, "%s", textMessage);
-    //refresh();
+*/
+    void show_text_message(char* text_message)
+    {
+        //move(2, 0);
+        //clrtoeol();
+        //mvprintw(2, 0, "%s", textMessage);
+        //refresh();
 
-    wprintw(m_message_window, "%s\n", textMessage);
-    wrefresh(m_message_window);
-}
+        wprintw(m_message_window, "%s\n", text_message);
+        wrefresh(m_message_window);
+    }
 
-/**
+    /**
 * Display any kind of message on the UI
 *
 * @param[in] char *textMessage
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void show_message(std::shared_ptr<bus_messages::message> msg)
-{
-    auto messageType = msg->get_message_type_name();
-    char buffer[1024];
-
-    if(messageType == bus_messages::message_types::action_message)
+*/
+    void show_message(std::shared_ptr<bus_messages::message> msg)
     {
-        auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
+        auto message_type = msg->get_message_type_name();
+        char buffer[1024];
 
-        sprintf(buffer, "Change detected: %s %s %s", action_message->m_actor.c_str(), 
-            action_message->m_action.c_str(), action_message->m_arg1.c_str());
-    }
-    else if(messageType == bus_messages::message_types::alert_message)
-    {
-        auto alertMessage = reinterpret_cast<bus_messages::alert_message*>(msg.get());  
-
-        std::string sev_level = "Unknown"; 
-
-        switch(alertMessage->m_severity)
+        if (message_type == bus_messages::message_types::action_message)
         {
-            case bus_messages::alert_message::severity_level_enum::alert :
+            auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());
+
+            sprintf(buffer, "Change detected: %s %s %s", action_message->m_actor.c_str(), action_message->m_action.c_str(), action_message->m_arg1.c_str());
+        }
+        else if (message_type == bus_messages::message_types::alert_message)
+        {
+            auto alert_message = reinterpret_cast<bus_messages::alert_message*>(msg.get());
+
+            std::string sev_level = "Unknown";
+
+            switch (alert_message->m_severity)
+            {
+            case bus_messages::alert_message::severity_level_enum::alert:
                 sev_level = "Alert";
-            break;
-            case bus_messages::alert_message::severity_level_enum::emergency :
+                break;
+            case bus_messages::alert_message::severity_level_enum::emergency:
                 sev_level = "Emergency";
-            break;
-            case bus_messages::alert_message::severity_level_enum::notice :
+                break;
+            case bus_messages::alert_message::severity_level_enum::notice:
                 sev_level = "Notice";
-            break;
+                break;
+            }
+
+            sprintf(buffer, "Alert Level: %s, %s : %s %s", sev_level.c_str(), alert_message->m_title.c_str(), alert_message->m_body.c_str(), alert_message->m_arg1.c_str());
         }
 
-        sprintf(buffer, "Alert Level: %s, %s : %s %s", sev_level.c_str(),
-            alertMessage->m_title.c_str(), alertMessage->m_body.c_str(), 
-            alertMessage->m_arg1.c_str());
+        show_text_message(buffer);
     }
 
-    show_text_message(buffer);
-}
-
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void actor_type_selected(char *name)
-{       
-    // set action values
-    m_actorType = name;
-    m_actorName = "";
-    m_actionName = "";
-    m_arg1 = "";
+*/
+    void actor_type_selected(char* name)
+    {
+        // set action values
+        m_actorType = name;
+        m_actorName = "";
+        m_actionName = "";
+        m_arg1 = "";
 
-    //showSelection(name);
+        //showSelection(name);
 
-    // show sub menu
-    if(0 == strcmp(name, "Person"))
-        put_menu((char *)"Actor", m_cdp->get_person_name_list(), &terminal_menu::person_selected, 10, 40, m_menu_row, 44);
-    else if(0 == strcmp(name, "Car"))
-        put_menu((char *)"Actor", m_cdp->get_car_list(), &terminal_menu::car_selected, 10, 40, m_menu_row, 44);     
-} 
+        // show sub menu
+        if (0 == strcmp(name, "Person"))
+            put_menu((char*)"Actor", m_cdp->get_person_name_list(), &terminal_menu::person_selected, 10, 40, m_menu_row, 44);
+        else if (0 == strcmp(name, "Car"))
+            put_menu((char*)"Actor", m_cdp->get_car_list(), &terminal_menu::car_selected, 10, 40, m_menu_row, 44);
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void person_selected(char *name)
-{        
-    // set action values
-    m_actorName = name;
-    m_actionName = "";
-    m_arg1 = "";
+*/
+    void person_selected(char* name)
+    {
+        // set action values
+        m_actorName = name;
+        m_actionName = "";
+        m_arg1 = "";
 
-    //showSelection(name);
+        //showSelection(name);
 
-    // show sub menu
-    put_menu((char *)"Action", m_cdp->get_person_action_list(), &terminal_menu::persons_action_selected, 10, 40, m_menu_row, 84);   
-} 
+        // show sub menu
+        put_menu((char*)"Action", m_cdp->get_person_action_list(), &terminal_menu::persons_action_selected, 10, 40, m_menu_row, 84);
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void car_selected(char *name)
-{        
-    // set action values
-    m_actorName = name;
-    m_actionName = "";
-    m_arg1 = "";
+*/
+    void car_selected(char* name)
+    {
+        // set action values
+        m_actorName = name;
+        m_actionName = "";
+        m_arg1 = "";
 
-    //showSelection(name);
+        //showSelection(name);
 
-    // show sub menu
-    put_menu((char *)"Action", m_cdp->get_car_action_list(), &terminal_menu::car_action_selected, 10, 40, m_menu_row, 84);   
-} 
+        // show sub menu
+        put_menu((char*)"Action", m_cdp->get_car_action_list(), &terminal_menu::car_action_selected, 10, 40, m_menu_row, 84);
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void persons_action_selected(char *name)
-{        
-    // set action values
-    m_actionName = name;
-    m_arg1 = "";
+*/
+    void persons_action_selected(char* name)
+    {
+        // set action values
+        m_actionName = name;
+        m_arg1 = "";
 
-    //showSelection(name);
+        //showSelection(name);
 
-    // show sub menu
-    if(0 == strcmp(name, "Move To"))
-        put_menu((char *)"Location", m_cdp->get_person_location_list(), &terminal_menu::persons_action_moveto_selected, 10, 40, m_menu_row, 124);
-    else if(0 == strcmp(name, "Register For Event"))
-        put_menu((char *)"Register For Event", m_cdp->get_event_name_list(), &terminal_menu::persons_action_register_for_event_selected, 10, 40, m_menu_row, 124);   
-    else if(0 == strcmp(name, "Change Role"))
-        put_menu((char *)"New Role", m_cdp->get_person_role_list(), &terminal_menu::persons_action_change_role_selected, 10, 40, m_menu_row, 124);   
-    else if(0 == strcmp(name, "Brandish Weapon"))
-        do_the_change();    
-    else if(0 == strcmp(name, "Disarm"))
+        // show sub menu
+        if (0 == strcmp(name, "Move To"))
+            put_menu((char*)"Location", m_cdp->get_person_location_list(), &terminal_menu::persons_action_moveto_selected, 10, 40, m_menu_row, 124);
+        else if (0 == strcmp(name, "Register For Event"))
+            put_menu((char*)"Register For Event", m_cdp->get_event_name_list(), &terminal_menu::persons_action_register_for_event_selected, 10, 40, m_menu_row, 124);
+        else if (0 == strcmp(name, "Change Role"))
+            put_menu((char*)"New Role", m_cdp->get_person_role_list(), &terminal_menu::persons_action_change_role_selected, 10, 40, m_menu_row, 124);
+        else if (0 == strcmp(name, "Brandish Weapon"))
+            do_the_change();
+        else if (0 == strcmp(name, "Disarm"))
+            do_the_change();
+    }
+
+    /**
+* ---
+*
+* @param[in] char *name
+* @return void
+* @throws 
+* @exceptsafe yes
+*/
+    void car_action_selected(char* name)
+    {
+        // set action values
+        m_actionName = name;
+        m_arg1 = "";
+
+        put_menu((char*)"Location", m_cdp->get_car_location_list(), &terminal_menu::car_action_change_location_selected, 10, 40, m_menu_row, 124);
+    }
+
+    /**
+* ---
+*
+* @param[in] char *name
+* @return void
+* @throws 
+* @exceptsafe yes
+*/
+    void persons_action_moveto_selected(char* name)
+    {
+        // set action values
+        m_arg1 = name;
+
+        //do the change
         do_the_change();
-} 
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void car_action_selected(char *name)
-{        
-    // set action values
-    m_actionName = name;
-    m_arg1 = "";
+*/
+    void persons_action_register_for_event_selected(char* name)
+    {
+        // set action values
+        m_arg1 = name;
 
-    put_menu((char *)"Location", m_cdp->get_car_location_list(), &terminal_menu::car_action_change_location_selected, 10, 40, m_menu_row, 124);   
-} 
+        //do the change
+        do_the_change();
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void persons_action_moveto_selected(char *name)
-{        
-    // set action values
-    m_arg1 = name;
+*/
+    void persons_action_change_role_selected(char* name)
+    {
+        // set action values
+        m_arg1 = name;
 
-    //do the change  
-    do_the_change();
-} 
+        //do the change
+        do_the_change();
+    }
 
-/**
+    /**
 * ---
 *
 * @param[in] char *name
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void persons_action_register_for_event_selected(char *name)
-{        
-    // set action values
-    m_arg1 = name;
+*/
+    void car_action_change_location_selected(char* name)
+    {
+        // set action values
+        m_arg1 = name;
 
-    //do the change  
-    do_the_change();
-} 
+        //do the change
+        do_the_change();
+    }
 
-/**
-* ---
-*
-* @param[in] char *name
-* @return void
-* @throws 
-* @exceptsafe yes
-*/  
-void persons_action_change_role_selected(char *name)
-{        
-    // set action values
-    m_arg1 = name;
-
-    //do the change  
-    do_the_change();  
-} 
-
-/**
-* ---
-*
-* @param[in] char *name
-* @return void
-* @throws 
-* @exceptsafe yes
-*/  
-void car_action_change_location_selected(char *name)
-{        
-    // set action values
-    m_arg1 = name;
-
-    //do the change  
-    do_the_change();
-} 
-
-/**
+    /**
 * Generate a change message and send it to the message bus
 *
 * @return void
 * @throws 
 * @exceptsafe yes
-*/  
-void do_the_change()
-{
-    if(nullptr == m_messageBus)
-        return;
+*/
+    void do_the_change()
+    {
+        if (nullptr == m_messageBus)
+            return;
 
-    bus_messages::message_header mh(m_sequenceID++, m_senderID, m_senderName, m_destID, m_destName);
+        bus_messages::message_header mh(m_sequenceID++, m_senderID, m_sender_name, m_destID, m_dest_name);
 
-    std::shared_ptr<bus_messages::message> msg = 
-        std::make_shared<bus_messages::action_message>(mh, m_actorType, m_actorName, m_actionName, m_arg1);
+        std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::action_message>(mh, m_actorType, m_actorName, m_actionName, m_arg1);
 
-    m_messageBus->send_message(msg);
-}
+        m_messageBus->send_message(msg);
+    }
 
 public:
+    static terminal_menu* get_last_instance()
+    {
+        return m_last_instance;
+    }
 
-static terminal_menu* get_last_instance()
-{
-    return m_lastInstance;
-}
+    std::shared_ptr<message::i_message_bus> get_message_bus()
+    {
+        return m_messageBus;
+    }
 
-std::shared_ptr<message::i_message_bus> get_message_bus()
-{
-    return m_messageBus;
-}
-
-/**
+    /**
 * Blocking Run
 *
 * @param[in] 
@@ -629,46 +623,46 @@ std::shared_ptr<message::i_message_bus> get_message_bus()
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  
-void run()
-{    
-    // show first menu
-    put_menu((char *)"Actor Type", m_cdp->get_actor_type_list(), &terminal_menu::actor_type_selected, 10, 40, m_menu_row, 4); 
+*/
+    void run()
+    {
+        // show first menu
+        put_menu((char*)"Actor Type", m_cdp->get_actor_type_list(), &terminal_menu::actor_type_selected, 10, 40, m_menu_row, 4);
 
-    // shut down ncurses
-    endwin();
+        // shut down ncurses
+        endwin();
 
-    // shut down Gaia
-    gaia::system::shutdown();
-}
+        // shut down Gaia
+        gaia::system::shutdown();
+    }
 
-/**
+    /**
 * Callback from the message bus when a message arrives
 *
 * @param[in] bus_messages::message msg
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  
-void message_callback(std::shared_ptr<bus_messages::message> msg)
-{
-    if(m_show_all_messages)
-        show_message(msg);
-
-    auto messageType = msg->get_message_type_name();
-
-    // switch on the type of message received
-    if(messageType == bus_messages::message_types::action_message)
+*/
+    void message_callback(std::shared_ptr<bus_messages::message> msg)
     {
-        //auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());   
+        if (m_show_all_messages)
+            show_message(msg);
 
-        //at this point we have our action message, update the DB
-        //if(action_message->_actorType == "Person")
+        auto message_type = msg->get_message_type_name();
+
+        // switch on the type of message received
+        if (message_type == bus_messages::message_types::action_message)
+        {
+            //auto action_message = reinterpret_cast<bus_messages::action_message*>(msg.get());
+
+            //at this point we have our action message, update the DB
+            //if(action_message->_actorType == "Person")
             //got_person_action_message(action_message);
+        }
     }
-}
 
-/**
+    /**
 * Callback from the message bus when a message arrives
 * Am not crazy about this, I need to convert to using a std::fuction
 *
@@ -676,20 +670,20 @@ void message_callback(std::shared_ptr<bus_messages::message> msg)
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  
-static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
-{
-    auto li = get_last_instance();
+*/
+    static void static_message_callback(std::shared_ptr<bus_messages::message> msg)
+    {
+        auto li = get_last_instance();
 
-    if(nullptr == li) //TODO: notify user
-        return;
+        if (nullptr == li) //TODO: notify user
+            return;
 
-    li->message_callback(msg);
-}
+        li->message_callback(msg);
+    }
 
-std::shared_ptr<campus_demo::campus> m_cdp;
+    std::shared_ptr<campus_demo::campus> m_cdp;
 
-/**
+    /**
 * Initialize curses
 *
 * @param[in] 
@@ -697,42 +691,41 @@ std::shared_ptr<campus_demo::campus> m_cdp;
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  
-void init(std::shared_ptr<campus_demo::campus> cdp)
-{   
-    m_lastInstance = this;
-    m_cdp = cdp;
-
-    // Initialize ncurses
-    initscr();
-    start_color();
-    cbreak();
-    noecho();
-    keypad(stdscr, TRUE);
-    init_pair(1, COLOR_RED, COLOR_BLACK);
-    init_pair(2, COLOR_CYAN, COLOR_BLACK); 
-
-    create_message_window(1, 1, 6, 0);
-
-    // function of member
-    //std::function<void(terminalMenu&, std::shared_ptr<bus_messages::message> msg)> mcb = &terminalMenu::MessageCallback;
-
-    try
+*/
+    void init(std::shared_ptr<campus_demo::campus> cdp)
     {
-        // Initialize message bus
-        m_messageBus = std::make_shared<message::message_bus>();
-        m_messageBus->register_message_callback(&terminal_menu::static_message_callback, m_sender_name);        
+        m_last_instance = this;
+        m_cdp = cdp;
+
+        // Initialize ncurses
+        initscr();
+        start_color();
+        cbreak();
+        noecho();
+        keypad(stdscr, TRUE);
+        init_pair(1, COLOR_RED, COLOR_BLACK);
+        init_pair(2, COLOR_CYAN, COLOR_BLACK);
+
+        create_message_window(1, 1, 6, 0);
+
+        // function of member
+        //std::function<void(terminalMenu&, std::shared_ptr<bus_messages::message> msg)> mcb = &terminalMenu::MessageCallback;
+
+        try
+        {
+            // Initialize message bus
+            m_messageBus = std::make_shared<message::message_bus>();
+            m_messageBus->register_message_callback(&terminal_menu::static_message_callback, m_sender_name);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << "Exception ..." << '\n';
+        }
     }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }    
-    catch(...)
-    {
-        std::cerr << "Exception ..." << '\n';
-    }
-}
-
 };
 
 /**
@@ -743,7 +736,7 @@ void init(std::shared_ptr<campus_demo::campus> cdp)
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  
+*/
 int main()
 {
     /*nv_form ef;
@@ -769,29 +762,28 @@ int main()
 
     try
     {
-        //campus_demo::campus cd;        
+        //campus_demo::campus cd;
         terminal_menu tm;
 
         std::shared_ptr<campus_demo::campus> cdp = make_shared<campus_demo::campus>();
 
         tm.init(cdp);
 
-        if( 0 == cdp->init(tm.get_message_bus()))
+        if (0 == cdp->init(tm.get_message_bus()))
             tm.run();
         else
         {
             std::cout << "nope";
-        }        
+        }
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         std::cerr << e.what() << '\n';
     }
-    catch(...)
+    catch (...)
     {
         std::cerr << "Exception ..." << '\n';
     }
-    
+
     return 0;
 }
-

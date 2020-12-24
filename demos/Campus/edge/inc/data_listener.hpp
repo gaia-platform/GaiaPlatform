@@ -5,9 +5,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <thing_IoTData.h>
+
 #include <IoTDataThing.hpp>
 #include <JSonThingAPI.hpp>
-#include <thing_IoTData.h>
 #include <ThingAPIException.hpp>
 
 #include "I_edge_notified.hpp"
@@ -20,10 +21,10 @@ using namespace com::adlinktech::iot;
 * @brief Implements an Edge SDK message bus listener
 */
 
-class data_listener : public DataAvailableListener<IOT_NVP_SEQ> {
+class data_listener : public DataAvailableListener<IOT_NVP_SEQ>
+{
 
 private:
-
     I_edge_notified* m_callback;
 
     /**
@@ -32,26 +33,26 @@ private:
      * @return void
      * @throws 
      * @exceptsafe yes
-     */       
-    void notifyDataAvailable(const std::vector<DataSample<IOT_NVP_SEQ> >& data) {
-       
-        if(nullptr == m_callback)
+     */
+    void notifyDataAvailable(const std::vector<DataSample<IOT_NVP_SEQ>>& data)
+    {
+
+        if (nullptr == m_callback)
             return;
-            
+
         m_callback->notify_data_available(data);
     }
 
 public:
-
     /**
      * Regsiter a callback class to be informed when a message arrives on the bus
      * @param[in] INotified* caller
      * @return void
      * @throws 
      * @exceptsafe yes
-     */       
-    void register_listener(I_edge_notified* caller){
+     */
+    void register_listener(I_edge_notified* caller)
+    {
         m_callback = caller;
     }
 };
-

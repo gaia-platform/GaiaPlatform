@@ -6,8 +6,7 @@
 
 class i_Campus
 {
-protected: 
-
+protected:
 // 1) We ignore -Wc++17-extensions here to quiet down the Gaia translator
 // 2) We mention GCC but this works for Clang as well
 #pragma GCC diagnostic push
@@ -20,7 +19,6 @@ protected:
 #pragma GCC diagnostic pop
 
 public:
-
     /**
      * Class factory, this is the only method allowed for obtaining an instance of the 
      * class withing a ruleset rule
@@ -28,8 +26,9 @@ public:
      * @return i_Campus*
      * @throws 
      * @exceptsafe yes
-     */   
-    static i_Campus* get_callback_class(){
+     */
+    static i_Campus* get_callback_class()
+    {
         return campus_ruleset_p_campus;
     }
 
@@ -47,10 +46,9 @@ public:
      * @return void
      * @throws 
      * @exceptsafe yes
-     */   
-    virtual void cb_action( std::string actorType, 
-        std::string actorName, std::string actionName, std::string arg1) = 0;    
-        
+     */
+    virtual void cb_action(std::string actorType, std::string actorName, std::string actionName, std::string arg1) = 0;
+
     /**
      * Call this from within a ruleset rule to send an alert message
      * 
@@ -61,9 +59,8 @@ public:
      * @return void
      * @throws 
      * @exceptsafe yes
-     */   
-    virtual void cb_alert( std::string title, 
-        std::string body, int severity, std::string arg1) = 0;
+     */
+    virtual void cb_alert(std::string title, std::string body, int severity, std::string arg1) = 0;
 
     /**
      * Call this from within a ruleset rule to find a new room for an event
@@ -72,32 +69,37 @@ public:
      * @return std::string
      * @throws 
      * @exceptsafe yes
-     */   
-    virtual std::string cb_find_new_event_room( std::string eventName) = 0;
+     */
+    virtual std::string cb_find_new_event_room(std::string eventName) = 0;
 
     /**
      * Constructor
      * 
      * @throws 
      * @exceptsafe yes
-     */   
-    i_Campus(){}
-  
+     */
+    i_Campus()
+    {
+    }
+
     /**
      * Destructor, to get rid of annoying build warnings
      * 
      * @throws 
      * @exceptsafe yes
-     */   
-    virtual ~i_Campus(){}
-    
+     */
+    virtual ~i_Campus()
+    {
+    }
+
     /**
      * Unit test, needs to be implemented
      * 
      * @throws 
      * @exceptsafe yes
-     */       
-    int demo_test(){
+     */
+    int demo_test()
+    {
         return 0;
     }
 };
