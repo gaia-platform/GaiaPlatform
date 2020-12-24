@@ -318,6 +318,17 @@ TEST_F(gaia_object_test, read_wrong_type)
     commit_transaction();
 }
 
+TEST_F(gaia_object_test, delete_wrong_type)
+{
+    begin_transaction();
+    gaia_id_t eid = create_employee("Howard").gaia_id();
+    commit_transaction();
+
+    begin_transaction();
+    EXPECT_THROW(address_t::delete_row(eid), edc_invalid_object_type);
+    commit_transaction();
+}
+
 // Create, write two rows, read back by ID and verify
 TEST_F(gaia_object_test, read_back_id)
 {
