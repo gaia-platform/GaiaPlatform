@@ -31,7 +31,8 @@ TEST_F(gaia_dump_test, dump)
     create_table("airport_test", "airport", fields);
 
     int line_limit = -1;
-    auto dump_str = gaia_dump(c_start, c_end, true, true, true, line_limit);
+    vector<gaia_id_t> type_vec;
+    auto dump_str = gaia_dump(c_start, c_end, true, true, true, line_limit, type_vec);
     EXPECT_NE(0, dump_str.find("references=01"));
     EXPECT_NE(0, dump_str.find("references=04"));
 }
