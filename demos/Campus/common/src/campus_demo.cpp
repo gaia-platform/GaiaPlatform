@@ -6,16 +6,14 @@
 #include "../inc/campus_demo.hpp"
 
 // to supress unused-parameter build warnings
-#define UNUSED(...) (void)(__VA_ARGS__)
+//#define UNUSED(...) (void)(__VA_ARGS__)
 
 campus_demo::campus::campus()
 {
     m_last_instance = this;
 }
 
-campus_demo::campus::~campus()
-{
-}
+campus_demo::campus::~campus() = default;
 
 int campus_demo::campus::demo_test()
 {
@@ -68,6 +66,7 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
     }
     else if (msg->m_action == m_person_action[person_action_enum::brandish_weapon])
     {
+        const int buffsize = 256;
         begin_transaction();
         //update that person as a threat
         update_person(found_person, true, found_person.location());
@@ -82,7 +81,7 @@ void campus_demo::campus::got_person_action_message(const bus_messages::action_m
 
             bus_messages::message_header mh(m_sequenceID++, m_senderID, m_sender_name, m_destID, m_dest_name);
 
-            char buffer[256];
+            char buffer[buffsize];
             sprintf(buffer, "'%s' is brandishing a weapon", msg->m_actor.c_str());
 
             std::shared_ptr<bus_messages::message> msg = std::make_shared<bus_messages::alert_message>(mh, "Deadly Threat", buffer, bus_messages::alert_message::severity_level_enum::emergency, "");

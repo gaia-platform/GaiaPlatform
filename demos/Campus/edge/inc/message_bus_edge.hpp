@@ -148,15 +148,15 @@ public:
 
                 // TODO : This is a hacky way to determine which thing sent
                 // the message. Ok for now, change it soon though.
-                if (hdr.get_senderName() == "termUi")
+                if (hdr.get_sender_name() == "termUi")
                 {
                     m_uiThing->send_message(msg);
                 }
-                else if (hdr.get_senderName() == "campus")
+                else if (hdr.get_sender_name() == "campus")
                 {
                     m_campusThing->send_message(msg);
                 }
-                else if (hdr.get_senderName() == "person")
+                else if (hdr.get_sender_name() == "person")
                 {
                     m_personThing->send_message(msg);
                 }

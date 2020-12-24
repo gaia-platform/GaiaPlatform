@@ -1,7 +1,6 @@
 #pragma once
 
-#include <time.h>
-
+#include <ctime>
 #include <string>
 
 namespace bus_messages
@@ -52,8 +51,8 @@ public:
      * @throws 
      * @exceptsafe yes
      */
-    message_header(unsigned int sequenceID, unsigned int senderID, std::string senderName, unsigned int destID, std::string destName)
-        : m_sequenceID(sequenceID), m_senderID(senderID), m_senderName(senderName), m_destID(destID), m_destName(destName)
+    message_header(unsigned int sequence_id, unsigned int sender_id, std::string sender_name, unsigned int dest_id, std::string dest_name)
+        : m_sequenceID(sequence_id), m_senderID(sender_id), m_senderName(std::move(sender_name)), m_destID(dest_id), m_destName(std::move(dest_name))
     {
         m_timeSent = time(nullptr);
         fix_vals();
@@ -72,8 +71,8 @@ public:
      * @throws 
      * @exceptsafe yes
      */
-    message_header(unsigned int sequenceID, time_t timeSent, unsigned int senderID, std::string senderName, unsigned int destID, std::string destName)
-        : m_sequenceID(sequenceID), m_timeSent(timeSent), m_senderID(senderID), m_senderName(senderName), m_destID(destID), m_destName(destName)
+    message_header(unsigned int sequence_id, time_t time_sent, unsigned int sender_id, std::string sender_name, unsigned int dest_id, std::string dest_name)
+        : m_sequenceID(sequence_id), m_timeSent(time_sent), m_senderID(sender_id), m_senderName(std::move(sender_name)), m_destID(dest_id), m_destName(std::move(dest_name))
     {
         fix_vals();
     };
@@ -92,32 +91,32 @@ public:
             m_destName = "*";
     }
 
-    unsigned int get_sequenceID()
+    unsigned int get_sequence_id()
     {
         return m_sequenceID;
     }
 
-    time_t get_timeSent()
+    time_t get_time_sent()
     {
         return m_timeSent;
     }
 
-    unsigned int get_senderID()
+    unsigned int get_sender_id()
     {
         return m_senderID;
     }
 
-    std::string get_senderName()
+    std::string get_sender_name()
     {
         return m_senderName;
     }
 
-    unsigned int get_destID()
+    unsigned int get_dest_id()
     {
         return m_destID;
     }
 
-    std::string get_destName()
+    std::string get_dest_name()
     {
         return m_destName;
     }
@@ -155,9 +154,9 @@ class message
 {
 
 protected:
-    message_header m_messageHeader;
+    message_header m_message_header;
     void* m_payload;
-    std::string m_messageTypeName = "";
+    std::string m_message_type_name = "";
 
 public:
     /**
@@ -171,7 +170,7 @@ public:
      */
     template <class T>
     message(message_header header, T payload)
-        : m_messageHeader(header)
+        : m_message_header(std::move(header))
     {
         m_payload = payload;
     }
@@ -184,28 +183,26 @@ public:
      * @throws 
      * @exceptsafe yes
      */
-    message(message_header header)
-        : m_messageHeader(header)
+    explicit message(message_header header)
+        : m_message_header(std::move(header))
     {
     }
 
-    message()
-    {
-    }
-
+    message() = default;
+ 
     message_header get_header()
     {
-        return m_messageHeader;
+        return m_message_header;
     }
 
     std::string get_sender_name()
     {
-        return m_messageHeader.get_senderName();
+        return m_message_header.get_sender_name();
     }
 
     std::string get_message_type_name()
     {
-        return m_messageTypeName;
+        return m_message_type_name;
     }
 
     int demo_test()
@@ -242,14 +239,14 @@ public:
     std::string m_arg1;
 
     action_message(message_header header, std::string actor_type, std::string actor, std::string action, std::string arg1)
-        : message(header), m_actor_type(actor_type), m_actor(actor), m_action(action), m_arg1(arg1)
+        : message(header), m_actor_type(std::move(actor_type)), m_actor(std::move(actor)), m_action(std::move(action)), m_arg1(std::move(arg1))
     {
-        m_messageTypeName = message_types::action_message;
+        m_message_type_name = message_types::action_message;
     }
 
     action_message()
     {
-        m_messageTypeName = message_types::action_message;
+        m_message_type_name = message_types::action_message;
     }
 
     int demo_test()
@@ -280,21 +277,21 @@ public:
     std::string m_arg1;
 
     alert_message(message_header header, std::string title, std::string body, severity_level_enum severity, std::string arg1)
-        : message(header), m_title(title), m_body(body), m_severity(severity), m_arg1(arg1)
+        : message(header), m_title(std::move(title)), m_body(std::move(body)), m_severity(severity), m_arg1(std::move(arg1))
     {
-        m_messageTypeName = message_types::alert_message;
+        m_message_type_name = message_types::alert_message;
     }
 
     alert_message(message_header header, std::string title, std::string body, int severity, std::string arg1)
-        : message(header), m_title(title), m_body(body), m_arg1(arg1)
+        : message(header), m_title(std::move(title)), m_body(std::move(body)), m_arg1(std::move(arg1))
     {
         m_severity = static_cast<severity_level_enum>(severity); //TODO : catch arg problems
-        m_messageTypeName = message_types::alert_message;
+        m_message_type_name = message_types::alert_message;
     }
 
     alert_message()
     {
-        m_messageTypeName = message_types::alert_message;
+        m_message_type_name = message_types::alert_message;
     }
 
     int demo_test()

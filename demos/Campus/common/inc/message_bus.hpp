@@ -1,9 +1,7 @@
 #pragma once
 
-#include <time.h>
-
+#include <ctime>
 #include <condition_variable>
-
 #include <iostream>
 #include <mutex>
 #include <queue>
@@ -51,8 +49,8 @@ public:
         return m_regsitrantName;
     }
 
-    callback_registration(message_callback_type callback, std::string regsitrantName)
-        : m_callback(callback), m_regsitrantName(regsitrantName)
+    callback_registration(message_callback_type callback, std::string regsitrant_name)
+        : m_callback(callback), m_regsitrantName(std::move(regsitrant_name))
     {
     }
 };
@@ -81,9 +79,9 @@ public:
     }
 
     // register a callback on which to receive messages
-    virtual int register_message_callback(message_callback_type callback, std::string regsitrantName)
+    virtual int register_message_callback(message_callback_type callback, std::string regsitrant_name)
     {
-        m_message_callbacks.push_back(callback_registration(callback, regsitrantName));
+        m_message_callbacks.emplace_back(callback_registration(callback, regsitrant_name));
         return 0;
     }
 
@@ -95,9 +93,7 @@ public:
     }
 
     // to get rid of annoying build warnings
-    virtual ~i_message_bus()
-    {
-    }
+    virtual ~i_message_bus() = default;
 
     int demo_test()
     {

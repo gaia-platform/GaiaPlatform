@@ -7,9 +7,9 @@
 
 #include <menu.h>
 #include <ncurses.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <functional>
 
@@ -21,12 +21,6 @@
 #elif defined MESSAGE_BUS_EDGE
 #include "../../edge/inc/message_bus_edge.hpp"
 #endif
-
-// to supress unused-parameter build warnings
-#define UNUSED(...) (void)(__VA_ARGS__)
-
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define CTRLD 4
 
 class terminal_menu
 {
@@ -51,7 +45,7 @@ private:
     typedef void (terminal_menu::*callback_type)(char* name);
 
     // callback method container
-    struct callback_cont_struct
+    struct callback_cont_t
     {
         callback_type callback;
     };
@@ -93,8 +87,14 @@ private:
         WINDOW* menu_mindow;
         bool exit = false;
 
+        const int lines = 6;
+        const int cols = 38;
+        const int ten = 10;
+        const int five = 5;
+        const int middle_width = 40;
+
         // Create menu
-        the_menu = new_menu((ITEM**)items);
+        the_menu = new_menu(items);
 
         // Create the window to be associated with the menu
         menu_mindow = newwin(h, w, row, col);
@@ -102,15 +102,15 @@ private:
 
         // Set main window and sub window
         set_menu_win(the_menu, menu_mindow);
-        set_menu_sub(the_menu, derwin(menu_mindow, 6, 38, 3, 1));
-        set_menu_format(the_menu, 5, 1);
+        set_menu_sub(the_menu, derwin(menu_mindow, lines, cols, 3, 1));
+        set_menu_format(the_menu, five, 1);
 
         // Set menu mark to the string " * "
         set_menu_mark(the_menu, " * ");
 
         // Print a border around the main window and print a title
         box(menu_mindow, 0, 0);
-        print_in_middle(menu_mindow, 1, 0, 40, name, COLOR_PAIR(1));
+        print_in_middle(menu_mindow, 1, 0, middle_width, name, COLOR_PAIR(1));
         mvwaddch(menu_mindow, 2, 0, ACS_LTEE);
         mvwhline(menu_mindow, 2, 1, ACS_HLINE, 38);
         mvwaddch(menu_mindow, 2, 39, ACS_RTEE);
@@ -141,7 +141,7 @@ private:
                 menu_driver(the_menu, REQ_SCR_UPAGE);
                 break;
 
-            case 10: // Enter
+            case ten: // Enter
             {
                 ITEM* cur;
                 cur = current_item(the_menu);
@@ -150,7 +150,7 @@ private:
                     exit = true;
                 else
                 {
-                    auto cbc = reinterpret_cast<callback_cont_struct*>(item_userptr(cur));
+                    auto cbc = reinterpret_cast<callback_cont_t*>(item_userptr(cur));
                     std::invoke(cbc->callback, this, (char*)item_name(cur));
                     pos_menu_cursor(the_menu);
                 }
@@ -204,9 +204,9 @@ private:
         int n_choices, i;
 
         n_choices = count;
-        menu_items = (ITEM**)calloc(n_choices, sizeof(ITEM*));
+        menu_items = static_cast<ITEM**>(calloc(n_choices, sizeof(ITEM*)));
 
-        callback_cont_struct cbc;
+        callback_cont_t cbc;
         cbc.callback = handler;
 
         for (i = 0; i < n_choices; ++i)
@@ -215,7 +215,7 @@ private:
             set_item_userptr(menu_items[i], reinterpret_cast<void*>(&cbc));
         }
 
-        put_menu((char*)name, menu_items, h, w, row, col);
+        put_menu(name, menu_items, h, w, row, col);
 
         for (i = 0; i < n_choices; ++i)
             free_item(menu_items[i]);
@@ -241,9 +241,9 @@ private:
         int n_choices, i;
 
         n_choices = items.size();
-        menu_items = (ITEM**)calloc(n_choices + 2, sizeof(ITEM*));
+        menu_items = static_cast<ITEM**>(calloc(n_choices + 2, sizeof(ITEM*)));
 
-        callback_cont_struct cbc;
+        callback_cont_t cbc;
         cbc.callback = handler;
 
         for (i = 0; i < n_choices; ++i)
@@ -255,16 +255,18 @@ private:
         menu_items[i] = new_item("Exit", "");
         set_item_userptr(menu_items[i], reinterpret_cast<void*>(&cbc));
 
-        menu_items[i + 1] = new_item((char*)NULL, "");
+        menu_items[i + 1] = new_item(static_cast<char*>(nullptr), "");
         set_item_userptr(menu_items[i + 1], reinterpret_cast<void*>(&cbc));
 
-        put_menu((char*)name, menu_items, h, w, row, col);
+        put_menu(name, menu_items, h, w, row, col);
 
         for (i = 0; i < n_choices + 2; ++i)
             free_item(menu_items[i]);
     }
 
-    /**
+const int eighty = 80;
+
+/**
 * ---
 *
 * @param[in] WINDOW* win
@@ -294,11 +296,11 @@ private:
             y = starty;
 
         if (width == 0)
-            width = 80;
+            width = eighty;
 
         length = strlen(string);
-        temp = (width - length) / 2;
-        x = startx + (int)temp;
+        temp = static_cast<float>(width - length) / 2;
+        x = startx + static_cast<int>(temp);
         wattron(win, color);
         mvwprintw(win, y, x, "%s", string);
         wattroff(win, color);
@@ -370,8 +372,9 @@ private:
 */
     void show_message(std::shared_ptr<bus_messages::message> msg)
     {
+        const int buffsize = 1024;
         auto message_type = msg->get_message_type_name();
-        char buffer[1024];
+        char buffer[buffsize];
 
         if (message_type == bus_messages::message_types::action_message)
         {
@@ -694,6 +697,7 @@ public:
 */
     void init(std::shared_ptr<campus_demo::campus> cdp)
     {
+        const int six = 6;
         m_last_instance = this;
         m_cdp = cdp;
 
@@ -706,7 +710,7 @@ public:
         init_pair(1, COLOR_RED, COLOR_BLACK);
         init_pair(2, COLOR_CYAN, COLOR_BLACK);
 
-        create_message_window(1, 1, 6, 0);
+        create_message_window(1, 1, six, 0);
 
         // function of member
         //std::function<void(terminalMenu&, std::shared_ptr<bus_messages::message> msg)> mcb = &terminalMenu::MessageCallback;
