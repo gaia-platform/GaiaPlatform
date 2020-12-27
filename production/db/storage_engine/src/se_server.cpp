@@ -872,7 +872,24 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
         auto handle = iter->native_handle();
 
         // pthread_kill(0) returns 0 if the thread is still running, and ESRCH
-        // otherwise (unless it has already been detached or joined).
+        // otherwise (unless it has already been detached or joined, in which
+        // case the thread ID may be invalid or reused, possibly causing a
+        // segfault). We never use a thread ID after the thread has been joined
+        // (and we never detach threads), so we should be OK.
+        //
+        // https://man7.org/linux/man-pages/man3/pthread_kill.3.html
+        // "POSIX.1-2008 recommends that if an implementation detects the use of
+        // a thread ID after the end of its lifetime, pthread_kill() should
+        // return the error ESRCH. The glibc implementation returns this error
+        // in the cases where an invalid thread ID can be detected. But note
+        // also that POSIX says that an attempt to use a thread ID whose
+        // lifetime has ended produces undefined behavior, and an attempt to use
+        // an invalid thread ID in a call to pthread_kill() can, for example,
+        // cause a segmentation fault."
+        //
+        // https://man7.org/linux/man-pages/man3/pthread_self.3.html
+        // "A thread ID may be reused after a terminated thread has been joined,
+        // or a detached thread has terminated."
         int error = ::pthread_kill(handle, 0);
 
         if (error == 0)
