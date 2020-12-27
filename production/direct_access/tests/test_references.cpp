@@ -614,6 +614,87 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
     end_session();
 }
 
+// Connect and scan a many-to-many relationships through phone_t.
+TEST_F(gaia_references_test, m_to_n_connections)
+{
+    auto_transaction_t txn;
+
+    auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
+    auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
+    auto a1 = address_t::get(address_t::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
+    auto a2 = address_t::get(address_t::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
+    auto p1 = phone_t::get(phone_t::insert_row("303", "H", false));
+    auto p2 = phone_t::get(phone_t::insert_row("303", "M", false));
+    auto p3 = phone_t::get(phone_t::insert_row("206", "H", false));
+    auto p4 = phone_t::get(phone_t::insert_row("206", "M", false));
+    e1.phone_list().insert(p1);
+    e1.phone_list().insert(p2);
+    e2.phone_list().insert(p3);
+    e2.phone_list().insert(p4);
+    a1.phone_list().insert(p1);
+    a1.phone_list().insert(p3);
+    a2.phone_list().insert(p2);
+    a2.phone_list().insert(p4);
+
+    // Scanning from e1 to (p1 to a1) to (p2 to a2).
+    for (auto& p : e1.phone_list())
+    {
+        auto a = p.address();
+        EXPECT_EQ(strcmp("303", p.phone_number()), 0);
+        if (strcmp(p.type(), "H") == 0)
+        {
+            EXPECT_EQ(strcmp("1233", a.street()), 0);
+        }
+        else
+        {
+            EXPECT_EQ(strcmp("11111", a.street()), 0);
+        }
+    }
+
+    // Scanning from e2 to (p3 to a1) to (p4 to a2).
+    for (auto& p : e2.phone_list())
+    {
+        auto a = p.address();
+        EXPECT_EQ(strcmp("206", p.phone_number()), 0);
+        if (strcmp(p.type(), "H") == 0)
+        {
+            EXPECT_EQ(strcmp("1233", a.street()), 0);
+        }
+        else
+        {
+            EXPECT_EQ(strcmp("11111", a.street()), 0);
+        }
+    }
+
+    // Scanning from a1 to (p1 to e1) to (p3 to e2).
+    for (auto& p : a1.phone_list())
+    {
+        auto e = p.employee();
+        if (strcmp(p.phone_number(), "303") == 0)
+        {
+            EXPECT_EQ(strcmp("Hubert", e.name_first()), 0);
+        }
+        else
+        {
+            EXPECT_EQ(strcmp("Howard", e.name_first()), 0);
+        }
+    }
+
+    // Scanning from a2 to (p2 to e1) to (p4 to e2).
+    for (auto& p : a2.phone_list())
+    {
+        auto e = p.employee();
+        if (strcmp(p.phone_number(), "206") == 0)
+        {
+            EXPECT_EQ(strcmp("Howard", e.name_first()), 0);
+        }
+        else
+        {
+            EXPECT_EQ(strcmp("Hubert", e.name_first()), 0);
+        }
+    }
+}
+
 // Create objects in one thread, connect them in another, verify in first thread.
 TEST_F(gaia_references_test, thread_inserts)
 {

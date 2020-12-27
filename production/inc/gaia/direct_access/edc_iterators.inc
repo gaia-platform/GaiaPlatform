@@ -91,7 +91,7 @@ typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->(
 
 // The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
 template <gaia::common::gaia_type_t T_container, typename T_class>
-gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
+gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin() const
 {
     gaia::common::gaia_id_t id = gaia_base_t::find_first(T_container);
     while (id != common::c_invalid_gaia_id)
@@ -121,7 +121,7 @@ gaia_container_t<T_container, T_class> gaia_container_t<T_container, T_class>::w
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class>
-gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
+gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end() const
 {
     return gaia_iterator_t<T_class>(0);
 }

@@ -23,5 +23,6 @@ create table if not exists phone (
     phone_number: string active,
     type: string active,
     primary: bool active,
-    references address
+    references address,
+    references employee
 );

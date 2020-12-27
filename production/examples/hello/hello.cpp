@@ -18,7 +18,7 @@ int main()
         << "Please wait for greetings to be printed, then terminate execution by pressing Enter."
         << endl;
 
-    gaia::system::initialize("gaia.conf");
+    gaia::system::initialize();
 
     gaia::db::begin_transaction();
     gaia::hello::names_t::insert_row("Alice");

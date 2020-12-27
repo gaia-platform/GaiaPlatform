@@ -93,17 +93,17 @@ void dump_db() {
     for (auto& f : FaceScanLog_t::list())
     {
         printf("FACESCANLOG: ID=%s, %s %d\n", f.ScanLogId(), f.ScanDate(), f.ScanTime());
-        auto building = f.building_scan_Building();
+        auto building = f.Building();
         if (building)
         {
             printf("   BUILDING: ID=%s, %s\n", building.BuildingId(), building.BuildingName());
         }
-        auto person = f.person_scan_Person();
+        auto person = f.Person();
         if (person)
         {
             printf("   PERSON: ID=%s, %s %s\n", person.PersonId(), person.FirstName(), person.LastName());
         }
-        auto stranger = f.stranger_scan_Stranger();
+        auto stranger = f.Stranger();
         if (stranger)
         {
             printf("   STRANGER: ID=%s, %d\n", stranger.StrangerId(), stranger.ScanCount());
@@ -112,7 +112,7 @@ void dump_db() {
     for (auto& s : Stranger_t::list())
     {
         printf("STRANGER: ID=%s, count=%d\n", s.StrangerId(), s.ScanCount());
-        for (auto& f : s.stranger_scan_FaceScanLog_list())
+        for (auto& f : s.FaceScanLog_list())
         {
             printf("   FACESCANLOG: ID=%s, %s %d\n", f.ScanLogId(), f.ScanDate(), f.ScanTime());
         }
