@@ -857,13 +857,56 @@ bool server::authenticate_client_socket(int socket)
     return true;
 }
 
+// We adopt a lazy GC approach to freeing thread resources, rather than having
+// each thread clean up after itself on exit. This approach allows us to avoid
+// any synchronization between the exiting thread and its owning thread, as well
+// as the awkwardness of passing each thread a reference to its owning object.
+// In general, any code which creates a new thread is expected to call this
+// function to compensate for the "garbage" it is adding to the system.
+static void reap_exited_threads(std::vector<std::thread>& threads)
+{
+    for (auto iter = threads.begin(); iter != threads.end();)
+    {
+        // Test if the thread has already exited (this is possible with the
+        // pthreads API but not with the std::thread API).
+        auto handle = iter->native_handle();
+
+        // pthread_kill(0) returns 0 if the thread is still running, and ESRCH
+        // otherwise (unless it has already been detached or joined).
+        int error = ::pthread_kill(handle, 0);
+
+        if (error == 0)
+        {
+            // The thread is still running, so do nothing.
+            ++iter;
+        }
+        else if (error == ESRCH)
+        {
+            // If this thread has already exited, then join it and deallocate
+            // its object to release both memory and thread-related system
+            // resources.
+            iter->join();
+
+            // Move the last element into the current entry.
+            *iter = std::move(threads.back());
+            threads.pop_back();
+        }
+        else
+        {
+            // Throw on all other errors (e.g., if the thread has been detached
+            // or joined).
+            throw_system_error("pthread_kill(0) failed", error);
+        }
+    }
+}
+
 void server::client_dispatch_handler()
 {
     // Register session cleanup handler first, so we can execute it last.
     auto session_cleanup = make_scope_guard([]() {
-        for (auto& it : s_session_threads)
+        for (auto& thread : s_session_threads)
         {
-            it.second.join();
+            thread.join();
         }
     });
 
@@ -953,13 +996,11 @@ void server::client_dispatch_handler()
                 }
                 if (authenticate_client_socket(session_socket))
                 {
+                    // First reap any session threads that have terminated (to
+                    // avoid memory and system resource leaks).
+                    reap_exited_threads(s_session_threads);
                     // Create session thread.
-                    std::thread session_handler_thread(session_handler, session_socket);
-                    // Give the client handler ownership of the session thread.
-                    s_session_threads.emplace(
-                        make_pair(
-                            session_handler_thread.get_id(), std::move(session_handler_thread)));
-                    cerr << "Session threads: " << s_session_threads.size() << endl;
+                    s_session_threads.emplace_back(session_handler, session_socket);
                 }
                 else
                 {
@@ -982,31 +1023,6 @@ void server::client_dispatch_handler()
 
 void server::session_handler(int session_socket)
 {
-    // Clean up our thread entry on exit.
-    auto thread_cleanup = make_scope_guard([&]() {
-        // Remove the thread object from the map. The thread object will be
-        // destroyed when we exit this scope.
-        // NB: There is a race resulting in a possible leak if we exit before
-        // the spawning code registers this thread in the session threads map.
-        // If the spawner loses this race then the now-defunct thread object
-        // will be registered but not cleaned up until the session exits. This
-        // leak can be made much less likely (although not impossible) by just
-        // having the spawner check if the thread object is in detached state
-        // after it is registered and removing it if so. The worst that can
-        // happen is that an occasional session thread object is leaked until
-        // the server exits.
-        auto node = s_session_threads.extract(std::this_thread::get_id());
-        // This is best-effort; if the spawner hasn't registered the thread
-        // object yet then it will be leaked until the server exits.
-        // Detach the thread from the object so we can safely destroy the object
-        // from within the thread. (The object's destructor will be called when
-        // the node handle is destroyed on leaving this scope.)
-        if (node)
-        {
-            node.mapped().detach();
-        }
-    });
-
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
@@ -1049,9 +1065,9 @@ void server::session_handler(int session_socket)
         // Signal all session-owned threads to terminate.
         signal_eventfd(s_session_shutdown_eventfd);
         // Wait for all session-owned threads to terminate.
-        for (auto& it : s_session_owned_threads)
+        for (auto& thread : s_session_owned_threads)
         {
-            it.second.join();
+            thread.join();
         }
         // All threads have received the session shutdown notification, so we
         // can close the eventfd.
@@ -1185,31 +1201,6 @@ void server::stream_producer_handler(
 {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
-
-    // Clean up our thread entry on exit.
-    auto thread_cleanup = make_scope_guard([&]() {
-        // Remove the thread object from the map. The thread object will be
-        // destroyed when we exit this scope.
-        // NB: There is a race resulting in a possible leak if we exit before
-        // the spawning code registers this thread in the session-owned threads
-        // map. If the spawner loses this race then the now-defunct thread
-        // object will be registered but not cleaned up until the session exits.
-        // This leak can be made much less likely (although not impossible) by
-        // just having the spawner check if the thread object is in detached
-        // state after it is registered and removing it if so. The worst that
-        // can happen is that an occasional thread object is leaked until the
-        // session exits.
-        auto node = s_session_owned_threads.extract(std::this_thread::get_id());
-        // This is best-effort; if the spawner hasn't registered the thread
-        // object yet then it will be leaked until the session exits.
-        // Detach the thread from the object so we can safely destroy the object
-        // from within the thread. (The object's destructor will be called when
-        // the node handle is destroyed on leaving this scope.)
-        if (node)
-        {
-            node.mapped().detach();
-        }
-    });
 
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
@@ -1393,14 +1384,12 @@ void server::stream_producer_handler(
 template <typename T_element_type>
 void server::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
 {
+    // First reap any owned threads that have terminated (to avoid memory and
+    // system resource leaks).
+    reap_exited_threads(s_session_owned_threads);
     // Create stream producer thread.
-    std::thread stream_producer(
+    s_session_owned_threads.emplace_back(
         stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
-    // Give the session ownership of the stream producer thread.
-    s_session_owned_threads.emplace(
-        make_pair(
-            stream_producer.get_id(), std::move(stream_producer)));
-    cerr << "Threads owned by this session: " << s_session_owned_threads.size() << endl;
 }
 
 // REVIEW: this is copied from stream_producer_handler() only for expediency;
@@ -1408,31 +1397,6 @@ void server::start_stream_producer(int stream_socket, std::function<std::optiona
 void server::fd_stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn)
 {
-    // Clean up our thread entry on exit.
-    auto thread_cleanup = make_scope_guard([&]() {
-        // Remove the thread object from the map. The thread object will be
-        // destroyed when we exit this scope.
-        // NB: There is a race resulting in a possible leak if we exit before
-        // the spawning code registers this thread in the session-owned threads
-        // map. If the spawner loses this race then the now-defunct thread
-        // object will be registered but not cleaned up until the session exits.
-        // This leak can be made much less likely (although not impossible) by
-        // just having the spawner check if the thread object is in detached
-        // state after it is registered and removing it if so. The worst that
-        // can happen is that an occasional thread object is leaked until the
-        // session exits.
-        auto node = s_session_owned_threads.extract(std::this_thread::get_id());
-        // This is best-effort; if the spawner hasn't registered the thread
-        // object yet then it will be leaked until the session exits.
-        // Detach the thread from the object so we can safely destroy the object
-        // from within the thread. (The object's destructor will be called when
-        // the node handle is destroyed on leaving this scope.)
-        if (node)
-        {
-            node.mapped().detach();
-        }
-    });
-
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
@@ -1651,14 +1615,12 @@ void server::fd_stream_producer_handler(
 
 void server::start_fd_stream_producer(int stream_socket, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn)
 {
+    // First reap any owned threads that have terminated (to avoid memory and
+    // system resource leaks).
+    reap_exited_threads(s_session_owned_threads);
     // Create fd stream producer thread.
-    std::thread fd_stream_producer(
+    s_session_owned_threads.emplace_back(
         fd_stream_producer_handler, stream_socket, s_session_shutdown_eventfd, ts_generator_fn);
-    // Give the session ownership of the fd stream producer thread.
-    s_session_owned_threads.emplace(
-        make_pair(
-            fd_stream_producer.get_id(), std::move(fd_stream_producer)));
-    cerr << "Threads owned by this session: " << s_session_owned_threads.size() << endl;
 }
 
 std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type)

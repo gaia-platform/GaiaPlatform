@@ -64,7 +64,11 @@ private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
     static inline int s_server_shutdown_eventfd = -1;
-    static inline std::unordered_map<std::thread::id, std::thread> s_session_threads{};
+    // Using a std::vector is much easier than using an ordered or unordered
+    // container (because hash or comparison functions aren't required).
+    // Removing a thread entry is O(1) because we swap it with the last element
+    // and truncate the last element.
+    static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
     static inline int s_fd_locators = -1;
     static inline locators_t* s_shared_locators = nullptr;
@@ -82,7 +86,11 @@ private:
     thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
-    thread_local static inline std::unordered_map<std::thread::id, std::thread> s_session_owned_threads{};
+    // Using a std::vector is much easier than using an ordered or unordered
+    // container (because hash or comparison functions aren't required).
+    // Removing a thread entry is O(1) because we swap it with the last element
+    // and truncate the last element.
+    thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
     static inline bool s_reinitialize_persistent_store = false;
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
