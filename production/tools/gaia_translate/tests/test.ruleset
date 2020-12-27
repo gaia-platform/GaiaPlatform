@@ -4,6 +4,7 @@ int g_insert_called = 0;
 int g_update_called = 0;
 int g_actuator_rule_called = 0;
 int g_delete_called = 0;
+bool correct_gaia_id = false;
 
 ruleset test
 {
@@ -42,6 +43,7 @@ ruleset test1
       default:
       break;
    }
+   correct_gaia_id = sensor.gaia_id() != 0;
   }
 }
 

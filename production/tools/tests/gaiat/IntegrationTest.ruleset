@@ -1,4 +1,4 @@
-// RUN: %gaiat %s -output t.cpp --
+// RUN: %gaiat %s --
 
 ruleset test
 {
@@ -67,5 +67,26 @@ ruleset test6 : table (sensor)
 	  {
 		  value = 5;
 	  }
+  }
+}
+
+class test
+{
+public:
+     void delete_row()
+     {
+
+     }
+};
+
+ruleset test7
+{
+  {
+      auto t = sensor.gaia_id();
+	  if (sensor.LastOperation == DELETE)
+      {
+          test t;
+          t.delete_row();
+      }
   }
 }
