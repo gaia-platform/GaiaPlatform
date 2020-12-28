@@ -57,7 +57,7 @@ add_custom_command(
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
-  COMMAND pkill -f -KILL gaia_se_server
+  COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
@@ -92,8 +92,9 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${MIXED_RULESET} -output ${MIXED_RULESET_OUT} --
     -I ${GAIA_INC}
     -I ${GAIA_GENERATED_SCHEMAS}
-    -I /usr/include/clang/8/include/
-  COMMAND pkill -f -KILL gaia_se_server
+    -I ${FLATBUFFERS_INC}
+    -I /usr/include/clang/10/include/
+  COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
