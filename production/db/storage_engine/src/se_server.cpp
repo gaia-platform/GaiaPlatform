@@ -863,6 +863,9 @@ bool server::authenticate_client_socket(int socket)
 // as the awkwardness of passing each thread a reference to its owning object.
 // In general, any code which creates a new thread is expected to call this
 // function to compensate for the "garbage" it is adding to the system.
+//
+// Removing a thread entry is O(1) (because we swap it with the last element and
+// truncate the last element), so the whole scan with removals is O(n).
 static void reap_exited_threads(std::vector<std::thread>& threads)
 {
     for (auto iter = threads.begin(); iter != threads.end();)
