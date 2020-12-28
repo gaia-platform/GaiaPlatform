@@ -12,4 +12,4 @@ ruleset test
     }
 }
 
-// CHECK: Calling methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.
+// CHECK: Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.

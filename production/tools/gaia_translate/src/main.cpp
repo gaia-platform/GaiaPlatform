@@ -608,7 +608,7 @@ void generate_rules(Rewriter& rewriter)
         if (g_function_call_in_rule)
         {
             llvm::errs() <<
-                "Calling methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
+                "Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
             g_generation_error = true;
             return;
         }
