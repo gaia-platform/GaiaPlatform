@@ -25,6 +25,7 @@ set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GAIA_INC}/rules
   ${GAIA_INC}/db
   ${GAIA_INC}
+  ${CMAKE_SOURCE_DIR}
   ${GENERATED_OUTPUTS}
 )
 
@@ -83,3 +84,7 @@ add_dependencies(hack translate_hack_ruleset)
 set_target_properties(hack PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(hack PRIVATE ${GAIA_INCUBATOR_DEMO_INCLUDES})
 target_link_libraries(hack PRIVATE gaia rt pthread)
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/var_list.in)
+    configure_file(${CMAKE_SOURCE_DIR}/var_list.in ${CMAKE_BINARY_DIR}/var_list.txt)
+endif()
