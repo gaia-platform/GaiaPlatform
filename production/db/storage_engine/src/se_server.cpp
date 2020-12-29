@@ -857,15 +857,81 @@ bool server::authenticate_client_socket(int socket)
     return true;
 }
 
+// We adopt a lazy GC approach to freeing thread resources, rather than having
+// each thread clean up after itself on exit. This approach allows us to avoid
+// any synchronization between the exiting thread and its owning thread, as well
+// as the awkwardness of passing each thread a reference to its owning object.
+// In general, any code which creates a new thread is expected to call this
+// function to compensate for the "garbage" it is adding to the system.
+//
+// Removing a thread entry is O(1) (because we swap it with the last element and
+// truncate the last element), so the whole scan with removals is O(n).
+static void reap_exited_threads(std::vector<std::thread>& threads)
+{
+    for (auto iter = threads.begin(); iter != threads.end();)
+    {
+        // Test if the thread has already exited (this is possible with the
+        // pthreads API but not with the std::thread API).
+        auto handle = iter->native_handle();
+
+        // pthread_kill(0) returns 0 if the thread is still running, and ESRCH
+        // otherwise (unless it has already been detached or joined, in which
+        // case the thread ID may be invalid or reused, possibly causing a
+        // segfault). We never use a thread ID after the thread has been joined
+        // (and we never detach threads), so we should be OK.
+        //
+        // https://man7.org/linux/man-pages/man3/pthread_kill.3.html
+        // "POSIX.1-2008 recommends that if an implementation detects the use of
+        // a thread ID after the end of its lifetime, pthread_kill() should
+        // return the error ESRCH. The glibc implementation returns this error
+        // in the cases where an invalid thread ID can be detected. But note
+        // also that POSIX says that an attempt to use a thread ID whose
+        // lifetime has ended produces undefined behavior, and an attempt to use
+        // an invalid thread ID in a call to pthread_kill() can, for example,
+        // cause a segmentation fault."
+        //
+        // https://man7.org/linux/man-pages/man3/pthread_self.3.html
+        // "A thread ID may be reused after a terminated thread has been joined,
+        // or a detached thread has terminated."
+        int error = ::pthread_kill(handle, 0);
+
+        if (error == 0)
+        {
+            // The thread is still running, so do nothing.
+            ++iter;
+        }
+        else if (error == ESRCH)
+        {
+            // If this thread has already exited, then join it and deallocate
+            // its object to release both memory and thread-related system
+            // resources.
+            retail_assert(iter->joinable(), "Thread must be joinable!");
+            iter->join();
+
+            // Move the last element into the current entry.
+            *iter = std::move(threads.back());
+            threads.pop_back();
+        }
+        else
+        {
+            // Throw on all other errors (e.g., if the thread has been detached
+            // or joined).
+            throw_system_error("pthread_kill(0) failed", error);
+        }
+    }
+}
+
 void server::client_dispatch_handler()
 {
-    // Initialize session thread list first, so we can clean it up last.
-    std::vector<std::thread> session_threads;
-    auto session_cleanup = make_scope_guard([&session_threads]() {
-        for (std::thread& t : session_threads)
+    // Register session cleanup handler first, so we can execute it last.
+    auto session_cleanup = make_scope_guard([]() {
+        for (auto& thread : s_session_threads)
         {
-            t.join();
+            retail_assert(thread.joinable(), "Thread must be joinable!");
+            thread.join();
         }
+        // All session threads have been joined, so they can be destroyed.
+        s_session_threads.clear();
     });
 
     // Start listening for incoming client connections.
@@ -954,7 +1020,11 @@ void server::client_dispatch_handler()
                 }
                 if (authenticate_client_socket(session_socket))
                 {
-                    session_threads.emplace_back(session_handler, session_socket);
+                    // First reap any session threads that have terminated (to
+                    // avoid memory and system resource leaks).
+                    reap_exited_threads(s_session_threads);
+                    // Create session thread.
+                    s_session_threads.emplace_back(session_handler, session_socket);
                 }
                 else
                 {
@@ -1018,13 +1088,19 @@ void server::session_handler(int session_socket)
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
         signal_eventfd(s_session_shutdown_eventfd);
+
         // Wait for all session-owned threads to terminate.
-        for (std::thread& t : s_session_owned_threads)
+        for (auto& thread : s_session_owned_threads)
         {
-            t.join();
+            retail_assert(thread.joinable(), "Thread must be joinable!");
+            thread.join();
         }
-        // All threads have received the session shutdown notification, so we
-        // can close the eventfd.
+
+        // All session-owned threads have been joined, so they can be destroyed.
+        s_session_owned_threads.clear();
+
+        // All session-owned threads have received the session shutdown
+        // notification, so we can close the eventfd.
         close_fd(s_session_shutdown_eventfd);
     });
 
@@ -1338,7 +1414,10 @@ void server::stream_producer_handler(
 template <typename T_element_type>
 void server::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
 {
-    // Give the session ownership of the new stream thread.
+    // First reap any owned threads that have terminated (to avoid memory and
+    // system resource leaks).
+    reap_exited_threads(s_session_owned_threads);
+    // Create stream producer thread.
     s_session_owned_threads.emplace_back(
         stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
@@ -1566,7 +1645,10 @@ void server::fd_stream_producer_handler(
 
 void server::start_fd_stream_producer(int stream_socket, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn)
 {
-    // Give the session ownership of the new stream thread.
+    // First reap any owned threads that have terminated (to avoid memory and
+    // system resource leaks).
+    reap_exited_threads(s_session_owned_threads);
+    // Create fd stream producer thread.
     s_session_owned_threads.emplace_back(
         fd_stream_producer_handler, stream_socket, s_session_shutdown_eventfd, ts_generator_fn);
 }
