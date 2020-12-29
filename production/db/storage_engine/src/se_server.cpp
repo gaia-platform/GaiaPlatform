@@ -905,6 +905,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
             // If this thread has already exited, then join it and deallocate
             // its object to release both memory and thread-related system
             // resources.
+            retail_assert(iter->joinable(), "Thread must be joinable!");
             iter->join();
 
             // Move the last element into the current entry.
@@ -926,8 +927,11 @@ void server::client_dispatch_handler()
     auto session_cleanup = make_scope_guard([]() {
         for (auto& thread : s_session_threads)
         {
+            retail_assert(thread.joinable(), "Thread must be joinable!");
             thread.join();
         }
+        // All session threads have been joined, so they can be destroyed.
+        s_session_threads.clear();
     });
 
     // Start listening for incoming client connections.
@@ -1084,13 +1088,19 @@ void server::session_handler(int session_socket)
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
         signal_eventfd(s_session_shutdown_eventfd);
+
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
         {
+            retail_assert(thread.joinable(), "Thread must be joinable!");
             thread.join();
         }
-        // All threads have received the session shutdown notification, so we
-        // can close the eventfd.
+
+        // All session-owned threads have been joined, so they can be destroyed.
+        s_session_owned_threads.clear();
+
+        // All session-owned threads have received the session shutdown
+        // notification, so we can close the eventfd.
         close_fd(s_session_shutdown_eventfd);
     });
 
