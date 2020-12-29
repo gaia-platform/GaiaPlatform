@@ -40,11 +40,3 @@ gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
     retail_assert(gaia::db::server::s_id_index, "Server id_index segment is unmapped!");
     return gaia::db::server::s_id_index;
 }
-
-gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
-    gaia_locator_t locator,
-    gaia::db::memory_manager::address_offset_t old_slot_offset,
-    size_t size)
-{
-    return gaia::db::server::allocate_object(locator, old_slot_offset, size);
-}

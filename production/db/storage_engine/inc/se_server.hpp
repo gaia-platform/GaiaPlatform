@@ -17,11 +17,9 @@
 
 #include "gaia/exception.hpp"
 #include "fd_helpers.hpp"
-#include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "se_types.hpp"
-#include "stack_allocator.hpp"
 
 namespace gaia
 {
@@ -47,10 +45,6 @@ class server
     friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
-    friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
-        gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
-        size_t size);
 
 public:
     enum class persistence_mode_t : uint8_t
@@ -95,14 +89,6 @@ private:
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
     static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
-
-    static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
-
-    // Keeps track of stack allocators belonging to the current transaction executing on this thread.
-    // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
-    // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
-    // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
-    thread_local static inline std::vector<std::unique_ptr<gaia::db::memory_manager::stack_allocator_t>> s_active_stack_allocators{};
 
     // This is an "endless" array of timestamp entries, indexed by the txn
     // timestamp counter and containing all information for every txn that has
@@ -235,7 +221,6 @@ private:
     static void handle_client_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_server_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_request_stream(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_request_memory(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
 
     struct transition_t
     {
@@ -275,10 +260,7 @@ private:
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
         {session_state_t::ANY, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTED, handle_server_shutdown}},
         {session_state_t::ANY, session_event_t::REQUEST_STREAM, {session_state_t::ANY, handle_request_stream}},
-        {session_state_t::ANY, session_event_t::REQUEST_MEMORY, {session_state_t::ANY, handle_request_memory}},
     };
-
-    static void free_stack_allocators(bool deallocate_stack_allocator);
 
     static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
@@ -287,21 +269,11 @@ private:
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_txn_id_t txn_id = 0,
-        const gaia::db::memory_manager::stack_allocator_t* const new_stack_allocator = nullptr);
+        gaia_txn_id_t txn_id = 0);
 
     static void clear_shared_memory();
 
-    static gaia::db::memory_manager::stack_allocator_t allocate_from_stack_allocator(
-        size_t txn_memory_request_size_bytes);
-
-    static void init_memory_manager();
-
-    static void get_memory_info_from_request_and_free(bool commit_success);
-
     static void init_shared_memory();
-
-    static void request_memory();
 
     static void init_txn_info();
 
@@ -342,11 +314,6 @@ private:
     static void txn_rollback();
 
     static bool txn_commit();
-
-    static gaia::db::memory_manager::address_offset_t allocate_object(
-        gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
-        size_t size);
 
     static void update_apply_watermark(gaia_txn_id_t);
 

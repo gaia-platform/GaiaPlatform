@@ -7,19 +7,16 @@
 
 #include <cstring>
 
-#include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "retail_assert.hpp"
 #include "se_client.hpp"
 #include "se_hash_map.hpp"
 #include "se_helpers.hpp"
-#include "stack_allocator.hpp"
 #include "triggers.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
-using namespace gaia::db::memory_manager;
 using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id()
@@ -57,11 +54,7 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     // TODO this constructor allows creating a gaia_ptr in an invalid state
     //  the se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
-    hash_node_t* hash_node = se_hash_map::insert(id);
-    size_t object_size = total_len + sizeof(se_object_t);
-    hash_node->locator = allocate_locator();
-    address_offset_t offset = client::allocate_object(hash_node->locator, 0, object_size);
-    gaia_ptr obj(hash_node->locator, offset);
+    gaia_ptr obj(id, total_len + sizeof(se_object_t));
     se_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -106,8 +99,7 @@ void gaia_ptr::clone_no_txn()
 {
     se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(se_object_t) + old_this->payload_size;
-    gaia_offset_t old_offset = to_offset();
-    client::allocate_object(m_locator, old_offset, new_size);
+    allocate(new_size);
     se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
@@ -141,7 +133,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     }
 
     // updates m_locator to point to the new object
-    client::allocate_object(m_locator, old_offset, sizeof(se_object_t) + total_len);
+    allocate(sizeof(se_object_t) + total_len);
 
     se_object_t* new_this = to_ptr();
 
@@ -184,10 +176,17 @@ gaia_ptr::gaia_ptr(gaia_id_t id)
     m_locator = se_hash_map::find(id);
 }
 
-gaia_ptr::gaia_ptr(gaia_locator_t locator, address_offset_t offset)
+gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
 {
-    m_locator = locator;
-    client::txn_log(m_locator, 0, get_gaia_offset(offset), gaia_operation_t::create);
+    hash_node_t* hash_node = se_hash_map::insert(id);
+    hash_node->locator = m_locator = allocate_locator();
+    allocate_object(m_locator, size);
+    client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
+}
+
+void gaia_ptr::allocate(size_t size)
+{
+    allocate_object(m_locator, size);
 }
 
 se_object_t* gaia_ptr::to_ptr() const

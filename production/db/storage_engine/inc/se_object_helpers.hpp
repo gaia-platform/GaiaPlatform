@@ -28,7 +28,7 @@ inline se_object_t* create_object(
     size_t total_len = obj_data_size + ref_len;
     gaia::db::hash_node_t* hash_node = se_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    allocate_object(hash_node->locator, 0, total_len + sizeof(se_object_t));
+    allocate_object(hash_node->locator, total_len + sizeof(se_object_t));
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -49,7 +49,7 @@ inline se_object_t* create_object(
 {
     gaia::db::hash_node_t* hash_node = se_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator, 0, obj_data_size + sizeof(se_object_t));
+    allocate_object(hash_node->locator, obj_data_size + sizeof(se_object_t));
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;

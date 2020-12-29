@@ -24,7 +24,6 @@
 #include "db_types.hpp"
 #include "fd_helpers.hpp"
 #include "generator_iterator.hpp"
-#include "memory_allocation_error.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "retail_assert.hpp"
@@ -40,7 +39,6 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
-using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
@@ -238,22 +236,9 @@ client::get_id_generator_for_type(gaia_type_t type)
     return id_generator;
 }
 
-static void build_client_request(
-    FlatBufferBuilder& builder,
-    session_event_t event,
-    size_t memory_request_size_hint = 0)
+static void build_client_request(FlatBufferBuilder& builder, session_event_t event)
 {
-    flatbuffers::Offset<client_request_t> client_request;
-    if (event == session_event_t::REQUEST_MEMORY || event == session_event_t::BEGIN_TXN)
-    {
-        // Request more memory from the server in case session thread is running low.
-        auto alloc_info = Creatememory_allocation_info_t(builder, 0, memory_request_size_hint);
-        client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
-    }
-    else
-    {
-        client_request = Createclient_request_t(builder, event);
-    }
+    auto client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 }
@@ -427,7 +412,6 @@ void client::begin_session()
     retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
     retail_assert(s_log == nullptr, "Log segment uninitialized");
     retail_assert(s_locators == nullptr, "Locators segment uninitialized");
-    retail_assert(s_current_stack_allocator == nullptr, "No memory should be reserved yet");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -491,19 +475,6 @@ void client::begin_session()
     cleanup_session_socket.dismiss();
 }
 
-void client::load_stack_allocator(const memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr)
-{
-    auto stack_allocator_info = allocation_info->stack_allocator_info();
-
-    // Create and load stack allocator.
-    stack_allocator_t stack_allocator;
-    stack_allocator.load(data_mapping_base_addr, stack_allocator_info->stack_allocator_offset(), stack_allocator_info->stack_allocator_size());
-
-    // Set the current stack allocator.
-    s_current_stack_allocator.reset();
-    s_current_stack_allocator = std::make_unique<stack_allocator_t>(stack_allocator);
-}
-
 void client::end_session()
 {
     // This will gracefully shut down the server-side session thread
@@ -515,7 +486,6 @@ void client::begin_transaction()
 {
     verify_session_active();
     verify_no_txn();
-    retail_assert(s_txn_memory_request_size == c_initial_txn_memory_size_bytes, "Memory request size should have been reset when beginning a new transaction!");
 
     // Map a private COW view of the locator shared memory segment.
     retail_assert(!s_locators, "Locators segment should be uninitialized!");
@@ -525,7 +495,7 @@ void client::begin_transaction()
     });
 
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::BEGIN_TXN, c_initial_txn_memory_size_bytes);
+    build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id and txn logs from the server.
@@ -584,14 +554,6 @@ void client::begin_transaction()
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
-    // Obtain transaction memory allocation information.
-    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
-    if (!allocation_info || !allocation_info->stack_allocator_info())
-    {
-        throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
-    }
-    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
-
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.
     cleanup_stream_socket.dismiss();
@@ -631,10 +593,6 @@ void client::rollback_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset current stack allocator.
-    s_current_stack_allocator.reset();
-    // Reset initial memory allocation size for the current transaction.
-    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -716,90 +674,4 @@ void client::commit_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset current stack allocator.
-    s_current_stack_allocator.reset();
-    // Reset initial memory allocation size for the current transaction.
-    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
-}
-
-void client::request_memory()
-{
-    verify_txn_active();
-
-    FlatBufferBuilder builder;
-    s_txn_memory_request_size = std::min(s_txn_memory_request_size, c_max_memory_request_size_bytes);
-    build_client_request(builder, session_event_t::REQUEST_MEMORY, s_txn_memory_request_size);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Receive memory allocation information from the server.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
-
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
-    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
-
-    retail_assert(allocation_info && allocation_info->stack_allocator_info(), "Failed to fetch memory from the server.");
-    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
-    // Update memory request size for the next request memory call for the current transaction.
-    s_txn_memory_request_size = s_txn_memory_request_size * c_memory_request_size_multiplier;
-}
-
-address_offset_t client::allocate_from_stack_allocator(
-    gaia_locator_t locator,
-    address_offset_t old_slot_offset,
-    size_t size)
-{
-    retail_assert(size != 0, "The client should not deallocate objects directly.");
-    size_t c_max_allocation_attempts = 2;
-    address_offset_t allocated_memory_offset = c_invalid_offset;
-    // We should only need two attempts to allocate memory.
-    // If more than two attempts are required then it means that the newly obtained free stack allocator
-    // doesn't have enough memory for the current object - which should not happen.
-    for (size_t allocation_attempt = 0; allocation_attempt < c_max_allocation_attempts; allocation_attempt++)
-    {
-        // Fetch a new stack allocator from the server if none is assigned to the client.
-        if (!s_current_stack_allocator)
-        {
-            client::request_memory();
-        }
-
-        if (!s_current_stack_allocator)
-        {
-            throw memory_allocation_error("Unable to obtain memory from server.");
-        }
-
-        // Try allocating memory from the current stack allocator.
-        allocated_memory_offset = s_current_stack_allocator->allocate(locator, old_slot_offset, size);
-
-        // If the first allocator no longer has sufficient memory for the current object,
-        // we will have to stop using it and start using the next available allocator.
-        if (allocated_memory_offset == c_invalid_offset)
-        {
-            s_current_stack_allocator.reset();
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
-
-    return allocated_memory_offset;
-}
-
-address_offset_t client::allocate_object(
-    gaia_locator_t locator,
-    address_offset_t old_slot_offset,
-    size_t size)
-{
-    address_offset_t allocated_memory_offset = allocate_from_stack_allocator(locator, old_slot_offset, size);
-
-    // Update locator array to point to the new offset.
-    update_locator(locator, allocated_memory_offset);
-
-    return allocated_memory_offset;
 }

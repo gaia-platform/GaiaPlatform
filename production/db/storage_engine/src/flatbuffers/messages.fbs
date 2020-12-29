@@ -22,7 +22,6 @@ enum session_event_t: uint8 {
     DECIDE_TXN_COMMIT,
     DECIDE_TXN_ABORT,
     REQUEST_STREAM,
-    REQUEST_MEMORY,
 }
 
 // FlatBuffers doesn't allow scalar fields in a union.
@@ -32,7 +31,6 @@ table table_scan_info_t {
 
 union request_data_t {
     table_scan: table_scan_info_t,
-    memory_info: memory_allocation_info_t,
 }
 
 table client_request_t {
@@ -40,19 +38,8 @@ table client_request_t {
     data: request_data_t;
 }
 
-table stack_allocator_info_t {
-    stack_allocator_offset: uint64;
-    stack_allocator_size: uint64;
-}
-
-table memory_allocation_info_t {
-    stack_allocator_info: stack_allocator_info_t;
-    memory_request_size_hint: uint64;
-}
-
 table transaction_info_t {
     transaction_id: uint64;
-    memory_allocation_info: memory_allocation_info_t;
 }
 
 union reply_data_t {

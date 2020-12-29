@@ -12,7 +12,6 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}
   ${GAIA_INTERNAL_INC}/catalog
   ${GAIA_INTERNAL_INC}/common

@@ -10,8 +10,6 @@
 #include "gaia/exception.hpp"
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
-#include "memory_manager.hpp"
-#include "memory_types.hpp"
 #include "retail_assert.hpp"
 #include "se_object.hpp"
 #include "se_shared_data.hpp"
@@ -60,32 +58,18 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&counters->last_locator, 1);
 }
 
-inline size_t get_gaia_alignment_unit()
-{
-    return sizeof(uint64_t);
-}
-
-inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
-{
-    return offset / get_gaia_alignment_unit();
-}
-
-inline gaia::db::memory_manager::address_offset_t get_address_offset(gaia_offset_t offset)
-{
-    return offset * get_gaia_alignment_unit();
-}
-
-inline void update_locator(
-    gaia_locator_t locator,
-    gaia::db::memory_manager::address_offset_t offset)
+inline void allocate_object(gaia_locator_t locator, size_t size)
 {
     locators_t* locators = gaia::db::get_shared_locators();
-    if (!locators)
+    shared_data_t* data = gaia::db::get_shared_data();
+    if (data->objects[0] >= std::size(data->objects))
     {
-        throw no_open_transaction();
+        throw oom();
     }
-
-    (*locators)[locator] = get_gaia_offset(offset);
+    // We use the first 64-bit word in the data array for the next available
+    // offset, so we need to return the end of the previous allocation as the
+    // current allocation's offset and add 1 to account for the first word.
+    (*locators)[locator] = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(int64_t) - 1) / sizeof(int64_t));
 }
 
 inline bool locator_exists(gaia_locator_t locator)
