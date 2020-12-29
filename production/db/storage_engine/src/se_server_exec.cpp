@@ -18,6 +18,8 @@ static void usage()
         << "Usage: gaia_se_server ["
         << gaia::db::server::c_disable_persistence_flag
         << " | "
+        << gaia::db::server::c_disable_persistence_after_recovery_flag
+        << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag
         << "]"
         << std::endl
@@ -27,8 +29,7 @@ static void usage()
 
 int main(int argc, char* argv[])
 {
-    bool disable_persistence = false;
-    bool reinitialize_persistent_store = false;
+    server::persistence_mode_t persistence_mode{server::persistence_mode_t::e_default};
 
     // We currently accept only one argument.
     if (argc > 2)
@@ -44,11 +45,15 @@ int main(int argc, char* argv[])
     {
         if (strcmp(argv[i], gaia::db::server::c_disable_persistence_flag) == 0)
         {
-            disable_persistence = true;
+            persistence_mode = server::persistence_mode_t::e_disabled;
+        }
+        else if (strcmp(argv[i], gaia::db::server::c_disable_persistence_after_recovery_flag) == 0)
+        {
+            persistence_mode = server::persistence_mode_t::e_disabled_after_recovery;
         }
         else if (strcmp(argv[i], gaia::db::server::c_reinitialize_persistent_store_flag) == 0)
         {
-            reinitialize_persistent_store = true;
+            persistence_mode = server::persistence_mode_t::e_reinitialized_on_startup;
         }
         else
         {
@@ -60,5 +65,5 @@ int main(int argc, char* argv[])
         }
     }
 
-    gaia::db::server::run(disable_persistence, reinitialize_persistent_store);
+    gaia::db::server::run(persistence_mode);
 }
