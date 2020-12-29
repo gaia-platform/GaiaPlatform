@@ -69,16 +69,9 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
-# Perform a special library lookup for libexplain and its dependency libcap.
-# We will use the static version of the libexplain when doing the SDK build.
-message(CHECK_START "Looking for libexplain and libcap")
-if(BUILD_GAIA_RELEASE)
-  find_library(LIB_EXPLAIN NAMES libexplain.a)
-  find_library(LIB_CAP NAMES libcap.a cap)
-else()
-  find_library(LIB_EXPLAIN NAMES explain)
-  find_library(LIB_CAP NAMES cap)
-endif()
+find_library(LIB_EXPLAIN NAMES libexplain.a)
+find_library(LIB_CAP NAMES libcap.a cap)
+
 if (LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
