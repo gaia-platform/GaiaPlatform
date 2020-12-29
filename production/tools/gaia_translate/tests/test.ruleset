@@ -4,45 +4,47 @@ int g_insert_called = 0;
 int g_update_called = 0;
 int g_actuator_rule_called = 0;
 int g_delete_called = 0;
+bool correct_gaia_id = false;
 
 ruleset test
 {
- {
-   max_temp = sensor.value+4;
-   if (@actuator.value > 0)
-   {
-   	g_actuator_rule_called ++;
-   }
+    {
+        max_temp = sensor.value + 4;
+        if (@actuator.value > 0)
+        {
+            g_actuator_rule_called++;
+        }
 
-   if (sensor.LastOperation == INSERT)
-   {
-   	g_insert_called ++;
-   }
+        if (sensor.LastOperation == INSERT)
+        {
+            g_insert_called++;
+        }
 
-   if (sensor.LastOperation == UPDATE)
-   {
-   	if (sensor.value > 5)
-   	{
-   		actuator.value = 1000;
-   	}
-   	g_update_called ++;
-   }
-   g_rule_called ++;
- }
+        if (sensor.LastOperation == UPDATE)
+        {
+            if (sensor.value > 5)
+            {
+                actuator.value = 1000;
+            }
+            g_update_called++;
+        }
+        g_rule_called++;
+    }
 }
 
 ruleset test1
 {
-  {
-   switch (sensor.LastOperation )
-   {
-     case DELETE:
-      g_delete_called ++;
-      break;
-      default:
-      break;
-   }
-  }
+    {
+        switch (sensor.LastOperation)
+        {
+        case DELETE:
+            g_delete_called++;
+            break;
+        default:
+            break;
+        }
+        correct_gaia_id = sensor.gaia_id() != 0;
+    }
 }
 
 ruleset test2
