@@ -172,6 +172,10 @@ void fill_table_db_data(catalog::gaia_table_t& table)
 unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 {
     unordered_map<string, unordered_map<string, field_data_t>> return_value;
+    if (g_generation_error)
+    {
+        return return_value;
+    }
     try
     {
         db_monitor monitor;
@@ -193,10 +197,10 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
-            field_data_t g_field_data;
-            g_field_data.is_active = field.active();
-            g_field_data.position = field.position();
-            fields[field.name()] = g_field_data;
+            field_data_t field_data;
+            field_data.is_active = field.active();
+            field_data.position = field.position();
+            fields[field.name()] = field_data;
             return_value[tbl.name()] = fields;
             fill_table_db_data(tbl);
         }
@@ -592,6 +596,16 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
 
 void generate_rules(Rewriter& rewriter)
 {
+    if (g_field_data.empty())
+    {
+        g_field_data = get_table_data();
+    }
+
+    if (g_generation_error)
+    {
+        return;
+    }
+
     if (g_current_rule_declaration == nullptr)
     {
         return;
@@ -686,8 +700,8 @@ void generate_rules(Rewriter& rewriter)
                     return;
                 }
 
-                field_data_t g_field_data = fields[field];
-                if (!g_field_data.is_active)
+                field_data_t field_data = fields[field];
+                if (!field_data.is_active)
                 {
                     llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
                     g_generation_error = true;
@@ -695,7 +709,7 @@ void generate_rules(Rewriter& rewriter)
                 }
 
                 field_subscription_code
-                    += "    fields_" + rule_name + ".push_back(" + to_string(g_field_data.position) + ");\n";
+                    += "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
             }
         }
 
@@ -1375,6 +1389,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("UPDATE");
         if (exp != nullptr)
         {
@@ -1397,6 +1415,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("INSERT");
         if (exp != nullptr)
         {
@@ -1419,6 +1441,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("DELETE");
         if (exp != nullptr)
         {
@@ -1441,6 +1467,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("NONE");
         if (exp != nullptr)
         {
@@ -1459,6 +1489,10 @@ class last_operation_comparison_handler_t : public MatchFinder::MatchCallback
 public:
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         if (g_delete_operation_in_rule)
         {
             return;
@@ -1559,6 +1593,47 @@ public:
     }
 };
 
+class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto *variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
+        if (variable_declaration != nullptr)
+        {
+            const auto variable_name = variable_declaration->getNameAsString();
+            if (variable_name != "")
+            {
+                if (g_field_data.empty())
+                {
+                    g_field_data = get_table_data();
+                }
+
+                if (g_generation_error)
+                {
+                    return;
+                }
+
+                if (g_field_data.find(variable_name) != g_field_data.end())
+                {
+                    llvm::errs() << "Local variable declaration "<< variable_name << " hides catalog table entity of the same name.\n";
+                    return;
+                }
+
+                for (auto table_data : g_field_data)
+                {
+                    if (table_data.second.find(variable_name) != table_data.second.end())
+                    {
+                        llvm::errs() << "Local variable declaration "<< variable_name << " hides catalog field entity of the same name.\n";
+                        return;
+                    }
+                }
+            }
+        }
+    }
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1573,6 +1648,7 @@ public:
         , m_delete_match_handler(r)
         , m_none_match_handler(r)
     {
+        DeclarationMatcher variable_declaration_matcher = varDecl().bind("varDeclaration");
         StatementMatcher gaia_id_call_matcher
             = cxxMemberCallExpr(
                 on(declRefExpr(
@@ -1707,6 +1783,7 @@ public:
 
         m_matcher.addMatcher(function_call_matcher, &m_delete_row_function_call_handler);
         m_matcher.addMatcher(gaia_id_call_matcher, &m_gaia_id_call_handler);
+        m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -1730,6 +1807,7 @@ private:
     last_operation_if_handler_t m_last_operation_if_handler;
     function_call_handler_t m_delete_row_function_call_handler;
     gaia_id_call_handler_t m_gaia_id_call_handler;
+    variable_declaration_match_handler_t m_variable_declaration_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
@@ -1794,23 +1872,22 @@ private:
 
 int main(int argc, const char** argv)
 {
-    g_field_data = get_table_data();
-    if (!g_generation_error)
+    // Parse the command-line args passed to your code.
+    CommonOptionsParser op(argc, argv, g_translation_engine_category);
+    if (g_translation_engine_verbose_option)
     {
-        // Parse the command-line args passed to your code.
-        CommonOptionsParser op(argc, argv, g_translation_engine_category);
-        if (g_translation_engine_verbose_option)
-        {
-            g_verbose = true;
-        }
-        // Create a new Clang Tool instance (a LibTooling environment).
-        ClangTool tool(op.getCompilations(), op.getSourcePathList());
-        tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-        int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
-        if (result == 0 && !g_generation_error)
-        {
-            return EXIT_SUCCESS;
-        }
+        g_verbose = true;
     }
-    return EXIT_FAILURE;
+    // Create a new Clang Tool instance (a LibTooling environment).
+    ClangTool tool(op.getCompilations(), op.getSourcePathList());
+    tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
+    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    if (result == 0 && !g_generation_error)
+    {
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        return EXIT_FAILURE;
+    }
 }
