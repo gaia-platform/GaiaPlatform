@@ -1648,7 +1648,11 @@ public:
         , m_delete_match_handler(r)
         , m_none_match_handler(r)
     {
-        DeclarationMatcher variable_declaration_matcher = varDecl().bind("varDeclaration");
+        DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
+        DeclarationMatcher rule_matcher = functionDecl(allOf(
+            hasAncestor(ruleset_matcher),
+            hasAttr(attr::Rule))).bind("ruleDecl");
+        DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
         StatementMatcher gaia_id_call_matcher
             = cxxMemberCallExpr(
                 on(declRefExpr(
@@ -1717,8 +1721,6 @@ public:
                       isAssignmentOperator(),
                       hasLHS(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldSet");
-        DeclarationMatcher rule_matcher = functionDecl(hasAttr(attr::Rule)).bind("ruleDecl");
-        DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         StatementMatcher field_unary_operator_matcher
             = unaryOperator(
                   allOf(
