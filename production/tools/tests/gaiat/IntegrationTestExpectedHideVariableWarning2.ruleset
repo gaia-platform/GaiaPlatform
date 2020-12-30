@@ -11,4 +11,4 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration incubator hides catalog table entity of the same name.
+// CHECK: Local variable declaration incubator hides database table of the same name.

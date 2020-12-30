@@ -1617,7 +1617,7 @@ public:
 
                 if (g_field_data.find(variable_name) != g_field_data.end())
                 {
-                    llvm::errs() << "Local variable declaration "<< variable_name << " hides catalog table entity of the same name.\n";
+                    llvm::errs() << "Local variable declaration "<< variable_name << " hides database table of the same name.\n";
                     return;
                 }
 
