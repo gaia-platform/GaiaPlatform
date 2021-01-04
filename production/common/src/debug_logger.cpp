@@ -31,7 +31,7 @@ debug_logger_t::debug_logger_t(const std::string& logger_name)
 // reference to it.
 void set_re_stats(logger_t* logger_ptr)
 {
-    logger_manager_t::get().m_re_stats_logger.reset(logger_ptr);
+    logger_manager_t::get().m_rules_stats_logger.reset(logger_ptr);
 }
 
 } // namespace gaia::common::logging

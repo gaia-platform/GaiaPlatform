@@ -89,10 +89,10 @@ logger_t& db();
 logger_t& catalog();
 
 /** Rule engine */
-logger_t& re();
+logger_t& rules();
 
 /** Rule engine stats */
-logger_t& re_stats();
+logger_t& rules_stats();
 
 /*@}*/
 } // namespace logging

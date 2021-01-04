@@ -74,7 +74,7 @@ void rule_stats_t::log(const char* stats_format, T_param first_param)
     auto avg_latency = count_executed ? static_cast<float>(total_rule_invocation_latency / count_executed) : 0.0;
     auto avg_execution_time = count_executed ? static_cast<float>(total_rule_execution_time / count_executed) : 0.0;
 
-    gaia_log::re_stats().info(
+    gaia_log::rules_stats().info(
         stats_format, first_param, count_scheduled, count_executed, count_pending, count_abandoned, count_retries,
         count_exceptions, gaia::common::timer_t::ns_to_ms(avg_latency),
         gaia::common::timer_t::ns_to_ms(max_rule_invocation_latency),

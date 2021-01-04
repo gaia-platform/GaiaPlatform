@@ -45,7 +45,7 @@ namespace logging
  * - https://github.com/gabime/spdlog
  * - https://github.com/guangie88/spdlog_setup
  *
- * The logging configuration file location can be customized from gaia.conf.
+ * The logging configuration file location can be specified in gaia::system::initialize().
  *
  * \addtogroup Logging
  * @{

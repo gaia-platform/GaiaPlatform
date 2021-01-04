@@ -52,9 +52,9 @@ bool logger_manager_t::init_logging(const string& config_path)
 
     m_sys_logger = shared_ptr<logger_t>(new internal_logger_t(c_sys_logger));
     m_db_logger = shared_ptr<logger_t>(new internal_logger_t(c_db_logger));
-    m_re_logger = shared_ptr<logger_t>(new internal_logger_t(c_re_logger));
+    m_rules_logger = shared_ptr<logger_t>(new internal_logger_t(c_rules_logger));
     m_catalog_logger = shared_ptr<logger_t>(new internal_logger_t(c_catalog_logger));
-    m_re_stats_logger = shared_ptr<logger_t>(new internal_logger_t(c_re_stats_logger));
+    m_rules_stats_logger = shared_ptr<logger_t>(new internal_logger_t(c_rules_stats_logger));
     m_app_logger = shared_ptr<logger_t>(new internal_logger_t(c_app_logger));
 
     m_is_log_initialized = true;
@@ -78,8 +78,8 @@ bool logger_manager_t::stop_logging()
     m_catalog_logger = nullptr;
     m_db_logger = nullptr;
     m_sys_logger = nullptr;
-    m_re_logger = nullptr;
-    m_re_stats_logger = nullptr;
+    m_rules_logger = nullptr;
+    m_rules_stats_logger = nullptr;
     m_app_logger = nullptr;
 
     spdlog::shutdown();

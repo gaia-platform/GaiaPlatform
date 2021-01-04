@@ -56,9 +56,9 @@ logger_t& db()
     return logger_manager_t::get().db_logger();
 }
 
-logger_t& re()
+logger_t& rules()
 {
-    return logger_manager_t::get().re_logger();
+    return logger_manager_t::get().rules_logger();
 }
 
 logger_t& catalog()
@@ -69,9 +69,9 @@ logger_t& catalog()
 //
 // Stats loggers.
 //
-logger_t& re_stats()
+logger_t& rules_stats()
 {
-    return logger_manager_t::get().re_stats_logger();
+    return logger_manager_t::get().rules_stats_logger();
 }
 
 logger_t& app()
