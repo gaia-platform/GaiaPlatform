@@ -10,7 +10,7 @@ project(rules_schema)
 
 add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_event_log.h
-  COMMAND ${GAIA_GENERATE} -destroy_db -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} -g -d event_log
+  COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} -g -d event_log
   DEPENDS gaiac
   COMMENT "Generated event_log direct access APIs..."
 )

@@ -3,13 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-#include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -22,7 +20,6 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 
 using namespace std;

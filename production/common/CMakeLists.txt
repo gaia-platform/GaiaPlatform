@@ -36,6 +36,7 @@ target_link_libraries(gaia_common cpptoml)
 target_link_libraries(gaia_common fmt)
 target_link_libraries(gaia_common spdlog)
 target_link_libraries(gaia_common spdlog_setup)
+target_link_libraries(gaia_common stdc++fs)
 
 # SYSLOG logging is temporarily disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
 # (To enable syslog logging -DSPDLOG_ENABLE_SYSLOG)
