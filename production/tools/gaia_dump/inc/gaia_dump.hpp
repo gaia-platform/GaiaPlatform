@@ -6,8 +6,11 @@
 #pragma once
 
 #include <iostream>
+
 #include "gaia_ptr.hpp"
 
 using namespace std;
 
-string gaia_dump(gaia_id_t, gaia_id_t, bool, bool, bool, int&);
+typedef vector<gaia_id_t> type_vector;
+
+string gaia_dump(gaia_id_t, gaia_id_t, bool, bool, bool, int, type_vector);

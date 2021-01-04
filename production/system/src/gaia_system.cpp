@@ -6,6 +6,7 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
+#include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 #include "cpptoml.h"
@@ -24,58 +25,85 @@ namespace gaia
 namespace system
 {
 
-// The system library will read the system level keys.
-// Subsystems should manage their own keys and section names.
-// See gaia.conf file for expected section and key names.
-shared_ptr<cpptoml::table> parse_system_settings(
-    const char* gaia_config_file,
-    string& logger_config_file)
+bool file_exists(const char* filename)
 {
-    static const char* c_system_section = "System";
-    static const char* c_logger_config_key = "logger_config";
-    shared_ptr<cpptoml::table> root_config;
+    ifstream the_file(filename);
+    return static_cast<bool>(the_file);
+}
 
-    if (!gaia_config_file)
+void error_if_not_exists(const char* filename)
+{
+    if (!file_exists(filename))
     {
-        return root_config;
+        throw configuration_error(filename);
+    }
+}
+
+string get_default_conf_file(const char* default_filename)
+{
+    // Default locations for log files are placed under/opt/gaia/etc/
+    static const char* c_default_conf_directory = "/opt/gaia/etc/";
+    string str = c_default_conf_directory;
+    str.append(default_filename);
+
+    if (!file_exists(str.c_str()))
+    {
+        // Okay, just return an empty string then.
+        str.clear();
     }
 
-    root_config = cpptoml::parse_file(gaia_config_file);
-    if (!root_config)
+    return str;
+}
+
+// If the user passed in a filename, then throw an exception if it does not exist.
+// If the user did not pass in a filename, then look under /opt/gaia/etc/ for the
+// file and see if that exists.  If that file doesn't exist, then continue on
+// without throwing an exception.  Components can initialize themselves with
+// appropriate defaults.
+string get_conf_file(const char* user_filename, const char* default_filename)
+{
+    string str;
+
+    if (user_filename)
     {
-        return root_config;
+        error_if_not_exists(user_filename);
+        str = user_filename;
+    }
+    else
+    {
+        str = get_default_conf_file(default_filename);
     }
 
-    shared_ptr<cpptoml::table> system_config = root_config->get_table(c_system_section);
-    if (system_config)
-    {
-        auto logger_config_setting = system_config->get_as<string>(c_logger_config_key);
-        if (logger_config_setting)
-        {
-            logger_config_file = *logger_config_setting;
-        }
-    }
-
-    return root_config;
+    return str;
 }
 
 } // namespace system
 } // namespace gaia
 
-void gaia::system::initialize(const char* gaia_config_file)
+void gaia::system::initialize(const char* gaia_config_file, const char* logger_config_file)
 {
-    string logger_config_file;
+    // Default locations for log files are placed under/opt/gaia/etc/
+    static const char* c_default_gaia_conf = "gaia.conf";
+    static const char* c_default_logger_conf = "gaia_log.conf";
     bool db_initialized = false;
+    shared_ptr<cpptoml::table> root_config;
 
-    shared_ptr<cpptoml::table> root_config = parse_system_settings(gaia_config_file, logger_config_file);
+    string gaia_config_str = get_conf_file(gaia_config_file, c_default_gaia_conf);
+    string logger_config_str = get_conf_file(logger_config_file, c_default_logger_conf);
+
+    if (!gaia_config_str.empty())
+    {
+        root_config = cpptoml::parse_file(gaia_config_str);
+    }
 
     // This root_config can be in one of three states that must be handled by component initialization functions.
-    // 1) Null:  The underlying table pointer is null because no configuration file was passed in.
+    // 1) Null:  No configuration file was passed in and no default could be found.
     // 2) Empty: There is an underlying table but there were no sections or keys in it.
     // 3) Populated:  Underlying table was parsed and there are sections and keys.
 
     // Init logging first so components have a chance to output any errors they encounter.
-    gaia_log::initialize(logger_config_file);
+    // It is safe to pass this an empty string.
+    gaia_log::initialize(logger_config_str);
 
     // If we fail from this point forward then be sure to cleanup already initialized components.
     auto cleanup_init_state = make_scope_guard([db_initialized] {

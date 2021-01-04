@@ -8,8 +8,6 @@
 
 #include "gaia/rules/rules.hpp"
 #include "db_catalog_test_base.hpp"
-#include "db_test_base.hpp"
-#include "ddl_execution.hpp"
 #include "gaia_barn_storage.h"
 
 using namespace std;
@@ -21,6 +19,7 @@ extern int g_insert_called;
 extern int g_update_called;
 extern int g_delete_called;
 extern int g_actuator_rule_called;
+extern bool correct_gaia_id;
 const int c_g_rule_execution_delay = 50000;
 const float c_g_incubator_min_temperature = 99.0;
 const float c_g_incubator_max_temperature = 102.0;
@@ -157,4 +156,5 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     usleep(c_g_rule_execution_delay * 5);
 
     EXPECT_EQ(g_delete_called, 1);
+    EXPECT_EQ(correct_gaia_id, true);
 }

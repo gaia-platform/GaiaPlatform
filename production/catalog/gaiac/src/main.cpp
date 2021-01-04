@@ -147,18 +147,18 @@ string usage()
 {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -p          Print parsing trace.\n"
-          "  -s          Print scanning trace.\n"
-          "  -d <dbname> Set the database name.\n"
-          "  -i          Interactive prompt, as a REPL.\n"
-          "  -g          Generate fbs and gaia headers.\n"
-          "  -o <path>   Set the path to all generated files.\n"
-          "  -t          Start the SE server (for testing purposes).\n"
-          "  -h          Print help information.\n"
-          "  -destroy_db Destroy the persistent store.\n"
-          "  <ddl_file>  Process the DDLs in the file.\n"
-          "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-          "              The database will be created automatically.\n";
+          "  -d|--db-name <dbname>    Specify the database name.\n"
+          "  -i|--interactive         Interactive prompt, as a REPL.\n"
+          "  -g|--generate            Generate fbs and gaia headers.\n"
+          "  -o|--output <path>       Set the path to all generated files.\n"
+          "  -t|--db-server-path      Start the Gaia DB server (for testing purposes).\n"
+          "  -p|--parse-trace         Print parsing trace.\n"
+          "  -s|--scan-trace          Print scanning trace.\n"
+          "  --destroy-db             Destroy the persistent store.\n"
+          "  <ddl_file>               Process the DDLs in the file.\n"
+          "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+          "                           The database will be created automatically.\n"
+          "  -h|--help                Print help information.\n";
     return ss.str();
 }
 
@@ -196,23 +196,23 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i < argc; ++i)
     {
-        if (argv[i] == string("-p"))
+        if (argv[i] == string("-p") || argv[i] == string("--parse-trace"))
         {
             parser.trace_parsing = true;
         }
-        else if (argv[i] == string("-s"))
+        else if (argv[i] == string("-s") || argv[i] == string("--scan-trace"))
         {
             parser.trace_scanning = true;
         }
-        else if (argv[i] == string("-i"))
+        else if (argv[i] == string("-i") || argv[i] == string("--interactive"))
         {
             mode = operate_mode_t::interactive;
         }
-        else if (argv[i] == string("-g"))
+        else if (argv[i] == string("-g") || argv[i] == string("--generate"))
         {
             mode = operate_mode_t::generation;
         }
-        else if (argv[i] == string("-t"))
+        else if (argv[i] == string("-t") || argv[i] == string("--db-server-path"))
         {
             if (++i > argc)
             {
@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
                 server.start_and_retain_persistent_store();
             }
         }
-        else if (argv[i] == string("-o"))
+        else if (argv[i] == string("-o") || argv[i] == string("--output"))
         {
             if (++i > argc)
             {
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
             output_path = argv[i];
             terminate_path(output_path);
         }
-        else if (argv[i] == string("-d"))
+        else if (argv[i] == string("-d") || argv[i] == string("--db-name"))
         {
             if (++i > argc)
             {
@@ -249,12 +249,12 @@ int main(int argc, char* argv[])
             }
             db_name = argv[i];
         }
-        else if (argv[i] == string("-h"))
+        else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
             cout << usage() << endl;
             exit(EXIT_SUCCESS);
         }
-        else if (argv[i] == string("-destroy_db"))
+        else if (argv[i] == string("--destroy-db"))
         {
             remove_persistent_store = true;
         }

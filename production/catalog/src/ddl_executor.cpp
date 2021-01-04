@@ -434,7 +434,7 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
     }
 }
 
-reference_offset_t ddl_executor_t::find_parent_available_offset(const parent_gaia_relationship_list_t& relationships)
+reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::parent_gaia_relationship_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -456,7 +456,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const parent_gai
     return next_available_offset;
 }
 
-reference_offset_t ddl_executor_t::find_child_available_offset(const child_gaia_relationship_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::child_gaia_relationship_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {

@@ -43,7 +43,7 @@ TEST(sdk_test, app_check)
 
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
-    gaia::system::initialize("./gaia.conf");
+    gaia::system::initialize("./gaia.conf", "./gaia_log.conf");
 
     EXPECT_EQ(g_initialize_rules_called, 1);
     gaia_type_t type_id = gaia::addr_book::employee_t::s_gaia_type;
