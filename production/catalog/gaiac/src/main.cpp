@@ -147,7 +147,7 @@ string usage()
 {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -d|--db-name <dbname>    Set the database name.\n"
+          "  -d|--db-name <dbname>    Specify the database name.\n"
           "  -i|--interactive         Interactive prompt, as a REPL.\n"
           "  -g|--generate            Generate fbs and gaia headers.\n"
           "  -o|--output <path>       Set the path to all generated files.\n"
