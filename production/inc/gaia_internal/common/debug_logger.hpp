@@ -40,7 +40,7 @@ private:
 /**
  * Allow overriding the rule_stats logger explicitly.
  */
-void set_re_stats(logger_t* logger);
+void set_rules_stats(logger_t* logger);
 
 } // namespace logging
 } // namespace common

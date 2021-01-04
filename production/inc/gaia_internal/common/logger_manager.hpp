@@ -122,7 +122,7 @@ private:
 
     // Allow debug code to override a well-known logger.  Currently
     // only the rule stats tests do this.
-    friend void gaia_log::set_re_stats(logger_t* logger);
+    friend void gaia_log::set_rules_stats(logger_t* logger);
 
 private:
     std::mutex m_log_init_mutex;
