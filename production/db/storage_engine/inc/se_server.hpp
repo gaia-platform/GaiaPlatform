@@ -53,9 +53,17 @@ class server
         size_t size);
 
 public:
-    static void run(bool disable_persistence = false, bool reinitialize_persistent_store = false);
+    enum class persistence_mode_t : uint8_t
+    {
+        e_default,
+        e_disabled,
+        e_disabled_after_recovery,
+        e_reinitialized_on_startup,
+    };
+    static void run(persistence_mode_t persistence_mode = persistence_mode_t::e_default);
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
+    static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
     static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 private:
@@ -64,6 +72,8 @@ private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
     static inline int s_server_shutdown_eventfd = -1;
+    // These thread objects are owned by the client dispatch thread.
+    static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
     static inline int s_fd_locators = -1;
     static inline locators_t* s_shared_locators = nullptr;
@@ -81,9 +91,11 @@ private:
     thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
+    // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
-    static inline bool s_disable_persistence = false;
-    static inline bool s_reinitialize_persistent_store = false;
+
+    static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
+
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
 
     // Keeps track of stack allocators belonging to the current transaction executing on this thread.

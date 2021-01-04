@@ -14,43 +14,43 @@ rule_stats_manager_t::rule_stats_manager_t(
     size_t count_threads,
     uint32_t stats_log_interval)
     : m_scheduler_stats(stats_log_interval, count_threads)
+    , m_exit(false)
 {
     m_rule_stats_enabled = enable_rule_stats;
     m_count_entries_logged = 0;
-    s_keep_logging = true;
     if (stats_log_interval)
     {
-        thread logger_thread = thread(&rule_stats_manager_t::log_stats_thread_fn, this, stats_log_interval);
-        logger_thread.detach();
+        m_logger_thread = thread(&rule_stats_manager_t::log_stats_thread_fn, this, stats_log_interval);
     }
 }
 
 rule_stats_manager_t::~rule_stats_manager_t()
 {
-    // Signal the logger thread that it should stop logging.  Note that we don't join
-    // the thread because we don't want to wait for the log_interval to expire before allowing
-    // the process to exit.  But in the case where someone does an init/shutdown/init we only
-    // want a single logger thread around.
-    unique_lock lock(s_logging_lock);
-    s_keep_logging = false;
+    if (m_logger_thread.joinable())
+    {
+        unique_lock lock(m_logging_lock);
+        m_exit = true;
+        lock.unlock();
+        m_exit_signal.notify_one();
+        m_logger_thread.join();
+    }
 }
 
 void rule_stats_manager_t::log_stats_thread_fn(uint32_t log_interval)
 {
+
     std::chrono::seconds interval(log_interval);
 
     // Keep running as long as the rules engine is initialized.
-    while (s_keep_logging)
+    while (true)
     {
-        std::this_thread::sleep_for(interval);
-        if (s_keep_logging)
+        unique_lock lock(m_logging_lock);
+        m_exit_signal.wait_for(lock, interval, [this] { return m_exit; });
+        if (m_exit)
         {
-            unique_lock lock(s_logging_lock);
-            if (s_keep_logging)
-            {
-                log_stats();
-            }
+            break;
         }
+        log_stats();
     }
 }
 

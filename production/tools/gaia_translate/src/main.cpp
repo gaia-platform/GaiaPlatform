@@ -42,6 +42,8 @@ bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 bool g_delete_operation_in_rule = false;
 const int c_declaration_to_ruleset_offset = -2;
+bool g_function_call_in_rule = false;
+vector<SourceRange> g_gaia_id_call_locations;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -355,8 +357,13 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
 navigation_code_data_t generate_navigation_code(string anchor_table)
 {
     navigation_code_data_t return_value;
-    return_value.prefix = "\nauto " + anchor_table
-        + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
+    // no need to generate navigation code for a rule with LastOperation DELETE
+    if (!g_delete_operation_in_rule)
+    {
+        return_value.prefix = "\nauto " + anchor_table
+            + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
+    }
+
     //single table used in the rule
     if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
     {
@@ -593,6 +600,22 @@ void generate_rules(Rewriter& rewriter)
         return;
     }
 
+    if (g_delete_operation_in_rule)
+    {
+        if (g_function_call_in_rule)
+        {
+            llvm::errs() <<
+                "Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
+            g_generation_error = true;
+            return;
+        }
+
+        for (const auto &location : g_gaia_id_call_locations)
+        {
+            rewriter.ReplaceText(location, "context->record");
+        }
+    }
+
     string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
     for (auto fd : g_active_fields)
@@ -682,6 +705,14 @@ void generate_rules(Rewriter& rewriter)
 
         g_current_ruleset_subscription += common_subscription_code;
         g_current_ruleset_unsubscription += common_subscription_code;
+
+        if (g_delete_operation_in_rule && fd.second.size() > 1)
+        {
+            llvm::errs() <<
+                "Referencing fields of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
+            g_generation_error = true;
+            return;
+        }
 
         if (contains_fields)
         {
@@ -796,6 +827,8 @@ void generate_rules(Rewriter& rewriter)
 
         rule_count++;
     }
+
+
 }
 
 class field_get_match_handler_t : public MatchFinder::MatchCallback
@@ -1255,6 +1288,8 @@ public:
         g_used_tables.clear();
         g_active_fields.clear();
         g_delete_operation_in_rule = false;
+        g_function_call_in_rule = false;
+        g_gaia_id_call_locations.clear();
     }
 
 private:
@@ -1495,6 +1530,32 @@ public:
     }
 };
 
+class function_call_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        g_function_call_in_rule = true;
+    }
+};
+
+class gaia_id_call_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_generation_error)
+        {
+            return;
+        }
+        const auto* exp = result.Nodes.getNodeAs<CXXMemberCallExpr>("gaia_id_call");
+        if (exp != nullptr)
+        {
+            g_gaia_id_call_locations.emplace_back(SourceRange(exp->getBeginLoc(), exp->getEndLoc()));
+        }
+    }
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1509,6 +1570,21 @@ public:
         , m_delete_match_handler(r)
         , m_none_match_handler(r)
     {
+        StatementMatcher gaia_id_call_matcher
+            = cxxMemberCallExpr(
+                on(declRefExpr(
+                      to(varDecl(
+                          hasAttr(attr::FieldTable))))),
+                callee(cxxMethodDecl(hasName("gaia_id"))))
+                .bind("gaia_id_call");
+        StatementMatcher function_call_matcher
+            = cxxMemberCallExpr(
+                on(declRefExpr(
+                      to(varDecl(
+                          hasAttr(attr::FieldTable))))),
+                callee(cxxMethodDecl(hasName("delete_row"))))
+                .bind("delete_row_call");
+
         StatementMatcher last_operation_switch_matcher
             = switchStmt(allOf(
                              hasCondition(expr(ignoringParenImpCasts(memberExpr(
@@ -1625,6 +1701,9 @@ public:
         m_matcher.addMatcher(insert_matcher, &m_insert_match_handler);
         m_matcher.addMatcher(delete_matcher, &m_delete_match_handler);
         m_matcher.addMatcher(none_matcher, &m_none_match_handler);
+
+        m_matcher.addMatcher(function_call_matcher, &m_delete_row_function_call_handler);
+        m_matcher.addMatcher(gaia_id_call_matcher, &m_gaia_id_call_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -1646,6 +1725,8 @@ private:
     last_operation_comparison_handler_t m_last_operation_comparison_handler;
     last_operation_switch_handler_t m_last_operation_switch_handler;
     last_operation_if_handler_t m_last_operation_if_handler;
+    function_call_handler_t m_delete_row_function_call_handler;
+    gaia_id_call_handler_t m_gaia_id_call_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
