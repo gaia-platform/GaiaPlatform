@@ -129,7 +129,24 @@ static string dump_node(gaia_ptr& node_ptr, bool references, bool payload, int& 
     return dump;
 }
 
-string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, bool catalog, int& line_limit)
+// If id is 'in' type_vec, return true.
+bool type_in(gaia_type_t obj_type, type_vector type_vec)
+{
+    if (type_vec.size() == 0)
+    {
+        return true;
+    }
+    for (auto& type : type_vec)
+    {
+        if (obj_type == type)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, bool catalog, int line_limit, type_vector type_vec)
 {
     gaia_id_t id;
     string dump;
@@ -146,10 +163,13 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
                 // If 'catalog' is true, don't check the catalog range.
                 if (catalog || node_ptr.type() < c_system_table_reserved_range_start)
                 {
-                    dump += dump_node(node_ptr, references, payload, line_limit);
-                    if (line_limit == 0)
+                    if (type_in(node_ptr.type(), type_vec))
                     {
-                        break;
+                        dump += dump_node(node_ptr, references, payload, line_limit);
+                        if (line_limit == 0)
+                        {
+                            break;
+                        }
                     }
                 }
             }

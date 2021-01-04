@@ -149,10 +149,8 @@ configure_file(${GAIA_REPO}/demos/incubator/cmake_sdk.sed ${PROJECT_BINARY_DIR}/
 add_custom_target(install_incubator ALL
   COMMAND sed -i -f ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt
 )
-install(FILES ${GAIA_REPO}/demos/incubator/gaia.conf DESTINATION examples/incubator)
-install(FILES ${GAIA_REPO}/demos/incubator/gaia_log.conf DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/demos/incubator/incubator.ddl DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/demos/incubator/incubator.ruleset DESTINATION examples/incubator)
-install(FILES ${GAIA_REPO}/demos/incubator/main.cpp DESTINATION examples/incubator)
+install(FILES ${GAIA_REPO}/demos/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/demos/incubator/README.md DESTINATION examples/incubator)
-install(FILES ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+install(FILES ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)

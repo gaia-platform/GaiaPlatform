@@ -1,0 +1,24 @@
+#include "gaia_barn_storage.h"
+
+int g_rule_called = 0;
+int g_insert_called = 0;
+int g_update_called = 0;
+int g_actuator_rule_called = 0;
+int g_delete_called = 0;
+
+using namespace gaia::barn_storage;
+
+int g_text_mixed_called = 0;
+
+ruleset test_mixed
+{
+    {
+        if (incubator.LastOperation == INSERT)
+        {
+            incubator_t incubator1 = incubator_t::get(incubator.gaia_id());
+            incubator1.sensor_list().insert(sensor_t::insert_row("TestSensor1", 0, 0.0));
+            incubator1.actuator_list().insert(actuator_t::insert_row("TestActuator1", 0, 0.0));
+            g_text_mixed_called++;
+        }
+    }
+}

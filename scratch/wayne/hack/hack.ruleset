@@ -856,12 +856,12 @@ ruleset hack_ruleset
 
             // Connect the M:N relationship between Building and Person.
             auto scan_log = gaia::hack::FaceScanLog_t::get(FaceScanLog.gaia_id());
-            building.building_scan_FaceScanLog_list().insert(scan_log);
+            building.FaceScanLog_list().insert(scan_log);
 
             // If Person was found, connect. Otherwise it's a Stranger.
             if (person)
             {
-                person.person_scan_FaceScanLog_list().insert(scan_log);
+                person.FaceScanLog_list().insert(scan_log);
             }
             else {
                 // Find or Create the Stranger record and connect it.
@@ -879,7 +879,7 @@ ruleset hack_ruleset
                     // There's a rule triggered here.
                     sw.update_row();
                 }
-                stranger.stranger_scan_FaceScanLog_list().insert(scan_log);
+                stranger.FaceScanLog_list().insert(scan_log);
             }
 
             send_message(ScanLogId, time(NULL));

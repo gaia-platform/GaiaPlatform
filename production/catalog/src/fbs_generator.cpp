@@ -32,11 +32,11 @@ static string generate_fbs_namespace(const string& db_name)
 {
     if (db_name.empty() || db_name == c_empty_db_name)
     {
-        return "namespace " + c_gaia_namespace + ";\n";
+        return "namespace " + c_gaia_namespace + "." + c_internal_suffix + ";\n";
     }
     else
     {
-        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
+        return "namespace " + c_gaia_namespace + "." + db_name + "." + c_internal_suffix + ";\n";
     }
 }
 

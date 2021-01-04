@@ -143,10 +143,19 @@ protected:
      * Materialize the flatbuffer associated with this record
      */
     const T_fb* row() const;
+
+    /**
+     * Ensure the type requested by the gaia_id_t matches T_gaia_type. If the passed in
+     * id does not exist in the database then return c_invalid_gaia_id.  If the id
+     * does exist in the database and the type of the record matches then return the
+     * passed in id.  If the type does not match then throw an edc_invalid_object_type
+     * exception.
+     */
+    static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
 };
 
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-struct gaia_writer_t : public T_obj
+struct gaia_writer_t : public T_obj, edc_db_t
 {
     gaia_writer_t() = default;
 
