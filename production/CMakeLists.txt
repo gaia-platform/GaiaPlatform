@@ -322,10 +322,10 @@ file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
 # - Install an IDE plugin that automatically renders graphviz files
 # - Use an online renderer such as: https://dreampuf.github.io/GraphvizOnline
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeGraphVizOptions.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/CMakeGraphVizOptions.cmake COPYONLY)
+  ${CMAKE_CURRENT_BINARY_DIR}/CMakeGraphVizOptions.cmake COPYONLY)
 
 add_custom_target(gaia_dependency_graph
-        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies
-        COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies/*
-        COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
-        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+  COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies/*
+  COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
