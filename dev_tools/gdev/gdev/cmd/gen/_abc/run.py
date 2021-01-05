@@ -32,9 +32,7 @@ class GenAbcRun(Dependency, ABC):
 
             f'--hostname {await self.build.dockerfile.get_name()}',
             f'--platform linux/{self.options.platform}',
-
-            # We use shared memory in production. Just assume we'll always need this.
-            f'--shm-size 1gb',
+            f'--privileged',
 
             # Mount our current repo as /source/. Modifications to source in the container
             # are reflected on host.
