@@ -34,7 +34,7 @@ if(EXECUTE_FDW_TESTS)
     # We use the test infrastructure to execute the script
     # because we can leverage its ability to start the Gaia server.
     add_gtest(test_fdw test_fdw.cpp
-      "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
+      "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
       "gaia_db_client;gaia_catalog;gaia_db_catalog_test")
   endif()
 endif()

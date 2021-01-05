@@ -7,13 +7,13 @@
 
 #include "gaia/db/db.hpp"
 #include "db_test_base.hpp"
+#include "db_test_util.hpp"
 #include "gaia_ptr.hpp"
-#include "se_test_util.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::db;
 
-// duplicated from production/db/storage_engine/inc/db_server.hpp
+// duplicated from production/db/core/inc/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)
@@ -74,7 +74,7 @@ void print_node(const gaia_ptr& node, bool indent = false)
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class storage_engine_client_test : public db_test_base_t
+class db_client_test : public db_test_base_t
 {
 private:
     void init_data()
@@ -120,7 +120,7 @@ protected:
     }
 };
 
-TEST_F(storage_engine_client_test, creation_fail_for_invalid_type)
+TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
     {
@@ -130,7 +130,7 @@ TEST_F(storage_engine_client_test, creation_fail_for_invalid_type)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, gaia_ptr_no_transaction_fail)
+TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
 {
     begin_transaction();
     gaia_ptr node1 = gaia_ptr::open(node1_id);
@@ -166,7 +166,7 @@ TEST_F(storage_engine_client_test, gaia_ptr_no_transaction_fail)
     //    EXPECT_THROW(gaia_ptr::open(99999), transaction_not_open);
 }
 
-TEST_F(storage_engine_client_test, read_data)
+TEST_F(db_client_test, read_data)
 {
     begin_transaction();
     {
@@ -188,7 +188,7 @@ TEST_F(storage_engine_client_test, read_data)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, update_payload)
+TEST_F(db_client_test, update_payload)
 {
     auto payload = "payload str";
     begin_transaction();
@@ -214,7 +214,7 @@ TEST_F(storage_engine_client_test, update_payload)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, update_payload_rollback)
+TEST_F(db_client_test, update_payload_rollback)
 {
     auto payload = "payload str";
     begin_transaction();
@@ -240,7 +240,7 @@ TEST_F(storage_engine_client_test, update_payload_rollback)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type)
+TEST_F(db_client_test, iterate_type)
 {
     begin_transaction();
     {
@@ -274,7 +274,7 @@ TEST_F(storage_engine_client_test, iterate_type)
 }
 
 // Temporarily disabling because server-side cursors can no longer be made transactional.
-TEST_F(storage_engine_client_test, DISABLED_iterate_type_cursor)
+TEST_F(db_client_test, DISABLED_iterate_type_cursor)
 {
     constexpr size_t c_buffer_size_exact = c_stream_batch_size;
     constexpr size_t c_buffer_size_exact_multiple = c_stream_batch_size * 2;
@@ -435,7 +435,7 @@ TEST_F(storage_engine_client_test, DISABLED_iterate_type_cursor)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type_delete)
+TEST_F(db_client_test, iterate_type_delete)
 {
     begin_transaction();
     {
@@ -465,7 +465,7 @@ TEST_F(storage_engine_client_test, iterate_type_delete)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, null_payload_check)
+TEST_F(db_client_test, null_payload_check)
 {
     begin_transaction();
     {
@@ -488,7 +488,7 @@ TEST_F(storage_engine_client_test, null_payload_check)
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, create_large_object)
+TEST_F(db_client_test, create_large_object)
 {
     begin_transaction();
     {

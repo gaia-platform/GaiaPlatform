@@ -4,14 +4,14 @@
 #############################################
 
 # Set the project name.
-project(storage_engine)
+project(core)
 
 # We need pthreads support.
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
+set(GAIA_DB_CORE_PUBLIC_INCLUDES
   "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
@@ -19,19 +19,19 @@ set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INTERNAL_INC}/db"
 )
 
-message(VERBOSE "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
+message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
-set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
+set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_INTERNAL_INC}/common"
-  "${GAIA_DB_INC}/storage_engine"
-  "${GAIA_DB_INC}/storage_engine/inc"
+  "${GAIA_DB_INC}/core"
+  "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
 
-message(VERBOSE "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+message(VERBOSE "GAIA_DB_CORE_PRIVATE_INCLUDES=${GAIA_DB_CORE_PRIVATE_INCLUDES}")
 
 ###############################################
 # Generate flatbuffers headers.
@@ -67,14 +67,14 @@ endforeach(FBS_SOURCE)
 add_library(gaia_storage SHARED
   src/locator_allocator.cpp
   src/record_list.cpp)
-target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
-target_include_directories(gaia_storage PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
+target_include_directories(gaia_storage PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
+target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_storage PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_storage PRIVATE gaia_common)
 
 ###############################################
-# Storage engine-related code begins here.
+# Database-related code begins here.
 ###############################################
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
@@ -86,8 +86,8 @@ add_library(gaia_db_client STATIC
   src/type_metadata.cpp
   src/type_id_mapping.cpp)
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
-target_include_directories(gaia_db_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
-target_include_directories(gaia_db_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
+target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
+target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 
 # For flatbuffers generated code.
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
@@ -105,8 +105,8 @@ add_library(rocks_wrapper STATIC
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
 target_include_directories(rocks_wrapper PRIVATE
-  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
-  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
@@ -128,8 +128,8 @@ endif()
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server "messages.fbs")
 target_include_directories(gaia_db_server PRIVATE
-  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
-  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
 
 # For flatbuffers generated code.
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
@@ -144,13 +144,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 install(TARGETS gaia_db_server DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
-  ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}
-  ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}
+set(GAIA_DB_CORE_TEST_INCLUDES
+  ${GAIA_DB_CORE_PUBLIC_INCLUDES}
+  ${GAIA_DB_CORE_PRIVATE_INCLUDES}
 )
 
 ###############################################
-# PyBind11 wrapper for storage engine.
+# PyBind11 wrapper for database.
 ###############################################
 find_package(pybind11 REQUIRED)
 
@@ -158,8 +158,8 @@ if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(gaia_se src/se_pybind_wrapper.cpp)
   target_include_directories(gaia_se PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_se PRIVATE
-  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
-  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
   target_include_directories(gaia_se SYSTEM PRIVATE "${FLATBUFFERS_INC}")
   target_include_directories(gaia_se SYSTEM PRIVATE "${GEN_DIR}")
   target_link_libraries(gaia_se PRIVATE pybind11::module rt gaia_db_client)
@@ -169,13 +169,13 @@ if(Python3_FOUND AND pybind11_FOUND)
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
-  # configure_file(tests/test_storage_engine.py . COPYONLY)
-  # add_test(NAME test_db_client_pybind COMMAND ${Python3_EXECUTABLE} test_storage_engine.py)
+  # configure_file(tests/test_db.py . COPYONLY)
+  # add_test(NAME test_db_client_pybind COMMAND ${Python3_EXECUTABLE} test_db.py)
   # set_tests_properties(test_db_client_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 endif()
 
 ###############################################
-# JNI wrapper for storage engine.
+# JNI wrapper for database.
 ###############################################
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
@@ -183,7 +183,7 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   target_include_directories(jni_db_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(jni_db_client PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(jni_db_client PRIVATE ${JNI_INCLUDE_DIRS})
-  target_include_directories(jni_db_client PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+  target_include_directories(jni_db_client PRIVATE ${GAIA_DB_CORE_INCLUDES})
   target_link_libraries(jni_db_client PRIVATE
     rt
     gaia_db_client
@@ -199,7 +199,7 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_INTERNAL_INC}/db/
   ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
-  ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
 )
@@ -210,14 +210,14 @@ target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client ga
 set_target_properties(gaia_db_catalog_test PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_db_catalog_test PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
-add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_db_client "tests/test_db_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_db_client;gaia_direct")
-add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_memory_manager")
-add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
+add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper")
+add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_db_client "tests/test_db_client.cpp" "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client;gaia_direct")
+add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_memory_manager")
+add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
+  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
   "gaia_common;gaia_db_client;gaia_catalog")

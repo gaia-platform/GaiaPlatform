@@ -137,7 +137,7 @@ pybind11::bytes get_node_payload(gaia_ptr node)
 
 PYBIND11_MODULE(db_client, m)
 {
-    m.doc() = "Python wrapper over Gaia COW storage engine.";
+    m.doc() = "Python wrapper over Gaia COW database.";
 
     m.def("begin_session", &begin_session);
     m.def("end_session", &end_session);

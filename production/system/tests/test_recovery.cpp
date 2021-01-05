@@ -14,12 +14,12 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "db_test_helpers.hpp"
+#include "db_test_util.hpp"
 #include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "logger.hpp"
 #include "schema_loader.hpp"
-#include "se_test_util.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace gaia::db;
@@ -32,7 +32,7 @@ using std::string;
 
 // TODO (Mihir) - Run with ctest?
 // Sample usage:
-// test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine"
+// test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/core"
 
 class recovery_test : public ::testing::Test
 {
@@ -699,7 +699,7 @@ int main(int argc, char** argv)
     if (argc != 2)
     {
         gaia_log::db().critical("You must specify the gaia_db_server path. eg:\n\n "
-                                " test_recovery \"production/build/db/storage_engine\"");
+                                " test_recovery \"production/build/db/core\"");
         exit(1);
     }
 

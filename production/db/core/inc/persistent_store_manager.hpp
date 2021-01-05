@@ -16,7 +16,7 @@
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
-// This file will be called by the storage engine & leverages the simple RocksDB internal library (rdb_internal.hpp)
+// This file will be called by the database and leverages the simple RocksDB internal library (rdb_internal.hpp)
 namespace gaia
 {
 namespace db

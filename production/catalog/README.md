@@ -214,7 +214,7 @@ Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
 and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
 of the previous ones.
 
-Be sure to check if [light_catalog.hpp](../db/storage_engine/inc/light_catalog.hpp)
+Be sure to check if [light_catalog.hpp](../db/core/inc/light_catalog.hpp)
 or any of the payload FlatBuffers schema files used by it need to be updated.
 
 ### Sequence of catalog update steps

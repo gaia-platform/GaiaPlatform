@@ -40,13 +40,13 @@ namespace logging
  * Calling:
  *
  *  gaia_log::sys().info("I'm the Sys logger")
- *  gaia_log::db().info("I'm the Storage Engine logger")
+ *  gaia_log::db().info("I'm the Database logger")
  *  gaia_log::scheduler().info("I'm the Rules logger")
  *
  * Outputs:
  *
  *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <sys>: I'm the Sys logger
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <db>: I'm the Storage Engine logger
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <db>: I'm the Database logger
  *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <scheduler>: I'm the Rules logger
  *
  * Dynamic creation of logger is not supported and generally discouraged. If you want to

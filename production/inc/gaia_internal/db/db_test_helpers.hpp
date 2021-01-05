@@ -27,7 +27,7 @@ namespace db
 {
 
 constexpr char c_daemonize_command[] = "daemonize ";
-// Duplicated from production/db/storage_engine/inc/db_server.hpp.
+// Duplicated from production/db/core/inc/db_server.hpp.
 // (That header should not be included by anything but the code that
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = "--disable-persistence";

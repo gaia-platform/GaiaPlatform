@@ -89,18 +89,18 @@ public:
      * Ask for a specific object based on its id. References to this method must be qualified
      * by the T_gaia_type, and that type must match the type of the identified object.
      *
-     * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
+     * @param id the gaia_id_t of a specific database object, of type T_gaia_type
      */
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the storage engine object. This doesn't destroy the extended data class
+     * Delete the database object. This doesn't destroy the extended data class
      * object.
      */
     void delete_row();
 
     /**
-     * Delete the storage engine object specified by the id.
+     * Delete the database object specified by the id.
      */
     static void delete_row(gaia::common::gaia_id_t id);
 
@@ -110,13 +110,13 @@ public:
     gaia::common::gaia_id_t* references();
 
     /**
-     * This is the storage engine's identification of this object. The id can be
+     * This is the database's identification of this object. The id can be
      * used to refer to this object later.
      */
     gaia::common::gaia_id_t gaia_id() const;
 
     /**
-     * Returns true if there is an an underlying storage engine object.
+     * Returns true if there is an an underlying database object.
      */
     explicit operator bool() const;
 
@@ -134,7 +134,7 @@ protected:
     gaia_object_t(gaia::common::gaia_id_t id, const char* gaia_typename);
 
     /**
-     * Insert a mutable flatbuffer into a newly created storage engine object. This will be
+     * Insert a mutable flatbuffer into a newly created database object. This will be
      * used by the generated type-specific insert_row() method.
      */
     static gaia::common::gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb);
@@ -160,7 +160,7 @@ struct gaia_writer_t : public T_obj, edc_db_t
     gaia_writer_t() = default;
 
     /**
-     * Insert the values in this new object into a newly created storage engine object.
+     * Insert the values in this new object into a newly created database object.
      * The user can get a new object by fetching the returned id using get(id)
      */
     gaia::common::gaia_id_t insert_row();

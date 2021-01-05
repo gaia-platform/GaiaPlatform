@@ -100,7 +100,7 @@ void type_metadata_t::mark_as_initialized()
 void type_registry_t::init()
 {
     // The catalog tables are created in ddl_executor for build time bootstrap.
-    // The type registry is initialized before ddl_executor at runtime upon storage engine startup.
+    // The type registry is initialized before ddl_executor at runtime upon database startup.
     // The following initialization step is needed before we have a proper runtime bootstrap of the catalog.
     // TODO: runtime bootstrap of the catalog.
     auto database = static_cast<gaia_type_t>(catalog_table_type_t::gaia_database);
