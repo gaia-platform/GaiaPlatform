@@ -69,16 +69,9 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
-# Perform a special library lookup for libexplain and its dependency libcap.
-# We will use the static version of the libexplain when doing the SDK build.
-message(CHECK_START "Looking for libexplain and libcap")
-if(BUILD_GAIA_RELEASE)
-  find_library(LIB_EXPLAIN NAMES libexplain.a)
-  find_library(LIB_CAP NAMES libcap.a cap)
-else()
-  find_library(LIB_EXPLAIN NAMES explain)
-  find_library(LIB_CAP NAMES cap)
-endif()
+find_library(LIB_EXPLAIN NAMES libexplain.a)
+find_library(LIB_CAP NAMES libcap.a cap)
+
 if (LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
@@ -314,3 +307,18 @@ file(
 # However, if no checks are specified, clang-tidy will assume we
 # did not configure it correctly. Just add one check that will never be found.
 file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
+
+# Generate dependencies graph
+# https://cmake.org/cmake/help/latest/module/CMakeGraphVizOptions.html
+# To visualize the results you can:
+# - Use dot to generate a png/svg (dot -Tpng -o foo.png foo.dot)
+# - Install an IDE plugin that automatically renders graphviz files
+# - Use an online renderer such as: https://dreampuf.github.io/GraphvizOnline
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeGraphVizOptions.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/CMakeGraphVizOptions.cmake COPYONLY)
+
+add_custom_target(gaia_dependency_graph
+  COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies/*
+  COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
