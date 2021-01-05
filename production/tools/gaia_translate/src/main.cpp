@@ -35,12 +35,9 @@ using namespace gaia;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 cl::opt<string> g_translation_engine_output_option(
-    "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
-cl::opt<bool> g_translation_engine_verbose_option(
-    "v", cl::desc("print parse tokens"), cl::cat(g_translation_engine_category));
+        "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
-bool g_verbose = false;
 bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 bool g_delete_operation_in_rule = false;
@@ -89,6 +86,10 @@ struct navigation_code_data_t
 // Suppress these clang-tidy warnings for now.
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+
+static void print_version(raw_ostream &stream) {
+  stream << "Gaia Translation Engine 0.0.1\n";
+}
 
 string generate_general_subscription_code()
 {
@@ -185,7 +186,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
-                llvm::errs() << "Incorrect table for field " << field.name() << "\n";
+                errs() << "Incorrect table for field " << field.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -193,7 +194,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             unordered_map<string, field_data_t> fields = return_value[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                llvm::errs() << "Duplicate field " << field.name() << "\n";
+                errs() << "Duplicate field " << field.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -210,7 +211,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t child_table = relationship.child_gaia_table();
             if (!child_table)
             {
-                llvm::errs() << "Incorrect child table in the relationship " << relationship.name() << "\n";
+                errs() << "Incorrect child table in the relationship " << relationship.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -218,7 +219,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
             if (!parent_table)
             {
-                llvm::errs() << "Incorrect parent table in the relationship " << relationship.name() << "\n";
+                errs() << "Incorrect parent table in the relationship " << relationship.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -238,7 +239,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     }
     catch (const exception& e)
     {
-        llvm::errs() << "Exception while processing the catalog " << e.what() << "\n";
+        errs() << "Exception while processing the catalog " << e.what() << "\n";
         g_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
@@ -380,20 +381,20 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     if (g_delete_operation_in_rule)
     {
         g_generation_error = true;
-        llvm::errs() << "Navigation from a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
+        errs() << "Navigation from a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
         return navigation_code_data_t();
     }
 
     if (g_used_tables.empty())
     {
         g_generation_error = true;
-        llvm::errs() << "No tables are used in the rule \n";
+        errs() << "No tables are used in the rule \n";
         return navigation_code_data_t();
     }
     if (g_used_tables.find(anchor_table) == g_used_tables.end())
     {
         g_generation_error = true;
-        llvm::errs() << "Table " << anchor_table << " is not used in the rule \n";
+        errs() << "Table " << anchor_table << " is not used in the rule \n";
         return navigation_code_data_t();
     }
 
@@ -401,7 +402,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
         g_generation_error = true;
-        llvm::errs()
+        errs()
             << "No path between " << anchor_table << " and other tables";
         return navigation_code_data_t();
     }
@@ -429,7 +430,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
                 if (is_1_relationship)
                 {
                     g_generation_error = true;
-                    llvm::errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
+                    errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
                     return navigation_code_data_t();
                 }
                 is_1_relationship = true;
@@ -444,7 +445,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
                 if (is_n_relationship)
                 {
                     g_generation_error = true;
-                    llvm::errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
+                    errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
                     return navigation_code_data_t();
                 }
                 is_n_relationship = true;
@@ -455,7 +456,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
         if (is_1_relationship && is_n_relationship)
         {
             g_generation_error = true;
-            llvm::errs() << "Both relationships exist between tables " << anchor_table << " and " << table << "\n";
+            errs() << "Both relationships exist between tables " << anchor_table << " and " << table << "\n";
             return navigation_code_data_t();
         }
 
@@ -523,7 +524,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
             else
             {
                 g_generation_error = true;
-                llvm::errs() << "No path between tables " << anchor_table << " and " << table << "\n";
+                errs() << "No path between tables " << anchor_table << " and " << table << "\n";
                 return navigation_code_data_t();
             }
         }
@@ -612,7 +613,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty())
     {
-        llvm::errs() << "No active fields for the rule\n";
+        errs() << "No active fields for the rule\n";
         g_generation_error = true;
         return;
     }
@@ -621,7 +622,7 @@ void generate_rules(Rewriter& rewriter)
     {
         if (g_function_call_in_rule)
         {
-            llvm::errs() <<
+            errs() <<
                 "Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
             g_generation_error = true;
             return;
@@ -648,7 +649,7 @@ void generate_rules(Rewriter& rewriter)
         string common_subscription_code;
         if (g_field_data.find(table) == g_field_data.end())
         {
-            llvm::errs() << "No table " << table << " found in the catalog\n";
+            errs() << "No table " << table << " found in the catalog\n";
             g_generation_error = true;
             return;
         }
@@ -695,7 +696,7 @@ void generate_rules(Rewriter& rewriter)
             {
                 if (fields.find(field) == fields.end())
                 {
-                    llvm::errs() << "No field " << field << " found in the catalog\n";
+                    errs() << "No field " << field << " found in the catalog\n";
                     g_generation_error = true;
                     return;
                 }
@@ -703,7 +704,7 @@ void generate_rules(Rewriter& rewriter)
                 field_data_t field_data = fields[field];
                 if (!field_data.is_active)
                 {
-                    llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
+                    errs() << "Field " << field << " is not marked as active in the catalog\n";
                     g_generation_error = true;
                     return;
                 }
@@ -715,7 +716,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (!contains_fields && !contains_last_operation)
         {
-            llvm::errs() << "No fields referred by table " + table + "\n";
+            errs() << "No fields referred by table " + table + "\n";
             g_generation_error = true;
             return;
         }
@@ -725,7 +726,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_delete_operation_in_rule && fd.second.size() > 1)
         {
-            llvm::errs() <<
+            errs() <<
                 "Referencing fields of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
             g_generation_error = true;
             return;
@@ -922,13 +923,13 @@ public:
             }
             else
             {
-                llvm::errs() << "Incorrect Base Type of generated type\n";
+                errs() << "Incorrect Base Type of generated type\n";
                 g_generation_error = true;
             }
         }
         else
         {
-            llvm::errs() << "Incorrect matched expression\n";
+            errs() << "Incorrect matched expression\n";
             g_generation_error = true;
         }
 
@@ -997,7 +998,7 @@ public:
                         auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
-                            llvm::errs() << "Incorrect Base Type of generated type\n";
+                            errs() << "Incorrect Base Type of generated type\n";
                             g_generation_error = true;
                             return;
                         }
@@ -1070,7 +1071,7 @@ public:
                         break;
                     }
                     default:
-                        llvm::errs() << "Incorrect Operator type\n";
+                        errs() << "Incorrect Operator type\n";
                         g_generation_error = true;
                         return;
                     }
@@ -1108,19 +1109,19 @@ public:
                 }
                 else
                 {
-                    llvm::errs() << "Incorrect Operator Expression Type\n";
+                    errs() << "Incorrect Operator Expression Type\n";
                     g_generation_error = true;
                 }
             }
             else
             {
-                llvm::errs() << "Incorrect Operator Expression\n";
+                errs() << "Incorrect Operator Expression\n";
                 g_generation_error = true;
             }
         }
         else
         {
-            llvm::errs() << "Incorrect Matched operator\n";
+            errs() << "Incorrect Matched operator\n";
             g_generation_error = true;
         }
     }
@@ -1153,7 +1154,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            llvm::errs() << "Incorrect Operator Code " << op_code << "\n";
+            errs() << "Incorrect Operator Code " << op_code << "\n";
             g_generation_error = true;
             return "";
         }
@@ -1207,7 +1208,7 @@ public:
                         auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
-                            llvm::errs() << "Incorrect Base Type of generated type\n";
+                            errs() << "Incorrect Base Type of generated type\n";
                             g_generation_error = true;
                             return;
                         }
@@ -1257,19 +1258,19 @@ public:
                 }
                 else
                 {
-                    llvm::errs() << "Incorrect Operator Expression Type\n";
+                    errs() << "Incorrect Operator Expression Type\n";
                     g_generation_error = true;
                 }
             }
             else
             {
-                llvm::errs() << "Incorrect Operator Expression\n";
+                errs() << "Incorrect Operator Expression\n";
                 g_generation_error = true;
             }
         }
         else
         {
-            llvm::errs() << "Incorrect Matched Operator\n";
+            errs() << "Incorrect Matched Operator\n";
             g_generation_error = true;
         }
     }
@@ -1617,7 +1618,8 @@ public:
 
                 if (g_field_data.find(variable_name) != g_field_data.end())
                 {
-                    llvm::errs() << "Local variable declaration "<< variable_name << " hides database table of the same name.\n";
+                    errs() << "Local variable declaration " << variable_name
+                        << " hides database table of the same name.\n";
                     return;
                 }
 
@@ -1625,7 +1627,8 @@ public:
                 {
                     if (table_data.second.find(variable_name) != table_data.second.end())
                     {
-                        llvm::errs() << "Local variable declaration "<< variable_name << " hides catalog field entity of the same name.\n";
+                        errs() << "Local variable declaration " << variable_name
+                            << " hides catalog field entity of the same name.\n";
                         return;
                     }
                 }
@@ -1874,14 +1877,50 @@ private:
 
 int main(int argc, const char** argv)
 {
-    // Parse the command-line args passed to your code.
-    CommonOptionsParser op(argc, argv, g_translation_engine_category);
-    if (g_translation_engine_verbose_option)
+    cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
+    cl::list<std::string> source_files(
+      cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
+      cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+
+    cl::SetVersionPrinter(print_version);
+    cl::ResetAllOptionOccurrences();
+    cl::HideUnrelatedOptions(g_translation_engine_category);
+    std::string error_message;
+    llvm::raw_string_ostream stream(error_message);
+    std::unique_ptr<CompilationDatabase> compilation_database =
+      FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
+
+    if (!cl::ParseCommandLineOptions(argc, argv,
+        "A tool to generate C++ rule and rule subscription code from declaraive rulesets",
+        &stream))
     {
-        g_verbose = true;
+        stream.flush();
+        return EXIT_FAILURE;
     }
+
+    cl::PrintOptionValues();
+
+    if (source_files.empty())
+    {
+        cl::PrintHelpMessage();
+        return EXIT_SUCCESS;
+    }
+
+    if (source_files.size() > 1)
+    {
+        errs() << "Translation Engine does not support more than one source rulesets.\n";
+        return EXIT_FAILURE;
+    }
+
+    if (!compilation_database)
+    {
+        compilation_database = llvm::make_unique<clang::tooling::FixedCompilationDatabase>(
+              ".", std::vector<std::string>());
+    }
+
     // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(op.getCompilations(), op.getSourcePathList());
+    ClangTool tool(*compilation_database, source_files);
+
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
     if (result == 0 && !g_generation_error)

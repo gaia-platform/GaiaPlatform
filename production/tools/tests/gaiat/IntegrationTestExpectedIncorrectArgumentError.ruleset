@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        if (sensor.LastOperation == INSERT)
+        {
+            actuator.value ++;
+        }
+    }
+}
+
+// CHECK: Translation Engine does not support more than one source rulesets.
