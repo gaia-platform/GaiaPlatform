@@ -69,9 +69,9 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
+message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)
 find_library(LIB_CAP NAMES libcap.a cap)
-
 if (LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
