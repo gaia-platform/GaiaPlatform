@@ -997,7 +997,7 @@ public:
                         auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
-                            cerr << "Incorrect Base Type of generated type." << endl;
+                            cerr << "Incorrect base type of generated type." << endl;
                             g_generation_error = true;
                             return;
                         }
@@ -1070,7 +1070,7 @@ public:
                         break;
                     }
                     default:
-                        cerr << "Incorrect Operator type." << endl;
+                        cerr << "Incorrect operator type." << endl;
                         g_generation_error = true;
                         return;
                     }
@@ -1108,19 +1108,19 @@ public:
                 }
                 else
                 {
-                    cerr << "Incorrect Operator Expression Type." << endl;
+                    cerr << "Incorrect operator expression type." << endl;
                     g_generation_error = true;
                 }
             }
             else
             {
-                cerr << "Incorrect Operator Expression" << endl;
+                cerr << "Incorrect operator expression" << endl;
                 g_generation_error = true;
             }
         }
         else
         {
-            cerr << "Incorrect Matched operator." << endl;
+            cerr << "Incorrect matched operator." << endl;
             g_generation_error = true;
         }
     }
@@ -1153,7 +1153,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            cerr << "Incorrect Operator Code " << op_code << "." << endl;
+            cerr << "Incorrect operator code " << op_code << "." << endl;
             g_generation_error = true;
             return "";
         }
@@ -1207,7 +1207,7 @@ public:
                         auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
-                            cerr << "Incorrect Base Type of generated type." << endl;
+                            cerr << "Incorrect base type of generated type." << endl;
                             g_generation_error = true;
                             return;
                         }
@@ -1257,19 +1257,19 @@ public:
                 }
                 else
                 {
-                    cerr << "Incorrect Operator Expression Type." << endl;
+                    cerr << "Incorrect operator expression type." << endl;
                     g_generation_error = true;
                 }
             }
             else
             {
-                cerr << "Incorrect Operator Expression." << endl;
+                cerr << "Incorrect operator expression." << endl;
                 g_generation_error = true;
             }
         }
         else
         {
-            cerr << "Incorrect Matched Operator." << endl;
+            cerr << "Incorrect matched operator." << endl;
             g_generation_error = true;
         }
     }
