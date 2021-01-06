@@ -60,12 +60,12 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
 }
 
 rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
-    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries)
+    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries), m_count_busy_workers(count_threads)
 {
     m_exit = false;
     for (uint32_t i = 0; i < count_threads; i++)
     {
-        thread worker([this] { rule_worker(); });
+        thread worker([this] { rule_worker(std::ref(m_count_busy_workers)); });
         m_threads.emplace_back(move(worker));
     }
 }
@@ -75,20 +75,50 @@ size_t rule_thread_pool_t::get_num_threads()
     return m_threads.size();
 }
 
-// Shutdown all threads in the pool
 rule_thread_pool_t::~rule_thread_pool_t()
 {
-    if (m_threads.size() > 0)
+    shutdown();
+}
+
+void rule_thread_pool_t::shutdown()
+{
+    if (m_threads.size() == 0)
     {
-        unique_lock lock(m_lock);
-        m_exit = true;
-        lock.unlock();
-        m_invocations_signal.notify_all();
-        for (thread& worker : m_threads)
-        {
-            worker.join();
-        }
+        return;
     }
+
+    // Wait for any scheduled rules to finish executing. Once the rule
+    // has finished, its worker thread will go into a wait state (not busy).
+    // Once all workers are not busy, then we can exit if there are no pending
+    // rule invocations.  If there are invocations left, then wait for them to
+    // be executed and check again.
+    auto start_shutdown_time = gaia::common::timer_t::get_time_point();
+
+    unique_lock lock(m_lock, defer_lock);
+    while (true)
+    {
+        lock.lock();
+        retail_assert(m_count_busy_workers >= 0, "Invalid state.  Cannot have more busy workers than threads in the pool!");
+        if (m_count_busy_workers == 0 && m_invocations.size() == 0)
+        {
+            break;
+        }
+        lock.unlock();
+        std::this_thread::yield();
+    }
+
+    m_exit = true;
+    lock.unlock();
+    m_invocations_signal.notify_all();
+
+    for (thread& worker : m_threads)
+    {
+        worker.join();
+    }
+    m_threads.clear();
+
+    int64_t shutdown_duration = gaia::common::timer_t::get_duration(start_shutdown_time);
+    gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
 }
 
 void rule_thread_pool_t::execute_immediate()
@@ -150,17 +180,21 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
 }
 
 // Thread worker function.
-void rule_thread_pool_t::rule_worker()
+void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 {
     unique_lock lock(m_lock, defer_lock);
+
     begin_session();
     while (true)
     {
         lock.lock();
+        --count_busy_workers;
         m_invocations_signal.wait(lock, [this] { return (m_invocations.size() > 0 || m_exit); });
+        ++count_busy_workers;
 
         if (m_exit)
         {
+            lock.unlock();
             break;
         }
 

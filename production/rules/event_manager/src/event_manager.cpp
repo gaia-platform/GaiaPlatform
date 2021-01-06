@@ -104,10 +104,14 @@ void event_manager_t::shutdown()
         return;
     }
 
-    // Stop new events from coming in.
+    // Destroy the thread pool first to ensure that any scheduled rules get a chance to execute.
+    // Do not reset the m_invocations pointer yet because executing rules may cause other rules to
+    // be scheduled.
+    m_invocations->shutdown();
+
+    // Now that all the scheduled rules have been invoked, don't allow any new rules to be scheduled.
     set_commit_trigger(nullptr);
 
-    // Destroy the thread pool first to ensure that any rules that are in flight get a chance to finish.
     m_invocations.reset();
     m_stats_manager.reset();
     m_rule_checker.reset();

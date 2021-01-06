@@ -10,7 +10,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -23,7 +22,6 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 
 using namespace std;
@@ -88,7 +86,8 @@ struct navigation_code_data_t
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 
-static void print_version(raw_ostream &stream) {
+static void print_version(raw_ostream &stream)
+{
     stream << "Gaia Translation Engine 0.1.0\nCopyright (c) Gaia Platform LLC\n";
 }
 
@@ -1886,8 +1885,8 @@ int main(int argc, const char** argv)
     cl::HideUnrelatedOptions(g_translation_engine_category);
     std::string error_message;
     llvm::raw_string_ostream stream(error_message);
-    std::unique_ptr<CompilationDatabase> compilation_database =
-      FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
+    std::unique_ptr<CompilationDatabase> compilation_database
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
     if (!cl::ParseCommandLineOptions(argc, argv,
         "A tool to generate C++ rule and rule subscription code from declarative rulesets",
@@ -1914,7 +1913,7 @@ int main(int argc, const char** argv)
     if (!compilation_database)
     {
         compilation_database = llvm::make_unique<clang::tooling::FixedCompilationDatabase>(
-              ".", std::vector<std::string>());
+            ".", std::vector<std::string>());
     }
 
     // Create a new Clang Tool instance (a LibTooling environment).

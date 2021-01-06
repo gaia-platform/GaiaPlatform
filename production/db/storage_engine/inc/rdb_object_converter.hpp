@@ -46,21 +46,21 @@ public:
     inline void write_uint64(uint64_t value)
     {
         // Convert to network order (big endian).
-        u_int64_t result = ::htobe64(value);
+        u_int64_t result = htobe64(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
     inline void write_uint32(uint32_t value)
     {
         // Convert to network order (big endian).
-        uint32_t result = ::htobe32(value);
+        uint32_t result = htobe32(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
     inline void write_uint16(uint16_t value)
     {
         // Convert to network order (big endian).
-        u_int16_t result = ::htobe16(value);
+        u_int16_t result = htobe16(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
@@ -119,7 +119,7 @@ public:
         const char* value_ptr = read(sizeof(uint64_t));
         uint64_t value = *(reinterpret_cast<const uint64_t*>(value_ptr));
         // Convert to host byte order.
-        out = ::be64toh(value);
+        out = be64toh(value);
     }
 
     inline void read_uint32(uint32_t& out)
@@ -127,7 +127,7 @@ public:
         const char* value_ptr = read(sizeof(uint32_t));
         uint32_t value = *(reinterpret_cast<const uint32_t*>(value_ptr));
         // Convert to host byte order.
-        out = ::be32toh(value);
+        out = be32toh(value);
     }
 
     inline void read_uint16(uint16_t& out)
@@ -135,7 +135,7 @@ public:
         const char* value_ptr = read(sizeof(uint16_t));
         uint16_t value = *(reinterpret_cast<const uint16_t*>(value_ptr));
         // Convert to host byte order.
-        out = ::be16toh(value);
+        out = be16toh(value);
     }
 
     inline void read_byte(uint8_t& out)

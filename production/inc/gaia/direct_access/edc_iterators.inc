@@ -108,7 +108,7 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin() const
             break;
         }
 
-        id = gaia_base_t::find_next(id);
+        id = edc_db_t::find_next(id);
     }
     return gaia_iterator_t<T_class>(id);
 }
