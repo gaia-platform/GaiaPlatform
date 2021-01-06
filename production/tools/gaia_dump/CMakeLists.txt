@@ -8,7 +8,7 @@ project(gaia_dump)
 
 set(GAIA_DUMP_INCLUDES
   ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/production/db/storage_engine/src
+  ${GAIA_REPO}/production/db/core/src
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
@@ -24,7 +24,7 @@ message(VERBOSE "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
 
 add_executable(gaia_dump src/main.cpp src/gaia_dump.cpp)
 target_include_directories(gaia_dump PRIVATE ${GAIA_DUMP_INCLUDES})
-target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser gaia_se_client)
+target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser gaia_db_client)
 set_target_properties(gaia_dump PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_dump PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 

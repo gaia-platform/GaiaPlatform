@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include "db_object.hpp"
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
 #include "retail_assert.hpp"
-#include "se_object.hpp"
 #include "stack_allocator.hpp"
 #include "type_metadata.hpp"
 

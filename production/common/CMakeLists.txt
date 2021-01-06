@@ -13,7 +13,7 @@ set(GAIA_COMMON_INCLUDES
 set(GAIA_MULTI_PROCESS_INCLUDES
   ${GAIA_COMMON_INCLUDES}
   ${GAIA_INTERNAL_INC}/db
-  ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
   ${GAIA_GENERATED_SCHEMAS}

@@ -243,8 +243,8 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
-    GENERATE_NATIVE_HEADERS storage_engine_jni_headers
-      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/)
+    GENERATE_NATIVE_HEADERS db_jni_headers
+      DESTINATION ${PROJECT_BINARY_DIR}/db/core/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Java tests.
@@ -259,7 +259,7 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # add_test(
   #   NAME test_se_jni
   #   COMMAND ${Java_JAVA_EXECUTABLE}
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
   #     -cp ${GAIA_TINKERPOP_JAR}
   #     com.gaiaplatform.database.CowStorageEngine)
 
@@ -267,26 +267,26 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 #   add_test(
 #     NAME test_cachegraph_basic
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
 #   add_test(
 #     NAME test_cachegraph_factory
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
 #   add_test(
 #     NAME test_cachegraph_graphml
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during
