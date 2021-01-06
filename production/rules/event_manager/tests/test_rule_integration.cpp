@@ -579,7 +579,7 @@ TEST_F(rule_integration_test, test_shutdown_rule_chaining)
 TEST_F(rule_integration_test, test_reinit)
 {
     // Should be okay to call shutdown twice.
-
+    gaia::rules::shutdown_rules_engine();
     gaia::rules::shutdown_rules_engine();
 
     // Should be okay to call init twice.
