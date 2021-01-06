@@ -9,5 +9,4 @@ ruleset test
 	}
     }
 }
-// CHECK: Field timestamp is not marked as active in the catalog
-
+// CHECK: Field timestamp is not marked as active in the catalog.

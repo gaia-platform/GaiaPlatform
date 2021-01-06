@@ -10,4 +10,4 @@ ruleset test
     }
 }
 
-// CHECK: Translation Engine does not support more than one source rulesets.
+// CHECK: Translation Engine does not support more than one source ruleset.
