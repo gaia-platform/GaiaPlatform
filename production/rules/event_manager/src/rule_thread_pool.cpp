@@ -82,36 +82,43 @@ rule_thread_pool_t::~rule_thread_pool_t()
 
 void rule_thread_pool_t::shutdown()
 {
-    if (m_threads.size() > 0)
+    if (m_threads.size() == 0)
     {
-        auto start_shutdown_time = gaia::common::timer_t::get_time_point();
-
-        // Wait for any scheduled rules to execute.  If any rule is currently
-        // executing then wait for it to finish as well since it may schedule
-        // more rules through its logic.
-        unique_lock lock(m_lock, defer_lock);
-        while (true)
-        {
-            lock.lock();
-            if (m_count_busy_workers == 0 && m_invocations.size() == 0)
-            {
-                break;
-            }
-            lock.unlock();
-            std::this_thread::yield();
-        }
-        m_exit = true;
-        lock.unlock();
-        m_invocations_signal.notify_all();
-        for (thread& worker : m_threads)
-        {
-            worker.join();
-        }
-        int64_t shutdown_duration = gaia::common::timer_t::get_duration(start_shutdown_time);
-        gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
-
-        m_threads.clear();
+        return;
     }
+
+    // Wait for any scheduled rules to finish executing. Once the rule
+    // has finished, its worker thread will go into a wait state (not busy).
+    // Once all workers are not busy, then we can exit if there are no pending
+    // rule invocations.  If there are invocations left, then wait for them to
+    // be executed and check again.
+    auto start_shutdown_time = gaia::common::timer_t::get_time_point();
+
+    unique_lock lock(m_lock, defer_lock);
+    while (true)
+    {
+        lock.lock();
+        retail_assert(m_count_busy_workers >= 0, "Invalid state.  Cannot have more busy workers than threads in the pool!");
+        if (m_count_busy_workers == 0 && m_invocations.size() == 0)
+        {
+            break;
+        }
+        lock.unlock();
+        std::this_thread::yield();
+    }
+
+    m_exit = true;
+    lock.unlock();
+    m_invocations_signal.notify_all();
+
+    for (thread& worker : m_threads)
+    {
+        worker.join();
+    }
+    m_threads.clear();
+
+    int64_t shutdown_duration = gaia::common::timer_t::get_duration(start_shutdown_time);
+    gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
 }
 
 void rule_thread_pool_t::execute_immediate()
