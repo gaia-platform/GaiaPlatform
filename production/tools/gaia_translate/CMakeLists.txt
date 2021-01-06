@@ -26,7 +26,6 @@ link_directories(
   ${GAIA_PROD_BUILD}/lib
 )
 
-
 add_executable(gaiat ${GAIAT_SRCS})
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
 set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -57,10 +56,9 @@ add_custom_command(
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
-      -DSPDLOG_FMT_EXTERNAL
       -I ${GAIA_INC}
+      -I ${SPDLOG_INC}
       -I /usr/include/clang/8/include/
-      -I /usr/local/include
       -std=c++17
   COMMAND pkill -f -KILL gaia_db_server &
   DEPENDS gaiac
@@ -75,7 +73,6 @@ add_custom_target(generate_incubator_rules ALL
   # Add previous target to realize parallel builds.
   DEPENDS generate_incubator_headers
 )
-
 
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"

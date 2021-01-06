@@ -130,6 +130,10 @@ install(FILES ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h DESTINATION ${CMAKE_I
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 
+# Place spdlog/fmt headers
+install(DIRECTORY ${SPDLOG_INC}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${FMT_INC}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 # Place gaia headers.
 install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
