@@ -44,8 +44,7 @@ add_custom_command(
   COMMAND echo "Creating ${GENERATED_OUTPUTS}/gaia_hack.h"
   COMMAND cpp ${INCUBATOR_DDL_SOURCE} > ${INCUBATOR_DDL}
   COMMAND sed -i "{s/^#.*$$//}" ${INCUBATOR_DDL}
-  COMMAND pkill gaia_se_server
-  COMMAND rm -rf /tmp/gaia_db/*
+  COMMAND pkill gaia_db_server
   COMMAND sleep 2
   COMMAND ${GAIA_GENERATE} -g ${INCUBATOR_DDL}
   DEPENDS ${INCUBATOR_DDL_SOURCE}
