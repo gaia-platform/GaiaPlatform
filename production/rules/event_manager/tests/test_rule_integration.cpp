@@ -65,11 +65,10 @@ void rule_insert_address(const rule_context_t* context)
         aw.city = c_city;
         aw.insert_row();
     }
+    g_wait_for_count--;
 }
 
-// When an address is inserted, update the zip code of the
-// inserted address.
-void rule_update_address(const rule_context_t* context)
+void rule_update_helper(const rule_context_t* context)
 {
     EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -77,12 +76,25 @@ void rule_update_address(const rule_context_t* context)
     address_writer aw = a.writer();
     aw.state = c_state;
     aw.update_row();
+}
+
+// When an address is inserted, update the zip code of the
+// inserted address.
+void rule_update_address_commit(const rule_context_t* context)
+{
+    rule_update_helper(context);
     // Explicitly commit the transaction that was started by the rules engine.
     // If we don't do this then the results wouldn't be immediately visible
     // to the test thread when we decrement our count and the test would fail.
     // This also tests that the rules scheduler does the right thing when the
     // rule author commits the transaction in a rule.
     context->txn.commit();
+    g_wait_for_count--;
+}
+
+void rule_update_address(const rule_context_t* context)
+{
+    rule_update_helper(context);
     g_wait_for_count--;
 }
 
@@ -194,10 +206,11 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
-    void subscribe_insert()
+    void subscribe_insert_chain(bool commit_in_rule)
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
-        rule_binding_t rule2{"ruleset", "rule_update_address", rule_update_address};
+        gaia_rule_fn fn = commit_in_rule ? rule_update_address_commit : rule_update_address;
+        rule_binding_t rule2{"ruleset", "rule_update_address", fn};
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
         subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
@@ -308,9 +321,10 @@ protected:
 
 TEST_F(rule_integration_test, test_insert)
 {
-    subscribe_insert();
+    bool commit_in_rule = true;
+    subscribe_insert_chain(commit_in_rule);
     {
-        rule_monitor_t monitor(1);
+        rule_monitor_t monitor(2);
 
         auto_transaction_t txn(false);
         employee_writer writer;
@@ -497,6 +511,69 @@ TEST_F(rule_integration_test, test_parallel)
     });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
+}
+
+TEST_F(rule_integration_test, test_shutdown_pending_rules)
+{
+    // Verify that we execute all the rules we expect on shutdown.
+    const size_t num_rule_invocations = 5;
+    g_wait_for_count = num_rule_invocations;
+    gaia::rules::shutdown_rules_engine();
+
+    event_manager_settings_t settings;
+    settings.num_background_threads = 1;
+    gaia::rules::test::initialize_rules_engine(settings);
+
+    subscribe_update();
+    {
+        auto_transaction_t txn;
+        employee_writer writer;
+        writer.name_first = c_name;
+        gaia_id_t id = writer.insert_row();
+        txn.commit();
+
+        writer = employee_t::get(id).writer();
+        for (size_t i = 0; i < num_rule_invocations; i++)
+        {
+            writer.hire_date = i;
+            writer.update_row();
+        }
+        txn.commit();
+    }
+    gaia::rules::shutdown_rules_engine();
+    EXPECT_EQ(g_wait_for_count, 0);
+    gaia::rules::initialize_rules_engine();
+}
+
+TEST_F(rule_integration_test, test_shutdown_rule_chaining)
+{
+    // Verify that we execute all the rules we expect on shutdown.
+    // The insert rule we are firing causes an update which then
+    // fires the update rule.
+    const size_t num_rule_invocations = 4;
+    g_wait_for_count = num_rule_invocations;
+    gaia::rules::shutdown_rules_engine();
+
+    event_manager_settings_t settings;
+    settings.num_background_threads = 1;
+    gaia::rules::test::initialize_rules_engine(settings);
+
+    bool do_not_commit_in_rule = false;
+    subscribe_insert_chain(do_not_commit_in_rule);
+    {
+        auto_transaction_t txn;
+        employee_writer writer;
+        writer.name_first = c_name;
+        writer.insert_row();
+        txn.commit();
+
+        writer.name_first = c_name;
+        writer.insert_row();
+        txn.commit();
+    }
+    gaia::rules::shutdown_rules_engine();
+    EXPECT_EQ(g_wait_for_count, 0);
+    gaia::rules::initialize_rules_engine();
 }
 
 TEST_F(rule_integration_test, test_reinit)

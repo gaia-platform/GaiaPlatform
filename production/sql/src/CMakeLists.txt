@@ -38,7 +38,7 @@ target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/db/payload_types")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
-target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
+target_link_libraries(gaia_fdw PRIVATE gaia_db_client)
 target_link_libraries(gaia_fdw PRIVATE gaia_catalog)
 target_link_libraries(gaia_fdw PRIVATE gaia_payload_types)
 

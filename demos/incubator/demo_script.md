@@ -1,7 +1,7 @@
 # Demo Script
 
 ## Prep
-Ensure that you know where the **incubator.ddl** and **gaia_se_server** executable are located for running the simulation.  The **incubator.ddl** file can be found under */source/demos/incubator* and the **gaia_se_server** process can be found under */build/db/storage_engine*. Start two command/shell windows.  One will show the client and one will show the simulation console.  
+Ensure that you know where the **incubator.ddl** and **gaia_db_server** executable are located for running the simulation.  The **incubator.ddl** file can be found under */source/demos/incubator* and the **gaia_db_server** process can be found under */build/db/core*. Start two command/shell windows.  One will show the client and one will show the simulation console.  
 
 ## Running
 Start client

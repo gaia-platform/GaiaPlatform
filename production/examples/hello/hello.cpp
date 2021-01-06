@@ -14,8 +14,6 @@ int main()
 {
     cout
         << "Hello example is running..."
-        << endl
-        << "Please wait for greetings to be printed, then terminate execution by pressing Enter."
         << endl;
 
     gaia::system::initialize();
@@ -25,9 +23,6 @@ int main()
     gaia::hello::names_t::insert_row("Bob");
     gaia::hello::names_t::insert_row("Charles");
     gaia::db::commit_transaction();
-
-    // Wait for user input.
-    cin.get();
 
     gaia::system::shutdown();
 

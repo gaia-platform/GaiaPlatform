@@ -16,7 +16,7 @@ Gaia System
 %install
 
 %pre
-pkill -f -KILL gaia_se_server
+pkill -f -KILL gaia_db_server
 
 %clean
 

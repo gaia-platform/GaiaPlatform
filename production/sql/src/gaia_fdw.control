@@ -4,7 +4,7 @@
 #############################################
 
 # gaia_fdw extension.
-comment = 'Gaia Storage Engine Foreign Data Wrapper'
+comment = 'Gaia Database Foreign Data Wrapper'
 default_version = '@PG_GAIA_FDW_VERSION@'
 module_pathname = '$libdir/gaia_fdw-@PG_GAIA_FDW_VERSION@'
 relocatable = true

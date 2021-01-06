@@ -8,11 +8,11 @@ project(gaia_generate)
 
 set(GAIA_GENERATE_INCLUDES
   ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/production/db/storage_engine/src
+  ${GAIA_REPO}/production/db/core/src
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}
   ${GAIA_INTERNAL_INC}/catalog

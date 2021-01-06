@@ -291,7 +291,7 @@ int main(int argc, char* argv[])
             cerr << c_error_prompt << e.what() << endl;
             if (e.get_errno() == ECONNREFUSED)
             {
-                cerr << "Unable to connect to the storage engine server." << endl;
+                cerr << "Unable to connect to the database server." << endl;
             }
             res = EXIT_FAILURE;
         }

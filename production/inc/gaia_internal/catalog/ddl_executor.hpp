@@ -82,7 +82,7 @@ private:
 
     // Clear all the caches (only for testing purposes).
     void clear_cache();
-    // Reload all the caches from catalog records in storage engine.
+    // Reload all the caches from catalog records in database.
     void reload_cache();
 
     // Bootstrap catalog with its own tables.

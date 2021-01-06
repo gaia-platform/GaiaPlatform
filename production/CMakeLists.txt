@@ -69,16 +69,9 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
-# Perform a special library lookup for libexplain and its dependency libcap.
-# We will use the static version of the libexplain when doing the SDK build.
-message(CHECK_START "Looking for libexplain and libcap")
-if(BUILD_GAIA_RELEASE)
-  find_library(LIB_EXPLAIN NAMES libexplain.a)
-  find_library(LIB_CAP NAMES libcap.a cap)
-else()
-  find_library(LIB_EXPLAIN NAMES explain)
-  find_library(LIB_CAP NAMES cap)
-endif()
+find_library(LIB_EXPLAIN NAMES libexplain.a)
+find_library(LIB_CAP NAMES libcap.a cap)
+
 if (LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
@@ -250,8 +243,8 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
-    GENERATE_NATIVE_HEADERS storage_engine_jni_headers
-      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/)
+    GENERATE_NATIVE_HEADERS db_jni_headers
+      DESTINATION ${PROJECT_BINARY_DIR}/db/core/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Java tests.
@@ -266,7 +259,7 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # add_test(
   #   NAME test_se_jni
   #   COMMAND ${Java_JAVA_EXECUTABLE}
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
   #     -cp ${GAIA_TINKERPOP_JAR}
   #     com.gaiaplatform.database.CowStorageEngine)
 
@@ -274,26 +267,26 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 #   add_test(
 #     NAME test_cachegraph_basic
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
 #   add_test(
 #     NAME test_cachegraph_factory
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
 #   add_test(
 #     NAME test_cachegraph_graphml
 #     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during
@@ -314,3 +307,18 @@ file(
 # However, if no checks are specified, clang-tidy will assume we
 # did not configure it correctly. Just add one check that will never be found.
 file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
+
+# Generate dependencies graph
+# https://cmake.org/cmake/help/latest/module/CMakeGraphVizOptions.html
+# To visualize the results you can:
+# - Use dot to generate a png/svg (dot -Tpng -o foo.png foo.dot)
+# - Install an IDE plugin that automatically renders graphviz files
+# - Use an online renderer such as: https://dreampuf.github.io/GraphvizOnline
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeGraphVizOptions.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/CMakeGraphVizOptions.cmake COPYONLY)
+
+add_custom_target(gaia_dependency_graph
+  COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies/*
+  COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")

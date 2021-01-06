@@ -199,10 +199,10 @@ try:
     import psutil
     lit_config.note('Found python psutil module')
     for p in psutil.process_iter(['name']):
-        if p.info['name'] == "gaia_se_server":
+        if p.info['name'] == "gaia_db_server":
             p.kill()
-    if os.path.exists(config.gaia_binary_dir + "/db/storage_engine"):
-        psutil.Popen([config.gaia_binary_dir + "/db/storage_engine/gaia_se_server", "--disable-persistence"])
+    if os.path.exists(config.gaia_binary_dir + "/db/core"):
+        psutil.Popen([config.gaia_binary_dir + "/db/core/gaia_db_server", "--disable-persistence"])
         time.sleep(1)
     if os.path.exists(config.gaia_binary_dir + "/catalog/gaiac"):
         psutil.Popen([config.gaia_binary_dir + "/catalog/gaiac/gaiac", config.gaia_source_dir + "/third_party/production/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])

@@ -84,7 +84,7 @@ protected:
     const char* m_typename;
 
     /**
-     * Handle to the underlying storage engine record. This handle should only be accessed via the to_ptr methods.
+     * Handle to the underlying database record. This handle should only be accessed via the to_ptr methods.
      */
     common::gaia_handle_t m_record;
     template <typename T_ptr>

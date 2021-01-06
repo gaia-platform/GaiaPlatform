@@ -146,7 +146,7 @@ private:
     friend void gaia::rules::test::initialize_rules_engine(const event_manager_settings_t& settings);
     friend void gaia::rules::test::commit_trigger(gaia_txn_id_t, const trigger_event_t*, size_t count_events);
 
-    // Well known trigger function called by the storage engine after commit.
+    // Well known trigger function called by the database after commit.
     void commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& event_list);
     bool process_last_operation_events(
         event_binding_t& binding,
