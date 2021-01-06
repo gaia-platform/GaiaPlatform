@@ -21,6 +21,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
 #include "db_types.hpp"
 #include "fd_helpers.hpp"
 #include "generator_iterator.hpp"
@@ -29,9 +32,6 @@
 #include "mmap_helpers.hpp"
 #include "retail_assert.hpp"
 #include "scope_guard.hpp"
-#include "se_helpers.hpp"
-#include "se_shared_data.hpp"
-#include "se_types.hpp"
 #include "socket_helpers.hpp"
 #include "system_error.hpp"
 #include "triggers.hpp"

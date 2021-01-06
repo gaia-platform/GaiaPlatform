@@ -82,7 +82,7 @@ add_library(gaia_db_client STATIC
   src/gaia_ptr.cpp
   src/payload_diff.cpp
   src/db_client.cpp
-  src/se_shared_data_client.cpp
+  src/db_shared_data_client.cpp
   src/type_metadata.cpp
   src/type_id_mapping.cpp)
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
@@ -117,7 +117,7 @@ set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_DB_SERVER_SOURCES
   src/db_server.cpp
-  src/se_shared_data_server.cpp
+  src/db_shared_data_server.cpp
   src/db_server_exec.cpp
 )
 
@@ -155,7 +155,7 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
-  pybind11_add_module(gaia_se src/se_pybind_wrapper.cpp)
+  pybind11_add_module(gaia_se src/db_pybind_wrapper.cpp)
   target_include_directories(gaia_se PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_se PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
@@ -179,7 +179,7 @@ endif()
 ###############################################
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
-  add_library(jni_db_client SHARED src/se_jni_wrapper.cpp)
+  add_library(jni_db_client SHARED src/db_jni_wrapper.cpp)
   target_include_directories(jni_db_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(jni_db_client PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(jni_db_client PRIVATE ${JNI_INCLUDE_DIRS})

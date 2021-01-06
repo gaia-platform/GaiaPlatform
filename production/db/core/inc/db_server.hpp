@@ -16,11 +16,11 @@
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/exception.hpp"
+#include "db_internal_types.hpp"
 #include "fd_helpers.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "se_types.hpp"
 #include "stack_allocator.hpp"
 
 namespace gaia

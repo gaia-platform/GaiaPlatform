@@ -28,7 +28,7 @@ namespace common
 class retail_assertion_failure : public gaia_exception
 {
 public:
-    retail_assertion_failure(const std::string& message)
+    explicit retail_assertion_failure(const std::string& message)
         : gaia_exception(message)
     {
     }

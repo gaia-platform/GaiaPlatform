@@ -24,6 +24,11 @@
 #include <sys/eventfd.h>
 #include <sys/file.h>
 
+#include "db_hash_map.hpp"
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_object.hpp"
+#include "db_shared_data.hpp"
 #include "fd_helpers.hpp"
 #include "gaia_db_internal.hpp"
 #include "generator_iterator.hpp"
@@ -33,11 +38,6 @@
 #include "persistent_store_manager.hpp"
 #include "retail_assert.hpp"
 #include "scope_guard.hpp"
-#include "se_hash_map.hpp"
-#include "se_helpers.hpp"
-#include "se_object.hpp"
-#include "se_shared_data.hpp"
-#include "se_types.hpp"
 #include "socket_helpers.hpp"
 #include "system_error.hpp"
 

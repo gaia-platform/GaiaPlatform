@@ -8,11 +8,11 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
 #include "db_types.hpp"
 #include "rdb_internal.hpp"
-#include "se_helpers.hpp"
-#include "se_shared_data.hpp"
-#include "se_types.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.

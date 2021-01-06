@@ -6,10 +6,10 @@
 #pragma once
 
 #include "gaia/db/db.hpp"
+#include "db_shared_data.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "retail_assert.hpp"
-#include "se_shared_data.hpp"
 #include "stack_allocator.hpp"
 #include "system_table_types.hpp"
 #include "triggers.hpp"

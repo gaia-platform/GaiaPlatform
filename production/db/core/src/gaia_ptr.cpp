@@ -8,11 +8,11 @@
 #include <cstring>
 
 #include "db_client.hpp"
+#include "db_hash_map.hpp"
+#include "db_helpers.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "retail_assert.hpp"
-#include "se_hash_map.hpp"
-#include "se_helpers.hpp"
 #include "stack_allocator.hpp"
 #include "triggers.hpp"
 #include "type_metadata.hpp"
@@ -57,7 +57,7 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     // TODO this constructor allows creating a gaia_ptr in an invalid state
     //  the se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
-    hash_node_t* hash_node = se_hash_map::insert(id);
+    hash_node_t* hash_node = db_hash_map::insert(id);
     size_t object_size = total_len + sizeof(se_object_t);
     hash_node->locator = allocate_locator();
     address_offset_t offset = client::allocate_object(hash_node->locator, 0, object_size);
@@ -181,7 +181,7 @@ void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 
 gaia_ptr::gaia_ptr(gaia_id_t id)
 {
-    m_locator = se_hash_map::find(id);
+    m_locator = db_hash_map::find(id);
 }
 
 gaia_ptr::gaia_ptr(gaia_locator_t locator, address_offset_t offset)
