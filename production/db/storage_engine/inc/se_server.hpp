@@ -45,6 +45,7 @@ class server
     friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts();
 
 public:
     enum class persistence_mode_t : uint8_t
@@ -89,6 +90,12 @@ private:
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
     static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
+
+    // This array of counters tracks the number of live allocations in each page
+    // of the data segment.
+    static inline page_alloc_counts_t* s_page_alloc_counts = nullptr;
+    // This fd backs the per-page allocation count array and is passed to clients.
+    static inline int s_fd_page_alloc_counts = -1;
 
     // This is an "endless" array of timestamp entries, indexed by the txn
     // timestamp counter and containing all information for every txn that has

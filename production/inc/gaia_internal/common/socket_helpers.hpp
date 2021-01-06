@@ -27,7 +27,8 @@ constexpr size_t c_max_msg_size = 1 << 10;
 // This is the value of SCM_MAX_FD according to the manpage for unix(7).
 // constexpr size_t c_max_fd_count = 253;
 // This seems to be the largest value that doesn't make sendmsg() return EINVAL.
-constexpr size_t c_max_fd_count = 4;
+// constexpr size_t c_max_fd_count = 4;
+constexpr size_t c_max_fd_count = 5;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).

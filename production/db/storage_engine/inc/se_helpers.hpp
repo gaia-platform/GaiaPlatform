@@ -20,6 +20,16 @@ namespace gaia
 namespace db
 {
 
+constexpr size_t c_page_size_bytes = 4096ULL;
+
+inline size_t get_page_index_from_offset(gaia_offset_t offset)
+{
+    // Convert the word-size offset into bytes.
+    size_t byte_offset = offset * sizeof(uint64_t);
+    // Calculate the index of the page in the data segment.
+    return byte_offset / c_page_size_bytes;
+}
+
 inline gaia_id_t allocate_id()
 {
     shared_counters_t* counters = gaia::db::get_shared_counters();
@@ -60,8 +70,10 @@ inline gaia_locator_t allocate_locator()
 
 inline void allocate_object(gaia_locator_t locator, size_t size)
 {
+    std::cerr << "In allocate_object()" << std::endl;
     locators_t* locators = gaia::db::get_shared_locators();
     shared_data_t* data = gaia::db::get_shared_data();
+    page_alloc_counts_t* page_alloc_counts = gaia::db::get_shared_page_alloc_counts();
     if (data->objects[0] >= std::size(data->objects))
     {
         throw oom();
@@ -69,7 +81,15 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
     // We use the first 64-bit word in the data array for the next available
     // offset, so we need to return the end of the previous allocation as the
     // current allocation's offset and add 1 to account for the first word.
-    (*locators)[locator] = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+    gaia_offset_t offset = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+    // We need to increment the refcount for any pages touched by this object.
+    // First calculate the page index.
+    size_t page_index = get_page_index_from_offset(offset);
+    // Increment the allocation count for the page containing this object.
+    size_t old_count = (*page_alloc_counts)[page_index].fetch_add(1);
+    std::cerr << "Incrementing allocation count for page index " << page_index << ", old value was " << old_count << std::endl;
+    // Update the object's locator entry with this offset.
+    (*locators)[locator] = offset;
 }
 
 inline bool locator_exists(gaia_locator_t locator)

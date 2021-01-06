@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "gaia/db/db.hpp"
 #include "messages_generated.h"
 #include "retail_assert.hpp"
@@ -33,6 +35,7 @@ class client
     friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts();
 
 public:
     static inline bool is_transaction_active()
@@ -77,6 +80,7 @@ private:
     thread_local static inline shared_counters_t* s_counters = nullptr;
     thread_local static inline shared_data_t* s_data = nullptr;
     thread_local static inline shared_id_index_t* s_id_index = nullptr;
+    thread_local static inline page_alloc_counts_t* s_page_alloc_counts = nullptr;
     thread_local static inline int s_session_socket = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 

@@ -328,8 +328,12 @@ void client::clear_shared_memory()
     // This is intended to be called before a session is established.
     verify_no_session();
 
-    // We closed our original fd for the data segment, so we only need to unmap it.
+    // We closed our original fds for all shared segments except the locators,
+    // so we only need to unmap them.
+    unmap_fd(s_counters, sizeof(*s_counters));
     unmap_fd(s_data, sizeof(*s_data));
+    unmap_fd(s_id_index, sizeof(*s_id_index));
+    unmap_fd(s_page_alloc_counts, sizeof(*s_page_alloc_counts));
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
@@ -412,6 +416,7 @@ void client::begin_session()
     retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
     retail_assert(s_log == nullptr, "Log segment uninitialized");
     retail_assert(s_locators == nullptr, "Locators segment uninitialized");
+    retail_assert(s_page_alloc_counts == nullptr, "Page allocation counts segment uninitialized");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -428,28 +433,31 @@ void client::begin_session()
 
     // Extract the data and locator shared memory segment fds from the server's response.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    constexpr size_t c_fd_count = 4;
+    constexpr size_t c_fd_count = 5;
     int fds[c_fd_count] = {-1};
     size_t fd_count = c_fd_count;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-    auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
+    auto [fd_locators, fd_counters, fd_data, fd_id_index, fd_page_alloc_counts] = fds;
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
     retail_assert(fd_counters != -1, "Invalid counters fd detected!");
     retail_assert(fd_data != -1, "Invalid data fd detected!");
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
+    retail_assert(fd_page_alloc_counts != -1, "Invalid page_alloc_counts fd detected!");
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto cleanup_mapping_fds = make_scope_guard([fd_counters = fd_counters,
                                                  fd_data = fd_data,
-                                                 fd_id_index = fd_id_index]() mutable {
+                                                 fd_id_index = fd_id_index,
+                                                 fd_page_alloc_counts = fd_page_alloc_counts]() mutable {
         // We can unconditionally close all the fds of shared mappings, since
         // they're not saved anywhere and each mapping increments its shared
         // memory segment's refcount.
         close_fd(fd_counters);
         close_fd(fd_data);
         close_fd(fd_id_index);
+        close_fd(fd_page_alloc_counts);
     });
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
@@ -468,6 +476,7 @@ void client::begin_session()
     map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_counters, 0);
     map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_data, 0);
     map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_id_index, 0);
+    map_fd(s_page_alloc_counts, sizeof(*s_page_alloc_counts), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_page_alloc_counts, 0);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;

@@ -58,6 +58,7 @@ constexpr char c_sch_mem_counters[] = "gaia_mem_counters";
 constexpr char c_sch_mem_data[] = "gaia_mem_data";
 constexpr char c_sch_mem_id_index[] = "gaia_mem_id_index";
 constexpr char c_sch_mem_txn_log[] = "gaia_mem_txn_log";
+constexpr char c_sch_mem_page_counters[] = "gaia_mem_page_counters";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32.
@@ -71,10 +72,15 @@ constexpr size_t c_max_locators = 1ULL << 32;
 constexpr size_t c_hash_buckets = 1ULL << 20;
 // This is arbitrary, but we need to keep txn logs to a reasonable size.
 constexpr size_t c_max_log_records = 1ULL << 20;
-
+// This allows for 64 bytes per object (the minimum size), with the maximum
+// number of objects.
+constexpr size_t c_data_segment_size_bytes = c_max_locators * 64;
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
 typedef gaia_offset_t locators_t[c_max_locators];
+// This is an array of atomic counters to track per-page allocations, one for each page.
+// The number of pages is the size of the data segment divided by the page size (4K).
+typedef std::atomic<size_t> page_alloc_counts_t[c_data_segment_size_bytes / (1024 * 4)];
 
 struct hash_node_t
 {
@@ -164,7 +170,7 @@ struct shared_data_t
     // offsets are obtained by incrementing the counter by 1).
     // NB: We now align all objects on a 64-byte boundary (for cache efficiency
     // and to allow us to later switch to 32-bit offsets).
-    alignas(64) uint64_t objects[c_max_locators * 8];
+    alignas(64) uint64_t objects[c_data_segment_size_bytes / sizeof(uint64_t)];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We

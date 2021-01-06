@@ -65,3 +65,17 @@ gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
 
     return gaia::db::client::s_id_index;
 }
+
+gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts()
+{
+    // Since we don't use this accessor in the client itself, we can assert that
+    // it is always non-null (since callers should never be able to observe it
+    // in its null state, i.e., with the id_index segment unmapped).
+
+    if (!gaia::db::client::s_page_alloc_counts)
+    {
+        throw no_active_session();
+    }
+
+    return gaia::db::client::s_page_alloc_counts;
+}

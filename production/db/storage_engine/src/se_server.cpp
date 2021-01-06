@@ -23,6 +23,7 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/file.h>
+#include <sys/mman.h>
 
 #include "fd_helpers.hpp"
 #include "gaia_db_internal.hpp"
@@ -67,7 +68,7 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
 
-    int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index};
+    int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index, s_fd_page_alloc_counts};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -429,6 +430,9 @@ void server::clear_shared_memory()
 
     unmap_fd(s_id_index, sizeof(*s_id_index));
     close_fd(s_fd_id_index);
+
+    unmap_fd(s_page_alloc_counts, sizeof(*s_page_alloc_counts));
+    close_fd(s_fd_page_alloc_counts);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -475,11 +479,17 @@ void server::init_shared_memory()
     {
         throw_system_error("memfd_create failed");
     }
+    s_fd_page_alloc_counts = ::memfd_create(c_sch_mem_page_counters, MFD_ALLOW_SEALING);
+    if (s_fd_page_alloc_counts == -1)
+    {
+        throw_system_error("memfd_create failed");
+    }
 
     truncate_fd(s_fd_locators, sizeof(*s_shared_locators));
     truncate_fd(s_fd_counters, sizeof(*s_counters));
     truncate_fd(s_fd_data, sizeof(*s_data));
     truncate_fd(s_fd_id_index, sizeof(*s_id_index));
+    truncate_fd(s_fd_page_alloc_counts, sizeof(*s_page_alloc_counts));
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -507,6 +517,7 @@ void server::init_shared_memory()
     map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_counters, 0);
     map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_data, 0);
     map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_id_index, 0);
+    map_fd(s_page_alloc_counts, sizeof(*s_page_alloc_counts), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_page_alloc_counts, 0);
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -2754,6 +2765,34 @@ void server::run(persistence_mode_t persistence_mode)
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
+    // Register an object deallocator that just frees pages when they're empty.
+    register_object_deallocator([](gaia_offset_t offset) {
+        // Calculate the index of the page allocation count.
+        size_t page_index = get_page_index_from_offset(offset);
+        size_t old_count = (*s_page_alloc_counts)[page_index].fetch_sub(1);
+        retail_assert(old_count > 0, "Page allocation count must be nonzero before deallocation!");
+        cerr << "Decrementing allocation count for page index " << page_index << ", old value was " << old_count << endl;
+        // Do nothing if this wasn't the last allocation.
+        if (old_count > 1)
+        {
+            return;
+        }
+        // If this was the last allocation in the page, free the page.
+        // Find the absolute page address of this offset.
+        void* page_address = s_data + (page_index * c_page_size_bytes);
+        // Actually free the page.
+        // MADV_REMOVE is supposed to be equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
+        // REVIEW: is MADV_REMOVE the only flag that will work with a memfd mapping?
+        // MADV_FREE seems to be the choice for other allocators, but:
+        // https://man7.org/linux/man-pages/man2/madvise.2.html
+        // "The MADV_FREE operation can be applied only to private anonymous pages."
+        cerr << "Freeing page at virtual address " << page_address << endl;
+        if (-1 == ::madvise(page_address, c_page_size_bytes, MADV_REMOVE))
+        {
+            throw_system_error("madvise(MADV_REMOVE) failed");
+        }
+    });
 
     while (true)
     {

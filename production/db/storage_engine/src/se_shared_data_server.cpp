@@ -40,3 +40,14 @@ gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
     retail_assert(gaia::db::server::s_id_index, "Server id_index segment is unmapped!");
     return gaia::db::server::s_id_index;
 }
+
+gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts()
+{
+    // Since we don't use this accessor in the server itself, we can assert that
+    // it is always non-null (since callers should never be able to see it in
+    // its null state, i.e., with the id_index segment unmapped).
+    retail_assert(
+        gaia::db::server::s_page_alloc_counts,
+        "Page allocation counts segment is unmapped!");
+    return gaia::db::server::s_page_alloc_counts;
+}
