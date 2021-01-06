@@ -68,7 +68,7 @@ public:
 // @tparam T_container the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
 template <gaia::common::gaia_type_t T_container, typename T_class>
-struct gaia_container_t
+struct gaia_container_t : edc_db_t
 {
     // This constructor will be used by the where() method to create a filtered container.
     gaia_container_t(std::function<bool(const T_class&)> filter_function)
@@ -141,7 +141,7 @@ public:
 // @tparam T_child_slot index into the parent's reference list of the first child in the set
 // @tparam T_next_slot index into the child's reference list of the next child in the set
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-class reference_chain_container_t
+class reference_chain_container_t : edc_db_t
 {
     gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
     std::function<bool(const T_child&)> m_filter_fn{};
