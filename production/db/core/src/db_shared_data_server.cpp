@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "db_server.hpp"
-#include "se_shared_data.hpp"
+#include "db_shared_data.hpp"
 
 gaia::db::locators_t* gaia::db::get_shared_locators()
 {

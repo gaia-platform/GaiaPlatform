@@ -12,6 +12,7 @@
 
 #include "gaia/common.hpp"
 #include "db_types.hpp"
+#include "retail_assert.hpp"
 
 namespace gaia
 {

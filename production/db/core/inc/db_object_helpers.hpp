@@ -5,11 +5,13 @@
 
 #pragma once
 
+#include <cstring>
+
 #include "gaia/common.hpp"
+#include "db_hash_map.hpp"
+#include "db_internal_types.hpp"
+#include "db_object.hpp"
 #include "db_types.hpp"
-#include "se_hash_map.hpp"
-#include "se_object.hpp"
-#include "se_types.hpp"
 
 namespace gaia
 {
@@ -26,7 +28,7 @@ inline se_object_t* create_object(
 {
     size_t ref_len = num_refs * sizeof(*refs);
     size_t total_len = obj_data_size + ref_len;
-    gaia::db::hash_node_t* hash_node = se_hash_map::insert(id);
+    gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
     allocate_object(hash_node->locator, 0, total_len + sizeof(se_object_t));
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
@@ -47,7 +49,7 @@ inline se_object_t* create_object(
     size_t num_refs, size_t obj_data_size,
     const void* obj_data)
 {
-    gaia::db::hash_node_t* hash_node = se_hash_map::insert(id);
+    gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
     gaia::db::allocate_object(hash_node->locator, 0, obj_data_size + sizeof(se_object_t));
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
@@ -61,10 +63,10 @@ inline se_object_t* create_object(
 
 inline se_object_t* id_to_ptr(gaia_id_t id)
 {
-    gaia_locator_t locator = gaia::db::se_hash_map::find(id);
+    gaia_locator_t locator = gaia::db::db_hash_map::find(id);
     retail_assert(
         locator_exists(locator),
-        "An invalid locator was returned by se_hash_map::find()!");
+        "An invalid locator was returned by db_hash_map::find()!");
     return locator_to_ptr(locator);
 }
 

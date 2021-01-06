@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include "db_internal_types.hpp"
 #include "memory_types.hpp"
-#include "se_types.hpp"
 
 namespace gaia
 {

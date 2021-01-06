@@ -5,17 +5,17 @@
 
 #pragma once
 
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
 #include "retail_assert.hpp"
-#include "se_helpers.hpp"
-#include "se_shared_data.hpp"
-#include "se_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
 
-class se_hash_map
+class db_hash_map
 {
 public:
     static hash_node_t* insert(gaia::common::gaia_id_t id)
