@@ -922,7 +922,7 @@ public:
             }
             else
             {
-                cerr << "Incorrect Base Type of generated type." << endl;
+                cerr << "Incorrect base type of generated type." << endl;
                 g_generation_error = true;
             }
         }
