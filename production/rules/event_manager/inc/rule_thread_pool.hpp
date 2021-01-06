@@ -62,6 +62,7 @@ public:
     static void log_events(invocation_t& invocation);
 
     rule_thread_pool_t() = delete;
+    ~rule_thread_pool_t();
 
     /**
      * Construct a thread pool used for executing rules.
@@ -74,11 +75,11 @@ public:
     rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
 
     /**
-     * Will notify and wait for all workers in the thread pool
+     * Notify and wait for all workers in the thread pool
      * to finish executing their last work item before destroying
      * the pool
      */
-    ~rule_thread_pool_t();
+    void shutdown();
 
     /**
      * Enqueue a rule onto the thread pool and notify any worker thread

@@ -75,12 +75,27 @@ size_t rule_thread_pool_t::get_num_threads()
     return m_threads.size();
 }
 
-// Shutdown all threads in the pool
 rule_thread_pool_t::~rule_thread_pool_t()
+{
+    shutdown();
+}
+
+void rule_thread_pool_t::shutdown()
 {
     if (m_threads.size() > 0)
     {
-        unique_lock lock(m_lock);
+        // Wait for any scheduled rules to execute.
+        unique_lock lock(m_lock, defer_lock);
+        while (true)
+        {
+            lock.lock();
+            if (m_invocations.size() == 0)
+            {
+                break;
+            }
+            lock.unlock();
+            std::this_thread::yield();
+        }
         m_exit = true;
         lock.unlock();
         m_invocations_signal.notify_all();
@@ -88,6 +103,8 @@ rule_thread_pool_t::~rule_thread_pool_t()
         {
             worker.join();
         }
+
+        m_threads.clear();
     }
 }
 
