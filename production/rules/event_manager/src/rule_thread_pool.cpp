@@ -60,12 +60,12 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
 }
 
 rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
-    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries)
+    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries), m_count_busy_workers(count_threads)
 {
     m_exit = false;
     for (uint32_t i = 0; i < count_threads; i++)
     {
-        thread worker([this] { rule_worker(); });
+        thread worker([this] { rule_worker(std::ref(m_count_busy_workers)); });
         m_threads.emplace_back(move(worker));
     }
 }
@@ -84,12 +84,16 @@ void rule_thread_pool_t::shutdown()
 {
     if (m_threads.size() > 0)
     {
-        // Wait for any scheduled rules to execute.
+        auto start_shutdown_time = gaia::common::timer_t::get_time_point();
+
+        // Wait for any scheduled rules to execute.  If any rule is currently
+        // executing then wait for it to finish as well since it may schedule
+        // more rules through its logic.
         unique_lock lock(m_lock, defer_lock);
         while (true)
         {
             lock.lock();
-            if (m_invocations.size() == 0)
+            if (m_count_busy_workers == 0 && m_invocations.size() == 0)
             {
                 break;
             }
@@ -103,6 +107,8 @@ void rule_thread_pool_t::shutdown()
         {
             worker.join();
         }
+        int64_t shutdown_duration = gaia::common::timer_t::get_duration(start_shutdown_time);
+        gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
 
         m_threads.clear();
     }
@@ -167,17 +173,21 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
 }
 
 // Thread worker function.
-void rule_thread_pool_t::rule_worker()
+void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 {
     unique_lock lock(m_lock, defer_lock);
+
     begin_session();
     while (true)
     {
         lock.lock();
+        --count_busy_workers;
         m_invocations_signal.wait(lock, [this] { return (m_invocations.size() > 0 || m_exit); });
+        ++count_busy_workers;
 
         if (m_exit)
         {
+            lock.unlock();
             break;
         }
 

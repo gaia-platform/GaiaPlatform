@@ -104,7 +104,7 @@ public:
     size_t get_num_threads();
 
 private:
-    void rule_worker();
+    void rule_worker(int32_t& count_busy_workers);
 
     void inline invoke_rule(invocation_t& invocation)
     {
@@ -159,6 +159,7 @@ private:
      */
     std::mutex m_lock;
     std::condition_variable m_invocations_signal;
+    int32_t m_count_busy_workers;
     bool m_exit;
 };
 
