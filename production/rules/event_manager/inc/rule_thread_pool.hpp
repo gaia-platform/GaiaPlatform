@@ -62,6 +62,7 @@ public:
     static void log_events(invocation_t& invocation);
 
     rule_thread_pool_t() = delete;
+    ~rule_thread_pool_t();
 
     /**
      * Construct a thread pool used for executing rules.
@@ -74,11 +75,11 @@ public:
     rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
 
     /**
-     * Will notify and wait for all workers in the thread pool
+     * Notify and wait for all workers in the thread pool
      * to finish executing their last work item before destroying
      * the pool
      */
-    ~rule_thread_pool_t();
+    void shutdown();
 
     /**
      * Enqueue a rule onto the thread pool and notify any worker thread
@@ -103,7 +104,7 @@ public:
     size_t get_num_threads();
 
 private:
-    void rule_worker();
+    void rule_worker(int32_t& count_busy_workers);
 
     void inline invoke_rule(invocation_t& invocation)
     {
@@ -158,6 +159,7 @@ private:
      */
     std::mutex m_lock;
     std::condition_variable m_invocations_signal;
+    int32_t m_count_busy_workers;
     bool m_exit;
 };
 
