@@ -60,8 +60,14 @@ void start_repl(parser_t& parser, const string& dbname)
         {
             if (line.length() > 0 && line.at(0) == c_command_prefix)
             {
-                handle_meta_command(line);
-                continue;
+                if (handle_meta_command(line))
+                {
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
             }
             int parsing_result = parser.parse_line(line);
             if (parsing_result == EXIT_SUCCESS)
@@ -214,7 +220,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-t") || argv[i] == string("--db-server-path"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
@@ -232,7 +238,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-o") || argv[i] == string("--output"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to output directory." << endl;
                 exit(EXIT_FAILURE);
@@ -242,7 +248,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-d") || argv[i] == string("--db-name"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing database name." << endl;
                 exit(EXIT_FAILURE);
