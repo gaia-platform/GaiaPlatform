@@ -58,7 +58,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
       -I ${GAIA_INC}
       -I ${SPDLOG_INC}
-      -I /usr/include/clang/8/include/
+      -I /usr/include/clang/10/include/
       -std=c++17
   COMMAND pkill -f -KILL gaia_db_server &
   DEPENDS gaiac
