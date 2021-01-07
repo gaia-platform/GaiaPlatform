@@ -79,6 +79,11 @@ public:
      }
 };
 
+void testFunction()
+{
+    int value = 5;
+}
+
 ruleset test7
 {
   {

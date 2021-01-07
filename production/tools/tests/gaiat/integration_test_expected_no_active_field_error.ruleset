@@ -6,5 +6,4 @@ ruleset test
 
     }
 }
-// CHECK: No active fields for the rule
-
+// CHECK: No active fields for the rule.
