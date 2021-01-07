@@ -60,8 +60,14 @@ void start_repl(parser_t& parser, const string& dbname)
         {
             if (line.length() > 0 && line.at(0) == c_command_prefix)
             {
-                handle_meta_command(line);
-                continue;
+                if (handle_meta_command(line))
+                {
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
             }
             int parsing_result = parser.parse_line(line);
             if (parsing_result == EXIT_SUCCESS)

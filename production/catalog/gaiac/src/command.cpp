@@ -35,6 +35,7 @@ constexpr char c_generate_command = 'g';
 #endif
 constexpr char c_list_command = 'l';
 constexpr char c_help_command = 'h';
+constexpr char c_exit_command = 'q';
 constexpr char c_command_separator = ' ';
 
 constexpr char c_db_subcommand = 'd';
@@ -440,6 +441,8 @@ string command_usage()
 #endif
     output_table.add_row(
         {string() + c_command_prefix + c_help_command, "", "Print help information."});
+    output_table.add_row(
+        {string() + c_command_prefix + c_exit_command, "", "Quit."});
 
     output_table.format().hide_border();
     output_table.print(ss);
@@ -448,7 +451,7 @@ string command_usage()
 
 } // namespace
 
-void handle_meta_command(const string& cmd)
+bool handle_meta_command(const string& cmd)
 {
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
     retail_assert(
@@ -476,7 +479,10 @@ void handle_meta_command(const string& cmd)
     case c_help_command:
         cout << command_usage() << endl;
         break;
+    case c_exit_command:
+        return false;
     default:
         throw gaia_exception("Invalid command " + string(cmd));
     }
+    return true;
 }
