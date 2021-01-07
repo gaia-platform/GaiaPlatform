@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 
 GAIA_S3_SDK_BUCKET="gaia-sdk/private-releases"
 
@@ -8,10 +12,10 @@ PROFILE="default"
 
 print_help() {
     echo "Helps creating presigned URLs from existing S3 SDK files"
-    echo " -f|--file        The SDK file to create the URL for. [Optional if not specified the latest file will be used]"
+    echo " -f|--file        The SDK file to create the URL for. [Optional, if not specified the latest file will be used]"
     echo " -c|--customer    The customer that will use this URL"
     echo " -v|--version     The SDK version [eg 0.1.0]"
-    echo " -e|--expiration  The expiration for the presigd URL in seconds. [Optional, default value: 5 days]"
+    echo " -e|--expiration  The expiration for the presigned URL in seconds. [Optional, default value: 5 days]"
     echo " -l|--list        List all the files for the given version/customer"
     echo " -p|--profile     AWS profile name [Optional, default is default]"
     echo ""

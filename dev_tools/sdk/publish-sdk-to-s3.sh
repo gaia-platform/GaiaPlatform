@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 
 GAIA_S3_SDK_BUCKET="gaia-sdk/private-releases"
 # The default expiration time for presigned URLs is 5 days
@@ -13,7 +17,7 @@ print_help() {
     echo " -f|--file        The SDK file to upload to S3"
     echo " -c|--customer    The customer that will use this URL"
     echo " -v|--version     The SDK version [eg 0.1.0]"
-    echo " -e|--expiration  The expiration for the presigd URL in seconds. [Optional, default value: 5 days]"
+    echo " -e|--expiration  The expiration for the presigned URL in seconds. [Optional, default value: 5 days]"
     echo " -p|--profile     AWS profile name [Optional, default is default]"
     echo ""
     echo "Examples"
@@ -58,7 +62,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ! -f $FILE ]]; then
-    echo "The SDK file must be specified and be a valid file"
+    echo "The SDK file must be specified and must be a valid file"
     exit 1
 fi
 
