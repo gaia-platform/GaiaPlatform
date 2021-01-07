@@ -38,7 +38,7 @@ public:
 /**
  * Handle meta commands.
  *
- * @return condition on if the execution should continue,
+ * @return whether the execution should continue,
  * i.e. false is returned when the quit command is entered.
  */
 bool handle_meta_command(const std::string& line);
