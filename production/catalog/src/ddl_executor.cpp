@@ -522,7 +522,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 // because current implementation will try to re-create all
                 // system tables on every startup and expect the creation to be
                 // skipped normally if the tables already exist.
-                gaia_log::catalog().warn("table \"{}\" (id: {}) already exists, skipping", full_table_name, id);
+                gaia_log::catalog().warn("Table '{}' (id: {}) already exists, skipping.", full_table_name, id);
             }
             return id;
         }
