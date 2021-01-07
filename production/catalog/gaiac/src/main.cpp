@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-t") || argv[i] == string("--db-server-path"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-o") || argv[i] == string("--output"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to output directory." << endl;
                 exit(EXIT_FAILURE);
@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-d") || argv[i] == string("--db-name"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing database name." << endl;
                 exit(EXIT_FAILURE);
