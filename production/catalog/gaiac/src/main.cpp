@@ -16,7 +16,7 @@
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_parser.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 using namespace std;
 using namespace gaia::catalog;

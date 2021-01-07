@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 namespace gaia
 {
@@ -23,7 +23,7 @@ namespace logging
  * Represents a synchronous logger useful for testing. Exposes the underlying
  * spdlogger so that tests can provide their own sinks or custom pattern.
  */
-class debug_logger_t : public logger_t
+class debug_logger_t : public internal_logger_t
 {
 public:
     static debug_logger_t* create(const char* logger_name);
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    debug_logger_t(const std::string& logger_name);
+    explicit debug_logger_t(const std::string& logger_name);
 };
 
 /**

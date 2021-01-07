@@ -10,7 +10,7 @@
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 #include "cpptoml.h"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "rules_config.hpp"
 #include "scope_guard.hpp"
 

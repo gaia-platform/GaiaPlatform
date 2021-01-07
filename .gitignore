@@ -35,3 +35,4 @@ dist/
 .factorypath
 .project
 .settings/
+.clion.source.upload.marker

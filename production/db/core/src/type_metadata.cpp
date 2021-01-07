@@ -11,7 +11,7 @@
 
 #include "gaia/common.hpp"
 #include "catalog_core.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "system_table_types.hpp"
 #include "type_id_mapping.hpp"
 

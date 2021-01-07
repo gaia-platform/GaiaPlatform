@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "event_manager.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "retail_assert.hpp"
 
 using namespace std;

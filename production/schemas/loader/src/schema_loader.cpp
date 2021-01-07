@@ -8,7 +8,7 @@
 #include <filesystem>
 
 #include "ddl_execution.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 namespace fs = std::filesystem;
 

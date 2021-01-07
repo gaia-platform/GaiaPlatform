@@ -12,7 +12,7 @@
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
 

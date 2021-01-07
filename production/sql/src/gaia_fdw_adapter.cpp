@@ -19,7 +19,7 @@
 #include "catalog_internal.hpp"
 #include "field_access.hpp"
 #include "gaia_catalog.h"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 using namespace std;
 

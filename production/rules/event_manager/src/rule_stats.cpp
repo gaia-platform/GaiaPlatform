@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #include "rule_stats.hpp"
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "timer.hpp"
 
 using namespace gaia::common;

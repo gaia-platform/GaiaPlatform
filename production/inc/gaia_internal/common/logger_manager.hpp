@@ -12,7 +12,7 @@
 
 #include "gaia/exception.hpp"
 #include "debug_logger.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 namespace gaia
 {
@@ -38,6 +38,7 @@ public:
     static constexpr char c_rules_logger[] = "rules";
     static constexpr char c_rules_stats_logger[] = "rules_stats";
     static constexpr char c_catalog_logger[] = "catalog";
+    static constexpr char c_app_logger[] = "app";
 
     /** Default logging path used if none is specified via configuration. */
     static constexpr char c_default_log_path[] = "logs/gaia.log";
@@ -99,6 +100,15 @@ public:
         return *m_rules_stats_logger;
     }
 
+    logger_t& app_logger()
+    {
+        if (!m_is_log_initialized)
+        {
+            uninitialized_failure();
+        }
+        return *m_app_logger;
+    }
+
     bool init_logging(const std::string& config_path);
     bool stop_logging();
 
@@ -118,12 +128,15 @@ private:
     std::mutex m_log_init_mutex;
     std::atomic_bool m_is_log_initialized = false;
 
-    // Well-known loggers
+    // Internal loggers
     logger_ptr_t m_sys_logger;
     logger_ptr_t m_db_logger;
     logger_ptr_t m_rules_logger;
     logger_ptr_t m_rules_stats_logger;
     logger_ptr_t m_catalog_logger;
+
+    // public loggers
+    logger_ptr_t m_app_logger;
 };
 
 /*@}*/
