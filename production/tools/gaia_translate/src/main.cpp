@@ -258,7 +258,9 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool add_active_field(const string& table_name, const string& field_name)
+//This function adds a field to active fields list if it is marked as active in the catalog
+// it returns true if there were no error and false otherwise
+bool validate_and_add_active_field(const string& table_name, const string& field_name)
 {
     if (g_field_data.empty())
     {
@@ -272,7 +274,7 @@ bool add_active_field(const string& table_name, const string& field_name)
 
     if (g_field_data.find(table_name) == g_field_data.end())
     {
-        cerr << "No table " << table_name << " found in the catalog." << endl;
+        cerr << "Table " << table_name << " was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -287,7 +289,7 @@ bool add_active_field(const string& table_name, const string& field_name)
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "No field " << field_name << " found in the catalog." << endl;
+        cerr << "Field " << field_name << " of table " << table_name << "was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -691,7 +693,7 @@ void generate_rules(Rewriter& rewriter)
         string common_subscription_code;
         if (g_field_data.find(table) == g_field_data.end())
         {
-            cerr << "No table " << table << " found in the catalog." << endl;
+            cerr << "Table " << table << " was not found in the catalog." << endl;
             g_generation_error = true;
             return;
         }
@@ -738,7 +740,7 @@ void generate_rules(Rewriter& rewriter)
             {
                 if (fields.find(field) == fields.end())
                 {
-                    cerr << "No field " << field << " found in the catalog." << endl;
+                    cerr << "Field " << field << " of table " << table << " was not found in the catalog." << endl;
                     g_generation_error = true;
                     return;
                 }
@@ -922,7 +924,7 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (!add_active_field(table_name, field_name))
+                if (!validate_and_add_active_field(table_name, field_name))
                 {
                     return;
                 }
@@ -959,7 +961,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (!add_active_field(table_name, field_name))
+                    if (!validate_and_add_active_field(table_name, field_name))
                     {
                         return;
                     }
@@ -1141,7 +1143,7 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        if (!add_active_field(table_name, field_name))
+                        if (!validate_and_add_active_field(table_name, field_name))
                         {
                             return;
                         }
@@ -1265,7 +1267,7 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    if (!add_active_field(table_name, field_name))
+                    if (!validate_and_add_active_field(table_name, field_name))
                     {
                         return;
                     }
