@@ -17,7 +17,7 @@ const char* rule_stats_t::c_cumulative_rule_stats
     = "[thread load: {:8.2f} %]{:6}{:6}{:6}{:6}{:6}{:6}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
 
 // Individual rule statistics include the rule_id as the first argument.  Example output is:
-// rule_field_phone_number      54    54     0     0     0     0     49.59 ms     86.68 ms      0.05 ms      1.96 ms
+// a_ruleset::12_sensor      54    54     0     0     0     0     49.59 ms     86.68 ms      0.05 ms      1.96 ms
 const char* rule_stats_t::c_rule_stats = "{: <25}{:6}{:6}{:6}{:6}{:6}{:6}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
 
 rule_stats_t::rule_stats_t()

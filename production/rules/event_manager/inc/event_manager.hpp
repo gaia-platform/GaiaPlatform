@@ -73,16 +73,16 @@ public:
         subscription_list_t& subscriptions);
 
 private:
-    // Internal rule binding to copy the callers
-    // rule data and hold on to it.  This will be
-    // required for deferred rules later.
+    // Internal rule binding to copy the callers rule data and hold on to it.
     struct _rule_binding_t
     {
+        static std::string make_qualified_rule_name(const char* ruleset_name, const char* rule_name);
         _rule_binding_t(const rules::rule_binding_t& binding);
         _rule_binding_t(const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule);
 
         std::string ruleset_name;
         std::string rule_name;
+        std::string qualified_rule_name;
         rules::gaia_rule_fn rule;
     };
 
@@ -177,7 +177,6 @@ private:
         }
     }
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
-    static std::string make_rule_key(const rules::rule_binding_t& binding);
     static void add_subscriptions(
         rules::subscription_list_t& subscriptions,
         const rule_list_t& rules,

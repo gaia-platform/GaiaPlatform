@@ -251,7 +251,7 @@ void event_manager_t::enqueue_invocation(
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
-        rule_binding->rule_name.c_str(), start_time};
+        rule_binding->qualified_rule_name.c_str(), start_time};
     m_invocations->enqueue(invocation);
 }
 
@@ -480,7 +480,7 @@ void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     // rule binding entry and put it in our global list.
     if (rule_ptr == nullptr)
     {
-        const string& key = make_rule_key(binding);
+        const string& key = _rule_binding_t::make_qualified_rule_name(binding.ruleset_name, binding.rule_name);
         auto rule_binding = new _rule_binding_t(binding);
         m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(rule_binding)));
         rules.emplace_back(rule_binding);
@@ -508,7 +508,8 @@ bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& bind
 
 const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)
 {
-    auto rule_it = m_rules.find(make_rule_key(binding));
+    auto rule_it = m_rules.find(
+        _rule_binding_t::make_qualified_rule_name(binding.ruleset_name, binding.rule_name));
     if (rule_it != m_rules.end())
     {
         return rule_it->second.get();
@@ -517,11 +518,15 @@ const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_bi
     return nullptr;
 }
 
-std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
+string event_manager_t::_rule_binding_t::make_qualified_rule_name(const char* ruleset_name, const char* rule_name)
 {
-    string rule_key = binding.ruleset_name;
-    rule_key.append(binding.rule_name);
-    return rule_key;
+    string qualified_name = ruleset_name;
+    if (rule_name)
+    {
+        qualified_name.append("::");
+        qualified_name.append(rule_name);
+    }
+    return qualified_name;
 }
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
@@ -541,6 +546,7 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     {
         rule_name = a_rule_name;
     }
+    qualified_rule_name = make_qualified_rule_name(a_ruleset_name, a_rule_name);
 }
 
 // Initialize the rules engine with settings from a user-supplied gaia configuration file.
