@@ -700,15 +700,11 @@ void generate_rules(Rewriter& rewriter)
                 }
 
                 field_data_t field_data = fields[field];
-                if (!field_data.is_active)
+                if (field_data.is_active)
                 {
-                    cerr << "Field " << field << " is not marked as active in the catalog." << endl;
-                    g_generation_error = true;
-                    return;
+                    field_subscription_code +=
+                        "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
                 }
-
-                field_subscription_code +=
-                    "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
             }
         }
 
