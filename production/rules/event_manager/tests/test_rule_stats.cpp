@@ -79,8 +79,22 @@ struct stats_data_t
     float thread_load;
 };
 
-// Test helper to access protected members in the inherited
-// rule_stats_manager_t class.
+// Test helper to access protected members in rule_stats_t class.
+class test_rule_stats_t : public rule_stats_t
+{
+public:
+    static uint8_t get_max_rule_id_len()
+    {
+        return c_max_rule_id_len;
+    }
+
+    static uint8_t get_thread_load_padding()
+    {
+        return c_thread_load_padding;
+    }
+};
+
+// Test helper to access protected members in rule_stats_manager_t class.
 class test_stats_manager_t : public rule_stats_manager_t
 {
 public:
@@ -231,7 +245,7 @@ public:
     {
         if (add_header)
         {
-            snprintf(m_line, c_line_length, c_header_format, "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
+            snprintf(m_line, c_line_length, get_header_format_string().c_str(), "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
             m_expected_lines.emplace_back(m_line);
         }
 
@@ -275,6 +289,16 @@ public:
         s_logger_output.str({});
         // Clear the output of the expected log
         m_expected_lines.clear();
+    }
+
+    string generate_rule_id(uint8_t length)
+    {
+        string rule_id;
+        for (auto i = 0; i < length; i++)
+        {
+            rule_id.append("Z");
+        }
+        return rule_id;
     }
 
     // Note that we are using floats to express fractional milliseconds.
@@ -324,11 +348,34 @@ protected:
     char m_line[c_line_length];
     vector<string> m_expected_lines;
 
-    // Expected format of log result rows. There is a header row,
-    // a cumulative statistics row, and an individual rule statistics row.
-    const char* c_header_format = "-------------------------%6s%6s%6s%6s%6s%6s%13s%13s%13s%13s";
-    const char* c_cumulative_format = "[thread load: %8.2f %]%6d%6d%6d%6d%6d%6d%10.2f ms%10.2f ms%10.2f ms%10.2f ms";
-    const char* c_rule_format = "%-25s%6d%6d%6d%6d%6d%6d%10.2f ms%10.2f ms%10.2f ms%10.2f ms";
+    // Expected format of log result rows. There are three row types:
+    // A header row, a cumulative statistics row, and an individual rule statistics row.
+    string get_header_format_string()
+    {
+        string fmt;
+        for (int i = 0; i < test_rule_stats_t::get_max_rule_id_len(); i++)
+        {
+            fmt.append("-");
+        }
+        fmt.append("%6s%6s%6s%6s%6s%6s%13s%13s%13s%13s");
+        return fmt;
+    }
+
+    string get_cumulative_format_string()
+    {
+        string fmt = "[thread load: %";
+        fmt.append(to_string(test_rule_stats_t::get_thread_load_padding()));
+        fmt.append(".2f %]%6d%6d%6d%6d%6d%6d%10.2f ms%10.2f ms%10.2f ms%10.2f ms");
+        return fmt;
+    }
+
+    string get_individual_format_string()
+    {
+        string fmt = "%-";
+        fmt.append(to_string(test_rule_stats_t::get_max_rule_id_len()));
+        fmt.append("s%6d%6d%6d%6d%6d%6d%10.2f ms%10.2f ms%10.2f ms%10.2f ms");
+        return fmt;
+    }
 
     // Rule names used in testing invdividual rule statistics.
     const char* c_rule_id = "test_ruleset::0_employee";
@@ -411,13 +458,13 @@ TEST_F(rule_stats_test, test_log)
     // numbers 7 and 9 respectively.
     stats_data_t data = {c_rule_id, 1, 2, 3, 4, 5, 6, 7, 8, (7 * 2), 9, 10, (9 * 2)};
     fill_stats(stats, data);
-    add_expected_line(c_rule_format, data);
+    add_expected_line(get_individual_format_string().c_str(), data);
     stats.log();
     verify_log();
 
     // Verify that stats are reset after a log call.
     data = {c_rule_id};
-    add_expected_line(c_rule_format, data);
+    add_expected_line(get_individual_format_string().c_str(), data);
     stats.log();
     verify_log();
 }
@@ -427,7 +474,7 @@ TEST_F(rule_stats_test, test_log_no_executions)
     rule_stats_t stats(c_rule_id);
     stats_data_t data = {c_rule_id, 5, 0, 4, 0, 0, 1};
     fill_stats(stats, data);
-    add_expected_line(c_rule_format, data);
+    add_expected_line(get_individual_format_string().c_str(), data);
     stats.log();
     verify_log();
 }
@@ -437,7 +484,7 @@ TEST_F(rule_stats_test, test_log_default)
     rule_stats_t stats;
     stats_data_t data = {""};
     fill_stats(stats, data);
-    add_expected_line(c_rule_format, data);
+    add_expected_line(get_individual_format_string().c_str(), data);
     stats.log();
     verify_log();
 }
@@ -449,13 +496,13 @@ TEST_F(rule_stats_test, test_log_cumulative)
 
     stats_data_t data = {nullptr, 5, 0, 4, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, thread_load};
     fill_stats(stats, data);
-    add_expected_line(c_cumulative_format, data);
+    add_expected_line(get_cumulative_format_string().c_str(), data);
     stats.log(thread_load);
     verify_log();
 
     // Verify that stats are reset after a log call.
     data = {};
-    add_expected_line(c_cumulative_format, data);
+    add_expected_line(get_cumulative_format_string().c_str(), data);
     stats.log(0);
     verify_log();
 }
@@ -469,7 +516,7 @@ TEST_F(rule_stats_test, test_scheduler_stats)
     verify_stats(stats, {});
     stats_data_t data = {nullptr, 1, 2, 3, 4, 5, 6, 7, 8, 14, 9, 10, 18, 5000, 25};
     fill_stats(stats, data);
-    add_expected_line(c_cumulative_format, data);
+    add_expected_line(get_cumulative_format_string().c_str(), data);
     stats.log(false);
     verify_log();
 
@@ -484,7 +531,7 @@ TEST_F(rule_stats_test, test_scheduler_stats_header)
     scheduler_stats_t stats(log_interval, count_threads);
     stats_data_t data = {nullptr, 1, 2, 3, 4, 5, 6, 7, 8, 14, 9, 10, 18, 5000, 25};
     fill_stats(stats, data);
-    add_expected_line(c_cumulative_format, data, c_add_header);
+    add_expected_line(get_cumulative_format_string().c_str(), data, c_add_header);
     stats.log(c_add_header);
     verify_log();
 }
@@ -500,7 +547,7 @@ TEST_F(rule_stats_test, test_stats_manager_header)
 
     // Since this is the first time we logged, we should have printed the header.
     stats_data_t data = {};
-    add_expected_line(c_cumulative_format, data, c_add_header);
+    add_expected_line(get_cumulative_format_string().c_str(), data, c_add_header);
     manager.log_stats();
     verify_log();
 
@@ -508,13 +555,13 @@ TEST_F(rule_stats_test, test_stats_manager_header)
     uint8_t group_size = manager.get_group_size();
     while (manager.get_count_entries_logged() < group_size)
     {
-        add_expected_line(c_cumulative_format, data);
+        add_expected_line(get_cumulative_format_string().c_str(), data);
         manager.log_stats();
         verify_log();
     }
 
     // Once we hit our group size, we should log another header.
-    add_expected_line(c_cumulative_format, data, c_add_header);
+    add_expected_line(get_cumulative_format_string().c_str(), data, c_add_header);
     manager.log_stats();
     verify_log();
 };
@@ -558,7 +605,7 @@ TEST_F(rule_stats_test, test_stats_manager_cumulative)
 
     // The log should have two lines in them: header and
     // a single row of cumulative stats.
-    add_expected_line(c_cumulative_format, expected_stats, c_add_header);
+    add_expected_line(get_cumulative_format_string().c_str(), expected_stats, c_add_header);
     manager.log_stats();
     verify_log(c_use_fuzzy_match);
 }
@@ -606,13 +653,13 @@ TEST_F(rule_stats_test, test_stats_manager_multi_individual)
     verify_stats(stats_map[c_rule5], rule5);
     verify_stats(stats_map[c_rule6], rule6);
 
-    add_expected_line(c_cumulative_format, cumulative_stats, c_add_header);
-    add_expected_line(c_rule_format, rule1);
-    add_expected_line(c_rule_format, rule2);
-    add_expected_line(c_rule_format, rule3);
-    add_expected_line(c_rule_format, rule4);
-    add_expected_line(c_rule_format, rule5);
-    add_expected_line(c_rule_format, rule6);
+    add_expected_line(get_cumulative_format_string().c_str(), cumulative_stats, c_add_header);
+    add_expected_line(get_individual_format_string().c_str(), rule1);
+    add_expected_line(get_individual_format_string().c_str(), rule2);
+    add_expected_line(get_individual_format_string().c_str(), rule3);
+    add_expected_line(get_individual_format_string().c_str(), rule4);
+    add_expected_line(get_individual_format_string().c_str(), rule5);
+    add_expected_line(get_individual_format_string().c_str(), rule6);
     manager.log_stats();
     verify_log(c_use_fuzzy_match);
 }
@@ -649,8 +696,32 @@ TEST_F(rule_stats_test, test_stats_manager_same_individual)
     expected_stats.rule_id = c_rule1;
     verify_stats(stats_map[c_rule1], expected_stats);
 
-    add_expected_line(c_cumulative_format, expected_stats, c_add_header);
-    add_expected_line(c_rule_format, expected_stats);
+    add_expected_line(get_cumulative_format_string().c_str(), expected_stats, c_add_header);
+    add_expected_line(get_individual_format_string().c_str(), expected_stats);
     manager.log_stats();
     verify_log(c_use_fuzzy_match);
+}
+
+TEST_F(rule_stats_test, test_truncated_rule_id)
+{
+    // An empty rule name should be okay.
+    rule_stats_t empty_name;
+    string expected_rule_id;
+    EXPECT_EQ(expected_rule_id, empty_name.rule_id);
+    EXPECT_EQ(expected_rule_id, empty_name.truncated_rule_id);
+
+    // A rule name <= max_rule_id_len should not be truncated.
+    expected_rule_id = generate_rule_id(test_rule_stats_t::get_max_rule_id_len());
+    rule_stats_t name_equals_limit(expected_rule_id.c_str());
+    EXPECT_EQ(expected_rule_id, name_equals_limit.rule_id);
+    EXPECT_EQ(expected_rule_id, name_equals_limit.truncated_rule_id);
+
+    // A rule name > max_rule_id_len should be truncated with a '~' character.
+    expected_rule_id = generate_rule_id(test_rule_stats_t::get_max_rule_id_len() + 10);
+    rule_stats_t name_exceeds_limit(expected_rule_id.c_str());
+    EXPECT_EQ(expected_rule_id, name_exceeds_limit.rule_id);
+
+    expected_rule_id = generate_rule_id(test_rule_stats_t::get_max_rule_id_len() - 1);
+    expected_rule_id.append("~");
+    EXPECT_EQ(expected_rule_id, name_exceeds_limit.truncated_rule_id);
 }
