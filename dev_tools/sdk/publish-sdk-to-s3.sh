@@ -95,6 +95,7 @@ SDK_S3_URI="s3://$GAIA_S3_SDK_BUCKET/$VERSION/$CUSTOMER/$SDK_FILENAME"
 # Upload the SDK to S3
 aws s3 cp "$FILE" "$SDK_S3_URI" --profile "$PROFILE" --region "us-west-2"
 
+echo ""
 # Create the presigned URL
 PRESIGNED_URL=$(aws s3 presign "$SDK_S3_URI" --expires-in "$EXPIRATION" --profile "$PROFILE" --region "us-west-2")
 echo "The presigned URL is: $PRESIGNED_URL"

@@ -100,4 +100,5 @@ fi
 
 echo "Generating presigned URL for $FILE"
 PRESIGNED_URL=$(aws s3 presign "$SDK_S3_BUCKET_URI/$FILE" --expires-in "$EXPIRATION" --profile "$PROFILE" --region "us-west-2")
+echo ""
 echo "The presigned URL is: $PRESIGNED_URL"
