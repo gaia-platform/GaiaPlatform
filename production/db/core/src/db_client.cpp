@@ -609,19 +609,17 @@ void client::rollback_transaction()
         throw_system_error("fcntl(F_ADD_SEALS) failed");
     }
 
-    // No allocations made.
+    // Avoid sending transaction log fd to the server read only transactions.
     if (log_size > 0)
     {
         FlatBufferBuilder builder;
         build_client_request(builder, session_event_t::ROLLBACK_TXN);
         send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
-        std::cout << "waiting on rollback for xid" << s_txn_id << std::endl;
         // Block on server side cleanup of transaction log.
         uint8_t msg_buf[c_max_msg_size] = {0};
         size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
         retail_assert(bytes_read > 0, "Failed to read message!");
-        std::cout << "done rollback for xid" << s_txn_id << std::endl;
     }
 
     // Reset transaction id.
@@ -739,7 +737,6 @@ address_offset_t client::request_memory(size_t object_size)
 
 address_offset_t client::allocate_object(
     gaia_locator_t locator,
-    address_offset_t old_slot_offset,
     size_t size)
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");

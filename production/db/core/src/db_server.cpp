@@ -154,7 +154,7 @@ void server::handle_begin_txn(
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::get_memory_info_from_request_and_free(session_event_t txn_status)
+void server::free_uncommitted_allocations(session_event_t txn_status)
 {
     bool deallocate_new_offsets = true;
 
@@ -255,7 +255,7 @@ void server::handle_commit_txn(
     // If the txn aborts, then this frees all redo versions, and we ignore all
     // undo versions when we invalidate the txn log fd, so there is nothing to
     // do at that point except close the log fd.
-    get_memory_info_from_request_and_free(decision);
+    free_uncommitted_allocations(decision);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -635,10 +635,8 @@ void server::init_memory_manager()
 
 address_offset_t server::allocate_object(
     gaia_locator_t locator,
-    address_offset_t old_slot_offset,
     size_t size)
 {
-    retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
     address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
     if (offset == c_invalid_offset)
     {
@@ -2855,7 +2853,7 @@ void server::txn_rollback()
     if (s_fd_log != -1)
     {
         // Free any deallocated objects.
-        get_memory_info_from_request_and_free(session_event_t::ROLLBACK_TXN);
+        free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
     }
 
     s_fd_log = -1;

@@ -38,7 +38,6 @@ class client
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
 public:
@@ -104,7 +103,6 @@ private:
 
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
     static void txn_cleanup();

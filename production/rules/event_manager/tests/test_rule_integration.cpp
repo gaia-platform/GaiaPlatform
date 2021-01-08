@@ -282,7 +282,7 @@ protected:
         // NOTE: to run this test manually, you need to set the env variable DDL_FILE
         // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
         reset_server();
-        const char* ddl_file = getenv("DDL_FILE");
+        const char* ddl_file = "/home/ubuntu/GaiaPlatform/production/schemas/test/addr_book/addr_book.ddl";
         ASSERT_NE(ddl_file, nullptr);
         begin_session();
 
@@ -636,7 +636,7 @@ TEST_F(rule_integration_test, test_retry)
         ASSERT_EQ(ids.size(), 2);
         for (auto id : ids)
         {
-            EXPECT_EQ(string(employee_t::get(id).name_first()), expected_name);
+            ASSERT_EQ(string(employee_t::get(id).name_first()), expected_name);
         }
     };
 
@@ -652,11 +652,17 @@ TEST_F(rule_integration_test, test_retry)
         g_manual_commit = manual_commit;
 
         test_inner(0, 0, "Success");
+        cout << "1" << endl;
         test_inner(0, 1, "Success");
+        cout << "2" << endl;
         test_inner(1, 0, "Conflict");
+        cout << "3" << endl;
         test_inner(1, 1, "Success");
+        cout << "4" << endl;
         test_inner(4, 3, "Conflict");
+        cout << "5" << endl;
         test_inner(3, 3, "Success");
+        cout << "6" << endl;
     }
 
     // And reinitialize to provide harmony for other tests.

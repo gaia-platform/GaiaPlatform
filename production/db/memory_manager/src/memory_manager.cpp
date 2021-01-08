@@ -285,7 +285,6 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
     return adjusted_allocation_offset;
 }
 
-// First fit.
 address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate, bool add_allocation_metadata)
 {
     address_offset_t allocation_offset = c_invalid_offset;

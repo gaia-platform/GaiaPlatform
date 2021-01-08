@@ -60,7 +60,7 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     hash_node_t* hash_node = db_hash_map::insert(id);
     size_t object_size = total_len + sizeof(se_object_t);
     hash_node->locator = allocate_locator();
-    address_offset_t offset = client::allocate_object(hash_node->locator, 0, object_size);
+    address_offset_t offset = client::allocate_object(hash_node->locator, object_size);
     gaia_ptr obj(hash_node->locator, offset);
     se_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
@@ -106,8 +106,7 @@ void gaia_ptr::clone_no_txn()
 {
     se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(se_object_t) + old_this->payload_size;
-    gaia_offset_t old_offset = to_offset();
-    client::allocate_object(m_locator, old_offset, new_size);
+    client::allocate_object(m_locator, new_size);
     se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
@@ -141,7 +140,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     }
 
     // updates m_locator to point to the new object
-    client::allocate_object(m_locator, old_offset, sizeof(se_object_t) + total_len);
+    client::allocate_object(m_locator, sizeof(se_object_t) + total_len);
 
     se_object_t* new_this = to_ptr();
 
