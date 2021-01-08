@@ -258,8 +258,8 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-//This function adds a field to active fields list if it is marked as active in the catalog
-// it returns true if there were no error and false otherwise
+// This function adds a field to active fields list if it is marked as active in the catalog;
+// it returns true if there was no error and false otherwise.
 bool validate_and_add_active_field(const string& table_name, const string& field_name)
 {
     if (g_field_data.empty())

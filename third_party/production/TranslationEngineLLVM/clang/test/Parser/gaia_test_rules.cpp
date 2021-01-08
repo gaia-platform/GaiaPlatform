@@ -17,7 +17,7 @@ ruleset test1: table(sensor incubator)   // expected-error {{expected ')'}}
 }
 }
 
-ruleset test2: table123(sensor, incubator)   // expected-error {{Invalid ruleset attribute}}
+ruleset test2: table123(sensor, incubator)   // expected-error {{Invalid ruleset attribute.}}
 {
 {
   min_temp+=@value;
@@ -25,7 +25,7 @@ ruleset test2: table123(sensor, incubator)   // expected-error {{Invalid ruleset
 }
 }
 
-ruleset test3: table(sensor, incubator) table(sensor, incubator)  // expected-error {{Invalid ruleset attribute}}
+ruleset test3: table(sensor, incubator) table(sensor, incubator)  // expected-error {{Invalid ruleset attribute.}}
 {
 {
   min_temp+=@value;
@@ -34,7 +34,7 @@ ruleset test3: table(sensor, incubator) table(sensor, incubator)  // expected-er
 }
 
 ruleset test4: table()
-{ // expected-error {{Invalid ruleset attribute}}
+{ // expected-error {{Invalid ruleset attribute.}}
 {
   min_temp+=@value;
   max_temp += min_temp/2;
@@ -58,7 +58,7 @@ ruleset test6: table(345)   // expected-error {{expected identifier}}
 }
 
 ruleset test7:
-{ // expected-error {{Invalid ruleset attribute}}
+{ // expected-error {{Invalid ruleset attribute.}}
 {
   min_temp+=@value;
   max_temp += min_temp/2;
@@ -96,7 +96,7 @@ ruleset test10
 ruleset test11
 {
 ruleset test12
-{// expected-error {{Rulesets can not be defined in ruleset scope}}
+{// expected-error {{Rulesets can not be defined in ruleset scope.}}
 {
   min_temp+=@value;
   max_temp += min_temp/2;
@@ -139,42 +139,42 @@ ruleset test14: table(sensor, incubator), SerialStream(sdsdf,)  // expected-erro
 ruleset test15
 {
 {
-  min_temp=sensor.LastOperation; // expected-error {{Incorrect LastOperation action}}
+  min_temp=sensor.LastOperation; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test16
 {
 {
-  min_temp=UPDATE; // expected-error {{Incorrect LastOperation action}}
+  min_temp=UPDATE; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test17
 {
 {
-  min_temp=sensor.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation action}}
+  min_temp=sensor.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test18
 {
 {
-  min_temp=sensor.LastOperation + 3; // expected-error {{Incorrect LastOperation action}}
+  min_temp=sensor.LastOperation + 3; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test19
 {
 {
-  min_temp=UPDATE + 3; // expected-error {{Incorrect LastOperation action}}
+  min_temp=UPDATE + 3; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test20
 {
 {
-  min_temp = (int) UPDATE ; // expected-error {{Incorrect LastOperation action}}
+  min_temp = (int) UPDATE ; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
@@ -182,56 +182,56 @@ ruleset test20
 ruleset test21
 {
 {
-  min_temp+= sensor.LastOperation ; // expected-error {{Incorrect LastOperation action}}
+  min_temp+= sensor.LastOperation ; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test22
 {
 {
-  sensor.LastOperation ++; // expected-error {{Incorrect LastOperation action}}
+  sensor.LastOperation ++; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test23
 {
 {
-  ++UPDATE ; // expected-error {{Incorrect LastOperation action}}
+  ++UPDATE ; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test24
 {
 {
-  min_temp=sensor.LastOperation == 5; // expected-error {{Incorrect LastOperation action}}
+  min_temp=sensor.LastOperation == 5; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test25
 {
 {
-  min_temp = 3 == UPDATE; // expected-error {{Incorrect LastOperation action}}
+  min_temp = 3 == UPDATE; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test26
 {
 {
-  min_temp = !UPDATE; // expected-error {{Incorrect LastOperation action}}
+  min_temp = !UPDATE; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test27
 {
 {
-  min_temp = &sensor.LastOperation; // expected-error {{Incorrect LastOperation action}}
+  min_temp = &sensor.LastOperation; // expected-error {{Incorrect LastOperation action.}}
 }
 }
 
 ruleset test28
 {
 {
-  bool t = LastOperation == UPDATE; // expected-error {{use of undeclared identifier 'LastOperation'}} expected-error {{Field LastOperation was not found in the catalog}}
+  bool t = LastOperation == UPDATE; // expected-error {{use of undeclared identifier 'LastOperation'}} expected-error {{Field LastOperation was not found in the catalog.}}
 }
 }
 
@@ -252,18 +252,18 @@ ruleset test30
 ruleset test31
 {
 {
-  x.value ++; // expected-error {{No table x was found in the catalog}} expected-error {{use of undeclared identifier 'x'}}
+  x.value ++; // expected-error {{Table x was not found in the catalog.}} expected-error {{use of undeclared identifier 'x'}}
 }
 }
 
-ruleset test32: table(sensor, incubator, bogus)   // expected-error {{No table bogus was found in the catalog}}
+ruleset test32: table(sensor, incubator, bogus)   // expected-error {{Table bogus was not found in the catalog.}}
 {
 {
   max_temp += min_temp/2;
 }
 }
 
-ruleset test33: table(bogus, sensor, incubator)   // expected-error {{No table bogus was found in the catalog}}
+ruleset test33: table(bogus, sensor, incubator)   // expected-error {{Table bogus was not found in the catalog.}}
 {
 {
   max_temp += min_temp/2;
