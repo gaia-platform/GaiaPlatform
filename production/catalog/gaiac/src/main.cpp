@@ -36,7 +36,7 @@ enum class operate_mode_t
     loading,
 };
 
-void start_repl(parser_t& parser, const string& dbname)
+void start_repl(parser_t& parser, const string& db_name)
 {
     gaia::db::begin_session();
     initialize_catalog();
@@ -72,7 +72,7 @@ void start_repl(parser_t& parser, const string& dbname)
             int parsing_result = parser.parse_line(line);
             if (parsing_result == EXIT_SUCCESS)
             {
-                execute(dbname, parser.statements);
+                execute(db_name, parser.statements);
             }
             else
             {
