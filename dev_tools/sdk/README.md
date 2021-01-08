@@ -58,7 +58,7 @@ Listing all the files in s3://gaia-sdk/private-releases/0.1.0/customer1
 2021-01-08 08:20:55   15096308 gaia-0.1.0_amd64-20210108082053.deb
 ```
 
-You can now create a new URL usin g one of the files listed by the previous command:
+You can now create a new URL using one of the files listed by the previous command:
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1 -f gaia-0.1.0_amd64-20210108082053.deb
@@ -67,9 +67,9 @@ Generating presigned URL for gaia-0.1.0_amd64-20210108082053.deb
 The presigned URL is: https://gaia-sdk.s3.us-west-2.amazonaws.com/private-releases/0.1.0/customer1/gaia-0.1.0_amd64-20210108082053.deb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXX%XXXX%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20210108T162330Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=YYYY
 ```
 
-Alternatively you can create an URL for the latest uploaded SDK. Note S3 list command sort the output by alphabetically
-not by date. Our naming pattern should ensure that the last file in alphabetical order should also be the last file 
-in chronological order.
+Alternatively you can create an URL for the latest uploaded SDK. Note that the S3 list command sort the output 
+alphabetically not by date. Our naming pattern should ensure that the last file in alphabetical order is also the last 
+file in chronological order.
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1
