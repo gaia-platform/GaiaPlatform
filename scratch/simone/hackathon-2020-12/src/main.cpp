@@ -12,9 +12,9 @@
 #include <gaia/stream/Stream.h>
 #include <gaia/stream/StreamOperators.h>
 #include <gaia/system.hpp>
+#include <gaia/logger.hpp>
 #include "crud.h"
 #include "gaia_school.h"
-#include "logger.h"
 #include "utils.h"
 
 using namespace gaia::common;
@@ -254,13 +254,9 @@ void menu()
     ios.run();
 }
 
-log_conf_t g_log_conf = {};
-
 int main(int argc, char** argv)
 {
-    gaia::system::initialize("conf/gaia.conf");
-    g_log_conf.headers = true;
-    g_log_conf.level = debug;
+    gaia::system::initialize();
 
     begin_transaction();
     init_data();
