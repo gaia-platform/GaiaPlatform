@@ -12,3 +12,13 @@ in subfolders specific to version and customer. Eg: `s3://gaia-sdk/private-relea
 The script `get-sdk-url.sh` can generate presigned URLs for existing S3 objects.
 
 Please look at the scripts `--help` output for more details on their usage.
+
+# AWS SDK
+
+The scripts use the AWS CLI V2, follow these instruction to install it: 
+https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
+
+# AWS Credentials
+
+To operate the scripts you need to use AWS credentials that have permissions for S3. The credentials should
+be stored in `~/.aws/credentials` (`aws configure`). The `sdk` IAM user has the right credentials to access the bucket.
