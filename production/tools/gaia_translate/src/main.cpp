@@ -86,6 +86,8 @@ struct navigation_code_data_t
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 
+const char* c_last_operation = "LastOperation";
+
 static void print_version(raw_ostream &stream)
 {
     stream << "Gaia Translation Engine 0.1.0\nCopyright (c) Gaia Platform LLC\n";
@@ -256,7 +258,49 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-string insert_rule_preamble(string rule, string preamble)
+bool add_active_field(const string& table_name, const string& field_name)
+{
+    if (g_field_data.empty())
+    {
+        g_field_data = get_table_data();
+    }
+
+    if (g_generation_error)
+    {
+        return false;
+    }
+
+    if (g_field_data.find(table_name) == g_field_data.end())
+    {
+        cerr << "No table " << table_name << " found in the catalog." << endl;
+        g_generation_error = true;
+        return false;
+    }
+
+    if (field_name == c_last_operation)
+    {
+        g_active_fields[table_name].insert(c_last_operation);
+        return true;
+    }
+
+    auto fields = g_field_data[table_name];
+
+    if (fields.find(field_name) == fields.end())
+    {
+        cerr << "No field " << field_name << " found in the catalog." << endl;
+        g_generation_error = true;
+        return false;
+    }
+
+    field_data_t field_data = fields[field_name];
+    if (field_data.is_active)
+    {
+        g_active_fields[table_name].insert(field_name);
+    }
+    return true;
+}
+
+string insert_rule_preamble(const string &rule, const string &preamble)
 {
     size_t rule_code_start = rule.find('{');
     return "{" + preamble + rule.substr(rule_code_start + 1);
@@ -362,7 +406,7 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
     return true;
 }
 
-navigation_code_data_t generate_navigation_code(string anchor_table)
+navigation_code_data_t generate_navigation_code(const string& anchor_table)
 {
     navigation_code_data_t return_value;
     // no need to generate navigation code for a rule with LastOperation DELETE
@@ -682,7 +726,7 @@ void generate_rules(Rewriter& rewriter)
             .append("\n")
             .append("    field_position_list_t fields_" + rule_name + ";\n");
 
-        if (fd.second.find("LastOperation") != fd.second.end())
+        if (fd.second.find(c_last_operation) != fd.second.end())
         {
             contains_last_operation = true;
         }
@@ -878,7 +922,10 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                g_active_fields[table_name].insert(field_name);
+                if (!add_active_field(table_name, field_name))
+                {
+                    return;
+                }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -912,7 +959,10 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    g_active_fields[table_name].insert(field_name);
+                    if (!add_active_field(table_name, field_name))
+                    {
+                        return;
+                    }
                 }
             }
             else
@@ -1091,7 +1141,10 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        g_active_fields[table_name].insert(field_name);
+                        if (!add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
                         m_rewriter.InsertTextAfterToken(
                             op->getEndLoc(), "; w.update_row();return w." + field_name + ";}() ");
                     }
@@ -1212,7 +1265,10 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    g_active_fields[table_name].insert(field_name);
+                    if (!add_active_field(table_name, field_name))
+                    {
+                        return;
+                    }
 
                     if (op->isPostfix())
                     {
