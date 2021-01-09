@@ -72,7 +72,9 @@ inline std::string get_db_name_from_filename(const std::string& ddl_filename)
     return db_name;
 }
 
-inline void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename, const std::string& db_name)
+inline void load_catalog(
+    ddl::parser_t& parser, const std::string& ddl_filename,
+    const std::string& db_name, bool create_db = false)
 {
     common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
     common::retail_assert(!db_name.empty(), "No database specified.");
@@ -87,7 +89,7 @@ inline void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename,
     int parsing_result = parser.parse(file_path.string());
     common::retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");
 
-    if (!ddl_filename.empty())
+    if (create_db)
     {
         create_database(db_name, false);
     }
@@ -100,7 +102,7 @@ inline void load_catalog(const char* ddl_filename)
     ddl::parser_t parser;
     std::string filename(ddl_filename);
     std::string db_name = get_db_name_from_filename(ddl_filename);
-    load_catalog(parser, filename, db_name);
+    load_catalog(parser, filename, db_name, true);
 }
 
 } // namespace catalog

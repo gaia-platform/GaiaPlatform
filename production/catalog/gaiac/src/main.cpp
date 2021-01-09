@@ -301,20 +301,27 @@ int main(int argc, char* argv[])
     if (!valid_db_name(db_name))
     {
         cerr << c_error_prompt
-             << "The databse name '" + db_name + "' supplied from the command line is incorrectly formatted."
+             << "The database name '" + db_name + "' supplied from the command line is incorrectly formatted."
              << endl;
         exit(EXIT_FAILURE);
     }
 
+    // This indicates if we should try to create the database automatically. If
+    // the database name is derived from the ddl file name, we will try to
+    // create the database for the user. This is to keep backward compatible
+    // with existing build scripts. Use '-d <db_name>' to avoid this behavior.
+    // GAIAPLAT-585 tracks the work to remove this behavior.
+    bool create_db = false;
     if (!ddl_filename.empty() && db_name.empty())
     {
         db_name = get_db_name_from_filename(ddl_filename);
+        create_db = true;
     }
 
     if (!valid_db_name(db_name))
     {
         cerr << c_error_prompt
-             << "The databse name '" + db_name + "' derived from the filename is incorrectly formatted."
+             << "The database name '" + db_name + "' derived from the filename is incorrectly formatted."
              << endl;
         exit(EXIT_FAILURE);
     }
@@ -332,7 +339,7 @@ int main(int argc, char* argv[])
 
             if (!ddl_filename.empty())
             {
-                load_catalog(parser, ddl_filename, db_name);
+                load_catalog(parser, ddl_filename, db_name, create_db);
             }
 
             if (mode == operate_mode_t::generation)
