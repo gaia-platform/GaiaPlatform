@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        if (actuator.timestamp < 5 )
+	    {
+		    actuator.value = 5;
+	    }
+    }
+}
+// CHECK: No active fields for the rule.
