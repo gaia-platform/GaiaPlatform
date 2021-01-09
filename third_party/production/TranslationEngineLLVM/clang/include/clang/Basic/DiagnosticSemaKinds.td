@@ -9516,4 +9516,6 @@ def err_catalog_exception : Error<
     "Exception occured while fetching data from catalog: %0.">;
 def err_invalid_table_field : Error<
     "Field %0 have no table in the catalog.">;
+def warn_table_referenced_not_in_table_attribute : Warning<
+    "Table %0 is not referenced in table attribute.">;
 } // end of sema component.

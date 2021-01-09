@@ -204,6 +204,44 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
 QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 {
     std::string tableName = table->getName().str();
+    DeclContext *c = getCurFunctionDecl();
+    while (c)
+    {
+        if (isa<RulesetDecl>(c))
+        {
+            break;
+        }
+        c = c->getParent();
+    }
+
+    if (c == nullptr || !isa<RulesetDecl>(c))
+    {
+        Diag(loc, diag::err_no_ruleset_for_rule);
+        return Context.VoidTy;
+    }
+
+    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
+    RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
+
+    if (attr != nullptr)
+    {
+        bool table_found = false;
+        for (const IdentifierInfo * id : attr->tables())
+        {
+            if (id->getName().str() == tableName)
+            {
+                table_found = true;
+                break;
+            }
+
+        }
+
+        if (!table_found)
+        {
+            Diag(loc, diag::warn_table_referenced_not_in_table_attribute) << tableName;
+        }
+    }
+
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
     auto tableDescription = tableData.find(tableName);
     if (tableDescription == tableData.end())
