@@ -1,7 +1,5 @@
 gaia_hello.h
 hello_generated.h
 hello
-gaia_log.conf
-gaia.conf
 logs/
 hello_rules.cpp
