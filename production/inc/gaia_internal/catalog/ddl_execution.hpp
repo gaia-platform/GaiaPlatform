@@ -48,7 +48,14 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                drop_table(drop_stmt->database, drop_stmt->name);
+                if (!drop_stmt->database.empty())
+                {
+                    drop_table(drop_stmt->database, drop_stmt->name);
+                }
+                else
+                {
+                    drop_table(db_name, drop_stmt->name);
+                }
             }
             else if (drop_stmt->type == ddl::drop_type_t::drop_database)
             {
