@@ -251,7 +251,7 @@ void event_manager_t::enqueue_invocation(
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
-        rule_binding->qualified_rule_name.c_str(), start_time};
+        rule_binding->log_rule_name.c_str(), start_time};
     m_invocations->enqueue(invocation);
 }
 
@@ -450,7 +450,12 @@ void event_manager_t::add_subscriptions(
             continue;
         }
 
-        subscriptions.emplace_back(make_unique<subscription_t>(rule->ruleset_name.c_str(), rule->rule_name.c_str(), gaia_type, event_type, field));
+        subscriptions.emplace_back(make_unique<subscription_t>(
+            rule->ruleset_name.c_str(),
+            rule->rule_name.c_str(),
+            gaia_type, event_type,
+            field,
+            rule->line_number));
     }
 }
 
@@ -480,7 +485,7 @@ void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     // rule binding entry and put it in our global list.
     if (rule_ptr == nullptr)
     {
-        const string& key = _rule_binding_t::make_qualified_rule_name(binding.ruleset_name, binding.rule_name);
+        const string& key = _rule_binding_t::make_key(binding.ruleset_name, binding.rule_name);
         auto rule_binding = new _rule_binding_t(binding);
         m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(rule_binding)));
         rules.emplace_back(rule_binding);
@@ -508,8 +513,7 @@ bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& bind
 
 const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)
 {
-    auto rule_it = m_rules.find(
-        _rule_binding_t::make_qualified_rule_name(binding.ruleset_name, binding.rule_name));
+    auto rule_it = m_rules.find(_rule_binding_t::make_key(binding.ruleset_name, binding.rule_name));
     if (rule_it != m_rules.end())
     {
         return rule_it->second.get();
@@ -518,35 +522,42 @@ const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_bi
     return nullptr;
 }
 
-string event_manager_t::_rule_binding_t::make_qualified_rule_name(const char* ruleset_name, const char* rule_name)
+string event_manager_t::_rule_binding_t::make_key(const char* ruleset_name, const char* rule_name)
 {
-    string qualified_name = ruleset_name;
-    if (rule_name)
-    {
-        qualified_name.append("::");
-        qualified_name.append(rule_name);
-    }
-    return qualified_name;
+    string key = ruleset_name;
+    key.append(rule_name);
+    return key;
 }
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(const rule_binding_t& binding)
-    : _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule)
+    : _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule, binding.line_number)
 {
 }
 
 event_manager_t::_rule_binding_t::_rule_binding_t(
     const char* a_ruleset_name,
     const char* a_rule_name,
-    gaia_rule_fn a_rule)
+    gaia_rule_fn a_rule,
+    uint32_t a_line_number)
 {
     ruleset_name = a_ruleset_name;
     rule = a_rule;
+    line_number = a_line_number;
+
+    // Create a log/trace friendly name.
+    // [<rule line number>] <ruleset_name>::<rule_name>
+    log_rule_name = "[";
+    log_rule_name.append(to_string(line_number));
+    log_rule_name.append("] ");
+    log_rule_name.append(ruleset_name);
+
     if (a_rule_name != nullptr)
     {
         rule_name = a_rule_name;
+        log_rule_name.append("::");
+        log_rule_name.append(rule_name);
     }
-    qualified_rule_name = make_qualified_rule_name(a_ruleset_name, a_rule_name);
 }
 
 // Initialize the rules engine with settings from a user-supplied gaia configuration file.

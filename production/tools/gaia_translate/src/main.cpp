@@ -39,6 +39,7 @@ cl::opt<string> g_translation_engine_output_option(
 std::string g_current_ruleset;
 bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
+unsigned int g_current_ruleset_rule_line_number = 1;
 bool g_delete_operation_in_rule = false;
 const int c_declaration_to_ruleset_offset = -2;
 bool g_function_call_in_rule = false;
@@ -680,6 +681,8 @@ void generate_rules(Rewriter& rewriter)
 
     string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
+    unordered_map<uint32_t, string> rule_line_numbers;
+
     for (auto fd : g_active_fields)
     {
         if (g_generation_error)
@@ -699,6 +702,26 @@ void generate_rules(Rewriter& rewriter)
         }
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+
+        string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
+
+        // Declare a constant for the line number of the rule if this is the first
+        // time we've seen this rule.  Note that we may see a rule multiple times if
+        // the rule has multiple anchr rows.
+        if (rule_line_var.empty())
+        {
+            rule_line_var = "c_rule_line_";
+            rule_line_var.append(to_string(g_current_ruleset_rule_number));
+            rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
+
+            common_subscription_code
+                .append("    const uint32_t ")
+                .append(rule_line_var)
+                .append(" = ")
+                .append(to_string(g_current_ruleset_rule_line_number))
+                .append(";\n");
+        }
+
         common_subscription_code
             .append("    ")
             .append(c_nolint_identifier_naming)
@@ -718,6 +741,8 @@ void generate_rules(Rewriter& rewriter)
             .append(g_current_ruleset)
             .append("::")
             .append(rule_name)
+            .append(",")
+            .append(rule_line_var)
             .append(");\n");
 
         field_subscription_code
@@ -764,7 +789,10 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_delete_operation_in_rule && fd.second.size() > 1)
         {
-            cerr << "Referencing fields of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+            cerr << "Referencing fields of a record that has been deleted is currently not supported. ";
+            cerr << "This condition occurs when a rule is subscribed to a delete operation and ";
+            cerr << "is referencing data related to the deleted record.";
+            cerr << endl;
             g_generation_error = true;
             return;
         }
@@ -1347,11 +1375,16 @@ public:
             return;
         }
 
+        if (g_current_rule_declaration)
+        {
+            g_current_ruleset_rule_number++;
+        }
+
         g_current_rule_declaration = rule_declaration;
 
         // Use the line number of the rule in the ruleset file as the rule id
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
-        g_current_ruleset_rule_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
+        g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
         g_used_tables.clear();
         g_active_fields.clear();
         g_delete_operation_in_rule = false;
@@ -1401,6 +1434,7 @@ public:
             g_rulesets.push_back(g_current_ruleset);
             g_current_ruleset_subscription.clear();
             g_current_ruleset_unsubscription.clear();
+            g_current_ruleset_rule_number = 1;
             if (*(ruleset_declaration->decls_begin()) == nullptr)
             {
                 // Empty ruleset so it doesn't make sense to process any possible attributes
@@ -1699,10 +1733,8 @@ public:
         , m_none_match_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
-        DeclarationMatcher rule_matcher = functionDecl(allOf(
-                                                           hasAncestor(ruleset_matcher),
-                                                           hasAttr(attr::Rule)))
-                                              .bind("ruleDecl");
+        DeclarationMatcher rule_matcher
+            = functionDecl(allOf(hasAncestor(ruleset_matcher), hasAttr(attr::Rule))).bind("ruleDecl");
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
         StatementMatcher gaia_id_call_matcher
             = cxxMemberCallExpr(

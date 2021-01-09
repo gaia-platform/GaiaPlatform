@@ -76,14 +76,15 @@ private:
     // Internal rule binding to copy the callers rule data and hold on to it.
     struct _rule_binding_t
     {
-        static std::string make_qualified_rule_name(const char* ruleset_name, const char* rule_name);
+        static std::string make_key(const char* ruleset_name, const char* rule_name);
         _rule_binding_t(const rules::rule_binding_t& binding);
-        _rule_binding_t(const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule);
+        _rule_binding_t(const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule, uint32_t line_number);
 
         std::string ruleset_name;
         std::string rule_name;
-        std::string qualified_rule_name;
+        std::string log_rule_name;
         rules::gaia_rule_fn rule;
+        uint32_t line_number;
     };
 
     // The rules engine must be initialized through an explicit call
