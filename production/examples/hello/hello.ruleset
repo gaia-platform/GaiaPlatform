@@ -15,8 +15,6 @@ ruleset hello_ruleset
     // Rule 1: Whenever a name is inserted,
     // insert a new greeting into the greetings table.
     {
-        cout << endl << "Rule 1 was triggered!" << endl;
-
         // This LastOperation reference will indicate to the system
         // that this rule should be triggered
         // by any insertion made into the names table.
@@ -35,8 +33,6 @@ ruleset hello_ruleset
     // Rule 2: Whenever a greeting is inserted,
     // output it to the console.
     {
-        cout << endl << "Rule 2 was triggered!" << endl;
-
         // This LastOperation reference will indicate to the system
         // that this rule should be triggered
         // by any insertion made into the greetings table.
