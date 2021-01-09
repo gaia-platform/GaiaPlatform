@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cctype>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -140,6 +142,32 @@ void generate_headers(const string& db_name, const string& output_path)
     generate_edc_headers(db_name, output_path);
 }
 
+// Check if a database name is valid.
+//
+// Incorrect database names will result downstream failures in FlatBuffers and
+// our own parser. We want to detect errors early on at command line parsing
+// time to produce a more meaningful error message to the user. This function
+// needs to keep in sync with fbs and our own ddl identifier rules.
+bool valid_db_name(const string& db_name)
+{
+    if (db_name.empty())
+    {
+        return true;
+    }
+    if (!isalpha(db_name.front()))
+    {
+        return false;
+    }
+    for (char c : db_name.substr(1))
+    {
+        if (!(isalnum(c) || c == '_'))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Add a trailing '/' if not provided.
 void terminate_path(string& path)
 {
@@ -270,6 +298,34 @@ int main(int argc, char* argv[])
         }
     }
 
+    if (!valid_db_name(db_name))
+    {
+        cerr << c_error_prompt
+             << "The database name '" + db_name + "' supplied from the command line is incorrectly formatted."
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // This indicates if we should try to create the database automatically. If
+    // the database name is derived from the ddl file name, we will try to
+    // create the database for the user. This is to keep backward compatible
+    // with existing build scripts. Use '-d <db_name>' to avoid this behavior.
+    // GAIAPLAT-585 tracks the work to remove this behavior.
+    bool create_db = false;
+    if (!ddl_filename.empty() && db_name.empty())
+    {
+        db_name = get_db_name_from_filename(ddl_filename);
+        create_db = true;
+    }
+
+    if (!valid_db_name(db_name))
+    {
+        cerr << c_error_prompt
+             << "The database name '" + db_name + "' derived from the filename is incorrectly formatted."
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
     if (mode == operate_mode_t::interactive)
     {
         start_repl(parser, db_name);
@@ -283,7 +339,7 @@ int main(int argc, char* argv[])
 
             if (!ddl_filename.empty())
             {
-                db_name = load_catalog(parser, ddl_filename, db_name);
+                load_catalog(parser, ddl_filename, db_name, create_db);
             }
 
             if (mode == operate_mode_t::generation)
