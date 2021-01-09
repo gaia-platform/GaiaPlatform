@@ -62,10 +62,6 @@ add_executable(hello
   ${PROJECT_BINARY_DIR}/hello_rules.cpp
 )
 
-# The hello example uses a system configuration and logger configuration file.
-configure_file(${GAIA}/etc/gaia.conf ${PROJECT_BINARY_DIR}/gaia.conf)
-configure_file(${GAIA}/etc/gaia_log.conf ${PROJECT_BINARY_DIR}/gaia_log.conf)
-
 add_dependencies(hello translate_hello_ruleset)
 set_target_properties(hello PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
 set_target_properties(hello PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})

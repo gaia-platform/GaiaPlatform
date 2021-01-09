@@ -99,9 +99,15 @@ address_offset_t stack_allocator_t::allocate(
         validate_offset_alignment(old_slot_offset);
     }
 
-    // Adjust the requested memory size, to ensure proper alignment.
-    if (memory_size != 0)
+    if (memory_size == 0)
     {
+        retail_assert(
+            old_slot_offset != c_invalid_offset,
+            "A deallocation call was made without providing the address offset to deallocate!");
+    }
+    else
+    {
+        // Adjust the requested memory size, to ensure proper alignment.
         memory_size = calculate_allocation_size(memory_size);
         validate_size(memory_size);
     }

@@ -74,6 +74,8 @@ address_offset_t memory_manager_t::allocate_internal(
     size_t memory_size,
     bool add_allocation_metadata)
 {
+    retail_assert(memory_size > 0, "Allocated memory size should not be zero!");
+
     address_offset_t allocated_memory_offset = c_invalid_offset;
 
     // Adjust the requested memory size, to ensure proper alignment.

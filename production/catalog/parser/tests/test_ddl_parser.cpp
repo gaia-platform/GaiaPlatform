@@ -223,3 +223,11 @@ TEST(catalog_ddl_parser_test, drop_database)
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
     EXPECT_EQ(drop_stmt->name, "d");
 }
+
+TEST(catalog_ddl_parser_test, illegal_characters)
+{
+    parser_t parser;
+    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id : int8);"));
+    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE : TABLE t(id int8);"));
+    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id - int8);"));
+}

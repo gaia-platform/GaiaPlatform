@@ -5,6 +5,4 @@
 # All rights reserved.
 #############################################
 
-cp /opt/gaia/etc/*.conf .
-
 ./hello
