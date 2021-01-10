@@ -27,7 +27,7 @@ rule_stats_t::rule_stats_t(const char* a_rule_id)
         if (rule_id.length() > c_max_rule_id_len)
         {
             truncated_rule_id = rule_id.substr(0, c_max_rule_id_len - 1);
-            truncated_rule_id.append("~");
+            truncated_rule_id[c_max_rule_id_len - 1] = c_truncate_char;
         }
         else
         {
@@ -69,14 +69,13 @@ void rule_stats_t::add_rule_execution_time(int64_t duration)
     total_rule_execution_time += duration;
 }
 
-template <typename T_param>
-void rule_stats_t::log(const char* stats_format, uint8_t width, T_param first_param)
+void rule_stats_t::log_cumulative(float thread_utilization)
 {
     auto avg_latency = count_executed ? static_cast<float>(total_rule_invocation_latency / count_executed) : 0.0;
     auto avg_execution_time = count_executed ? static_cast<float>(total_rule_execution_time / count_executed) : 0.0;
 
     gaia_log::rules_stats().info(
-        stats_format, first_param, width,
+        c_cumulative_stats_format, c_thread_load, thread_utilization, c_thread_load_padding,
         count_scheduled, count_executed, count_pending, count_abandoned, count_retries, count_exceptions,
         gaia::common::timer_t::ns_to_ms(avg_latency),
         gaia::common::timer_t::ns_to_ms(max_rule_invocation_latency),
@@ -86,7 +85,18 @@ void rule_stats_t::log(const char* stats_format, uint8_t width, T_param first_pa
     reset_counters();
 }
 
-// Only support template args of const char* and float so explicitly
-// define the specializations here for linkage.
-template void rule_stats_t::log(const char* format, uint8_t width, const char* rule_id);
-template void rule_stats_t::log(const char* format, uint8_t width, float worker_thread_utilization);
+void rule_stats_t::log_individual()
+{
+    auto avg_latency = count_executed ? static_cast<float>(total_rule_invocation_latency / count_executed) : 0.0;
+    auto avg_execution_time = count_executed ? static_cast<float>(total_rule_execution_time / count_executed) : 0.0;
+
+    gaia_log::rules_stats().info(
+        c_individual_stats_format, truncated_rule_id.c_str(), c_max_rule_id_len,
+        count_scheduled, count_executed, count_pending, count_abandoned, count_retries, count_exceptions,
+        gaia::common::timer_t::ns_to_ms(avg_latency),
+        gaia::common::timer_t::ns_to_ms(max_rule_invocation_latency),
+        gaia::common::timer_t::ns_to_ms(avg_execution_time),
+        gaia::common::timer_t::ns_to_ms(max_rule_execution_time));
+
+    reset_counters();
+}

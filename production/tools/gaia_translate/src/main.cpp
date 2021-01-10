@@ -1382,7 +1382,6 @@ public:
 
         g_current_rule_declaration = rule_declaration;
 
-        // Use the line number of the rule in the ruleset file as the rule id
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
         g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
         g_used_tables.clear();
