@@ -84,7 +84,6 @@ ruleset test9
 
 ruleset test10
 {
-
   min_temp+=@value; // expected-error {{unknown type name 'min_temp'}} expected-error {{expected unqualified-id}}
 }
 
@@ -231,7 +230,7 @@ ruleset test27
 ruleset test28
 {
   {
-    bool t = LastOperation == UPDATE; // expected-error {{use of undeclared identifier 'LastOperation'}} expected-error {{Field LastOperation was not found in the catalog.}}
+    bool t = LastOperation == UPDATE; // expected-error {{use of undeclared identifier 'LastOperation'}} expected-error {{Field 'LastOperation' was not found in the catalog.}}
   }
 }
 
@@ -245,18 +244,18 @@ ruleset test29
 ruleset test30
 {
   {
-    value ++; // expected-error {{Duplicate field value}} expected-error {{use of undeclared identifier 'value'}}
+    value ++; // expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
   }
 }
 
 ruleset test31
 {
   {
-    x.value ++; // expected-error {{Table x was not found in the catalog.}} expected-error {{use of undeclared identifier 'x'}}
+    x.value ++; // expected-error {{Table 'x' was not found in the catalog.}} expected-error {{use of undeclared identifier 'x'}}
   }
 }
 
-ruleset test32: table(sensor, incubator, bogus)   // expected-error {{Table bogus was not found in the catalog.}}
+ruleset test32: table(sensor, incubator, bogus)   // expected-error {{Table 'bogus' was not found in the catalog.}}
 {
   {
     max_temp += min_temp/2;
@@ -266,6 +265,6 @@ ruleset test32: table(sensor, incubator, bogus)   // expected-error {{Table bogu
 ruleset test33: table(sensor)
 {
   {
-    actuator.value += value/2; // expected-warning {{Table actuator is not referenced in table attribute.}}
+    actuator.value += value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
   }
 }

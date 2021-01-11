@@ -7,4 +7,4 @@ ruleset test : table(sensor)
     }
 }
 
-// CHECK: :6:9: warning: Table actuator is not referenced in table attribute.
+// CHECK: :6:9: warning: Table 'actuator' is not referenced in table attribute.
