@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -34,11 +34,12 @@ using namespace gaia;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 cl::opt<string> g_translation_engine_output_option(
-        "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+    "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
+unsigned int g_current_ruleset_rule_line_number = 1;
 bool g_delete_operation_in_rule = false;
 const int c_declaration_to_ruleset_offset = -2;
 bool g_function_call_in_rule = false;
@@ -672,7 +673,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        for (const auto &location : g_gaia_id_call_locations)
+        for (const auto& location : g_gaia_id_call_locations)
         {
             rewriter.ReplaceText(location, "context->record");
         }
@@ -680,6 +681,8 @@ void generate_rules(Rewriter& rewriter)
 
     string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
+    unordered_map<uint32_t, string> rule_line_numbers;
+
     for (auto fd : g_active_fields)
     {
         if (g_generation_error)
@@ -699,6 +702,26 @@ void generate_rules(Rewriter& rewriter)
         }
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+
+        string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
+
+        // Declare a constant for the line number of the rule if this is the first
+        // time we've seen this rule.  Note that we may see a rule multiple times if
+        // the rule has multiple anchr rows.
+        if (rule_line_var.empty())
+        {
+            rule_line_var = "c_rule_line_";
+            rule_line_var.append(to_string(g_current_ruleset_rule_number));
+            rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
+
+            common_subscription_code
+                .append("    const uint32_t ")
+                .append(rule_line_var)
+                .append(" = ")
+                .append(to_string(g_current_ruleset_rule_line_number))
+                .append(";\n");
+        }
+
         common_subscription_code
             .append("    ")
             .append(c_nolint_identifier_naming)
@@ -708,8 +731,6 @@ void generate_rules(Rewriter& rewriter)
             .append("binding(\"")
             .append(g_current_ruleset)
             .append("\",\"")
-            .append(g_current_ruleset)
-            .append("::")
             .append(to_string(g_current_ruleset_rule_number));
         if (g_active_fields.size() > 1)
         {
@@ -720,6 +741,8 @@ void generate_rules(Rewriter& rewriter)
             .append(g_current_ruleset)
             .append("::")
             .append(rule_name)
+            .append(",")
+            .append(rule_line_var)
             .append(");\n");
 
         field_subscription_code
@@ -766,8 +789,10 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_delete_operation_in_rule && fd.second.size() > 1)
         {
-            cerr <<
-                "Referencing fields of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+            cerr << "Referencing fields of a record that has been deleted is currently not supported. ";
+            cerr << "This condition occurs when a rule is subscribed to a delete operation and ";
+            cerr << "is referencing data related to the deleted record.";
+            cerr << endl;
             g_generation_error = true;
             return;
         }
@@ -885,8 +910,6 @@ void generate_rules(Rewriter& rewriter)
 
         rule_count++;
     }
-
-
 }
 
 class field_get_match_handler_t : public MatchFinder::MatchCallback
@@ -1344,17 +1367,23 @@ public:
         {
             return;
         }
+
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
         generate_rules(m_rewriter);
         if (g_generation_error)
         {
             return;
         }
+
         if (g_current_rule_declaration)
         {
             g_current_ruleset_rule_number++;
         }
+
         g_current_rule_declaration = rule_declaration;
+
+        SourceRange rule_range = g_current_rule_declaration->getSourceRange();
+        g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
         g_used_tables.clear();
         g_active_fields.clear();
         g_delete_operation_in_rule = false;
@@ -1649,10 +1678,9 @@ public:
 class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-
     void run(const MatchFinder::MatchResult& result) override
     {
-        const auto *variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
+        const auto* variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
         if (variable_declaration != nullptr)
         {
             const auto variable_name = variable_declaration->getNameAsString();
@@ -1671,7 +1699,7 @@ public:
                 if (g_field_data.find(variable_name) != g_field_data.end())
                 {
                     cerr << "Local variable declaration " << variable_name
-                        << " hides database table of the same name." << endl;
+                         << " hides database table of the same name." << endl;
                     return;
                 }
 
@@ -1680,7 +1708,7 @@ public:
                     if (table_data.second.find(variable_name) != table_data.second.end())
                     {
                         cerr << "Local variable declaration " << variable_name
-                            << " hides catalog field entity of the same name." << endl;
+                             << " hides catalog field entity of the same name." << endl;
                         return;
                     }
                 }
@@ -1704,24 +1732,23 @@ public:
         , m_none_match_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
-        DeclarationMatcher rule_matcher = functionDecl(allOf(
-            hasAncestor(ruleset_matcher),
-            hasAttr(attr::Rule))).bind("ruleDecl");
+        DeclarationMatcher rule_matcher
+            = functionDecl(allOf(hasAncestor(ruleset_matcher), hasAttr(attr::Rule))).bind("ruleDecl");
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
         StatementMatcher gaia_id_call_matcher
             = cxxMemberCallExpr(
-                on(declRefExpr(
+                  on(declRefExpr(
                       to(varDecl(
                           hasAttr(attr::FieldTable))))),
-                callee(cxxMethodDecl(hasName("gaia_id"))))
-                .bind("gaia_id_call");
+                  callee(cxxMethodDecl(hasName("gaia_id"))))
+                  .bind("gaia_id_call");
         StatementMatcher function_call_matcher
             = cxxMemberCallExpr(
-                on(declRefExpr(
+                  on(declRefExpr(
                       to(varDecl(
                           hasAttr(attr::FieldTable))))),
-                callee(cxxMethodDecl(hasName("delete_row"))))
-                .bind("delete_row_call");
+                  callee(cxxMethodDecl(hasName("delete_row"))))
+                  .bind("delete_row_call");
 
         StatementMatcher last_operation_switch_matcher
             = switchStmt(allOf(
@@ -1931,8 +1958,8 @@ int main(int argc, const char** argv)
 {
     cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
     cl::list<std::string> source_files(
-      cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-      cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+        cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
+        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
 
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
@@ -1942,9 +1969,7 @@ int main(int argc, const char** argv)
     std::unique_ptr<CompilationDatabase> compilation_database
         = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
-    if (!cl::ParseCommandLineOptions(argc, argv,
-        "A tool to generate C++ rule and rule subscription code from declarative rulesets",
-        &stream))
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &stream))
     {
         stream.flush();
         return EXIT_FAILURE;

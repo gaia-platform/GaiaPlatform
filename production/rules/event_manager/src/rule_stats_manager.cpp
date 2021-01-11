@@ -159,7 +159,7 @@ void rule_stats_manager_t::log_stats()
                 || rule_it.second.count_retries
                 || rule_it.second.count_exceptions)
             {
-                rule_it.second.log();
+                rule_it.second.log_individual();
                 m_count_entries_logged++;
             }
         }

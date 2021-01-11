@@ -71,22 +71,26 @@ struct rule_binding_t
         : ruleset_name(nullptr)
         , rule_name(nullptr)
         , rule(nullptr)
+        , line_number(0)
     {
     }
 
     rule_binding_t(
         const char* a_ruleset_name,
         const char* a_rule_name,
-        gaia_rule_fn a_rule)
+        gaia_rule_fn a_rule,
+        uint32_t a_line_number = 0)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , rule(a_rule)
+        , line_number(a_line_number)
     {
     }
 
     const char* ruleset_name;
     const char* rule_name;
     gaia_rule_fn rule;
+    uint32_t line_number;
 };
 
 /**
@@ -101,6 +105,7 @@ struct subscription_t
         , gaia_type(common::c_invalid_gaia_type)
         , event_type(db::triggers::event_type_t::not_set)
         , field(0)
+        , line_number(0)
     {
     }
 
@@ -109,12 +114,14 @@ struct subscription_t
         const char* a_rule_name,
         common::gaia_type_t a_gaia_type,
         db::triggers::event_type_t an_event_type,
-        common::field_position_t a_field)
+        common::field_position_t a_field,
+        uint32_t a_line_number)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , gaia_type(a_gaia_type)
         , event_type(an_event_type)
         , field(a_field)
+        , line_number(a_line_number)
     {
     }
 
@@ -123,6 +130,7 @@ struct subscription_t
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
     const common::field_position_t field;
+    uint32_t line_number;
 };
 
 /**
