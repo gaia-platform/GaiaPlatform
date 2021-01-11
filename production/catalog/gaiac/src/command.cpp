@@ -437,7 +437,7 @@ string command_usage()
          name, "Generate fbs for a given database."});
     output_table.add_row(
         {string() + c_command_prefix + c_generate_command + c_table_subcommand,
-         name, "Generate fbs for a given database."});
+         name, "Generate fbs for a given table."});
 #endif
     output_table.add_row(
         {string() + c_command_prefix + c_help_command, "", "Print help information."});

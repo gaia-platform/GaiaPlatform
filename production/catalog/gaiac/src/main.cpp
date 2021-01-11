@@ -183,12 +183,14 @@ string usage()
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -d|--db-name <dbname>    Specify the database name.\n"
           "  -i|--interactive         Interactive prompt, as a REPL.\n"
-          "  -g|--generate            Generate fbs and gaia headers.\n"
+          "  -g|--generate            Generate direct access API header files.\n"
           "  -o|--output <path>       Set the path to all generated files.\n"
-          "  -t|--db-server-path      Start the Gaia DB server (for testing purposes).\n"
+#ifdef DEBUG
           "  -p|--parse-trace         Print parsing trace.\n"
           "  -s|--scan-trace          Print scanning trace.\n"
+          "  -t|--db-server-path      Start the DB server (for testing purposes).\n"
           "  --destroy-db             Destroy the persistent store.\n"
+#endif
           "  <ddl_file>               Process the DDLs in the file.\n"
           "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "                           The database will be created automatically.\n"
