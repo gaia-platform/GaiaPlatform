@@ -221,7 +221,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     }
 
     RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
-    RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTableAttr *attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
     if (attr != nullptr)
     {
