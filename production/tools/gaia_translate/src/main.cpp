@@ -3,9 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -23,6 +21,7 @@
 #include "clang/Tooling/Tooling.h"
 
 #include "gaia_catalog.h"
+#include "gaia_version.hpp"
 
 using namespace std;
 using namespace clang;
@@ -89,9 +88,9 @@ const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy
 
 const char* c_last_operation = "LastOperation";
 
-static void print_version(raw_ostream &stream)
+static void print_version(raw_ostream& stream)
 {
-    stream << "Gaia Translation Engine 0.1.0\nCopyright (c) Gaia Platform LLC\n";
+    stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
 string generate_general_subscription_code()
@@ -303,7 +302,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string insert_rule_preamble(const string &rule, const string &preamble)
+string insert_rule_preamble(const string& rule, const string& preamble)
 {
     size_t rule_code_start = rule.find('{');
     return "{" + preamble + rule.substr(rule_code_start + 1);
@@ -771,8 +770,7 @@ void generate_rules(Rewriter& rewriter)
                 field_data_t field_data = fields[field];
                 if (field_data.is_active)
                 {
-                    field_subscription_code +=
-                        "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
+                    field_subscription_code += "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
                 }
             }
         }

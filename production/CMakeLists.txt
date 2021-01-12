@@ -10,7 +10,7 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production)
+project(production VERSION 0.1.0)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
