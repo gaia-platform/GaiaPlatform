@@ -3,7 +3,7 @@ This is a folder for the Postgres-based relational engine. The code here defines
 
 ## Version management
 
-The FDW version is inherited from the production project. The FDW version will consist of just a major/minor combination. The version number is used in the name of the SQL setup script for the FDW (*gaia_fdw--{major}.{minor}.sql*) as well as in the name of the generated library (*gaia_fdw-{major}.{minor}.so*). In the future, we may want to completely drop the version from the library name, but for now, it may still be useful for debugging.
+The FDW version is inherited from the production project. The FDW version will consist of just the major/minor combination. The version number is used in the name of the SQL setup script for the FDW (*gaia_fdw--{major}.{minor}.sql*) as well as in the name of the generated library (*gaia_fdw-{major}.{minor}.so*). In the future, we may want to completely drop the version from the library name, but for now, it may still be useful for debugging.
 
 ## Instructions for running unit test
 

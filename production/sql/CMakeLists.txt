@@ -12,8 +12,8 @@ if(NOT PG_CONFIG)
   return()
 endif(NOT PG_CONFIG)
 
-# Use production major.minor as version of the FDW plugin. The patch is discarded because PG does not consider it when
-# installing plugins. Using the patch would cause FDW files to keep getting added to PG because installing a new version
+# Use production major.minor as version of the FDW plugin. The patch is discarded because other plugins do not use it.
+# Using the patch would cause FDW files to keep getting added to PG because installing a new version
 # doesn't remove the old one, unless it overwrites it.
 set(PG_GAIA_FDW_VERSION "${production_VERSION_MAJOR}.${production_VERSION_MINOR}")
 
