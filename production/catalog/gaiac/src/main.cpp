@@ -239,6 +239,13 @@ int main(int argc, char* argv[])
     parser_t parser;
     bool remove_persistent_store = false;
 
+    // If no arguments are specified print the help.
+    if (argc == 1)
+    {
+        cerr << usage() << endl;
+        exit(EXIT_FAILURE);
+    }
+
     for (int i = 1; i < argc; ++i)
     {
         if (argv[i] == string("-p") || argv[i] == string("--parse-trace"))
