@@ -18,6 +18,7 @@
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_parser.hpp"
+#include "gaia_version.hpp"
 #include "logger_internal.hpp"
 
 using namespace std;
@@ -194,7 +195,15 @@ string usage()
           "  <ddl_file>               Process the DDLs in the file.\n"
           "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "                           The database will be created automatically.\n"
-          "  -h|--help                Print help information.\n";
+          "  -h|--help                Print help information.\n"
+          "  -v|--version             Version information";
+    return ss.str();
+}
+
+string version()
+{
+    std::stringstream ss;
+    ss << "Gaia Catalog Tool " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
     return ss.str();
 }
 
@@ -288,6 +297,11 @@ int main(int argc, char* argv[])
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
             cout << usage() << endl;
+            exit(EXIT_SUCCESS);
+        }
+        else if (argv[i] == string("-v") || argv[i] == string("--version"))
+        {
+            cout << version() << endl;
             exit(EXIT_SUCCESS);
         }
         else if (argv[i] == string("--destroy-db"))
