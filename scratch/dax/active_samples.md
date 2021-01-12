@@ -3,10 +3,10 @@
 ## Goals/Proposal
 The follow samples are based on my opinion of how things should work:
 
-1. Fields need to be marked as active in the catalog AND specified in a rule "prolog".  If a field is not active in the schema than a compile-time error is emitted by the translation engine.  This allows schema designers (or system engineers) the ability to restrict what columns can participate in change events.  I prefer it being in DDL rather than a GRANT clause so that you can quickly see it in DDL.
-1. Given that I want to give control of event sources to schema designers then I would also want them to control table level event changes as well in schema.
+1. Fields need to be marked as active in the catalog AND specified in a rule "prologue".  If a field is not active in the schema then a compile-time error is emitted by the translation engine.  This allows schema designers (or system engineers) the ability to restrict what columns can participate in change events.  I prefer it being in DDL rather than a GRANT clause so that you can quickly see it in DDL.
+1. Given that I want to give control of event sources to schema designers then I would also want them to control table level event subscriptions as well in schema.
 1. Enable pre-conditions for rules (this is filtering outside of the rule-body itself).
-1. Remove the need for `@` annotations in rule body code itself. 
+1. Remove the need for `@` annotations. 
 
 ## Fleshing out the Proposal
 
@@ -14,7 +14,7 @@ The follow samples are based on my opinion of how things should work:
 To address the goals above, I propose adding an `active` keyword to create table.  It must include at least one of the following attributes: `on_insert`, `on_update`, or `on_delete`. The `active` keyword on a column still remains.  It is possible to mark a column as active without requiring `active(on_update)` on the enclosing table.
 
 ### Rule Defintions
-1. Require a prolog for each rule that specifies why the rule will be fired.  The prolog allows the following annotations:
+1. Require a prologue for each rule that specifies why the rule will be fired.  The prologue allows the following annotations:
     * Active *Table* annotations:  table_name.on_insert, table_name.on_update, table_name.on_delete.
     * Active *Field* are listed as part of the `on_update` attribute. That is. table_name.on_update(active_column1, active_column2, ...)
     * Event reasons can be combined.  I.e. table1.on_insert, table2.on_update. Semantically, a rule marked with more than one event source will fire if ANY of the events are caused.
@@ -32,7 +32,7 @@ sensor.on_update(value)
     ...
 }
 ```
-Let's add a filter criteria now so that the rule only runs if the incubator is on.  Note that since we have specified an active field list, we don't need to require that `is_on` be active of not.
+Add a filter criteria so that the rule only runs if the incubator is on.
 ```
 incubator.on_update(max_value, min_value).where(is_on == true)
 sensor.on_update(value)
@@ -40,7 +40,7 @@ sensor.on_update(value)
     ...
 }
 ```
-This begs the question:  when exactly will thie rule be called?  Does the where clause impact just the incubator update event or also the sensor update event?  The intent is that this rule never fires if the incubator is off.  It is not obvious to me that the above suggests that?  Therefore, I believe we need a "rule-wide" `where` construct.  This would look something like:
+This begs the question:  when exactly will this rule be called?  Does the where clause impact just the incubator update event or also the sensor update event?  The intent is that this rule never fires if the incubator is off.  It is not obvious to me that the above suggests that.  Therefore, I believe we need a "rule-wide" `where` construct that is not qualified by a table.  This would look something like:
 ```
 incubator.on_update(max_value, min_value)
 sensor.on_update(value)
@@ -49,7 +49,7 @@ where (incubator.is_on == true)
     ...
 }
 ```
-Do we need to support pre-conditions that are only scoped to a single event in a multi-event rule?  I'd prefer not to support *both* `table.on_update(...).where` and a rule-wide `where` at the same time.  If we did support both then we'd need to understand the order in which multiple filters are applied and which takes precedence in case of a conflict.  Although, not ideal, if the user really wanted a where clause only applied to a single event then they could write a separate rule for this pre-condition.
+Do we need to support pre-conditions that are only scoped to a single event in a multi-event rule?  I'd prefer not to support *both* `table.on_update(...).where` and a rule-wide `where` at the same time.  If we did support both then we'd need to understand the order in which multiple filters are applied and which takes precedence in case of a conflict.  Although not ideal, if the user really wanted a where clause only applied to a single event then they could write a separate rule for this pre-condition.
 
 Another note about that pre-conditions is that they will only be evaluated against post-commit values and not pre-commit values.  This means that it doesn't make sense to have conditionals attached to an `on_delete` attribute.  Furthermore, since the filter criteria is evaluated post commit time, transactions with multiple changes to the same row, will only evaluate against values from the last operation to that row.
 
@@ -184,7 +184,7 @@ Persons.on_update(IsTrusted)
 {
     if (Persons.FaceSignatue != get_latest_scan())
     {
-        // Compile failure.  FaceSignature was not specified in active field list of the rule prolog.
+        // Compile failure.  FaceSignature was not specified in active field list of the rule prologue.
     }
 }
 ```
@@ -232,7 +232,7 @@ Persons.on_update(IsTrusted)
 ```
 
 ### Table with filter expressions
-Note that filter expressions `where` clause are only specified in rules and not DDL.  DDL is just repeated here from above for reference.
+Note that the `where` clause is only specified in the rule prologue and not in the DDL.The DDL example is just repeated here for reference.
 #### DDL
 ```
 create table Persons active(on_insert, on_update, on_delete)
@@ -285,8 +285,8 @@ Rooms.on_insert
     Rooms.RestrictedCapacity = Rooms.Capacity * (Restrictions.PercentFull / 100.0);
 }
 ```
-If the PercentFull value changes, then updated the restricted capacity of all rooms at the
-university.  Note that RestrictedCapacity is off Rooms.
+If the PercentFull value changes, then update the restricted capacity of all rooms at the
+university.  Note that RestrictedCapacity is a column of the Rooms table.
 ```
 Restrictions.on_update(PercentFull)
 {
@@ -296,7 +296,7 @@ Restrictions.on_update(PercentFull)
 Since the above rule is doing the same thing for inserts and updates, we'd like to combine them.  Note that combining two `on` clauses is an OR not an AND.
 ```
 Restrictions.on_update(PercentFull),
-Rooms.on_insert()
+Rooms.on_insert
 {
     Rooms.RestrictedCapacity = Rooms.Capacity * (Restrictions.PercentFull / 100.0);
 }
