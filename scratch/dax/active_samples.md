@@ -13,7 +13,7 @@ The follow samples are based on my opinion of how things should work:
 ### DDL Syntax
 To address the goals above, I propose adding an `active` keyword to create table.  It must include at least one of the following attributes: `on_insert`, `on_update`, or `on_delete`. The `active` keyword on a column still remains.  It is possible to mark a column as active without requiring `active(on_update)` on the enclosing table.
 
-### Rule Defintions
+### Rule Definitions
 1. Require a prologue for each rule that specifies why the rule will be fired.  The prologue allows the following annotations:
     * Active *Table* annotations:  table_name.on_insert, table_name.on_update, table_name.on_delete.
     * Active *Field* are listed as part of the `on_update` attribute. That is. table_name.on_update(active_column1, active_column2, ...)
