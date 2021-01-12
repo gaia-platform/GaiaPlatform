@@ -242,8 +242,8 @@ int main(int argc, char* argv[])
     // If no arguments are specified print the help.
     if (argc == 1)
     {
-        cout << usage() << endl;
-        exit(EXIT_SUCCESS);
+        cerr << usage() << endl;
+        exit(EXIT_FAILURE);
     }
 
     for (int i = 1; i < argc; ++i)
