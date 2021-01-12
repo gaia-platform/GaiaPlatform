@@ -196,7 +196,7 @@ string usage()
           "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "                           The database will be created automatically.\n"
           "  -h|--help                Print help information.\n"
-          "  -v|--version             Version information";
+          "  -v|--version             Version information.\n";
     return ss.str();
 }
 
