@@ -90,7 +90,7 @@ TEST(memory_manager, advanced_operation)
     memory_manager.set_execution_flags(execution_flags);
     memory_manager.manage(memory, c_memory_size);
 
-    constexpr size_t c_stack_allocator_memory_size = 2000;
+    constexpr size_t c_stack_allocator_memory_size = 2048;
 
     // Make 3 allocations using a stack_allocator_t.
     unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
