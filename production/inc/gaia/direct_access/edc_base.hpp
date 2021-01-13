@@ -60,7 +60,7 @@ struct gaia_base_t : edc_db_t
      * with a flatbuffer table. This method returns the name of that type.
      */
     gaia_base_t() = delete;
-    gaia_base_t(const char* gaia_typename);
+    explicit gaia_base_t(const char* gaia_typename);
     gaia_base_t(const char* gaia_typename, common::gaia_id_t id);
 
     const char* gaia_typename()
@@ -75,7 +75,7 @@ protected:
     bool exists() const;
     bool equals(const gaia_base_t& other) const;
     const char* data() const;
-    common::gaia_id_t* references();
+    common::gaia_id_t* references() const;
     common::gaia_id_t find_next();
 
     /**

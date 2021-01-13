@@ -374,16 +374,16 @@ static string generate_edc_struct(
         if (is_named_relationship)
         {
             code.SetValue("REF_NAME", relationship.name());
-            code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() {";
+            code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() const {";
             code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->get_references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
         }
         else
         {
             // This relationship is anonymous.
-            code += "{{PARENT_TABLE}}_t {{PARENT_TABLE}}() {";
+            code += "{{PARENT_TABLE}}_t {{PARENT_TABLE}}() const {";
             code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->get_references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
         }
         code.DecrementIdentLevel();
         code += "}";
@@ -408,7 +408,7 @@ static string generate_edc_struct(
         {
             code.SetValue("REF_NAME", relationship.name());
 
-            code += "{{REF_NAME}}_{{CHILD_TABLE}}_list_t {{REF_NAME}}_{{CHILD_TABLE}}_list() {";
+            code += "{{REF_NAME}}_{{CHILD_TABLE}}_list_t {{REF_NAME}}_{{CHILD_TABLE}}_list() const {";
 
             code.IncrementIdentLevel();
             code += "return {{REF_NAME}}_{{CHILD_TABLE}}_list_t(gaia_id());";
@@ -416,7 +416,7 @@ static string generate_edc_struct(
         else
         {
             // This relationship is anonymous.
-            code += "{{CHILD_TABLE}}_list_t {{CHILD_TABLE}}_list() {";
+            code += "{{CHILD_TABLE}}_list_t {{CHILD_TABLE}}_list() const {";
 
             code.IncrementIdentLevel();
             code += "return {{CHILD_TABLE}}_list_t(gaia_id());";

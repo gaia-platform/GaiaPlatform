@@ -63,7 +63,7 @@ bool gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_re
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia::common::gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::references()
+gaia::common::gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_references() const
 {
     if (!gaia_base_t::exists())
     {
