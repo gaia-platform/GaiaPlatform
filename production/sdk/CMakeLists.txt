@@ -144,7 +144,18 @@ install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
-# Place incubator examples
+# Place hello example
+install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.ruleset DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.cpp DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/build.sh DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
+
+# Place incubator example
 set(GAIA_GENERATE "/usr/local/bin/gaiac")
 set(GAIA_TRANSLATE "/usr/local/bin/gaiat")
 set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
