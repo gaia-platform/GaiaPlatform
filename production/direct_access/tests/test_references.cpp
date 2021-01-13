@@ -49,6 +49,20 @@ protected:
     }
 };
 
+int count_addresses(const employee_t& e)
+{
+    int count = 0;
+    for (auto const& ap : e.addressee_address_list())
+    {
+        if (ap)
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 // Test connecting, disconnecting, navigating records
 // ==================================================
 TEST_F(gaia_references_test, connect)
@@ -65,15 +79,8 @@ TEST_F(gaia_references_test, connect)
     address_t a3 = address_t::get(aw.insert_row());
 
     e3.addressee_address_list().insert(a3);
-    int count = 0;
-    for (auto const& ap : e3.addressee_address_list())
-    {
-        if (ap)
-        {
-            count++;
-        }
-    }
-    EXPECT_EQ(count, 1);
+
+    EXPECT_EQ(count_addresses(e3), 1);
 
     e3.addressee_address_list().erase(a3);
     a3.delete_row();

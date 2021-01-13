@@ -52,7 +52,7 @@ template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb,
 struct gaia_object_t : gaia_base_t
 {
 public:
-    gaia_object_t(const char* gaia_typename);
+    explicit gaia_object_t(const char* gaia_typename);
 
     /**
      * Return a reference that is pre-populated with values from the row
@@ -107,7 +107,7 @@ public:
     /**
      * Get the array of pointers to related objects.
      */
-    gaia::common::gaia_id_t* references();
+    gaia::common::gaia_id_t* references() const override;
 
     /**
      * This is the database's identification of this object. The id can be
