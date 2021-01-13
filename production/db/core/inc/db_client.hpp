@@ -107,6 +107,8 @@ private:
     // due to other metadata created by the stack allocator, which is why we allot an additional 128 bytes of memory
     // to the initial stack allocator size per transaction.
     static constexpr size_t c_initial_txn_memory_size_bytes = 64 * 1024 + 128;
+    // Memory request sizes for stack allocators must be multiples of 64B.
+    static_assert(c_initial_txn_memory_size_bytes % 64 == 0);
 
     // Note that the transaction will incrementally request more memory for the stack allocator upto a certain maximum size
     // if it keeps running out of memory.

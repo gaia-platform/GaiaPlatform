@@ -52,9 +52,8 @@ public:
     // Sets stack_allocator_t execution flags.
     void set_execution_flags(const execution_flags_t& execution_flags);
 
-    // Helper functions for allocation alignment.
+    // Helper function for allocation alignment.
     static size_t calculate_allocation_size(size_t requested_size);
-    static size_t calculate_raw_allocation_size(size_t requested_size);
 
     // Sanity checks.
     static void validate_address_alignment(const uint8_t* const memory_address);

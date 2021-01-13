@@ -83,7 +83,9 @@ address_offset_t memory_manager_t::allocate_internal(
     }
     else
     {
-        memory_size = calculate_raw_allocation_size(memory_size);
+        retail_assert(
+            memory_size % c_allocation_alignment == 0,
+            "Requested raw memory size is not a multiple of 64B!");
     }
 
     validate_size(memory_size);
