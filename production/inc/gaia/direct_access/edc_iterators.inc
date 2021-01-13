@@ -164,9 +164,9 @@ gaia_set_iterator_t<T_child, T_next_slot>& gaia_set_iterator_t<T_child, T_next_s
 
     if (m_filter_fn)
     {
-        for (m_child_obj = T_child::get(m_child_obj.get_references()[T_next_slot]);
+        for (m_child_obj = T_child::get(m_child_obj.references()[T_next_slot]);
              m_child_obj;
-             m_child_obj = T_child::get(m_child_obj.get_references()[T_next_slot]))
+             m_child_obj = T_child::get(m_child_obj.references()[T_next_slot]))
         {
             if (m_filter_fn(m_child_obj))
             {
@@ -178,7 +178,7 @@ gaia_set_iterator_t<T_child, T_next_slot>& gaia_set_iterator_t<T_child, T_next_s
     {
         if (m_child_obj)
         {
-            m_child_obj = T_child::get(m_child_obj.get_references()[T_next_slot]);
+            m_child_obj = T_child::get(m_child_obj.references()[T_next_slot]);
         }
     }
 

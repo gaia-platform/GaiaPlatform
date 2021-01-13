@@ -108,7 +108,7 @@ struct gaia_table_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia
         return gaia_object_t::insert_row(b);
     }
     gaia_database_t gaia_database() const {
-        return gaia_database_t::get(this->get_references()[c_parent_gaia_database_gaia_table]);
+        return gaia_database_t::get(this->references()[c_parent_gaia_database_gaia_table]);
     }
     static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_table, gaia_table_t>& list() {
         static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_table, gaia_table_t> list;
@@ -144,7 +144,7 @@ struct gaia_field_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia
         return gaia_object_t::insert_row(b);
     }
     gaia_table_t gaia_table() const {
-        return gaia_table_t::get(this->get_references()[c_parent_gaia_table_gaia_field]);
+        return gaia_table_t::get(this->references()[c_parent_gaia_table_gaia_field]);
     }
     static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_field, gaia_field_t>& list() {
         static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_field, gaia_field_t> list;
@@ -172,10 +172,10 @@ struct gaia_relationship_t : public gaia::direct_access::gaia_object_t<c_gaia_ty
         return gaia_object_t::insert_row(b);
     }
     gaia_table_t parent_gaia_table() const {
-        return gaia_table_t::get(this->get_references()[c_parent_parent_gaia_relationship]);
+        return gaia_table_t::get(this->references()[c_parent_parent_gaia_relationship]);
     }
     gaia_table_t child_gaia_table() const {
-        return gaia_table_t::get(this->get_references()[c_parent_child_gaia_relationship]);
+        return gaia_table_t::get(this->references()[c_parent_child_gaia_relationship]);
     }
     static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t>& list() {
         static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list;
@@ -224,7 +224,7 @@ struct gaia_rule_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia_
         return gaia_object_t::insert_row(b);
     }
     gaia_ruleset_t gaia_ruleset() const {
-        return gaia_ruleset_t::get(this->get_references()[c_parent_gaia_ruleset_gaia_rule]);
+        return gaia_ruleset_t::get(this->references()[c_parent_gaia_ruleset_gaia_rule]);
     }
     static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_rule, gaia_rule_t>& list() {
         static gaia::direct_access::gaia_container_t<c_gaia_type_gaia_rule, gaia_rule_t> list;

@@ -52,7 +52,7 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 
 add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/test.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
@@ -60,7 +60,7 @@ add_custom_command(
       -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++17
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
@@ -89,7 +89,7 @@ set(MIXED_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_mixed.cpp")
 add_custom_command(
   COMMENT "Compiling test_mixed.ruleset."
   OUTPUT ${MIXED_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${MIXED_RULESET} -output ${MIXED_RULESET_OUT} --
@@ -97,7 +97,7 @@ add_custom_command(
     -I ${GAIA_GENERATED_SCHEMAS}
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}

@@ -376,14 +376,14 @@ static string generate_edc_struct(
             code.SetValue("REF_NAME", relationship.name());
             code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() const {";
             code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->get_references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
         }
         else
         {
             // This relationship is anonymous.
             code += "{{PARENT_TABLE}}_t {{PARENT_TABLE}}() const {";
             code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->get_references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
+            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
         }
         code.DecrementIdentLevel();
         code += "}";

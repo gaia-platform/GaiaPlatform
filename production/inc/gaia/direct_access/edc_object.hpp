@@ -107,7 +107,7 @@ public:
     /**
      * Get the array of pointers to related objects.
      */
-    gaia::common::gaia_id_t* get_references() const;
+    gaia::common::gaia_id_t* references() const override;
 
     /**
      * This is the database's identification of this object. The id can be
