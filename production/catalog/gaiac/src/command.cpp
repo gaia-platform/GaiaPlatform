@@ -167,7 +167,7 @@ void describe_table(const string& name)
     gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
-        for (auto table : gaia_table_t::list())
+        for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
             string qualified_name{table.gaia_database().name()};
