@@ -18,7 +18,7 @@ To address the goals above, I propose adding an `active` keyword to create table
     * Active *Table* annotations:  table_name.on_insert, table_name.on_update, table_name.on_delete.
     * Active *Field* are listed as part of the `on_update` attribute. That is. table_name.on_update(active_column1, active_column2, ...)
     * Event reasons can be combined.  I.e. table1.on_insert, table2.on_update. Semantically, a rule marked with more than one event source will fire if ANY of the events are caused.
-1. Filter criteria can be added using a `where` clause construct. I believe that it is more straightforward to separate this construct from the active field list of the `on_...` construct.  A where clause could conceivably be attached to the table and unattached.  More on this distinction in the next section.  Having an explicit `where` keyword also gives us room to expand to other keywords if needed.
+1. Filter criteria can be added using a `where` clause construct. I believe that it is more straightforward to separate this construct from the active field list of the `on_...` construct.  A where clause could conceivably be evaluated against a specific table `table.where(field1 > M && field2 < N ...)` or apply across several tables in the database `where(table1.field > M && table2.field < N...)`.  More on this distinction in the next section.  Having an explicit `where` keyword also gives us room to expand to other keywords if desired.
 
 ### Filtering
 Filtering brings up complexities that should be addressed.  Keep in mind that the filter in this context is a pre-condition for calling the rule.  This document does not address filtering within the body of a rule except that the filter syntax should be largely the same.
