@@ -74,8 +74,9 @@ set(CPACK_RPM_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_RPM_PACKAGE_DESCRIPTION "Gaia Platform SDK")
 set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.rpm)
 
-# Note: set this variable to use a custom RPM spec file. ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
-# set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec).
+# Note: set this variable to use a custom RPM spec file.
+# ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
+# set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec)
 
 # Set CPackDebHelper variables:
 #
