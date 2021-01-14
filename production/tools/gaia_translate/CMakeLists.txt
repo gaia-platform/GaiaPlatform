@@ -61,6 +61,7 @@ add_custom_command(
       -I /usr/include/clang/10/include/
       -std=c++17
   COMMAND pkill -f -KILL gaia_db_server &
+  COMMAND sleep 1
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
@@ -98,6 +99,7 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
   COMMAND pkill -f -KILL gaia_db_server &
+  COMMAND sleep 1
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
