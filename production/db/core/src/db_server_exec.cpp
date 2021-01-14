@@ -21,8 +21,10 @@ static void usage()
         << gaia::db::server::c_disable_persistence_after_recovery_flag
         << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag
-        << "]"
-        << std::endl
+        << "] "
+        << "["
+        << gaia::db::persistent_store_manager::c_data_dir_command_flag
+        << " <data dir>]"
         << std::endl;
     std::exit(1);
 }
@@ -30,16 +32,6 @@ static void usage()
 int main(int argc, char* argv[])
 {
     server::persistence_mode_t persistence_mode{server::persistence_mode_t::e_default};
-
-    // We currently accept only one argument.
-    if (argc > 2)
-    {
-        std::cerr
-            << std::endl
-            << "Too many arguments (maximum 1)."
-            << std::endl;
-        usage();
-    }
 
     for (int i = 1; i < argc; ++i)
     {
@@ -54,6 +46,11 @@ int main(int argc, char* argv[])
         else if (strcmp(argv[i], gaia::db::server::c_reinitialize_persistent_store_flag) == 0)
         {
             persistence_mode = server::persistence_mode_t::e_reinitialized_on_startup;
+        }
+        else if (strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0)
+        {
+            ++i;
+            gaia::db::persistent_store_manager::s_data_dir_path = argv[i];
         }
         else
         {
