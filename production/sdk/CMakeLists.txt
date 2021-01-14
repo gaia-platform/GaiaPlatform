@@ -58,7 +58,7 @@ set(CPACK_PACKAGE_VERSION_MINOR "${production_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${production_VERSION_PATCH}")
 set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
-# DEB specific section
+# DEB specific section.
 #
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Gaia Platform SDK")
@@ -68,18 +68,19 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
-# RPM specific section
+# RPM specific section.
 #
 set(CPACK_RPM_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_RPM_PACKAGE_DESCRIPTION "Gaia Platform SDK")
 set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.rpm)
 
-# Note: set this variable to use a custom RPM spec file. ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
+# Note: set this variable to use a custom RPM spec file.
+# ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
 # set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec)
 
 # Set CPackDebHelper variables:
 #
-# The directory that contains the files listed in CPACK_DEBHELPER_INPUT
+# The directory that contains the files listed in CPACK_DEBHELPER_INPUT.
 set(CPACK_DEBHELPER_INPUT_DIR "${PROJECT_SOURCE_DIR}/debian")
 # List of input files that require processing by the debhelpers. All of these
 # must have the '.in' extension because they are first processed by
@@ -96,7 +97,7 @@ set(CPACK_DEBHELPER_RUN
   dh_install dh_installdirs dh_installchangelogs
   dh_installdocs dh_installsystemd
   dh_usrlocal dh_link dh_dwz dh_compress dh_fixperms)
-# Let the debhelpers generate the debian/control file (instead of CPack)
+# Let the debhelpers generate the debian/control file (instead of CPack).
 set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
@@ -134,17 +135,28 @@ install(FILES ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h DESTINATION ${CMAKE_I
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 
-# Place spdlog headers
+# Place spdlog headers.
 install(DIRECTORY ${SPDLOG_INC}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Place gaia headers.
 install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# Place gaia configs
+# Place gaia configs.
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
-# Place incubator examples
+# Place hello example.
+install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.ruleset DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/hello.cpp DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/build.sh DESTINATION examples/hello)
+install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examples/hello)
+install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
+
+# Place incubator example.
 set(GAIA_GENERATE "/usr/local/bin/gaiac")
 set(GAIA_TRANSLATE "/usr/local/bin/gaiat")
 set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
