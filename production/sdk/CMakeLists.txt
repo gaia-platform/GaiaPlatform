@@ -5,7 +5,7 @@
 
 project(sdk)
 
-include(gaia)
+include(gaia_build)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
@@ -144,6 +144,9 @@ install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 # Place gaia configs.
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
+
+# Place cmake functions
+install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
 # Place hello example.
 install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
