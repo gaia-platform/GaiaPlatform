@@ -25,6 +25,5 @@ bool is_room_available(
 bool is_room_available(
     time_t date,
     gaia::gaia_u::Rooms_t& room);
-void log(const char* text, bool is_verbose = false);
 
 } // namespace event_planner
