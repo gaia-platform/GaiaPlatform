@@ -16,28 +16,28 @@ set(GAIA "/opt/gaia")
 set(LOCAL "/usr/local")
 
 set(GAIA_INC "${GAIA}/include")
-set(GAIA_GENERATE "${GAIA}/bin/gaiac")
-set(GAIA_TRANSLATE "${GAIA}/bin/gaiat")
+set(GAIAC "${GAIA}/bin/gaiac")
+set(GAIAT "${GAIA}/bin/gaiat")
 
 set(CAMPUS_DDL ${PROJECT_SOURCE_DIR}/campus.ddl)
 set(CAMPUS_RULESET ${PROJECT_SOURCE_DIR}/campus.ruleset)
 
 add_custom_command(
   OUTPUT ${PROJECT_BINARY_DIR}/gaia_campus.h
-  COMMAND ${GAIA_GENERATE}
+  COMMAND ${GAIAC}
     -o ${PROJECT_BINARY_DIR}
     -g ${CAMPUS_DDL}
   DEPENDS ${CAMPUS_DDL}
-  COMMENT "Compiled campus.ddl."
+  COMMENT "Processed campus.ddl."
 )
 
-add_custom_target(generate_campus_headers ALL
+add_custom_target(process_campus_ddl ALL
   DEPENDS ${PROJECT_BINARY_DIR}/gaia_campus.h
 )
 
 add_custom_command(
   OUTPUT ${PROJECT_BINARY_DIR}/campus_rules.cpp
-  COMMAND ${GAIA_TRANSLATE}
+  COMMAND ${GAIAT}
     ${CAMPUS_RULESET}
     -output ${PROJECT_BINARY_DIR}/campus_rules.cpp
     --
@@ -45,11 +45,11 @@ add_custom_command(
     -I ${GAIA_INC}
     -I ${PROJECT_BINARY_DIR}
   DEPENDS ${CAMPUS_RULESET}
-  COMMENT "Translating campus.ruleset."
+  COMMENT "Processed campus.ruleset."
 )
 
-add_custom_target(translate_campus_ruleset ALL
-  DEPENDS generate_campus_headers
+add_custom_target(process_campus_ruleset ALL
+  DEPENDS process_campus_ddl
   DEPENDS ${PROJECT_BINARY_DIR}/campus_rules.cpp
 )
 
@@ -61,11 +61,7 @@ add_executable(campus
   ${PROJECT_BINARY_DIR}/campus_rules.cpp
 )
 
-# The campus demo uses a system configuration and logger configuration file.
-configure_file("${GAIA}/etc/gaia.conf" "${PROJECT_BINARY_DIR}/gaia.conf")
-configure_file("${GAIA}/etc/gaia_log.conf" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-
-add_dependencies(campus translate_campus_ruleset)
+add_dependencies(campus process_campus_ruleset)
 set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(campus PRIVATE ${GAIA_INC})
 target_include_directories(campus PRIVATE ${PROJECT_BINARY_DIR})

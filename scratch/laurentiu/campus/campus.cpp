@@ -75,7 +75,7 @@ void enter_face_scanning_data()
 
     // Get back face scan record to set its building reference.
     face_scanning_t face_scan = face_scanning_t::get(face_scan_id);
-    face_scan.references()[c_parent_face_scanning_building_buildings] = building_id;
+    face_scan.references()[c_parent_face_scanning_building_face_scanning] = building_id;
 
     gaia::db::commit_transaction();
 
@@ -94,7 +94,7 @@ int main()
         << endl << "Enter data with 'e' command, quit application with 'q'."
         << endl;
 
-    gaia::system::initialize("gaia.conf");
+    gaia::system::initialize();
 
     string command;
     while (true)
