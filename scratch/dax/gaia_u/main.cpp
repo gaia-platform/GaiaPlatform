@@ -22,7 +22,7 @@ using namespace event_planner;
 
 void usage(const char*command) 
 {
-    printf("Usage: %s [-d] [-r[v] Percentage] [-l filename]\n", command);
+    printf("Usage: %s [-d] [-r Percentage] [-l filename]\n", command);
 }
 
 int main(int argc, const char**argv) {
@@ -30,8 +30,6 @@ int main(int argc, const char**argv) {
     printf("Event Planner\n\n");
     printf("-----------------------------------------\n");
     gaia::system::initialize();
-
-    event_planner::is_verbose = false;
 
     bool show_usage = false;
     if (argc == 1)
@@ -54,12 +52,6 @@ int main(int argc, const char**argv) {
         else
         if (strcmp(argv[1], "-r")== 0)
         {
-            update_restriction(stoul(argv[2]));
-        }
-        else
-        if (strcmp(argv[1], "-rv")== 0)
-        {
-            event_planner::is_verbose = true;
             update_restriction(stoul(argv[2]));
         }
         else
