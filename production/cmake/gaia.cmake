@@ -1,129 +1,127 @@
-#############################################
-# Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+cmake_minimum_required(VERSION 3.16)
 
-# Helper function to return the absolute path of the
-# repo root directory.  We use this to build absolute
-# include paths to code stored in the third-party
-# directory.  Note that this code assumes that the
-# function is invoked from a directoy directly below
-# the repo root (i.e. production or demos).
-function(get_repo_root project_source_dir repo_dir)
-  string(FIND ${project_source_dir} "/" repo_root_path REVERSE)
-  string(SUBSTRING ${project_source_dir} 0 ${repo_root_path} project_repo)
-  set(${repo_dir} "${project_repo}" PARENT_SCOPE)
+# Stop CMake if the given parameter was not passed to the function.
+macro(check_param PARAM)
+    if (NOT DEFINED ${PARAM})
+        message(FATAL_ERROR "The parameter ${PARAM} is required")
+    endif()
+endmacro()
+
+# Creates a CMake target that loads the DDL_FILE into the Gaia database
+# and generates the headers, to access the schema programmatically,
+# in OUTPUT_FOLDER.
+#
+# Args:
+# - DDL_FILE: the path to the .ddl file.
+# - OUTPUT_FOLDER: folder where the header files will be generated.
+# - TARGET_NAME: [optional] the name of the generated target. If not provided
+#                the default value is generate_${DDL_NAME}_headers
+#                where DDL_NAME is DDL_FILE with no extension.
+# - GAIAC_CMD: [optional] custom gaiac command. If not provided will search gaiac
+#              in the path.
+function(generate_schema_headers)
+    set(options "")
+    set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME GAIAC_CMD)
+    set(multiValueArgs "")
+    cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    check_param(ARG_DDL_FILE)
+    check_param(ARG_OUTPUT_FOLDER)
+
+    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
+    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
+
+    message(STATUS "Adding target to compile schema: ${ARG_DDL_FILE}")
+
+    if (NOT DEFINED ARG_GAIAC_CMD)
+        set(ARG_GAIAC_CMD gaiac)
+    endif()
+
+    add_custom_command(
+      COMMENT "Compiling ${ARG_DDL_FILE} into ${DDL_NAME}.h"
+      OUTPUT ${ARG_OUTPUT_FOLDER}/${DDL_NAME}.h
+      COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE}
+      DEPENDS ${ARG_DDL_FILE}
+    )
+
+    if (NOT DEFINED ARG_TARGET_NAME)
+        set(ARG_TARGET_NAME "generate_${DDL_NAME}_headers")
+        message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    endif()
+
+    add_custom_target(${ARG_TARGET_NAME} ALL
+      DEPENDS ${ARG_OUTPUT_FOLDER}/${DDL_NAME}.h)
 endfunction()
 
-set(TEST_SUCCESS "All tests passed!")
-
+# Creates a CMake target that translate the RULESET_FILE into a cpp file.
+# The generated cpp file is placed inside OUTPUT_FOLDER.
 #
-# Helper function for setting up our tests.
+# This function tries to infer some of the gaiat parameters such as:
+# - The default C++ include path.
+# - The Gaia path.
+# - The C++ version.
 #
-function(set_test target arg result)
-  add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
-  set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
-endfunction(set_test)
+# Args:
+# - RULESET_FILE: the path to the .ruleset file.
+# - OUTPUT_FOLDER: folder where the .cpp files will be generated.
+# - TARGET_NAME: [optional] the name of the generated target. If not provided
+#                the default value is translate_${RULESET_NAME}_ruleset
+#                where RULESET_NAME is RULESET_FILE with no extension.
+# - GAIAT_PARAMS: [optional]: Additional parameters to pass to gaiat
+# - GAIAT_CMD: [optional] custom gaiac command. If not provided will search gaiac
+#              in the path.
+# - DEPENDS: [optional] optional list of targets this task depends on.
+#            Typically the translation has to depend on the generation of the
+#            schema headers.
+function(translate_ruleset)
+    set(options "")
+    set(oneValueArgs RULESET_FILE OUTPUT_FOLDER TARGET_NAME GAIAT_CMD DEPENDS)
+    set(multiValueArgs GAIAT_PARAMS)
+    cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-#
-# Helper function for setting up google tests.
-# The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
-# Three optional arguments are after this:
-# [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to "".
-# [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
-# [ENV] - a semicolon-delimited list of key-value pairs for environment variables to be passed to the test. Defaults to "".
-#
-function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
-#  message(STATUS "TARGET = ${TARGET}")
-#  message(STATUS "SOURCES = ${SOURCES}")
-#  message(STATUS "INCLUDES = ${INCLUDES}")
-#  message(STATUS "LIBRARIES = ${LIBRARIES}")
-#  message(STATUS "ARGV0 = ${ARGV0}")
-#  message(STATUS "ARGV1 = ${ARGV1}")
-#  message(STATUS "ARGV2 = ${ARGV2}")
-#  message(STATUS "ARGV3 = ${ARGV3}")
-#  message(STATUS "ARGV4 = ${ARGV4}")
-#  message(STATUS "ARGV5 = ${ARGV5}")
+    check_param(ARG_RULESET_FILE)
+    check_param(ARG_OUTPUT_FOLDER)
 
-  add_executable(${TARGET} ${SOURCES})
+    get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+    string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
+    set(RULESET_CPP_NAME ${RULESET_NAME}.cpp)
+    set(RULESET_CPP_PATH ${ARG_OUTPUT_FOLDER}/${RULESET_CPP_NAME})
 
-  if (NOT ("${ARGV4}" STREQUAL ""))
-    add_dependencies(${TARGET} ${ARGV4})
-  endif()
+    message(STATUS "Adding target to translate ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
 
-  target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
-  if("${ARGV5}")
-    set(GTEST_LIB "gtest")
-  else()
-    set(GTEST_LIB "gtest;gtest_main")
-  endif()
-  target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
+    set(GAIAT_INCLUDE_PATH "")
 
-  if(NOT ("${ARGV6}" STREQUAL ""))
-    set(ENV "${ARGV6}")
-  else()
-    set(ENV "")
-  endif()
+    # Add implicit include directories
+    foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+        # Have to use ; instead of space otherwise custom_command will try to escape it
+        string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+    endforeach()
 
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
-  gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
-endfunction(add_gtest)
+    # Add default Gaia path
+    string(APPEND GAIAT_INCLUDE_PATH "-I;/opt/gaia/include;")
 
-#
-# Gaia specific flatc helpers for generating headers
-#
-function(gaia_register_generated_output file_name)
-  get_property(tmp GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-  list(APPEND tmp ${file_name})
-  set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS ${tmp})
-endfunction(gaia_register_generated_output)
+    # Add the output folder (which contains the DDL headers)
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${ARG_OUTPUT_FOLDER};")
 
-function(gaia_get_generated_output generated_files)
-  get_property(tmp GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-  set(${generated_files} ${tmp} PARENT_SCOPE)
-endfunction(gaia_get_generated_output)
+    if (NOT DEFINED ARG_GAIAT_CMD)
+        set(ARG_GAIAT_CMD gaiat)
+    endif()
 
-function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
-  if(FLATBUFFERS_BUILD_LEGACY)
-    set(OPT ${OPT};--cpp-std c++0x)
-  else()
-    # --cpp-std is defined by flatc default settings.
-  endif()
-  get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
-  get_filename_component(SRC_FBS_FILE ${SRC_FBS} NAME)
-  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS_FILE})
+    add_custom_command(
+      COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}"
+      OUTPUT ${RULESET_CPP_PATH}
+      COMMAND ${ARG_GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} --
+      ${GAIAT_INCLUDE_PATH}
+      ${ARG_GAIAT_PARAMS}
+      -std=c++${CMAKE_CXX_STANDARD}
+      DEPENDS ${ARG_RULESET_FILE} ${ARG_DEPENDS}
+    )
 
-  add_custom_command(
-    OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
-    COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
-            --cpp --gen-mutable --gen-object-api --reflect-names
-            --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
-            --cpp-str-type gaia::direct_access::nullable_string_t
-            --cpp-str-flex-ctor
-            --gaiacpp
-            ${OPT}
-            -I ${CMAKE_CURRENT_SOURCE_DIR}
-            -o ${OUTPUT_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
-    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
-    COMMENT "Run generation: '${GEN_HEADER}'"
-    VERBATIM)
-    gaia_register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
-endfunction()
+    if (NOT DEFINED ARG_TARGET_NAME)
+        set(ARG_TARGET_NAME "translate_${RULESET_NAME}_ruleset")
+        message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    endif()
 
-# Gaia specific flatc helpers for generating headers
-# Optional parameter [OUTPUT_DIR], default is ${CMAKE_CURRENT_SOURCE_DIR}
-function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
-  # message(STATUS "ARGV1=${ARGV1}")
-  if (NOT ("${ARGV1}" STREQUAL ""))
-    set(OUTPUT_DIR "${ARGV1}")
-  else()
-    set(OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  endif()
-  message(STATUS "OUTPUT_DIR = ${OUTPUT_DIR}")
-
-  gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare" ${OUTPUT_DIR})
+    add_custom_target(${ARG_TARGET_NAME} ALL
+      DEPENDS ${RULESET_CPP_PATH})
 endfunction()
