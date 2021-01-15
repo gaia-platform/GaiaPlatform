@@ -494,10 +494,6 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
 
 ExprResult Sema::ActOnGaiaThisRule(SourceLocation Loc)
 {
-  /// C++ 9.3.2: In the body of a non-static member function, the keyword this
-  /// is a non-lvalue expression whose value is the address of the object for
-  /// which the function is called.
-
   QualType ThisTy = getThisRuleType(Loc);
   if (ThisTy.isNull()) return Diag(Loc, diag::err_invalid_this_use);
 
