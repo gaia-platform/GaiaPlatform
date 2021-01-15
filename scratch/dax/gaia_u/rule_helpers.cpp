@@ -71,11 +71,11 @@ void event_planner::move_event_room(
 
         sprintf(buffer, "Erase '%s' from '%s'", event.Name(), old_room.RoomName());
         event_planner::log(buffer, true);
-        old_room.Room_Events_list().erase(event);
+        old_room.Events_list().erase(event);
     }
     sprintf(buffer, "Insert '%s' into '%s'", event.Name(), new_room.RoomName());
     event_planner::log(buffer, true);
-    new_room.Room_Events_list().insert(event);
+    new_room.Events_list().insert(event);
 }
 
 
@@ -89,7 +89,7 @@ bool event_planner::is_room_available(
     int64_t event_date = event.Date();
 
     // Walk through all the events this room is booked
-    for (auto other_event : room.Room_Events_list())
+    for (auto other_event : room.Events_list())
     {
         if (event_date == other_event.Date()) 
         {
@@ -116,7 +116,7 @@ bool event_planner::is_room_available(
     gaia::gaia_u::Rooms_t& room)
 {
     // Walk through all the events this room is booked
-    for (auto other_event : room.Room_Events_list())
+    for (auto other_event : room.Events_list())
     {
         if (date == other_event.Date()) 
         {

@@ -67,10 +67,7 @@ ruleset event_planner
         event_planner::log("Rule 4", true);
         if (Registrations.LastOperation == INSERT)
         {
-            // Subtle: if you had use Enrolled++ this would have caused a second rule to
-            // be generated That could be triggered by a change to the 'Enrolled' active
-            // field.
-            Enrolled = @Enrolled +1;
+            Enrolled++;
         }
     }
 
@@ -84,12 +81,11 @@ ruleset event_planner
     // If the room capacity has changed and is less than the enrollment for the event then move the room
     {
         event_planner::log("Rule 6", true);
-        // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
-        if (RestrictedCapacity < @Enrolled)
+        if (RestrictedCapacity < Enrolled)
         {
             char buffer[128];
             sprintf(buffer, "Event '%s' has '%u' enrollments but the restricted capacity is '%u'.  Attempting to change location.",
-                @Events.Name, @Enrolled, RestrictedCapacity);
+                @Events.Name, Enrolled, RestrictedCapacity);
             
             event_planner::log(buffer);
             //printf("DBG:  Setting ChangeLocation for event '%s'\n", @Events.Name);
@@ -116,7 +112,7 @@ ruleset event_planner
 
         // If the room can hold the number of students enrolled then
         // then is no need find another room.
-        if (@RestrictedCapacity >= @Enrolled)
+        if (@RestrictedCapacity >= Enrolled)
         {
             return;
         }
@@ -148,7 +144,7 @@ ruleset event_planner
                     continue;
                 }
 
-                if (room.RestrictedCapacity() >= @Enrolled)
+                if (room.RestrictedCapacity() >= Enrolled)
                 {
                     if (event_planner::is_room_available(event, room))
                     {
@@ -176,7 +172,7 @@ ruleset event_planner
 
             for (auto& room : building.Rooms_list())
             {
-                if (room.RestrictedCapacity() >= @Enrolled)
+                if (room.RestrictedCapacity() >= Enrolled)
                 {
                     if (event_planner::is_room_available(event, room))
                     {
@@ -225,7 +221,7 @@ ruleset event_planner
         time_t old_date = @Date;
         auto date_info = localtime(&old_date);
         auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
-        auto this_room = event.Room_Rooms();
+        auto this_room = event.Rooms();
               
         // Just pick the next week day until there is no conflict
         while (true)
@@ -304,7 +300,7 @@ ruleset event_planner
         {
             // Get the registrations for this event.
             auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
-            auto person = registration.Student_Students().Persons();
+            auto person = registration.Students().Persons();
             student_email.append(person.FirstName());
             student_email.append(" ");
             student_email.append(person.LastName());
@@ -349,16 +345,16 @@ ruleset event_planner
 
         // If the room size can accomadate the number of students enrolled
         // then we are done.
-        if (@Enrolled <= @RestrictedCapacity)
+        if (Enrolled <= @RestrictedCapacity)
         {
             return;
         }
 
         sprintf(buffer, "Dropping number of enrollments for event '%s' from '%u' to '%u'",
-            @Events.Name, @Enrolled, @RestrictedCapacity);
+            @Events.Name, Enrolled, @RestrictedCapacity);
         event_planner::log(buffer);
 
-        uint32_t count_registrations_to_drop = @Enrolled - @RestrictedCapacity;
+        uint32_t count_registrations_to_drop = Enrolled - @RestrictedCapacity;
 
         // Drop the enrollments to match the capacity we have.  Drop the people who registered the latest.
         Enrolled = @RestrictedCapacity;
@@ -367,7 +363,7 @@ ruleset event_planner
         std::map<int64_t, gaia::gaia_u::Registrations_t> registrations_to_drop;
 
         // populate our map
-        for (auto& registration : this_event.Event_Registrations_list())
+        for (auto& registration : this_event.Registrations_list())
         {
             int64_t timestamp = event_planner::get_timestamp(registration.RegistrationDate(), registration.RegistrationTime());
             registrations_to_drop.insert(std::make_pair(timestamp, registration));

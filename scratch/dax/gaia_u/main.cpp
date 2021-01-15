@@ -29,7 +29,7 @@ int main(int argc, const char**argv) {
     printf("-----------------------------------------\n");
     printf("Event Planner\n\n");
     printf("-----------------------------------------\n");
-    gaia::system::initialize("./gaia.conf");
+    gaia::system::initialize();
 
     event_planner::is_verbose = false;
 
@@ -72,12 +72,12 @@ int main(int argc, const char**argv) {
         show_usage = true;
     }
 
-    if (show_usage) usage(argv[0]);
-
-    
-    // UNDONE:  Let the rules finish, investigate whether you have a latest edition with all the shutdown fixes ...
-    // You shouldn't need this
+    if (show_usage) 
+    {
+        usage(argv[0]);
+    }
     printf("Press any key to continue ...\n");
     getchar();
-    gaia::system::shutdown();
+
+   gaia::system::shutdown();
 }
