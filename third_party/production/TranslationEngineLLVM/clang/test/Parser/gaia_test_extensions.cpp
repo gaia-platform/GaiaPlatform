@@ -106,3 +106,20 @@ ruleset test3 : table (sensor)
 	  }
   }
 }
+
+ruleset test4
+{
+  {
+    auto x = this_rule.rule_id;
+    auto y = this_rule.rule_ruleset;
+  }
+}
+
+// CHECK:   RulesetDecl {{.*}} test4
+// CHECK:   FunctionDecl{{.*}} {{.*}} 'void (...)'
+// CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:24> col:10 x 'const char *':'const char *' cinit
+// CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:24> 'const char *' xvalue .rule_id 0x{{[^ ]*}}
+// CHECK:   GaiaThisRuleExpr 0x{{[^ ]*}} <col:14> 'this_rule__type' this_rule
+// CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:24> col:10 y 'const char *':'const char *' cinit
+// CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:24> 'const char *' xvalue .rule_ruleset 0x{{[^ ]*}}
+// CHECK:   -GaiaThisRuleExpr 0x{{[^ ]*}} <col:14> 'this_rule__type' this_rule

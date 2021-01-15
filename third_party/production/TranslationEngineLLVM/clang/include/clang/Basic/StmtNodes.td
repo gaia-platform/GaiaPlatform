@@ -251,3 +251,6 @@ def OMPTargetTeamsDistributeDirective : DStmt<OMPLoopDirective>;
 def OMPTargetTeamsDistributeParallelForDirective : DStmt<OMPLoopDirective>;
 def OMPTargetTeamsDistributeParallelForSimdDirective : DStmt<OMPLoopDirective>;
 def OMPTargetTeamsDistributeSimdDirective : DStmt<OMPLoopDirective>;
+
+// Gaia this_rule
+def GaiaThisRuleExpr : DStmt<Expr>;

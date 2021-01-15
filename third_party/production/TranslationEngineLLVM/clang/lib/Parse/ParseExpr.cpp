@@ -1060,11 +1060,11 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
         getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope()&& (
-            (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&  
+            (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&
             NextToken().is(tok::identifier)));
-    if (getLangOpts().Gaia && Tok.is(tok::period) && 
+    if (getLangOpts().Gaia && Tok.is(tok::period) &&
         NextToken().is(tok::identifier) && Actions.getCurScope()->isInRulesetScope() &&
-        !Res.isInvalid() && !Res.isUnset() && 
+        !Res.isInvalid() && !Res.isUnset() &&
         !NextToken().getIdentifierInfo()->getName().compare("LastOperation"))
     {
         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
@@ -1077,7 +1077,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
             }
         }
     }
-        
+
     if (!Res.isInvalid() && Res.isUnset()) {
       UnconsumeToken(Replacement);
       return ParseCastExpression(isUnaryExpression, isAddressOfOperand,
@@ -1234,6 +1234,9 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     break;
   case tok::kw_this:
     Res = ParseCXXThis();
+    break;
+  case tok::kw_this_rule:
+    Res = ParseGaiaThisRule();
     break;
 
   case tok::annot_typename:
@@ -1455,7 +1458,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                 if (declExpr != nullptr)
                 {
                     ValueDecl *decl = declExpr->getDecl();
-                    if (decl->hasAttr<GaiaFieldAttr>() || 
+                    if (decl->hasAttr<GaiaFieldAttr>() ||
                         decl->hasAttr<FieldTableAttr>())
                     {
                         auto tableAttr = decl->getAttr<FieldTableAttr>();
@@ -1469,20 +1472,20 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                     else
                     {
                         return ExprError(Diag(atTok, diag::err_unexpected_at));
-                    }                   
-                } 
-                              
+                    }
+                }
+
                 return expr;
           }
           else
           {
               return ExprError();
-          }   
+          }
 
       }
-      
+
       SourceLocation AtLoc = ConsumeToken();
-      return ParseObjCAtExpression(AtLoc); 
+      return ParseObjCAtExpression(AtLoc);
   }
   case tok::caret:
     Res = ParseBlockLiteralExpression();

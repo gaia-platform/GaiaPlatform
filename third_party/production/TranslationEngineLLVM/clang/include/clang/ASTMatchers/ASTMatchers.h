@@ -1695,6 +1695,11 @@ extern const internal::VariadicDynCastAllOfMatcher<Stmt,
 extern const internal::VariadicDynCastAllOfMatcher<Stmt, CXXThisExpr>
     cxxThisExpr;
 
+/// Matches gaia this_rule expressions.
+///
+extern const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaThisRuleExpr>
+    gaiaThisRuleExpr;
+
 /// Matches nodes where temporaries are created.
 ///
 /// Example matches FunctionTakesString(GetStringByValue())

@@ -1298,6 +1298,7 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
     }
 
     // Cases not handled yet; but will handle some day.
+    case Stmt::GaiaThisRuleExprClass:
     case Stmt::DesignatedInitExprClass:
     case Stmt::DesignatedInitUpdateExprClass:
     case Stmt::ArrayInitLoopExprClass:

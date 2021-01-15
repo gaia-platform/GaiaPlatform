@@ -1445,6 +1445,13 @@ void ASTStmtWriter::VisitCXXThisExpr(CXXThisExpr *E) {
   Code = serialization::EXPR_CXX_THIS;
 }
 
+void ASTStmtWriter::VisitGaiaThisRuleExpr(GaiaThisRuleExpr *E)
+{
+  VisitExpr(E);
+  Record.AddSourceLocation(E->getLocation());
+  Code = serialization::EXPR_GAIA_THIS_RULE;
+}
+
 void ASTStmtWriter::VisitCXXThrowExpr(CXXThrowExpr *E) {
   VisitExpr(E);
   Record.AddSourceLocation(E->getThrowLoc());

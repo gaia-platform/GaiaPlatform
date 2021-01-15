@@ -1592,7 +1592,7 @@ DEF_TRAVERSE_DECL(OMPThreadPrivateDecl, {
     TRY_TO(TraverseStmt(I));
   }
  })
- 
+
 DEF_TRAVERSE_DECL(OMPRequiresDecl, {
   for (auto *C : D->clauselists()) {
     TRY_TO(TraverseOMPClause(C));
@@ -2480,6 +2480,8 @@ DEF_TRAVERSE_STMT(CXXPseudoDestructorExpr, {
   if (TypeSourceInfo *DestroyedTypeInfo = S->getDestroyedTypeInfo())
     TRY_TO(TraverseTypeLoc(DestroyedTypeInfo->getTypeLoc()));
 })
+
+DEF_TRAVERSE_STMT(GaiaThisRuleExpr, {})
 
 DEF_TRAVERSE_STMT(CXXThisExpr, {})
 DEF_TRAVERSE_STMT(CXXThrowExpr, {})

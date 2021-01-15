@@ -268,3 +268,52 @@ ruleset test33: table(sensor)
     actuator.value += value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
   }
 }
+
+ruleset test34
+{
+  {
+    auto x = this_rule; // expected-error {{Invalid use of 'this_rule'.}}
+  }
+}
+
+ruleset test35
+{
+  {
+    int this_rule = 5; // expected-error {{expected unqualified-id}}
+  }
+}
+
+ruleset test36
+{
+  {
+    int ruleset = 5; // expected-error {{expected unqualified-id}}
+  }
+}
+
+ruleset test37
+{
+  {
+    auto x = this_rule.x; // expected-error {{no member named 'x' in 'this_rule__type'}}
+  }
+}
+
+ruleset test38
+{
+  {
+    auto x = &this_rule; // expected-error {{Invalid use of 'this_rule'.}}
+  }
+}
+
+ruleset test39
+{
+  {
+    this_rule.rule_id = "test"; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test40
+{
+  {
+    this_rule.rule_id[3] = 't'; // expected-error {{read-only variable is not assignable}}
+  }
+}

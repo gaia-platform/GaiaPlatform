@@ -1260,6 +1260,8 @@ def err_ruleset_ruleset_scope : Error<
   "Rulesets can not be defined in ruleset scope.">;
 def err_invalid_ruleset_attribute : Error<
   "Invalid ruleset attribute.">;
+def err_invalid_this_rule_use : Error<
+    "Invalid use of 'this_rule'.">;
 }
 
 } // end of Parser diagnostics

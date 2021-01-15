@@ -10176,6 +10176,13 @@ TreeTransform<Derived>::TransformCXXThisExpr(CXXThisExpr *E) {
 
 template<typename Derived>
 ExprResult
+TreeTransform<Derived>::TransformGaiaThisRuleExpr(GaiaThisRuleExpr *E)
+{
+  return E;
+}
+
+template<typename Derived>
+ExprResult
 TreeTransform<Derived>::TransformCXXThrowExpr(CXXThrowExpr *E) {
   ExprResult SubExpr = getDerived().TransformExpr(E->getSubExpr());
   if (SubExpr.isInvalid())

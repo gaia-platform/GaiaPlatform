@@ -40,6 +40,7 @@ static const char *updateVarName = "UPDATE";
 static const char *deleteVarName = "DELETE";
 static const char *insertVarName = "INSERT";
 static const char *noneVarName = "NONE";
+static const char *thisRuleTypeName = "this_rule__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
@@ -200,6 +201,50 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
     Ret->setAccess(AS_public);
     RD->addDecl(Ret);
 }
+
+QualType Sema::getThisRuleType(SourceLocation loc)
+{
+    // Check if the type has been already created and return the created file
+    auto &types = Context.getTypes();
+    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
+    {
+        const auto *type = types[typeIdx];
+        const RecordDecl *record = type->getAsRecordDecl();
+        if (record != nullptr)
+        {
+            const auto *id = record->getIdentifier();
+            if (id != nullptr)
+            {
+                if (id->getName().equals(thisRuleTypeName))
+                {
+                    return QualType(type, 0);
+                }
+            }
+        }
+    }
+
+    RecordDecl *RD = Context.buildImplicitRecord(thisRuleTypeName);
+    RD->setLexicalDeclContext(CurContext);
+    RD->startDefinition();
+    Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
+    ActOnTagStartDefinition(&S,RD);
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
+        false, loc);
+    AttributeFactory attrFactory;
+    ParsedAttributes attrs(attrFactory);
+
+
+    //insert fields
+    addField(&Context.Idents.get("rule_ruleset"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+    addField(&Context.Idents.get("rule_id"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
+        loc, loc, attrs);
+    ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+
+    return Context.getTagDeclType(RD);
+}
+
 
 QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 {
@@ -445,4 +490,16 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
     assert(ruleset && "Invalid parameter, expected RulesetDecl");
     ruleset->setRBraceLoc(RBrace);
     PopDeclContext();
+}
+
+ExprResult Sema::ActOnGaiaThisRule(SourceLocation Loc)
+{
+  /// C++ 9.3.2: In the body of a non-static member function, the keyword this
+  /// is a non-lvalue expression whose value is the address of the object for
+  /// which the function is called.
+
+  QualType ThisTy = getThisRuleType(Loc);
+  if (ThisTy.isNull()) return Diag(Loc, diag::err_invalid_this_use);
+
+  return new (Context) GaiaThisRuleExpr(Loc, ThisTy);
 }

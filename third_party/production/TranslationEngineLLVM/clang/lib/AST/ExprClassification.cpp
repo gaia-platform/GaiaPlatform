@@ -192,6 +192,7 @@ static Cl::Kinds ClassifyInternal(ASTContext &Ctx, const Expr *E) {
   case Expr::ArrayInitIndexExprClass:
   case Expr::NoInitExprClass:
   case Expr::DesignatedInitUpdateExprClass:
+  case Expr::GaiaThisRuleExprClass:
     return Cl::CL_PRValue;
 
   case Expr::ConstantExprClass:
