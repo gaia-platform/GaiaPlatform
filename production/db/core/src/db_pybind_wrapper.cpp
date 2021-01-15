@@ -10,6 +10,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
+#include "gaia/system.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace std;
@@ -56,9 +57,10 @@ void print_node(const gaia_ptr& node, const bool indent = false)
     }
 
     cout
-        << "Node id:"
-        << node.id() << ", type:"
-        << node.type();
+        << "Node id: " << node.id()
+        << ", type: " << node.type()
+        << ", count references: " << node.num_references()
+        << "; ";
 
     print_payload(cout, node.data_size(), node.data());
 
@@ -70,98 +72,36 @@ void print_node(const gaia_ptr& node, const bool indent = false)
     cout << endl;
 }
 
-pybind11::bytes get_bytes(const pybind11::object& o)
+PYBIND11_MODULE(gaia_db_pybind, m)
 {
-    char* ptr = nullptr;
-    size_t size = 0;
+    m.doc() = "Python wrapper over Gaia Database.";
 
-    if (PyUnicode_Check(o.ptr()))
-    {
-        ptr = reinterpret_cast<char*>(PyUnicode_DATA(o.ptr())); // NOLINT
-        size = PyUnicode_GetLength(o.ptr());
-    }
-    else if (PyBytes_Check(o.ptr()))
-    {
-        ptr = PyBytes_AsString(o.ptr());
-        size = PyBytes_Size(o.ptr());
-    }
-    else if (PyByteArray_Check(o.ptr()))
-    {
-        ptr = PyByteArray_AsString(o.ptr());
-        size = PyByteArray_Size(o.ptr());
-    }
-    else
-    {
-        throw invalid_argument("Expected a string, bytes, or bytearray argument!");
-    }
-
-    if (o.ptr() == Py_None || ptr == nullptr)
-    {
-        throw invalid_argument("Failed to access argument data!");
-    }
-
-    pybind11::bytes b(ptr, size);
-
-    return b;
-}
-
-gaia_ptr create_node(
-    gaia_id_t id,
-    gaia_type_t type,
-    const pybind11::object& payload)
-{
-    pybind11::bytes bytes_payload = get_bytes(payload);
-    return gaia_ptr::create(id, type, PyBytes_Size(bytes_payload.ptr()), PyBytes_AsString(bytes_payload.ptr()));
-}
-
-void update_node(gaia_ptr node, const pybind11::object& payload)
-{
-    if (node.is_null())
-    {
-        throw invalid_argument("update_node() was called with a null node parameter!");
-    }
-
-    pybind11::bytes bytes_payload = get_bytes(payload);
-    node.update_payload(PyBytes_Size(bytes_payload.ptr()), PyBytes_AsString(bytes_payload.ptr()));
-}
-
-pybind11::bytes get_node_payload(gaia_ptr node)
-{
-    if (node.is_null())
-    {
-        throw invalid_argument("get_node_payload() was called with a null node parameter!");
-    }
-
-    return pybind11::bytes(node.data(), node.data_size());
-}
-
-PYBIND11_MODULE(db_client, m)
-{
-    m.doc() = "Python wrapper over Gaia COW database.";
-
-    m.def("begin_session", &begin_session);
+    m.def("begin_session", &gaia::system::initialize, arg("gaia_config_file") = nullptr, arg("logger_config_file") = nullptr);
     m.def("end_session", &end_session);
     m.def("begin_transaction", &begin_transaction);
     m.def("commit_transaction", &commit_transaction);
     m.def("rollback_transaction", &rollback_transaction);
 
     m.def("print_node", &print_node);
-    m.def("create_node", &create_node);
-    m.def("update_node", &update_node);
-    m.def("get_node_payload", &get_node_payload);
 
     register_exception<gaia::db::session_exists>(m, "session_exists");
     register_exception<gaia::db::no_active_session>(m, "no_session_active");
     register_exception<gaia::db::transaction_in_progress>(m, "transaction_in_progress");
     register_exception<gaia::db::no_open_transaction>(m, "transaction_not_open");
     register_exception<gaia::db::transaction_update_conflict>(m, "transaction_update_conflict");
+    register_exception<gaia::db::transaction_object_limit_exceeded>(m, "transaction_object_limit_exceeded");
     register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
     register_exception<gaia::db::oom>(m, "oom");
     register_exception<gaia::db::invalid_node_id>(m, "invalid_node_id");
     register_exception<gaia::db::invalid_id_value>(m, "invalid_id_value");
     register_exception<gaia::db::node_not_disconnected>(m, "node_not_disconnected");
+    register_exception<gaia::db::payload_size_too_large>(m, "payload_size_too_large");
+    register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
     class_<gaia_ptr>(m, "gaia_ptr")
+        .def_static(
+            "create",
+            static_cast<gaia_ptr (*)(gaia_type_t, size_t, const void*)>(&gaia_ptr::create))
         .def_static(
             "create",
             static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr::create))
@@ -169,14 +109,14 @@ PYBIND11_MODULE(db_client, m)
             "create",
             static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*)>(&gaia_ptr::create))
         .def_static("open", &gaia_ptr::open)
+        .def_static("find_first", &gaia_ptr::find_first)
+        .def_static("remove", &gaia_ptr::remove)
+        .def("is_null", &gaia_ptr::is_null)
         .def("id", &gaia_ptr::id)
         .def("type", &gaia_ptr::type)
         .def("data", &gaia_ptr::data, return_value_policy::reference)
         .def("data_size", &gaia_ptr::data_size)
         .def("references", &gaia_ptr::references, return_value_policy::reference)
         .def("num_references", &gaia_ptr::num_references)
-        .def_static("find_first", &gaia_ptr::find_first)
-        .def_static("remove", &gaia_ptr::remove)
-        .def("find_next", static_cast<gaia_ptr (gaia_ptr::*)()>(&gaia_ptr::find_next))
-        .def("is_null", &gaia_ptr::is_null);
+        .def("find_next", static_cast<gaia_ptr (gaia_ptr::*)()>(&gaia_ptr::find_next));
 }
