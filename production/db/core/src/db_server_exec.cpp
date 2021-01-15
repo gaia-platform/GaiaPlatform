@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         {
             persistence_mode = server::persistence_mode_t::e_reinitialized_on_startup;
         }
-        else if (strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0)
+        else if (strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0 && i + 1 < argc)
         {
             ++i;
             gaia::db::persistent_store_manager::s_data_dir_path = argv[i];
