@@ -144,42 +144,6 @@ public class GaiaDatabase
         }
     }
 
-    public void printEdge(long edgeId)
-    {
-        printEdge(edgeId, false);
-    }
-
-    public void printEdge(long edgeId, boolean indent)
-    {
-        printEmptyLine();
-
-        if (indent)
-        {
-            System.out.print("  ");
-        }
-
-        if (edgeId == 0)
-        {
-            System.out.print("<null_edge>");
-            return;
-        }
-
-        System.out.print("Edge id:" + edgeId + ", type:" + getEdgeType(edgeId));
-
-        printPayload(getEdgePayload(edgeId));
-
-        if (!indent)
-        {
-            printNode(getEdgeFirstNode(edgeId), true);
-            printNode(getEdgeSecondNode(edgeId), true);
-            printEmptyLine();
-        }
-        else
-        {
-            System.out.print(" first: " + getEdgeFirstNode(edgeId) + " second: " + getEdgeSecondNode(edgeId));
-        }
-    }
-
     public void printNode(long nodeId)
     {
         printNode(nodeId, false);
