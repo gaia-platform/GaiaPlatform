@@ -129,13 +129,13 @@ public final class CacheVertex extends CacheElement implements Vertex
 
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
-        // Update node payload in COW.
+        // Update node payload in Gaia database.
         // We don't have to do this if the node is being created,
         // which we detect by checking if it's been added to the graph.vertices map.
-        // No plans to support vertex property properties in COW for now.
+        // No plans to support vertex property properties in Gaia database for now.
         if (this.graph.vertices.containsKey(id) && !CacheHelper.updateNodePayload(this))
         {
-            throw new UnsupportedOperationException("COW node update failed!");
+            throw new UnsupportedOperationException("Gaia database node update failed!");
         }
 
         return newVertexProperty;
@@ -190,15 +190,15 @@ public final class CacheVertex extends CacheElement implements Vertex
         CacheHelper.debugPrint(this.graph, "vertex::remove()");
 
         // First remove all edges related to this node.
-        // This will also remove the edges from COW.
+        // This will also remove the edges from Gaia database.
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
         edges.stream().filter(edge -> !((CacheEdge)edge).removed).forEach(Edge::remove);
 
-        // Remove the node from COW.
+        // Remove the node from Gaia database.
         if (!CacheHelper.removeNode(this))
         {
-            throw new UnsupportedOperationException("COW node deletion failed!");
+            throw new UnsupportedOperationException("Gaia database node deletion failed!");
         }
 
         // Then remove the node.

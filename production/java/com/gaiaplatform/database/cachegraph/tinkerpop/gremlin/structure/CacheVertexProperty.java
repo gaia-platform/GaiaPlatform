@@ -123,8 +123,8 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
 
         this.properties.put(key, newProperty);
 
-        // No plans to support vertex property properties in COW for now.
-        // When we will, we will also need to update the node payload in COW here.
+        // No plans to support vertex property properties in Gaia database for now.
+        // When we will, we will also need to update the node payload in Gaia database here.
 
         return newProperty;
     }
@@ -160,10 +160,10 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
             }
         }
 
-        // Update node payload in COW.
+        // Update node payload in Gaia database.
         if (!CacheHelper.updateNodePayload(this.vertex))
         {
-            throw new UnsupportedOperationException("COW node update failed!");
+            throw new UnsupportedOperationException("Gaia database node update failed!");
         }
 
         this.properties = null;
