@@ -14,6 +14,7 @@
 #include "range_index.hpp"
 #include "se_helpers.hpp"
 #include "se_object.hpp"
+#include "visibility.hpp"
 
 // Actual heart of the index scan, visibility resolution etc... happens here
 namespace gaia
@@ -203,7 +204,7 @@ bool index_scan_iterator_t<T_iter>::is_visible(const index_record_t& record) con
     if (record.deleted)
         return false;
 
-    return locator_exists(record.locator) && locator_to_offset(record.locator) == record.offset;
+    return is_visible(record.locator, record.offset);
 }
 
 template <typename T_iter>

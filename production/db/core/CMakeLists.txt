@@ -25,6 +25,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/core/inc"
+  "${GAIA_INTERNAL_INC}/index"
   "${GAIA_DB_INC}/index"
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/inc/memory_manager"
