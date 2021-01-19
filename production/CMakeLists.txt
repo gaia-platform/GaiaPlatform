@@ -204,8 +204,7 @@ add_subdirectory(sdk)
 
 # Java Tinkerpop project.
 if(JAVA_FOUND AND JNI_FOUND)
-  # set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
-  set(CMAKE_JAVA_INCLUDE_PATH ${PROJECT_BINARY_DIR}/*)
+  # set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
 
   # Java Tinkerpop graph provider implementation. This also generates native headers for the database wrapper.
   add_jar(GaiaTinkerpop
