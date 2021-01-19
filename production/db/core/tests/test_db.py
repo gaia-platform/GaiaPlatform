@@ -24,7 +24,7 @@ print ('');
 
 commit_transaction();
 
-# Second transaction - iterate through nodes of type 'field'.
+# Second transaction - iterate through nodes of type 'database'.
 begin_transaction();
 
 print("Iterating through nodes of type 'database' (4294967291): ");

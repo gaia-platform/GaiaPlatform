@@ -37,7 +37,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 
-import com.gaiaplatform.database.CowStorageEngine;
+import com.gaiaplatform.database.GaiaDatabase;
 import com.gaiaplatform.database.Airline;
 import com.gaiaplatform.database.Airport;
 import com.gaiaplatform.database.Route;
@@ -116,31 +116,31 @@ public final class CacheHelper
 
     // This makes CacheGraph load its status from the underlying store,
     // whose schema is expected to follow a specific implementation.
-    protected static void loadAirportGraphFromCow(CacheGraph graph)
+    protected static void loadAirportGraphFromGaiaDb(CacheGraph graph)
     {
-        if (graph.enableCowOperations)
+        if (graph.enableGaiaDbOperations)
         {
-            System.out.println("COW writes need to be disabled while data is loaded from it. Aborting load!");
+            System.out.println("Gaia database writes need to be disabled while data is loaded from it. Aborting load!");
             return;
         }
 
         if (!graph.enableAirportCode)
         {
-            System.out.println("COW airport code should be enabled. Aborting load!");
+            System.out.println("Gaia database airport code should be enabled. Aborting load!");
             return;
         }
 
         reset();
 
-        // COW operations are disabled, so we need to manually create the transaction.
-        graph.cow.beginTransaction();
+        // Gaia database operations are disabled, so we need to manually create the transaction.
+        graph.gaiaDb.beginTransaction();
 
         // Scan airline nodes.
-        long currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
+        long currentNodeId = graph.gaiaDb.findFirstNode(AIRLINE_NODE_TYPE);
         int count = 0;
         for (count = 0;
             currentNodeId != 0;
-            currentNodeId = graph.cow.findNextNode(currentNodeId), ++count)
+            currentNodeId = graph.gaiaDb.findNextNode(currentNodeId), ++count)
         {
             System.out.print("Loading airline node " + currentNodeId + "...");
             loadAirlineNode(graph, currentNodeId);
@@ -150,10 +150,10 @@ public final class CacheHelper
         System.out.println("" + count + " airline nodes have been loaded!\n");
 
         // Scan airport nodes.
-        currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
+        currentNodeId = graph.gaiaDb.findFirstNode(AIRPORT_NODE_TYPE);
         for (count = 0;
             currentNodeId != 0;
-            currentNodeId = graph.cow.findNextNode(currentNodeId), ++count)
+            currentNodeId = graph.gaiaDb.findNextNode(currentNodeId), ++count)
         {
             System.out.print("Loading airport node " + currentNodeId + "...");
             loadAirportNode(graph, currentNodeId);
@@ -163,10 +163,10 @@ public final class CacheHelper
         System.out.println("" + count + " airport nodes have been loaded!\n");
 
         // Scan route edges.
-        long currentEdgeId = graph.cow.findFirstEdge(ROUTE_EDGE_TYPE);
+        long currentEdgeId = graph.gaiaDb.findFirstEdge(ROUTE_EDGE_TYPE);
         for (count = 0;
             currentEdgeId != 0;
-            currentEdgeId = graph.cow.findNextEdge(currentEdgeId), ++count)
+            currentEdgeId = graph.gaiaDb.findNextEdge(currentEdgeId), ++count)
         {
             System.out.print("Loading route edge " + currentEdgeId + "...");
             loadRouteEdge(graph, currentEdgeId);
@@ -175,12 +175,12 @@ public final class CacheHelper
 
         System.out.println("" + count + " route edges have been loaded!\n");
 
-        // We're not making any changes to COW, so we can just rollback.
-        graph.cow.rollbackTransaction();
+        // We're not making any changes to Gaia database, so we can just rollback.
+        graph.gaiaDb.rollbackTransaction();
 
         // We're done loading data into in-memory cache,
         // so we can re-enable writes to our store.
-        graph.enableCowOperations = true;
+        graph.enableGaiaDbOperations = true;
     }
 
     private static void loadAirlineNode(CacheGraph graph, long nodeId)
@@ -191,7 +191,7 @@ public final class CacheHelper
         keyValues.add(T.label);
         keyValues.add("airline");
 
-        byte[] payload = graph.cow.getNodePayload(nodeId);
+        byte[] payload = graph.gaiaDb.getNodePayload(nodeId);
         if (payload != null)
         {
             java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
@@ -262,7 +262,7 @@ public final class CacheHelper
         keyValues.add(T.label);
         keyValues.add("airport");
 
-        byte[] payload = graph.cow.getNodePayload(nodeId);
+        byte[] payload = graph.gaiaDb.getNodePayload(nodeId);
         if (payload != null)
         {
             java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
@@ -355,7 +355,7 @@ public final class CacheHelper
         keyValues.add(T.id);
         keyValues.add(edgeId);
 
-        byte[] payload = graph.cow.getEdgePayload(edgeId);
+        byte[] payload = graph.gaiaDb.getEdgePayload(edgeId);
         if (payload != null)
         {
             java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
@@ -417,8 +417,8 @@ public final class CacheHelper
             }
         }
 
-        long idFirstNode = graph.cow.getEdgeFirstNode(edgeId);
-        long idSecondNode = graph.cow.getEdgeSecondNode(edgeId);
+        long idFirstNode = graph.gaiaDb.getEdgeFirstNode(edgeId);
+        long idSecondNode = graph.gaiaDb.getEdgeSecondNode(edgeId);
 
         if (idFirstNode == 0
             || idSecondNode == 0
@@ -491,7 +491,7 @@ public final class CacheHelper
     {
         debugPrint(vertex.graph, "helper::createNode(" + vertex.id + ")");
 
-        if (!vertex.graph.enableCowOperations)
+        if (!vertex.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -510,7 +510,7 @@ public final class CacheHelper
     {
         debugPrint(vertex.graph, "helper::removeNode(" + vertex.id + ")");
 
-        if (!vertex.graph.enableCowOperations)
+        if (!vertex.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -519,14 +519,14 @@ public final class CacheHelper
         long id = Long.parseLong(vertex.id.toString());
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.removeNode(id), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.removeNode(id), ownTransaction);
     }
 
     protected static boolean updateNodePayload(CacheVertex vertex)
     {
         debugPrint(vertex.graph, "helper::updateNodePayload(" + vertex.id + ")");
 
-        if (!vertex.graph.enableCowOperations)
+        if (!vertex.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -545,7 +545,7 @@ public final class CacheHelper
     {
         debugPrint(edge.graph, "helper::createEdge(" + edge.id + ")");
 
-        if (!edge.graph.enableCowOperations)
+        if (!edge.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -564,7 +564,7 @@ public final class CacheHelper
     {
         debugPrint(edge.graph, "helper::removeEdge(" + edge.id + ")");
 
-        if (!edge.graph.enableCowOperations)
+        if (!edge.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -573,14 +573,14 @@ public final class CacheHelper
         long id = Long.parseLong(edge.id.toString());
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.removeEdge(id), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.removeEdge(id), ownTransaction);
     }
 
     protected static boolean updateEdgePayload(CacheEdge edge)
     {
         debugPrint(edge.graph, "helper::updateEdgePayload(" + edge.id + ")");
 
-        if (!edge.graph.enableCowOperations)
+        if (!edge.graph.enableGaiaDbOperations)
         {
             return true;
         }
@@ -644,7 +644,7 @@ public final class CacheHelper
         String payload = packNodeProperties(vertex.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        long idNode = graph.cow.createNode(id, type, payload);
+        long idNode = graph.gaiaDb.createNode(id, type, payload);
         return handleTransaction(graph, idNode != 0, ownTransaction);
     }
 
@@ -655,7 +655,7 @@ public final class CacheHelper
         String payload = packNodeProperties(vertex.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.updateNodePayload(id, payload), ownTransaction);
     }
 
     protected static boolean createGenericEdge(CacheEdge edge)
@@ -668,7 +668,7 @@ public final class CacheHelper
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
         boolean ownTransaction = startTransaction(graph);
-        long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
+        long idEdge = graph.gaiaDb.createEdge(id, type, idFirstNode, idSecondNode, payload);
         return handleTransaction(graph, idEdge != 0, ownTransaction);
     }
 
@@ -679,7 +679,7 @@ public final class CacheHelper
         String payload = packEdgeProperties(edge.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.updateEdgePayload(id, payload), ownTransaction);
     }
 
     // Airport graph helpers that do a custom flatbuffers serialization of properties.
@@ -992,7 +992,7 @@ public final class CacheHelper
         byte[] payload = packAirportNodeProperties(type, vertex.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        long idNode = graph.cow.createNode(id, type, payload);
+        long idNode = graph.gaiaDb.createNode(id, type, payload);
         return handleTransaction(graph, idNode != 0, ownTransaction);
     }
 
@@ -1004,7 +1004,7 @@ public final class CacheHelper
         byte[] payload = packAirportNodeProperties(type, vertex.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.updateNodePayload(id, payload), ownTransaction);
     }
 
     protected static boolean createAirportEdge(CacheEdge edge)
@@ -1017,7 +1017,7 @@ public final class CacheHelper
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
         boolean ownTransaction = startTransaction(graph);
-        long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
+        long idEdge = graph.gaiaDb.createEdge(id, type, idFirstNode, idSecondNode, payload);
         return handleTransaction(graph, idEdge != 0, ownTransaction);
     }
 
@@ -1029,7 +1029,7 @@ public final class CacheHelper
         byte[] payload = packAirportEdgeProperties(type, edge.properties);
 
         boolean ownTransaction = startTransaction(graph);
-        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload), ownTransaction);
+        return handleTransaction(graph, graph.gaiaDb.updateEdgePayload(id, payload), ownTransaction);
     }
 
     // In-memory graph helpers.
@@ -1058,10 +1058,10 @@ public final class CacheHelper
         final Edge edge = new CacheEdge(idValue, label, outVertex, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
 
-        // Create edge in COW.
+        // Create edge in Gaia database.
         if (!createEdge((CacheEdge)edge))
         {
-            throw new UnsupportedOperationException("COW edge creation failed!");
+            throw new UnsupportedOperationException("Gaia database edge creation failed!");
         }
 
         graph.edges.put(edge.id(), edge);
