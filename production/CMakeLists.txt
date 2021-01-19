@@ -247,6 +247,7 @@ if(JAVA_FOUND AND JNI_FOUND)
       # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
       # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
       # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
+    OUTPUT_DIR ${PROJECT_BINARY_DIR}/java
     GENERATE_NATIVE_HEADERS db_jni_headers
       DESTINATION ${PROJECT_BINARY_DIR}/db/core/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
