@@ -25,10 +25,13 @@ protected:
 
     void clear()
     {
+        // NOLINTNEXTLINE
         m_env = NULL;
+        // NOLINTNEXTLINE
         m_payload = NULL;
 
         m_size = 0;
+        // NOLINTNEXTLINE
         m_bytes = NULL;
     }
 
@@ -49,11 +52,13 @@ public:
         m_payload = &payload;
 
         m_size = m_env->GetArrayLength(*m_payload);
+        // NOLINTNEXTLINE
         m_bytes = m_env->GetByteArrayElements(*m_payload, NULL);
     }
 
     ~payload_t()
     {
+        // NOLINTNEXTLINE
         if (m_env != NULL && m_bytes != NULL)
         {
             m_env->ReleaseByteArrayElements(*m_payload, m_bytes, 0);
@@ -81,6 +86,7 @@ jboolean update_payload(
     try
     {
         payload_t payload_holder(env, payload);
+        // NOLINTNEXTLINE
         if (payload_holder.bytes() == NULL)
         {
             return false;
@@ -167,47 +173,55 @@ jbyteArray get_payload(JNIEnv* env, jlong id)
     gaia_ptr t = gaia_ptr::open(id);
     if (!t || t.data_size() == 0)
     {
+        // NOLINTNEXTLINE
         return NULL;
     }
 
     // Copy results into an array that we can return.
-    jbyteArray outputArray = env->NewByteArray(t.data_size());
-    env->SetByteArrayRegion(outputArray, 0, t.data_size(), (jbyte*)(t.data()));
+    jbyteArray output_array = env->NewByteArray(t.data_size());
+    env->SetByteArrayRegion(output_array, 0, t.data_size(), reinterpret_cast<jbyte*>(t.data()));
 
-    return outputArray;
+    return output_array;
 }
 
 // JNI implementation starts here.
 
+// NOLINTNEXTLINE
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_GaiaDatabase_beginSession(JNIEnv*, jobject)
 {
     gaia::system::initialize();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_GaiaDatabase_endSession(JNIEnv*, jobject)
 {
     end_session();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_GaiaDatabase_beginTransaction(JNIEnv*, jobject)
 {
     begin_transaction();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_GaiaDatabase_commitTransaction(JNIEnv*, jobject)
 {
     commit_transaction();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_GaiaDatabase_rollbackTransaction(JNIEnv*, jobject)
 {
     rollback_transaction();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_createNode(
     JNIEnv* env, jobject, jlong id, jlong type, jbyteArray payload)
 {
     payload_t payload_holder(env, payload);
+    // NOLINTNEXTLINE
     if (payload_holder.bytes() == NULL)
     {
         return NULL;
@@ -229,36 +243,42 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_createNode(
     return node.id();
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_GaiaDatabase_updateNodePayload(
     JNIEnv* env, jobject, jlong id, jbyteArray payload)
 {
     return update_payload(env, id, payload);
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_GaiaDatabase_removeNode(
     JNIEnv*, jobject, jlong id)
 {
     return remove(id);
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_findFirstNode(
     JNIEnv*, jobject, jlong type)
 {
     return find_first(type);
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_findNextNode(
     JNIEnv*, jobject, jlong id)
 {
     return find_next(id);
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_getNodeType(
     JNIEnv*, jobject, jlong id)
 {
     return get_type(id);
 }
 
+// NOLINTNEXTLINE
 JNIEXPORT jbyteArray JNICALL Java_com_gaiaplatform_database_GaiaDatabase_getNodePayload(
     JNIEnv* env, jobject, jlong id)
 {
