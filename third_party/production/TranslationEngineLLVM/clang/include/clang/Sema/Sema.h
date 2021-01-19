@@ -4606,7 +4606,7 @@ public:
 private:
   QualType getFieldType (IdentifierInfo *id, SourceLocation loc) ;
   QualType getTableType (IdentifierInfo *id, SourceLocation loc) ;
-  QualType getThisRuleType(SourceLocation loc);
+  QualType getRuleContextType(SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
@@ -5116,8 +5116,8 @@ public:
   //// ActOnCXXThis -  Parse 'this' pointer.
   ExprResult ActOnCXXThis(SourceLocation loc);
 
-  //// ActOnGaiaThisRule - Parse 'this_rule'
-  ExprResult ActOnGaiaThisRule(SourceLocation Loc);
+  //// ActOnGaiaRuleContext - Parse 'rule_context'
+  ExprResult ActOnGaiaRuleContext(SourceLocation Loc);
 
 
   /// Try to retrieve the type of the 'this' pointer.

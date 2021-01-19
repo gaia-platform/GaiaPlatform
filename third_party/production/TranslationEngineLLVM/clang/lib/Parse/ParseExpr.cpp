@@ -1235,8 +1235,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::kw_this:
     Res = ParseCXXThis();
     break;
-  case tok::kw_this_rule:
-    Res = ParseGaiaThisRule();
+  case tok::kw_rule_context:
+    Res = ParseGaiaRuleContext();
     break;
 
   case tok::annot_typename:

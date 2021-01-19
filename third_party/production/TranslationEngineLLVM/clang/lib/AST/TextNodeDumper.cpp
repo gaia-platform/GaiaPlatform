@@ -827,9 +827,9 @@ void TextNodeDumper::VisitCXXThisExpr(const CXXThisExpr *Node) {
   OS << " this";
 }
 
-void TextNodeDumper::VisitGaiaThisRuleExpr(const GaiaThisRuleExpr *Node)
+void TextNodeDumper::VisitGaiaRuleContextExpr(const GaiaRuleContextExpr *Node)
 {
-  OS << " this_rule";
+  OS << " rule_context";
 }
 
 void TextNodeDumper::VisitCXXFunctionalCastExpr(

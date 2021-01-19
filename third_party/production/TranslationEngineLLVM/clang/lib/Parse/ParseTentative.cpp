@@ -1054,7 +1054,7 @@ Parser::isExpressionOrTypeSpecifierSimple(tok::TokenKind Kind) {
   case tok::kw_reinterpret_cast:
   case tok::kw_static_cast:
   case tok::kw_this:
-  case tok::kw_this_rule:
+  case tok::kw_rule_context:
   case tok::kw_throw:
   case tok::kw_true:
   case tok::kw_typeid:

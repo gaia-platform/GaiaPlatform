@@ -615,7 +615,7 @@ namespace clang {
     ExpectedStmt VisitSubstNonTypeTemplateParmExpr(SubstNonTypeTemplateParmExpr *E);
     ExpectedStmt VisitTypeTraitExpr(TypeTraitExpr *E);
     ExpectedStmt VisitCXXTypeidExpr(CXXTypeidExpr *E);
-    ExpectedStmt VisitGaiaThisRuleExpr(GaiaThisRuleExpr *E);
+    ExpectedStmt VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E);
 
     template<typename IIter, typename OIter>
     Error ImportArrayChecked(IIter Ibegin, IIter Iend, OIter Obegin) {
@@ -7083,7 +7083,7 @@ ExpectedStmt ASTNodeImporter::VisitCXXThisExpr(CXXThisExpr *E) {
       *ToLocationOrErr, *ToTypeOrErr, E->isImplicit());
 }
 
-ExpectedStmt ASTNodeImporter::VisitGaiaThisRuleExpr(GaiaThisRuleExpr *E) {
+ExpectedStmt ASTNodeImporter::VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E) {
   ExpectedType ToTypeOrErr = import(E->getType());
   if (!ToTypeOrErr)
     return ToTypeOrErr.takeError();
@@ -7092,7 +7092,7 @@ ExpectedStmt ASTNodeImporter::VisitGaiaThisRuleExpr(GaiaThisRuleExpr *E) {
   if (!ToLocationOrErr)
     return ToLocationOrErr.takeError();
 
-  return new (Importer.getToContext()) GaiaThisRuleExpr(
+  return new (Importer.getToContext()) GaiaRuleContextExpr(
       *ToLocationOrErr, *ToTypeOrErr);
 }
 

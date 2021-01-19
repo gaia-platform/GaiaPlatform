@@ -246,7 +246,7 @@ public:
   void VisitCXXNamedCastExpr(const CXXNamedCastExpr *Node);
   void VisitCXXBoolLiteralExpr(const CXXBoolLiteralExpr *Node);
   void VisitCXXThisExpr(const CXXThisExpr *Node);
-  void VisitGaiaThisRuleExpr(const GaiaThisRuleExpr *Node);
+  void VisitGaiaRuleContextExpr(const GaiaRuleContextExpr *Node);
   void VisitCXXFunctionalCastExpr(const CXXFunctionalCastExpr *Node);
   void VisitCXXUnresolvedConstructExpr(const CXXUnresolvedConstructExpr *Node);
   void VisitCXXConstructExpr(const CXXConstructExpr *Node);

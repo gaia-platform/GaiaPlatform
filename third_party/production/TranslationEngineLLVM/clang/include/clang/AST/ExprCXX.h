@@ -1007,13 +1007,13 @@ public:
   }
 };
 
-/// Gaia extension this_rule
-class GaiaThisRuleExpr : public Expr
+/// Gaia extension rule_context
+class GaiaRuleContextExpr : public Expr
 {
     SourceLocation location;
 public:
-  GaiaThisRuleExpr(SourceLocation location, QualType type)
-      : Expr(GaiaThisRuleExprClass, type, VK_RValue, OK_Ordinary,
+  GaiaRuleContextExpr(SourceLocation location, QualType type)
+      : Expr(GaiaRuleContextExprClass, type, VK_RValue, OK_Ordinary,
              type->isDependentType(), type->isDependentType(),
              type->isInstantiationDependentType(),
              false)
@@ -1021,7 +1021,7 @@ public:
     this->location = location;
   }
 
-  GaiaThisRuleExpr(EmptyShell Empty) : Expr(GaiaThisRuleExprClass, Empty) {}
+  GaiaRuleContextExpr(EmptyShell Empty) : Expr(GaiaRuleContextExprClass, Empty) {}
 
   SourceLocation getLocation() const
   {
@@ -1049,7 +1049,7 @@ public:
 
   static bool classof(const Stmt *T)
   {
-    return T->getStmtClass() == GaiaThisRuleExprClass;
+    return T->getStmtClass() == GaiaRuleContextExprClass;
   }
 
   // Iterators

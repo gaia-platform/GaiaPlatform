@@ -2481,7 +2481,7 @@ DEF_TRAVERSE_STMT(CXXPseudoDestructorExpr, {
     TRY_TO(TraverseTypeLoc(DestroyedTypeInfo->getTypeLoc()));
 })
 
-DEF_TRAVERSE_STMT(GaiaThisRuleExpr, {})
+DEF_TRAVERSE_STMT(GaiaRuleContextExpr, {})
 
 DEF_TRAVERSE_STMT(CXXThisExpr, {})
 DEF_TRAVERSE_STMT(CXXThrowExpr, {})

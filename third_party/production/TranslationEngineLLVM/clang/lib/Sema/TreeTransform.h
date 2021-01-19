@@ -10176,7 +10176,7 @@ TreeTransform<Derived>::TransformCXXThisExpr(CXXThisExpr *E) {
 
 template<typename Derived>
 ExprResult
-TreeTransform<Derived>::TransformGaiaThisRuleExpr(GaiaThisRuleExpr *E)
+TreeTransform<Derived>::TransformGaiaRuleContextExpr(GaiaRuleContextExpr *E)
 {
   return E;
 }

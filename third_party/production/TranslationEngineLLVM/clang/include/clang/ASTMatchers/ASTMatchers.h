@@ -1695,10 +1695,10 @@ extern const internal::VariadicDynCastAllOfMatcher<Stmt,
 extern const internal::VariadicDynCastAllOfMatcher<Stmt, CXXThisExpr>
     cxxThisExpr;
 
-/// Matches gaia this_rule expressions.
+/// Matches gaia rule_context expressions.
 ///
-extern const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaThisRuleExpr>
-    gaiaThisRuleExpr;
+extern const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaRuleContextExpr>
+    gaiaRuleContextExpr;
 
 /// Matches nodes where temporaries are created.
 ///

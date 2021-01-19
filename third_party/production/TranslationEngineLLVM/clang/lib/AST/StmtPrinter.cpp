@@ -1788,9 +1788,9 @@ void StmtPrinter::VisitCXXThisExpr(CXXThisExpr *Node) {
   OS << "this";
 }
 
-void StmtPrinter::VisitGaiaThisRuleExpr(GaiaThisRuleExpr *Node)
+void StmtPrinter::VisitGaiaRuleContextExpr(GaiaRuleContextExpr *Node)
 {
-  OS << "this_rule";
+  OS << "rule_context";
 }
 
 void StmtPrinter::VisitCXXThrowExpr(CXXThrowExpr *Node) {

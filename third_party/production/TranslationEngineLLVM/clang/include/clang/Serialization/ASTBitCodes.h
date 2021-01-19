@@ -1975,7 +1975,7 @@ namespace serialization {
       EXPR_COAWAIT,
       EXPR_COYIELD,
       EXPR_DEPENDENT_COAWAIT,
-      EXPR_GAIA_THIS_RULE,        // Gaia this_rule expression
+      EXPR_GAIA_RULE_CONTEXT,        // Gaia rule_context expression
     };
 
     /// The kinds of designators that can occur in a

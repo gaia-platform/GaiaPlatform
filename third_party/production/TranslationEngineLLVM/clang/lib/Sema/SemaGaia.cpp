@@ -40,7 +40,7 @@ static const char *updateVarName = "UPDATE";
 static const char *deleteVarName = "DELETE";
 static const char *insertVarName = "INSERT";
 static const char *noneVarName = "NONE";
-static const char *thisRuleTypeName = "this_rule__type";
+static const char *ruleContextTypeName = "rule_context__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
@@ -202,7 +202,7 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
     RD->addDecl(Ret);
 }
 
-QualType Sema::getThisRuleType(SourceLocation loc)
+QualType Sema::getRuleContextType(SourceLocation loc)
 {
     // Check if the type has been already created and return the created file
     auto &types = Context.getTypes();
@@ -215,7 +215,7 @@ QualType Sema::getThisRuleType(SourceLocation loc)
             const auto *id = record->getIdentifier();
             if (id != nullptr)
             {
-                if (id->getName().equals(thisRuleTypeName))
+                if (id->getName().equals(ruleContextTypeName))
                 {
                     return QualType(type, 0);
                 }
@@ -223,7 +223,7 @@ QualType Sema::getThisRuleType(SourceLocation loc)
         }
     }
 
-    RecordDecl *RD = Context.buildImplicitRecord(thisRuleTypeName);
+    RecordDecl *RD = Context.buildImplicitRecord(ruleContextTypeName);
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
@@ -492,10 +492,13 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
     PopDeclContext();
 }
 
-ExprResult Sema::ActOnGaiaThisRule(SourceLocation Loc)
+ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 {
-  QualType ThisTy = getThisRuleType(Loc);
-  if (ThisTy.isNull()) return Diag(Loc, diag::err_invalid_this_use);
+  QualType ruleContextType = getRuleContextType(Loc);
+  if (ruleContextType.isNull())
+  {
+    return Diag(Loc, diag::err_invalid_rule_context_internal_error);
+  }
 
-  return new (Context) GaiaThisRuleExpr(Loc, ThisTy);
+  return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
 }

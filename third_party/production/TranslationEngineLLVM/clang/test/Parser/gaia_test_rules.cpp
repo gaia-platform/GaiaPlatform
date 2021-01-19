@@ -272,14 +272,14 @@ ruleset test33: table(sensor)
 ruleset test34
 {
   {
-    auto x = this_rule; // expected-error {{Invalid use of 'this_rule'.}}
+    auto x = rule_context; // expected-error {{Invalid use of 'rule_context'.}}
   }
 }
 
 ruleset test35
 {
   {
-    int this_rule = 5; // expected-error {{expected unqualified-id}}
+    int rule_context = 5; // expected-error {{expected unqualified-id}}
   }
 }
 
@@ -293,27 +293,27 @@ ruleset test36
 ruleset test37
 {
   {
-    auto x = this_rule.x; // expected-error {{no member named 'x' in 'this_rule__type'}}
+    auto x = rule_context.x; // expected-error {{no member named 'x' in 'rule_context__type'}}
   }
 }
 
 ruleset test38
 {
   {
-    auto x = &this_rule; // expected-error {{Invalid use of 'this_rule'.}}
+    auto x = &rule_context; // expected-error {{Invalid use of 'rule_context'.}}
   }
 }
 
 ruleset test39
 {
   {
-    this_rule.rule_id = "test"; // expected-error {{expression is not assignable}}
+    rule_context.rule_id = "test"; // expected-error {{expression is not assignable}}
   }
 }
 
 ruleset test40
 {
   {
-    this_rule.rule_id[3] = 't'; // expected-error {{read-only variable is not assignable}}
+    rule_context.rule_id[3] = 't'; // expected-error {{read-only variable is not assignable}}
   }
 }

@@ -826,7 +826,7 @@ ANNOTATION(module_end)
 
 //Gaia extensions
 KEYWORD(ruleset      , KEYGAIA)
-KEYWORD(this_rule    , KEYGAIA)
+KEYWORD(rule_context    , KEYGAIA)
 
 #undef ANNOTATION
 #undef TESTING_KEYWORD

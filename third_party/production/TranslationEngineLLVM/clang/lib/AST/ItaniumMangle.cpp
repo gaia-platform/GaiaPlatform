@@ -3562,7 +3562,7 @@ recurse:
   case Expr::PseudoObjectExprClass:
   case Expr::AtomicExprClass:
   case Expr::FixedPointLiteralClass:
-  case Expr::GaiaThisRuleExprClass:
+  case Expr::GaiaRuleContextExprClass:
   {
     if (!NullOut) {
       // As bad as this diagnostic is, it's better than crashing.

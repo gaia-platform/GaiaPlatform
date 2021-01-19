@@ -1474,7 +1474,7 @@ void ASTStmtReader::VisitCXXThisExpr(CXXThisExpr *E) {
   E->setImplicit(Record.readInt());
 }
 
-void ASTStmtReader::VisitGaiaThisRuleExpr(GaiaThisRuleExpr *E)
+void ASTStmtReader::VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E)
 {
   VisitExpr(E);
   E->setLocation(ReadSourceLocation());
@@ -3216,8 +3216,8 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       S = new (Context) CXXThisExpr(Empty);
       break;
 
-    case EXPR_GAIA_THIS_RULE:
-      S = new (Context) GaiaThisRuleExpr(Empty);
+    case EXPR_GAIA_RULE_CONTEXT:
+      S = new (Context) GaiaRuleContextExpr(Empty);
       break;
 
     case EXPR_CXX_THROW:

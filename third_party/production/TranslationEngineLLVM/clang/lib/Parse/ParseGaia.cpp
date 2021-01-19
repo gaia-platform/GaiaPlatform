@@ -319,12 +319,12 @@ void Parser::ParseRulesetContents( BalancedDelimiterTracker &tracker)
     }
 }
 
-ExprResult Parser::ParseGaiaThisRule() {
-  assert(Tok.is(tok::kw_this_rule) && "Not 'this_rule'!");
-  SourceLocation thisRuleLocation = ConsumeToken();
+ExprResult Parser::ParseGaiaRuleContext() {
+  assert(Tok.is(tok::kw_rule_context) && "Not 'rule_context'!");
+  SourceLocation ruleContextLocation = ConsumeToken();
   if (Tok.isNot(tok::period))
   {
-      return Diag(thisRuleLocation, diag::err_invalid_this_rule_use);
+      return Diag(ruleContextLocation, diag::err_invalid_rule_context_use);
   }
-  return Actions.ActOnGaiaThisRule(thisRuleLocation);
+  return Actions.ActOnGaiaRuleContext(ruleContextLocation);
 }

@@ -1601,7 +1601,7 @@ void StmtProfiler::VisitCXXThisExpr(const CXXThisExpr *S) {
   ID.AddBoolean(S->isImplicit());
 }
 
-void StmtProfiler::VisitGaiaThisRuleExpr(const GaiaThisRuleExpr *S)
+void StmtProfiler::VisitGaiaRuleContextExpr(const GaiaRuleContextExpr *S)
 {
   VisitExpr(S);
 }
