@@ -127,10 +127,13 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
         size_t pg_text_length = string_length + VARHDRSZ;
         text* pg_text = reinterpret_cast<text*>(palloc(pg_text_length));
 
-        SET_VARSIZE(pg_text, pg_text_length); // NOLINT (macro expansion)
-        memcpy(VARDATA(pg_text), value.hold.string_value, string_length); // NOLINT (macro expansion)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+        SET_VARSIZE(pg_text, pg_text_length);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+        memcpy(VARDATA(pg_text), value.hold.string_value, string_length);
 
-        nullable_datum.value = CStringGetDatum(pg_text); // NOLINT (macro expansion)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+        nullable_datum.value = CStringGetDatum(pg_text);
         return nullable_datum;
     }
 
@@ -216,7 +219,8 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
         break;
 
     case data_type_t::e_string:
-        data_holder.hold.string_value = TextDatumGetCString(value); // NOLINT (macro expansion)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+        data_holder.hold.string_value = TextDatumGetCString(value);
         break;
 
     default:
