@@ -231,3 +231,75 @@ TEST(catalog_ddl_parser_test, illegal_characters)
     EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE : TABLE t(id int8);"));
     EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id - int8);"));
 }
+
+TEST(catalog_ddl_parser_test, create_index)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE INDEX idx ON d.t (name);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_index);
+    EXPECT_EQ(create_stmt->name, "idx");
+    EXPECT_EQ(create_stmt->database, "d");
+    EXPECT_EQ(create_stmt->index_table, "t");
+    EXPECT_EQ(create_stmt->unique_index, false);
+    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+}
+
+TEST(catalog_ddl_parser_test, create_unique_index)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE UNIQUE INDEX idx ON d.t (name);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_index);
+    EXPECT_EQ(create_stmt->name, "idx");
+    EXPECT_EQ(create_stmt->database, "d");
+    EXPECT_EQ(create_stmt->index_table, "t");
+    EXPECT_EQ(create_stmt->unique_index, true);
+    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+}
+
+TEST(catalog_ddl_parser_test, create_hash_index)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_index);
+    EXPECT_EQ(create_stmt->name, "idx");
+    EXPECT_EQ(create_stmt->database, "d");
+    EXPECT_EQ(create_stmt->index_table, "t");
+    EXPECT_EQ(create_stmt->unique_index, true);
+    EXPECT_EQ(create_stmt->index_type, index_type_t::hash);
+}
+
+TEST(catalog_ddl_parser_test, create_range_index)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE RANGE INDEX idx ON d.t (name);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_index);
+    EXPECT_EQ(create_stmt->name, "idx");
+    EXPECT_EQ(create_stmt->database, "d");
+    EXPECT_EQ(create_stmt->index_table, "t");
+    EXPECT_EQ(create_stmt->unique_index, false);
+    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+}
