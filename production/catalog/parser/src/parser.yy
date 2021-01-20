@@ -33,6 +33,7 @@
         struct create_statement_t;
         struct drop_statement_t;
         enum class field_type_t : uint8_t;
+        enum class index_type_t : uint8_t;
         struct base_field_def_t;
         struct data_field_def_t;
         struct ref_field_def_t;
@@ -45,6 +46,7 @@
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
+    using field_list_t = std::vector<std::string>;
 }
 
 // The parsing context.
@@ -67,6 +69,7 @@
 
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT DOUBLE STRING
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS REFERENCES ACTIVE
+%token UNIQUE RANGE HASH INDEX ON
 %token END 0
 %token LPAREN "("
 %token RPAREN ")"
@@ -92,6 +95,9 @@
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
+%type <bool> opt_unique
+%type <gaia::catalog::ddl::index_type_t> opt_index_type
+%type <std::unique_ptr<field_list_t>> field_commalist
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -103,6 +109,8 @@
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "data_type: " << static_cast<uint8_t>($$); } data_type
+%printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
+%printer { yyo << "filed_commalist[" << $$->size() << "]"; } field_commalist
 %printer { yyo << $$; } <*>
 
 %%
@@ -145,6 +153,14 @@ create_statement:
       $$->database = std::move($4.first);
       $$->fields = std::move(*$6);
   }
+| CREATE opt_unique opt_index_type INDEX IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $5);
+      $$->unique_index = $2;
+      $$->index_type = $3;
+      $$->database = $7.first;
+      $$->index_table = $7.second;
+      $$->index_fields = std::move(*$9);
+  }
 ;
 
 drop_statement:
@@ -160,7 +176,8 @@ drop_statement:
 field_def_commalist:
   field_def {
       $$ = std::unique_ptr<field_def_list_t>{new field_def_list_t()};
-      $$->push_back(std::move($1)); }
+      $$->push_back(std::move($1));
+  }
 | field_def_commalist "," field_def {
       $1->push_back(std::move($3));
       $$ = std::move($1);
@@ -217,8 +234,28 @@ composite_name:
 | IDENTIFIER "." IDENTIFIER { $$ = std::make_pair($1, $3); }
 ;
 
+opt_unique: UNIQUE { $$ = true; } | { $$ = false; };
+
+opt_index_type:
+  RANGE { $$ = index_type_t::range; }
+| HASH { $$ = index_type_t::hash; }
+| { $$ = index_type_t::range; }
+;
+
+field_commalist:
+  IDENTIFIER {
+      $$ = std::make_unique<field_list_t>();
+      $$->emplace_back($1);
+  }
+| field_commalist "," IDENTIFIER {
+      $1->emplace_back($3);
+      $$ = std::move($1);
+  }
+;
+
 %%
 
-void yy::parser::error (const location_type& l, const std::string& m) {
+void yy::parser::error (const location_type& l, const std::string& m)
+{
     std::cerr << l << ": " << m << '\n';
 }

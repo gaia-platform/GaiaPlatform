@@ -49,6 +49,13 @@ blank [ \t\r]
 "DROP"       return yy::parser::make_DROP(loc);
 "DATABASE"   return yy::parser::make_DATABASE(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
+
+"UNIQUE"     return yy::parser::make_UNIQUE(loc);
+"RANGE"      return yy::parser::make_RANGE(loc);
+"HASH"       return yy::parser::make_HASH(loc);
+"INDEX"      return yy::parser::make_INDEX(loc);
+"ON"         return yy::parser::make_ON(loc);
+
 "IF"         return yy::parser::make_IF(loc);
 "NOT"        return yy::parser::make_NOT(loc);
 "EXISTS"     return yy::parser::make_EXISTS(loc);

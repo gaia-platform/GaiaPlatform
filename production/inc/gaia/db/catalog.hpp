@@ -215,6 +215,13 @@ enum class create_type_t : uint8_t
 {
     create_database,
     create_table,
+    create_index,
+};
+
+enum class index_type_t : uint8_t
+{
+    range,
+    hash,
 };
 
 struct create_statement_t : statement_t
@@ -238,6 +245,14 @@ struct create_statement_t : statement_t
     field_def_list_t fields;
 
     bool if_not_exists;
+
+    bool unique_index;
+
+    index_type_t index_type;
+
+    std::string index_table;
+
+    std::vector<std::string> index_fields;
 };
 
 enum class drop_type_t : uint8_t
