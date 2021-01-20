@@ -112,6 +112,8 @@ ruleset test4
   {
     auto x = rule_context.rule_id;
     auto y = rule_context.rule_ruleset;
+    auto e = rule_context.rule_event_type;
+    auto g = rule_context.rule_gaia_type;
   }
 }
 
@@ -122,4 +124,10 @@ ruleset test4
 // CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 y 'const char *':'const char *' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const char *' xvalue .rule_ruleset 0x{{[^ ]*}}
+// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+// CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 e 'unsigned int':'unsigned int' cinit
+// CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .rule_event_type 0x{{[^ ]*}}
+// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+// CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 g 'unsigned int':'unsigned int' cinit
+// CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .rule_gaia_type 0x{{[^ ]*}}
 // CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context

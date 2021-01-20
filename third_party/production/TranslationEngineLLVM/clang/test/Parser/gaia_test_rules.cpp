@@ -317,3 +317,17 @@ ruleset test40
     rule_context.rule_id[3] = 't'; // expected-error {{read-only variable is not assignable}}
   }
 }
+
+ruleset test41
+{
+  {
+    rule_context.rule_event_type = 5; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test42
+{
+  {
+    rule_context.rule_gaia_type = 5; // expected-error {{expression is not assignable}}
+  }
+}
