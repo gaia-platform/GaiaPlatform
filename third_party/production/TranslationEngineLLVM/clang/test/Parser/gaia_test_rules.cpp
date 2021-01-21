@@ -268,3 +268,80 @@ ruleset test33: table(sensor)
     actuator.value += value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
   }
 }
+
+ruleset test34
+{
+  {
+    auto x = rule_context; // expected-error {{Invalid use of 'rule_context'.}}
+  }
+}
+
+ruleset test35
+{
+  {
+    int rule_context = 5; // expected-error {{expected unqualified-id}}
+  }
+}
+
+ruleset test36
+{
+  {
+    int ruleset = 5; // expected-error {{expected unqualified-id}}
+  }
+}
+
+ruleset test37
+{
+  {
+    auto x = rule_context.x; // expected-error {{no member named 'x' in 'rule_context__type'}}
+  }
+}
+
+ruleset test38
+{
+  {
+    auto x = &rule_context; // expected-error {{Invalid use of 'rule_context'.}}
+  }
+}
+
+ruleset test39
+{
+  {
+    rule_context.rule_name = "test"; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test40
+{
+  {
+    rule_context.rule_name[3] = 't'; // expected-error {{read-only variable is not assignable}}
+  }
+}
+
+ruleset test41
+{
+  {
+    rule_context.event_type = 5; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test42
+{
+  {
+    rule_context.gaia_type = 5; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test43
+{
+  {
+    rule_context.ruleset_name = "test"; // expected-error {{expression is not assignable}}
+  }
+}
+
+ruleset test44
+{
+  {
+    rule_context.ruleset_name[3] = 't'; // expected-error {{read-only variable is not assignable}}
+  }
+}

@@ -827,6 +827,11 @@ void TextNodeDumper::VisitCXXThisExpr(const CXXThisExpr *Node) {
   OS << " this";
 }
 
+void TextNodeDumper::VisitGaiaRuleContextExpr(const GaiaRuleContextExpr *Node)
+{
+  OS << " rule_context";
+}
+
 void TextNodeDumper::VisitCXXFunctionalCastExpr(
     const CXXFunctionalCastExpr *Node) {
   OS << " functional cast to " << Node->getTypeAsWritten().getAsString() << " <"

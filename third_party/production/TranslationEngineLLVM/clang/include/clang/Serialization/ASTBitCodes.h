@@ -1522,7 +1522,7 @@ namespace serialization {
 
       /// An OMPRequiresDecl record.
       DECL_OMP_REQUIRES,
-	 
+
       /// An EmptyDecl record.
       DECL_EMPTY,
 
@@ -1975,6 +1975,7 @@ namespace serialization {
       EXPR_COAWAIT,
       EXPR_COYIELD,
       EXPR_DEPENDENT_COAWAIT,
+      EXPR_GAIA_RULE_CONTEXT,        // Gaia rule_context expression
     };
 
     /// The kinds of designators that can occur in a

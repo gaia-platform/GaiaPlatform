@@ -1007,6 +1007,58 @@ public:
   }
 };
 
+/// Gaia extension rule_context
+class GaiaRuleContextExpr : public Expr
+{
+    SourceLocation location;
+public:
+  GaiaRuleContextExpr(SourceLocation location, QualType type)
+      : Expr(GaiaRuleContextExprClass, type, VK_RValue, OK_Ordinary,
+             type->isDependentType(), type->isDependentType(),
+             type->isInstantiationDependentType(),
+             false)
+  {
+    this->location = location;
+  }
+
+  GaiaRuleContextExpr(EmptyShell Empty) : Expr(GaiaRuleContextExprClass, Empty) {}
+
+  SourceLocation getLocation() const
+  {
+    return location;
+  }
+  void setLocation(SourceLocation L)
+  {
+    location = L;
+  }
+
+  SourceLocation getBeginLoc() const
+  {
+    return getLocation();
+  }
+
+  SourceLocation getEndLoc() const
+  {
+    return getLocation();
+  }
+
+  bool isImplicit() const
+  {
+    return false;
+  }
+
+  static bool classof(const Stmt *T)
+  {
+    return T->getStmtClass() == GaiaRuleContextExprClass;
+  }
+
+  // Iterators
+  child_range children()
+  {
+    return child_range(child_iterator(), child_iterator());
+  }
+};
+
 /// A C++ throw-expression (C++ [except.throw]).
 ///
 /// This handles 'throw' (for re-throwing the current exception) and
