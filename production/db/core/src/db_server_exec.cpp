@@ -31,6 +31,7 @@ static void usage()
 
 int main(int argc, char* argv[])
 {
+    int mutually_exclusive_persistence_flags{0};
     server::persistence_mode_t persistence_mode{server::persistence_mode_t::e_default};
 
     for (int i = 1; i < argc; ++i)
@@ -38,6 +39,7 @@ int main(int argc, char* argv[])
         if (strcmp(argv[i], gaia::db::server::c_disable_persistence_flag) == 0)
         {
             persistence_mode = server::persistence_mode_t::e_disabled;
+            mutually_exclusive_persistence_flags++;
         }
         else if (strcmp(argv[i], gaia::db::server::c_disable_persistence_after_recovery_flag) == 0)
         {
@@ -47,10 +49,10 @@ int main(int argc, char* argv[])
         {
             persistence_mode = server::persistence_mode_t::e_reinitialized_on_startup;
         }
-        else if (strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0 && i + 1 < argc)
+        else if ((strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0) && (i + 1 < argc))
         {
-            ++i;
-            gaia::db::persistent_store_manager::s_data_dir_path = argv[i];
+            gaia::db::persistent_store_manager::s_data_dir_path = argv[++i];
+            mutually_exclusive_persistence_flags++;
         }
         else
         {
@@ -60,6 +62,17 @@ int main(int argc, char* argv[])
                 << std::endl;
             usage();
         }
+    }
+    if (mutually_exclusive_persistence_flags > 1)
+    {
+        std::cerr
+            << std::endl
+            << gaia::db::server::c_disable_persistence_flag
+            << " and "
+            << gaia::db::persistent_store_manager::c_data_dir_command_flag
+            << " flags are mutually exclusive."
+            << std::endl;
+        usage();
     }
 
     gaia::db::server::run(persistence_mode);
