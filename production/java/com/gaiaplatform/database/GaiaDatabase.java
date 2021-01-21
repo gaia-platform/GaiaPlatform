@@ -164,9 +164,15 @@ public class GaiaDatabase
             return;
         }
 
-        System.out.print("Node id:" + nodeId + ", type:" + getNodeType(nodeId));
+        byte[] payload = getNodePayload(nodeId);
 
-        printPayload(getNodePayload(nodeId));
+        System.out.println(
+            "Node id: " + nodeId
+            + ", type: " + getNodeType(nodeId)
+            + ", payload size: " + payload.length
+            + ";");
+
+        printPayload(payload);
 
         if (indent)
         {
