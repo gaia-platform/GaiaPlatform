@@ -24,14 +24,11 @@ void print_payload(ostream& o, const size_t size, const char* payload)
         return;
     }
 
-    constexpr char c_lowest_printable_character = 32;
-    constexpr char c_highest_printable_character = 126;
-
     o << " Payload: ";
     for (size_t i = 0; i < size; i++)
     {
         char character = payload[i];
-        if (character >= c_lowest_printable_character && character <= c_highest_printable_character)
+        if (isprint(character))
         {
             o << character;
         }
