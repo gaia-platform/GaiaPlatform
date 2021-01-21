@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia/exception.hpp"
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
@@ -693,7 +694,7 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
 
 string ddl_executor_t::get_full_table_name(const string& db, const string& table)
 {
-    if (db.empty())
+    if (db.empty() || db == c_empty_db_name)
     {
         return table;
     }
