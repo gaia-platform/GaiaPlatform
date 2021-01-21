@@ -235,10 +235,10 @@ QualType Sema::getRuleContextType(SourceLocation loc)
 
 
     //insert fields
-    addField(&Context.Idents.get("rule_ruleset"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
-    addField(&Context.Idents.get("rule_id"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
-    addField(&Context.Idents.get("rule_event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
-    addField(&Context.Idents.get("rule_gaia_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+    addField(&Context.Idents.get("ruleset_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+    addField(&Context.Idents.get("rule_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+    addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+    addField(&Context.Idents.get("gaia_type"), Context.UnsignedIntTy.withConst(), RD, loc);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
         loc, loc, attrs);
