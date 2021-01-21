@@ -40,6 +40,17 @@ gaia_id_t create_table(
     return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
+gaia_id_t create_index(
+    const std::string& index_name,
+    bool unique,
+    ddl::index_type_t type,
+    const std::string& db_name,
+    const std::string& table_name,
+    const std::vector<std::string>& field_names)
+{
+    return ddl_executor_t::get().create_index(index_name, unique, type, db_name, table_name, field_names);
+}
+
 void drop_database(const string& name)
 {
     return ddl_executor_t::get().drop_database(name);

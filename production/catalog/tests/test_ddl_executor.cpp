@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
@@ -537,6 +538,25 @@ TEST_F(ddl_executor_test, create_self_relationships)
     ASSERT_EQ(uint8_t{1}, parent_relationship.parent_offset()); // patient
     ASSERT_EQ(uint8_t{2}, parent_relationship.next_child_offset()); // patient
 
+    txn.commit();
+}
+
+TEST_F(ddl_executor_test, create_index)
+{
+    string test_table_name{"create_index_test"};
+    ddl::field_def_list_t test_table_fields;
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+
+    check_table_name(table_id, test_table_name);
+
+    string test_index_name{"test_index"};
+    gaia_id_t index_id = create_index(test_index_name, true, ddl::index_type_t::hash, "", test_table_name, {"name"});
+
+    auto_transaction_t txn;
+    ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
+    ASSERT_EQ(gaia_index_t::get(index_id).gaia_table().gaia_id(), table_id);
     txn.commit();
 }
 

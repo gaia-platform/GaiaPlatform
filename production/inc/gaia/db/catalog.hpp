@@ -340,6 +340,20 @@ public:
 };
 
 /**
+ * Thrown when a specified table does not exists.
+ */
+class field_not_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit field_not_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The field \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when a field is specified more than once.
  */
 class duplicate_field : public gaia::common::gaia_exception
@@ -418,6 +432,29 @@ gaia::common::gaia_id_t create_table(
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_def_list_t& fields);
+
+/**
+ * Create an index
+ *
+ * @param name index name
+ * @param unique indicator if the index is unique
+ * @param type index type
+ * @param db_name database name of the table to be indexed
+ * @param table_name name of the table to be indexed
+ * @param field_names name of the table fields to be indexed
+ * @return id of the new index
+ * @throw db_not_exists
+ * @throw table_not_exists
+ * @throw field_not_exists
+ * @throw duplicate_field
+ */
+gaia::common::gaia_id_t create_index(
+    const std::string& index_name,
+    bool unique,
+    ddl::index_type_t type,
+    const std::string& db_name,
+    const std::string& table_name,
+    const std::vector<std::string>& field_names);
 
 /**
  * Delete a database.

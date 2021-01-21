@@ -40,6 +40,13 @@ public:
         const std::string& name,
         const ddl::field_def_list_t& fields,
         bool throw_on_exist = true);
+    gaia::common::gaia_id_t create_index(
+        const std::string& index_name,
+        bool unique,
+        ddl::index_type_t type,
+        const std::string& db_name,
+        const std::string& table_name,
+        const std::vector<std::string>& field_names);
     void drop_table(const std::string& db_name, const std::string& name);
     void drop_database(const std::string& name);
 
