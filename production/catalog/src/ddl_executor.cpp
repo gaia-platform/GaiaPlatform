@@ -6,9 +6,14 @@
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
 #include <memory>
+#include <string>
+
+#include <bits/stdint-uintn.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
@@ -161,6 +166,22 @@ void ddl_executor_t::bootstrap_catalog()
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
+    }
+    {
+        // create table gaia_index (
+        //     name string,
+        //     unique bool,
+        //     type uint8,
+        //     fields string,
+        //     references gaia_table,
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ref_field_def_t>(c_anonymous_reference_field_name, "catalog", "gaia_table"));
+        create_table_impl("catalog", "gaia_index", fields, true, false, static_cast<gaia_type_t>(catalog_table_type_t::gaia_index));
     }
 }
 
@@ -704,6 +725,78 @@ string ddl_executor_t::get_full_table_name(const string& db, const string& table
     {
         return db + c_db_table_name_connector + table;
     }
+}
+
+gaia_id_t ddl_executor_t::create_index(
+    const std::string& index_name,
+    bool unique,
+    ddl::index_type_t type,
+    const std::string& db_name,
+    const std::string& table_name,
+    const std::vector<std::string>& field_names)
+{
+    shared_lock lock(m_lock);
+
+    gaia_id_t db_id = find_db_id_no_lock(db_name);
+    if (db_id == c_invalid_gaia_id)
+    {
+        throw db_not_exists(db_name);
+    }
+
+    string full_table_name = get_full_table_name(db_name, table_name);
+    if (m_table_names.find(full_table_name) == m_table_names.end())
+    {
+        throw table_not_exists(full_table_name);
+    }
+
+    auto_transaction_t txn(false);
+
+    gaia_id_t table_id = m_table_names.at(full_table_name);
+    std::map<std::string, gaia_id_t> index_table_fields;
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    {
+        index_table_fields[field.name()] = field.gaia_id();
+    }
+
+    set<gaia_id_t> index_field_ids;
+    for (const auto& name : field_names)
+    {
+        if (index_table_fields.find(name) == index_table_fields.end())
+        {
+            throw field_not_exists(name);
+        }
+        if (index_field_ids.count(index_table_fields.at(name)))
+        {
+            throw duplicate_field(name);
+        }
+        index_field_ids.insert(index_table_fields.at(name));
+    }
+
+    string fields_str;
+    for (auto iter = index_field_ids.begin(); iter != index_field_ids.end(); ++iter)
+    {
+        if (iter == index_field_ids.begin())
+        {
+            fields_str = to_string(*iter);
+        }
+        else
+        {
+            fields_str += ",";
+            fields_str += to_string(*iter);
+        }
+    }
+
+    gaia_id_t index_id = gaia_index_t::insert_row(
+        index_name.c_str(),
+        unique,
+        static_cast<uint8_t>(type),
+        fields_str.c_str());
+
+    gaia_table_t::get(table_id).gaia_index_list().insert(index_id);
+
+    txn.commit();
+
+    return index_id;
 }
 
 } // namespace catalog

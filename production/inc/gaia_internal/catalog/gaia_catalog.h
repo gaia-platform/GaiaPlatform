@@ -21,6 +21,12 @@ namespace catalog {
 // The initial size of the flatbuffer builder buffer.
 constexpr int c_flatbuffer_builder_size = 128;
 
+// Constants contained in the gaia_index object.
+constexpr uint32_t c_gaia_type_gaia_index = 4294967289u;
+constexpr int c_parent_gaia_table_gaia_index = 0;
+constexpr int c_next_gaia_table_gaia_index = 1;
+constexpr int c_num_gaia_index_ptrs = 2;
+
 // Constants contained in the gaia_rule object.
 constexpr uint32_t c_gaia_type_gaia_rule = 4294967293u;
 constexpr int c_parent_gaia_ruleset_gaia_rule = 0;
@@ -53,13 +59,15 @@ constexpr int c_next_gaia_database_gaia_table = 1;
 constexpr int c_first_gaia_table_gaia_field = 2;
 constexpr int c_first_parent_gaia_relationship = 3;
 constexpr int c_first_child_gaia_relationship = 4;
-constexpr int c_num_gaia_table_ptrs = 5;
+constexpr int c_first_gaia_table_gaia_index = 5;
+constexpr int c_num_gaia_table_ptrs = 6;
 
 // Constants contained in the gaia_database object.
 constexpr uint32_t c_gaia_type_gaia_database = 4294967291u;
 constexpr int c_first_gaia_database_gaia_table = 0;
 constexpr int c_num_gaia_database_ptrs = 1;
 
+struct gaia_index_t;
 struct gaia_rule_t;
 struct gaia_ruleset_t;
 struct gaia_relationship_t;
@@ -95,6 +103,7 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     typedef gaia::direct_access::reference_chain_container_t<gaia_field_t> gaia_field_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> parent_gaia_relationship_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> child_gaia_relationship_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_index_t> gaia_index_list_t;
     gaia_table_t() : edc_object_t("gaia_table_t") {}
     const char* name() const {return GET_STR(name);}
     uint32_t type() const {return GET(type);}
@@ -122,6 +131,9 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     }
     child_gaia_relationship_list_t child_gaia_relationship_list() const {
         return child_gaia_relationship_list_t(gaia_id(), c_first_child_gaia_relationship, c_next_child_gaia_relationship);
+    }
+    gaia_index_list_t gaia_index_list() const {
+        return gaia_index_list_t(gaia_id(), c_parent_gaia_table_gaia_index, c_next_gaia_table_gaia_index);
     }
 private:
     friend struct edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
@@ -233,6 +245,31 @@ struct gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_r
 private:
     friend struct edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
     explicit gaia_rule_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_rule_t") {}
+};
+
+typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> gaia_index_writer;
+struct gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> {
+    gaia_index_t() : edc_object_t("gaia_index_t") {}
+    const char* name() const {return GET_STR(name);}
+    bool unique() const {return GET(unique);}
+    uint8_t type() const {return GET(type);}
+    const char* fields() const {return GET_STR(fields);}
+    using edc_object_t::insert_row;
+    static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const char* fields) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, fields));
+        return edc_object_t::insert_row(b);
+    }
+    gaia_table_t gaia_table() const {
+        return gaia_table_t::get(this->references()[c_parent_gaia_table_gaia_index]);
+    }
+    static gaia::direct_access::edc_container_t<c_gaia_type_gaia_index, gaia_index_t>& list() {
+        static gaia::direct_access::edc_container_t<c_gaia_type_gaia_index, gaia_index_t> list;
+        return list;
+    }
+private:
+    friend struct edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT>;
+    explicit gaia_index_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_index_t") {}
 };
 
 }  // namespace catalog
