@@ -42,6 +42,16 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             {
                 create_database(create_stmt->name, throw_on_exist);
             }
+            else if (create_stmt->type == ddl::create_type_t::create_index)
+            {
+                create_index(
+                    create_stmt->name,
+                    create_stmt->unique_index,
+                    create_stmt->index_type,
+                    create_stmt->database,
+                    create_stmt->index_table,
+                    create_stmt->index_fields);
+            }
         }
         else if (stmt->is_type(ddl::statement_type_t::drop))
         {
