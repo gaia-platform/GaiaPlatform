@@ -170,7 +170,7 @@ public class GaiaDatabase
             "Node id: " + nodeId
             + ", type: " + getNodeType(nodeId)
             + ", payload size: " + payload.length
-            + "; ");
+            + ";");
 
         printPayload(payload);
 

@@ -58,7 +58,7 @@ void print_node(const gaia_ptr& node, const bool indent = false)
         << "Node id: " << node.id()
         << ", type: " << node.type()
         << ", payload size: " << node.data_size()
-        << "; "
+        << ";"
         << endl;
 
     print_payload(cout, node.data_size(), node.data());
