@@ -19,24 +19,25 @@ using namespace pybind11;
 
 void print_payload(ostream& o, const size_t size, const char* payload)
 {
-    if (size)
+    if (size == 0)
     {
-        o << " Payload: ";
+        return;
     }
 
+    constexpr char c_lowest_printable_character = 32;
+    constexpr char c_highest_printable_character = 126;
+
+    o << " Payload: ";
     for (size_t i = 0; i < size; i++)
     {
-        if ('\\' == payload[i])
+        char character = payload[i];
+        if (character >= c_lowest_printable_character && character <= c_highest_printable_character)
         {
-            o << "\\\\";
-        }
-        else if (isprint(payload[i]))
-        {
-            o << payload[i];
+            o << character;
         }
         else
         {
-            o << "\\x" << setw(2) << setfill('0') << hex << short(payload[i]) << dec;
+            o << ".";
         }
     }
 }
@@ -59,8 +60,9 @@ void print_node(const gaia_ptr& node, const bool indent = false)
     cout
         << "Node id: " << node.id()
         << ", type: " << node.type()
-        << ", count references: " << node.num_references()
-        << "; ";
+        << ", payload size: " << node.data_size()
+        << "; "
+        << endl;
 
     print_payload(cout, node.data_size(), node.data());
 
