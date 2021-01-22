@@ -48,7 +48,14 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                drop_table(drop_stmt->database, drop_stmt->name);
+                if (!drop_stmt->database.empty())
+                {
+                    drop_table(drop_stmt->database, drop_stmt->name);
+                }
+                else
+                {
+                    drop_table(db_name, drop_stmt->name);
+                }
             }
             else if (drop_stmt->type == ddl::drop_type_t::drop_database)
             {
@@ -58,9 +65,26 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
     }
 }
 
-inline std::string load_catalog(ddl::parser_t& parser, const std::string& ddl_filename, const std::string& name)
+inline std::string get_db_name_from_filename(const std::string& ddl_filename)
+{
+    std::string db_name = ddl_filename;
+    if (db_name.find('/') != std::string::npos)
+    {
+        db_name = db_name.substr(db_name.find_last_of('/') + 1);
+    }
+    if (db_name.find('.') != std::string::npos)
+    {
+        db_name = db_name.substr(0, db_name.find_last_of('.'));
+    }
+    return db_name;
+}
+
+inline void load_catalog(
+    ddl::parser_t& parser, const std::string& ddl_filename,
+    const std::string& db_name, bool create_db = false)
 {
     common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
+    common::retail_assert(!db_name.empty(), "No database specified.");
 
     auto file_path = std::filesystem::path(ddl_filename);
 
@@ -69,36 +93,23 @@ inline std::string load_catalog(ddl::parser_t& parser, const std::string& ddl_fi
         throw std::invalid_argument("Invalid DDL file: " + std::string(file_path.c_str()));
     }
 
-    std::string db(name);
-
     int parsing_result = parser.parse(file_path.string());
     common::retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");
 
-    if (db.empty())
+    if (create_db)
     {
-        // Strip off the path and any suffix to get database name if database name is not specified.
-        db = ddl_filename;
-        if (db.find('/') != std::string::npos)
-        {
-            db = db.substr(db.find_last_of('/') + 1);
-        }
-        if (db.find('.') != std::string::npos)
-        {
-            db = db.substr(0, db.find_last_of('.'));
-        }
-        create_database(db, false);
+        create_database(db_name, false);
     }
 
-    execute(db, parser.statements);
-    return db;
+    execute(db_name, parser.statements);
 }
 
 inline void load_catalog(const char* ddl_filename)
 {
     ddl::parser_t parser;
     std::string filename(ddl_filename);
-    std::string db_name;
-    db_name = load_catalog(parser, filename, db_name);
+    std::string db_name = get_db_name_from_filename(ddl_filename);
+    load_catalog(parser, filename, db_name, true);
 }
 
 } // namespace catalog

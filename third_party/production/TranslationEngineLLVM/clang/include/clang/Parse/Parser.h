@@ -1747,6 +1747,10 @@ private:
   ExprResult ParseCXXThis();
 
   //===--------------------------------------------------------------------===//
+  // Gaia rule_context keyword
+  ExprResult ParseGaiaRuleContext();
+
+  //===--------------------------------------------------------------------===//
   // C++ 15: C++ Throw Expression
   ExprResult ParseThrowExpression();
 

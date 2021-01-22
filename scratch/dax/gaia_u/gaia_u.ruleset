@@ -2,6 +2,7 @@
 
 #include "rule_helpers.hpp"
 #include "data/data_helpers.hpp"
+#include "gaia/logger.hpp"
 
 /**
  * Rule Index
@@ -31,7 +32,8 @@ ruleset event_planner
     // Requires:  Staff <- register later
     //  Requires: Person
     {
-        event_planner::log("Rule 1", true);
+        gaia_log::app().trace("Rule 1");
+
         if (Buildings.LastOperation == INSERT)
         {
             auto building = gaia::gaia_u::Buildings_t::get(Buildings.gaia_id());
@@ -45,7 +47,7 @@ ruleset event_planner
     // Note that this is not currently possible if the event has any reference defined
     //
     {
-        event_planner::log("Rule 2", true);
+        gaia_log::app().trace("Rule 2");
         if (Events.LastOperation == DELETE)
         {
             event_planner::cancel_event(Events.gaia_id());
@@ -55,7 +57,7 @@ ruleset event_planner
     // When a new room is added then adjust the restricted capacity
     // according to the restriction
     {
-        event_planner::log("Rule 3", true);
+        gaia_log::app().trace("Rule 3");
         if (Rooms.LastOperation == INSERT)
         {
             RestrictedCapacity = @Capacity * (PercentFull / 100.0);
@@ -64,35 +66,27 @@ ruleset event_planner
 
     // If someone registers for an event then bump the number of enrollments
     {
-        event_planner::log("Rule 4", true);
+        gaia_log::app().trace("Rule 4");
         if (Registrations.LastOperation == INSERT)
         {
-            // Subtle: if you had use Enrolled++ this would have caused a second rule to
-            // be generated That could be triggered by a change to the 'Enrolled' active
-            // field.
-            Enrolled = @Enrolled +1;
+            Enrolled++;
         }
     }
 
     // If a restriction to PercentFull changes, then update all the rooms Restricted Capacity
     // capacity.
     {
-        event_planner::log("Rule 5", true);
+        gaia_log::app().trace("Rule 5");
         RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
     // If the room capacity has changed and is less than the enrollment for the event then move the room
     {
-        event_planner::log("Rule 6", true);
-        // GAIAPLAT-546:  should not have to annotate non-active fields with '@'
-        if (RestrictedCapacity < @Enrolled)
+        gaia_log::app().trace("Rule 6");
+        if (RestrictedCapacity < Enrolled)
         {
-            char buffer[128];
-            sprintf(buffer, "Event '%s' has '%u' enrollments but the restricted capacity is '%u'.  Attempting to change location.",
-                @Events.Name, @Enrolled, RestrictedCapacity);
-            
-            event_planner::log(buffer);
-            //printf("DBG:  Setting ChangeLocation for event '%s'\n", @Events.Name);
+            gaia_log::app().info("Event '{}' has '{}' enrollments but the restricted capacity is '{}'.  Attempting to change location.",
+                @Events.Name, Enrolled, RestrictedCapacity);
             ChangeLocation = true;
         }
     }
@@ -105,8 +99,7 @@ ruleset event_planner
     // Search for room in the same building first and then
     // expand to other rooms if required.
      {
-        char buffer[256];
-        event_planner::log("Rule 7", true);
+        gaia_log::app().trace("Rule 7");
         if (!ChangeLocation)
         {
             return;
@@ -116,14 +109,13 @@ ruleset event_planner
 
         // If the room can hold the number of students enrolled then
         // then is no need find another room.
-        if (@RestrictedCapacity >= @Enrolled)
+        if (@RestrictedCapacity >= Enrolled)
         {
             return;
         }
 
-        sprintf(buffer,"ChangeLocation:  Event '%s' needs a new location because room '%s' doesn't have the capacity.",
+        gaia_log::app().info("ChangeLocation:  Event '{}' needs a new location because room '{}' doesn't have the capacity.",
             @Events.Name, @RoomName);
-        event_planner::log(buffer);
 
         // Try to find a room that works in the same building
         auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
@@ -148,7 +140,7 @@ ruleset event_planner
                     continue;
                 }
 
-                if (room.RestrictedCapacity() >= @Enrolled)
+                if (room.RestrictedCapacity() >= Enrolled)
                 {
                     if (event_planner::is_room_available(event, room))
                     {
@@ -176,7 +168,7 @@ ruleset event_planner
 
             for (auto& room : building.Rooms_list())
             {
-                if (room.RestrictedCapacity() >= @Enrolled)
+                if (room.RestrictedCapacity() >= Enrolled)
                 {
                     if (event_planner::is_room_available(event, room))
                     {
@@ -197,8 +189,7 @@ ruleset event_planner
         // but not on the date we need.  Go ahead and move the room and then change the date.
         if (candidate_room)
         {
-            sprintf(buffer, "Found a room for event '%s' but need to reschedule.", @Events.Name);
-            event_planner::log(buffer);
+            gaia_log::app().info("Found a room for event '{}' but need to reschedule.", @Events.Name);
             event_planner::move_event_room(event, this_room, candidate_room);
             ChangeDate = true;
         }
@@ -206,16 +197,14 @@ ruleset event_planner
         {
             // Could not find a room, so use the one we have an drop enrollments until
             // we meet the restricted capacity
-            sprintf(buffer, "Could not find a room for event '%s'.  Need to drop enrollments.", @Events.Name);
-            event_planner::log(buffer);
+            gaia_log::app().info("Could not find a room for event '{}'.  Need to drop enrollments.", @Events.Name);
             DropEnrollments = true;
         }
     }
 
     // Reschedule an event.  Found a room but we need to change the date.
     {
-        char buffer[128];
-        event_planner::log("Rule 8", true);
+        gaia_log::app().trace("Rule 8");
         if (!ChangeDate)
         {
             return;
@@ -225,7 +214,7 @@ ruleset event_planner
         time_t old_date = @Date;
         auto date_info = localtime(&old_date);
         auto event = gaia::gaia_u::Events_t::get(Events.gaia_id());
-        auto this_room = event.Room_Rooms();
+        auto this_room = event.Rooms();
               
         // Just pick the next week day until there is no conflict
         while (true)
@@ -234,10 +223,9 @@ ruleset event_planner
             time_t new_date =  mktime(date_info);
             if (event_planner::is_room_available(new_date, this_room))
             {
-                sprintf(buffer, "Changing date for event '%s' from '%s' to '%s'", @Events.Name,
+                gaia_log::app().info("Changing date for event '{}' from '{}' to '{}'", @Events.Name,
                     event_planner::convert_date(@Date).c_str(),
                     event_planner::convert_date(new_date).c_str());
-                event_planner::log(buffer);
                 Date = new_date;
                 NotifyReason = event_planner::notify_reason_t::change_both;
                 break;
@@ -247,7 +235,7 @@ ruleset event_planner
 
     // Notify staff of event changes
     {
-        event_planner::log("Rule 9", true);
+        gaia_log::app().trace("Rule 9");
 
         std::string staff_email = "Notifying staff '";
         std::string student_email = "Notifying student '";
@@ -285,12 +273,12 @@ ruleset event_planner
             reason.append("'.");
         }
         staff_email.append(reason);
-        event_planner::log(staff_email.c_str());
+        gaia_log::app().info(staff_email.c_str());
     }
 
     // Notify registered students of event changes
     {
-        event_planner::log("Rule 10", true);
+        gaia_log::app().trace("Rule 10");
         std::string student_email = "Notifying student '";
         std::string reason = "' that event '";
 
@@ -304,7 +292,7 @@ ruleset event_planner
         {
             // Get the registrations for this event.
             auto registration = gaia::gaia_u::Registrations_t::get(Registrations.gaia_id());
-            auto person = registration.Student_Students().Persons();
+            auto person = registration.Students().Persons();
             student_email.append(person.FirstName());
             student_email.append(" ");
             student_email.append(person.LastName());
@@ -330,35 +318,32 @@ ruleset event_planner
             reason.append("'.");
         }
         student_email.append(reason);
-        event_planner::log(student_email.c_str());
+        gaia_log::app().info(student_email.c_str());
     }
 
 
     // We don't have a room anywhere on campus that can fit the number of enrollments so
     // we need to stop dropping enrollments
     {
-        char buffer[128];
-        event_planner::log("Rule 11", true);
+        gaia_log::app().trace("Rule 11");
         // Send out notifications to all those who have registered
         if (!DropEnrollments)
         {
             return;
         }
         DropEnrollments = false;
-        //event_planner::log("DropEnrollments", @Events.Name);
 
         // If the room size can accomadate the number of students enrolled
         // then we are done.
-        if (@Enrolled <= @RestrictedCapacity)
+        if (Enrolled <= @RestrictedCapacity)
         {
             return;
         }
 
-        sprintf(buffer, "Dropping number of enrollments for event '%s' from '%u' to '%u'",
-            @Events.Name, @Enrolled, @RestrictedCapacity);
-        event_planner::log(buffer);
+        gaia_log::app().info("Dropping number of enrollments for event '{}' from '{}' to '{}'",
+            @Events.Name, Enrolled, @RestrictedCapacity);
 
-        uint32_t count_registrations_to_drop = @Enrolled - @RestrictedCapacity;
+        uint32_t count_registrations_to_drop = Enrolled - @RestrictedCapacity;
 
         // Drop the enrollments to match the capacity we have.  Drop the people who registered the latest.
         Enrolled = @RestrictedCapacity;
@@ -367,7 +352,7 @@ ruleset event_planner
         std::map<int64_t, gaia::gaia_u::Registrations_t> registrations_to_drop;
 
         // populate our map
-        for (auto& registration : this_event.Event_Registrations_list())
+        for (auto& registration : this_event.Registrations_list())
         {
             int64_t timestamp = event_planner::get_timestamp(registration.RegistrationDate(), registration.RegistrationTime());
             registrations_to_drop.insert(std::make_pair(timestamp, registration));
@@ -388,7 +373,7 @@ ruleset event_planner
     // Notify student that they have been dropped from the enrollment
     // And delete the registration from the event
     {
-        event_planner::log("Rule 12", true);
+        gaia_log::app().trace("Rule 12");
         std::string student_email = "Notifying student '";
         std::string reason = "' that they have been unregistered for event '";
 
@@ -403,7 +388,7 @@ ruleset event_planner
         reason.append(@Events.Name);
         reason.append("'.");
         student_email.append(reason);
-        event_planner::log(student_email.c_str());
+        gaia_log::app().info(student_email.c_str());
 
         // Drop registration
         // Remove the event and the student and drop the registration

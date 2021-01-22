@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 namespace gaia::common::logging
 {
@@ -18,16 +18,16 @@ namespace spdlog_defaults
 {
 /**
  * Example:
- * [2020-09-11T16:21:54-04:00] [debug   ] p:201405 t:201405 <gaia-root>: message 1
- * [2020-09-11T16:21:54-04:00] [critical] p:201405 t:201405 <gaia-root>: message 2
+ * [2020-12-21T19:25:59.368] [info] [1034644 1034766] <rules>: message 1
+ * [2020-12-21T19:25:59.368] [warning] [1034644 1034766] <db>: message 2
  *
  * where
- * - critical: level
- * - p: process
- * - t: thread
- * - gaia-root: logger name
+ * - info: level
+ * - 1034644: process
+ * - 1034766: thread
+ * - rules: logger name
  */
-constexpr const char* c_default_pattern = "[%Y-%m-%dT%T%z] [%l] p:%P t:%t <%n>: %v";
+constexpr const char* c_default_pattern = "[%Y-%m-%dT%T.%e] [%l] [%P %t] <%n>: %v";
 
 constexpr size_t c_default_queue_size = 8192;
 constexpr size_t c_default_thread_count = 1;

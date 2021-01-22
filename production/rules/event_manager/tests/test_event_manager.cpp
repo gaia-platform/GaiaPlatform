@@ -392,19 +392,19 @@ struct rule_decl_t
  * transaction_rollback: rule3, rule4
  */
 static const rule_decl_t c_rule_decl[] = {
-    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0}, rule1},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0}, rule2},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0}, rule2},
-    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, 0}, rule1},
-    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0}, rule3},
-    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0}, rule4},
-    {{c_ruleset1_name, c_rule1_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_first_name}, rule1},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_last_name}, rule2}
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, 0}, rule3},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, 0}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, 0}, rule4},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, 0}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, 0}, rule4}
+    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 1}, rule1},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 2}, rule2},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0, 2}, rule2},
+    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, 0, 1}, rule1},
+    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 30}, rule3},
+    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 40}, rule4},
+    {{c_ruleset1_name, c_rule1_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_first_name, 1}, rule1},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_last_name, 2}, rule2}
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, 0, 30}, rule3},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, 0, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, 0, 40}, rule4},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, 0, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, 0, 40}, rule4}
 };
 
 /**
@@ -486,7 +486,7 @@ public:
 
             expected_subscriptions.insert(pair<string, subscription_t>(
                 make_subscription_key(decl.sub),
-                {decl.sub.ruleset_name, decl.sub.rule_name, decl.sub.gaia_type, decl.sub.event_type, decl.sub.field}));
+                {decl.sub.ruleset_name, decl.sub.rule_name, decl.sub.gaia_type, decl.sub.event_type, decl.sub.field, decl.sub.line_number}));
         }
 
         return expected_subscriptions;
@@ -522,6 +522,7 @@ public:
         EXPECT_STREQ(a.ruleset_name, b.ruleset_name);
         EXPECT_EQ(a.gaia_type, b.gaia_type);
         EXPECT_EQ(a.event_type, b.event_type);
+        EXPECT_EQ(a.line_number, b.line_number);
     }
 
     void setup_all_rules()
@@ -532,6 +533,7 @@ public:
             binding.ruleset_name = decl.sub.ruleset_name;
             binding.rule_name = decl.sub.rule_name;
             binding.rule = decl.fn;
+            binding.line_number = decl.sub.line_number;
 
             event_type_t event = decl.sub.event_type;
             gaia_type_t gaia_type = decl.sub.gaia_type;
@@ -989,7 +991,7 @@ TEST_F(event_manager_test, list_rules_none)
 
     // Verify that the list_subscribed_rules api clears the subscription list the caller
     // passes in.
-    rules.emplace_back(make_unique<subscription_t>("a", "b", 0, event_type_t::row_update, c_first_name));
+    rules.emplace_back(make_unique<subscription_t>("a", "b", 0, event_type_t::row_update, c_first_name, 0));
 
     EXPECT_EQ(1, rules.size());
 

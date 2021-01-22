@@ -1,3 +1,4 @@
+#include "gaia/logger.hpp"
 
 int g_rule_called = 0;
 int g_insert_called = 0;
@@ -9,6 +10,8 @@ bool correct_gaia_id = false;
 ruleset test
 {
     {
+        gaia_log::app().warn("[rule-1] begin {} {} {}", "str", 1, 1.0);
+
         max_temp = sensor.value + 4;
         if (@actuator.value > 0)
         {

@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 
 using namespace std;
 
@@ -22,6 +22,7 @@ void verify_uninitialized_loggers()
     EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::rules_stats(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::app(), gaia_log::logger_exception_t);
 }
 
 TEST(logger_test, logger_api)
@@ -35,7 +36,8 @@ TEST(logger_test, logger_api)
         gaia_log::catalog(),
         gaia_log::rules(),
         gaia_log::db(),
-        gaia_log::rules_stats()};
+        gaia_log::rules_stats(),
+        gaia_log::app()};
 
     for (auto logger : loggers)
     {
@@ -51,9 +53,6 @@ TEST(logger_test, logger_api)
         logger.error("error const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
         logger.critical("critical");
         logger.critical("critical const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
-
-        logger.log(gaia_log::log_level_t::info, "Static message");
-        logger.log(gaia_log::log_level_t::info, "Dynamic const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
     }
 
     gaia_log::shutdown();

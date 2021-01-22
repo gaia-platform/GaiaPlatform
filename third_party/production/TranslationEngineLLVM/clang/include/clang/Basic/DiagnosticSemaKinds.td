@@ -9496,24 +9496,28 @@ def err_builtin_launder_invalid_arg : Error<
   "'__builtin_launder' is not allowed">;
 
 def err_invalid_operand_last_operation : Error<
-  "Incorrect LastOperation action">;
+  "Incorrect LastOperation action.">;
 def err_invalid_assignment_last_operation : Error<
-  "Incorrect LastOperation assignment">;
+  "Incorrect LastOperation assignment.">;
 def err_invalid_field_operation : Error<
-  "Incorrect field operation">;
+  "Incorrect field operation.">;
 
 def err_invalid_table_name : Error<
-    "No table %0 was found in the catalog">;
+    "Table '%0' was not found in the catalog.">;
 def err_invalid_field_type : Error<
-    "Field %0 has incorrect type">;
+    "Field '%0' has incorrect type.">;
 def err_no_ruleset_for_rule : Error<
-    "No ruleset was detected for rule">;
+    "No ruleset was detected for rule.">;
 def err_duplicate_field : Error<
-    "Duplicate field %0">;
+    "Duplicate field '%0'.">;
 def err_unknown_field : Error<
-    "Field %0 was not found in the catalog">;
+    "Field '%0' was not found in the catalog.">;
 def err_catalog_exception : Error<
-    "Exception occured while fetching data from catalog: %0">;
+    "Exception occured while fetching data from catalog: '%0'.">;
 def err_invalid_table_field : Error<
-    "Field %0 have no table in the catalog">;
+    "Field '%0' has no table in the catalog.">;
+def warn_table_referenced_not_in_table_attribute : Warning<
+    "Table '%0' is not referenced in table attribute.">;
+def err_invalid_rule_context_internal_error : Error<
+    "Internal error while generating 'rule_context'.">;
 } // end of sema component.

@@ -26,7 +26,6 @@ link_directories(
   ${GAIA_PROD_BUILD}/lib
 )
 
-
 add_executable(gaiat ${GAIAT_SRCS})
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
 set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -57,12 +56,20 @@ add_custom_command(
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
+      -I ${GAIA_INC}
+      -I ${SPDLOG_INC}
+      -I /usr/include/clang/10/include/
+      -std=c++17
   COMMAND pkill -f -KILL gaia_db_server &
+  # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
+  # to a build failure. A short sleep is currently fixing that, but may not be the
+  # correct long-term solution.
+  COMMAND sleep 1
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
   DEPENDS ${INCUBATOR_RULESET}
-  COMMENT "Compiled test.ruleset."
+  COMMENT "Compiling test.ruleset."
 )
 
 add_custom_target(generate_incubator_rules ALL
@@ -70,7 +77,6 @@ add_custom_target(generate_incubator_rules ALL
   # Add previous target to realize parallel builds.
   DEPENDS generate_incubator_headers
 )
-
 
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"
@@ -96,6 +102,10 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
   COMMAND pkill -f -KILL gaia_db_server &
+  # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
+  # to a build failure. A short sleep is currently fixing that, but may not be the
+  # correct long-term solution.
+  COMMAND sleep 1
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}

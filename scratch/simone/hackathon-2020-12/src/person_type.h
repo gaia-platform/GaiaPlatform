@@ -8,8 +8,7 @@
 typedef enum : uint8_t
 {
     undefined = 0,
-    // Cannot use stranger otherwise it will conflict with catalog table strangers.
-    sconosciuto = 1,
+    stranger = 1,
     student = 2,
     parent = 3,
     staff = 4

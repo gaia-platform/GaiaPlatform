@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cctype>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -16,7 +18,8 @@
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_parser.hpp"
-#include "logger.hpp"
+#include "gaia_version.hpp"
+#include "logger_internal.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -36,7 +39,7 @@ enum class operate_mode_t
     loading,
 };
 
-void start_repl(parser_t& parser, const string& dbname)
+void start_repl(parser_t& parser, const string& db_name)
 {
     gaia::db::begin_session();
     initialize_catalog();
@@ -60,13 +63,19 @@ void start_repl(parser_t& parser, const string& dbname)
         {
             if (line.length() > 0 && line.at(0) == c_command_prefix)
             {
-                handle_meta_command(line);
-                continue;
+                if (handle_meta_command(line))
+                {
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
             }
             int parsing_result = parser.parse_line(line);
             if (parsing_result == EXIT_SUCCESS)
             {
-                execute(dbname, parser.statements);
+                execute(db_name, parser.statements);
             }
             else
             {
@@ -134,6 +143,32 @@ void generate_headers(const string& db_name, const string& output_path)
     generate_edc_headers(db_name, output_path);
 }
 
+// Check if a database name is valid.
+//
+// Incorrect database names will result downstream failures in FlatBuffers and
+// our own parser. We want to detect errors early on at command line parsing
+// time to produce a more meaningful error message to the user. This function
+// needs to keep in sync with fbs and our own ddl identifier rules.
+bool valid_db_name(const string& db_name)
+{
+    if (db_name.empty())
+    {
+        return true;
+    }
+    if (!isalpha(db_name.front()))
+    {
+        return false;
+    }
+    for (char c : db_name.substr(1))
+    {
+        if (!(isalnum(c) || c == '_'))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Add a trailing '/' if not provided.
 void terminate_path(string& path)
 {
@@ -149,16 +184,26 @@ string usage()
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -d|--db-name <dbname>    Specify the database name.\n"
           "  -i|--interactive         Interactive prompt, as a REPL.\n"
-          "  -g|--generate            Generate fbs and gaia headers.\n"
+          "  -g|--generate            Generate direct access API header files.\n"
           "  -o|--output <path>       Set the path to all generated files.\n"
-          "  -t|--db-server-path      Start the Gaia DB server (for testing purposes).\n"
+#ifdef DEBUG
           "  -p|--parse-trace         Print parsing trace.\n"
           "  -s|--scan-trace          Print scanning trace.\n"
+          "  -t|--db-server-path      Start the DB server (for testing purposes).\n"
           "  --destroy-db             Destroy the persistent store.\n"
+#endif
           "  <ddl_file>               Process the DDLs in the file.\n"
           "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "                           The database will be created automatically.\n"
-          "  -h|--help                Print help information.\n";
+          "  -h|--help                Print help information.\n"
+          "  -v|--version             Version information.\n";
+    return ss.str();
+}
+
+string version()
+{
+    std::stringstream ss;
+    ss << "Gaia Catalog Tool " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
     return ss.str();
 }
 
@@ -194,6 +239,13 @@ int main(int argc, char* argv[])
     parser_t parser;
     bool remove_persistent_store = false;
 
+    // If no arguments are specified print the help.
+    if (argc == 1)
+    {
+        cerr << usage() << endl;
+        exit(EXIT_FAILURE);
+    }
+
     for (int i = 1; i < argc; ++i)
     {
         if (argv[i] == string("-p") || argv[i] == string("--parse-trace"))
@@ -214,7 +266,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-t") || argv[i] == string("--db-server-path"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
@@ -232,7 +284,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-o") || argv[i] == string("--output"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing path to output directory." << endl;
                 exit(EXIT_FAILURE);
@@ -242,7 +294,7 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-d") || argv[i] == string("--db-name"))
         {
-            if (++i > argc)
+            if (++i > argc - 1)
             {
                 cerr << c_error_prompt << "Missing database name." << endl;
                 exit(EXIT_FAILURE);
@@ -254,6 +306,11 @@ int main(int argc, char* argv[])
             cout << usage() << endl;
             exit(EXIT_SUCCESS);
         }
+        else if (argv[i] == string("-v") || argv[i] == string("--version"))
+        {
+            cout << version() << endl;
+            exit(EXIT_SUCCESS);
+        }
         else if (argv[i] == string("--destroy-db"))
         {
             remove_persistent_store = true;
@@ -262,6 +319,34 @@ int main(int argc, char* argv[])
         {
             ddl_filename = argv[i];
         }
+    }
+
+    if (!valid_db_name(db_name))
+    {
+        cerr << c_error_prompt
+             << "The database name '" + db_name + "' supplied from the command line is incorrectly formatted."
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // This indicates if we should try to create the database automatically. If
+    // the database name is derived from the ddl file name, we will try to
+    // create the database for the user. This is to keep backward compatible
+    // with existing build scripts. Use '-d <db_name>' to avoid this behavior.
+    // GAIAPLAT-585 tracks the work to remove this behavior.
+    bool create_db = false;
+    if (!ddl_filename.empty() && db_name.empty())
+    {
+        db_name = get_db_name_from_filename(ddl_filename);
+        create_db = true;
+    }
+
+    if (!valid_db_name(db_name))
+    {
+        cerr << c_error_prompt
+             << "The database name '" + db_name + "' derived from the filename is incorrectly formatted."
+             << endl;
+        exit(EXIT_FAILURE);
     }
 
     if (mode == operate_mode_t::interactive)
@@ -277,7 +362,7 @@ int main(int argc, char* argv[])
 
             if (!ddl_filename.empty())
             {
-                db_name = load_catalog(parser, ddl_filename, db_name);
+                load_catalog(parser, ddl_filename, db_name, create_db);
             }
 
             if (mode == operate_mode_t::generation)

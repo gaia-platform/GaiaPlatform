@@ -1,0 +1,13 @@
+// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        if (sensor.LastOperation == DELETE)
+        {
+            int value = 5;
+        }
+    }
+}
+
+// CHECK: Local variable declaration value hides catalog field entity of the same name.

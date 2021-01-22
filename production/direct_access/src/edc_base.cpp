@@ -121,9 +121,9 @@ bool gaia_base_t::equals(const gaia_base_t& other) const
     return (*(to_const_ptr<gaia_ptr>()) == *(other.to_const_ptr<gaia_ptr>()));
 }
 
-gaia_id_t* gaia_base_t::references()
+gaia_id_t* gaia_base_t::references() const
 {
-    return to_ptr<gaia_ptr>()->references();
+    return to_const_ptr<gaia_ptr>()->references();
 }
 
 //

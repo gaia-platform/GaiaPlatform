@@ -90,8 +90,6 @@ address_offset_t stack_allocator_t::allocate(
     address_offset_t old_slot_offset,
     size_t memory_size) const
 {
-    address_offset_t allocated_memory_offset = c_invalid_offset;
-
     retail_assert(m_metadata != nullptr, "Stack allocator was not initialized!");
 
     if (old_slot_offset != c_invalid_offset)
@@ -99,9 +97,15 @@ address_offset_t stack_allocator_t::allocate(
         validate_offset_alignment(old_slot_offset);
     }
 
-    // Adjust the requested memory size, to ensure proper alignment.
-    if (memory_size != 0)
+    if (memory_size == 0)
     {
+        retail_assert(
+            old_slot_offset != c_invalid_offset,
+            "A deallocation call was made without providing the address offset to deallocate!");
+    }
+    else
+    {
+        // Adjust the requested memory size, to ensure proper alignment.
         memory_size = calculate_allocation_size(memory_size);
         validate_size(memory_size);
     }
@@ -109,7 +113,7 @@ address_offset_t stack_allocator_t::allocate(
     // Quick exit for memory requests that are way too large.
     if (memory_size > m_total_memory_size)
     {
-        return allocated_memory_offset;
+        return c_invalid_offset;
     }
 
     // Each allocation will get its own metadata.
@@ -124,7 +128,7 @@ address_offset_t stack_allocator_t::allocate(
     if (next_allocation_offset + size_to_allocate
         > metadata_offset - (count_allocations + 1) * sizeof(stack_allocator_allocation_t))
     {
-        return allocated_memory_offset;
+        return c_invalid_offset;
     }
 
     if (size_to_allocate > 0)
@@ -145,6 +149,7 @@ address_offset_t stack_allocator_t::allocate(
     allocation_record->old_memory_offset = old_slot_offset;
 
     // Set allocation offset.
+    address_offset_t allocated_memory_offset = c_invalid_offset;
     if (size_to_allocate > 0)
     {
         allocation_record->memory_offset = next_allocation_offset + sizeof(memory_allocation_metadata_t);
@@ -154,9 +159,9 @@ address_offset_t stack_allocator_t::allocate(
         retail_assert(
             allocated_memory_offset % c_allocation_alignment == 0,
             "Stack allocator memory allocation was not made on a 64B boundary!");
-    }
 
-    m_metadata->next_allocation_offset += size_to_allocate;
+        m_metadata->next_allocation_offset += size_to_allocate;
+    }
 
     if (m_execution_flags.enable_console_output)
     {

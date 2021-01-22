@@ -1257,9 +1257,11 @@ def err_for_co_await_not_range_for : Error<
 
 let CategoryName = "Gaia Issue" in {
 def err_ruleset_ruleset_scope : Error<
-  "Rulesets can not be defined in ruleset scope">;
+  "Rulesets can not be defined in ruleset scope.">;
 def err_invalid_ruleset_attribute : Error<
-  "Invalid ruleset attribute">;
+  "Invalid ruleset attribute.">;
+def err_invalid_rule_context_use : Error<
+    "Invalid use of 'rule_context'.">;
 }
 
 } // end of Parser diagnostics

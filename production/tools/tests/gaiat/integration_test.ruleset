@@ -79,6 +79,11 @@ public:
      }
 };
 
+void testFunction()
+{
+    int value = 5;
+}
+
 ruleset test7
 {
   {
@@ -89,4 +94,14 @@ ruleset test7
           t.delete_row();
       }
   }
+}
+
+ruleset test8
+{
+    {
+	    if (actuator.timestamp < 5 && sensor.value > 10)
+	    {
+		    actuator.value = 5;
+	    }
+    }
 }

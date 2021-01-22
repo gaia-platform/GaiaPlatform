@@ -155,43 +155,42 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
-  pybind11_add_module(gaia_se src/db_pybind_wrapper.cpp)
-  target_include_directories(gaia_se PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(gaia_se PRIVATE
-  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
-  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
-  target_include_directories(gaia_se SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-  target_include_directories(gaia_se SYSTEM PRIVATE "${GEN_DIR}")
-  target_link_libraries(gaia_se PRIVATE pybind11::module rt gaia_db_client)
+  pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
+  target_include_directories(gaia_db_pybind PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(gaia_db_pybind PRIVATE
+    "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+    "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+  target_include_directories(gaia_db_pybind SYSTEM PRIVATE "${GEN_DIR}")
+  target_link_libraries(gaia_db_pybind PRIVATE pybind11::module rt gaia_system gaia_db_client)
   # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
-  set_target_properties(gaia_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
-  set_target_properties(gaia_se PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+  set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
+    "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
+  set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
-  # configure_file(tests/test_db.py . COPYONLY)
-  # add_test(NAME test_db_client_pybind COMMAND ${Python3_EXECUTABLE} test_db.py)
-  # set_tests_properties(test_db_client_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+  configure_file(tests/test_db.py . COPYONLY)
+  add_test(NAME test_db_pybind COMMAND ${Python3_EXECUTABLE} test_db.py)
+  set_tests_properties(test_db_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 endif()
 
 ###############################################
 # JNI wrapper for database.
 ###############################################
-if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+if(JAVA_FOUND AND JNI_FOUND)
   # Configure build of native C++ wrapper library.
-  add_library(jni_db_client SHARED src/db_jni_wrapper.cpp)
-  target_include_directories(jni_db_client PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(jni_db_client PRIVATE ${PROJECT_BINARY_DIR})
-  target_include_directories(jni_db_client PRIVATE ${JNI_INCLUDE_DIRS})
-  target_include_directories(jni_db_client PRIVATE ${GAIA_DB_CORE_INCLUDES})
-  target_link_libraries(jni_db_client PRIVATE
-    rt
-    gaia_db_client
-    se_jni_headers)
-  set_target_properties(jni_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
-  set_target_properties(jni_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  add_library(gaia_db_jni SHARED src/db_jni_wrapper.cpp)
+  target_include_directories(gaia_db_jni PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(gaia_db_jni PRIVATE ${PROJECT_BINARY_DIR})
+  target_include_directories(gaia_db_jni PRIVATE ${JNI_INCLUDE_DIRS})
+  target_include_directories(gaia_db_jni PRIVATE ${GAIA_DB_CORE_INCLUDES})
+  target_include_directories(gaia_db_jni PRIVATE ${GAIA_REPO}/production/db/inc/memory_manager)
+  target_link_libraries(gaia_db_jni PRIVATE rt gaia_system gaia_db_client db_jni_headers)
+  set_target_properties(gaia_db_jni PROPERTIES COMPILE_FLAGS
+    "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  set_target_properties(gaia_db_jni PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_link_options(jni_db_client PRIVATE "-shared-libasan")
+    target_link_options(gaia_db_jni PRIVATE "-shared-libasan")
   endif()
 endif()
 

@@ -73,30 +73,6 @@ size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
     return (allocation_size < requested_size) ? 0 : allocation_size;
 }
 
-// Raw allocations need to be offset by 56B from 64B boundaries
-// and need to end the same way, which means that they should be adjusted
-// to the nearest higher alignment multiplier.
-size_t base_memory_manager_t::calculate_raw_allocation_size(size_t requested_size)
-{
-    if (requested_size < c_allocation_alignment)
-    {
-        return c_allocation_alignment;
-    }
-
-    size_t allocation_size = requested_size;
-    size_t extra_block_size = requested_size % c_allocation_alignment;
-
-    if (extra_block_size > 0)
-    {
-        // Bump the size to the next multiple of the allocation alignment.
-        allocation_size = requested_size - extra_block_size + c_allocation_alignment;
-    }
-
-    // Handle the extreme case in which the requested size is so large
-    // that we'd get an integer overflow in the preceding calculations.
-    return (allocation_size < requested_size) ? 0 : allocation_size;
-}
-
 void base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)
 {
     auto memory_address_as_integer = reinterpret_cast<size_t>(memory_address);

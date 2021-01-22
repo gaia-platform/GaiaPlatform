@@ -1,0 +1,14 @@
+// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        int incubator = 5;
+        if (sensor.LastOperation == DELETE)
+        {
+
+        }
+    }
+}
+
+// CHECK: Local variable declaration incubator hides database table of the same name.

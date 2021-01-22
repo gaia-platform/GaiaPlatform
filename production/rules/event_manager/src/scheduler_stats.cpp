@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #include "scheduler_stats.hpp"
 
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "timer.hpp"
 
 using namespace gaia::common;
@@ -32,8 +32,6 @@ void scheduler_stats_t::reset_counters()
     rule_stats_t::reset_counters();
 }
 
-// If print_header is true then the following row is output:
-// ------------------------- sched invoc  pend aband retry excep      avg lat      max lat     avg exec     max exec
 void scheduler_stats_t::log(bool print_header)
 {
     // Estimate the CPU utilization time percentage of the threads in the thread pool.
@@ -43,11 +41,11 @@ void scheduler_stats_t::log(bool print_header)
     if (print_header)
     {
         gaia_log::rules_stats().info(
-            "{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", "",
-            "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat",
-            "avg exec", "max exec");
+            c_header_format, "", c_max_rule_id_len, c_scheduled_column, c_invoked_column, c_pending_column,
+            c_abandoned_column, c_retries_column, c_exceptions_column, c_avg_latency_column, c_max_latency_column,
+            c_avg_execution_column, c_max_execution_column);
     }
 
-    rule_stats_t::log(thread_load);
+    rule_stats_t::log_cumulative(thread_load);
     reset_counters();
 }

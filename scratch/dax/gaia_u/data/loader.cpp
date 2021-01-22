@@ -224,7 +224,7 @@ void gaia_u_loader_t::load_Registrations(row_t& row)
         throw gaia_exception("Invalid event id\n");
     }
     auto event = Events_t::get(gaia_event_id);
-    event.Event_Registrations_list().insert(gaia_registration_id);
+    event.Registrations_list().insert(gaia_registration_id);
 
     // Add Student
     uint32_t student_id = stoul(row[4]);
@@ -234,7 +234,7 @@ void gaia_u_loader_t::load_Registrations(row_t& row)
         throw gaia_exception("Invalid student id\n");
     }
     auto student = Students_t::get(gaia_student_id);
-    student.Student_Registrations_list().insert(gaia_registration_id);
+    student.Registrations_list().insert(gaia_registration_id);
 }
 
 void gaia_u_loader_t::load_Events(row_t& row)
@@ -256,13 +256,13 @@ void gaia_u_loader_t::load_Events(row_t& row)
     uint32_t staff_id = stoul(row[6]);
     auto gaia_staff_id = m_staff_ids[staff_id];
     auto staff = Staff_t::get(gaia_staff_id);
-    staff.Teacher_Events_list().insert(gaia_event_id);
+    staff.Events_list().insert(gaia_event_id);
 
     // Insert the event for the room
     uint32_t room_id = stoul(row[7]);
     auto gaia_room_id = m_rooms_ids[room_id];
     auto room = Rooms_t::get(gaia_room_id);
-    room.Room_Events_list().insert(gaia_event_id);
+    room.Events_list().insert(gaia_event_id);
     m_events_ids.insert(make_pair(id, gaia_event_id));
 }
 

@@ -8,11 +8,12 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia/exception.hpp"
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
 
@@ -513,7 +514,18 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
         else
         {
-            return m_table_names.at(full_table_name);
+            gaia_id_t id = m_table_names.at(full_table_name);
+            if (!is_system)
+            {
+                // Log a warning message for skipping non-system table creation.
+                //
+                // The warnning should not apply to system table creation
+                // because current implementation will try to re-create all
+                // system tables on every startup and expect the creation to be
+                // skipped normally if the tables already exist.
+                gaia_log::catalog().warn("Table '{}' (id: {}) already exists, skipping.", full_table_name, id);
+            }
+            return id;
         }
     }
 
@@ -682,7 +694,7 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
 
 string ddl_executor_t::get_full_table_name(const string& db, const string& table)
 {
-    if (db.empty())
+    if (db.empty() || db == c_empty_db_name)
     {
         return table;
     }

@@ -5831,6 +5831,10 @@ public:
     }
     return true;
   }
+  bool VisitGaiaRuleContextExpr(const GaiaRuleContextExpr *E)
+  {
+    return true;
+  }
 
   // FIXME: Missing: @protocol, @selector
 };
@@ -11229,6 +11233,7 @@ static ICEDiag CheckICE(const Expr* E, const ASTContext &Ctx) {
   case Expr::CoawaitExprClass:
   case Expr::DependentCoawaitExprClass:
   case Expr::CoyieldExprClass:
+  case Expr::GaiaRuleContextExprClass:
     return ICEDiag(IK_NotICE, E->getBeginLoc());
 
   case Expr::InitListExprClass: {

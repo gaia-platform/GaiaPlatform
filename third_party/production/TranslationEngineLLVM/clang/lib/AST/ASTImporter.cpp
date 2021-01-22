@@ -615,6 +615,7 @@ namespace clang {
     ExpectedStmt VisitSubstNonTypeTemplateParmExpr(SubstNonTypeTemplateParmExpr *E);
     ExpectedStmt VisitTypeTraitExpr(TypeTraitExpr *E);
     ExpectedStmt VisitCXXTypeidExpr(CXXTypeidExpr *E);
+    ExpectedStmt VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E);
 
     template<typename IIter, typename OIter>
     Error ImportArrayChecked(IIter Ibegin, IIter Iend, OIter Obegin) {
@@ -2177,14 +2178,14 @@ ExpectedDecl ASTNodeImporter::VisitRulesetDecl(RulesetDecl *D)
     RulesetDecl *MergeWithRuleset = nullptr;
     SmallVector<NamedDecl *, 4> ConflictingDecls;
     auto FoundDecls = Importer.findDeclsInToCtx(DC, Name);
-    for (auto *FoundDecl : FoundDecls) 
+    for (auto *FoundDecl : FoundDecls)
     {
         if (!FoundDecl->isInIdentifierNamespace(Decl::IDNS_Ruleset))
         {
             continue;
         }
 
-        if (auto *FoundNS = dyn_cast<RulesetDecl>(FoundDecl)) 
+        if (auto *FoundNS = dyn_cast<RulesetDecl>(FoundDecl))
         {
             MergeWithRuleset = FoundNS;
             ConflictingDecls.clear();
@@ -2194,7 +2195,7 @@ ExpectedDecl ASTNodeImporter::VisitRulesetDecl(RulesetDecl *D)
         ConflictingDecls.push_back(FoundDecl);
     }
 
-    if (!ConflictingDecls.empty()) 
+    if (!ConflictingDecls.empty())
     {
         Name = Importer.HandleNameConflict(Name, DC, Decl::IDNS_Ruleset,
             ConflictingDecls.data(), ConflictingDecls.size());
@@ -2203,7 +2204,7 @@ ExpectedDecl ASTNodeImporter::VisitRulesetDecl(RulesetDecl *D)
             return make_error<ImportError>(ImportError::NameConflict);
         }
     }
-  
+
 
     ExpectedSLoc BeginLocOrErr = import(D->getBeginLoc());
     if (!BeginLocOrErr)
@@ -2213,10 +2214,10 @@ ExpectedDecl ASTNodeImporter::VisitRulesetDecl(RulesetDecl *D)
 
     // Create the "to" namespace, if needed.
     RulesetDecl *ToRuleset = MergeWithRuleset;
-    if (!ToRuleset) 
+    if (!ToRuleset)
     {
         if (GetImportedOrCreateDecl(
-            ToRuleset, D, Importer.getToContext(), DC, 
+            ToRuleset, D, Importer.getToContext(), DC,
             *BeginLocOrErr, Loc, Name.getAsIdentifierInfo()))
         {
             return ToRuleset;
@@ -7080,6 +7081,19 @@ ExpectedStmt ASTNodeImporter::VisitCXXThisExpr(CXXThisExpr *E) {
 
   return new (Importer.getToContext()) CXXThisExpr(
       *ToLocationOrErr, *ToTypeOrErr, E->isImplicit());
+}
+
+ExpectedStmt ASTNodeImporter::VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E) {
+  ExpectedType ToTypeOrErr = import(E->getType());
+  if (!ToTypeOrErr)
+    return ToTypeOrErr.takeError();
+
+  ExpectedSLoc ToLocationOrErr = import(E->getLocation());
+  if (!ToLocationOrErr)
+    return ToLocationOrErr.takeError();
+
+  return new (Importer.getToContext()) GaiaRuleContextExpr(
+      *ToLocationOrErr, *ToTypeOrErr);
 }
 
 ExpectedStmt ASTNodeImporter::VisitCXXBoolLiteralExpr(CXXBoolLiteralExpr *E) {

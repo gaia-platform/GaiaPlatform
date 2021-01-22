@@ -18,7 +18,7 @@
 #include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
-#include "logger.hpp"
+#include "logger_internal.hpp"
 #include "schema_loader.hpp"
 #include "type_id_mapping.hpp"
 
