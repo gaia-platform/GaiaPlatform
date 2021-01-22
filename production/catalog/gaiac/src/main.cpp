@@ -106,7 +106,7 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     if (!fbs_parser.Parse(fbs_schema.c_str()))
     {
         cerr << c_error_prompt
-             << "Failed parsing the catalog generated FlatBuffers schema. Error: '"
+             << "Failed to parse the catalog generated FlatBuffers schema. Error: '"
              << fbs_parser.error_ << "'." << endl;
     }
 
