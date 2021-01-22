@@ -40,23 +40,18 @@ table client_request_t {
     data: request_data_t;
 }
 
-table stack_allocator_info_t {
-    stack_allocator_offset: uint64;
-    stack_allocator_size: uint64;
-}
-
 table memory_allocation_info_t {
-    stack_allocator_info: stack_allocator_info_t;
-    memory_request_size_hint: uint64;
+    allocation_offset: uint64;
+    memory_request_size: uint64;
 }
 
 table transaction_info_t {
     transaction_id: uint64;
-    memory_allocation_info: memory_allocation_info_t;
 }
 
 union reply_data_t {
     transaction_info: transaction_info_t,
+    memory_allocation_info: memory_allocation_info_t,
 }
 
 table server_reply_t {

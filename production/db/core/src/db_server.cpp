@@ -49,29 +49,21 @@ using namespace gaia::db::memory_manager;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-stack_allocator_t server::allocate_from_stack_allocator(
-    size_t txn_memory_request_size_bytes)
+address_offset_t server::allocate_from_memory_manager(
+    size_t memory_request_size_bytes)
 {
     retail_assert(
-        txn_memory_request_size_bytes > 0,
-        "Requested allocation size for the allocate_raw API should be greater than 0!");
+        memory_request_size_bytes > 0,
+        "Requested allocation size for the allocate API should be greater than 0!");
 
     // Offset gets assigned; no need to set it.
-    address_offset_t stack_allocator_offset = s_memory_manager->allocate_raw(txn_memory_request_size_bytes);
-    if (stack_allocator_offset == c_invalid_offset)
+    address_offset_t object_address_offset = s_memory_manager->allocate(memory_request_size_bytes);
+    if (object_address_offset == c_invalid_offset)
     {
-        throw memory_allocation_error("Memory manager ran out of memory during allocate_raw() call!");
+        throw memory_allocation_error("Memory manager ran out of memory during allocate() call!");
     }
 
-    std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
-    stack_allocator->initialize(
-        reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
-
-    // Add created stack_allocator to the list of active stack allocators.
-    s_active_stack_allocators.push_back(std::move(stack_allocator));
-
-    // Return stack allocator object.
-    return *s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
+    return object_address_offset;
 }
 
 // This assignment is non-atomic since there seems to be no reason to expect concurrent invocations.
@@ -108,15 +100,12 @@ void server::handle_begin_txn(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         "Current event is inconsistent with state transition!");
 
-    // Validate that no memory is allocated for current transaction.
-    retail_assert(
-        s_active_stack_allocators.empty(),
-        "Stale memory allocations should not exist in current session.");
-
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::memory_info,
         "A call to begin_transaction() must provide memory allocation information.");
+
+    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
 
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
@@ -156,43 +145,32 @@ void server::handle_begin_txn(
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
 
-    auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
-    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
-
     // The client must throw an appropriate exception if txn_begin() returns
     // c_invalid_gaia_txn_id. This can only happen when another beginning or
     // committing txn invalidates all unknown timestamps in its snapshot window
     // or conflict window.
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, &stack_allocator);
+    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id);
 
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::free_stack_allocators(bool deallocate_stack_allocator)
+void server::free_uncommitted_allocations(session_event_t txn_status)
 {
-    for (auto& stack_allocator : s_active_stack_allocators)
+    bool deallocate_new_offsets = true;
+
+    // Deallocate transaction objects in case of an abort or rollback.
+    if (txn_status == session_event_t::ROLLBACK_TXN)
     {
-        if (deallocate_stack_allocator)
-        {
-            // Rollback all allocations.
-            stack_allocator->deallocate(0);
-        }
-        // Free up unused space.
-        s_memory_manager->free_stack_allocator(stack_allocator);
+        gc_txn_undo_log(s_fd_log, deallocate_new_offsets);
+    }
+    else if (txn_status == session_event_t::DECIDE_TXN_ABORT)
+    {
+        deallocate_txn_log(s_log, deallocate_new_offsets);
     }
 }
 
-void server::get_memory_info_from_request_and_free(bool commit_success)
-{
-    // Deallocate stack allocator in case of an abort or rollback.
-    bool deallocate_stack_allocator = !commit_success;
-    free_stack_allocators(deallocate_stack_allocator);
-
-    s_active_stack_allocators.clear();
-}
-
 void server::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
 
@@ -200,6 +178,16 @@ void server::handle_rollback_txn(
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
         "Current event is inconsistent with state transition!");
+
+    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
+
+    // Get the log fd and mmap it if the client sends it.
+    // The client will not send the log segment to the server in case a read only txn was rolled back.
+    if (fds && fd_count == 1)
+    {
+        s_fd_log = *fds;
+        retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+    }
 
     // Release all txn resources and mark the txn's begin_ts entry as terminated.
     txn_rollback();
@@ -259,7 +247,7 @@ void server::handle_commit_txn(
     // If the txn aborts, then this frees all redo versions, and we ignore all
     // undo versions when we invalidate the txn log fd, so there is nothing to
     // do at that point except close the log fd.
-    get_memory_info_from_request_and_free(success);
+    free_uncommitted_allocations(decision);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -287,11 +275,11 @@ void server::handle_request_memory(
         request->data_type() == request_data_t::memory_info,
         "Unexpected request data type");
 
-    auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
+    auto memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size());
+    auto object_address_offset = allocate_from_memory_manager(memory_request_size_bytes);
 
     FlatBufferBuilder builder;
-    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
-    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &stack_allocator);
+    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, object_address_offset);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -354,12 +342,6 @@ void server::handle_client_shutdown(
     {
         txn_rollback();
     }
-
-    // If the session had an active txn, any allocations should be cleaned up by
-    // now. If not, there should be no allocations to clean up.
-    retail_assert(
-        s_active_stack_allocators.empty(),
-        "There should be no outstanding allocations in this session!");
 }
 
 void server::handle_server_shutdown(
@@ -506,33 +488,27 @@ void server::apply_transition(session_event_t event, const void* event_data, int
         + "'");
 }
 
-static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offset(
-    FlatBufferBuilder& builder,
-    const stack_allocator_t* const stack_allocator)
-{
-    flatbuffers::Offset<stack_allocator_info_t> stack_allocator_info = 0;
-    if (stack_allocator)
-    {
-        stack_allocator_info = Createstack_allocator_info_t(
-            builder,
-            stack_allocator->get_start_memory_offset(),
-            stack_allocator->get_total_memory_size());
-    }
-    return Creatememory_allocation_info_t(builder, stack_allocator_info);
-}
-
 void server::build_server_reply(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    const stack_allocator_t* const new_stack_allocator)
+    address_offset_t object_address_offset)
 {
-    const auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, memory_allocation_reply);
-    const auto server_reply = Createserver_reply_t(
-        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    flatbuffers::Offset<server_reply_t> server_reply;
+    if (object_address_offset)
+    {
+        const auto memory_allocation_reply = Creatememory_allocation_info_t(builder, object_address_offset);
+        server_reply = Createserver_reply_t(
+            builder, event, old_state, new_state, reply_data_t::memory_allocation_info, memory_allocation_reply.Union());
+    }
+    else
+    {
+        const auto transaction_info = Createtransaction_info_t(builder, txn_id);
+        server_reply = Createserver_reply_t(
+            builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    }
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -651,10 +627,8 @@ void server::init_memory_manager()
 
 address_offset_t server::allocate_object(
     gaia_locator_t locator,
-    address_offset_t old_slot_offset,
     size_t size)
 {
-    retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
     address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
     if (offset == c_invalid_offset)
     {
@@ -2632,7 +2606,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     }
 }
 
-void server::gc_txn_undo_log(int log_fd)
+void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
 {
     txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
@@ -2641,15 +2615,34 @@ void server::gc_txn_undo_log(int log_fd)
         unmap_fd(txn_log, txn_log->size());
     });
 
+    retail_assert(txn_log, "txn_log should be mapped when deallocating old offsets.");
+    deallocate_txn_log(txn_log, deallocate_new_offsets);
+}
+
+void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
+{
     for (size_t i = 0; i < txn_log->count; ++i)
     {
-        // Free each undo version (i.e., the version superseded by an update or
-        // delete operation), using the registered object deallocator (if it
-        // exists).
-        gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
-        if (old_offset && s_object_deallocator_fn)
+        if (deallocate_new_offsets)
         {
-            s_object_deallocator_fn(old_offset);
+            // Need to free the new offset for aborted and rollbacked transactions.
+            gaia_offset_t new_offset = txn_log->log_records[i].new_offset;
+            if (new_offset && s_object_deallocator_fn)
+            {
+                s_object_deallocator_fn(new_offset);
+            }
+        }
+        else
+        {
+            // Free each undo version (i.e., the version superseded by an update or
+            // delete operation), using the registered object deallocator (if it
+            // exists).
+            gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
+
+            if (old_offset && s_object_deallocator_fn)
+            {
+                s_object_deallocator_fn(old_offset);
+            }
         }
     }
 }
@@ -2849,8 +2842,13 @@ void server::txn_rollback()
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
 
-    // Free all unused or uncommitted session stack allocators.
-    get_memory_info_from_request_and_free(false);
+    if (s_fd_log != -1)
+    {
+        // Free any deallocated objects.
+        free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
+    }
+
+    s_fd_log = -1;
 }
 
 // Before this method is called, we have already received the log fd from the client

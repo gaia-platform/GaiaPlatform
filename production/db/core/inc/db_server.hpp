@@ -49,7 +49,6 @@ class server
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
 public:
@@ -97,12 +96,6 @@ private:
     static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
 
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
-
-    // Keeps track of stack allocators belonging to the current transaction executing on this thread.
-    // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
-    // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
-    // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
-    thread_local static inline std::vector<std::unique_ptr<gaia::db::memory_manager::stack_allocator_t>> s_active_stack_allocators{};
 
     // This is an "endless" array of timestamp entries, indexed by the txn
     // timestamp counter and containing all information for every txn that has
@@ -278,8 +271,6 @@ private:
         {session_state_t::ANY, session_event_t::REQUEST_MEMORY, {session_state_t::ANY, handle_request_memory}},
     };
 
-    static void free_stack_allocators(bool deallocate_stack_allocator);
-
     static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
     static void build_server_reply(
@@ -288,16 +279,16 @@ private:
         session_state_t old_state,
         session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
-        const gaia::db::memory_manager::stack_allocator_t* const new_stack_allocator = nullptr);
+        gaia::db::memory_manager::address_offset_t object_address_offset = 0);
 
     static void clear_shared_memory();
 
-    static gaia::db::memory_manager::stack_allocator_t allocate_from_stack_allocator(
-        size_t txn_memory_request_size_bytes);
+    static gaia::db::memory_manager::address_offset_t allocate_from_memory_manager(
+        size_t memory_request_size_bytes);
 
     static void init_memory_manager();
 
-    static void get_memory_info_from_request_and_free(bool commit_success);
+    static void free_uncommitted_allocations(session_event_t txn_status);
 
     static void init_shared_memory();
 
@@ -345,7 +336,6 @@ private:
 
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
-        gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
 
     static void update_apply_watermark(gaia_txn_id_t);
@@ -428,7 +418,9 @@ private:
 
     static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd);
+    static void gc_txn_undo_log(int log_fd, bool deallocate_new_offsets = false);
+
+    static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
