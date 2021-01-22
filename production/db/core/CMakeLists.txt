@@ -166,12 +166,19 @@ if(Python3_FOUND AND pybind11_FOUND)
   set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
+  endif()
 
-  # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
-  configure_file(tests/test_db.py . COPYONLY)
-  add_test(NAME test_db_pybind COMMAND ${Python3_EXECUTABLE} test_db.py)
-  set_tests_properties(test_db_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+  # This test is disabled for Debug builds.
+  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    configure_file(tests/test_db.py . COPYONLY)
+    add_test(
+      NAME test_db_pybind
+      COMMAND ${Python3_EXECUTABLE} test_db.py)
+  endif()
 endif()
 
 ###############################################
