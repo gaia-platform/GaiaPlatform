@@ -12,6 +12,7 @@
 #include <atomic>
 #include <functional>
 #include <optional>
+#include <string>
 #include <thread>
 #include <unordered_set>
 
@@ -44,14 +45,14 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-static const string c_message_unexpected_fd_count = "Unexpected fd count!";
-static const string c_message_failed_to_read_message = "Failed to read message!";
-static const string c_message_invalid_stream_socket = "Invalid stream socket!";
-static const string c_message_unexpected_event_received = "Unexpected event received!";
-static const string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
-static const string c_message_unexpected_datagram_size = "Unexpected datagram size!";
-static const string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
-static const string c_message_fcntl_add_seals_failed = "fcntl(F_ADD_SEALS) failed!";
+static const std::string c_message_unexpected_fd_count = "Unexpected fd count!";
+static const std::string c_message_failed_to_read_message = "Failed to read message!";
+static const std::string c_message_invalid_stream_socket = "Invalid stream socket!";
+static const std::string c_message_unexpected_event_received = "Unexpected event received!";
+static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
+static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
+static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
+static const std::string c_message_fcntl_add_seals_failed = "fcntl(F_ADD_SEALS) failed!";
 
 int client::get_id_cursor_socket_for_type(gaia_type_t type)
 {
