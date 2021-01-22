@@ -59,7 +59,9 @@ int main(int argc, char* argv[])
             {
                 std::cerr
                     << std::endl
-                    << "Unrecognized argument."
+                    << "Unrecognized argument, \""
+                    << argv[i]
+                    << "\"."
                     << std::endl;
                 usage();
             }
@@ -76,10 +78,11 @@ int main(int argc, char* argv[])
             {
                 std::cerr
                     << std::endl
+                    << "\""
                     << flag_pair.first
-                    << " and "
+                    << "\" and \""
                     << flag_pair.second
-                    << " flags are mutually exclusive."
+                    << "\" flags are mutually exclusive."
                     << std::endl;
                 usage();
             }
