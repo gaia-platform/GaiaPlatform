@@ -171,6 +171,8 @@ if(Python3_FOUND AND pybind11_FOUND)
   endif()
 
   # Python wrapper unit test.
+  # This test is disabled for Debug builds.
+  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     configure_file(tests/test_db.py . COPYONLY)
     add_test(
