@@ -30,7 +30,7 @@ class no_active_session : public common::gaia_exception
 public:
     no_active_session()
     {
-        m_message = "Create a session before performing data access";
+        m_message = "Create a session before performing data access.";
     }
 };
 
@@ -96,7 +96,7 @@ public:
     explicit invalid_node_id(common::gaia_id_t id)
     {
         std::stringstream strs;
-        strs << "Cannot find a node with ID " << id << ".";
+        strs << "Cannot find a node with ID '" << id << "'.";
         m_message = strs.str();
     }
 };
@@ -118,7 +118,9 @@ public:
     node_not_disconnected(common::gaia_id_t id, common::gaia_type_t object_type)
     {
         std::stringstream msg;
-        msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
+        msg
+            << "Cannot delete object '" << id << "', type '" << object_type
+            << "', because it is still connected to another object.";
         m_message = msg.str();
     }
 };
@@ -129,7 +131,7 @@ public:
     payload_size_too_large(size_t total_len, uint16_t max_len)
     {
         std::stringstream msg;
-        msg << "Payload size " << total_len << " exceeds maximum payload size limit " << max_len << ".";
+        msg << "Payload size '" << total_len << "' exceeds maximum payload size limit '" << max_len << "'.";
         m_message = msg.str();
     }
 };
@@ -140,14 +142,16 @@ public:
     explicit invalid_type(common::gaia_type_t type)
     {
         std::stringstream msg;
-        msg << "The type " << type << " does not exist in the catalog.";
+        msg << "The type '" << type << "' does not exist in the catalog.";
         m_message = msg.str();
     }
 
     invalid_type(common::gaia_id_t id, common::gaia_type_t type)
     {
         std::stringstream msg;
-        msg << "Cannot create object with ID " << id << " and type " << type << ". The type does not exist in the catalog.";
+        msg
+            << "Cannot create object with ID '" << id << "' and type '" << type
+            << "'. The type does not exist in the catalog.";
         m_message = msg.str();
     }
 };

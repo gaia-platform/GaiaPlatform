@@ -277,7 +277,7 @@ public:
     explicit db_already_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The database \"" << name << "\" already exists.";
+        message << "The database '" << name << "' already exists.";
         m_message = message.str();
     }
 };
@@ -291,7 +291,7 @@ public:
     explicit db_not_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The database \"" << name << "\" does not exist.";
+        message << "The database '" << name << "' does not exist.";
         m_message = message.str();
     }
 };
@@ -305,7 +305,7 @@ public:
     explicit table_already_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The table \"" << name << "\" already exists.";
+        message << "The table '" << name << "' already exists.";
         m_message = message.str();
     }
 };
@@ -319,7 +319,7 @@ public:
     explicit table_not_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The table \"" << name << "\" does not exist.";
+        message << "The table '" << name << "' does not exist.";
         m_message = message.str();
     }
 };
@@ -333,7 +333,7 @@ public:
     explicit duplicate_field(const std::string& name)
     {
         std::stringstream message;
-        message << "The field \"" << name << "\" is specified more than once.";
+        message << "The field '" << name << "' is specified more than once.";
         m_message = message.str();
     }
 };
@@ -363,7 +363,7 @@ public:
         const std::string& child_table)
     {
         std::stringstream message;
-        message << "Cannot drop table \"" << parent_table << "\" because it is referenced by \"" << child_table << "\"";
+        message << "Cannot drop table '" << parent_table << "' because it is referenced by '" << child_table << "'.";
         return referential_integrity_violation{message.str()};
     }
 };

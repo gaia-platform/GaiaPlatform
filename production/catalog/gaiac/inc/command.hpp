@@ -21,7 +21,7 @@ public:
     explicit invalid_command(const std::string& cmd)
     {
         std::stringstream message;
-        message << "Invalid command: " << cmd << ".";
+        message << "Invalid command: '" << cmd << "'.";
         m_message = message.str();
     }
 
@@ -29,8 +29,8 @@ public:
     {
         std::stringstream message;
         message
-            << "Invalid command: " << cmd << ". "
-            << "Regular expression error " << error.code() << ": " << error.what() << ".";
+            << "Invalid command: '" << cmd << "'. "
+            << "Regular expression error '" << error.code() << "': '" << error.what() << "'.";
         m_message = message.str();
     }
 };

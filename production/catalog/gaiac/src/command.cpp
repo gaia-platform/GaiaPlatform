@@ -150,7 +150,7 @@ void describe_database(const string& name)
             output_table.add_row({table.name()});
         }
     }
-    cout << "Database \"" << (name.empty() ? c_empty_db_name : name) << "\":" << endl;
+    cout << "Database '" << (name.empty() ? c_empty_db_name : name) << "':" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -207,7 +207,7 @@ void describe_table(const string& name)
                  to_string(relationship.gaia_id())});
         }
     }
-    cout << "Table \"" << name << "\":" << endl;
+    cout << "Table '" << name << "':" << endl;
     cout << endl;
     cout << "Fields:" << endl;
     output_fields.print(cout);
