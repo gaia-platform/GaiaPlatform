@@ -92,7 +92,7 @@ public:
         std::stringstream message;
         message
             << "Relationship with offset '" << offset << "' requires type '" << expected_type
-            << "' but found '" << found_type << "'.";
+            << "' but found type '" << found_type << "'.";
         m_message = message.str();
     }
 };
