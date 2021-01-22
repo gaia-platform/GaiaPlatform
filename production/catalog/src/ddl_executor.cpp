@@ -543,7 +543,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         // Note: anonymous references are on path of deprecation
         if (field_name.empty())
         {
-            retail_assert(field->field_type == field_type_t::reference, "Only references can have empty name");
+            retail_assert(field->field_type == field_type_t::reference, "Only references can have empty name!");
             const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
             field_name = ref_field->parent_table.second;
         }

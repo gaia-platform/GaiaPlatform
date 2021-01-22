@@ -100,7 +100,7 @@ jboolean update_payload(
     }
     catch (const std::exception& e)
     {
-        cerr << "A Gaia database exception occurred during an update_payload() call: " << e.what() << endl;
+        cerr << "A Gaia database exception occurred during an update_payload() call: '" << e.what() << "'." << endl;
         return false;
     }
 
@@ -236,7 +236,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_createNode(
     }
     catch (const std::exception& e)
     {
-        cerr << "A Gaia database exception occurred during a createNode() call: " << e.what() << endl;
+        cerr << "A Gaia database exception occurred during a createNode() call: '" << e.what() << "'." << endl;
         return NULL;
     }
 
