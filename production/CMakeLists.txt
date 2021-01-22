@@ -259,12 +259,14 @@ if(JAVA_FOUND AND JNI_FOUND)
   # get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
 
   # Add JNI test.
-  add_test(
-    NAME test_db_jni
-    COMMAND ${Java_JAVA_EXECUTABLE}
-      -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-      -cp ${GAIA_TINKERPOP_JAR}
-      com.gaiaplatform.database.GaiaDatabase)
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_test(
+      NAME test_db_jni
+      COMMAND ${Java_JAVA_EXECUTABLE}
+        -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+        -cp ${GAIA_TINKERPOP_JAR}
+        com.gaiaplatform.database.GaiaDatabase)
+  endif()
 
   # Add CacheGraph tests.
   # add_test(
