@@ -606,7 +606,7 @@ void client::rollback_transaction()
     // Seal the txn log memfd for writes/resizing before sending it to the server.
     if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
-        throw_system_error("fcntl(F_ADD_SEALS) failed");
+        throw_system_error("fcntl(F_ADD_SEALS) failed.");
     }
 
     // Avoid sending transaction log fd to the server read only transactions.
@@ -615,11 +615,6 @@ void client::rollback_transaction()
         FlatBufferBuilder builder;
         build_client_request(builder, session_event_t::ROLLBACK_TXN);
         send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
-
-        // Block on server side cleanup of transaction log.
-        uint8_t msg_buf[c_max_msg_size] = {0};
-        size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-        retail_assert(bytes_read > 0, "Failed to read message!");
     }
 
     // Reset transaction id.

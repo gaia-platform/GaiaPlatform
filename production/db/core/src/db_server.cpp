@@ -191,14 +191,6 @@ void server::handle_rollback_txn(
 
     // Release all txn resources and mark the txn's begin_ts entry as terminated.
     txn_rollback();
-
-    if (fds && fd_count == 1)
-    {
-        // Send message to the client simply to synchronize unmapping of transaction log.
-        FlatBufferBuilder builder;
-        build_server_reply(builder, session_event_t::ROLLBACK_TXN, old_state, new_state, s_txn_id);
-        send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-    }
 }
 
 void server::handle_commit_txn(
