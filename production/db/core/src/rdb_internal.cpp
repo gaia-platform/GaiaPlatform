@@ -6,6 +6,7 @@
 #include "rdb_internal.hpp"
 
 #include <sstream>
+#include <string>
 
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
@@ -24,6 +25,8 @@ namespace gaia
 namespace db
 {
 
+static const std::string c_message_rocksdb_not_initialized = "RocksDB database is not initialized.";
+
 void rdb_internal_t::open_txn_db(const rocksdb::Options& init_options, const rocksdb::TransactionDBOptions& opts)
 {
     // RocksDB throws an IOError (Lock on persistent dir) when trying to open (recover) twice on the same directory
@@ -41,7 +44,7 @@ void rdb_internal_t::open_txn_db(const rocksdb::Options& init_options, const roc
     {
         handle_rdb_error(s);
     }
-    retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+    retail_assert(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
 }
 
 std::string rdb_internal_t::begin_txn(const rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id)
@@ -55,7 +58,7 @@ std::string rdb_internal_t::begin_txn(const rocksdb::WriteOptions& options, cons
     auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
     std::stringstream rdb_txn_name;
     rdb_txn_name << txn_id << "." << nanoseconds.count();
-    retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+    retail_assert(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
     rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
     rocksdb::Status s = txn->SetName(rdb_txn_name.str());
     handle_rdb_error(s);
@@ -95,7 +98,7 @@ void rdb_internal_t::close()
 
 rocksdb::Iterator* rdb_internal_t::get_iterator()
 {
-    retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+    retail_assert(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
     return m_txn_db->NewIterator(rocksdb::ReadOptions());
 }
 
@@ -111,7 +114,7 @@ bool rdb_internal_t::is_db_open()
 
 rocksdb::Transaction* rdb_internal_t::get_txn_by_name(const std::string& txn_name)
 {
-    retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+    retail_assert(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
     return m_txn_db->GetTransactionByName(txn_name);
 }
 

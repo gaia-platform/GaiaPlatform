@@ -12,10 +12,10 @@ if(NOT PG_CONFIG)
   return()
 endif(NOT PG_CONFIG)
 
-# Get FDW version.
-file(READ "version.config" PG_GAIA_FDW_VERSION)
-string(STRIP ${PG_GAIA_FDW_VERSION} PG_GAIA_FDW_VERSION)
-set(PG_GAIA_FDW_VERSION "${PG_GAIA_FDW_VERSION}")
+# Use production major.minor as version of the FDW plugin. The patch is discarded because other plugins do not use it.
+# Using the patch would cause FDW files to keep getting added to PG because installing a new version
+# doesn't remove the old one, unless it overwrites it.
+set(PG_GAIA_FDW_VERSION "${production_VERSION_MAJOR}.${production_VERSION_MINOR}")
 
 # Get Postgres config settings from pg_config.
 exec_program(

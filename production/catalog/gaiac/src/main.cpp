@@ -18,6 +18,7 @@
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_parser.hpp"
+#include "gaia_version.hpp"
 #include "logger_internal.hpp"
 
 using namespace std;
@@ -105,14 +106,14 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     if (!fbs_parser.Parse(fbs_schema.c_str()))
     {
         cerr << c_error_prompt
-             << "Fail to parse the catalog generated FlatBuffers schema. Error: "
-             << fbs_parser.error_ << endl;
+             << "Failed to parse the catalog-generated FlatBuffers schema. Error: '"
+             << fbs_parser.error_ << "'." << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name))
     {
         cerr << c_error_prompt
-             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+             << "Unable to generate FlatBuffers C++ headers for '" << db_name << "'." << endl;
     };
 }
 
@@ -121,7 +122,7 @@ void generate_edc_headers(const string& db_name, const string& output_path)
 {
     std::string header_path = output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
 
-    cout << "Generating EDC headers in: " << std::filesystem::absolute(header_path).string() << endl;
+    cout << "Generating EDC headers in: '" << std::filesystem::absolute(header_path).string() << "'." << endl;
 
     ofstream edc(header_path);
     try
@@ -130,7 +131,7 @@ void generate_edc_headers(const string& db_name, const string& output_path)
     }
     catch (gaia::common::gaia_exception& e)
     {
-        cerr << "WARNING - gaia_generate failed: " << e.what() << endl;
+        cerr << "WARNING - gaia_generate failed: '" << e.what() << "'." << endl;
     }
 
     edc.close();
@@ -183,16 +184,26 @@ string usage()
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -d|--db-name <dbname>    Specify the database name.\n"
           "  -i|--interactive         Interactive prompt, as a REPL.\n"
-          "  -g|--generate            Generate fbs and gaia headers.\n"
+          "  -g|--generate            Generate direct access API header files.\n"
           "  -o|--output <path>       Set the path to all generated files.\n"
-          "  -t|--db-server-path      Start the Gaia DB server (for testing purposes).\n"
+#ifdef DEBUG
           "  -p|--parse-trace         Print parsing trace.\n"
           "  -s|--scan-trace          Print scanning trace.\n"
+          "  -t|--db-server-path      Start the DB server (for testing purposes).\n"
           "  --destroy-db             Destroy the persistent store.\n"
+#endif
           "  <ddl_file>               Process the DDLs in the file.\n"
           "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "                           The database will be created automatically.\n"
-          "  -h|--help                Print help information.\n";
+          "  -h|--help                Print help information.\n"
+          "  -v|--version             Version information.\n";
+    return ss.str();
+}
+
+string version()
+{
+    std::stringstream ss;
+    ss << "Gaia Catalog Tool " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
     return ss.str();
 }
 
@@ -227,6 +238,13 @@ int main(int argc, char* argv[])
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
     bool remove_persistent_store = false;
+
+    // If no arguments are specified print the help.
+    if (argc == 1)
+    {
+        cerr << usage() << endl;
+        exit(EXIT_FAILURE);
+    }
 
     for (int i = 1; i < argc; ++i)
     {
@@ -286,6 +304,11 @@ int main(int argc, char* argv[])
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
             cout << usage() << endl;
+            exit(EXIT_SUCCESS);
+        }
+        else if (argv[i] == string("-v") || argv[i] == string("--version"))
+        {
+            cout << version() << endl;
             exit(EXIT_SUCCESS);
         }
         else if (argv[i] == string("--destroy-db"))

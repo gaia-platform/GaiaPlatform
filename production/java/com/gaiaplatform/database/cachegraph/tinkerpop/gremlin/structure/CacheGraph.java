@@ -39,7 +39,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphVariables;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import com.gaiaplatform.database.CowStorageEngine;
+import com.gaiaplatform.database.GaiaDatabase;
 
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
@@ -62,8 +62,8 @@ public final class CacheGraph implements Graph
         = "truegraphdb.defaultVertexPropertyCardinality";
     public static final String CACHEGRAPH_CREATE_ON_START
         = "truegraphdb.createOnStart";
-    public static final String CACHEGRAPH_ENABLE_COW_OPERATIONS
-        = "truegraphdb.enableCowOperations";
+    public static final String CACHEGRAPH_ENABLE_GAIADB_OPERATIONS
+        = "truegraphdb.enableGaiaDbOperations";
     public static final String CACHEGRAPH_ENABLE_AIRPORT_CODE
         = "truegraphdb.enableAirportCode";
     public static final String CACHEGRAPH_ENABLE_DEBUG_MESSAGES
@@ -89,9 +89,9 @@ public final class CacheGraph implements Graph
     protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
     protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
 
-    protected CowStorageEngine cow = new CowStorageEngine();
+    protected GaiaDatabase gaiaDb = new GaiaDatabase();
 
-    protected boolean enableCowOperations;
+    protected boolean enableGaiaDbOperations;
     protected boolean enableAirportCode;
     protected boolean enableDebugMessages;
 
@@ -117,8 +117,8 @@ public final class CacheGraph implements Graph
         boolean createOnStart = configuration.getBoolean(
             CACHEGRAPH_CREATE_ON_START, true);
 
-        this.enableCowOperations = configuration.getBoolean(
-            CACHEGRAPH_ENABLE_COW_OPERATIONS, true);
+        this.enableGaiaDbOperations = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_GAIADB_OPERATIONS, true);
         this.enableAirportCode = configuration.getBoolean(
             CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
         this.enableDebugMessages = configuration.getBoolean(
@@ -131,12 +131,12 @@ public final class CacheGraph implements Graph
 
         if (!this.enableAirportCode)
         {
-            throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
+            throw new UnsupportedOperationException("Opening of Gaia database is only supported for airport data!");
         }
 
-        this.cow.beginSession();
+        this.gaiaDb.beginSession();
 
-        CacheHelper.loadAirportGraphFromCow(this);
+        CacheHelper.loadAirportGraphFromGaiaDb(this);
     }
 
     public static CacheGraph open()
@@ -174,10 +174,10 @@ public final class CacheGraph implements Graph
         final Vertex vertex = new CacheVertex(this, idValue, label);
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
-        // Create node in COW.
+        // Create node in Gaia database.
         if (!CacheHelper.createNode((CacheVertex)vertex))
         {
-            throw new UnsupportedOperationException("COW node creation failed!");
+            throw new UnsupportedOperationException("Gaia database node creation failed!");
         }
 
         this.vertices.put(vertex.id(), vertex);
@@ -415,7 +415,7 @@ public final class CacheGraph implements Graph
 
         public boolean supportsTransactions()
         {
-            // CacheTransaction only handles COW transactions,
+            // CacheTransaction only handles Gaia database transactions,
             // so we can't declare support yet.
             return false;
         }

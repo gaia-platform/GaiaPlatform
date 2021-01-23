@@ -1,6 +1,7 @@
+# Note: this file is not being used by CPackRPM. CPackRPM uses its generated file.
 Summary: Gaia
 Name: Gaia
-Version: 0.1.0
+Version: @CPACK_PACKAGE_VERSION@
 Release: 1
 Group: Applications/System
 License: Gaia License

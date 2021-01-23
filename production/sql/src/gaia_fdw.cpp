@@ -29,7 +29,8 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
     // To silence unused argument warning.
     fcinfo = nullptr;
 
-    FdwRoutine* routine = makeNode(FdwRoutine); // NOLINT (macro expansion)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    FdwRoutine* routine = makeNode(FdwRoutine);
 
     // Functions for scanning foreign tables.
     routine->GetForeignRelSize = gaia_get_foreign_rel_size;
@@ -81,7 +82,8 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
     routine->GetForeignRowMarkType = gaia_get_foreign_row_mark_type;
     routine->RefetchForeignRow = gaia_refetch_foreign_row;
 
-    PG_RETURN_POINTER(routine); // NOLINT (macro expansion)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    PG_RETURN_POINTER(routine);
 }
 
 /**
@@ -519,7 +521,8 @@ extern "C" List* gaia_plan_foreign_modify(
     // We don't return any private data from this method, just check that
     // gaia_id is not an INSERT or UPDATE target.
     CmdType operation = plan->operation;
-    RangeTblEntry* rte = planner_rt_fetch(result_relation, root); // NOLINT (macro expansion)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    RangeTblEntry* rte = planner_rt_fetch(result_relation, root);
     Relation rel = table_open(rte->relid, NoLock);
     TupleDesc tuple_desc = RelationGetDescr(rel);
     Bitmapset* modified_cols = nullptr;

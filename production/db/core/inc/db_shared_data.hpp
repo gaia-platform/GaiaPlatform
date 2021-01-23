@@ -28,7 +28,6 @@ gaia::db::shared_id_index_t* get_shared_id_index();
 // Allocate an object from the "data" shared memory segment.
 gaia::db::memory_manager::address_offset_t allocate_object(
     gaia_locator_t locator,
-    gaia::db::memory_manager::address_offset_t old_slot_offset,
     size_t size);
 
 } // namespace db

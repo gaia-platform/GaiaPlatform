@@ -312,7 +312,7 @@ TEST_F(gaia_object_test, read_wrong_type)
     catch (const exception& e)
     {
         string what = string(e.what());
-        EXPECT_EQ(what.find("Requesting Gaia type address_t") != string::npos, true);
+        EXPECT_EQ(what.find("Requesting Gaia type 'address_t'") != string::npos, true);
     }
     EXPECT_THROW(address_t::get(eid), edc_invalid_object_type);
     commit_transaction();

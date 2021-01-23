@@ -3,9 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -23,6 +21,7 @@
 #include "clang/Tooling/Tooling.h"
 
 #include "gaia_catalog.h"
+#include "gaia_version.hpp"
 
 using namespace std;
 using namespace clang;
@@ -90,9 +89,9 @@ const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy
 
 const char* c_last_operation = "LastOperation";
 
-static void print_version(raw_ostream &stream)
+static void print_version(raw_ostream& stream)
 {
-    stream << "Gaia Translation Engine 0.1.0\nCopyright (c) Gaia Platform LLC\n";
+    stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
 string generate_general_subscription_code()
@@ -190,7 +189,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
-                cerr << "Incorrect table for field " << field.name() << "." << endl;
+                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -198,7 +197,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             unordered_map<string, field_data_t> fields = return_value[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                cerr << "Duplicate field " << field.name() << "." << endl;
+                cerr << "Duplicate field '" << field.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -215,7 +214,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t child_table = relationship.child_gaia_table();
             if (!child_table)
             {
-                cerr << "Incorrect child table in the relationship " << relationship.name() << "." << endl;
+                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -243,7 +242,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     }
     catch (const exception& e)
     {
-        cerr << "Exception while processing the catalog " << e.what() << "." << endl;
+        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
         g_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
@@ -276,7 +275,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (g_field_data.find(table_name) == g_field_data.end())
     {
-        cerr << "Table " << table_name << " was not found in the catalog." << endl;
+        cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -291,7 +290,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "Field " << field_name << " of table " << table_name << "was not found in the catalog." << endl;
+        cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -304,10 +303,10 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string insert_rule_prologue(const string &rule, const string &preamble)
+string insert_rule_prologue(const string& rule, const string& prologue)
 {
     size_t rule_code_start = rule.find('{');
-    return "{" + preamble + rule.substr(rule_code_start + 1);
+    return "{" + prologue + rule.substr(rule_code_start + 1);
 }
 
 string get_closest_table(const unordered_map<string, int>& table_distance)
@@ -429,7 +428,10 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     if (g_delete_operation_in_rule)
     {
         g_generation_error = true;
-        cerr << "Navigation from a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+        cerr
+            << "Navigation from a record that has been deleted is currently not supported."
+            << " This condition occurs when a rule is subscribed to a delete operation"
+            << " and is referencing data related to the deleted record." << endl;
         return navigation_code_data_t();
     }
 
@@ -442,7 +444,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     if (g_used_tables.find(anchor_table) == g_used_tables.end())
     {
         g_generation_error = true;
-        cerr << "Table " << anchor_table << " is not used in the rule." << endl;
+        cerr << "Table '" << anchor_table << "' is not used in the rule." << endl;
         return navigation_code_data_t();
     }
 
@@ -450,7 +452,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
         g_generation_error = true;
-        cerr << "No path between " << anchor_table << " and other tables." << endl;
+        cerr << "No path between '" << anchor_table << "' and other tables." << endl;
         return navigation_code_data_t();
     }
     auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
@@ -477,7 +479,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                 if (is_1_relationship)
                 {
                     g_generation_error = true;
-                    cerr << "More then one field that links " << anchor_table << " and " << table << "." << endl;
+                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
                 is_1_relationship = true;
@@ -492,7 +494,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                 if (is_n_relationship)
                 {
                     g_generation_error = true;
-                    cerr << "More then one field that links " << anchor_table << " and " << table << "." << endl;
+                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
                 is_n_relationship = true;
@@ -503,7 +505,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         if (is_1_relationship && is_n_relationship)
         {
             g_generation_error = true;
-            cerr << "Both relationships exist between tables " << anchor_table << " and " << table << "." << endl;
+            cerr << "Both relationships exist between tables '" << anchor_table << "' and '" << table << "'." << endl;
             return navigation_code_data_t();
         }
 
@@ -571,7 +573,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
             else
             {
                 g_generation_error = true;
-                cerr << "No path between tables " << anchor_table << " and " << table << "." << endl;
+                cerr << "No path between tables '" << anchor_table << "' and '" << table << "'." << endl;
                 return navigation_code_data_t();
             }
         }
@@ -669,7 +671,10 @@ void generate_rules(Rewriter& rewriter)
     {
         if (g_function_call_in_rule)
         {
-            cerr << "Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+            cerr
+                << "Calling extended data class methods of a record that has been deleted is currently not supported."
+                << " This condition occurs when a rule is subscribed to a delete operation"
+                << " and is referencing data related to the deleted record." << endl;
             g_generation_error = true;
             return;
         }
@@ -697,7 +702,7 @@ void generate_rules(Rewriter& rewriter)
         string common_subscription_code;
         if (g_field_data.find(table) == g_field_data.end())
         {
-            cerr << "Table " << table << " was not found in the catalog." << endl;
+            cerr << "Table '" << table << "' was not found in the catalog." << endl;
             g_generation_error = true;
             return;
         }
@@ -764,7 +769,7 @@ void generate_rules(Rewriter& rewriter)
             {
                 if (fields.find(field) == fields.end())
                 {
-                    cerr << "Field " << field << " of table " << table << " was not found in the catalog." << endl;
+                    cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
                     g_generation_error = true;
                     return;
                 }
@@ -772,15 +777,14 @@ void generate_rules(Rewriter& rewriter)
                 field_data_t field_data = fields[field];
                 if (field_data.is_active)
                 {
-                    field_subscription_code +=
-                        "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
+                    field_subscription_code += "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
                 }
             }
         }
 
         if (!contains_fields && !contains_last_operation)
         {
-            cerr << "No fields referenced by table " << table << "." << endl;
+            cerr << "No fields referenced by table '" << table << "'." << endl;
             g_generation_error = true;
             return;
         }
@@ -790,9 +794,9 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_delete_operation_in_rule && fd.second.size() > 1)
         {
-            cerr << "Referencing fields of a record that has been deleted is currently not supported. ";
-            cerr << "This condition occurs when a rule is subscribed to a delete operation and ";
-            cerr << "is referencing data related to the deleted record.";
+            cerr << "Referencing fields of a record that has been deleted is currently not supported.";
+            cerr << " This condition occurs when a rule is subscribed to a delete operation and";
+            cerr << " is referencing data related to the deleted record.";
             cerr << endl;
             g_generation_error = true;
             return;
@@ -1703,8 +1707,8 @@ public:
 
                 if (g_field_data.find(variable_name) != g_field_data.end())
                 {
-                    cerr << "Local variable declaration " << variable_name
-                         << " hides database table of the same name." << endl;
+                    cerr << "Local variable declaration '" << variable_name
+                         << "' hides database table of the same name." << endl;
                     return;
                 }
 
@@ -1712,8 +1716,8 @@ public:
                 {
                     if (table_data.second.find(variable_name) != table_data.second.end())
                     {
-                        cerr << "Local variable declaration " << variable_name
-                             << " hides catalog field entity of the same name." << endl;
+                        cerr << "Local variable declaration '" << variable_name
+                             << "' hides catalog field entity of the same name." << endl;
                         return;
                     }
                 }

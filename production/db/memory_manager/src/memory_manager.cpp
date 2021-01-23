@@ -76,8 +76,6 @@ address_offset_t memory_manager_t::allocate_internal(
 {
     retail_assert(memory_size > 0, "Allocated memory size should not be zero!");
 
-    address_offset_t allocated_memory_offset = c_invalid_offset;
-
     // Adjust the requested memory size, to ensure proper alignment.
     if (add_allocation_metadata)
     {
@@ -85,7 +83,9 @@ address_offset_t memory_manager_t::allocate_internal(
     }
     else
     {
-        memory_size = calculate_raw_allocation_size(memory_size);
+        retail_assert(
+            memory_size % c_allocation_alignment == 0,
+            "Requested raw memory size is not a multiple of 64B!");
     }
 
     validate_size(memory_size);
@@ -93,7 +93,7 @@ address_offset_t memory_manager_t::allocate_internal(
     // Quick exit for memory requests that are way too large.
     if (memory_size > m_total_memory_size)
     {
-        return allocated_memory_offset;
+        return c_invalid_offset;
     }
 
     // Then factor in the metadata size, if we need to add that.
@@ -105,7 +105,7 @@ address_offset_t memory_manager_t::allocate_internal(
         "The size of allocations should always be a multiple of the alignment value.");
 
     // First, attempt to reuse freed memory blocks, if possible.
-    allocated_memory_offset = allocate_from_freed_memory(size_to_allocate, add_allocation_metadata);
+    address_offset_t allocated_memory_offset = allocate_from_freed_memory(size_to_allocate, add_allocation_metadata);
 
     // Otherwise, fall back to allocating from our main memory block.
     if (allocated_memory_offset == c_invalid_offset)

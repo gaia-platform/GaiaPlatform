@@ -52,17 +52,17 @@ public final class CacheProperty<V> implements Property<V>
         {
             ((CacheEdge)this.element).properties.remove(this.key);
 
-            // Update edge payload in COW.
+            // Update edge payload in Gaia database.
             if (!CacheHelper.updateEdgePayload((CacheEdge)this.element))
             {
-                throw new UnsupportedOperationException("COW edge update failed!");
+                throw new UnsupportedOperationException("Gaia database edge update failed!");
             }
         }
         else
         {
             ((CacheVertexProperty)this.element).properties.remove(this.key);
 
-            // No plans to support vertex property properties in COW for now.
+            // No plans to support vertex property properties in Gaia database for now.
         }
     }
 

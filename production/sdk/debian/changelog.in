@@ -1,4 +1,4 @@
-@CPACK_PACKAGE_NAME@ (0.1.0-0) unstable; urgency=low
+@CPACK_PACKAGE_NAME@ (@CPACK_PACKAGE_VERSION@-0) unstable; urgency=low
 
   * Initial release
 

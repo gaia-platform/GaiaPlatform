@@ -115,12 +115,12 @@ public final class CacheEdge extends CacheElement implements Edge
 
         this.properties.put(key, newProperty);
 
-        // Update edge payload in COW.
+        // Update edge payload in the Gaia database.
         // We don't have to do this if the edge is being created,
         // which we detect by checking if it's been added to the graph.edges map.
         if (this.graph.edges.containsKey(id) && !CacheHelper.updateEdgePayload(this))
         {
-            throw new UnsupportedOperationException("COW edge update failed!");
+            throw new UnsupportedOperationException("Gaia database edge update failed!");
         }
 
         return newProperty;
@@ -157,10 +157,10 @@ public final class CacheEdge extends CacheElement implements Edge
     {
         CacheHelper.debugPrint(this.graph, "edge::remove()");
 
-        // Remove the edge from COW.
+        // Remove the edge from the Gaia database.
         if (!CacheHelper.removeEdge(this))
         {
-            throw new UnsupportedOperationException("COW edge deletion failed!");
+            throw new UnsupportedOperationException("Gaia database edge deletion failed!");
         }
 
         final CacheVertex outVertex = (CacheVertex)this.outVertex;

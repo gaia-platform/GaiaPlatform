@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia/exception.hpp"
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
@@ -542,7 +543,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         // Note: anonymous references are on path of deprecation
         if (field_name.empty())
         {
-            retail_assert(field->field_type == field_type_t::reference, "Only references can have empty name");
+            retail_assert(field->field_type == field_type_t::reference, "Only references can have an empty name!");
             const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
             field_name = ref_field->parent_table.second;
         }
@@ -693,7 +694,7 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
 
 string ddl_executor_t::get_full_table_name(const string& db, const string& table)
 {
-    if (db.empty())
+    if (db.empty() || db == c_empty_db_name)
     {
         return table;
     }

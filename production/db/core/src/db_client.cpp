@@ -12,6 +12,7 @@
 #include <atomic>
 #include <functional>
 #include <optional>
+#include <string>
 #include <thread>
 #include <unordered_set>
 
@@ -44,6 +45,15 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
+static const std::string c_message_unexpected_fd_count = "Unexpected fd count!";
+static const std::string c_message_failed_to_read_message = "Failed to read message!";
+static const std::string c_message_invalid_stream_socket = "Invalid stream socket!";
+static const std::string c_message_unexpected_event_received = "Unexpected event received!";
+static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
+static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
+static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
+static const std::string c_message_fcntl_add_seals_failed = "fcntl(F_ADD_SEALS) failed!";
+
 int client::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Send the server the cursor socket request.
@@ -59,9 +69,9 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     int stream_socket = -1;
     size_t fd_count = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
-    retail_assert(fd_count == 1, "Unexpected fd count!");
-    retail_assert(stream_socket != -1, "Invalid stream socket!");
+    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    retail_assert(fd_count == 1, c_message_unexpected_fd_count);
+    retail_assert(stream_socket != -1, c_message_invalid_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
@@ -70,7 +80,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
-    retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
+    retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
     retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
@@ -97,7 +107,7 @@ client::get_stream_generator_for_socket(int stream_socket)
     // The definition of the generator we return.
     return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket != -1, "Stream socket is invalid!");
+        retail_assert(stream_socket != -1, c_message_stream_socket_is_invalid);
 
         // The cursor should only be called from within the scope of its owning transaction.
         retail_assert(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
@@ -114,7 +124,7 @@ client::get_stream_generator_for_socket(int stream_socket)
             ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
             if (datagram_size == -1)
             {
-                throw_system_error("recv(MSG_PEEK) failed");
+                throw_system_error("recv(MSG_PEEK) failed!");
             }
 
             if (datagram_size == 0)
@@ -127,7 +137,7 @@ client::get_stream_generator_for_socket(int stream_socket)
             }
 
             // The datagram size must be an integer multiple of our datum size.
-            retail_assert(datagram_size % sizeof(T_element_type) == 0, "Unexpected datagram size!");
+            retail_assert(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
 
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
@@ -141,7 +151,7 @@ client::get_stream_generator_for_socket(int stream_socket)
             {
                 // Per above, we should never have to block here.
                 retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
-                throw_system_error("recv failed");
+                throw_system_error("recv() failed!");
             }
 
             // Since our buffer is exactly the same size as the datagram,
@@ -150,7 +160,7 @@ client::get_stream_generator_for_socket(int stream_socket)
         }
 
         // At this point we know our buffer is non-empty.
-        retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+        retail_assert(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
 
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
@@ -175,7 +185,7 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
     // The definition of the generator we return.
     return [stream_socket, batch_buffer]() mutable -> std::optional<int> {
         // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket != -1, "Stream socket is invalid!");
+        retail_assert(stream_socket != -1, c_message_stream_socket_is_invalid);
 
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
@@ -190,7 +200,8 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
 
             // We need to set throw_on_zero_bytes_read=false in this call, since
             // we expect EOF to be returned when the stream is exhausted.
-            size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
+            size_t datagram_size = recv_msg_with_fds(
+                stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
 
             // Our datagrams contain one byte by convention, since we need to
             // distinguish empty datagrams from EOF (even though Linux allows
@@ -206,17 +217,17 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
             }
 
             // The datagram size must be 1 byte according to our protocol.
-            retail_assert(datagram_size == 1, "Unexpected datagram size!");
+            retail_assert(datagram_size == 1, c_message_unexpected_datagram_size);
             retail_assert(
                 fd_count > 0 && fd_count <= c_max_fd_count,
-                "Unexpected fd count!");
+                c_message_unexpected_fd_count);
 
             // Resize the vector to its actual fd count.
             batch_buffer.resize(fd_count);
         }
 
         // At this point we know our buffer is non-empty.
-        retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+        retail_assert(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
 
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
@@ -370,7 +381,7 @@ int client::get_session_socket()
     int session_socket = ::socket(PF_UNIX, SOCK_SEQPACKET, 0);
     if (session_socket == -1)
     {
-        throw_system_error("socket creation failed");
+        throw_system_error("Socket creation failed!");
     }
 
     auto cleanup_session_socket = make_scope_guard([&]() {
@@ -394,7 +405,7 @@ int client::get_session_socket()
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
     if (-1 == ::connect(session_socket, reinterpret_cast<sockaddr*>(&server_addr), server_addr_size))
     {
-        throw_system_error("connect failed");
+        throw_system_error("Connect failed!");
     }
 
     cleanup_session_socket.dismiss();
@@ -422,12 +433,11 @@ void client::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_data == nullptr, "Data segment uninitialized");
-    retail_assert(s_fd_locators == -1, "Locators file descriptor uninitialized");
-    retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
-    retail_assert(s_log == nullptr, "Log segment uninitialized");
-    retail_assert(s_locators == nullptr, "Locators segment uninitialized");
-    retail_assert(s_current_stack_allocator == nullptr, "No memory should be reserved yet");
+    retail_assert(s_data == nullptr, "Data segment uninitialized!");
+    retail_assert(s_fd_locators == -1, "Locators file descriptor uninitialized!");
+    retail_assert(s_fd_log == -1, "Log file descriptor uninitialized!");
+    retail_assert(s_log == nullptr, "Log segment uninitialized!");
+    retail_assert(s_locators == nullptr, "Locators segment uninitialized!");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -449,8 +459,8 @@ void client::begin_session()
     size_t fd_count = c_fd_count;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
-    retail_assert(bytes_read > 0, "Failed to read message!");
-    retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
+    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    retail_assert(fd_count == c_fd_count, c_message_unexpected_fd_count);
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
     retail_assert(fd_counters != -1, "Invalid counters fd detected!");
     retail_assert(fd_data != -1, "Invalid data fd detected!");
@@ -478,7 +488,7 @@ void client::begin_session()
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
-    retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
+    retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
     map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_counters, 0);
@@ -489,19 +499,6 @@ void client::begin_session()
     s_fd_locators = fd_locators;
     cleanup_locator_fd.dismiss();
     cleanup_session_socket.dismiss();
-}
-
-void client::load_stack_allocator(const memory_allocation_info_t* allocation_info, uint8_t* data_mapping_base_addr)
-{
-    auto stack_allocator_info = allocation_info->stack_allocator_info();
-
-    // Create and load stack allocator.
-    stack_allocator_t stack_allocator;
-    stack_allocator.load(data_mapping_base_addr, stack_allocator_info->stack_allocator_offset(), stack_allocator_info->stack_allocator_size());
-
-    // Set the current stack allocator.
-    s_current_stack_allocator.reset();
-    s_current_stack_allocator = std::make_unique<stack_allocator_t>(stack_allocator);
 }
 
 void client::end_session()
@@ -515,7 +512,6 @@ void client::begin_transaction()
 {
     verify_session_active();
     verify_no_txn();
-    retail_assert(s_txn_memory_request_size == c_initial_txn_memory_size_bytes, "Memory request size should have been reset when beginning a new transaction!");
 
     // Map a private COW view of the locator shared memory segment.
     retail_assert(!s_locators, "Locators segment should be uninitialized!");
@@ -525,7 +521,7 @@ void client::begin_transaction()
     });
 
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::BEGIN_TXN, c_initial_txn_memory_size_bytes);
+    build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id and txn logs from the server.
@@ -533,9 +529,9 @@ void client::begin_transaction()
     int stream_socket = -1;
     size_t fd_count = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
-    retail_assert(fd_count == 1, "Unexpected fd count!");
-    retail_assert(stream_socket != -1, "Invalid stream socket!");
+    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    retail_assert(fd_count == 1, c_message_unexpected_fd_count);
+    retail_assert(stream_socket != -1, c_message_invalid_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
@@ -555,7 +551,7 @@ void client::begin_transaction()
     int fd_log = ::memfd_create(memfd_name.str().c_str(), MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
-        throw_system_error("memfd_create failed");
+        throw_system_error("memfd_create() failed");
     }
     auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(fd_log);
@@ -583,14 +579,6 @@ void client::begin_transaction()
 
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
-
-    // Obtain transaction memory allocation information.
-    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
-    if (!allocation_info || !allocation_info->stack_allocator_info())
-    {
-        throw memory_allocation_error("Failed to fetch memory from the server at begin transaction.");
-    }
-    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
 
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.
@@ -622,19 +610,29 @@ void client::rollback_transaction()
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::ROLLBACK_TXN);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    size_t log_size = s_log->size();
+    unmap_fd(s_log, c_initial_log_size);
+    truncate_fd(s_fd_log, log_size);
+
+    // Seal the txn log memfd for writes/resizing before sending it to the server.
+    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
+    {
+        throw_system_error(c_message_fcntl_add_seals_failed);
+    }
+
+    // Avoid sending transaction log fd to the server read only transactions.
+    if (log_size > 0)
+    {
+        FlatBufferBuilder builder;
+        build_client_request(builder, session_event_t::ROLLBACK_TXN);
+        send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
+    }
 
     // Reset transaction id.
     s_txn_id = c_invalid_gaia_txn_id;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset current stack allocator.
-    s_current_stack_allocator.reset();
-    // Reset initial memory allocation size for the current transaction.
-    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -672,7 +670,7 @@ void client::commit_transaction()
     // Seal the txn log memfd for writes/resizing before sending it to the server.
     if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
-        throw_system_error("fcntl(F_ADD_SEALS) failed");
+        throw_system_error(c_message_fcntl_add_seals_failed);
     }
 
     // Send the server the commit event with the log segment fd.
@@ -683,7 +681,7 @@ void client::commit_transaction()
     // Block on the server's commit decision.
     uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
 
     // Extract the commit decision from the server's reply and return it.
     const message_t* msg = Getmessage_t(msg_buf);
@@ -691,7 +689,7 @@ void client::commit_transaction()
     session_event_t event = reply->event();
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
-        "Unexpected event received!");
+        c_message_unexpected_event_received);
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
@@ -716,87 +714,43 @@ void client::commit_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Reset current stack allocator.
-    s_current_stack_allocator.reset();
-    // Reset initial memory allocation size for the current transaction.
-    s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
 }
 
-void client::request_memory()
+address_offset_t client::request_memory(size_t object_size)
 {
     verify_txn_active();
 
     FlatBufferBuilder builder;
-    s_txn_memory_request_size = std::min(s_txn_memory_request_size, c_max_memory_request_size_bytes);
-    build_client_request(builder, session_event_t::REQUEST_MEMORY, s_txn_memory_request_size);
+    build_client_request(builder, session_event_t::REQUEST_MEMORY, object_size);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Receive memory allocation information from the server.
     uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
 
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
-    const memory_allocation_info_t* allocation_info = txn_info->memory_allocation_info();
+    const memory_allocation_info_t* allocation_info = reply->data_as_memory_allocation_info();
 
-    retail_assert(allocation_info && allocation_info->stack_allocator_info(), "Failed to fetch memory from the server.");
-    load_stack_allocator(allocation_info, reinterpret_cast<uint8_t*>(s_data->objects));
-    // Update memory request size for the next request memory call for the current transaction.
-    s_txn_memory_request_size = s_txn_memory_request_size * c_memory_request_size_multiplier;
-}
+    // Obtain allocated offset from the server.
+    const address_offset_t object_address_offset = allocation_info->allocation_offset();
 
-address_offset_t client::allocate_from_stack_allocator(
-    gaia_locator_t locator,
-    address_offset_t old_slot_offset,
-    size_t size)
-{
-    retail_assert(size != 0, "The client should not deallocate objects directly.");
-    size_t c_max_allocation_attempts = 2;
-    address_offset_t allocated_memory_offset = c_invalid_offset;
-    // We should only need two attempts to allocate memory.
-    // If more than two attempts are required then it means that the newly obtained free stack allocator
-    // doesn't have enough memory for the current object - which should not happen.
-    for (size_t allocation_attempt = 0; allocation_attempt < c_max_allocation_attempts; allocation_attempt++)
-    {
-        // Fetch a new stack allocator from the server if none is assigned to the client.
-        if (!s_current_stack_allocator)
-        {
-            client::request_memory();
-        }
+    retail_assert(allocation_info && object_address_offset != c_invalid_offset, "Failed to fetch memory from the server.");
 
-        if (!s_current_stack_allocator)
-        {
-            throw memory_allocation_error("Unable to obtain memory from server.");
-        }
-
-        // Try allocating memory from the current stack allocator.
-        allocated_memory_offset = s_current_stack_allocator->allocate(locator, old_slot_offset, size);
-
-        // If the first allocator no longer has sufficient memory for the current object,
-        // we will have to stop using it and start using the next available allocator.
-        if (allocated_memory_offset == c_invalid_offset)
-        {
-            s_current_stack_allocator.reset();
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
-
-    return allocated_memory_offset;
+    return object_address_offset;
 }
 
 address_offset_t client::allocate_object(
     gaia_locator_t locator,
-    address_offset_t old_slot_offset,
     size_t size)
 {
-    address_offset_t allocated_memory_offset = allocate_from_stack_allocator(locator, old_slot_offset, size);
+    retail_assert(size != 0, "The client should not deallocate objects directly.");
+    address_offset_t allocated_memory_offset = c_invalid_offset;
+
+    allocated_memory_offset = client::request_memory(size);
+
+    retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Returned offset not initialized.");
 
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);

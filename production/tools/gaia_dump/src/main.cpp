@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            fprintf(stderr, "Invalid command-line option: %s\n", argv[i]);
+            fprintf(stderr, "Invalid command-line option: '%s'\n", argv[i]);
             fprintf(
                 stderr,
                 "Usage: gaia_dump [--start=ID] [--end=ID] [--references] [--payload] [--catalog]\n"
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
-        fprintf(stderr, "Startup failure, exception: %s\n", e.what());
+        fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
         exit(1);
     }
 

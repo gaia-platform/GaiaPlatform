@@ -49,29 +49,47 @@ using namespace gaia::db::memory_manager;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-stack_allocator_t server::allocate_from_stack_allocator(
-    size_t txn_memory_request_size_bytes)
+static const string c_message_uninitialized_fd_log = "Uninitialized fd log!";
+static const string c_message_unexpected_event_received = "Unexpected event received!";
+static const string c_message_current_event_is_inconsistent_with_state_transition
+    = "Current event is inconsistent with state transition!";
+static const string c_message_unexpected_request_data_type = "Unexpected request data type!";
+static const string c_message_memfd_create_failed = "memfd_create() failed!";
+static const string c_message_thread_must_be_joinable = "Thread must be joinable!";
+static const string c_message_epoll_create1_failed = "epoll_create1() failed!";
+static const string c_message_epoll_wait_failed = "epoll_wait() failed!";
+static const string c_message_epoll_ctl_failed = "epoll_ctl() failed!";
+static const string c_message_unexpected_event_type = "Unexpected event type!";
+static const string c_message_epollerr_flag_should_not_be_set = "EPOLLERR flag should not be set!";
+static const string c_message_unexpected_fd = "Unexpected fd!";
+static const string c_message_not_a_begin_timestamp = "Not a begin timestamp!";
+static const string c_message_not_a_commit_timestamp = "Not a commit timestamp!";
+static const string c_message_unknown_timestamp = "Unknown timestamp!";
+static const string c_message_unexpected_errno_value = "Unexpected errno value!";
+static const string c_message_txn_log_fd_cannot_be_invalidated
+    = "A txn log fd can only be invalidated if its commit_ts has been validated!";
+static const string c_message_txn_log_fd_should_have_been_invalidated
+    = "If the validating txn's log fd has been invalidated, then the watermark must have advanced past the commit_ts of the txn being tested, and invalidated its log fd!";
+static const string c_message_unexpected_commit_ts_value
+    = "The commit_ts whose log fd was invalidated must belong to either the validating txn or the txn being tested!";
+static const string c_message_validating_txn_should_have_been_validated
+    = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
+
+address_offset_t server::allocate_from_memory_manager(
+    size_t memory_request_size_bytes)
 {
     retail_assert(
-        txn_memory_request_size_bytes > 0,
-        "Requested allocation size for the allocate_raw API should be greater than 0!");
+        memory_request_size_bytes > 0,
+        "Requested allocation size for the allocate API should be greater than 0!");
 
     // Offset gets assigned; no need to set it.
-    address_offset_t stack_allocator_offset = s_memory_manager->allocate_raw(txn_memory_request_size_bytes);
-    if (stack_allocator_offset == c_invalid_offset)
+    address_offset_t object_address_offset = s_memory_manager->allocate(memory_request_size_bytes);
+    if (object_address_offset == c_invalid_offset)
     {
-        throw memory_allocation_error("Memory manager ran out of memory during allocate_raw() call!");
+        throw memory_allocation_error("Memory manager ran out of memory during allocate() call!");
     }
 
-    std::unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
-    stack_allocator->initialize(
-        reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, txn_memory_request_size_bytes);
-
-    // Add created stack_allocator to the list of active stack allocators.
-    s_active_stack_allocators.push_back(std::move(stack_allocator));
-
-    // Return stack allocator object.
-    return *s_active_stack_allocators.at(s_active_stack_allocators.size() - 1).get();
+    return object_address_offset;
 }
 
 // This assignment is non-atomic since there seems to be no reason to expect concurrent invocations.
@@ -83,12 +101,12 @@ void server::register_object_deallocator(std::function<void(gaia_offset_t)> deal
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
+    retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // This message should only be received after the client thread was first initialized.
     retail_assert(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
@@ -101,22 +119,19 @@ void server::handle_connect(
 void server::handle_begin_txn(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::BEGIN_TXN, "Unexpected event received!");
+    retail_assert(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
-        "Current event is inconsistent with state transition!");
-
-    // Validate that no memory is allocated for current transaction.
-    retail_assert(
-        s_active_stack_allocators.empty(),
-        "Stale memory allocations should not exist in current session.");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::memory_info,
         "A call to begin_transaction() must provide memory allocation information.");
+
+    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
 
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
@@ -156,50 +171,49 @@ void server::handle_begin_txn(
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
 
-    auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
-    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
-
     // The client must throw an appropriate exception if txn_begin() returns
     // c_invalid_gaia_txn_id. This can only happen when another beginning or
     // committing txn invalidates all unknown timestamps in its snapshot window
     // or conflict window.
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, &stack_allocator);
+    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id);
 
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::free_stack_allocators(bool deallocate_stack_allocator)
+void server::free_uncommitted_allocations(session_event_t txn_status)
 {
-    for (auto& stack_allocator : s_active_stack_allocators)
+    bool deallocate_new_offsets = true;
+
+    // Deallocate transaction objects in case of an abort or rollback.
+    if (txn_status == session_event_t::ROLLBACK_TXN)
     {
-        if (deallocate_stack_allocator)
-        {
-            // Rollback all allocations.
-            stack_allocator->deallocate(0);
-        }
-        // Free up unused space.
-        s_memory_manager->free_stack_allocator(stack_allocator);
+        gc_txn_undo_log(s_fd_log, deallocate_new_offsets);
+    }
+    else if (txn_status == session_event_t::DECIDE_TXN_ABORT)
+    {
+        deallocate_txn_log(s_log, deallocate_new_offsets);
     }
 }
 
-void server::get_memory_info_from_request_and_free(bool commit_success)
-{
-    // Deallocate stack allocator in case of an abort or rollback.
-    bool deallocate_stack_allocator = !commit_success;
-    free_stack_allocators(deallocate_stack_allocator);
-
-    s_active_stack_allocators.clear();
-}
-
 void server::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
+    retail_assert(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
+
+    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
+
+    // Get the log fd and mmap it if the client sends it.
+    // The client will not send the log segment to the server in case a read only txn was rolled back.
+    if (fds && fd_count == 1)
+    {
+        s_fd_log = *fds;
+        retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
+    }
 
     // Release all txn resources and mark the txn's begin_ts entry as terminated.
     txn_rollback();
@@ -208,17 +222,17 @@ void server::handle_rollback_txn(
 void server::handle_commit_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN, "Unexpected event received!");
+    retail_assert(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // Get the log fd and mmap it.
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
-    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // We need to keep the log fd around until it's applied to the shared
     // locator view, so we only close the log fd if an exception is thrown.
@@ -233,7 +247,7 @@ void server::handle_commit_txn(
     int seals = ::fcntl(s_fd_log, F_GET_SEALS);
     if (seals == -1)
     {
-        throw_system_error("fcntl(F_GET_SEALS) failed");
+        throw_system_error("fcntl(F_GET_SEALS) failed!");
     }
     retail_assert(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
 
@@ -259,7 +273,7 @@ void server::handle_commit_txn(
     // If the txn aborts, then this frees all redo versions, and we ignore all
     // undo versions when we invalidate the txn log fd, so there is nothing to
     // do at that point except close the log fd.
-    get_memory_info_from_request_and_free(success);
+    free_uncommitted_allocations(decision);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -285,13 +299,13 @@ void server::handle_request_memory(
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::memory_info,
-        "Unexpected request data type");
+        c_message_unexpected_request_data_type);
 
-    auto txn_memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size_hint());
+    auto memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size());
+    auto object_address_offset = allocate_from_memory_manager(memory_request_size_bytes);
 
     FlatBufferBuilder builder;
-    auto stack_allocator = allocate_from_stack_allocator(txn_memory_request_size_bytes);
-    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &stack_allocator);
+    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, object_address_offset);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -300,11 +314,11 @@ void server::handle_decide_txn(
 {
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
-        "Unexpected event received!");
+        c_message_unexpected_event_received);
 
     retail_assert(
         old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // We need to clear transactional state after the decision has been
     // returned, but don't need to free any resources.
@@ -334,11 +348,11 @@ void server::handle_client_shutdown(
 {
     retail_assert(
         event == session_event_t::CLIENT_SHUTDOWN,
-        "Unexpected event received!");
+        c_message_unexpected_event_received);
 
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // If this event is received, the client must have closed the write end of the socket
     // (equivalent of sending a FIN), so we need to do the same. Closing the socket
@@ -354,12 +368,6 @@ void server::handle_client_shutdown(
     {
         txn_rollback();
     }
-
-    // If the session had an active txn, any allocations should be cleaned up by
-    // now. If not, there should be no allocations to clean up.
-    retail_assert(
-        s_active_stack_allocators.empty(),
-        "There should be no outstanding allocations in this session!");
 }
 
 void server::handle_server_shutdown(
@@ -367,11 +375,11 @@ void server::handle_server_shutdown(
 {
     retail_assert(
         event == session_event_t::SERVER_SHUTDOWN,
-        "Unexpected event received!");
+        c_message_unexpected_event_received);
 
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // This transition should only be triggered on notification of the server shutdown event.
     // Since we are about to shut down, we can't wait for acknowledgment from the client and
@@ -390,7 +398,7 @@ std::pair<int, int> server::get_stream_socket_pair()
     int socket_pair[2] = {-1};
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
     {
-        throw_system_error("socketpair failed");
+        throw_system_error("socketpair() failed!");
     }
 
     auto [client_socket, server_socket] = socket_pair;
@@ -413,12 +421,12 @@ void server::handle_request_stream(
 {
     retail_assert(
         event == session_event_t::REQUEST_STREAM,
-        "Unexpected event received!");
+        c_message_unexpected_event_received);
 
     // This event never changes session state.
     retail_assert(
         old_state == new_state,
-        "Current event is inconsistent with state transition!");
+        c_message_current_event_is_inconsistent_with_state_transition);
 
     // The only currently supported stream type is table scans.
     // When we add more stream types, we should add a switch statement on data_type.
@@ -432,7 +440,7 @@ void server::handle_request_stream(
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::table_scan,
-        "Unexpected request data type");
+        c_message_unexpected_request_data_type);
 
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
@@ -499,26 +507,11 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     // If we get here, we haven't found any compatible transition.
     // TODO: consider propagating exception back to client?
     throw invalid_session_transition(
-        "no allowed state transition from state '"
+        "No allowed state transition from state '"
         + std::string(EnumNamesession_state_t(s_session_state))
         + "' with event '"
         + std::string(EnumNamesession_event_t(event))
-        + "'");
-}
-
-static flatbuffers::Offset<memory_allocation_info_t> get_memory_allocation_offset(
-    FlatBufferBuilder& builder,
-    const stack_allocator_t* const stack_allocator)
-{
-    flatbuffers::Offset<stack_allocator_info_t> stack_allocator_info = 0;
-    if (stack_allocator)
-    {
-        stack_allocator_info = Createstack_allocator_info_t(
-            builder,
-            stack_allocator->get_start_memory_offset(),
-            stack_allocator->get_total_memory_size());
-    }
-    return Creatememory_allocation_info_t(builder, stack_allocator_info);
+        + "'.");
 }
 
 void server::build_server_reply(
@@ -527,12 +520,21 @@ void server::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    const stack_allocator_t* const new_stack_allocator)
+    address_offset_t object_address_offset)
 {
-    const auto memory_allocation_reply = get_memory_allocation_offset(builder, new_stack_allocator);
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, memory_allocation_reply);
-    const auto server_reply = Createserver_reply_t(
-        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    flatbuffers::Offset<server_reply_t> server_reply;
+    if (object_address_offset)
+    {
+        const auto memory_allocation_reply = Creatememory_allocation_info_t(builder, object_address_offset);
+        server_reply = Createserver_reply_t(
+            builder, event, old_state, new_state, reply_data_t::memory_allocation_info, memory_allocation_reply.Union());
+    }
+    else
+    {
+        const auto transaction_info = Createtransaction_info_t(builder, txn_id);
+        server_reply = Createserver_reply_t(
+            builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    }
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -578,23 +580,23 @@ void server::init_shared_memory()
     s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
     if (s_fd_locators == -1)
     {
-        throw_system_error("memfd_create failed");
+        throw_system_error(c_message_memfd_create_failed);
     }
 
     s_fd_counters = ::memfd_create(c_sch_mem_counters, MFD_ALLOW_SEALING);
     if (s_fd_counters == -1)
     {
-        throw_system_error("memfd_create failed");
+        throw_system_error(c_message_memfd_create_failed);
     }
     s_fd_data = ::memfd_create(c_sch_mem_data, MFD_ALLOW_SEALING);
     if (s_fd_data == -1)
     {
-        throw_system_error("memfd_create failed");
+        throw_system_error(c_message_memfd_create_failed);
     }
     s_fd_id_index = ::memfd_create(c_sch_mem_id_index, MFD_ALLOW_SEALING);
     if (s_fd_id_index == -1)
     {
-        throw_system_error("memfd_create failed");
+        throw_system_error(c_message_memfd_create_failed);
     }
 
     truncate_fd(s_fd_locators, sizeof(*s_shared_locators));
@@ -651,10 +653,8 @@ void server::init_memory_manager()
 
 address_offset_t server::allocate_object(
     gaia_locator_t locator,
-    address_offset_t old_slot_offset,
     size_t size)
 {
-    retail_assert(old_slot_offset == 0, "The server is restricted to only creating new objects.");
     address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
     if (offset == c_invalid_offset)
     {
@@ -799,7 +799,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
 
-    cerr << "Caught signal " << ::strsignal(signum) << endl;
+    cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
 
     signal_eventfd(s_server_shutdown_eventfd);
 }
@@ -816,7 +816,7 @@ void server::init_listening_socket()
     int listening_socket = ::socket(PF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
     if (listening_socket == -1)
     {
-        throw_system_error("socket creation failed");
+        throw_system_error("Socket creation failed!");
     }
     auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
 
@@ -839,11 +839,11 @@ void server::init_listening_socket()
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
-        throw_system_error("bind failed");
+        throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))
     {
-        throw_system_error("listen failed");
+        throw_system_error("listen() failed!");
     }
 
     socket_cleanup.dismiss();
@@ -856,7 +856,7 @@ bool server::authenticate_client_socket(int socket)
     socklen_t cred_len = sizeof(cred);
     if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len))
     {
-        throw_system_error("getsockopt(SO_PEERCRED) failed");
+        throw_system_error("getsockopt(SO_PEERCRED) failed!");
     }
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
@@ -913,7 +913,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
             // If this thread has already exited, then join it and deallocate
             // its object to release both memory and thread-related system
             // resources.
-            retail_assert(iter->joinable(), "Thread must be joinable!");
+            retail_assert(iter->joinable(), c_message_thread_must_be_joinable);
             iter->join();
 
             // Move the last element into the current entry.
@@ -924,7 +924,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
         {
             // Throw on all other errors (e.g., if the thread has been detached
             // or joined).
-            throw_system_error("pthread_kill(0) failed", error);
+            throw_system_error("pthread_kill(0) failed!", error);
         }
     }
 }
@@ -935,7 +935,7 @@ void server::client_dispatch_handler()
     auto session_cleanup = make_scope_guard([]() {
         for (auto& thread : s_session_threads)
         {
-            retail_assert(thread.joinable(), "Thread must be joinable!");
+            retail_assert(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
         // All session threads have been joined, so they can be destroyed.
@@ -956,7 +956,7 @@ void server::client_dispatch_handler()
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
-        throw_system_error("epoll_create1 failed");
+        throw_system_error(c_message_epoll_create1_failed);
     }
 
     // We close the epoll descriptor before closing the listening socket, so any
@@ -972,7 +972,7 @@ void server::client_dispatch_handler()
         ev.data.fd = registered_fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fd, &ev))
         {
-            throw_system_error("epoll_ctl failed");
+            throw_system_error(c_message_epoll_ctl_failed);
         }
     }
     epoll_event events[std::size(registered_fds)];
@@ -992,7 +992,7 @@ void server::client_dispatch_handler()
             {
                 continue;
             }
-            throw_system_error("epoll_wait failed");
+            throw_system_error(c_message_epoll_wait_failed);
         }
 
         for (int i = 0; i < ready_fd_count; ++i)
@@ -1008,23 +1008,23 @@ void server::client_dispatch_handler()
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(s_listening_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    throw_system_error("client socket error", error);
+                    throw_system_error("Client socket error!", error);
                 }
                 else if (ev.data.fd == s_server_shutdown_eventfd)
                 {
-                    throw_system_error("shutdown eventfd error");
+                    throw_system_error("Shutdown eventfd error!");
                 }
             }
 
             // At this point, we should only get EPOLLIN.
-            retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
+            retail_assert(ev.events == EPOLLIN, c_message_unexpected_event_type);
 
             if (ev.data.fd == s_listening_socket)
             {
                 int session_socket = ::accept(s_listening_socket, nullptr, nullptr);
                 if (session_socket == -1)
                 {
-                    throw_system_error("accept failed");
+                    throw_system_error("accept() failed!");
                 }
                 if (authenticate_client_socket(session_socket))
                 {
@@ -1047,7 +1047,7 @@ void server::client_dispatch_handler()
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected fd!");
+                retail_assert(false, c_message_unexpected_fd);
             }
         }
     }
@@ -1073,7 +1073,7 @@ void server::session_handler(int session_socket)
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
-        throw_system_error("epoll_create1 failed");
+        throw_system_error(c_message_epoll_create1_failed);
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
 
@@ -1086,7 +1086,7 @@ void server::session_handler(int session_socket)
         ev.data.fd = fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev))
         {
-            throw_system_error("epoll_ctl failed");
+            throw_system_error(c_message_epoll_ctl_failed);
         }
     }
     epoll_event events[std::size(fds)];
@@ -1100,7 +1100,7 @@ void server::session_handler(int session_socket)
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
         {
-            retail_assert(thread.joinable(), "Thread must be joinable!");
+            retail_assert(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
 
@@ -1127,7 +1127,7 @@ void server::session_handler(int session_socket)
             {
                 continue;
             }
-            throw_system_error("epoll_wait failed");
+            throw_system_error(c_message_epoll_wait_failed);
         }
         session_event_t event = session_event_t::NOP;
         const void* event_data = nullptr;
@@ -1163,7 +1163,7 @@ void server::session_handler(int session_socket)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.
-                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
+                    retail_assert(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLRDHUP)
@@ -1202,7 +1202,7 @@ void server::session_handler(int session_socket)
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false, "Unexpected event type!");
+                    retail_assert(false, c_message_unexpected_event_type);
                 }
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
@@ -1214,9 +1214,9 @@ void server::session_handler(int session_socket)
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected fd!");
+                retail_assert(false, c_message_unexpected_fd);
             }
-            retail_assert(event != session_event_t::NOP, "Unexpected event type!");
+            retail_assert(event != session_event_t::NOP, c_message_unexpected_event_type);
             // The transition handlers are the only places we currently call
             // send_msg_with_fds(). We need to handle a peer_disconnected
             // exception thrown from that method (translated from EPIPE).
@@ -1258,7 +1258,7 @@ void server::stream_producer_handler(
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
-        throw_system_error("epoll_create1 failed");
+        throw_system_error(c_message_epoll_create1_failed);
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
 
@@ -1270,7 +1270,7 @@ void server::stream_producer_handler(
     sock_ev.data.fd = stream_socket;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
     {
-        throw_system_error("epoll_ctl failed");
+        throw_system_error(c_message_epoll_ctl_failed);
     }
 
     epoll_event cancel_ev = {0};
@@ -1278,7 +1278,7 @@ void server::stream_producer_handler(
     cancel_ev.data.fd = cancel_eventfd;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
     {
-        throw_system_error("epoll_ctl failed");
+        throw_system_error(c_message_epoll_ctl_failed);
     }
 
     epoll_event events[2];
@@ -1304,7 +1304,7 @@ void server::stream_producer_handler(
             {
                 continue;
             }
-            throw_system_error("epoll_wait failed");
+            throw_system_error(c_message_epoll_wait_failed);
         }
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
@@ -1325,14 +1325,14 @@ void server::stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "stream socket error: " << ::strerror(error) << endl;
+                    cerr << "Stream socket error: '" << ::strerror(error) << "'." << endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // We shold get this when the client has closed its end of the socket.
-                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
+                    retail_assert(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLOUT)
@@ -1373,9 +1373,9 @@ void server::stream_producer_handler(
                             // It should never happen that the socket is no longer writable
                             // after we receive EPOLLOUT, since we are the only writer and
                             // the receive buffer is always large enough for a batch.
-                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
+                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "stream socket error: " << ::strerror(errno) << endl;
+                            cerr << "Stream socket error: '" << ::strerror(errno) << "'." << endl;
                             producer_shutdown = true;
                         }
                         else
@@ -1401,19 +1401,19 @@ void server::stream_producer_handler(
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false, "Unexpected event type!");
+                    retail_assert(false, c_message_unexpected_event_type);
                 }
             }
             else if (ev.data.fd == cancel_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
+                retail_assert(ev.events == EPOLLIN, c_message_unexpected_event_type);
                 consume_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected fd!");
+                retail_assert(false, c_message_unexpected_fd);
             }
         }
     }
@@ -1453,7 +1453,7 @@ void server::fd_stream_producer_handler(
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
-        throw_system_error("epoll_create1 failed");
+        throw_system_error(c_message_epoll_create1_failed);
     }
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
 
@@ -1465,14 +1465,14 @@ void server::fd_stream_producer_handler(
     sock_ev.data.fd = stream_socket;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
     {
-        throw_system_error("epoll_ctl failed");
+        throw_system_error(c_message_epoll_ctl_failed);
     }
     epoll_event cancel_ev = {0};
     cancel_ev.events = EPOLLIN;
     cancel_ev.data.fd = cancel_eventfd;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
     {
-        throw_system_error("epoll_ctl failed");
+        throw_system_error(c_message_epoll_ctl_failed);
     }
 
     epoll_event events[2];
@@ -1498,7 +1498,7 @@ void server::fd_stream_producer_handler(
             {
                 continue;
             }
-            throw_system_error("epoll_wait failed");
+            throw_system_error(c_message_epoll_wait_failed);
         }
 
         // If the shutdown flag is set, we need to exit immediately before
@@ -1520,14 +1520,14 @@ void server::fd_stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "fd stream socket error: " << ::strerror(error) << endl;
+                    cerr << "fd stream socket error: '" << ::strerror(error) << "'." << endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // We shold get this when the client has closed its end of the socket.
-                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
+                    retail_assert(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLOUT)
@@ -1601,9 +1601,9 @@ void server::fd_stream_producer_handler(
                             // It should never happen that the socket is no longer writable
                             // after we receive EPOLLOUT, since we are the only writer and
                             // the receive buffer is always large enough for a batch.
-                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
+                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "fd stream socket error: " << ::strerror(errno) << endl;
+                            cerr << "fd stream socket error: '" << ::strerror(errno) << "'." << endl;
                             producer_shutdown = true;
                         }
                         else
@@ -1633,19 +1633,19 @@ void server::fd_stream_producer_handler(
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false, "Unexpected event type!");
+                    retail_assert(false, c_message_unexpected_event_type);
                 }
             }
             else if (ev.data.fd == cancel_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
+                retail_assert(ev.events == EPOLLIN, c_message_unexpected_event_type);
                 consume_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected fd!");
+                retail_assert(false, c_message_unexpected_fd);
             }
         }
     }
@@ -1801,7 +1801,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         ts_entry_t entry = s_txn_info[begin_ts];
         std::bitset<c_txn_status_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for commit_ts entry's begin_ts " << begin_ts << ": " << entry_bits << endl;
-        cerr << "Log FD for commit_ts entry: " << get_txn_log_fd(ts) << endl;
+        cerr << "Log fd for commit_ts entry: " << get_txn_log_fd(ts) << endl;
     }
 
     if (is_txn_entry_begin_ts(entry) && is_txn_entry_submitted(entry))
@@ -1892,7 +1892,7 @@ inline bool server::is_txn_entry_submitted(ts_entry_t ts_entry)
 
 inline bool server::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
-    retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
+    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     ts_entry_t begin_ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_submitted(begin_ts_entry);
 }
@@ -1904,7 +1904,7 @@ inline bool server::is_txn_entry_validating(ts_entry_t ts_entry)
 
 inline bool server::is_txn_validating(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_validating(commit_ts_entry);
 }
@@ -1918,7 +1918,7 @@ inline bool server::is_txn_entry_decided(ts_entry_t ts_entry)
 inline bool server::is_txn_decided(gaia_txn_id_t commit_ts)
 {
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
-    retail_assert(is_txn_entry_commit_ts(commit_ts_entry), "Not a commit timestamp!");
+    retail_assert(is_txn_entry_commit_ts(commit_ts_entry), c_message_not_a_commit_timestamp);
     return is_txn_entry_decided(commit_ts_entry);
 }
 
@@ -1929,7 +1929,7 @@ inline bool server::is_txn_entry_committed(ts_entry_t ts_entry)
 
 inline bool server::is_txn_committed(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_committed(commit_ts_entry);
 }
@@ -1941,7 +1941,7 @@ inline bool server::is_txn_entry_aborted(ts_entry_t ts_entry)
 
 inline bool server::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_aborted(commit_ts_entry);
 }
@@ -1953,8 +1953,8 @@ inline bool server::is_txn_entry_active(ts_entry_t ts_entry)
 
 inline bool server::is_txn_active(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
-    retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
+    retail_assert(begin_ts != c_txn_entry_unknown, c_message_unknown_timestamp);
+    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_active(ts_entry);
 }
@@ -1966,8 +1966,8 @@ inline bool server::is_txn_entry_terminated(ts_entry_t ts_entry)
 
 inline bool server::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
-    retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
+    retail_assert(begin_ts != c_txn_entry_unknown, c_message_unknown_timestamp);
+    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_terminated(ts_entry);
 }
@@ -1988,7 +1988,7 @@ inline uint64_t server::get_status_from_entry(ts_entry_t ts_entry)
 
 inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     // The begin_ts is the low 42 bits of the ts entry.
     auto begin_ts = static_cast<gaia_txn_id_t>(commit_ts_entry & c_txn_ts_mask);
@@ -1998,7 +1998,7 @@ inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
 
 inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
 {
-    retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
+    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
     ts_entry_t begin_ts_entry = s_txn_info[begin_ts];
     // The commit_ts is the low 42 bits of the begin_ts entry.
@@ -2012,7 +2012,7 @@ inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
 
 inline int server::get_txn_log_fd(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     return get_txn_log_fd_from_entry(s_txn_info[commit_ts]);
 }
 
@@ -2026,7 +2026,7 @@ inline int server::get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry)
 
 inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
     // The txn log fd is the 16 bits of the ts entry after the 3 status bits. We
     // don't zero these out because 0 is technically a valid fd (even though
@@ -2311,12 +2311,12 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                 gaia_txn_id_t invalidated_commit_ts = e.get_ts();
                 retail_assert(
                     is_txn_decided(invalidated_commit_ts),
-                    "A txn log fd can only be invalidated if its commit_ts has been validated!");
+                    c_message_txn_log_fd_cannot_be_invalidated);
                 if (invalidated_commit_ts == ts)
                 {
                     retail_assert(
                         is_txn_decided(commit_ts),
-                        "The txn being tested can only have its log fd invalidated if the validating txn was validated!");
+                        c_message_validating_txn_should_have_been_validated);
                 }
                 // If either log fd was invalidated, then the validating txn
                 // must have been validated, so we can return the decision
@@ -2371,21 +2371,21 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                 gaia_txn_id_t invalidated_commit_ts = e.get_ts();
                 retail_assert(
                     is_txn_decided(invalidated_commit_ts),
-                    "A txn log fd can only be invalidated if its commit_ts has been validated!");
+                    c_message_txn_log_fd_cannot_be_invalidated);
                 if (invalidated_commit_ts == commit_ts)
                 {
                     retail_assert(
                         get_txn_log_fd(ts) == -1,
-                        "If the validating txn's log fd has been invalidated, then the watermark must have advanced past the commit_ts of the txn being tested, and invalidated its log fd!");
+                        c_message_txn_log_fd_should_have_been_invalidated);
                 }
                 else
                 {
                     retail_assert(
                         invalidated_commit_ts == ts,
-                        "The commit_ts whose log fd was invalidated must belong to either the validating txn or the txn being tested!");
+                        c_message_unexpected_commit_ts_value);
                     retail_assert(
                         is_txn_decided(commit_ts),
-                        "The txn being tested can only have its log fd invalidated if the validating txn was validated!");
+                        c_message_validating_txn_should_have_been_validated);
                 }
                 // If either log fd was invalidated, then the validating txn
                 // must have been validated, so we can return the decision
@@ -2444,21 +2444,21 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                     gaia_txn_id_t invalidated_commit_ts = e.get_ts();
                     retail_assert(
                         is_txn_decided(invalidated_commit_ts),
-                        "A txn log fd can only be invalidated if its commit_ts has been validated!");
+                        c_message_txn_log_fd_cannot_be_invalidated);
                     if (invalidated_commit_ts == commit_ts)
                     {
                         retail_assert(
                             get_txn_log_fd(ts) == -1,
-                            "If the validating txn's log fd has been invalidated, then the watermark must have advanced past the commit_ts of the txn being tested, and invalidated its log fd!");
+                            c_message_txn_log_fd_should_have_been_invalidated);
                     }
                     else
                     {
                         retail_assert(
                             invalidated_commit_ts == ts,
-                            "The commit_ts whose log fd was invalidated must belong to either the validating txn or the txn being tested!");
+                            c_message_unexpected_commit_ts_value);
                         retail_assert(
                             is_txn_decided(commit_ts),
-                            "The txn being tested can only have its log fd invalidated if the validating txn was validated!");
+                            c_message_validating_txn_should_have_been_validated);
                     }
                     // If either log fd was invalidated, then the validating txn
                     // must have been validated, so we can return the decision
@@ -2533,21 +2533,21 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                     gaia_txn_id_t invalidated_commit_ts = e.get_ts();
                     retail_assert(
                         is_txn_decided(invalidated_commit_ts),
-                        "A txn log fd can only be invalidated if its commit_ts has been validated!");
+                        c_message_txn_log_fd_cannot_be_invalidated);
                     if (invalidated_commit_ts == commit_ts)
                     {
                         retail_assert(
                             get_txn_log_fd(ts) == -1,
-                            "If the validating txn's log fd has been invalidated, then the watermark must have advanced past the commit_ts of the txn being tested, and invalidated its log fd!");
+                            c_message_txn_log_fd_should_have_been_invalidated);
                     }
                     else
                     {
                         retail_assert(
                             invalidated_commit_ts == ts,
-                            "The commit_ts whose log fd was invalidated must belong to either the validating txn or the txn being tested!");
+                            c_message_unexpected_commit_ts_value);
                         retail_assert(
                             is_txn_decided(commit_ts),
-                            "The txn being tested can only have its log fd invalidated if the validating txn was validated!");
+                            c_message_validating_txn_should_have_been_validated);
                     }
                     // If either log fd was invalidated, then the validating txn
                     // must have been validated, so we can return the decision
@@ -2632,7 +2632,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     }
 }
 
-void server::gc_txn_undo_log(int log_fd)
+void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
 {
     txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
@@ -2641,15 +2641,34 @@ void server::gc_txn_undo_log(int log_fd)
         unmap_fd(txn_log, txn_log->size());
     });
 
+    retail_assert(txn_log, "txn_log should be mapped when deallocating old offsets.");
+    deallocate_txn_log(txn_log, deallocate_new_offsets);
+}
+
+void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
+{
     for (size_t i = 0; i < txn_log->count; ++i)
     {
-        // Free each undo version (i.e., the version superseded by an update or
-        // delete operation), using the registered object deallocator (if it
-        // exists).
-        gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
-        if (old_offset && s_object_deallocator_fn)
+        if (deallocate_new_offsets)
         {
-            s_object_deallocator_fn(old_offset);
+            // Need to free the new offset for aborted and rollbacked transactions.
+            gaia_offset_t new_offset = txn_log->log_records[i].new_offset;
+            if (new_offset && s_object_deallocator_fn)
+            {
+                s_object_deallocator_fn(new_offset);
+            }
+        }
+        else
+        {
+            // Free each undo version (i.e., the version superseded by an update or
+            // delete operation), using the registered object deallocator (if it
+            // exists).
+            gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
+
+            if (old_offset && s_object_deallocator_fn)
+            {
+                s_object_deallocator_fn(old_offset);
+            }
         }
     }
 }
@@ -2849,8 +2868,13 @@ void server::txn_rollback()
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
 
-    // Free all unused or uncommitted session stack allocators.
-    get_memory_info_from_request_and_free(false);
+    if (s_fd_log != -1)
+    {
+        // Free any deallocated objects.
+        free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
+    }
+
+    s_fd_log = -1;
 }
 
 // Before this method is called, we have already received the log fd from the client
@@ -2858,7 +2882,7 @@ void server::txn_rollback()
 // This method returns true for a commit decision and false for an abort decision.
 bool server::txn_commit()
 {
-    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
@@ -2874,7 +2898,7 @@ bool server::txn_commit()
     }
 
     // Validate the txn against all other committed txns in the conflict window.
-    retail_assert(s_fd_log != -1, "Uninitialized fd log!");
+    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Validate the committing txn.
     bool committed = validate_txn(commit_ts);

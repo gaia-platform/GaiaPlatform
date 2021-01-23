@@ -150,7 +150,7 @@ void describe_database(const string& name)
             output_table.add_row({table.name()});
         }
     }
-    cout << "Database \"" << (name.empty() ? c_empty_db_name : name) << "\":" << endl;
+    cout << "Database '" << (name.empty() ? c_empty_db_name : name) << "':" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -167,7 +167,7 @@ void describe_table(const string& name)
     gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
-        for (auto table : gaia_table_t::list())
+        for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
             string qualified_name{table.gaia_database().name()};
@@ -207,7 +207,7 @@ void describe_table(const string& name)
                  to_string(relationship.gaia_id())});
         }
     }
-    cout << "Table \"" << name << "\":" << endl;
+    cout << "Table '" << name << "':" << endl;
     cout << endl;
     cout << "Fields:" << endl;
     output_fields.print(cout);
@@ -334,7 +334,7 @@ void handle_list_command(const string& cmd)
 {
     retail_assert(cmd.length() > 1, "Unexpected command length!");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command");
+    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command!");
 
     if (cmd.length() == c_cmd_minimum_length)
     {
@@ -437,7 +437,7 @@ string command_usage()
          name, "Generate fbs for a given database."});
     output_table.add_row(
         {string() + c_command_prefix + c_generate_command + c_table_subcommand,
-         name, "Generate fbs for a given database."});
+         name, "Generate fbs for a given table."});
 #endif
     output_table.add_row(
         {string() + c_command_prefix + c_help_command, "", "Print help information."});
@@ -482,7 +482,7 @@ bool handle_meta_command(const string& cmd)
     case c_exit_command:
         return false;
     default:
-        throw gaia_exception("Invalid command " + string(cmd));
+        throw gaia_exception("Invalid command '" + string(cmd) + "'.");
     }
     return true;
 }
