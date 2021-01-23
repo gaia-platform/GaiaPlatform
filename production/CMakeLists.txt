@@ -31,9 +31,20 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
-if(BUILD_GAIA_RELEASE)
+
+# Set variables for LLVM if requested.
+if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
+  # For LLVM, do release builds and do not fail on warnings.
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+  set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
   set(GAIA_LINK_FLAGS "-pthread")
+  # LLVM and CLANG specific options.
+  set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
+  set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
+  set(LLVM_ENABLE_EH ON CACHE BOOL "")
+  set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")  
+  set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
 else()
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
   set(GAIA_LINK_FLAGS "-ggdb -pthread")
