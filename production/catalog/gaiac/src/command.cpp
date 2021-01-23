@@ -150,7 +150,7 @@ void describe_database(const string& name)
             output_table.add_row({table.name()});
         }
     }
-    cout << "Database \"" << (name.empty() ? c_empty_db_name : name) << "\":" << endl;
+    cout << "Database '" << (name.empty() ? c_empty_db_name : name) << "':" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -207,7 +207,7 @@ void describe_table(const string& name)
                  to_string(relationship.gaia_id())});
         }
     }
-    cout << "Table \"" << name << "\":" << endl;
+    cout << "Table '" << name << "':" << endl;
     cout << endl;
     cout << "Fields:" << endl;
     output_fields.print(cout);
@@ -334,7 +334,7 @@ void handle_list_command(const string& cmd)
 {
     retail_assert(cmd.length() > 1, "Unexpected command length!");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command");
+    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command!");
 
     if (cmd.length() == c_cmd_minimum_length)
     {
@@ -482,7 +482,7 @@ bool handle_meta_command(const string& cmd)
     case c_exit_command:
         return false;
     default:
-        throw gaia_exception("Invalid command " + string(cmd));
+        throw gaia_exception("Invalid command '" + string(cmd) + "'.");
     }
     return true;
 }

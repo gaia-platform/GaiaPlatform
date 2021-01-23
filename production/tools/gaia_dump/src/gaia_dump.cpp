@@ -176,7 +176,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
         }
         catch (gaia_exception& e)
         {
-            fprintf(stderr, "exception \"%s\"\n", e.what());
+            fprintf(stderr, "An exception has occurred: '%s'\n", e.what());
         }
     }
     commit_transaction();

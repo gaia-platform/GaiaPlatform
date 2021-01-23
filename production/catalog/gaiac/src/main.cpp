@@ -106,14 +106,14 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     if (!fbs_parser.Parse(fbs_schema.c_str()))
     {
         cerr << c_error_prompt
-             << "Fail to parse the catalog generated FlatBuffers schema. Error: "
-             << fbs_parser.error_ << endl;
+             << "Failed to parse the catalog-generated FlatBuffers schema. Error: '"
+             << fbs_parser.error_ << "'." << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name))
     {
         cerr << c_error_prompt
-             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+             << "Unable to generate FlatBuffers C++ headers for '" << db_name << "'." << endl;
     };
 }
 
@@ -122,7 +122,7 @@ void generate_edc_headers(const string& db_name, const string& output_path)
 {
     std::string header_path = output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
 
-    cout << "Generating EDC headers in: " << std::filesystem::absolute(header_path).string() << endl;
+    cout << "Generating EDC headers in: '" << std::filesystem::absolute(header_path).string() << "'." << endl;
 
     ofstream edc(header_path);
     try
@@ -131,7 +131,7 @@ void generate_edc_headers(const string& db_name, const string& output_path)
     }
     catch (gaia::common::gaia_exception& e)
     {
-        cerr << "WARNING - gaia_generate failed: " << e.what() << endl;
+        cerr << "WARNING - gaia_generate failed: '" << e.what() << "'." << endl;
     }
 
     edc.close();

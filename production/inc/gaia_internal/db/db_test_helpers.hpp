@@ -57,7 +57,7 @@ inline void wait_for_server_init()
                 if (counter % c_print_error_interval == 0)
                 {
                     gaia_log::sys().warn(
-                        "Cannot connect to Gaia Server, you may need to start the gaia_db_server process");
+                        "Cannot connect to Gaia Server; the 'gaia_db_server' process may not be running!");
                     counter = 1;
                 }
                 else
