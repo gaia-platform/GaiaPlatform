@@ -10,4 +10,4 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration value hides catalog field entity of the same name.
+// CHECK: Local variable declaration 'value' hides catalog field entity of the same name.
