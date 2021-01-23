@@ -241,7 +241,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     }
     catch (const exception& e)
     {
-        cerr << "Exception while processing the catalog: '" << e.what() << "'." << endl;
+        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
         g_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
