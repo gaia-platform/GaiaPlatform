@@ -38,7 +38,6 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
   endif()
-  # For LLVM, do release builds and do not fail on warnings.
   set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
   set(GAIA_LINK_FLAGS "-pthread")
