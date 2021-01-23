@@ -76,7 +76,7 @@ public:
     explicit duplicate_id(common::gaia_id_t id)
     {
         std::stringstream strs;
-        strs << "An object with the same ID (" << id << ") already exists.";
+        strs << "An object with the same ID '" << id << "' already exists.";
         m_message = strs.str();
     }
 };

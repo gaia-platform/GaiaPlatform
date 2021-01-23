@@ -507,11 +507,11 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     // If we get here, we haven't found any compatible transition.
     // TODO: consider propagating exception back to client?
     throw invalid_session_transition(
-        "no allowed state transition from state '"
+        "No allowed state transition from state '"
         + std::string(EnumNamesession_state_t(s_session_state))
         + "' with event '"
         + std::string(EnumNamesession_event_t(event))
-        + "'");
+        + "'.");
 }
 
 void server::build_server_reply(
@@ -799,7 +799,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
 
-    cerr << "Caught signal " << ::strsignal(signum) << endl;
+    cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
 
     signal_eventfd(s_server_shutdown_eventfd);
 }
@@ -1325,7 +1325,7 @@ void server::stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "stream socket error: " << ::strerror(error) << endl;
+                    cerr << "Stream socket error: '" << ::strerror(error) << "'." << endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1375,7 +1375,7 @@ void server::stream_producer_handler(
                             // the receive buffer is always large enough for a batch.
                             retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "stream socket error: " << ::strerror(errno) << endl;
+                            cerr << "Stream socket error: '" << ::strerror(errno) << "'." << endl;
                             producer_shutdown = true;
                         }
                         else
@@ -1520,7 +1520,7 @@ void server::fd_stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "fd stream socket error: " << ::strerror(error) << endl;
+                    cerr << "fd stream socket error: '" << ::strerror(error) << "'." << endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1603,7 +1603,7 @@ void server::fd_stream_producer_handler(
                             // the receive buffer is always large enough for a batch.
                             retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "fd stream socket error: " << ::strerror(errno) << endl;
+                            cerr << "fd stream socket error: '" << ::strerror(errno) << "'." << endl;
                             producer_shutdown = true;
                         }
                         else
@@ -1801,7 +1801,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         ts_entry_t entry = s_txn_info[begin_ts];
         std::bitset<c_txn_status_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for commit_ts entry's begin_ts " << begin_ts << ": " << entry_bits << endl;
-        cerr << "Log FD for commit_ts entry: " << get_txn_log_fd(ts) << endl;
+        cerr << "Log fd for commit_ts entry: " << get_txn_log_fd(ts) << endl;
     }
 
     if (is_txn_entry_begin_ts(entry) && is_txn_entry_submitted(entry))

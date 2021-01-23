@@ -98,7 +98,7 @@ void rule_thread_pool_t::shutdown()
     while (true)
     {
         lock.lock();
-        retail_assert(m_count_busy_workers >= 0, "Invalid state.  Cannot have more busy workers than threads in the pool!");
+        retail_assert(m_count_busy_workers >= 0, "Invalid state. Cannot have more busy workers than threads in the pool!");
         if (m_count_busy_workers == 0 && m_invocations.size() == 0)
         {
             break;

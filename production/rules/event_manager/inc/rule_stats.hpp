@@ -87,7 +87,7 @@ protected:
     static constexpr char c_max_execution_column[] = "max exec";
 
     // Ensure width of [thread load: ...] padding does not exceed the maximum rule length.
-    static_assert(c_max_rule_id_len >= c_thread_load_len, "Padding calculation for column widths must >= 0!");
+    static_assert(c_max_rule_id_len >= c_thread_load_len, "Padding calculation for column widths must be >= 0!");
 
     // Ensure that the length of column headings does not exceed the widths of the columns themselves.
     static_assert(

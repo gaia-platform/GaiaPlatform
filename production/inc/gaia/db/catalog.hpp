@@ -363,7 +363,9 @@ public:
         const std::string& child_table)
     {
         std::stringstream message;
-        message << "Cannot drop table '" << parent_table << "' because it is referenced by '" << child_table << "'.";
+        message
+            << "Cannot drop table '" << parent_table
+            << "' because it is referenced by table '" << child_table << "'.";
         return referential_integrity_violation{message.str()};
     }
 };

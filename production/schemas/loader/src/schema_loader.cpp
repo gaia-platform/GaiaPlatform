@@ -85,7 +85,7 @@ void schema_loader_t::add_search_path(std::string directory)
 
     if (!fs::is_directory(path))
     {
-        throw std::invalid_argument(directory + " is not a folder.");
+        throw std::invalid_argument("'" + directory + "' is not a folder.");
     }
 
     m_search_paths.push_back(fs::absolute(path));

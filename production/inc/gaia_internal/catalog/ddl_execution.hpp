@@ -83,18 +83,18 @@ inline void load_catalog(
     ddl::parser_t& parser, const std::string& ddl_filename,
     const std::string& db_name, bool create_db = false)
 {
-    common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
+    common::retail_assert(!ddl_filename.empty(), "No DDL file specified.");
     common::retail_assert(!db_name.empty(), "No database specified.");
 
     auto file_path = std::filesystem::path(ddl_filename);
 
     if (!std::filesystem::exists(file_path) && std::filesystem::is_directory(file_path))
     {
-        throw std::invalid_argument("Invalid DDL file: " + std::string(file_path.c_str()));
+        throw std::invalid_argument("Invalid DDL file: '" + std::string(file_path.c_str()) + "'.");
     }
 
     int parsing_result = parser.parse(file_path.string());
-    common::retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");
+    common::retail_assert(parsing_result == EXIT_SUCCESS, "Failed to parse the DDL file '" + ddl_filename + "'.");
 
     if (create_db)
     {
