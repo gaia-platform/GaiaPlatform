@@ -37,7 +37,7 @@ The default CMAKE_BUILD_TYPE is Release.
 
 ## LLVMTests
 ```
-cmake -DBUILD_GAIA_LLVM_TESTS=ON-DBUILD_GAIA_RELEASE=ON ..
+cmake -DBUILD_GAIA_LLVM_TESTS=ON ..
 make -j<number of CPUs> check-all
 ```
 The default CMAKE_BUILD_TYPE is Release.
