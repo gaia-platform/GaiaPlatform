@@ -9,14 +9,14 @@ endmacro()
 
 # Creates a CMake target that loads the DDL_FILE into the Gaia database
 # and generates the headers, to access the schema programmatically,
-# in OUTPUT_FOLDER.
+# in OUTPUT_FOLDER. The generated file name is gaia_${DDL_NAME}.h
+# where DDL_NAME is DDL_FILE with no extension.
 #
 # Args:
 # - DDL_FILE: the path to the .ddl file.
 # - OUTPUT_FOLDER: folder where the header files will be generated.
 # - TARGET_NAME: [optional] the name of the generated target. If not provided
-#                the default value is generate_${DDL_NAME}_headers
-#                where DDL_NAME is DDL_FILE with no extension.
+#                the default value is generate_${DDL_NAME}_headers.
 # - GAIAC_CMD: [optional] custom gaiac command. If not provided will search gaiac
 #              in the path.
 function(generate_schema_headers)
@@ -30,8 +30,9 @@ function(generate_schema_headers)
 
   get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
   string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
+  set(SCHEMA_HEADER_PATH ${ARG_OUTPUT_FOLDER}/gaia_${DDL_NAME}.h)
 
-  message(STATUS "Adding target to compile schema: ${ARG_DDL_FILE}")
+  message(VERBOSE "Adding target to compile schema: ${ARG_DDL_FILE}")
 
   if(NOT DEFINED ARG_GAIAC_CMD)
     set(ARG_GAIAC_CMD gaiac)
@@ -39,22 +40,24 @@ function(generate_schema_headers)
 
   add_custom_command(
     COMMENT "Compiling ${ARG_DDL_FILE} into ${DDL_NAME}.h"
-    OUTPUT ${ARG_OUTPUT_FOLDER}/${DDL_NAME}.h
+    OUTPUT ${SCHEMA_HEADER_PATH}
     COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE}
     DEPENDS ${ARG_DDL_FILE}
   )
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_headers")
-    message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
-    DEPENDS ${ARG_OUTPUT_FOLDER}/${DDL_NAME}.h)
+    DEPENDS ${SCHEMA_HEADER_PATH})
 endfunction()
 
 # Creates a CMake target that translate the RULESET_FILE into a cpp file.
-# The generated cpp file is placed inside OUTPUT_FOLDER.
+# The generated cpp file is placed inside OUTPUT_FOLDER with the name
+# (${RULESET_NAME}_ruleset.cpp), where RULESET_NAME is RULESET_FILE with
+# no extension.
 #
 # This function tries to infer some of the gaiat parameters such as:
 # - The default C++ include path.
@@ -65,18 +68,17 @@ endfunction()
 # - RULESET_FILE: the path to the .ruleset file.
 # - OUTPUT_FOLDER: folder where the .cpp files will be generated.
 # - TARGET_NAME: [optional] the name of the generated target. If not provided
-#                the default value is generate_${RULESET_NAME}_code
-#                where RULESET_NAME is RULESET_FILE with no extension.
-# - GAIAT_PARAMS: [optional]: Additional parameters to pass to gaiat
+#                the default value is translate_${RULESET_NAME}_code.
+# - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
 # - GAIAT_CMD: [optional] custom gaiac command. If not provided will search gaiac
 #              in the path.
 # - DEPENDS: [optional] optional list of targets this task depends on.
 #            Typically the translation has to depend on the generation of the
 #            schema headers.
-function(generate_rules_code)
+function(translate_ruleset_code)
   set(options "")
   set(oneValueArgs RULESET_FILE OUTPUT_FOLDER TARGET_NAME GAIAT_CMD DEPENDS)
-  set(multiValueArgs GAIAT_PARAMS)
+  set(multiValueArgs CLANG_PARAMS)
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   check_param(ARG_RULESET_FILE)
@@ -84,10 +86,10 @@ function(generate_rules_code)
 
   get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
   string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
-  set(RULESET_CPP_NAME ${RULESET_NAME}.cpp)
+  set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
   set(RULESET_CPP_PATH ${ARG_OUTPUT_FOLDER}/${RULESET_CPP_NAME})
 
-  message(STATUS "Adding target to translate ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
+  message(VERBOSE "Adding target to translate ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
 
   set(GAIAT_INCLUDE_PATH "")
 
@@ -112,14 +114,14 @@ function(generate_rules_code)
     OUTPUT ${RULESET_CPP_PATH}
     COMMAND ${ARG_GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} --
     ${GAIAT_INCLUDE_PATH}
-    ${ARG_GAIAT_PARAMS}
+    ${ARG_CLANG_PARAMS}
     -std=c++${CMAKE_CXX_STANDARD}
     DEPENDS ${ARG_RULESET_FILE} ${ARG_DEPENDS}
   )
 
   if(NOT DEFINED ARG_TARGET_NAME)
-    set(ARG_TARGET_NAME "generate_${RULESET_NAME}_code")
-    message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    set(ARG_TARGET_NAME "translate_${RULESET_NAME}_code")
+    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL

@@ -34,11 +34,11 @@ generate_schema_headers(
   TARGET_NAME generate_school_headers)
 
 # -- Translate ruleset into CPP --
-generate_rules_code(
+translate_ruleset_code(
   RULESET_FILE ${RULES_DIR}/school.ruleset
   OUTPUT_FOLDER ${GAIA_GENERATED_OUTPUTS}
   TARGET_NAME translate_school_ruleset
-  GAIAT_PARAMS -I ${PROJECT_SOURCE_DIR}/src
+  CLANG_PARAMS -I ${PROJECT_SOURCE_DIR}/src
   DEPENDS generate_school_headers)
 
 file(GLOB GAIA_GENERATED_SOURCES
