@@ -99,7 +99,12 @@ ruleset test7
 ruleset test8
 {
     {
-	    if (actuator.timestamp < 5 && sensor.value > 10)
+        auto rule_name = rule_context.rule_name;
+        auto ruleset_name = rule_context.ruleset_name;
+        auto event_type = rule_context.event_type;
+        auto gaia_type = rule_context.gaia_type;
+
+	    if (actuator.value < 5 && sensor.value > 10)
 	    {
 		    actuator.value = 5;
 	    }
