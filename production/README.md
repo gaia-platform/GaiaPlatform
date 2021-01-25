@@ -11,15 +11,15 @@ Because building LLVM takes much longer than just building Core, we do not build
 
 We have two ways to build the configurations listed above:
 1. Using docker and our `gdev` tool: this is what our TeamCity Continuous Integration servers use to build and run tests in a consistent "approved" environment.
-1. Using your own local environment:  this enables you to build outside of docker using your an environment and tools controlled by you.
+1. Using your own local environment:  this enables you to build outside of docker using your own environment and tools.
 
-The remainder of this document will focus on building in your own local environment outside of a docker container.  
+The remainder of this document will focus on #2:  building in your own local environment outside of a docker container.
 
 For instructions on how to use `gdev` on your local machine, please see: [gdev docker build CLI](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/gdev/README.md).
 
-See our `New Hire Guidelines` document on our GaiaPlatform wiki for instructions on how to setup your environment.
+For instructions on how to setup your environment, please see our `New Hire Guidelines` document on our GaiaPlatform wiki.
 
-The instructions below assume you have created a subfolder **build\** and are executing the following commands in that subfolder.
+The instructions below assume you have created a subfolder **build\** under **production\** and are executing the following commands in that subfolder.
 
 ## Core
 ```
@@ -33,7 +33,7 @@ The default CMAKE_BUILD_TYPE is Debug.
 cmake -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON ..
 make -j<number of CPUs>
 ```
-The default CMAKE_BUILD_TYPE is Release.
+The default CMAKE_BUILD_TYPE is Release.  Note that you can specify your own path to the CPackDebHelper cmake module.
 
 ## LLVMTests
 ```
@@ -43,7 +43,7 @@ make -j<number of CPUs> check-all
 The default CMAKE_BUILD_TYPE is Release.
 
 ## Other Flags
-In addition, other CMAKE variables we use but are not required:
+Other CMAKE variables we use but are not required:
 ```
 # To override the build type
 -DCMAKE_BUILD_TYPE=Debug|Release
