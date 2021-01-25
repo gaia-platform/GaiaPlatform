@@ -92,11 +92,12 @@ private:
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 // @tparam T_next_slot index into the child's reference list of the next child in the set
-template <typename T_child, size_t T_next_slot>
+template <typename T_child>
 class gaia_set_iterator_t
 {
     T_child m_child_obj;
     std::function<bool(const T_child&)> m_filter_fn;
+    size_t m_const_next_slot;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -105,17 +106,17 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id);
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t const_next_slot);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t const_next_slot);
     gaia_set_iterator_t() = default;
 
     reference operator*();
 
     pointer operator->();
 
-    gaia_set_iterator_t<T_child, T_next_slot>& operator++();
+    gaia_set_iterator_t<T_child>& operator++();
 
-    gaia_set_iterator_t<T_child, T_next_slot> operator++(int);
+    gaia_set_iterator_t<T_child> operator++(int);
 
     bool operator==(const gaia_set_iterator_t& rhs) const;
 
@@ -137,32 +138,35 @@ public:
 //
 // @tparam T_parent the Extended Data Class that is in the parent position in the set
 // @tparam T_child the Extended Data Class that is in the child position in the set
-// @tparam T_parent_slot index into the child's reference list of the parent pointer
-// @tparam T_child_slot index into the parent's reference list of the first child in the set
-// @tparam T_next_slot index into the child's reference list of the next child in the set
-template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
+template <typename T_parent, typename T_child>
 class reference_chain_container_t : edc_db_t
 {
     gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
     std::function<bool(const T_child&)> m_filter_fn{};
+    size_t m_const_parent;
+    size_t m_const_child_slot;
+    size_t m_const_next_slot;
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
     explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
         : m_parent_id(parent), m_filter_fn(filter_function){};
 
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent)
-        : m_parent_id(parent){};
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t const_parent, size_t const_child_slot, size_t const_next_slot)
+        : m_parent_id(parent)
+        , m_const_parent(const_parent)
+        , m_const_child_slot(const_child_slot)
+        , m_const_next_slot(const_next_slot){};
 
     // reference_chain_container_t is copied from the EDC list methods.
     reference_chain_container_t(const reference_chain_container_t&) = default;
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
-    gaia_set_iterator_t<T_child, T_next_slot> begin() const;
+    gaia_set_iterator_t<T_child> begin() const;
 
-    reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>) const;
+    reference_chain_container_t<T_parent, T_child> where(std::function<bool(const T_child&)>) const;
 
-    gaia_set_iterator_t<T_child, T_next_slot> end() const;
+    gaia_set_iterator_t<T_child> end() const;
 
     void insert(gaia::common::gaia_id_t child_id);
 
