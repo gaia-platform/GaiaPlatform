@@ -35,7 +35,7 @@ get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 # Set variables for LLVM if requested.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   # Default to Release builds if not specified on the command line.
-  if (NOT CMAKE_BUILD_TYPE)
+  if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
   endif()
   set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
