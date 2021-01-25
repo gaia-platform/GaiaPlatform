@@ -32,14 +32,14 @@ function(generate_schema_headers)
   string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
   set(SCHEMA_HEADER_PATH ${ARG_OUTPUT_FOLDER}/gaia_${DDL_NAME}.h)
 
-  message(VERBOSE "Adding target to compile schema: ${ARG_DDL_FILE}")
+  message(VERBOSE "Adding target for generating: ${ARG_DDL_FILE}")
 
   if(NOT DEFINED ARG_GAIAC_CMD)
     set(ARG_GAIAC_CMD gaiac)
   endif()
 
   add_custom_command(
-    COMMENT "Compiling ${ARG_DDL_FILE} into ${DDL_NAME}.h"
+    COMMENT "Generating ${DDL_NAME}.h"
     OUTPUT ${SCHEMA_HEADER_PATH}
     COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE}
     DEPENDS ${ARG_DDL_FILE}
@@ -89,7 +89,7 @@ function(translate_ruleset_code)
   set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
   set(RULESET_CPP_PATH ${ARG_OUTPUT_FOLDER}/${RULESET_CPP_NAME})
 
-  message(VERBOSE "Adding target to translate ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
+  message(VERBOSE "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
 
   set(GAIAT_INCLUDE_PATH "")
 
