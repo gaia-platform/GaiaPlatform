@@ -256,31 +256,6 @@ public final class CacheFactory
         return configuration;
     }
 
-    // COW data set.
-    public static CacheGraph createCowSample()
-    {
-        final CacheGraph graph = getDefaultCacheGraph();
-        generateCowSample(graph);
-        return graph;
-    }
-
-    public static void generateCowSample(final CacheGraph graph)
-    {
-        graph.tx().open();
-
-        final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
-        final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");
-        final Vertex node3 = graph.addVertex(T.id, 3, T.label, "2", "payload", "n3");
-        final Vertex node4 = graph.addVertex(T.id, 4, T.label, "2", "payload", "n4");
-
-        node1.addEdge("3", node2, T.id, 5, "payload", "e5=n1->n2");
-        node1.addEdge("3", node3, T.id, 6, "payload", "e6=n1->n3");
-        node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
-        node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
-
-        graph.tx().commit();
-    }
-
     // Tiny airport data set.
     public static CacheGraph createTinyAirport()
     {
@@ -520,15 +495,15 @@ public final class CacheFactory
         }
     }
 
-    // Open CacheGraph instance without COW writing.
+    // Open CacheGraph instance without Gaia database writing.
     // This is useful for testing the in-memory graph part only.
-    public static CacheGraph openWithoutCow()
+    public static CacheGraph openWithoutGaiaDb()
     {
         final Configuration configuration = getDefaultConfiguration();
 
-        // Disable COW operations.
+        // Disable Gaia database operations.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
+            CacheGraph.CACHEGRAPH_ENABLE_GAIADB_OPERATIONS,
             false);
 
         final CacheGraph graph = CacheGraph.open(configuration);
@@ -536,8 +511,8 @@ public final class CacheFactory
         return graph;
     }
 
-    // Open CacheGraph instance with airport serialization to COW.
-    // This is useful for testing airport data serialization to COW.
+    // Open CacheGraph instance with airport serialization to Gaia database.
+    // This is useful for testing airport data serialization to Gaia database.
     public static CacheGraph openWithAirportSupport()
     {
         final Configuration configuration = getDefaultConfiguration();
@@ -552,20 +527,20 @@ public final class CacheFactory
         return graph;
     }
 
-    // A method for loading airport data from COW.
-    public static CacheGraph loadAirportGraphFromCow()
+    // A method for loading airport data from Gaia datadase.
+    public static CacheGraph loadAirportGraphFromGaiaDb()
     {
         final Configuration configuration = getDefaultConfiguration();
 
-        // We need to load data, so do not initialize COW.
+        // We need to load data, so do not initialize Gaia database.
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_CREATE_ON_START,
             false);
 
-        // We read from COW to write into cached graph,
-        // so we don't need to write back into COW.
+        // We read from Gaia database to write into cached graph,
+        // so we don't need to write back into Gaia database.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
+            CacheGraph.CACHEGRAPH_ENABLE_GAIADB_OPERATIONS,
             false);
 
         // We need to enable airport data serialization code.

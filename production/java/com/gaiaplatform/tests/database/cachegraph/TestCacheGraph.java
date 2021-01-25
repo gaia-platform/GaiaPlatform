@@ -116,10 +116,6 @@ public final class TestCacheGraph
         checkGraphSize(g, 3, 3);
 
         // Create all Gaia sample graphs.
-        graph = CacheFactory.createCowSample();
-        g = graph.traversal();
-        checkGraphSize(g, 4, 4);
-
         graph = CacheFactory.createTinyAirport();
         g = graph.traversal();
         checkGraphSize(g, 39, 87);

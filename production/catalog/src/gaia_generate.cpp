@@ -62,7 +62,7 @@ static string field_cpp_type_string(data_type_t data_type)
     case data_type_t::e_string:
         return "const char*";
     default:
-        throw gaia::common::gaia_exception("Unknown type");
+        throw gaia::common::gaia_exception("Unknown type!");
     }
 }
 

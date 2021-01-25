@@ -3,7 +3,9 @@ This is a folder for GaiaPlatform database-related Java code.
 
 ## Tinkerpop CacheGraph provider
 
-Implements a Tinkerpop provider that allows the database to be modified through Gremlin tools.
+Implements a Tinkerpop provider that allowed the original COW database prototype to be modified through Gremlin tools.
+
+Currently, this code is no longer functional and needs a major rewrite to get it to work again with the new Gaia database engine.
 
 The provider is written in Java and packaged as a JAR file - *GaiaTinkerpop.jar*. To build it, you need the following:
 

@@ -40,6 +40,7 @@ static const char *updateVarName = "UPDATE";
 static const char *deleteVarName = "DELETE";
 static const char *insertVarName = "INSERT";
 static const char *noneVarName = "NONE";
+static const char *ruleContextTypeName = "rule_context__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
@@ -200,6 +201,52 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
     Ret->setAccess(AS_public);
     RD->addDecl(Ret);
 }
+
+QualType Sema::getRuleContextType(SourceLocation loc)
+{
+    // Check if the type has been already created and return the created file
+    auto &types = Context.getTypes();
+    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
+    {
+        const auto *type = types[typeIdx];
+        const RecordDecl *record = type->getAsRecordDecl();
+        if (record != nullptr)
+        {
+            const auto *id = record->getIdentifier();
+            if (id != nullptr)
+            {
+                if (id->getName().equals(ruleContextTypeName))
+                {
+                    return QualType(type, 0);
+                }
+            }
+        }
+    }
+
+    RecordDecl *RD = Context.buildImplicitRecord(ruleContextTypeName);
+    RD->setLexicalDeclContext(CurContext);
+    RD->startDefinition();
+    Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
+    ActOnTagStartDefinition(&S,RD);
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
+        false, loc);
+    AttributeFactory attrFactory;
+    ParsedAttributes attrs(attrFactory);
+
+
+    //insert fields
+    addField(&Context.Idents.get("ruleset_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+    addField(&Context.Idents.get("rule_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
+    addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+    addField(&Context.Idents.get("gaia_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
+        loc, loc, attrs);
+    ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+
+    return Context.getTagDeclType(RD);
+}
+
 
 QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 {
@@ -445,4 +492,15 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
     assert(ruleset && "Invalid parameter, expected RulesetDecl");
     ruleset->setRBraceLoc(RBrace);
     PopDeclContext();
+}
+
+ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
+{
+  QualType ruleContextType = getRuleContextType(Loc);
+  if (ruleContextType.isNull())
+  {
+    return Diag(Loc, diag::err_invalid_rule_context_internal_error);
+  }
+
+  return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
 }

@@ -204,88 +204,92 @@ add_subdirectory(sql)
 add_subdirectory(sdk)
 
 # Java Tinkerpop project.
-if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
-  set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
+if(JAVA_FOUND AND JNI_FOUND)
+  # set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
 
-  # Java Tinkerpop graph provider implementation. This also generates native headers for the COW wrapper.
+  # Java Tinkerpop graph provider implementation. This also generates native headers for the database wrapper.
   add_jar(GaiaTinkerpop
     SOURCES
-      java/com/gaiaplatform/database/CowStorageEngine.java
-      java/com/gaiaplatform/database/Airline.java
-      java/com/gaiaplatform/database/Airport.java
-      java/com/gaiaplatform/database/Route.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheEdge.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheElement.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheFactory.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
-      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/BaseVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/BooleanVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferReadWriteBuf.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferUtil.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Constants.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/DoubleVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/FlatBufferBuilder.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffers.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffersBuilder.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/FloatVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/IntVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/LongVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ReadBuf.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ReadWriteBuf.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/ShortVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/StringVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Struct.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Table.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/UnionVector.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
-      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
+      java/com/gaiaplatform/database/GaiaDatabase.java
+      # java/com/gaiaplatform/database/Airline.java
+      # java/com/gaiaplatform/database/Airport.java
+      # java/com/gaiaplatform/database/Route.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheEdge.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheElement.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheFactory.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
+      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/BaseVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/BooleanVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferReadWriteBuf.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferUtil.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Constants.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/DoubleVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlatBufferBuilder.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffers.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffersBuilder.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/FloatVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/IntVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/LongVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ReadBuf.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ReadWriteBuf.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/ShortVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/StringVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Struct.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Table.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/UnionVector.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
+      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
+    OUTPUT_DIR ${PROJECT_BINARY_DIR}/java
     GENERATE_NATIVE_HEADERS db_jni_headers
       DESTINATION ${PROJECT_BINARY_DIR}/db/core/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Java tests.
-  add_jar(GaiaTests
-    SOURCES
-      java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java
-    INCLUDE_JARS GaiaTinkerpop)
-  get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
+  # add_jar(GaiaTests
+  #   SOURCES
+  #     java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java
+  #   INCLUDE_JARS GaiaTinkerpop)
+  # get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
 
-  # FIXME: fix these tests in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Add JNI test.
-  # add_test(
-  #   NAME test_se_jni
-  #   COMMAND ${Java_JAVA_EXECUTABLE}
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-  #     -cp ${GAIA_TINKERPOP_JAR}
-  #     com.gaiaplatform.database.CowStorageEngine)
+  # This test is disabled for Debug builds.
+  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_test(
+      NAME test_db_jni
+      COMMAND ${Java_JAVA_EXECUTABLE}
+        -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+        -cp ${GAIA_TINKERPOP_JAR}
+        com.gaiaplatform.database.GaiaDatabase)
+  endif()
 
   # Add CacheGraph tests.
-#   add_test(
-#     NAME test_cachegraph_basic
-#     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-#       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-#       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
-#   add_test(
-#     NAME test_cachegraph_factory
-#     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-#       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-#       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
-#   add_test(
-#     NAME test_cachegraph_graphml
-#     COMMAND ${Java_JAVA_EXECUTABLE} -ea
-#       -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-#       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-#       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
+  # add_test(
+  #   NAME test_cachegraph_basic
+  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
+  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
+  # add_test(
+  #   NAME test_cachegraph_factory
+  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
+  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
+  # add_test(
+  #   NAME test_cachegraph_graphml
+  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
+  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
 # Customize test commands.

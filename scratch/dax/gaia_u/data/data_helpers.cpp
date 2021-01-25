@@ -303,8 +303,8 @@ void event_planner::show_registrations()
     printf("--------\n");
     for (auto reg : Registrations_t::list())
     {
-        auto s = reg.Student_Students();
-        auto e = reg.Event_Events();
+        auto s = reg.Students();
+        auto e = reg.Events();
         printf("%lu: %s %s [Student]{", reg.gaia_id(),
             convert_date(reg.RegistrationDate()).c_str(),
             convert_time(reg.RegistrationTime()).c_str());
@@ -322,9 +322,9 @@ void event_planner::delete_registrations()
     for (auto r = Registrations_t::get_first() ; r; r = Registrations_t::get_first())
     {
         // Disconnect from Event
-        r.Event_Events().Event_Registrations_list().erase(r);
+        r.Events().Registrations_list().erase(r);
         // Disconnect from Student
-        r.Student_Students().Student_Registrations_list().erase(r);
+        r.Students().Registrations_list().erase(r);
         r.delete_row();
     }
     tx.commit();
@@ -332,8 +332,8 @@ void event_planner::delete_registrations()
 
 void event_planner::show_event(Events_t& event)
 {
-    auto s = event.Teacher_Staff();
-    auto r = event.Room_Rooms();
+    auto s = event.Staff();
+    auto r = event.Rooms();
     printf("%lu: %s %s %s %s %u [Staff]{", event.gaia_id(),
         event.Name(),
         convert_date(event.Date()).c_str(),
@@ -366,12 +366,12 @@ void event_planner::delete_events()
     for (auto e = Events_t::get_first() ; e; e = Events_t::get_first())
     {
         // Disconnect from Staff
-        e.Teacher_Staff().Teacher_Events_list().erase(e);
+        e.Staff().Events_list().erase(e);
         
         // Disconnect from Room
-        if (e.Room_Rooms())
+        if (e.Rooms())
         {
-            e.Room_Rooms().Room_Events_list().erase(e);
+            e.Rooms().Events_list().erase(e);
         }
 
         e.delete_row();

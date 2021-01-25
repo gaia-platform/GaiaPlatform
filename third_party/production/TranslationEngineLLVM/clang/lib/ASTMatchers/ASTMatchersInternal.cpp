@@ -676,6 +676,7 @@ const internal::VariadicDynCastAllOfMatcher<Stmt, CXXConstructExpr>
 const internal::VariadicDynCastAllOfMatcher<Stmt, CXXUnresolvedConstructExpr>
     cxxUnresolvedConstructExpr;
 const internal::VariadicDynCastAllOfMatcher<Stmt, CXXThisExpr> cxxThisExpr;
+const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaRuleContextExpr> gaiaRuleContextExpr;
 const internal::VariadicDynCastAllOfMatcher<Stmt, CXXBindTemporaryExpr>
     cxxBindTemporaryExpr;
 const internal::VariadicDynCastAllOfMatcher<Stmt, MaterializeTemporaryExpr>

@@ -9,7 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 
-import com.gaiaplatform.database.CowStorageEngine;
+import com.gaiaplatform.database.GaiaDatabase;
 
 // CacheTransaction only enables the management of transactions for operations with the underlying store.
 // These transactions do not cover the operations with the in-memory CacheGraph data.
@@ -39,12 +39,12 @@ public final class CacheTransaction extends AbstractThreadedTransaction
     {
         CacheHelper.debugPrint(this.graph, "tx::open()");
 
-        if (!graph.enableCowOperations)
+        if (!graph.enableGaiaDbOperations)
         {
             return;
         }
 
-        this.graph.cow.beginTransaction();
+        this.graph.gaiaDb.beginTransaction();
         this.isOpen = true;
     }
 
@@ -52,12 +52,12 @@ public final class CacheTransaction extends AbstractThreadedTransaction
     {
         CacheHelper.debugPrint(this.graph, "tx::commit()");
 
-        if (!graph.enableCowOperations)
+        if (!graph.enableGaiaDbOperations)
         {
             return;
         }
 
-        this.graph.cow.commitTransaction();
+        this.graph.gaiaDb.commitTransaction();
         this.isOpen = false;
     }
 
@@ -65,12 +65,12 @@ public final class CacheTransaction extends AbstractThreadedTransaction
     {
         CacheHelper.debugPrint(this.graph, "tx::rollback()");
 
-        if (!graph.enableCowOperations)
+        if (!graph.enableGaiaDbOperations)
         {
             return;
         }
 
-        this.graph.cow.rollbackTransaction();
+        this.graph.gaiaDb.rollbackTransaction();
         this.isOpen = false;
     }
 }

@@ -15,8 +15,6 @@ function(get_repo_root project_source_dir repo_dir)
   set(${repo_dir} "${project_repo}" PARENT_SCOPE)
 endfunction()
 
-set(TEST_SUCCESS "All tests passed!")
-
 #
 # Helper function for setting up our tests.
 #
@@ -34,16 +32,16 @@ endfunction(set_test)
 # [ENV] - a semicolon-delimited list of key-value pairs for environment variables to be passed to the test. Defaults to "".
 #
 function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
-#  message(STATUS "TARGET = ${TARGET}")
-#  message(STATUS "SOURCES = ${SOURCES}")
-#  message(STATUS "INCLUDES = ${INCLUDES}")
-#  message(STATUS "LIBRARIES = ${LIBRARIES}")
-#  message(STATUS "ARGV0 = ${ARGV0}")
-#  message(STATUS "ARGV1 = ${ARGV1}")
-#  message(STATUS "ARGV2 = ${ARGV2}")
-#  message(STATUS "ARGV3 = ${ARGV3}")
-#  message(STATUS "ARGV4 = ${ARGV4}")
-#  message(STATUS "ARGV5 = ${ARGV5}")
+  #  message(STATUS "TARGET = ${TARGET}")
+  #  message(STATUS "SOURCES = ${SOURCES}")
+  #  message(STATUS "INCLUDES = ${INCLUDES}")
+  #  message(STATUS "LIBRARIES = ${LIBRARIES}")
+  #  message(STATUS "ARGV0 = ${ARGV0}")
+  #  message(STATUS "ARGV1 = ${ARGV1}")
+  #  message(STATUS "ARGV2 = ${ARGV2}")
+  #  message(STATUS "ARGV3 = ${ARGV3}")
+  #  message(STATUS "ARGV4 = ${ARGV4}")
+  #  message(STATUS "ARGV5 = ${ARGV5}")
 
   add_executable(${TARGET} ${SOURCES})
 
@@ -98,20 +96,20 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
   add_custom_command(
     OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
     COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
-            --cpp --gen-mutable --gen-object-api --reflect-names
-            --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
-            --cpp-str-type gaia::direct_access::nullable_string_t
-            --cpp-str-flex-ctor
-            --gaiacpp
-            ${OPT}
-            -I ${CMAKE_CURRENT_SOURCE_DIR}
-            -o ${OUTPUT_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    --cpp --gen-mutable --gen-object-api --reflect-names
+    --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
+    --cpp-str-type gaia::direct_access::nullable_string_t
+    --cpp-str-flex-ctor
+    --gaiacpp
+    ${OPT}
+    -I ${CMAKE_CURRENT_SOURCE_DIR}
+    -o ${OUTPUT_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
     VERBATIM)
-    gaia_register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
+  gaia_register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
 endfunction()
 
 # Gaia specific flatc helpers for generating headers
