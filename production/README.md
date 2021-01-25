@@ -41,7 +41,7 @@ If CMAKE_BUILD_TYPE is not specified on the command line, then we explicitly set
 cmake -DBUILD_GAIA_LLVM_TESTS=ON ..
 make -j<number of CPUs> check-all
 ```
-If unspecified, the CMAKE_BUILD_TYPE is set to Release as described above.
+If unspecified, the CMAKE_BUILD_TYPE is set to Release as described above for SDK builds.
 
 ### Other Flags
 Other CMAKE variables we use but are not required:
