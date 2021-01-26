@@ -75,8 +75,8 @@ employee_t insert_records(size_t count)
     for (size_t i = 0; i < count; i++)
     {
         address_writer.street = to_string(i);
-        address_t address = address_t::get(address_writer.insert_row());
-        employee.addressee_address_list().insert(address);
+        gaia_id_t address_id = address_writer.insert_row();
+        employee.addressee_address_list().insert(address_id);
     }
 
     return employee;
