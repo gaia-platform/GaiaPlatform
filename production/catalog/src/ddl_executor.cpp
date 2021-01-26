@@ -259,7 +259,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     {
         relationship.parent_gaia_table()
             .parent_gaia_relationship_list()
-            .erase(relationship);
+            .remove(relationship);
     }
 
     // Unlink child.
@@ -267,7 +267,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     {
         relationship.child_gaia_table()
             .child_gaia_relationship_list()
-            .erase(relationship);
+            .remove(relationship);
     }
 
     relationship.delete_row();
@@ -332,7 +332,7 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
             // Unlink the child side of the relationship.
             relationship.child_gaia_table()
                 .child_gaia_relationship_list()
-                .erase(relationship);
+                .remove(relationship);
         }
         else
         {
@@ -351,7 +351,7 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t field_id : list_fields(table_id))
     {
         // Unlink the field and the table.
-        table_record.gaia_field_list().erase(field_id);
+        table_record.gaia_field_list().remove(field_id);
         // Remove the field.
         gaia_field_t::get(field_id).delete_row();
     }
@@ -359,14 +359,14 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t reference_id : list_references(table_id))
     {
         // Unlink the reference and the owner table.
-        table_record.gaia_field_list().erase(reference_id);
+        table_record.gaia_field_list().remove(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
         // Remove the reference.
         reference_record.delete_row();
     }
 
     // Unlink the table from its database.
-    table_record.gaia_database().gaia_table_list().erase(table_record);
+    table_record.gaia_database().gaia_table_list().remove(table_record);
     // Remove the table.
     table_record.delete_row();
 }

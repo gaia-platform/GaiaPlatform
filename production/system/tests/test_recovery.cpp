@@ -479,7 +479,7 @@ TEST_F(recovery_test, reference_update_test)
         // Delete links between the phone records and the address record.
         for (gaia_id_t phone_id : recovered_phone_ids)
         {
-            address_t::get(address_id).phone_list().erase(phone_id);
+            address_t::get(address_id).phone_list().remove(phone_id);
         }
         txn.commit();
     }
