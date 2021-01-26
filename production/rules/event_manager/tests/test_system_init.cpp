@@ -6,6 +6,8 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
@@ -13,8 +15,6 @@
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
-#include "db_catalog_test_base.hpp"
-#include "gaia_catalog.h"
 
 using namespace gaia::common;
 using namespace gaia::db;

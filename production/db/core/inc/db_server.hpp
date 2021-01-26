@@ -14,10 +14,10 @@
 #include <thread>
 
 #include "flatbuffers/flatbuffers.h"
+#include "gaia_internal/common/fd_helpers.hpp"
 
 #include "gaia/exception.hpp"
 #include "db_internal_types.hpp"
-#include "fd_helpers.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"

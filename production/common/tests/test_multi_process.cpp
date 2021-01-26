@@ -21,9 +21,9 @@
 
 #include <thread>
 
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gtest/gtest.h"
 
-#include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
 
 using namespace std;

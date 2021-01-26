@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_internal/db/type_metadata.hpp"
 #include "gtest/gtest.h"
 
 #include "db_test_util.hpp"
-#include "type_metadata.hpp"
 
 using namespace std;
 using namespace gaia::db;

@@ -8,9 +8,10 @@
 #include <algorithm>
 #include <memory>
 
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia_catalog.h"
-#include "retail_assert.hpp"
 
 using namespace gaia::db::payload_types;
 using namespace gaia::common;

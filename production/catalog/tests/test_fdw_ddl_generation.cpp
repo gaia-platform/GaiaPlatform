@@ -4,10 +4,9 @@
 /////////////////////////////////////////////
 
 #include "flatbuffers/idl.h"
+#include "gaia_internal/catalog/catalog_internal.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 #include "gtest/gtest.h"
-
-#include "catalog_internal.hpp"
-#include "db_test_base.hpp"
 
 using namespace std;
 

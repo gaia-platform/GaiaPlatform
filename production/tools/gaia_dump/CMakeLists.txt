@@ -14,9 +14,6 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/catalog
-  ${GAIA_INTERNAL_INC}/common
-  ${GAIA_INTERNAL_INC}/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 

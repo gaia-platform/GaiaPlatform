@@ -8,11 +8,8 @@ set(TRANSLATION_ENGINE_INCLUDES
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_PROD_BUILD}/llvm/tools/clang/include
   ${GAIA_PROD_BUILD}/llvm/include
-  ${GAIA_INTERNAL_INC}/catalog
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/common
-  ${GAIA_INTERNAL_INC}/db
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated

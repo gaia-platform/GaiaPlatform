@@ -9,12 +9,12 @@
 #include <ostream>
 #include <stdexcept>
 
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_error.hpp"
 #include <sys/socket.h>
 #include <sys/un.h>
 
 #include "gaia/exception.hpp"
-#include "retail_assert.hpp"
-#include "system_error.hpp"
 
 namespace gaia
 {

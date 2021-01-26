@@ -7,12 +7,12 @@
 
 #include <stdexcept>
 
+#include "gaia_internal/common/system_error.hpp"
 #include <libexplain/mmap.h>
 #include <libexplain/munmap.h>
 #include <sys/mman.h>
 
 #include "gaia/exception.hpp"
-#include "system_error.hpp"
 
 namespace gaia
 {

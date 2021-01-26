@@ -3,16 +3,15 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger_manager.hpp"
+#include "gaia_internal/common/logger_manager.hpp"
 
 #include <filesystem>
 #include <iostream>
 
+#include "gaia_internal/common/logger_spdlog.hpp"
 #include "spdlog/async.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog_setup/conf.h"
-
-#include "logger_spdlog.hpp"
 
 namespace fs = std::filesystem;
 

@@ -9,16 +9,16 @@
 #include <string>
 #include <vector>
 
+#include "gaia_internal/catalog/ddl_executor.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
-#include "db_test_helpers.hpp"
 #include "db_test_util.hpp"
-#include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_catalog.h"
-#include "logger_internal.hpp"
 #include "schema_loader.hpp"
 #include "type_id_mapping.hpp"
 

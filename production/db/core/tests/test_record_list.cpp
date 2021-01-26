@@ -5,9 +5,9 @@
 
 #include <iostream>
 
+#include "gaia_internal/db/db_types.hpp"
 #include "gtest/gtest.h"
 
-#include "db_types.hpp"
 #include "record_list.hpp"
 
 using namespace std;

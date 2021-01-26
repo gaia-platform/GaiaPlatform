@@ -7,8 +7,9 @@
 #include <memory>
 #include <vector>
 
+#include "gaia_internal/common/system_table_types.hpp"
+
 #include "gaia/db/db.hpp"
-#include "system_table_types.hpp"
 
 constexpr int c_group_size = 8;
 constexpr int c_line_size = 2 * c_group_size;

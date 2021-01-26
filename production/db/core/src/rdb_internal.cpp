@@ -8,15 +8,14 @@
 #include <sstream>
 #include <string>
 
+#include "gaia_internal/common/persistent_store_error.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_types.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/write_batch.h"
-
-#include "db_types.hpp"
-#include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
 
 using namespace gaia::common;
 

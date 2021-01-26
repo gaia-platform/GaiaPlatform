@@ -7,9 +7,10 @@
 
 #include <cstring>
 
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "event_manager.hpp"
-#include "logger_internal.hpp"
-#include "retail_assert.hpp"
 
 using namespace std;
 

@@ -14,15 +14,11 @@ find_package(Threads REQUIRED)
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
   "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
-  # This should be a public include since it exposes the gaia_ptr interface,
-  # which is consumed by internal clients.
-  "${GAIA_INTERNAL_INC}/db"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
-  "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
@@ -202,7 +198,6 @@ if(JAVA_FOUND AND JNI_FOUND)
 endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
-  ${GAIA_INTERNAL_INC}/db/
   ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/core/inc
@@ -225,5 +220,5 @@ add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_I
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
+  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")

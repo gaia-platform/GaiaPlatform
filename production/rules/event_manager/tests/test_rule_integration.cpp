@@ -13,17 +13,17 @@
 #include <map>
 #include <thread>
 
+#include "gaia_internal/catalog/ddl_execution.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
-#include "db_test_base.hpp"
-#include "ddl_execution.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_catalog.h"
-#include "timer.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

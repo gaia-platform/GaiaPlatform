@@ -6,9 +6,10 @@
 
 #include <filesystem>
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "gaia/db/catalog.hpp"
 #include "gaia_parser.hpp"
-#include "retail_assert.hpp"
 
 namespace gaia
 {

@@ -5,7 +5,7 @@
 
 #include "access_control.hpp"
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;

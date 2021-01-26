@@ -3,9 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "ddl_executor.hpp"
+#include "gaia_internal/catalog/ddl_executor.hpp"
 
 #include <memory>
+
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
 
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
@@ -13,9 +17,6 @@
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
-#include "logger_internal.hpp"
-#include "retail_assert.hpp"
-#include "system_table_types.hpp"
 
 using namespace std;
 

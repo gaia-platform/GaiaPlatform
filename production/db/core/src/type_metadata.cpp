@@ -3,16 +3,17 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "type_metadata.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
 
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
 
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
+
 #include "gaia/common.hpp"
-#include "catalog_core.hpp"
-#include "logger_internal.hpp"
-#include "system_table_types.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace gaia::common;

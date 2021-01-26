@@ -5,13 +5,13 @@
 
 #include <iomanip>
 
+#include "gaia_internal/db/gaia_ptr.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
-#include "gaia_ptr.hpp"
 
 using namespace std;
 using namespace gaia::db;

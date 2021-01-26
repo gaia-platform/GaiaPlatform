@@ -6,10 +6,10 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
+#include "gaia_internal/db/db_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;

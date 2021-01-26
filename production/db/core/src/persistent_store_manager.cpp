@@ -7,17 +7,17 @@
 
 #include <iostream>
 
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
 #include "rdb_internal.hpp"
 #include "rdb_object_converter.hpp"
-#include "system_table_types.hpp"
 
 using namespace std;
 

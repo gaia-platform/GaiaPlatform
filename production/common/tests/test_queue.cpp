@@ -5,9 +5,8 @@
 
 #include <iostream>
 
+#include "gaia_internal/common/queue.hpp"
 #include "gtest/gtest.h"
-
-#include "queue.hpp"
 
 using namespace std;
 using namespace gaia::common;
