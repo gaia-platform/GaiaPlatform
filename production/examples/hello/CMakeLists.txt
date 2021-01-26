@@ -24,12 +24,12 @@ set(HELLO_DDL ${PROJECT_SOURCE_DIR}/hello.ddl)
 set(HELLO_RULESET ${PROJECT_SOURCE_DIR}/hello.ruleset)
 
 add_custom_command(
+  COMMENT "Compiling hello.ddl."
   OUTPUT ${PROJECT_BINARY_DIR}/gaia_hello.h
   COMMAND ${GAIA_GENERATE}
     -o ${PROJECT_BINARY_DIR}
     -g ${HELLO_DDL}
   DEPENDS ${HELLO_DDL}
-  COMMENT "Compiled hello.ddl."
 )
 
 add_custom_target(generate_hello_headers ALL
