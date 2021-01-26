@@ -87,7 +87,7 @@ struct navigation_code_data_t
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 
-const char* c_last_operation = "LastOperation";
+const char c_last_operation[] = "LastOperation";
 
 static void print_version(raw_ostream& stream)
 {
@@ -400,6 +400,7 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
         }
     }
 
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     string tbl = dst;
     while (table_prev[tbl] != "")
     {
