@@ -9,10 +9,10 @@ cmake_minimum_required(VERSION 3.12)
 project(rules_schema)
 
 add_custom_command(
+  COMMENT "Generating event_log direct access APIs..."
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_event_log.h
   COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/core -o ${GAIA_GENERATED_SCHEMAS} -g -d event_log
   DEPENDS gaiac
-  COMMENT "Generated event_log direct access APIs..."
 )
 
 add_custom_target(generate_rules_headers ALL

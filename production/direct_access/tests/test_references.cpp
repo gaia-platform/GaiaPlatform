@@ -63,6 +63,25 @@ int count_addresses(const employee_t& e)
     return count;
 }
 
+employee_t insert_records(size_t count)
+{
+    employee_writer employee_writer;
+    address_writer address_writer;
+
+    employee_writer.name_first = "Many";
+    employee_writer.name_last = "Addresses";
+    employee_t employee = employee_t::get(employee_writer.insert_row());
+
+    for (size_t i = 0; i < count; i++)
+    {
+        address_writer.street = to_string(i);
+        address_t address = address_t::get(address_writer.insert_row());
+        employee.addressee_address_list().insert(address);
+    }
+
+    return employee;
+}
+
 // Test connecting, disconnecting, navigating records
 // ==================================================
 TEST_F(gaia_references_test, connect)
@@ -82,7 +101,7 @@ TEST_F(gaia_references_test, connect)
 
     EXPECT_EQ(count_addresses(e3), 1);
 
-    e3.addressee_address_list().erase(a3);
+    e3.addressee_address_list().remove(a3);
     a3.delete_row();
     e3.delete_row();
     commit_transaction();
@@ -115,7 +134,7 @@ TEST_F(gaia_references_test, connect_id_member)
 
     gaia_id_t invalid_id = find_invalid_id();
 
-    e3.addressee_address_list().erase(aid3);
+    e3.addressee_address_list().remove(aid3);
     address_t::delete_row(aid3);
     e3.delete_row();
     EXPECT_THROW(address_t::delete_row(invalid_id), invalid_node_id);
@@ -219,14 +238,14 @@ bool delete_hierarchy(employee_t& employee_to_delete)
 
                 if (count_phones)
                 {
-                    address.phone_list().erase(phone_to_delete);
+                    address.phone_list().remove(phone_to_delete);
                     phone_to_delete.delete_row();
                 }
             }
         }
         if (count_addressee)
         {
-            employee_to_delete.addressee_address_list().erase(address_to_delete);
+            employee_to_delete.addressee_address_list().remove(address_to_delete);
             address_to_delete.delete_row();
         }
     }
@@ -435,7 +454,7 @@ TEST_F(gaia_references_test, connect_after_txn)
     EXPECT_STREQ((*addr).city(), "Boulder");
 }
 
-// Erase list members inserted in prior transaction.
+// Remove list members inserted in prior transaction.
 TEST_F(gaia_references_test, disconnect_after_txn)
 {
     auto_transaction_t txn;
@@ -453,8 +472,8 @@ TEST_F(gaia_references_test, disconnect_after_txn)
     // In a subsequent transaction, disconnect the objects.
     txn.commit();
 
-    e1.addressee_address_list().erase(a1);
-    e1.addressee_address_list().erase(a2);
+    e1.addressee_address_list().remove(a1);
+    e1.addressee_address_list().remove(a2);
 }
 
 // Generate an exception by attempting to insert member twice.
@@ -479,8 +498,8 @@ TEST_F(gaia_references_test, connect_twice)
     EXPECT_THROW(e2.addressee_address_list().insert(a1), child_already_referenced);
 }
 
-// Generate an exception by attempting to erase un-inserted member.
-TEST_F(gaia_references_test, erase_uninserted)
+// Generate an exception by attempting to remove un-inserted member.
+TEST_F(gaia_references_test, remove_uninserted)
 {
     auto_transaction_t txn;
 
@@ -490,17 +509,17 @@ TEST_F(gaia_references_test, erase_uninserted)
     address_writer address_w;
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
 
-    // The erase() should fail.
-    EXPECT_THROW(e1.addressee_address_list().erase(a1), invalid_child);
+    // The remove() should fail.
+    EXPECT_THROW(e1.addressee_address_list().remove(a1), invalid_child);
 
-    // Now insert it, erase, and erase again.
+    // Now insert it, remove, and remove again.
     e1.addressee_address_list().insert(a1);
-    e1.addressee_address_list().erase(a1);
-    EXPECT_THROW(e1.addressee_address_list().erase(a1), invalid_child);
+    e1.addressee_address_list().remove(a1);
+    EXPECT_THROW(e1.addressee_address_list().remove(a1), invalid_child);
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.
-TEST_F(gaia_references_test, erase_in_iterator)
+TEST_F(gaia_references_test, remove_in_iterator)
 {
     auto_transaction_t txn;
 
@@ -520,7 +539,7 @@ TEST_F(gaia_references_test, erase_in_iterator)
     int count = 0;
     for (auto a : e1.addressee_address_list())
     {
-        e1.addressee_address_list().erase(a);
+        e1.addressee_address_list().remove(a);
         count++;
     }
     EXPECT_EQ(count, 1);
@@ -529,7 +548,7 @@ TEST_F(gaia_references_test, erase_in_iterator)
     count = 0;
     for (auto a : e1.addressee_address_list())
     {
-        e1.addressee_address_list().erase(a);
+        e1.addressee_address_list().remove(a);
         count++;
     }
     EXPECT_EQ(count, 1);
@@ -821,6 +840,63 @@ TEST_F(gaia_references_test, set_filter)
         count++;
     }
     EXPECT_EQ(count, 2);
+}
+
+TEST_F(gaia_references_test, test_remove)
+{
+    begin_transaction();
+    employee_t employee = insert_records(10);
+    auto addr_list = employee.addressee_address_list();
+
+    for (address_t addr : addr_list)
+    {
+        addr_list.remove(addr);
+    }
+
+    // The line above should remove only one element from the container
+    ASSERT_EQ(9, std::distance(addr_list.begin(), addr_list.end()));
+
+    auto addr_it = addr_list.begin();
+    while (addr_it != addr_list.end())
+    {
+        addr_list.remove(*addr_it++);
+    }
+
+    ASSERT_EQ(addr_list.begin(), addr_list.end());
+
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_erase)
+{
+    begin_transaction();
+    employee_t employee = insert_records(10);
+    auto addr_list = employee.addressee_address_list();
+
+    for (auto addr_it = addr_list.begin(); addr_it != addr_list.end();)
+    {
+        addr_it = addr_list.erase(addr_it);
+    }
+
+    ASSERT_EQ(addr_list.begin(), addr_list.end());
+
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_clear)
+{
+    begin_transaction();
+    employee_t employee = insert_records(10);
+    auto addr_list = employee.addressee_address_list();
+
+    addr_list.clear();
+
+    ASSERT_EQ(addr_list.begin(), addr_list.end());
+
+    // Ensures that nothing happens.
+    addr_list.clear();
+
+    commit_transaction();
 }
 
 // Create a hierarchy
