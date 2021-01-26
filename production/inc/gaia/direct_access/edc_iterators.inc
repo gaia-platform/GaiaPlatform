@@ -284,7 +284,6 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia_set_iterator_t<T_child, T_next_slot> position)
 {
-
     auto current = *position;
     position++;
     remove(current);

@@ -171,7 +171,7 @@ employee_t create_hierarchy()
 int scan_hierarchy(employee_t& eptr)
 {
     int count = 1;
-    for (auto aptr : eptr.addressee_address_list())
+    for (const auto& aptr : eptr.addressee_address_list())
     {
         ++count;
         for (auto const& pptr : aptr.phone_list())
@@ -191,12 +191,12 @@ bool bounce_hierarchy(employee_t& eptr)
     // up, verifying the results on the way.
     const int c_count_subset = 30;
     int count_addressee = 0;
-    for (auto aptr : eptr.addressee_address_list())
+    for (const auto& aptr : eptr.addressee_address_list())
     {
         if ((++count_addressee % c_count_subset) == 0)
         {
             int count_phones = 0;
-            for (auto pptr : aptr.phone_list())
+            for (const auto& pptr : aptr.phone_list())
             {
                 if ((++count_phones % 4) == 0)
                 {
@@ -845,7 +845,9 @@ TEST_F(gaia_references_test, set_filter)
 TEST_F(gaia_references_test, test_remove)
 {
     begin_transaction();
-    employee_t employee = insert_records(10);
+    const size_t c_num_addresses = 10;
+
+    employee_t employee = insert_records(c_num_addresses);
     auto addr_list = employee.addressee_address_list();
 
     for (address_t addr : addr_list)
@@ -854,7 +856,7 @@ TEST_F(gaia_references_test, test_remove)
     }
 
     // The line above should remove only one element from the container
-    ASSERT_EQ(9, std::distance(addr_list.begin(), addr_list.end()));
+    ASSERT_EQ(c_num_addresses - 1, std::distance(addr_list.begin(), addr_list.end()));
 
     auto addr_it = addr_list.begin();
     while (addr_it != addr_list.end())
@@ -870,7 +872,9 @@ TEST_F(gaia_references_test, test_remove)
 TEST_F(gaia_references_test, test_erase)
 {
     begin_transaction();
-    employee_t employee = insert_records(10);
+    const size_t c_num_addresses = 10;
+
+    employee_t employee = insert_records(c_num_addresses);
     auto addr_list = employee.addressee_address_list();
 
     for (auto addr_it = addr_list.begin(); addr_it != addr_list.end();)
@@ -883,10 +887,27 @@ TEST_F(gaia_references_test, test_erase)
     commit_transaction();
 }
 
+TEST_F(gaia_references_test, test_erase_invalid_child)
+{
+    begin_transaction();
+    const size_t c_num_addresses = 10;
+
+    employee_t employee = insert_records(c_num_addresses);
+    auto addr_list = employee.addressee_address_list();
+
+    EXPECT_THROW(addr_list.erase(addr_list.end()), invalid_node_id);
+
+    ASSERT_EQ(c_num_addresses, std::distance(addr_list.begin(), addr_list.end()));
+
+    commit_transaction();
+}
+
 TEST_F(gaia_references_test, test_clear)
 {
     begin_transaction();
-    employee_t employee = insert_records(10);
+    const size_t c_num_addresses = 10;
+
+    employee_t employee = insert_records(c_num_addresses);
     auto addr_list = employee.addressee_address_list();
 
     addr_list.clear();
