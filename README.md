@@ -3,7 +3,7 @@ GaiaPlatform - Main repository
 
 ## Environment requirements
 
-This repository is meant to be built with clang-8. To ensure clang-8 use, add the following lines to your .bashrc.
+This repository is meant to be built with `clang-8`. To ensure `clang-8` use, add the following lines to your `.bashrc`.
 
 * ```export CC=/usr/bin/clang-8```
 * ```export CXX=/usr/bin/clang++-8```
@@ -30,19 +30,12 @@ The following folder structure is recommended for C++ projects:
 ## Formatter and Linter
 
 ### Formatter
-`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is 
-automatically installed by CMake. The `clang-format` version in use is `10.0`.
+`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `10.0`.
 
-Note: `clang-format` reorders the includes which could break the build. There are ways
-to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
+Note: `clang-format` reorders the includes which could break the build. There are ways to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code.
 
 ### Linter
-`clang-tidy` is integrated with CMake and is invoked on each build. At the moment it
-only print the warnings in the compiler output. `clang-tidy` is not enforced, which means
-that warnings to not lead to build failures, keep in mind though, that this is the desired 
-behavior in the long term. Do your best to reduce the number of warnings by either fixing
-them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use 
-is `10.0`.
+`clang-tidy` is integrated with `cmake` and is invoked on each build. At the moment, it will only print the warnings in the compiler output. `clang-tidy` is not enforced, which means that warnings do not lead to build failures, keep in mind though, that this is the desired behavior in the long term. Do your best to reduce the number of warnings by either fixing them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use is `10.0`.
 
 ## Copyright notes
 
@@ -67,25 +60,22 @@ Use the following copyright note with your code. Several language specific versi
 
 ## Compile with gdev
 
-Gdev is a command line tool that creates repeatable builds in the GaiaPlatform repo. The builds are
-isolated within Docker images and do not depend on any installed packages or configuration on your
-host.
+`gdev` is a command line tool that creates repeatable builds in the GaiaPlatform repo. The builds are isolated within Docker images and do not depend on any installed packages or configuration on your host.
 
-Look into `dev_tools/gdev/README.md` to see how to use gdev. 
+Look into `dev_tools/gdev/README.md` to see how to use `gdev`.
 
-## Compile locally 
+## Compile locally
 
-Alternatively to gdev you can compile the project locally. The disadvantage is that you must manually install all the 
-dependencies. 
+As an alternative to `gdev`, you can compile the project locally. The disadvantage is that you must manually install all the dependencies.
 
-### Install dependencies 
+### Install dependencies
 
-To install all the dependencies go to the `third_party/production/` folder, and follow the instruction of each `gdev.cfg`
-file.
+To install all the dependencies, go to the `third_party/production/` folder and then follow the instruction of each `gdev.cfg` file.
 
-Fo instance, let's consider `daemonize/gdev.cfg`:
+For instance, let's consider `daemonize/gdev.cfg`:
 
-```text
+```
+text
 [apt]
 build-essential
 
@@ -98,9 +88,12 @@ cd daemonize
 make -j$(nproc)
 make install
 ```
+
 You will need to run the following commands:
 
-```bash
+
+```
+bash
 sudo apt-get install build-essential
 
 git clone --single-branch --branch release-1.7.8 https://github.com/bmc/daemonize.git
@@ -117,15 +110,11 @@ Same thing for all the other dependencies.
 
 ### Build
 
-TO build with Cmake run, from the GaiaPlatform root:
-
-```bash
-cmake -S production -B build/production -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles"
-cd build/production
-make -j$(nproc) VERBOSE=1
-```
+To build with `cmake`, follow the instructions from `production/README.md`.
 
 ### Run Tests
+
+Tests can be run from the build folder with the following commands:
 
 ```
 cd build/production
@@ -139,22 +128,18 @@ ctest -R storage
 
 ### Configure Clion
 
-The following steps assumes that you have all the Gaia dependencies installed
-locally. If not, go to `GaiaPlatform/third_party/production` and follow the
-instructions into each and every `gdev.cfg`.
+The following steps assume that you have all the Gaia dependencies installed locally. If not, go to `GaiaPlatform/third_party/production` and follow the instructions from each and every `gdev.cfg`.
 
-Note Clion expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore you need to select 
-`GaiaPlatform/production` as root of the project.
+Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore you need to select `GaiaPlatform/production` as the root of the project.
 
 1. Open Clion
-   - New CMake project from sources
-   - Select the `GaiaPlatform/production` directory
+   - New CMake project from sources.
+   - Select the `GaiaPlatform/production` directory.
 2. Build
-   - Build ->  Build project
+   - Build ->  Build project.
 3. Run
    - Run `gaia_se_server` from the top right corner. This should always be running while running other tests.
-   - Open a test file (3 time shift and type `test_direct_access.cpp`)
-   - Press the play button on the left of each test
+   - Open a test file (3 time shift and type `test_direct_access.cpp`).
+   - Press the play button on the left of each test.
 4. Modify
-   - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the
-     test being compiled, executed and the obvious failure.
+   - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the test being compiled, executed and the obvious failure.

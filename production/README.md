@@ -25,16 +25,16 @@ Create a subfolder **build\** and then execute the following commands in it depe
 cmake ..
 make -j<number of CPUs>
 ```
-If CMAKE_BUILD_TYPE is not specified on the command line, then by default we add compile and link flags to include debugging information.
+If `CMAKE_BUILD_TYPE` is not specified on the command line, then by default we add compile and link flags to include debugging information.
 
 ### SDK
 ```
 cmake -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON ..
 make -j<number of CPUs>
 ```
-To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](https://github.com/gaia-platform/GaiaPlatform/blob/master/third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper cmake module depending upon where you install it.
+To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](https://github.com/gaia-platform/GaiaPlatform/blob/master/third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper `cmake` module depending upon where you install it.
 
-If BUILD_GAIA_RELEASE is set to ON then CMAKE_BUILD_TYPE will be set to Release. This is done by default because debug builds of LLVM take much longer than retail builds.  We've also seen some of our local dev machines run out of memory when attempting to do debug LLVM builds.
+If `BUILD_GAIA_RELEASE` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release`. This is done by default because debug builds of LLVM take much longer than retail builds.  We've also seen some of our local dev machines run out of memory when attempting to do debug LLVM builds.
 
 ### LLVMTests
 ```
@@ -42,10 +42,11 @@ cmake -DBUILD_GAIA_LLVM_TESTS=ON ..
 make -j<number of CPUs> check-all
 ```
 
-If BUILD_GAIA_LLVM_TESTS is set to ON then CMAKE_BUILD_TYPE will be set to Release as well.
+If `BUILD_GAIA_LLVM_TESTS` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release` as well.
 
 ### Other Flags
-Other CMAKE variables we use but are not required:
+Other CMake variables we use but are not required:
+
 ```
 # Override the build type to Debug or Release.
 # If explicitly set to Debug, then address sanitizer will be enabled.
