@@ -130,9 +130,9 @@ ctest -R storage
 
 The following steps assume that you have all the Gaia dependencies installed locally. If not, go to `GaiaPlatform/third_party/production` and follow the instructions from each and every `gdev.cfg`.
 
-Note that `Clion` expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore you need to select `GaiaPlatform/production` as the root of the project.
+Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore you need to select `GaiaPlatform/production` as the root of the project.
 
-1. Open `Clion`
+1. Open Clion
    - New CMake project from sources.
    - Select the `GaiaPlatform/production` directory.
 2. Build
