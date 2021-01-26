@@ -3,7 +3,7 @@ GaiaPlatform - Main repository
 
 ## Environment requirements
 
-This repository is meant to be built with clang-8. To ensure clang-8 use, add the following lines to your .bashrc.
+This repository is meant to be built with `clang-8`. To ensure `clang-8` use, add the following lines to your `.bashrc`.
 
 * ```export CC=/usr/bin/clang-8```
 * ```export CXX=/usr/bin/clang++-8```
@@ -30,7 +30,7 @@ The following folder structure is recommended for C++ projects:
 ## Formatter and Linter
 
 ### Formatter
-`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by CMake. The `clang-format` version in use is `10.0`.
+`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `10.0`.
 
 Note: `clang-format` reorders the includes which could break the build. There are ways to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code.
 
