@@ -136,9 +136,8 @@ public:
 // Constants have been generated to identify the particular slot assigned for
 // its role in a set.
 //
-// @tparam T_parent the Extended Data Class that is in the parent position in the set
 // @tparam T_child the Extended Data Class that is in the child position in the set
-template <typename T_parent, typename T_child>
+template <typename T_child>
 class reference_chain_container_t : edc_db_t
 {
     gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
@@ -149,8 +148,10 @@ class reference_chain_container_t : edc_db_t
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
-        : m_parent_id(parent), m_filter_fn(filter_function){};
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t const_next_slot)
+        : m_parent_id(parent)
+        , m_filter_fn(filter_function)
+        , m_const_next_slot(const_next_slot){};
 
     explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t const_parent, size_t const_child_slot, size_t const_next_slot)
         : m_parent_id(parent)
@@ -164,7 +165,7 @@ public:
 
     gaia_set_iterator_t<T_child> begin() const;
 
-    reference_chain_container_t<T_parent, T_child> where(std::function<bool(const T_child&)>) const;
+    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 
     gaia_set_iterator_t<T_child> end() const;
 

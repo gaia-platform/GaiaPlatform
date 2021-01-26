@@ -69,7 +69,7 @@ struct gaia_database_t;
 
 typedef gaia::direct_access::gaia_writer_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT, c_num_gaia_database_ptrs> gaia_database_writer;
 struct gaia_database_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT, c_num_gaia_database_ptrs> {
-    typedef gaia::direct_access::reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_database_gaia_table, c_first_gaia_database_gaia_table, c_next_gaia_database_gaia_table> gaia_table_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_table_t> gaia_table_list_t;
     gaia_database_t() : gaia_object_t("gaia_database_t") {}
     const char* name() const {return GET_STR(name);}
     using gaia_object_t::insert_row;
@@ -83,7 +83,7 @@ struct gaia_database_t : public gaia::direct_access::gaia_object_t<c_gaia_type_g
         return list;
     }
     gaia_table_list_t gaia_table_list() const {
-        return gaia_table_list_t(gaia_id());
+        return gaia_table_list_t(gaia_id(), c_parent_gaia_database_gaia_table, c_first_gaia_database_gaia_table, c_next_gaia_database_gaia_table);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT, c_num_gaia_database_ptrs>;
@@ -92,9 +92,9 @@ private:
 
 typedef gaia::direct_access::gaia_writer_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT, c_num_gaia_table_ptrs> gaia_table_writer;
 struct gaia_table_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT, c_num_gaia_table_ptrs> {
-    typedef gaia::direct_access::reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_table_gaia_field, c_first_gaia_table_gaia_field, c_next_gaia_table_gaia_field> gaia_field_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_parent_gaia_relationship, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship> parent_gaia_relationship_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_child_gaia_relationship, c_first_child_gaia_relationship, c_next_child_gaia_relationship> child_gaia_relationship_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_field_t> gaia_field_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> parent_gaia_relationship_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> child_gaia_relationship_list_t;
     gaia_table_t() : gaia_object_t("gaia_table_t") {}
     const char* name() const {return GET_STR(name);}
     uint32_t type() const {return GET(type);}
@@ -115,13 +115,13 @@ struct gaia_table_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia
         return list;
     }
     gaia_field_list_t gaia_field_list() const {
-        return gaia_field_list_t(gaia_id());
+        return gaia_field_list_t(gaia_id(), c_parent_gaia_table_gaia_field, c_first_gaia_table_gaia_field, c_next_gaia_table_gaia_field);
     }
     parent_gaia_relationship_list_t parent_gaia_relationship_list() const {
-        return parent_gaia_relationship_list_t(gaia_id());
+        return parent_gaia_relationship_list_t(gaia_id(), c_parent_parent_gaia_relationship, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship);
     }
     child_gaia_relationship_list_t child_gaia_relationship_list() const {
-        return child_gaia_relationship_list_t(gaia_id());
+        return child_gaia_relationship_list_t(gaia_id(), c_parent_child_gaia_relationship, c_first_child_gaia_relationship, c_next_child_gaia_relationship);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT, c_num_gaia_table_ptrs>;
@@ -188,7 +188,7 @@ private:
 
 typedef gaia::direct_access::gaia_writer_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT, c_num_gaia_ruleset_ptrs> gaia_ruleset_writer;
 struct gaia_ruleset_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT, c_num_gaia_ruleset_ptrs> {
-    typedef gaia::direct_access::reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_ruleset_gaia_rule, c_first_gaia_ruleset_gaia_rule, c_next_gaia_ruleset_gaia_rule> gaia_rule_list_t;
+    typedef gaia::direct_access::reference_chain_container_t<gaia_rule_t> gaia_rule_list_t;
     gaia_ruleset_t() : gaia_object_t("gaia_ruleset_t") {}
     const char* name() const {return GET_STR(name);}
     bool active_on_startup() const {return GET(active_on_startup);}
@@ -206,7 +206,7 @@ struct gaia_ruleset_t : public gaia::direct_access::gaia_object_t<c_gaia_type_ga
         return list;
     }
     gaia_rule_list_t gaia_rule_list() const {
-        return gaia_rule_list_t(gaia_id());
+        return gaia_rule_list_t(gaia_id(), c_parent_gaia_ruleset_gaia_rule, c_first_gaia_ruleset_gaia_rule, c_next_gaia_ruleset_gaia_rule);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT, c_num_gaia_ruleset_ptrs>;

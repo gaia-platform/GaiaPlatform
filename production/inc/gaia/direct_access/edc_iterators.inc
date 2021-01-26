@@ -210,8 +210,8 @@ bool gaia_set_iterator_t<T_child>::operator!=(const gaia_set_iterator_t& rhs) co
 //
 // Implementation for reference_chain_container_t.
 //
-template <typename T_parent, typename T_child>
-gaia_set_iterator_t<T_child> reference_chain_container_t<T_parent, T_child>::begin() const
+template <typename T_child>
+gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
 {
     gaia::common::gaia_id_t id = 0;
 
@@ -238,47 +238,47 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_parent, T_child>::beg
 }
 
 // The where() method saves the address of the std::function, to be called for each candidate return value.
-template <typename T_parent, typename T_child>
-reference_chain_container_t<T_parent, T_child>
-reference_chain_container_t<T_parent, T_child>::where(std::function<bool(const T_child&)> filter_function) const
+template <typename T_child>
+reference_chain_container_t<T_child>
+reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> filter_function) const
 {
-    return reference_chain_container_t<T_parent, T_child>(m_parent_id, filter_function, m_const_next_slot);
+    return reference_chain_container_t<T_child>(m_parent_id, filter_function, m_const_next_slot);
 }
 
-template <typename T_parent, typename T_child>
-gaia_set_iterator_t<T_child> reference_chain_container_t<T_parent, T_child>::end() const
+template <typename T_child>
+gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::end() const
 {
     return gaia_set_iterator_t<T_child>(0, 0);
 }
 
-template <typename T_parent, typename T_child>
-void reference_chain_container_t<T_parent, T_child>::insert(gaia::common::gaia_id_t child_id)
+template <typename T_child>
+void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_id)
 {
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (child_id == 0 || m_parent_id == 0)
     {
-        T_parent expected = T_parent::get(0);
+        // T_parent expected = T_parent::get(0);
         T_child received = T_child::get(0);
-        throw edc_invalid_state(expected.gaia_typename(), received.gaia_typename());
+        throw edc_invalid_state("unknown" /*expected.gaia_typename()*/, received.gaia_typename());
     }
 
     gaia_base_t::insert_child_reference(m_parent_id, child_id, m_const_child_slot);
 }
 
-template <typename T_parent, typename T_child>
-void reference_chain_container_t<T_parent, T_child>::insert(T_child& child_edc)
+template <typename T_child>
+void reference_chain_container_t<T_child>::insert(T_child& child_edc)
 {
     insert(child_edc.gaia_id());
 }
 
-template <typename T_parent, typename T_child>
-void reference_chain_container_t<T_parent, T_child>::erase(gaia::common::gaia_id_t child_id)
+template <typename T_child>
+void reference_chain_container_t<T_child>::erase(gaia::common::gaia_id_t child_id)
 {
     gaia_base_t::remove_child_reference(m_parent_id, child_id, m_const_child_slot);
 }
 
-template <typename T_parent, typename T_child>
-void reference_chain_container_t<T_parent, T_child>::erase(T_child& child_edc)
+template <typename T_child>
+void reference_chain_container_t<T_child>::erase(T_child& child_edc)
 {
     erase(child_edc.gaia_id());
 }
