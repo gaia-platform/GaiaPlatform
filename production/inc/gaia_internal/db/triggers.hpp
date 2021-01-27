@@ -14,7 +14,6 @@
 
 #include "gaia/common.hpp"
 #include "gaia/events.hpp"
-
 #include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;

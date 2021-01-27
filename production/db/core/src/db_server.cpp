@@ -24,13 +24,6 @@
 #include <sys/eventfd.h>
 #include <sys/file.h>
 
-#include "db_hash_map.hpp"
-#include "db_helpers.hpp"
-#include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
-#include "messages_generated.h"
-#include "persistent_store_manager.hpp"
-
 #include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
@@ -41,6 +34,13 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+
+#include "db_hash_map.hpp"
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
+#include "messages_generated.h"
+#include "persistent_store_manager.hpp"
 
 using namespace std;
 

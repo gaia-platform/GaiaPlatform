@@ -7,9 +7,9 @@
 
 #include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
-#include "com_gaiaplatform_database_GaiaDatabase.h"
-
 #include "gaia_internal/db/gaia_ptr.hpp"
+
+#include "com_gaiaplatform_database_GaiaDatabase.h"
 
 using namespace std;
 using namespace gaia::db;

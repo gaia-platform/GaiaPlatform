@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
-
-#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {

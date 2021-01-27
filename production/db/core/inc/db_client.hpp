@@ -6,14 +6,14 @@
 #pragma once
 
 #include "gaia/db/db.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/triggers.hpp"
+
 #include "db_shared_data.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "stack_allocator.hpp"
-
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/triggers.hpp"
 
 namespace gaia
 {

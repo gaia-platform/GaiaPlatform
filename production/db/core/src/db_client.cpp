@@ -22,11 +22,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "db_helpers.hpp"
-#include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
-#include "messages_generated.h"
-
 #include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
@@ -37,6 +32,11 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
+
+#include "db_helpers.hpp"
+#include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
+#include "messages_generated.h"
 
 using namespace gaia::common;
 using namespace gaia::db;

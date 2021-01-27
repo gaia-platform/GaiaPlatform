@@ -16,7 +16,6 @@
 #include <thread>
 
 #include "gaia/db/db.hpp"
-
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"

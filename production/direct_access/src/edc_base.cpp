@@ -6,7 +6,6 @@
 #include "gaia/direct_access/edc_base.hpp"
 
 #include "gaia/db/db.hpp"
-
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace gaia::db;

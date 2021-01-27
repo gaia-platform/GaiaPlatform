@@ -5,9 +5,9 @@
 
 #include "gtest/gtest.h"
 
-#include "db_test_util.hpp"
-
 #include "gaia_internal/db/type_metadata.hpp"
+
+#include "db_test_util.hpp"
 
 using namespace std;
 using namespace gaia::db;

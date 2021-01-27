@@ -13,15 +13,15 @@
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
-#include "db_test_util.hpp"
-#include "gaia_addr_book.h"
-#include "schema_loader.hpp"
-#include "type_id_mapping.hpp"
-
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/db/db_test_helpers.hpp"
+
+#include "db_test_util.hpp"
+#include "gaia_addr_book.h"
+#include "schema_loader.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;

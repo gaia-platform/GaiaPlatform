@@ -13,7 +13,6 @@
 #include <sys/un.h>
 
 #include "gaia/exception.hpp"
-
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 

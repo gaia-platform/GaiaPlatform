@@ -10,9 +10,9 @@
 #include "flatbuffers/code_generators.h"
 
 #include "gaia/db/catalog.hpp"
-#include "type_id_mapping.hpp"
-
 #include "gaia_internal/catalog/gaia_catalog.h"
+
+#include "type_id_mapping.hpp"
 
 using namespace std;
 using namespace gaia::common;

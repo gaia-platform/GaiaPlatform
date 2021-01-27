@@ -7,9 +7,9 @@
 
 #include "gtest/gtest.h"
 
-#include "record_list.hpp"
-
 #include "gaia_internal/db/db_types.hpp"
+
+#include "record_list.hpp"
 
 using namespace std;
 using namespace gaia::db;

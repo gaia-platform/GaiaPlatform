@@ -11,9 +11,9 @@
 #include <mutex>
 #include <thread>
 
-#include "scheduler_stats.hpp"
-
 #include "gaia_internal/common/timer.hpp"
+
+#include "scheduler_stats.hpp"
 
 namespace gaia
 {

@@ -12,10 +12,10 @@
 #include "gtest/gtest.h"
 #include "spdlog/sinks/ostream_sink.h"
 
-#include "rule_stats_manager.hpp"
-
 #include "gaia_internal/common/debug_logger.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
+
+#include "rule_stats_manager.hpp"
 
 using namespace gaia::common;
 using namespace gaia::rules;

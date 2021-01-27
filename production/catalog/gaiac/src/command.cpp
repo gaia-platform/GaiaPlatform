@@ -9,10 +9,10 @@
 
 #include "tabulate/table.hpp"
 
-#include "fbs_generator.hpp"
-
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+
+#include "fbs_generator.hpp"
 
 using namespace std;
 

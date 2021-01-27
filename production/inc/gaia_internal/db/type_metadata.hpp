@@ -15,7 +15,6 @@
 
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
-
 #include "gaia_internal/db/gaia_relationships.hpp"
 
 namespace gaia

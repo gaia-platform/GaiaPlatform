@@ -46,8 +46,8 @@ IncludeCategories:
     SortPriority: 20
   # Internal Gaia headers
   - Regex: 'gaia_internal\/'
-    Priority: 30
-    SortPriority: 30
+    Priority: 20
+    SortPriority: 21
   # Third-party.
   - Regex: '[spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb|tabulate]\/'
     Priority: 10
@@ -66,11 +66,11 @@ IncludeCategories:
   # C++ library header.
   - Regex: '^<.*'
     Priority: 3
-  # Everything else (gaia headers mostly).
-  # Note: it would be helpful if gaia dependencies where under gaia/
+  # Everything else.
+  # Headers that end up here likely need a rule to be placed in one of the previous groups.
   - Regex: '.*'
-    Priority: 20
-    SortPriority: 21
+    Priority: 30
+    SortPriority: 30
 
 KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false

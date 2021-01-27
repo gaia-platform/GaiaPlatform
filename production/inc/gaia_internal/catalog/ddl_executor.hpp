@@ -11,7 +11,6 @@
 
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
-
 #include "gaia_internal/catalog/gaia_catalog.h"
 
 namespace gaia

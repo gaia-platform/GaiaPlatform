@@ -5,9 +5,9 @@
 
 #include "data_holder.hpp"
 
-#include "field_access.hpp"
-
 #include "gaia_internal/common/retail_assert.hpp"
+
+#include "field_access.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::payload_types;

@@ -11,7 +11,6 @@
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
-
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace std;

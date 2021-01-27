@@ -8,10 +8,10 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "memory_manager.hpp"
 #include "stack_allocator.hpp"
-
-#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 

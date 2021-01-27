@@ -9,7 +9,6 @@
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
-
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 

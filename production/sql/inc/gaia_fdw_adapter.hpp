@@ -22,7 +22,6 @@ extern "C"
 } // extern "C"
 
 #include "gaia/common.hpp"
-
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
