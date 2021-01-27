@@ -17,10 +17,11 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/db.hpp"
-#include "db_test_helpers.hpp"
-#include "db_types.hpp"
-#include "retail_assert.hpp"
-#include "system_error.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
+#include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

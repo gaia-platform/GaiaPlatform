@@ -7,9 +7,9 @@
 #include <sstream>
 #include <string>
 
-#include "catalog_internal.hpp"
-#include "gaia_catalog.h"
-#include "retail_assert.hpp"
+#include "gaia_internal/catalog/catalog_internal.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;

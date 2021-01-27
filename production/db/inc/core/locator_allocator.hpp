@@ -10,8 +10,8 @@
 
 #include <list>
 
-#include "db_types.hpp"
-#include "queue.hpp"
+#include "gaia_internal/common/queue.hpp"
+#include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
 {

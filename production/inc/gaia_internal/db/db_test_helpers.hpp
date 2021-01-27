@@ -16,10 +16,11 @@
 #include <thread>
 
 #include "gaia/db/db.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
-#include "logger_internal.hpp"
-#include "system_error.hpp"
+
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 namespace gaia
 {
@@ -50,7 +51,7 @@ inline void wait_for_server_init()
         {
             begin_session();
         }
-        catch (system_error& ex)
+        catch (gaia::common::system_error& ex)
         {
             if (ex.get_errno() == ECONNREFUSED)
             {
@@ -135,6 +136,8 @@ public:
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
+            cmd.append(" ");
+            cmd.append("--data-dir /tmp/gaia_db");
         }
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());

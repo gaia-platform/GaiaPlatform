@@ -9,8 +9,8 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 namespace gaia
 {

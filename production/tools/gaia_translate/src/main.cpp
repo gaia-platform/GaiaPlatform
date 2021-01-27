@@ -20,8 +20,8 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "gaia_catalog.h"
-#include "gaia_version.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/gaia_version.hpp"
 
 using namespace std;
 using namespace clang;
@@ -900,7 +900,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_rule_context_rule_name_referenced)
         {
-            navigation_code.prefix.insert(0, "const char const *gaia_rule_name = \"" + rule_name_log + "\";\n");
+            navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
         }
         if (rule_count == 1)
         {
@@ -1775,11 +1775,10 @@ public:
                 "context->gaia_type");
         }
     }
+
 private:
     Rewriter& m_rewriter;
 };
-
-
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
@@ -1796,14 +1795,10 @@ public:
         , m_none_match_handler(r)
         , m_rule_context_match_handler(r)
     {
-        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("ruleset_name"))).bind("ruleset_name");
-        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("rule_name"))).bind("rule_name");
-        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("event_type"))).bind("event_type");
-        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("gaia_type"))).bind("gaia_type");
+        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
+        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
+        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("event_type"))).bind("event_type");
+        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("gaia_type"))).bind("gaia_type");
 
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher

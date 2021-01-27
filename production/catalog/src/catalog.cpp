@@ -5,8 +5,8 @@
 
 #include "gaia/db/catalog.hpp"
 
-#include "ddl_executor.hpp"
-#include "gaia_catalog.h"
+#include "gaia_internal/catalog/ddl_executor.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
 
 using namespace std;
 using namespace gaia::common;

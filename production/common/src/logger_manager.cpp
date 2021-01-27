@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger_manager.hpp"
+#include "gaia_internal/common/logger_manager.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -12,7 +12,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog_setup/conf.h"
 
-#include "logger_spdlog.hpp"
+#include "gaia_internal/common/logger_spdlog.hpp"
 
 namespace fs = std::filesystem;
 

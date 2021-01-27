@@ -10,8 +10,9 @@
 #include <memory>
 #include <sstream>
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "memory_types.hpp"
-#include "retail_assert.hpp"
 
 using namespace std;
 

@@ -30,7 +30,7 @@
 #include <filesystem>
 #include <functional>
 
-#include "gaia_catalog.h"
+#include "gaia_internal/catalog/gaia_catalog.h"
 #endif
 
 using std::abs;

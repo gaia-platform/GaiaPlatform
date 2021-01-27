@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "queue.hpp"
+#include "gaia_internal/common/queue.hpp"
 
 using namespace std;
 using namespace gaia::common;

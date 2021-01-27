@@ -8,8 +8,9 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia_internal/common/file.hpp"
+
 #include "field_access.hpp"
-#include "file.hpp"
 
 using namespace std;
 using namespace gaia::common;

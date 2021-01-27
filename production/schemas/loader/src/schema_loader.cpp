@@ -7,8 +7,8 @@
 
 #include <filesystem>
 
-#include "ddl_execution.hpp"
-#include "logger_internal.hpp"
+#include "gaia_internal/catalog/ddl_execution.hpp"
+#include "gaia_internal/common/logger_internal.hpp"
 
 namespace fs = std::filesystem;
 

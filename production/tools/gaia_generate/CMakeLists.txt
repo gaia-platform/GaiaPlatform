@@ -15,8 +15,6 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/catalog
-  ${GAIA_INTERNAL_INC}/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
@@ -31,7 +29,6 @@ set_target_properties(gaia_generate PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 set_target_properties(gaia_generate PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 set(GAIA_TEST_GENERATE_PRIVATE_INCLUDES
-  ${GAIA_INTERNAL_INC}/db
   ${GAIA_GENERATE_INCLUDES}
   ${GAIA_GENERATED_SCHEMAS}
 )

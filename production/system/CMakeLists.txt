@@ -14,9 +14,6 @@ set(GAIA_SYSTEM_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
-  "${GAIA_INTERNAL_INC}/common"
-  "${GAIA_INTERNAL_INC}/db"
-  "${GAIA_INTERNAL_INC}/rules"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
   "${GAIA_REPO}/production/db/inc/memory_manager"
@@ -42,8 +39,7 @@ set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_SYSTEM_PUBLIC_INCLUDES}
   ${GAIA_SYSTEM_PRIVATE_INCLUDES}
-  "${GAIA_INTERNAL_INC}/catalog"
-  "${GAIA_REPO}/production/catalog/parser/inc"
+  ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
   "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
