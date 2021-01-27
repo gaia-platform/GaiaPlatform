@@ -10,6 +10,7 @@
 #include <shared_mutex>
 
 #include "gaia/common.hpp"
+
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"

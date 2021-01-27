@@ -12,6 +12,7 @@
 #include <variant>
 
 #include "gaia/rules/rules.hpp"
+
 #include "gaia_internal/db/triggers.hpp"
 
 #include "gaia_event_log.h"

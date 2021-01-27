@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "gaia/db/catalog.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 #include "gaia_parser.hpp"

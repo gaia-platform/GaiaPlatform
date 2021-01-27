@@ -12,6 +12,7 @@
 #include <sys/mman.h>
 
 #include "gaia/exception.hpp"
+
 #include "gaia_internal/common/system_error.hpp"
 
 namespace gaia

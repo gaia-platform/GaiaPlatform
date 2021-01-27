@@ -11,6 +11,7 @@
 #include <variant>
 
 #include "gaia/events.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_types.hpp"

@@ -5,6 +5,7 @@
 #include "payload_diff.hpp"
 
 #include "gaia/common.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 

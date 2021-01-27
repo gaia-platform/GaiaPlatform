@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "gaia/common.hpp"
+
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 

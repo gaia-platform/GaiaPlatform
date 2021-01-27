@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "gaia/db/db.hpp"
+
 #include "gaia_internal/common/system_table_types.hpp"
 
 constexpr int c_group_size = 8;

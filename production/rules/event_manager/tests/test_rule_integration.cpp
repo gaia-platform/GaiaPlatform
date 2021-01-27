@@ -18,6 +18,7 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
+
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"

@@ -7,6 +7,7 @@
 
 #include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
+
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "com_gaiaplatform_database_GaiaDatabase.h"

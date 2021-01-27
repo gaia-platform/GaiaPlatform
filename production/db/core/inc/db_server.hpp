@@ -16,6 +16,7 @@
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/exception.hpp"
+
 #include "gaia_internal/common/fd_helpers.hpp"
 
 #include "db_internal_types.hpp"

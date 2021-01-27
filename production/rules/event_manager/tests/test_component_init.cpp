@@ -10,6 +10,7 @@
 
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
+
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
 

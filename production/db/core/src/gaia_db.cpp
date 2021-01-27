@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "gaia/db/db.hpp"
+
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
