@@ -44,7 +44,7 @@ After building the SDK, it becomes possible to also build the distribution packa
 make package
 ```
 
-After generating the packages, the Debian package can be installed by executing:
+After generating the packages, the Debian package can be installed by executing the following command, after making sure to update the referenced package version to match what was produced by the build:
 
 ```
 sudo apt install ./gaia-0.1.0_amd64.deb
