@@ -3,9 +3,9 @@ This is a folder for production code. Only code that is meant to be shipped shou
 
 ## Build Overview
 We have three main sets of targets we build:
-1. Core - this includes the core platform components:  catalog, database (client and server), rules engine, extended data classes, and associated tools.
-1. SDK - this includes everything in core plus: LLVM libraries, rules translation engine (gaiat), and definitions for building SDK deb and rpm packages.
-1. LLVMTests - this includes the LLVM test infrastructure for testing ruleset files as well as ruleset compilation tests.
+1. **Core** - this includes the core platform components:  catalog, database (client and server), rules engine, extended data classes, and associated tools.
+1. **SDK** - this includes everything in core plus: LLVM libraries, rules translation engine (gaiat), and definitions for building SDK deb and rpm packages.
+1. **LLVMTests** - this includes the LLVM test infrastructure for testing ruleset files as well as ruleset compilation tests.
 
 Because building LLVM takes much longer than just building Core, we do not build it by default.  However, the SDK does have dependencies on core headers.  If you are changing headers for the catalog, database, or direct access components, it is wise to build the entire SDK to verify that you haven't broken the SDK build.
 
