@@ -2868,13 +2868,15 @@ void server::txn_rollback()
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
 
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(s_fd_log);
+    });
+
     if (s_fd_log != -1)
     {
         // Free any deallocated objects.
         free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
     }
-
-    s_fd_log = -1;
 }
 
 // Before this method is called, we have already received the log fd from the client
