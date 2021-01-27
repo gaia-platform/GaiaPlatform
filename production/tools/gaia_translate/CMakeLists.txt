@@ -48,6 +48,7 @@ set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.d
 set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
 
 add_custom_command(
+  COMMENT "Compiling test.ruleset..."
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/test.cpp
   COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
@@ -66,7 +67,6 @@ add_custom_command(
   DEPENDS gaiat
   DEPENDS ${INCUBATOR_DDL}
   DEPENDS ${INCUBATOR_RULESET}
-  COMMENT "Compiling test.ruleset."
 )
 
 add_custom_target(generate_incubator_rules ALL
@@ -88,7 +88,7 @@ set(MIXED_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test_mixed
 set(MIXED_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_mixed.cpp")
 
 add_custom_command(
-  COMMENT "Compiling test_mixed.ruleset."
+  COMMENT "Compiling test_mixed.ruleset..."
   OUTPUT ${MIXED_RULESET_OUT}
   COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
