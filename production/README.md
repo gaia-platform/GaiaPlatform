@@ -18,7 +18,7 @@ The remainder of this document will focus on #2:  building in your own local env
 For instructions on how to setup your environment, please see our `New Hire Guidelines` document on our GaiaPlatform wiki.
 
 ## Build Instructions
-Create a subfolder **build/** and then execute the following commands in it depending upon which set of targets you want to build:
+Create a subfolder `build` under `production` and then execute the following commands in it depending upon which set of targets you want to build:
 
 ### Core
 ```
@@ -38,7 +38,7 @@ If `BUILD_GAIA_RELEASE` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `R
 
 #### Building the distribution packages
 
-After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the **build/** folder:
+After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the `build` folder:
 
 ```
 make package
