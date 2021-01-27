@@ -18,7 +18,6 @@ set(GAIA_LINK_FLAGS "-ggdb")
 
 set(GAIA_COMMON_INCLUDES 
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/common
   ${GAIA_REPO}/demos/airport_q1/inc
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -36,12 +35,12 @@ include_directories(${AIRIMPORT_INCLUDES})
 # so that it points to a specialized edc_object.hpp version called gaia_object_q1_demo.hpp
 # in the airport_q1/inc/ directory. See airqueries/CMakeLists.txt for more info.
 add_custom_command(
+  COMMENT "Compiling airport_q1.fbs..."
   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h"
   COMMAND ../${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
     --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
     -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
-  COMMENT "Compiling airport_q1.fbs"
 )
 
 add_custom_target(headers_generated

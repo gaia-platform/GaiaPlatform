@@ -61,7 +61,6 @@ message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(GAIA_INTERNAL_INC "${PROJECT_SOURCE_DIR}/inc/gaia_internal")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")

@@ -24,7 +24,7 @@ set(HELLO_DDL ${PROJECT_SOURCE_DIR}/hello.ddl)
 set(HELLO_RULESET ${PROJECT_SOURCE_DIR}/hello.ruleset)
 
 add_custom_command(
-  COMMENT "Compiling hello.ddl."
+  COMMENT "Compiling hello.ddl..."
   OUTPUT ${PROJECT_BINARY_DIR}/gaia_hello.h
   COMMAND ${GAIA_GENERATE}
     -o ${PROJECT_BINARY_DIR}
@@ -37,6 +37,7 @@ add_custom_target(generate_hello_headers ALL
 )
 
 add_custom_command(
+  COMMENT "Translating hello.ruleset..."
   OUTPUT ${PROJECT_BINARY_DIR}/hello_rules.cpp
   COMMAND ${GAIA_TRANSLATE}
     ${HELLO_RULESET}
@@ -46,7 +47,6 @@ add_custom_command(
     -I ${GAIA_INC}
     -I ${PROJECT_BINARY_DIR}
   DEPENDS ${HELLO_RULESET}
-  COMMENT "Translating hello.ruleset."
 )
 
 add_custom_target(translate_hello_ruleset ALL

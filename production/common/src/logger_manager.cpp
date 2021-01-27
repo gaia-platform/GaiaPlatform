@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger_manager.hpp"
+#include "gaia_internal/common/logger_manager.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -12,7 +12,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog_setup/conf.h"
 
-#include "logger_spdlog.hpp"
+#include "gaia_internal/common/logger_spdlog.hpp"
 
 namespace fs = std::filesystem;
 
@@ -98,7 +98,7 @@ void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path)
 shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name)
 {
 
-    auto console_sink = make_shared<spdlog::sinks::stdout_sink_mt>();
+    auto console_sink = make_shared<spdlog::sinks::stderr_sink_mt>();
 
     // Keeping commented out on purpose. We need to decide what are meaningful default sinks.
 

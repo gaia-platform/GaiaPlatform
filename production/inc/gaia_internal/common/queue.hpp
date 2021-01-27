@@ -9,7 +9,7 @@
 
 #include <shared_mutex>
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {

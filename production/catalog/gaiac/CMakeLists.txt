@@ -13,8 +13,6 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/db
-  ${GAIA_INTERNAL_INC}/common
   ${GAIA_PARSER_GENERATED}
   ${PROJECT_SOURCE_DIR}/inc
 )

@@ -13,12 +13,14 @@
 #include <vector>
 
 #include "gaia/rules/rules.hpp"
+
+#include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/rules/rules_config.hpp"
+
 #include "event_manager_test_helpers.hpp"
 #include "gaia_event_log.h"
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
-#include "rules_config.hpp"
-#include "triggers.hpp"
 
 using namespace gaia::db::triggers;
 

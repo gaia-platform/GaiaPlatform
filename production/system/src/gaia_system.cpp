@@ -9,10 +9,12 @@
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
+
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/rules/rules_config.hpp"
+
 #include "cpptoml.h"
-#include "logger_internal.hpp"
-#include "rules_config.hpp"
-#include "scope_guard.hpp"
 
 using namespace std;
 using namespace gaia::rules;

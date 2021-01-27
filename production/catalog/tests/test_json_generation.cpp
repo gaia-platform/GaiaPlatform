@@ -6,7 +6,8 @@
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
 
-#include "db_test_base.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
+
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
 

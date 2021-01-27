@@ -6,8 +6,9 @@
 #include "type_id_mapping.hpp"
 
 #include "gaia/common.hpp"
-#include "catalog_core.hpp"
-#include "retail_assert.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 
 using namespace gaia::db;
 

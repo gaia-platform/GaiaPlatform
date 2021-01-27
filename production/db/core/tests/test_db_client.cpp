@@ -6,10 +6,12 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/db.hpp"
-#include "db_test_base.hpp"
+
+#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
+
 #include "db_test_util.hpp"
-#include "gaia_ptr.hpp"
-#include "type_metadata.hpp"
 
 using namespace gaia::db;
 
