@@ -28,13 +28,13 @@ set(GAIA_DEMO_INCLUDES
 )
 
 # --- Generate EDC from DDL---
-generate_schema_headers(
+process_schema(
   DDL_FILE ${SCHEMAS_DIR}/school.ddl
   OUTPUT_FOLDER ${GAIA_GENERATED_OUTPUTS}
   TARGET_NAME generate_school_headers)
 
 # -- Translate ruleset into CPP --
-translate_ruleset_code(
+translate_ruleset(
   RULESET_FILE ${RULES_DIR}/school.ruleset
   OUTPUT_FOLDER ${GAIA_GENERATED_OUTPUTS}
   TARGET_NAME translate_school_ruleset

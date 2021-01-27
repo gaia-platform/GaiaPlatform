@@ -8,9 +8,9 @@ macro(check_param PARAM)
 endmacro()
 
 # Creates a CMake target that loads the DDL_FILE into the Gaia database
-# and generates the headers, to access the schema programmatically,
-# in OUTPUT_FOLDER. The generated file name is gaia_${DDL_NAME}.h
-# where DDL_NAME is DDL_FILE with no extension.
+# and generates the EDC headers to access the database programmatically.
+# The generated file is placed inside OUTPUT_FOLDER with the name
+# gaia_${DDL_NAME}.h where DDL_NAME is DDL_FILE with no extension.
 #
 # Args:
 # - DDL_FILE: the path to the .ddl file.
@@ -19,7 +19,7 @@ endmacro()
 #                the default value is generate_${DDL_NAME}_headers.
 # - GAIAC_CMD: [optional] custom gaiac command. If not provided will search gaiac
 #              in the path.
-function(generate_schema_headers)
+function(process_schema)
   set(options "")
   set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME GAIAC_CMD)
   set(multiValueArgs "")
@@ -39,7 +39,7 @@ function(generate_schema_headers)
   endif()
 
   add_custom_command(
-    COMMENT "Generating ${DDL_NAME}.h"
+    COMMENT "Generating ${DDL_NAME}.h..."
     OUTPUT ${SCHEMA_HEADER_PATH}
     COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE}
     DEPENDS ${ARG_DDL_FILE}
@@ -68,14 +68,14 @@ endfunction()
 # - RULESET_FILE: the path to the .ruleset file.
 # - OUTPUT_FOLDER: folder where the .cpp files will be generated.
 # - TARGET_NAME: [optional] the name of the generated target. If not provided
-#                the default value is translate_${RULESET_NAME}_code.
+#                the default value is translate_${RULESET_NAME}_ruleset.
 # - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
 # - GAIAT_CMD: [optional] custom gaiac command. If not provided will search gaiac
 #              in the path.
 # - DEPENDS: [optional] optional list of targets this task depends on.
 #            Typically the translation has to depend on the generation of the
 #            schema headers.
-function(translate_ruleset_code)
+function(translate_ruleset)
   set(options "")
   set(oneValueArgs RULESET_FILE OUTPUT_FOLDER TARGET_NAME GAIAT_CMD DEPENDS)
   set(multiValueArgs CLANG_PARAMS)
@@ -110,7 +110,7 @@ function(translate_ruleset_code)
   endif()
 
   add_custom_command(
-    COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}"
+    COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
     OUTPUT ${RULESET_CPP_PATH}
     COMMAND ${ARG_GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} --
     ${GAIAT_INCLUDE_PATH}
@@ -120,7 +120,7 @@ function(translate_ruleset_code)
   )
 
   if(NOT DEFINED ARG_TARGET_NAME)
-    set(ARG_TARGET_NAME "translate_${RULESET_NAME}_code")
+    set(ARG_TARGET_NAME "translate_${RULESET_NAME}_ruleset")
     message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
   endif()
 
