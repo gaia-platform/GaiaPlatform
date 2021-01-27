@@ -32,7 +32,7 @@ set_property (TARGET gaia_payload_types PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Generate the flatbuffers files required by test_field_access.
 add_custom_command(
-  COMMENT "Compiling test_record.fbs with flatbuffers!"
+  COMMENT "Compiling test_record.fbs with flatbuffers..."
   OUTPUT ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs
   COMMAND flatc
     --schema
@@ -43,7 +43,7 @@ add_custom_command(
 add_custom_target(test_record_bfbs ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs)
 
 add_custom_command(
-  COMMENT "Compiling test_record_data.json with flatbuffers!"
+  COMMENT "Compiling test_record_data.json with flatbuffers..."
   OUTPUT ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin
   COMMAND flatc
     --force-defaults

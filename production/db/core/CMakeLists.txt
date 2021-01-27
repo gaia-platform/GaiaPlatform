@@ -50,7 +50,7 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${FBS_SOURCE_FILENAME})
 
   add_custom_command(
-    COMMENT "Compiling ${FBS_SOURCE} with flatbuffers!"
+    COMMENT "Compiling ${FBS_SOURCE} with flatbuffers..."
     OUTPUT "${GEN_DIR}/${GEN_HEADER}"
     COMMAND cmake -E make_directory "${GEN_DIR}"
     COMMAND flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
