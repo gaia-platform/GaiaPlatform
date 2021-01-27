@@ -48,7 +48,7 @@ edc_invalid_state::edc_invalid_state(gaia_id_t parent_id, gaia_id_t child_id, co
 {
     stringstream msg;
     msg << "Cannot insert an object of type '" << child_type
-        << "' into the container. The parent id, '" << parent_id << "' or the child id '"
+        << "' into the container. The parent id '" << parent_id << "' or the child id '"
         << child_id << "' is invalid.";
     m_message = msg.str();
 }
