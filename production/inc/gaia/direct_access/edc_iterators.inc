@@ -271,15 +271,33 @@ void reference_chain_container_t<T_child>::insert(T_child& child_edc)
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::erase(gaia::common::gaia_id_t child_id)
+void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_id)
 {
     gaia_base_t::remove_child_reference(m_parent_id, child_id, m_const_child_slot);
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::erase(T_child& child_edc)
+void reference_chain_container_t<T_child>::remove(T_child& child_edc)
 {
-    erase(child_edc.gaia_id());
+    remove(child_edc.gaia_id());
+}
+
+template <typename T_child>
+gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::erase(gaia_set_iterator_t<T_child> position)
+{
+    auto current = *position;
+    position++;
+    remove(current);
+    return position;
+}
+
+template <typename T_child>
+void reference_chain_container_t<T_child>::clear()
+{
+    for (auto it = begin(); it != end();)
+    {
+        it = erase(it);
+    }
 }
 
 } // namespace direct_access

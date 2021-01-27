@@ -175,9 +175,13 @@ public:
 
     void insert(T_child& child_edc);
 
-    void erase(gaia::common::gaia_id_t child_id);
+    gaia_set_iterator_t<T_child> erase(gaia_set_iterator_t<T_child> position);
 
-    void erase(T_child& child_edc);
+    void remove(gaia::common::gaia_id_t child_id);
+
+    void remove(T_child& child_edc);
+
+    void clear();
 };
 
 /*@}*/
