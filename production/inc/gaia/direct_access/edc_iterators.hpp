@@ -91,13 +91,12 @@ private:
 // a class.
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
-// @tparam T_next_slot index into the child's reference list of the next child in the set
 template <typename T_child>
 class gaia_set_iterator_t
 {
     T_child m_child_obj;
     std::function<bool(const T_child&)> m_filter_fn;
-    size_t m_const_next_slot;
+    size_t m_next_offset;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -106,8 +105,8 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t const_next_slot);
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t const_next_slot);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset);
     gaia_set_iterator_t() = default;
 
     reference operator*();
@@ -142,24 +141,21 @@ class reference_chain_container_t : edc_db_t
 {
     gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
     std::function<bool(const T_child&)> m_filter_fn{};
-    size_t m_const_parent;
-    size_t m_const_child_slot;
-    size_t m_const_next_slot;
+    size_t m_child_offset;
+    size_t m_next_offset;
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t const_parent, size_t const_child_slot, size_t const_next_slot)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t child_offset, size_t next_offset)
         : m_parent_id(parent)
         , m_filter_fn(filter_function)
-        , m_const_parent(const_parent)
-        , m_const_child_slot(const_child_slot)
-        , m_const_next_slot(const_next_slot){};
+        , m_child_offset(child_offset)
+        , m_next_offset(next_offset){};
 
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t const_parent, size_t const_child_slot, size_t const_next_slot)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t child_offset, size_t next_offset)
         : m_parent_id(parent)
-        , m_const_parent(const_parent)
-        , m_const_child_slot(const_child_slot)
-        , m_const_next_slot(const_next_slot){};
+        , m_child_offset(child_offset)
+        , m_next_offset(next_offset){};
 
     // reference_chain_container_t is copied from the EDC list methods.
     reference_chain_container_t(const reference_chain_container_t&) = default;

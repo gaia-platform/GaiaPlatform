@@ -83,7 +83,7 @@ struct gaia_database_t : public gaia::direct_access::gaia_object_t<c_gaia_type_g
         return list;
     }
     gaia_table_list_t gaia_table_list() const {
-        return gaia_table_list_t(gaia_id(), c_parent_gaia_database_gaia_table, c_first_gaia_database_gaia_table, c_next_gaia_database_gaia_table);
+        return gaia_table_list_t(gaia_id(), c_first_gaia_database_gaia_table, c_next_gaia_database_gaia_table);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
@@ -115,13 +115,13 @@ struct gaia_table_t : public gaia::direct_access::gaia_object_t<c_gaia_type_gaia
         return list;
     }
     gaia_field_list_t gaia_field_list() const {
-        return gaia_field_list_t(gaia_id(), c_parent_gaia_table_gaia_field, c_first_gaia_table_gaia_field, c_next_gaia_table_gaia_field);
+        return gaia_field_list_t(gaia_id(), c_first_gaia_table_gaia_field, c_next_gaia_table_gaia_field);
     }
     parent_gaia_relationship_list_t parent_gaia_relationship_list() const {
-        return parent_gaia_relationship_list_t(gaia_id(), c_parent_parent_gaia_relationship, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship);
+        return parent_gaia_relationship_list_t(gaia_id(), c_first_parent_gaia_relationship, c_next_parent_gaia_relationship);
     }
     child_gaia_relationship_list_t child_gaia_relationship_list() const {
-        return child_gaia_relationship_list_t(gaia_id(), c_parent_child_gaia_relationship, c_first_child_gaia_relationship, c_next_child_gaia_relationship);
+        return child_gaia_relationship_list_t(gaia_id(), c_first_child_gaia_relationship, c_next_child_gaia_relationship);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
@@ -206,7 +206,7 @@ struct gaia_ruleset_t : public gaia::direct_access::gaia_object_t<c_gaia_type_ga
         return list;
     }
     gaia_rule_list_t gaia_rule_list() const {
-        return gaia_rule_list_t(gaia_id(), c_parent_gaia_ruleset_gaia_rule, c_first_gaia_ruleset_gaia_rule, c_next_gaia_ruleset_gaia_rule);
+        return gaia_rule_list_t(gaia_id(), c_first_gaia_ruleset_gaia_rule, c_next_gaia_ruleset_gaia_rule);
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;

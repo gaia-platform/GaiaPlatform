@@ -130,16 +130,16 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end() const
 // Implementation for gaia_set_iterator_t.
 //
 template <typename T_child>
-gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t const_next_slot)
-    : m_const_next_slot(const_next_slot)
+gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset)
+    : m_next_offset(next_offset)
 {
     m_child_obj = T_child::get(id);
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t const_next_slot)
+gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset)
     : m_filter_fn(filter_function)
-    , m_const_next_slot(const_next_slot)
+    , m_next_offset(next_offset)
 {
     m_child_obj = T_child::get(id);
 }
@@ -166,9 +166,9 @@ gaia_set_iterator_t<T_child>& gaia_set_iterator_t<T_child>::operator++()
 
     if (m_filter_fn)
     {
-        for (m_child_obj = T_child::get(m_child_obj.references()[m_const_next_slot]);
+        for (m_child_obj = T_child::get(m_child_obj.references()[m_next_offset]);
              m_child_obj;
-             m_child_obj = T_child::get(m_child_obj.references()[m_const_next_slot]))
+             m_child_obj = T_child::get(m_child_obj.references()[m_next_offset]))
         {
             if (m_filter_fn(m_child_obj))
             {
@@ -180,7 +180,7 @@ gaia_set_iterator_t<T_child>& gaia_set_iterator_t<T_child>::operator++()
     {
         if (m_child_obj)
         {
-            m_child_obj = T_child::get(m_child_obj.references()[m_const_next_slot]);
+            m_child_obj = T_child::get(m_child_obj.references()[m_next_offset]);
         }
     }
 
@@ -217,7 +217,7 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
 
     if (m_parent_id)
     {
-        id = gaia_base_t::get_reference(m_parent_id, m_const_child_slot);
+        id = gaia_base_t::get_reference(m_parent_id, m_child_offset);
         while (id)
         {
             if (m_filter_fn)
@@ -226,7 +226,7 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
                 {
                     break;
                 }
-                id = gaia_base_t::get_reference(id, m_const_next_slot);
+                id = gaia_base_t::get_reference(id, m_next_offset);
             }
             else
             {
@@ -234,7 +234,7 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
             }
         }
     }
-    return gaia_set_iterator_t<T_child>(id, m_filter_fn, m_const_next_slot);
+    return gaia_set_iterator_t<T_child>(id, m_filter_fn, m_next_offset);
 }
 
 // The where() method saves the address of the std::function, to be called for each candidate return value.
@@ -242,7 +242,7 @@ template <typename T_child>
 reference_chain_container_t<T_child>
 reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> filter_function) const
 {
-    return reference_chain_container_t<T_child>(m_parent_id, filter_function, m_const_next_slot, m_const_child_slot, m_const_next_slot);
+    return reference_chain_container_t<T_child>(m_parent_id, filter_function, m_child_offset, m_next_offset);
 }
 
 template <typename T_child>
@@ -261,7 +261,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
         throw edc_invalid_state(m_parent_id, child_id, received.gaia_typename());
     }
 
-    gaia_base_t::insert_child_reference(m_parent_id, child_id, m_const_child_slot);
+    gaia_base_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
@@ -273,7 +273,7 @@ void reference_chain_container_t<T_child>::insert(T_child& child_edc)
 template <typename T_child>
 void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_id)
 {
-    gaia_base_t::remove_child_reference(m_parent_id, child_id, m_const_child_slot);
+    gaia_base_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
