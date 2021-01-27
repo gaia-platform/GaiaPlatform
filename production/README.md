@@ -18,7 +18,7 @@ The remainder of this document will focus on #2:  building in your own local env
 For instructions on how to setup your environment, please see our `New Hire Guidelines` document on our GaiaPlatform wiki.
 
 ## Build Instructions
-Create a subfolder **build\** and then execute the following commands in it depending upon which set of targets you want to build:
+Create a subfolder **build/** and then execute the following commands in it depending upon which set of targets you want to build:
 
 ### Core
 ```
@@ -35,6 +35,26 @@ make -j<number of CPUs>
 To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](https://github.com/gaia-platform/GaiaPlatform/blob/master/third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper `cmake` module depending upon where you install it.
 
 If `BUILD_GAIA_RELEASE` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release`. This is done by default because debug builds of LLVM take much longer than retail builds.  We've also seen some of our local dev machines run out of memory when attempting to do debug LLVM builds.
+
+#### Building the distribution packages
+
+After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the **build/** folder:
+
+```
+make package
+```
+
+After generating the packages, the Debian package can be installed by executing:
+
+```
+sudo apt install ./gaia-0.1.0_amd64.deb
+```
+
+For uninstalling the package, execute:
+
+```
+sudo apt remove gaia
+```
 
 ### LLVMTests
 ```
