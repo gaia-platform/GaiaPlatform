@@ -44,7 +44,7 @@ IncludeCategories:
   - Regex: 'gaia\/'
     Priority: 20
     SortPriority: 20
-  # Public Gaia headers
+  # Internal Gaia headers
   - Regex: 'gaia_internal\/'
     Priority: 30
     SortPriority: 30
