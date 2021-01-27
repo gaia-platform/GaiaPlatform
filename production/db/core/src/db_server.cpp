@@ -2859,6 +2859,10 @@ void server::txn_rollback()
         s_txn_id != c_invalid_gaia_txn_id,
         "txn_rollback() was called without an active transaction!");
 
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(s_fd_log);
+    });
+
     // Set our txn status to TXN_TERMINATED.
     set_active_txn_terminated(s_txn_id);
 
@@ -2873,8 +2877,6 @@ void server::txn_rollback()
         // Free any deallocated objects.
         free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
     }
-
-    s_fd_log = -1;
 }
 
 // Before this method is called, we have already received the log fd from the client
