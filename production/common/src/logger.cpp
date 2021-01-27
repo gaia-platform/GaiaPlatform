@@ -7,9 +7,9 @@
 
 #include "spdlog/sinks/basic_file_sink.h"
 
-#include "logger_internal.hpp"
-#include "logger_manager.hpp"
-#include "logger_spdlog.hpp"
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger_manager.hpp"
+#include "gaia_internal/common/logger_spdlog.hpp"
 
 using namespace std;
 

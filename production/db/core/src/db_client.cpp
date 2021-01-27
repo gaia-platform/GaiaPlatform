@@ -22,20 +22,21 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/memory_allocation_error.hpp"
+#include "gaia_internal/common/mmap_helpers.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/common/socket_helpers.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/triggers.hpp"
+
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
-#include "db_types.hpp"
-#include "fd_helpers.hpp"
-#include "generator_iterator.hpp"
-#include "memory_allocation_error.hpp"
 #include "messages_generated.h"
-#include "mmap_helpers.hpp"
-#include "retail_assert.hpp"
-#include "scope_guard.hpp"
-#include "socket_helpers.hpp"
-#include "system_error.hpp"
-#include "triggers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

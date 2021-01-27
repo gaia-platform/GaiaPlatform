@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "gaia_ptr.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace std;
 

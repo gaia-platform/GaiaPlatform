@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "triggers.hpp"
+#include "gaia_internal/db/triggers.hpp"
 
 namespace gaia
 {

@@ -16,6 +16,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "gaia/db/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/Attributes.h"
 #include "clang/Basic/PrettyStackTrace.h"
@@ -23,12 +30,6 @@
 #include "clang/Sema/Sema.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include "gaia_catalog.h"
-#include "gaia/db/catalog.hpp"
-
 
 using namespace gaia;
 using namespace std;

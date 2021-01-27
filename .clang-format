@@ -40,11 +40,15 @@ AllowAllParametersOfDeclarationOnNextLine: true
 # Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 IncludeBlocks: Regroup
 IncludeCategories:
-  # Public Gaia headers
+  # Public Gaia headers.
   - Regex: 'gaia\/'
     Priority: 20
     SortPriority: 20
-  # Third-party.
+  # Internal Gaia headers.
+  - Regex: 'gaia_internal\/'
+    Priority: 21
+    SortPriority: 21
+  # Third-party headers.
   - Regex: '[spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb|tabulate]\/'
     Priority: 10
     SortPriority: 10
@@ -59,14 +63,13 @@ IncludeCategories:
     Priority: 1
   - Regex: '^<c.*'
     Priority: 2
-  # C++ library header.
+  # C++ library headers.
   - Regex: '^<.*'
     Priority: 3
-  # Everything else (gaia headers mostly).
-  # Note: it would be helpful if gaia dependencies where under gaia/
+  # Component-only headers.
   - Regex: '.*'
-    Priority: 20
-    SortPriority: 21
+    Priority: 30
+    SortPriority: 30
 
 KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false

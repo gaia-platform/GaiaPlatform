@@ -3,21 +3,23 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "catalog_core.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
 #include <vector>
 
 #include "gaia/common.hpp"
+
+#include "gaia_internal/common/flatbuffers_helpers.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_types.hpp"
+
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
-#include "db_types.hpp"
-#include "flatbuffers_helpers.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
-#include "generator_iterator.hpp"
-#include "system_table_types.hpp"
 
 namespace gaia
 {

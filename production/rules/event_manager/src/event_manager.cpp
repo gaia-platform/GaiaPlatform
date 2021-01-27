@@ -11,13 +11,14 @@
 #include <variant>
 
 #include "gaia/events.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
-#include "retail_assert.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/db/triggers.hpp"
+
 #include "rule_stats_manager.hpp"
-#include "rules_config.hpp"
-#include "timer.hpp"
-#include "triggers.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;

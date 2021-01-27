@@ -8,14 +8,16 @@
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
+
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
 #include "db_shared_data.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
 #include "memory_manager.hpp"
 #include "memory_types.hpp"
-#include "retail_assert.hpp"
 
 namespace gaia
 {

@@ -7,12 +7,10 @@
 project(common)
 
 set(GAIA_COMMON_INCLUDES
-  "${GAIA_INTERNAL_INC}/common"
   "${GAIA_INC}")
 
 set(GAIA_MULTI_PROCESS_INCLUDES
   ${GAIA_COMMON_INCLUDES}
-  ${GAIA_INTERNAL_INC}/db
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
@@ -50,7 +48,7 @@ set_property(TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
 # Populate the gaia_version file
-configure_file(${GAIA_INTERNAL_INC}/common/gaia_version.hpp.in ${GAIA_INTERNAL_INC}/common/gaia_version.hpp)
+configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
 
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")

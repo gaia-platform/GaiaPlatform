@@ -11,11 +11,13 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
+
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
+
 #include "catalog_tests_helper.hpp"
-#include "db_test_base.hpp"
-#include "gaia_catalog.h"
 #include "type_id_mapping.hpp"
-#include "type_metadata.hpp"
 
 using namespace std;
 

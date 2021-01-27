@@ -15,9 +15,9 @@
 
 #include "rocksdb/slice.h"
 
-#include "db_object.hpp"
-#include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
+#include "gaia_internal/common/persistent_store_error.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_object.hpp"
 
 namespace gaia
 {

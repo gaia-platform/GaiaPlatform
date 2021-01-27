@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "catalog_internal.hpp"
+#include "gaia_internal/catalog/catalog_internal.hpp"
 
 namespace gaia
 {

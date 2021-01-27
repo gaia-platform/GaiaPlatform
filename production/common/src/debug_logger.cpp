@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "debug_logger.hpp"
+#include "gaia_internal/common/debug_logger.hpp"
 
-#include "logger_manager.hpp"
-#include "logger_spdlog.hpp"
+#include "gaia_internal/common/logger_manager.hpp"
+#include "gaia_internal/common/logger_spdlog.hpp"
 
 using namespace std;
 
