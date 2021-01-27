@@ -4,11 +4,12 @@
 /////////////////////////////////////////////
 #include <unistd.h>
 
-#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
 #include "gaia_barn_storage.h"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 using namespace std;
 using namespace gaia::rules;

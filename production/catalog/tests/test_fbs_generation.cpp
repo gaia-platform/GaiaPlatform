@@ -4,10 +4,11 @@
 /////////////////////////////////////////////
 
 #include "flatbuffers/idl.h"
-#include "gaia_internal/db/db_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "fbs_generator.hpp"
+
+#include "gaia_internal/db/db_test_base.hpp"
 
 using namespace std;
 

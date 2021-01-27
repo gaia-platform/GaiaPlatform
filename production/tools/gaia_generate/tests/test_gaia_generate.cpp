@@ -5,13 +5,14 @@
 
 #include <iostream>
 
-#include "gaia_internal/catalog/ddl_execution.hpp"
-#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
 #include "gaia_airport.h"
 #include "gaia_parser.hpp"
+
+#include "gaia_internal/catalog/ddl_execution.hpp"
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 using namespace gaia::airport;
 using namespace gaia::catalog;

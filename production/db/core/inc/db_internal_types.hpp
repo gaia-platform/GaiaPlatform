@@ -10,10 +10,10 @@
 #include <iostream>
 #include <ostream>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
-
-#include "gaia/common.hpp"
 
 namespace gaia
 {

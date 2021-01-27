@@ -21,10 +21,11 @@
 
 #include <thread>
 
-#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia_addr_book.h"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;

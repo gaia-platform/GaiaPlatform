@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "gaia_internal/db/db_types.hpp"
 #include "rocksdb/utilities/transaction_db.h"
+
+#include "gaia_internal/db/db_types.hpp"
 
 // Simple library over RocksDB APIs.
 namespace gaia

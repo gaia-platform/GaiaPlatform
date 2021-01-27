@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include "event_manager_settings.hpp"
+
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
-
-#include "event_manager_settings.hpp"
 
 // Provide helpers that must be linked into the test by including this file.
 namespace gaia

@@ -12,8 +12,6 @@
 #include <ostream>
 #include <stdexcept>
 
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/common/system_error.hpp"
 #include <libexplain/close.h>
 #include <libexplain/dup.h>
 #include <libexplain/eventfd.h>
@@ -26,6 +24,9 @@
 #include <sys/stat.h>
 
 #include "gaia/exception.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_error.hpp"
 
 namespace gaia
 {

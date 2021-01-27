@@ -3,14 +3,15 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/db/db_test_base.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "rule_checker.hpp"
+
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::catalog;

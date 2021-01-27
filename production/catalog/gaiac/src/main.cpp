@@ -11,15 +11,16 @@
 #include <string>
 
 #include "flatbuffers/idl.h"
+
+#include "gaia/db/db.hpp"
+#include "command.hpp"
+#include "gaia_parser.hpp"
+
 #include "gaia_internal/catalog/catalog_internal.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/db/db_test_helpers.hpp"
-
-#include "gaia/db/db.hpp"
-#include "command.hpp"
-#include "gaia_parser.hpp"
 
 using namespace std;
 using namespace gaia::catalog;

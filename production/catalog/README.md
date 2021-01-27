@@ -9,7 +9,7 @@ the most common way to use the catalog library. We recommend use direct access
 APIs to navigate and retrieve catalog records.
 
 - `${GAIA_INC}/gaia/db`
-- `${GAIA_INC}/internal/catalog`
+- `${GAIA_INC}/gaia_internal/catalog`
 
 Linking any sub-components of catalog below are also allowed, and may even be
 necessary in certain scenarios. Use it at your own discretion as the

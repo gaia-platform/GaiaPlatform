@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_internal/db/db_types.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
-
 #include "gaia/db/db.hpp"
 #include "db_client.hpp"
+
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 bool gaia::db::is_transaction_active()
 {

@@ -5,9 +5,9 @@
 
 #include "record_list.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
-
 #include "locator_allocator.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 

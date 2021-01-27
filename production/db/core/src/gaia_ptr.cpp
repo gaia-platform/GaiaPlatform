@@ -7,16 +7,16 @@
 
 #include <cstring>
 
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/db/triggers.hpp"
-#include "gaia_internal/db/type_metadata.hpp"
-
 #include "db_client.hpp"
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "stack_allocator.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

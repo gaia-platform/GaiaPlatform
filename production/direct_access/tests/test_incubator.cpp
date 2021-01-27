@@ -5,12 +5,13 @@
 
 #include <string>
 
-#include "gaia_internal/db/db_catalog_test_base.hpp"
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia_barn_storage.h"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 using namespace gaia::barn_storage;
 using namespace gaia::direct_access;

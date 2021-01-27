@@ -15,12 +15,12 @@
 #include <string>
 #include <thread>
 
+#include "gaia/db/db.hpp"
+
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
-
-#include "gaia/db/db.hpp"
 
 namespace gaia
 {
@@ -51,7 +51,7 @@ inline void wait_for_server_init()
         {
             begin_session();
         }
-        catch (system_error& ex)
+        catch (gaia::common::system_error& ex)
         {
             if (ex.get_errno() == ECONNREFUSED)
             {

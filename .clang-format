@@ -44,6 +44,10 @@ IncludeCategories:
   - Regex: 'gaia\/'
     Priority: 20
     SortPriority: 20
+  # Public Gaia headers
+  - Regex: 'gaia_internal\/'
+    Priority: 30
+    SortPriority: 30
   # Third-party.
   - Regex: '[spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb|tabulate]\/'
     Priority: 10

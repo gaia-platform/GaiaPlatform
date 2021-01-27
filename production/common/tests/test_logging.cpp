@@ -5,8 +5,9 @@
 
 #include <iostream>
 
-#include "gaia_internal/common/logger_internal.hpp"
 #include "gtest/gtest.h"
+
+#include "gaia_internal/common/logger_internal.hpp"
 
 using namespace std;
 

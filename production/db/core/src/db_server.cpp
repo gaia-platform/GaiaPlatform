@@ -20,16 +20,6 @@
 #include <thread>
 #include <unordered_set>
 
-#include "gaia_internal/common/fd_helpers.hpp"
-#include "gaia_internal/common/generator_iterator.hpp"
-#include "gaia_internal/common/memory_allocation_error.hpp"
-#include "gaia_internal/common/mmap_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/common/scope_guard.hpp"
-#include "gaia_internal/common/socket_helpers.hpp"
-#include "gaia_internal/common/system_error.hpp"
-#include "gaia_internal/db/db_object.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/file.h>
@@ -40,6 +30,17 @@
 #include "db_shared_data.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+
+#include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/memory_allocation_error.hpp"
+#include "gaia_internal/common/mmap_helpers.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/common/socket_helpers.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace std;
 

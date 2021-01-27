@@ -19,6 +19,7 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
 

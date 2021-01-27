@@ -4,13 +4,13 @@
 /////////////////////////////////////////////
 #include "payload_diff.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/db/catalog_core.hpp"
-
 #include "gaia/common.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"
 #include "type_id_mapping.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 
 using namespace gaia::common;
 

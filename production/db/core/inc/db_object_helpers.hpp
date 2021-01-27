@@ -7,12 +7,12 @@
 
 #include <cstring>
 
-#include "gaia_internal/db/db_object.hpp"
-#include "gaia_internal/db/db_types.hpp"
-
 #include "gaia/common.hpp"
 #include "db_hash_map.hpp"
 #include "db_internal_types.hpp"
+
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
 {

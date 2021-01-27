@@ -5,10 +5,10 @@
 
 #include "type_id_mapping.hpp"
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
-
-#include "gaia/common.hpp"
 
 using namespace gaia::db;
 

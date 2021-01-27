@@ -6,10 +6,11 @@
 #include <fstream>
 #include <iostream>
 
-#include "gaia_internal/common/file.hpp"
 #include "gtest/gtest.h"
 
 #include "field_access.hpp"
+
+#include "gaia_internal/common/file.hpp"
 
 using namespace std;
 using namespace gaia::common;

@@ -4,13 +4,14 @@
 /////////////////////////////////////////////
 #include <algorithm>
 
-#include "gaia_internal/db/catalog_core.hpp"
-#include "gaia_internal/db/db_test_base.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
+
+#include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 
 class catalog_core_test : public db_test_base_t
 {

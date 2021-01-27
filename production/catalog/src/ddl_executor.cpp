@@ -7,16 +7,16 @@
 
 #include <memory>
 
-#include "gaia_internal/common/logger_internal.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/common/system_table_types.hpp"
-
 #include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
 #include "gaia/exception.hpp"
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
+
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
 
 using namespace std;
 

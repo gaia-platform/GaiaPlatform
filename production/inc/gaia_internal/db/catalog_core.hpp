@@ -6,13 +6,13 @@
 #include <string>
 #include <vector>
 
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
+
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
-
-#include "gaia/common.hpp"
-#include "gaia/db/db.hpp"
 
 namespace gaia
 {
