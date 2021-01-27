@@ -242,7 +242,7 @@ template <typename T_child>
 reference_chain_container_t<T_child>
 reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> filter_function) const
 {
-    return reference_chain_container_t<T_child>(m_parent_id, filter_function, m_const_next_slot);
+    return reference_chain_container_t<T_child>(m_parent_id, filter_function, m_const_next_slot, m_const_child_slot, m_const_next_slot);
 }
 
 template <typename T_child>

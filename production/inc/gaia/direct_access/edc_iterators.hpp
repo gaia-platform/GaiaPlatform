@@ -148,9 +148,11 @@ class reference_chain_container_t : edc_db_t
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t const_next_slot)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t const_parent, size_t const_child_slot, size_t const_next_slot)
         : m_parent_id(parent)
         , m_filter_fn(filter_function)
+        , m_const_parent(const_parent)
+        , m_const_child_slot(const_child_slot)
         , m_const_next_slot(const_next_slot){};
 
     explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t const_parent, size_t const_child_slot, size_t const_next_slot)

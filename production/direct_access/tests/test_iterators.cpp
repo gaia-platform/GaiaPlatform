@@ -54,7 +54,7 @@ public:
         return address_t::list().begin();
     }
 
-    T_iterator get_begin(gaia_set_iterator_t<address_t, c_next_addressee_address>&)
+    T_iterator get_begin(gaia_set_iterator_t<address_t>&)
     {
         return m_employee.addressee_address_list().begin();
     }
@@ -64,7 +64,7 @@ public:
         return address_t::list().end();
     }
 
-    T_iterator get_end(gaia_set_iterator_t<address_t, c_next_addressee_address>&)
+    T_iterator get_end(gaia_set_iterator_t<address_t>&)
     {
         return m_employee.addressee_address_list().end();
     }
@@ -75,7 +75,7 @@ private:
 
 // Set up the test suite to test the gaia_iterator and gaia_set_iterator types.
 using iterator_types
-    = ::testing::Types<gaia_iterator_t<address_t>, gaia_set_iterator_t<address_t, c_next_addressee_address>>;
+    = ::testing::Types<gaia_iterator_t<address_t>, gaia_set_iterator_t<address_t>>;
 TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 
 // Tests for LegacyIterator conformance

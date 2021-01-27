@@ -267,10 +267,10 @@ static string generate_edc_struct(
     code.SetValue("TABLE_NAME", table_record.name());
     code.SetValue("POSITION", to_string(table_type_id));
 
-    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, "
-            "c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
+    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
+            "{{TABLE_NAME}}_writer;";
     code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
-            "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
+            "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> {";
 
     code.IncrementIdentLevel();
 
@@ -429,7 +429,7 @@ static string generate_edc_struct(
     code += "private:";
     code.IncrementIdentLevel();
     code += "friend struct gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
-            "internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+            "internal::{{TABLE_NAME}}T>;";
 
     // The constructor.
     code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";

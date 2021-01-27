@@ -36,7 +36,7 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_writer_t;
 
 /**
@@ -46,9 +46,8 @@ struct gaia_writer_t;
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
- * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_object_t : gaia_base_t
 {
 public:
@@ -57,7 +56,7 @@ public:
     /**
      * Return a reference that is pre-populated with values from the row
      */
-    gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references> writer();
+    gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj> writer();
 
     /**
      * This can be used for subscribing to rules when you don't
@@ -154,7 +153,7 @@ protected:
     static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
 };
 
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_writer_t : public T_obj, edc_db_t
 {
     gaia_writer_t() = default;
@@ -178,7 +177,7 @@ private:
         gaia::common::gaia_id_t id;
     } m_gaia;
 
-    friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>;
+    friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
 };
 
 /*@}*/
