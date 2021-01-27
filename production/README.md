@@ -13,12 +13,12 @@ We have two ways to build the configurations listed above:
 1. Using docker and our `gdev` tool: this is what our TeamCity Continuous Integration servers use to build and run tests in a consistent "approved" environment.
 1. Using your own local environment:  this enables you to build outside of docker using your own environment and tools.
 
-The remainder of this document will focus on #2:  building in your own local environment outside of a docker container.  For instructions on how to use `gdev` on your local machine, please see: [gdev docker build CLI](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/gdev/README.md).
+The remainder of this document will focus on #2:  building in your own local environment outside of a docker container.  For instructions on how to use `gdev` on your local machine, please see: [gdev docker build CLI README](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/gdev/README.md).
 
-For instructions on how to setup your environment, please see our `New Hire Guidelines` document on our GaiaPlatform wiki.
+For instructions on how to setup your environment, please see our *New Hire Guidelines* document on our GaiaPlatform wiki.
 
 ## Build Instructions
-Create a subfolder `build` under `production` and then execute the following commands in it depending upon which set of targets you want to build:
+Create a subfolder `GaiaPlatform/production/build` and then execute the following commands in it depending upon which set of targets you want to build:
 
 ### Core
 ```
@@ -38,7 +38,7 @@ If `BUILD_GAIA_RELEASE` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `R
 
 #### Building the distribution packages
 
-After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the `build` folder:
+After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the `GaiaPlatform/production/build` folder:
 
 ```
 make package

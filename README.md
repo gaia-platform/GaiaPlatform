@@ -1,12 +1,23 @@
 # GaiaPlatform
+
 GaiaPlatform - Main repository
+
+## Style guidelines suggestions for README.md files
+
+* Keep paragraphs on a single line. This makes it easier to update them.
+* Use empty lines for separation of titles, paragraphs, examples, etc. They are ignored when rendering the files, but make them easier to read when editing them.
+* Use `back-quoting` to emphasize tool names, path names, environment variable names and values, etc. Basically, anything that is closer to coding should be emphasized this way.
+* Use **bold** or *italics* for other situations that require emphasis. Bold can be used when introducing new concepts, like **Quantum Build**. Italics could be used when quoting titles of documents, such as *The Art of Programming*. These situations should be rarer.
+* Use links to reference other project files like the [production README](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/README.md), for example.
 
 ## Environment requirements
 
 This repository is meant to be built with `clang-8`. To ensure `clang-8` use, add the following lines to your `.bashrc`.
 
-* ```export CC=/usr/bin/clang-8```
-* ```export CXX=/usr/bin/clang++-8```
+```
+export CC=/usr/bin/clang-8
+export CXX=/usr/bin/clang++-8
+```
 
 ## Folder structuring
 
@@ -62,7 +73,7 @@ Use the following copyright note with your code. Several language specific versi
 
 `gdev` is a command line tool that creates repeatable builds in the GaiaPlatform repo. The builds are isolated within Docker images and do not depend on any installed packages or configuration on your host.
 
-Look into `dev_tools/gdev/README.md` to see how to use `gdev`.
+Look at the [gdev docker build CLI README](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/gdev/README.md), to see how to use `gdev`.
 
 ## Compile locally
 
@@ -70,7 +81,7 @@ As an alternative to `gdev`, you can compile the project locally. The disadvanta
 
 ### Install dependencies
 
-To install all the dependencies, go to the `third_party/production/` folder and then follow the instruction of each `gdev.cfg` file.
+To install all the dependencies, go to the `GaiaPlatform/third_party/production/` folder and then follow the instruction of each `gdev.cfg` file.
 
 For instance, let's consider `daemonize/gdev.cfg`:
 
@@ -110,7 +121,7 @@ Same thing for all the other dependencies.
 
 ### Build
 
-To build with `cmake`, follow the instructions from `production/README.md`.
+To build with `cmake`, follow the instructions from the [production README](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/README.md).
 
 ### Run Tests
 
