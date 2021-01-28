@@ -10,7 +10,7 @@ bool correct_gaia_id = false;
 ruleset test
 {
     {
-        gaia_log::app().warn("[rule-1] begin {} {} {}", "str", 1, 1.0);
+        gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
         max_temp = sensor.value + 4;
         if (@actuator.value > 0)

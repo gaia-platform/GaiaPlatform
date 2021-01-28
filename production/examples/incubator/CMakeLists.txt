@@ -22,33 +22,23 @@ endif()
 set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
 set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
 
-add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/gaia_incubator.h
-  COMMAND ${GAIA_GENERATE} -o ${PROJECT_BINARY_DIR} -g ${INCUBATOR_DDL}
-  DEPENDS ${INCUBATOR_DDL}
-  COMMENT "Compiled incubator.ddl."
-)
-add_custom_target(generate_incubator_headers ALL
-  DEPENDS ${PROJECT_BINARY_DIR}/gaia_incubator.h
-)
+# --- Generate EDC from DDL---
+process_schema(
+  DDL_FILE ${INCUBATOR_DDL}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
 
-add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/incubator_rules.cpp
-  COMMAND ${GAIA_TRANSLATE} ${INCUBATOR_RULESET} -output ${PROJECT_BINARY_DIR}/incubator_rules.cpp -- -I /usr/lib/clang/10/include/
-  DEPENDS ${INCUBATOR_RULESET}
-  COMMENT "Translating incubator.ruleset."
-)
-add_custom_target(translate_incubator_ruleset ALL
-  DEPENDS generate_incubator_headers
-  DEPENDS ${PROJECT_BINARY_DIR}/incubator_rules.cpp
-)
+# -- Translate ruleset into CPP --
+translate_ruleset(
+  RULESET_FILE ${INCUBATOR_RULESET}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
+  DEPENDS generate_incubator_headers)
 
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB})
 
 add_executable(incubator
-    incubator.cpp
-    ${PROJECT_BINARY_DIR}/incubator_rules.cpp
+  incubator.cpp
+  ${PROJECT_BINARY_DIR}/incubator_ruleset.cpp
 )
 
 add_dependencies(incubator translate_incubator_ruleset)

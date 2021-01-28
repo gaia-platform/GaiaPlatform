@@ -7,8 +7,10 @@
 
 #include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
+
+#include "gaia_internal/db/gaia_ptr.hpp"
+
 #include "com_gaiaplatform_database_GaiaDatabase.h"
-#include "gaia_ptr.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -100,7 +102,7 @@ jboolean update_payload(
     }
     catch (const std::exception& e)
     {
-        cerr << "A Gaia database exception occurred during an update_payload() call: " << e.what() << endl;
+        cerr << "A Gaia database exception occurred during an update_payload() call: '" << e.what() << "'." << endl;
         return false;
     }
 
@@ -236,7 +238,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_createNode(
     }
     catch (const std::exception& e)
     {
-        cerr << "A Gaia database exception occurred during a createNode() call: " << e.what() << endl;
+        cerr << "A Gaia database exception occurred during a createNode() call: '" << e.what() << "'." << endl;
         return NULL;
     }
 

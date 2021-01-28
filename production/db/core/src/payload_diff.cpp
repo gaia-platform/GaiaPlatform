@@ -5,10 +5,12 @@
 #include "payload_diff.hpp"
 
 #include "gaia/common.hpp"
-#include "catalog_core.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
+
 #include "data_holder.hpp"
 #include "field_access.hpp"
-#include "retail_assert.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace gaia::common;
@@ -26,7 +28,7 @@ void compute_payload_diff(
     field_position_list_t* changed_fields)
 {
     // Make sure caller passes valid pointer to changed_fields.
-    retail_assert(changed_fields, "compute_payload_diff was called with an unexpected null changed_fields argument!");
+    retail_assert(changed_fields, "compute_payload_diff() was called with an unexpected null 'changed_fields' argument!");
 
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
 

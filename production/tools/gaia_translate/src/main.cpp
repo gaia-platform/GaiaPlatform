@@ -20,8 +20,8 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "gaia_catalog.h"
-#include "gaia_version.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/gaia_version.hpp"
 
 using namespace std;
 using namespace clang;
@@ -42,6 +42,7 @@ unsigned int g_current_ruleset_rule_line_number = 1;
 bool g_delete_operation_in_rule = false;
 const int c_declaration_to_ruleset_offset = -2;
 bool g_function_call_in_rule = false;
+bool g_rule_context_rule_name_referenced = false;
 vector<SourceRange> g_gaia_id_call_locations;
 
 vector<string> g_rulesets;
@@ -86,7 +87,7 @@ struct navigation_code_data_t
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 
-const char* c_last_operation = "LastOperation";
+const char c_last_operation[] = "LastOperation";
 
 static void print_version(raw_ostream& stream)
 {
@@ -188,7 +189,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
-                cerr << "Incorrect table for field " << field.name() << "." << endl;
+                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -196,7 +197,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             unordered_map<string, field_data_t> fields = return_value[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                cerr << "Duplicate field " << field.name() << "." << endl;
+                cerr << "Duplicate field '" << field.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -213,7 +214,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t child_table = relationship.child_gaia_table();
             if (!child_table)
             {
-                cerr << "Incorrect child table in the relationship " << relationship.name() << "." << endl;
+                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
@@ -241,7 +242,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     }
     catch (const exception& e)
     {
-        cerr << "Exception while processing the catalog " << e.what() << "." << endl;
+        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
         g_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
@@ -274,7 +275,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (g_field_data.find(table_name) == g_field_data.end())
     {
-        cerr << "Table " << table_name << " was not found in the catalog." << endl;
+        cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -289,7 +290,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "Field " << field_name << " of table " << table_name << "was not found in the catalog." << endl;
+        cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
         g_generation_error = true;
         return false;
     }
@@ -302,10 +303,10 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string insert_rule_preamble(const string& rule, const string& preamble)
+string insert_rule_prologue(const string& rule, const string& prologue)
 {
     size_t rule_code_start = rule.find('{');
-    return "{" + preamble + rule.substr(rule_code_start + 1);
+    return "{" + prologue + rule.substr(rule_code_start + 1);
 }
 
 string get_closest_table(const unordered_map<string, int>& table_distance)
@@ -399,6 +400,7 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
         }
     }
 
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     string tbl = dst;
     while (table_prev[tbl] != "")
     {
@@ -427,7 +429,10 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     if (g_delete_operation_in_rule)
     {
         g_generation_error = true;
-        cerr << "Navigation from a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+        cerr
+            << "Navigation from a record that has been deleted is currently not supported."
+            << " This condition occurs when a rule is subscribed to a delete operation"
+            << " and is referencing data related to the deleted record." << endl;
         return navigation_code_data_t();
     }
 
@@ -440,7 +445,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     if (g_used_tables.find(anchor_table) == g_used_tables.end())
     {
         g_generation_error = true;
-        cerr << "Table " << anchor_table << " is not used in the rule." << endl;
+        cerr << "Table '" << anchor_table << "' is not used in the rule." << endl;
         return navigation_code_data_t();
     }
 
@@ -448,7 +453,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
         g_generation_error = true;
-        cerr << "No path between " << anchor_table << " and other tables." << endl;
+        cerr << "No path between '" << anchor_table << "' and other tables." << endl;
         return navigation_code_data_t();
     }
     auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
@@ -475,7 +480,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                 if (is_1_relationship)
                 {
                     g_generation_error = true;
-                    cerr << "More then one field that links " << anchor_table << " and " << table << "." << endl;
+                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
                 is_1_relationship = true;
@@ -490,7 +495,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                 if (is_n_relationship)
                 {
                     g_generation_error = true;
-                    cerr << "More then one field that links " << anchor_table << " and " << table << "." << endl;
+                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
                 is_n_relationship = true;
@@ -501,7 +506,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         if (is_1_relationship && is_n_relationship)
         {
             g_generation_error = true;
-            cerr << "Both relationships exist between tables " << anchor_table << " and " << table << "." << endl;
+            cerr << "Both relationships exist between tables '" << anchor_table << "' and '" << table << "'." << endl;
             return navigation_code_data_t();
         }
 
@@ -569,7 +574,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
             else
             {
                 g_generation_error = true;
-                cerr << "No path between tables " << anchor_table << " and " << table << "." << endl;
+                cerr << "No path between tables '" << anchor_table << "' and '" << table << "'." << endl;
                 return navigation_code_data_t();
             }
         }
@@ -667,7 +672,10 @@ void generate_rules(Rewriter& rewriter)
     {
         if (g_function_call_in_rule)
         {
-            cerr << "Calling extended data class methods of a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record." << endl;
+            cerr
+                << "Calling extended data class methods of a record that has been deleted is currently not supported."
+                << " This condition occurs when a rule is subscribed to a delete operation"
+                << " and is referencing data related to the deleted record." << endl;
             g_generation_error = true;
             return;
         }
@@ -695,18 +703,23 @@ void generate_rules(Rewriter& rewriter)
         string common_subscription_code;
         if (g_field_data.find(table) == g_field_data.end())
         {
-            cerr << "Table " << table << " was not found in the catalog." << endl;
+            cerr << "Table '" << table << "' was not found in the catalog." << endl;
             g_generation_error = true;
             return;
         }
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+        string rule_name_log = to_string(g_current_ruleset_rule_number);
+        if (g_active_fields.size() > 1)
+        {
+            rule_name_log.append("_").append(table);
+        }
 
         string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
 
         // Declare a constant for the line number of the rule if this is the first
         // time we've seen this rule.  Note that we may see a rule multiple times if
-        // the rule has multiple anchr rows.
+        // the rule has multiple anchor rows.
         if (rule_line_var.empty())
         {
             rule_line_var = "c_rule_line_";
@@ -730,12 +743,7 @@ void generate_rules(Rewriter& rewriter)
             .append("binding(\"")
             .append(g_current_ruleset)
             .append("\",\"")
-            .append(to_string(g_current_ruleset_rule_number));
-        if (g_active_fields.size() > 1)
-        {
-            common_subscription_code.append("_").append(table);
-        }
-        common_subscription_code
+            .append(rule_name_log)
             .append("\",")
             .append(g_current_ruleset)
             .append("::")
@@ -762,7 +770,7 @@ void generate_rules(Rewriter& rewriter)
             {
                 if (fields.find(field) == fields.end())
                 {
-                    cerr << "Field " << field << " of table " << table << " was not found in the catalog." << endl;
+                    cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
                     g_generation_error = true;
                     return;
                 }
@@ -777,7 +785,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (!contains_fields && !contains_last_operation)
         {
-            cerr << "No fields referenced by table " << table << "." << endl;
+            cerr << "No fields referenced by table '" << table << "'." << endl;
             g_generation_error = true;
             return;
         }
@@ -787,9 +795,9 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_delete_operation_in_rule && fd.second.size() > 1)
         {
-            cerr << "Referencing fields of a record that has been deleted is currently not supported. ";
-            cerr << "This condition occurs when a rule is subscribed to a delete operation and ";
-            cerr << "is referencing data related to the deleted record.";
+            cerr << "Referencing fields of a record that has been deleted is currently not supported.";
+            cerr << " This condition occurs when a rule is subscribed to a delete operation and";
+            cerr << " is referencing data related to the deleted record.";
             cerr << endl;
             g_generation_error = true;
             return;
@@ -883,16 +891,20 @@ void generate_rules(Rewriter& rewriter)
         g_current_ruleset_unsubscription.append("\n");
 
         navigation_code_data_t navigation_code = generate_navigation_code(table);
-        string function_header = "\n";
-        function_header
+        string function_prologue = "\n";
+        function_prologue
             .append(c_nolint_identifier_naming)
             .append("\nvoid ")
             .append(rule_name)
             .append("(const rule_context_t* context)\n");
 
+        if (g_rule_context_rule_name_referenced)
+        {
+            navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
+        }
         if (rule_count == 1)
         {
-            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_header);
+            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 navigation_code.prefix);
@@ -902,8 +914,8 @@ void generate_rules(Rewriter& rewriter)
         }
         else
         {
-            function_header.append(insert_rule_preamble(rule_code + navigation_code.postfix, navigation_code.prefix));
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_header);
+            function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
+            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
         }
 
         rule_count++;
@@ -1263,7 +1275,6 @@ public:
 
                     if (declaration_expression != nullptr)
                     {
-
                         const ValueDecl* operator_declaration = declaration_expression->getDecl();
                         if (operator_declaration->getType()->isStructureType())
                         {
@@ -1387,6 +1398,7 @@ public:
         g_delete_operation_in_rule = false;
         g_function_call_in_rule = false;
         g_gaia_id_call_locations.clear();
+        g_rule_context_rule_name_referenced = false;
     }
 
 private:
@@ -1696,8 +1708,8 @@ public:
 
                 if (g_field_data.find(variable_name) != g_field_data.end())
                 {
-                    cerr << "Local variable declaration " << variable_name
-                         << " hides database table of the same name." << endl;
+                    cerr << "Local variable declaration '" << variable_name
+                         << "' hides database table of the same name." << endl;
                     return;
                 }
 
@@ -1705,14 +1717,67 @@ public:
                 {
                     if (table_data.second.find(variable_name) != table_data.second.end())
                     {
-                        cerr << "Local variable declaration " << variable_name
-                             << " hides catalog field entity of the same name." << endl;
+                        cerr << "Local variable declaration '" << variable_name
+                             << "' hides catalog field entity of the same name." << endl;
                         return;
                     }
                 }
             }
         }
     }
+};
+
+class rule_context_rule_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit rule_context_rule_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_generation_error)
+        {
+            return;
+        }
+
+        const auto* rule_expression = result.Nodes.getNodeAs<MemberExpr>("rule_name");
+        const auto* ruleset_expression = result.Nodes.getNodeAs<MemberExpr>("ruleset_name");
+        const auto* event_expression = result.Nodes.getNodeAs<MemberExpr>("event_type");
+        const auto* type_expression = result.Nodes.getNodeAs<MemberExpr>("gaia_type");
+
+        if (ruleset_expression != nullptr)
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
+                "\"" + g_current_ruleset + "\"");
+        }
+
+        if (rule_expression != nullptr)
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
+                "gaia_rule_name");
+            g_rule_context_rule_name_referenced = true;
+        }
+
+        if (event_expression != nullptr)
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
+                "context->event_type");
+        }
+
+        if (type_expression != nullptr)
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
+                "context->gaia_type");
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
 };
 
 class translation_engine_consumer_t : public clang::ASTConsumer
@@ -1728,7 +1793,13 @@ public:
         , m_insert_match_handler(r)
         , m_delete_match_handler(r)
         , m_none_match_handler(r)
+        , m_rule_context_match_handler(r)
     {
+        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
+        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
+        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("event_type"))).bind("event_type");
+        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("gaia_type"))).bind("gaia_type");
+
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
             = functionDecl(allOf(hasAncestor(ruleset_matcher), hasAttr(attr::Rule))).bind("ruleDecl");
@@ -1866,6 +1937,10 @@ public:
         m_matcher.addMatcher(function_call_matcher, &m_delete_row_function_call_handler);
         m_matcher.addMatcher(gaia_id_call_matcher, &m_gaia_id_call_handler);
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
+        m_matcher.addMatcher(ruleset_name_matcher, &m_rule_context_match_handler);
+        m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
+        m_matcher.addMatcher(event_type_matcher, &m_rule_context_match_handler);
+        m_matcher.addMatcher(gaia_type_matcher, &m_rule_context_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -1890,6 +1965,7 @@ private:
     function_call_handler_t m_delete_row_function_call_handler;
     gaia_id_call_handler_t m_gaia_id_call_handler;
     variable_declaration_match_handler_t m_variable_declaration_match_handler;
+    rule_context_rule_match_handler_t m_rule_context_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

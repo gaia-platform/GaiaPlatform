@@ -10,8 +10,9 @@
 
 #include <vector>
 
+#include "gaia_internal/db/db_types.hpp"
+
 #include "data_holder.hpp"
-#include "db_types.hpp"
 
 namespace gaia
 {

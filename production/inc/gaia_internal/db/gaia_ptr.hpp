@@ -5,12 +5,13 @@
 
 #pragma once
 
-#include "db_object.hpp"
-#include "db_types.hpp"
-#include "generator_iterator.hpp"
-#include "retail_assert.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
+
 #include "stack_allocator.hpp"
-#include "type_metadata.hpp"
 
 using namespace gaia::common;
 

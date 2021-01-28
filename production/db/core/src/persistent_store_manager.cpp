@@ -10,14 +10,15 @@
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
+
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
 #include "rdb_internal.hpp"
 #include "rdb_object_converter.hpp"
-#include "system_table_types.hpp"
 
 using namespace std;
 
@@ -28,13 +29,15 @@ using namespace rocksdb;
 
 // Todo (Mihir) Take as input to some options file. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-323
 
+string persistent_store_manager::s_data_dir_path = persistent_store_manager::c_data_dir_default_path;
+
 persistent_store_manager::persistent_store_manager()
     : m_counters(get_shared_counters()), m_locators(get_shared_locators())
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
-    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(c_data_dir, write_options, transaction_db_options);
+    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(s_data_dir_path.c_str(), write_options, transaction_db_options);
 }
 
 persistent_store_manager::~persistent_store_manager()

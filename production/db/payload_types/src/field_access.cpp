@@ -7,7 +7,7 @@
 
 #include <sstream>
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -18,6 +18,9 @@ namespace db
 {
 namespace payload_types
 {
+
+static const string c_message_attempt_to_set_value_of_incorrect_type = "Attempt to set value of incorrect type";
+static const string c_message_array_index_out_of_bounds = "Attempt to index array is out-of-bounds.";
 
 invalid_schema::invalid_schema()
 {
@@ -44,7 +47,7 @@ invalid_field_position::invalid_field_position(field_position_t position)
 unhandled_field_type::unhandled_field_type(size_t field_type)
 {
     stringstream string_stream;
-    string_stream << "Cannot handle field type: " << field_type << ".";
+    string_stream << "Cannot handle field type: '" << field_type << "'.";
     m_message = string_stream.str();
 }
 
@@ -63,8 +66,8 @@ void initialize_type_information_from_binary_schema(
     const uint8_t* binary_schema,
     size_t binary_schema_size)
 {
-    retail_assert(type_information != nullptr, "type_information argument should not be null.");
-    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+    retail_assert(type_information != nullptr, "'type_information' argument should not be null.");
+    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
     // First copy the binary schema into the type information.
     vector<uint8_t> binary_schema_copy(binary_schema, binary_schema + binary_schema_size);
@@ -103,8 +106,8 @@ bool verify_data_schema(
     size_t serialized_data_size,
     const uint8_t* binary_schema)
 {
-    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
-    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+    retail_assert(serialized_data != nullptr, "'serialized_data argument' should not be null.");
+    retail_assert(binary_schema != nullptr, "'binary_schema argument' should not be null.");
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -142,7 +145,7 @@ void get_table_field_information(
     type_information_t& local_type_information,
     const reflection::Field*& field)
 {
-    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
+    retail_assert(serialized_data != nullptr, "'serialized_data' argument should not be null.");
 
     // First, we parse the serialized data to get its root object.
     root_table = flatbuffers::GetAnyRoot(serialized_data);
@@ -268,7 +271,7 @@ bool set_field_value(
     retail_assert(
         (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.type))
             || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
-        "Attempt to set value of incorrect type");
+        c_message_attempt_to_set_value_of_incorrect_type);
 
     // We need to update the root_table, so we need to remove the const qualifier.
     auto root_table = const_cast<flatbuffers::Table*>(const_root_table); // NOLINT (safe const_cast)
@@ -297,8 +300,8 @@ void set_field_value(
     field_position_t field_position,
     const data_holder_t& value)
 {
-    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
-    retail_assert(value.type == reflection::String, "Attempt to set value of incorrect type");
+    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    retail_assert(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     if (value.hold.string_value == nullptr)
     {
@@ -314,7 +317,7 @@ void set_field_value(
         type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field);
 
-    retail_assert(field->type()->base_type() == reflection::String, "Attempt to set value of incorrect type");
+    retail_assert(field->type()->base_type() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -390,7 +393,7 @@ void set_field_array_size(
     field_position_t field_position,
     size_t new_size)
 {
-    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
     const flatbuffers::Table* root_table = nullptr;
     auto_type_information_t auto_type_information;
@@ -473,7 +476,7 @@ data_holder_t get_field_array_element(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
-    retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
+    retail_assert(array_index < field_value->size(), c_message_array_index_out_of_bounds);
 
     // Read element value according to its type.
     data_holder_t result;
@@ -529,11 +532,11 @@ void set_field_array_element(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         const_root_table, auto_type_information, local_type_information, field, const_field_value);
 
-    retail_assert(array_index < const_field_value->size(), "Attempt to index array is out-of-bounds.");
+    retail_assert(array_index < const_field_value->size(), c_message_array_index_out_of_bounds);
     retail_assert(
         (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.type))
             || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
-        "Attempt to set value of incorrect type");
+        c_message_attempt_to_set_value_of_incorrect_type);
 
     // We need to update the serialization, so we need to remove the const qualifier.
     auto field_value = const_cast<flatbuffers::VectorOfAny*>(const_field_value); // NOLINT (safe const_cast)
@@ -565,8 +568,8 @@ void set_field_array_element(
     size_t array_index,
     const data_holder_t& value)
 {
-    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
-    retail_assert(value.type == reflection::String, "Attempt to set value of incorrect type");
+    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    retail_assert(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     if (value.hold.string_value == nullptr)
     {
@@ -583,8 +586,8 @@ void set_field_array_element(
         type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
-    retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
-    retail_assert(field->type()->element() == reflection::String, "Attempt to set value of incorrect type");
+    retail_assert(array_index < field_value->size(), c_message_array_index_out_of_bounds);
+    retail_assert(field->type()->element() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)

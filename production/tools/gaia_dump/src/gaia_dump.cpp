@@ -8,7 +8,8 @@
 #include <vector>
 
 #include "gaia/db/db.hpp"
-#include "system_table_types.hpp"
+
+#include "gaia_internal/common/system_table_types.hpp"
 
 constexpr int c_group_size = 8;
 constexpr int c_line_size = 2 * c_group_size;
@@ -176,7 +177,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
         }
         catch (gaia_exception& e)
         {
-            fprintf(stderr, "exception \"%s\"\n", e.what());
+            fprintf(stderr, "An exception has occurred: '%s'\n", e.what());
         }
     }
     commit_transaction();

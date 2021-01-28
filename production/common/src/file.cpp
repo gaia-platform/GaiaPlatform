@@ -3,13 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "file.hpp"
+#include "gaia_internal/common/file.hpp"
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;

@@ -14,15 +14,11 @@ find_package(Threads REQUIRED)
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
   "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
-  # This should be a public include since it exposes the gaia_ptr interface,
-  # which is consumed by internal clients.
-  "${GAIA_INTERNAL_INC}/db"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
-  "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
@@ -50,12 +46,12 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${FBS_SOURCE_FILENAME})
 
   add_custom_command(
+    COMMENT "Compiling ${FBS_SOURCE} with flatbuffers..."
     OUTPUT "${GEN_DIR}/${GEN_HEADER}"
     COMMAND cmake -E make_directory "${GEN_DIR}"
     COMMAND flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
     DEPENDS "${FBS_SOURCE}"
     DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
-    COMMENT "Completed flatbuffers compilation of ${FBS_SOURCE}!"
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")
@@ -166,12 +162,19 @@ if(Python3_FOUND AND pybind11_FOUND)
   set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
+  endif()
 
-  # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
-  configure_file(tests/test_db.py . COPYONLY)
-  add_test(NAME test_db_pybind COMMAND ${Python3_EXECUTABLE} test_db.py)
-  set_tests_properties(test_db_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+  # This test is disabled for Debug builds.
+  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    configure_file(tests/test_db.py . COPYONLY)
+    add_test(
+      NAME test_db_pybind
+      COMMAND ${Python3_EXECUTABLE} test_db.py)
+  endif()
 endif()
 
 ###############################################
@@ -195,7 +198,6 @@ if(JAVA_FOUND AND JNI_FOUND)
 endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
-  ${GAIA_INTERNAL_INC}/db/
   ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/core/inc
@@ -218,5 +220,5 @@ add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_I
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
+  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")

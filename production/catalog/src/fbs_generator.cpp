@@ -12,9 +12,9 @@
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
-#include "flatbuffers_helpers.hpp"
-#include "gaia_catalog.h"
-#include "retail_assert.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/flatbuffers_helpers.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -94,8 +94,8 @@ string get_data_type_name(data_type_t data_type)
     default:
         stringstream message;
         message
-            << "Unhandled data_type_t value " << static_cast<int>(data_type)
-            << " in get_data_type_name()!";
+            << "Unhandled data_type_t value '" << static_cast<int>(data_type)
+            << "' in get_data_type_name()!";
         // If we use retail_assert(false), the compiler can't figure out
         // that it will throw an exception and will warn us about
         // potentially exiting the method without returning a value.

@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -19,7 +19,7 @@ TEST(common, retail_assert)
         retail_assert(true, "Unexpected triggering of retail assert!");
         EXPECT_EQ(true, true);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         EXPECT_EQ(true, false);
     }
@@ -29,7 +29,7 @@ TEST(common, retail_assert)
         retail_assert(false, "Expected triggering of retail assert.");
         EXPECT_EQ(true, false);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         EXPECT_EQ(true, true);
         cerr << "Exception message: " << e.what() << '\n';

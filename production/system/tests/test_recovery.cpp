@@ -13,12 +13,14 @@
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
-#include "db_test_helpers.hpp"
+
+#include "gaia_internal/catalog/ddl_executor.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
+
 #include "db_test_util.hpp"
-#include "ddl_executor.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_catalog.h"
-#include "logger_internal.hpp"
 #include "schema_loader.hpp"
 #include "type_id_mapping.hpp"
 
@@ -479,7 +481,7 @@ TEST_F(recovery_test, reference_update_test)
         // Delete links between the phone records and the address record.
         for (gaia_id_t phone_id : recovered_phone_ids)
         {
-            address_t::get(address_id).phone_list().erase(phone_id);
+            address_t::get(address_id).phone_list().remove(phone_id);
         }
         txn.commit();
     }

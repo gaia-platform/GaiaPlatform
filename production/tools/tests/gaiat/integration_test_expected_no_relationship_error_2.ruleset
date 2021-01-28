@@ -9,4 +9,4 @@ ruleset test
 	}
     }
 }
-// CHECK: No path between tables actuator and animal.
+// CHECK: No path between tables 'actuator' and 'animal'.

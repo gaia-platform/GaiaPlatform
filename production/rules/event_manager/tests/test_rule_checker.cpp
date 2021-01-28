@@ -7,9 +7,11 @@
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
-#include "db_test_base.hpp"
-#include "db_test_helpers.hpp"
-#include "gaia_catalog.h"
+
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
+
 #include "rule_checker.hpp"
 
 using namespace gaia::common;
@@ -125,7 +127,7 @@ TEST_F(rule_checker_test, table_not_found)
 {
     const gaia_type_t gaia_type = 1000;
     rule_checker_t rule_checker;
-    const char* message = "Table (type:1000) was not found";
+    const char* message = "Table (type: '1000') was not found";
     verify_exception(message, [&]() { rule_checker.check_catalog(gaia_type, empty_fields); });
 }
 
@@ -141,7 +143,7 @@ TEST_F(rule_checker_test, field_not_found)
     rule_checker_t rule_checker;
     field_position_list_t fields;
     fields.emplace_back(field);
-    const char* message = "Field (position:1000) was not found in table";
+    const char* message = "Field (position: 1000) was not found in table";
     verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 

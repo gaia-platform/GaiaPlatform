@@ -15,7 +15,8 @@
 
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
-#include "gaia_relationships.hpp"
+
+#include "gaia_internal/db/gaia_relationships.hpp"
 
 namespace gaia
 {
@@ -93,7 +94,7 @@ public:
     explicit duplicate_metadata(const gaia::common::gaia_type_t type)
     {
         std::stringstream message;
-        message << "Metadata already existent for Gaia type \"" << type << "\".";
+        message << "Metadata already existent for Gaia type '" << type << "'.";
         m_message = message.str();
     }
 };
@@ -104,7 +105,7 @@ public:
     explicit metadata_not_found(const gaia::common::gaia_type_t type)
     {
         std::stringstream message;
-        message << "Metadata does not exist for Gaia type \"" << type << "\".";
+        message << "Metadata does not exist for Gaia type '" << type << "'.";
         m_message = message.str();
     }
 };

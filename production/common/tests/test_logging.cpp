@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "logger_internal.hpp"
+#include "gaia_internal/common/logger_internal.hpp"
 
 using namespace std;
 

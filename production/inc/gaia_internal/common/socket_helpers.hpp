@@ -13,8 +13,9 @@
 #include <sys/un.h>
 
 #include "gaia/exception.hpp"
-#include "retail_assert.hpp"
-#include "system_error.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_error.hpp"
 
 namespace gaia
 {
@@ -46,7 +47,7 @@ inline void check_socket_type(int socket, int expected_socket_type)
     socklen_t type_len = sizeof(real_socket_type);
     if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_TYPE, &real_socket_type, &type_len))
     {
-        throw_system_error("getsockopt(SO_TYPE) failed");
+        throw_system_error("getsockopt(SO_TYPE) failed!");
     }
     // type_len is an inout parameter which can indicate truncation.
     retail_assert(type_len == sizeof(real_socket_type), "Invalid socket type size!");
@@ -58,7 +59,7 @@ inline bool is_non_blocking(int socket)
     int flags = ::fcntl(socket, F_GETFL, 0);
     if (flags == -1)
     {
-        throw_system_error("fcntl(F_GETFL) failed");
+        throw_system_error("fcntl(F_GETFL) failed!");
     }
     return (flags & O_NONBLOCK);
 }
@@ -68,11 +69,11 @@ inline void set_non_blocking(int socket)
     int flags = ::fcntl(socket, F_GETFL);
     if (flags == -1)
     {
-        throw_system_error("fcntl(F_GETFL) failed");
+        throw_system_error("fcntl(F_GETFL) failed!");
     }
     if (-1 == ::fcntl(socket, F_SETFL, flags | O_NONBLOCK))
     {
-        throw_system_error("fcntl(F_SETFL) failed");
+        throw_system_error("fcntl(F_SETFL) failed!");
     }
 }
 
@@ -142,7 +143,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         }
         else
         {
-            throw_system_error("sendmsg failed");
+            throw_system_error("sendmsg() failed!");
         }
     }
     auto bytes_written = static_cast<size_t>(bytes_written_or_error);
@@ -195,7 +196,7 @@ inline size_t recv_msg_with_fds(
         "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1)
     {
-        throw_system_error("recvmsg failed");
+        throw_system_error("recvmsg() failed!");
     }
     else if (bytes_read == 0)
     {
@@ -213,12 +214,12 @@ inline size_t recv_msg_with_fds(
     else if (msg.msg_flags & MSG_TRUNC)
     {
         throw system_error(
-            "recvmsg: data payload truncated on read");
+            "recvmsg: data payload truncated on read.");
     }
     else if (msg.msg_flags & MSG_CTRUNC)
     {
         throw system_error(
-            "recvmsg: control payload truncated on read");
+            "recvmsg: control payload truncated on read.");
     }
 
     if (fds)
