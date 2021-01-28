@@ -45,11 +45,12 @@ edc_inconsistent_list::edc_inconsistent_list(gaia_id_t id, const char* parent_ty
     m_message = msg.str();
 }
 
-edc_invalid_state::edc_invalid_state(const char* parent_type, const char* child_type)
+edc_invalid_state::edc_invalid_state(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
 {
     stringstream msg;
-    msg << "Object(s) have invalid state, no ID exists. Parent type is '" << parent_type
-        << "' and child type is '" << child_type << "'.";
+    msg << "Cannot insert an object of type '" << child_type
+        << "' into the container. The parent id '" << parent_id << "' or the child id '"
+        << child_id << "' is invalid.";
     m_message = msg.str();
 }
 
