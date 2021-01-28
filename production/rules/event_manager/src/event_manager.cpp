@@ -12,6 +12,7 @@
 
 #include "gaia/events.hpp"
 
+#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -35,6 +36,13 @@ const char* event_manager_t::s_gaia_log_event_rule = "gaia::rules::log_event";
 // When the user does provide one, the linker will choose their strong reference.
 extern "C" void __attribute__((weak)) initialize_rules()
 {
+}
+
+std::atomic<uint64_t> g_id;
+
+uint64_t create_id()
+{
+    return g_id++;
 }
 
 /**
@@ -124,9 +132,7 @@ void event_manager_t::shutdown()
     unsubscribe_rules();
 }
 
-bool event_manager_t::process_last_operation_events(
-    event_binding_t& binding, const trigger_event_t& event,
-    steady_clock::time_point& start_time)
+bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event, std::chrono::steady_clock::time_point& start_time, gaia_txn_id_t i)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
@@ -134,17 +140,15 @@ bool event_manager_t::process_last_operation_events(
     for (auto const& binding : rules)
     {
         rules_invoked = true;
-        enqueue_invocation(event, binding, start_time);
+        enqueue_invocation(event, binding, start_time, i);
     }
 
     return rules_invoked;
 }
 
-bool event_manager_t::process_field_events(
-    event_binding_t& binding, const trigger_event_t& event,
-    steady_clock::time_point& start_time)
+bool event_manager_t::process_field_events(event_binding_t& binding, const trigger_event_t& event, std::chrono::steady_clock::time_point& start_time, gaia_txn_id_t i)
 {
-    if (binding.fields_map.size() == 0 || event.columns.size() == 0)
+    if (binding.fields_map.size() == 0 || event.columns.size() == i)
     {
         return false;
     }
@@ -166,7 +170,7 @@ bool event_manager_t::process_field_events(
             for (auto const& binding : rules)
             {
                 rules_invoked = true;
-                enqueue_invocation(event, binding, start_time);
+                enqueue_invocation(event, binding, start_time, 0);
             }
         }
     }
@@ -174,12 +178,15 @@ bool event_manager_t::process_field_events(
     return rules_invoked;
 }
 
-void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
+void event_manager_t::commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& trigger_event_list)
 {
     if (trigger_event_list.size() == 0)
     {
+        gaia_log::rules().info("trigger_event_list.size() == 0");
         return;
     }
+
+    gaia_log::rules().info("commit_trigger txn_id:{} ", txn_id);
 
     auto start_time = gaia::common::timer_t::get_time_point();
 
@@ -209,12 +216,12 @@ void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& 
 
                 // Once rules_invoked is true, we keep it there to mean
                 // that any rule was subscribed to this event.
-                if (process_last_operation_events(binding, event, start_time))
+                if (process_last_operation_events(binding, event, start_time, txn_id))
                 {
                     rules_invoked = true;
                 }
 
-                if (process_field_events(binding, event, start_time))
+                if (process_field_events(binding, event, start_time, txn_id))
                 {
                     rules_invoked = true;
                 }
@@ -225,34 +232,36 @@ void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& 
 
     // Enqueue a task to log all the events in this commit_trigger in a
     // separate thread in a new transaction.
-    enqueue_invocation(trigger_event_list, rules_invoked_list, start_time);
+    enqueue_invocation(trigger_event_list, rules_invoked_list, start_time, txn_id);
 }
 
 void event_manager_t::enqueue_invocation(
     const trigger_event_list_t& events,
     const vector<bool>& rules_invoked_list,
-    steady_clock::time_point& start_time)
+    steady_clock::time_point& start_time,
+    gaia_txn_id_t txn_id)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation{events, rules_invoked_list};
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::log_events,
-        std::move(event_invocation), s_gaia_log_event_rule, start_time};
+        std::move(event_invocation), s_gaia_log_event_rule, start_time, create_id(), txn_id};
     m_invocations->enqueue(invocation);
 }
 
 void event_manager_t::enqueue_invocation(
     const trigger_event_t& event,
     const _rule_binding_t* rule_binding,
-    steady_clock::time_point& start_time)
+    steady_clock::time_point& start_time,
+    gaia_txn_id_t txn_id)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation{
         rule_binding->rule,
         event.gaia_type, event.event_type,
-        event.record, event.columns};
+        event.record, event.columns, create_id(), txn_id};
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
-        rule_binding->log_rule_name.c_str(), start_time};
+        rule_binding->log_rule_name.c_str(), start_time, create_id(), txn_id};
     m_invocations->enqueue(invocation);
 }
 

@@ -151,14 +151,8 @@ private:
 
     // Well known trigger function called by the database after commit.
     void commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& event_list);
-    bool process_last_operation_events(
-        event_binding_t& binding,
-        const trigger_event_t& event,
-        std::chrono::steady_clock::time_point& start_time);
-    bool process_field_events(
-        event_binding_t& binding,
-        const trigger_event_t& event,
-        std::chrono::steady_clock::time_point& start_time);
+    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event, std::chrono::steady_clock::time_point& start_time, gaia_txn_id_t i);
+    bool process_field_events(event_binding_t& binding, const trigger_event_t& event, std::chrono::steady_clock::time_point& start_time, gaia_txn_id_t i);
     void init(const event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
@@ -166,11 +160,13 @@ private:
     void enqueue_invocation(
         const trigger_event_list_t& events,
         const std::vector<bool>& rules_invoked_list,
-        std::chrono::steady_clock::time_point& start_time);
+        std::chrono::steady_clock::time_point& start_time,
+        gaia_txn_id_t txn_id);
     void enqueue_invocation(
         const trigger_event_t& event,
         const _rule_binding_t* rule_binding,
-        std::chrono::steady_clock::time_point& start_time);
+        std::chrono::steady_clock::time_point& start_time,
+        gaia_txn_id_t txn_id);
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {

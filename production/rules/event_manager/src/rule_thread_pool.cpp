@@ -13,6 +13,7 @@
 #include "event_manager.hpp"
 
 using namespace std;
+using namespace std::chrono;
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -147,6 +148,8 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
+    gaia_log::rules().info("enqueue invocation txn_id:{} invocation_id:{}", invocation.txn_id, invocation.invocation_id);
+
     if (invocation.type == invocation_type_t::rule)
     {
         m_stats_manager.insert_rule_stats(invocation.rule_id);
@@ -164,6 +167,8 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     {
         if (m_threads.size() > 0)
         {
+            gaia_log::rules().info("enqueue invocation m_threads.size() > 0 txn_id:{} invocation_id:{}", invocation.txn_id, invocation.invocation_id);
+
             unique_lock lock(m_lock);
             m_invocations.push(invocation);
             lock.unlock();
@@ -171,11 +176,15 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
         }
         else
         {
+            gaia_log::rules().info("enqueue invocation m_threads.size() == 0 txn_id:{} invocation_id:{}", invocation.txn_id, invocation.invocation_id);
+
             m_invocations.push(invocation);
         }
     }
     else
     {
+        gaia_log::rules().info("can't enqueue txn_id:{} invocation_id:{}", invocation.txn_id, invocation.invocation_id);
+
         s_tls_pending_invocations.push(invocation);
     }
 }
@@ -183,6 +192,7 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
 // Thread worker function.
 void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 {
+    gaia_log::rules().info("Starting rule_worker");
     unique_lock lock(m_lock, defer_lock);
 
     begin_session();
@@ -203,6 +213,7 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
         // in this thread.
         auto start_thread_execution_time = gaia::common::timer_t::get_time_point();
         invocation_t invocation = m_invocations.front();
+        gaia_log::rules().info("rule_worker dispatching invocation txn_id:{} invocation_id:{}", invocation.txn_id, invocation.invocation_id);
         m_invocations.pop();
         lock.unlock();
         invoke_rule(invocation);

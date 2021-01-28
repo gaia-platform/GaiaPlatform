@@ -18,17 +18,18 @@ ruleset ping_pong_ruleset
         static int count = 0;
         count++;
 
-        if (ping_pong.LastOperation == INSERT)
+//        if (ping_pong.LastOperation == INSERT)
+//        {
+//            gaia_log::app().info("Rules insert status: {}", ping_pong.status);
+//        }
+
+        if (count % 10000)
         {
-            gaia_log::app().info("Rules insert status: {}", ping_pong.status);
+            gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
         }
 
         if (strcmp(ping_pong.status, c_ping) == 0)
         {
-            if (count % 1000 == 0)
-            {
-                gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
-            }
             // If I dont' use a fully qualified name, it will fail here.
             status = c_pong;
         }
