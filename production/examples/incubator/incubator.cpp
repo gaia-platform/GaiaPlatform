@@ -16,6 +16,7 @@
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
+
 #include "gaia_incubator.h"
 
 using namespace std;

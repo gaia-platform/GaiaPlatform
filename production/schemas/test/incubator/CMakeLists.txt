@@ -23,6 +23,6 @@ add_custom_command(
 
 add_custom_target(generate_incubator_headers ALL
   DEPENDS ${GAIA_GENERATED_SCHEMAS}/gaia_barn_storage.h
-  # Add previous target to realize parallel builds.
+  # Add previous target to serialize parallel builds.
   DEPENDS generate_airport_headers
 )

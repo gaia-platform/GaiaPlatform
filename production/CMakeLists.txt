@@ -46,7 +46,7 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
-  set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")  
+  set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
 else()
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
@@ -199,7 +199,6 @@ add_subdirectory(schemas)
 
 # Tools.
 add_subdirectory(tools)
-
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
