@@ -94,7 +94,7 @@ public:
 private:
     void rule_worker(int32_t& count_busy_workers);
 
-    void inline invoke_rule(invocation_t& invocation);
+    void invoke_rule(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
     // Each thread has a copy of these two variables to determine
