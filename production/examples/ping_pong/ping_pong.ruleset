@@ -1,0 +1,31 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <string>
+
+#include "gaia/logger.hpp"
+
+#include "gaia_ping_pong.h"
+
+using namespace std;
+
+ruleset incubator_ruleset
+{
+    {
+        static int count = 0;
+        count++;
+
+        if (ping_pong.LastOperation == INSERT)
+        {
+            gaia_log::app().info("Rules insert status: {}", ping_pong.status);
+        }
+
+        if (strcmp(ping_pong.status, "ping") == 0)
+        {
+            gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
+            status = "pong";
+        }
+    }
+}
