@@ -62,12 +62,11 @@ float calc_new_temp(float curr_temp, float fan_speed)
 
 void simulation(incubator_t& incubator, sensor_t& sensor)
 {
-    auto_transaction_t tx;
-
     while (keep_running)
     {
         sleep(1);
 
+        begin_transaction();
         float new_temp = 0.0;
         int count = 0;
         // To prevent divergence of temperatures of multiple sensors, start with the average of all sensor values.
@@ -88,14 +87,15 @@ void simulation(incubator_t& incubator, sensor_t& sensor)
         }
         sw.update_row();
 
-        tx.commit();
+        commit_transaction();
     }
 
 }
 
 bool init_storage(const char* incubator_name, const char* sensor_name, incubator_t& incubator, sensor_t& sensor)
 {
-    begin_transaction();
+    auto_transaction_t tx;
+
     for (auto i : incubator_t::list())
     {
         if (strcmp(i.name(), incubator_name) == 0)
@@ -103,12 +103,11 @@ bool init_storage(const char* incubator_name, const char* sensor_name, incubator
             sensor = sensor_t::get(sensor_t::insert_row(sensor_name, 0, i.min_temp()));
             i.sensor_list().insert(sensor);
             printf("added '%s' to '%s'\n", sensor_name, incubator_name);
-            commit_transaction();
+            tx.commit();
             incubator = i;
             return true;
         }
     }
-    rollback_transaction();
     return false;
 }
 
@@ -116,7 +115,7 @@ void remove_sensor(incubator_t& incubator, sensor_t& sensor)
 {
     begin_transaction();
     printf("removed '%s' from '%s'\n", sensor.name(), incubator.name());
-    incubator.sensor_list().erase(sensor);
+    incubator.sensor_list().remove(sensor);
     sensor.delete_row();
     commit_transaction();
     return;
@@ -146,9 +145,7 @@ int main(int argc, const char** argv)
     gaia::system::initialize("gaia.conf", "gaia_log.conf");
 
     printf("-----------------------------------------\n");
-    printf("Gaia Incubator\n\n");
-    printf("No chickens or puppies were harmed in the\n");
-    printf("development or presentation of this demo.\n");
+    printf("Gaia Temperature Sensor\n\n");
     printf("-----------------------------------------\n");
 
     signal(SIGINT, intHandler);
