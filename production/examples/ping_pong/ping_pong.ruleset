@@ -26,7 +26,8 @@ ruleset ping_pong_ruleset
         if (strcmp(ping_pong.status, c_ping) == 0)
         {
             gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
-            status = c_pong;
+            // If I dont' use a fully qualified name, it will fail here.
+            ping_pong.status = c_pong;
         }
     }
 }
