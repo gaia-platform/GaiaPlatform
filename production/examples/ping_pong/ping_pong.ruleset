@@ -12,7 +12,7 @@
 
 using namespace std;
 
-ruleset incubator_ruleset
+ruleset ping_pong_ruleset
 {
     {
         static int count = 0;
