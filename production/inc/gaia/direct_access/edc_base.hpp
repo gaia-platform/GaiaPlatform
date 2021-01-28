@@ -134,7 +134,8 @@ class edc_invalid_state : public common::gaia_exception
 {
 public:
     edc_invalid_state(
-        const char* parent_type,
+        common::gaia_id_t parent_id,
+        common::gaia_id_t chile_id,
         const char* child_type);
 };
 
