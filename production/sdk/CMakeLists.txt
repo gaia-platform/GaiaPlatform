@@ -5,7 +5,7 @@
 
 project(sdk)
 
-include(gaia)
+include(gaia_build)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
@@ -145,6 +145,9 @@ install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
+# Place cmake functions
+install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
+
 # Place hello example.
 install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
@@ -157,8 +160,7 @@ install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examp
 install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
 
 # Place incubator example.
-set(GAIA_GENERATE "/usr/local/bin/gaiac")
-set(GAIA_TRANSLATE "/usr/local/bin/gaiat")
+set(GAIA_CMAKE "${CPACK_PACKAGING_INSTALL_PREFIX}/cmake/gaia.cmake")
 set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
 set(GAIA_LIB "/usr/local/lib/libgaia.so")
 configure_file(${GAIA_REPO}/demos/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
