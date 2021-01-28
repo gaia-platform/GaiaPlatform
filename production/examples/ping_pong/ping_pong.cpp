@@ -28,16 +28,26 @@ int main()
     while (true)
     {
         count++;
-        gaia::db::begin_transaction();
-        ping_pong = ping_pong_t::get(ping_pong_id);
-        if (strcmp(ping_pong.status(), c_pong) == 0)
+        try
         {
-            gaia_log::app().info("Main:{} iteration:{}", ping_pong.status(), count);
-            auto ping_pong_writer = ping_pong.writer();
-            ping_pong_writer.status = c_ping;
-            ping_pong_writer.update_row();
+            gaia::db::begin_transaction();
+            ping_pong = ping_pong_t::get(ping_pong_id);
+            if (strcmp(ping_pong.status(), c_pong) == 0)
+            {
+                if (count % 1000 == 0)
+                {
+                    gaia_log::app().info("Main:{} iteration:{}", ping_pong.status(), count);
+                }
+                auto ping_pong_writer = ping_pong.writer();
+                ping_pong_writer.status = c_ping;
+                ping_pong_writer.update_row();
+            }
+            gaia::db::commit_transaction();
         }
-        gaia::db::commit_transaction();
+        catch (const gaia::db::transaction_update_conflict& ex)
+        {
+            gaia_log::app().error("{} iteration:{}", ex.what(), count);
+        }
     }
 
     gaia::system::shutdown();
