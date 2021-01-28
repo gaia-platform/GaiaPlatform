@@ -576,6 +576,14 @@ public:
         EXPECT_EQ(row.rules_invoked(), rules_invoked);
     }
 
+    void verify_event_log_is_empty()
+    {
+        gaia::db::begin_transaction();
+        auto entry = gaia::event_log::event_log_t::get_first();
+        EXPECT_FALSE((bool)entry);
+        gaia::db::commit_transaction();
+    }
+
 protected:
     static void SetUpTestSuite()
     {
@@ -1230,47 +1238,28 @@ TEST_F(event_manager_test, forward_chain_field_rollback)
 }
 */
 
+// TODO[GAIAPLAT-308]: Event logging does not happen since we don't have trim.
+// The following two tests will only verify that there are no entries in the
+// event log.
 TEST_F(event_manager_test, event_logging_no_subscriptions)
 {
-    clear_event_log();
-
     const gaia_id_t record = 11;
-
-    // Ensure the event was logged even if it had no subscribers.
     trigger_event_t events[] = {{event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name}};
     test::commit_trigger(0, events, 1);
 
-    gaia::db::begin_transaction();
-    auto entry = gaia::event_log::event_log_t::get_first();
-    verify_event_log_row(entry, event_type_t::row_update, test_gaia_t::s_gaia_type, record, c_last_name, false);
-
-    EXPECT_FALSE(entry.get_next());
-    gaia::db::commit_transaction();
-
-    EXPECT_EQ(1, clear_event_log());
+    verify_event_log_is_empty();
 }
 
 TEST_F(event_manager_test, event_logging_subscriptions)
 {
-    clear_event_log();
     setup_all_rules();
 
     const gaia_id_t record = 7000;
-
-    // Log events with subscriptions and ensure the table is populated.
     trigger_event_t events[] = {
         {event_type_t::row_update, test_gaia_other_t::s_gaia_type, record, g_first_name},
         {event_type_t::row_insert, test_gaia_other_t::s_gaia_type, record + 1, empty_position_list},
     };
     test::commit_trigger(0, events, 2);
 
-    gaia::db::begin_transaction();
-    auto entry = gaia::event_log::event_log_t::get_first();
-    verify_event_log_row(entry, event_type_t::row_update, test_gaia_other_t::s_gaia_type, record, c_first_name, true);
-
-    entry = entry.get_next();
-    verify_event_log_row(entry, event_type_t::row_insert, test_gaia_other_t::s_gaia_type, record + 1, 0, true);
-
-    gaia::db::commit_transaction();
-    EXPECT_EQ(2, clear_event_log());
+    verify_event_log_is_empty();
 }
