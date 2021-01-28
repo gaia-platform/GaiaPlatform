@@ -32,7 +32,7 @@ function(process_schema)
   string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
   set(SCHEMA_HEADER_PATH ${ARG_OUTPUT_FOLDER}/gaia_${DDL_NAME}.h)
 
-  message(VERBOSE "Adding target for generating: ${ARG_DDL_FILE}")
+  message(VERBOSE "Adding target for generating: ${ARG_DDL_FILE}.")
 
   if(NOT DEFINED ARG_GAIAC_CMD)
     set(ARG_GAIAC_CMD gaiac)
@@ -47,7 +47,7 @@ function(process_schema)
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_headers")
-    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
@@ -89,7 +89,7 @@ function(translate_ruleset)
   set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
   set(RULESET_CPP_PATH ${ARG_OUTPUT_FOLDER}/${RULESET_CPP_NAME})
 
-  message(VERBOSE "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}")
+  message(VERBOSE "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}.")
 
   set(GAIAT_INCLUDE_PATH "")
 
@@ -121,7 +121,7 @@ function(translate_ruleset)
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "translate_${RULESET_NAME}_ruleset")
-    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}")
+    message(VERBOSE "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
