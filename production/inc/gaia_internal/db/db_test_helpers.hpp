@@ -136,8 +136,6 @@ public:
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
-            cmd.append(" ");
-            cmd.append("--data-dir /tmp/gaia_db");
         }
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
