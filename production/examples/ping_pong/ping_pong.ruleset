@@ -7,6 +7,7 @@
 
 #include "gaia/logger.hpp"
 
+#include "constants.hpp"
 #include "gaia_ping_pong.h"
 
 using namespace std;
@@ -22,10 +23,10 @@ ruleset incubator_ruleset
             gaia_log::app().info("Rules insert status: {}", ping_pong.status);
         }
 
-        if (strcmp(ping_pong.status, "ping") == 0)
+        if (strcmp(ping_pong.status, c_ping) == 0)
         {
             gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
-            status = "pong";
+            status = c_pong;
         }
     }
 }

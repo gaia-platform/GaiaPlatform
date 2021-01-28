@@ -6,6 +6,7 @@
 #include "gaia/logger.hpp"
 #include "gaia/system.hpp"
 
+#include "constants.hpp"
 #include "gaia_ping_pong.h"
 
 using namespace std;
@@ -17,7 +18,7 @@ int main()
     gaia_log::app().info("Ping Pong example is running...");
 
     gaia::db::begin_transaction();
-    auto ping_pong_id = ping_pong_t::insert_row("pong");
+    auto ping_pong_id = ping_pong_t::insert_row(c_ping);
     auto ping_pong = ping_pong_t::get(ping_pong_id);
 
     gaia::db::commit_transaction();
@@ -29,11 +30,11 @@ int main()
         count++;
         gaia::db::begin_transaction();
         ping_pong = ping_pong_t::get(ping_pong_id);
-        if (strcmp(ping_pong.status(), "pong") == 0)
+        if (strcmp(ping_pong.status(), c_pong) == 0)
         {
             gaia_log::app().info("Main:{} iteration:{}", ping_pong.status(), count);
             auto ping_pong_writer = ping_pong.writer();
-            ping_pong_writer.status = "ping";
+            ping_pong_writer.status = c_ping;
             ping_pong_writer.update_row();
         }
         gaia::db::commit_transaction();

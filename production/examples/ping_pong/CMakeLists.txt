@@ -42,4 +42,5 @@ add_executable(ping_pong
 add_dependencies(ping_pong translate_ping_pong_ruleset)
 target_include_directories(ping_pong PRIVATE ${GAIA_INC})
 target_include_directories(ping_pong PRIVATE ${PROJECT_BINARY_DIR})
+target_include_directories(ping_pong PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(ping_pong PRIVATE rt pthread gaia)
