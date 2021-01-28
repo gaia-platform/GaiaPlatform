@@ -10,7 +10,7 @@ project(ping_pong)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O2")
 
 set(GAIA "/opt/gaia")
 
@@ -40,7 +40,8 @@ add_executable(ping_pong
 )
 
 add_dependencies(ping_pong translate_ping_pong_ruleset)
-target_include_directories(ping_pong PRIVATE ${GAIA_INC})
-target_include_directories(ping_pong PRIVATE ${PROJECT_BINARY_DIR})
-target_include_directories(ping_pong PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(ping_pong PRIVATE rt pthread gaia)
+target_include_directories(ping_pong PRIVATE
+  ${GAIA_INC}
+  ${PROJECT_BINARY_DIR}
+  ${PROJECT_SOURCE_DIR})
+target_link_libraries(ping_pong PRIVATE pthread gaia)
