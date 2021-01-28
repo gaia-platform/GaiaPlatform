@@ -35,3 +35,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()
+
+# We currently don't have any code to build under demos.
+# If any new code gets added, we can build it by hooking it up below.
