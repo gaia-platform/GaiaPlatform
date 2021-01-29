@@ -50,31 +50,33 @@ using namespace gaia::db::memory_manager;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-static const string c_message_uninitialized_fd_log = "Uninitialized fd log!";
-static const string c_message_unexpected_event_received = "Unexpected event received!";
-static const string c_message_current_event_is_inconsistent_with_state_transition
+static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
+static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
+static constexpr char c_message_current_event_is_inconsistent_with_state_transition[]
     = "Current event is inconsistent with state transition!";
-static const string c_message_unexpected_request_data_type = "Unexpected request data type!";
-static const string c_message_memfd_create_failed = "memfd_create() failed!";
-static const string c_message_thread_must_be_joinable = "Thread must be joinable!";
-static const string c_message_epoll_create1_failed = "epoll_create1() failed!";
-static const string c_message_epoll_wait_failed = "epoll_wait() failed!";
-static const string c_message_epoll_ctl_failed = "epoll_ctl() failed!";
-static const string c_message_unexpected_event_type = "Unexpected event type!";
-static const string c_message_epollerr_flag_should_not_be_set = "EPOLLERR flag should not be set!";
-static const string c_message_unexpected_fd = "Unexpected fd!";
-static const string c_message_not_a_begin_timestamp = "Not a begin timestamp!";
-static const string c_message_not_a_commit_timestamp = "Not a commit timestamp!";
-static const string c_message_unknown_timestamp = "Unknown timestamp!";
-static const string c_message_unexpected_errno_value = "Unexpected errno value!";
-static const string c_message_txn_log_fd_cannot_be_invalidated
+static constexpr char c_message_unexpected_request_data_type[] = "Unexpected request data type!";
+static constexpr char c_message_memfd_create_failed[] = "memfd_create() failed!";
+static constexpr char c_message_thread_must_be_joinable[] = "Thread must be joinable!";
+static constexpr char c_message_epoll_create1_failed[] = "epoll_create1() failed!";
+static constexpr char c_message_epoll_wait_failed[] = "epoll_wait() failed!";
+static constexpr char c_message_epoll_ctl_failed[] = "epoll_ctl() failed!";
+static constexpr char c_message_unexpected_event_type[] = "Unexpected event type!";
+static constexpr char c_message_epollerr_flag_should_not_be_set[] = "EPOLLERR flag should not be set!";
+static constexpr char c_message_unexpected_fd[] = "Unexpected fd!";
+static constexpr char c_message_not_a_begin_timestamp[] = "Not a begin timestamp!";
+static constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
+static constexpr char c_message_unknown_timestamp[] = "Unknown timestamp!";
+static constexpr char c_message_unexpected_errno_value[] = "Unexpected errno value!";
+static constexpr char c_message_txn_log_fd_cannot_be_invalidated[]
     = "A txn log fd can only be invalidated if its commit_ts has been validated!";
-static const string c_message_txn_log_fd_should_have_been_invalidated
+static constexpr char c_message_txn_log_fd_should_have_been_invalidated[]
     = "If the validating txn's log fd has been invalidated, then the watermark must have advanced past the commit_ts of the txn being tested, and invalidated its log fd!";
-static const string c_message_unexpected_commit_ts_value
+static constexpr char c_message_unexpected_commit_ts_value[]
     = "The commit_ts whose log fd was invalidated must belong to either the validating txn or the txn being tested!";
-static const string c_message_validating_txn_should_have_been_validated
+static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
+static constexpr char c_message_preceding_txn_should_have_been_validated[]
+    = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 
 address_offset_t server::allocate_from_memory_manager(
     size_t memory_request_size_bytes)
@@ -2215,209 +2217,194 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 bool server::validate_txn(gaia_txn_id_t commit_ts)
 {
     // Validation algorithm:
-    //
-    // - Find all committed transactions in conflict window, i.e., between our
-    //   begin and commit timestamps, traversing from oldest to newest txns and
-    //   testing for conflicts as we go, to allow as much time as possible for
-    //   undecided txns to be validated, and for commit timestamps allocated
-    //   within our conflict window to be registered. Skip over all unknown
-    //   timestamps, invalidated timestamps, active txns, undecided txns, and
-    //   aborted txns.
-    //
-    // - Invalidate all unknown timestamps, so no txns can be submitted within
-    //   our conflict window. Any submitted txns which have allocated a commit
-    //   timestamp within our conflict window but have not yet registered their
-    //   commit timestamp must now retry with a new timestamp. (This allows us
-    //   to treat our conflict window as an immutable snapshot of submitted
-    //   txns, without needing to acquire any locks.)
-    //
-    // - Important optimization: find the latest undecided txn which conflicts
-    //   with our write set. Any undecided txns later than this don't need to be
-    //   validated (but earlier, non-conflicting undecided txns still need to be
-    //   validated, since they could conflict with a later undecided txn with a
-    //   conflicting write set, which would abort and hence not cause us to
-    //   abort).
-    //
-    // - Recursively validate all undecided txns preceding the last conflicting
-    //   undecided txn identified in the preceding step, from oldest to newest.
-    //   Note that we cannot recurse indefinitely, since by hypothesis no
-    //   undecided txns can precede our begin timestamp (because a new
-    //   transaction must validate any undecided transactions with commit
-    //   timestamps preceding its begin timestamp before it can proceed).
-    //   However, we could duplicate work with other session threads validating
-    //   their committing txns. We mitigate this by 1) tracking all txns'
-    //   validation status in their commit timestamp entries, and 2) rechecking
-    //   validation status for the current txn after scanning each possibly
-    //   conflicting txn log (and aborting validation if it has already been
-    //   validated).
-    //
-    // - Test any committed txns validated in the preceding step for conflicts.
-    //
-    // - If any of these steps finds that our write set conflicts with the write
-    //   set of any committed txn, we must abort. Otherwise, we commit. In
-    //   either case, we set the decided state in our commit timestamp entry and
-    //   return the commit decision to the client.
 
-    // Find commit timestamps of all committed and undecided txns in conflict window.
-    std::unordered_set<gaia_txn_id_t> committed_txns;
+    // NB: We make two passes over the conflict window, even though only one
+    // pass would suffice, since we want to avoid unnecessary validation of
+    // undecided txns by skipping over them on the first pass while we check
+    // committed txns for conflicts, hoping that some undecided txns will be
+    // decided before the second pass. This adds some complexity (e.g., tracking
+    // committed txns already tested for conflicts), and may not be a worthwhile
+    // optimization.
+    //
+    // Possible optimization for conflict detection, since mmap() is so
+    // expensive: store compact signatures in the txn log (either sorted
+    // fingerprint sequence or bloom filter, at beginning or end of file), read
+    // the signatures with pread(2), and test against signatures in committing
+    // txn's log. Only mmap() the txn log if a possible conflict is indicated.
+    //
+    // A simpler and possibly more important optimization: use the existing
+    // mapped view of the committing txn's log instead of mapping it again on
+    // every conflict check.
+    //
+    // Possible optimization (in the original version but removed in the current
+    // code for simplicity): find the latest undecided txn which conflicts with
+    // our write set. Any undecided txns later than this don't need to be
+    // validated (but earlier, non-conflicting undecided txns still need to be
+    // validated, since they could conflict with a later undecided txn with a
+    // conflicting write set, which would abort and hence not cause us to
+    // abort).
+    //
+    // 1. Invalidate all unknown timestamps, so no txns can be submitted within
+    //    our conflict window. Any submitted txns which have allocated a commit
+    //    timestamp within our conflict window but have not yet registered their
+    //    commit timestamp must now retry with a new timestamp. (This allows us
+    //    to treat our conflict window as an immutable snapshot of submitted
+    //    txns, without needing to acquire any locks.)
+    //
+    // 2. Find all committed transactions in conflict window, i.e., between our
+    //    begin and commit timestamps, traversing from oldest to newest txns and
+    //    testing for conflicts as we go, to allow as much time as possible for
+    //    undecided txns to be validated, and for commit timestamps allocated
+    //    within our conflict window to be registered. Skip over all unknown
+    //    timestamps, invalidated timestamps, active txns, undecided txns, and
+    //    aborted txns. Repeat this phase until no newly committed txns are
+    //    discovered.
+    //
+    // 3. Recursively validate all undecided txns preceding the last conflicting
+    //    undecided txn identified in the preceding step, from oldest to newest.
+    //    Note that we cannot recurse indefinitely, since by hypothesis no
+    //    undecided txns can precede our begin timestamp (because a new
+    //    transaction must validate any undecided transactions with commit
+    //    timestamps preceding its begin timestamp before it can proceed).
+    //    However, we could duplicate work with other session threads validating
+    //    their committing txns. We mitigate this by 1) tracking all txns'
+    //    validation status in their commit timestamp entries, and 2) rechecking
+    //    validation status for the current txn after scanning each possibly
+    //    conflicting txn log (and aborting validation if it has already been
+    //    validated).
+    //
+    // 4. Test any committed txns validated in the preceding step for conflicts.
+    //    (This also includes any txns which were undecided in the first pass
+    //    but committed before the second pass.)
+    //
+    // 5. If any of these steps finds that our write set conflicts with the
+    //    write set of any committed txn, we must abort. Otherwise, we commit.
+    //    In either case, we set the decided state in our commit timestamp entry
+    //    and return the commit decision to the client.
 
-    // Iterate over all txns in conflict window, and test all committed txns for conflicts.
-    for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+    // Since we make multiple passes over the conflict window, we need to track
+    // committed txns that have already been tested for conflicts.
+    std::unordered_set<gaia_txn_id_t> committed_txns_tested_for_conflicts;
+
+    // Iterate over all txns in conflict window, and test all committed txns for
+    // conflicts. Repeat until no new committed txns are discovered. This gives
+    // undecided txns as much time as possible to be validated by their
+    // committing txn.
+    bool new_committed_txn_found;
+    do
     {
-        // Invalidate all unknown timestamps. This marks a "fence" after which
-        // any submitted txns with commit timestamps in our conflict window must
-        // already be registered under their commit_ts (they must retry with a
-        // new timestamp otherwise).
-        if (invalidate_unknown_ts(ts))
+        new_committed_txn_found = false;
+        for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
-            continue;
-        }
-
-        if (is_commit_ts(ts) && is_txn_committed(ts))
-        {
-            // Remember each committed txn commit_ts so we don't test it again.
-            committed_txns.insert(ts);
-            // Eagerly test committed txns for conflicts to give undecided
-            // txns more time for validation (and submitted txns more time
-            // for registration).
-
-            // We need to use the safe_fd_from_ts wrapper for conflict detection
-            // in case either log fd is invalidated by another thread
-            // concurrently advancing the watermark. If either log fd is
-            // invalidated, it must be that another thread has validated our
-            // txn, so we can exit early.
-            try
+            // Invalidate all unknown timestamps. This marks a "fence" after which
+            // any submitted txns with commit timestamps in our conflict window must
+            // already be registered under their commit_ts (they must retry with a
+            // new timestamp otherwise). (The invalidation is necessary only on the
+            // first pass, but the "unknown timestamp entry" check is cheap enough
+            // that repeating it on subsequent passes shouldn't matter.)
+            if (invalidate_unknown_ts(ts))
             {
-                safe_fd_from_ts validating_fd(commit_ts);
-                safe_fd_from_ts committed_fd(ts);
+                continue;
+            }
 
-                if (txn_logs_conflict(validating_fd.get_fd(), committed_fd.get_fd()))
+            if (is_commit_ts(ts) && is_txn_committed(ts))
+            {
+                // Remember each committed txn commit_ts so we don't test it again.
+                const auto [iter, new_committed_ts] = committed_txns_tested_for_conflicts.insert(ts);
+                if (new_committed_ts)
                 {
-                    return false;
+                    new_committed_txn_found = true;
+
+                    // Eagerly test committed txns for conflicts to give undecided
+                    // txns more time for validation (and submitted txns more time
+                    // for registration).
+
+                    // We need to use the safe_fd_from_ts wrapper for conflict detection
+                    // in case either log fd is invalidated by another thread
+                    // concurrently advancing the watermark. If either log fd is
+                    // invalidated, it must be that another thread has validated our
+                    // txn, so we can exit early.
+                    try
+                    {
+                        safe_fd_from_ts validating_fd(commit_ts);
+                        safe_fd_from_ts committed_fd(ts);
+
+                        if (txn_logs_conflict(validating_fd.get_fd(), committed_fd.get_fd()))
+                        {
+                            return false;
+                        }
+                    }
+                    catch (const invalid_log_fd& e)
+                    {
+                        // invalid_log_fd can only be thrown if the log fd of the
+                        // commit_ts it references has been invalidated, which can only
+                        // happen if the watermark has advanced past the commit_ts. The
+                        // watermark cannot advance past our begin_ts unless our txn has
+                        // already been validated, so if either of the fds we are
+                        // testing for conflicts is invalidated, it must mean that our
+                        // txn has already been validated. Since our commit_ts always
+                        // follows the commit_ts of the undecided txn we are testing for
+                        // conflicts, and the watermark always advances in order, it
+                        // cannot be the case that this txn's log fd has not been
+                        // invalidated while our txn's log fd has been invalidated.
+                        gaia_txn_id_t invalidated_commit_ts = e.get_ts();
+                        retail_assert(
+                            is_txn_decided(invalidated_commit_ts),
+                            c_message_txn_log_fd_cannot_be_invalidated);
+                        if (invalidated_commit_ts == ts)
+                        {
+                            retail_assert(
+                                is_txn_decided(commit_ts),
+                                c_message_validating_txn_should_have_been_validated);
+                        }
+                        // If either log fd was invalidated, then the validating txn
+                        // must have been validated, so we can return the decision
+                        // immediately.
+                        return is_txn_committed(commit_ts);
+                    }
                 }
             }
-            catch (const invalid_log_fd& e)
+
+            // Check if another thread has already validated this txn.
+            if (is_txn_decided(commit_ts))
             {
-                // invalid_log_fd can only be thrown if the log fd of the
-                // commit_ts it references has been invalidated, which can only
-                // happen if the watermark has advanced past the commit_ts. The
-                // watermark cannot advance past our begin_ts unless our txn has
-                // already been validated, so if either of the fds we are
-                // testing for conflicts is invalidated, it must mean that our
-                // txn has already been validated. Since our commit_ts always
-                // follows the commit_ts of the undecided txn we are testing for
-                // conflicts, and the watermark always advances in order, it
-                // cannot be the case that this txn's log fd has not been
-                // invalidated while our txn's log fd has been invalidated.
-                gaia_txn_id_t invalidated_commit_ts = e.get_ts();
-                retail_assert(
-                    is_txn_decided(invalidated_commit_ts),
-                    c_message_txn_log_fd_cannot_be_invalidated);
-                if (invalidated_commit_ts == ts)
-                {
-                    retail_assert(
-                        is_txn_decided(commit_ts),
-                        c_message_validating_txn_should_have_been_validated);
-                }
-                // If either log fd was invalidated, then the validating txn
-                // must have been validated, so we can return the decision
-                // immediately.
                 return is_txn_committed(commit_ts);
             }
         }
-        // Check if another thread has already validated this txn.
-        if (is_txn_decided(commit_ts))
-        {
-            return is_txn_committed(commit_ts);
-        }
-    }
 
-    // Find the latest undecided conflicting txn, to determine when we can stop
-    // validating undecided txns.
-    gaia_txn_id_t last_undecided_conflicting_txn_commit_ts = c_invalid_gaia_txn_id;
-    // Iterate backwards over conflict window so we find the most recent txn first.
-    for (gaia_txn_id_t ts = commit_ts - 1; ts > get_begin_ts(commit_ts); --ts)
-    {
-        if (is_commit_ts(ts) && is_txn_validating(ts))
-        {
-            // We need to use the safe_fd_from_ts wrapper for conflict detection
-            // in case either log fd is invalidated by another thread
-            // concurrently advancing the watermark. If either log fd is
-            // invalidated, it must be that another thread has validated our
-            // txn, so we can exit early.
-            try
-            {
-                safe_fd_from_ts validating_fd(commit_ts);
-                safe_fd_from_ts undecided_fd(ts);
+    } while (new_committed_txn_found);
 
-                if (txn_logs_conflict(validating_fd.get_fd(), undecided_fd.get_fd()))
-                {
-                    last_undecided_conflicting_txn_commit_ts = ts;
-                    break;
-                }
-            }
-            catch (const invalid_log_fd& e)
-            {
-                // invalid_log_fd can only be thrown if the
-                // log fd of the commit_ts it references has been invalidated, which can only happen if the
-                // watermark has advanced past the commit_ts.
-                // The watermark cannot advance past our begin_ts unless our txn
-                // has already been validated, so if either of the fds we are
-                // testing for conflicts is invalidated, it must mean that our
-                // txn has already been validated. Since our commit_ts always
-                // follows the commit_ts of the undecided txn we are testing for
-                // conflicts, and the watermark always advances in order, it
-                // cannot be the case that this txn's log fd has not been
-                // invalidated while our txn's log fd has been invalidated.
-                gaia_txn_id_t invalidated_commit_ts = e.get_ts();
-                retail_assert(
-                    is_txn_decided(invalidated_commit_ts),
-                    c_message_txn_log_fd_cannot_be_invalidated);
-                if (invalidated_commit_ts == commit_ts)
-                {
-                    retail_assert(
-                        get_txn_log_fd(ts) == -1,
-                        c_message_txn_log_fd_should_have_been_invalidated);
-                }
-                else
-                {
-                    retail_assert(
-                        invalidated_commit_ts == ts,
-                        c_message_unexpected_commit_ts_value);
-                    retail_assert(
-                        is_txn_decided(commit_ts),
-                        c_message_validating_txn_should_have_been_validated);
-                }
-                // If either log fd was invalidated, then the validating txn
-                // must have been validated, so we can return the decision
-                // immediately.
-                return is_txn_committed(commit_ts);
-            }
-        }
-        // Check if another thread has already validated this txn.
-        if (is_txn_decided(commit_ts))
-        {
-            return is_txn_committed(commit_ts);
-        }
-    }
-
-    // Before we validate undecided txns, check for any committed txns that were
-    // previously undecided and check them for conflicts, to give any undecided
-    // txns a chance for validation, and to allow us to terminate early if we
-    // find a conflict, without validating any more undecided txns.
+    // Validate all undecided txns, from oldest to newest. If any validated txn
+    // commits, test it immediately for conflicts. Also test any committed txns
+    // for conflicts if they weren't tested in the first pass.
     for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
     {
-        if (is_commit_ts(ts) && is_txn_committed(ts))
+        if (is_commit_ts(ts))
         {
-            // Only test for conflicts if we didn't already test it.
-            const auto [iter, is_new_ts] = committed_txns.insert(ts);
-            if (is_new_ts)
+            // Validate any currently undecided txn.
+            if (is_txn_validating(ts))
             {
-                // We need to use the safe_fd_from_ts wrapper for conflict detection
-                // in case either log fd is invalidated by another thread
-                // concurrently advancing the watermark. If either log fd is
-                // invalidated, it must be that another thread has validated our
-                // txn, so we can exit early.
+                // By hypothesis, there are no undecided txns with commit timestamps
+                // preceding the committing txn's begin timestamp.
+                retail_assert(
+                    ts > s_txn_id,
+                    c_message_preceding_txn_should_have_been_validated);
+
+                // Recursively validate the current undecided txn.
+                bool committed = validate_txn(ts);
+
+                // Update the current txn's decided status.
+                update_txn_decision(ts, committed);
+            }
+
+            // If a previously undecided txn has now committed, test it for conflicts.
+            if (is_txn_committed(ts) && committed_txns_tested_for_conflicts.count(ts) == 0)
+            {
+                // We need to use the safe_fd_from_ts wrapper for conflict
+                // detection in case either log fd is invalidated by another
+                // thread concurrently advancing the watermark. If either log fd
+                // is invalidated, it must be that another thread has validated
+                // our txn, so we can exit early.
                 try
                 {
                     safe_fd_from_ts validating_fd(commit_ts);
@@ -2468,6 +2455,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                 }
             }
         }
+
         // Check if another thread has already validated this txn.
         if (is_txn_decided(commit_ts))
         {
@@ -2475,98 +2463,8 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
         }
     }
 
-    // If there are no potentially conflicting undecided txns, we are done.
-    if (last_undecided_conflicting_txn_commit_ts == c_invalid_gaia_txn_id)
-    {
-        return true;
-    }
-
-    // Validate all undecided txns preceding the last conflicting undecided txn,
-    // from oldest to newest. If any validated txn commits, test it immediately
-    // for conflicts.
-    for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < last_undecided_conflicting_txn_commit_ts; ++ts)
-    {
-        if (is_commit_ts(ts) && is_txn_validating(ts))
-        {
-            // By hypothesis, there are no undecided txns with commit timestamps
-            // preceding the committing txn's begin timestamp.
-            retail_assert(
-                ts > s_txn_id,
-                "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!");
-
-            // Recursively validate the current undecided txn.
-            bool committed = validate_txn(ts);
-
-            // Update the current txn's decided status.
-            update_txn_decision(ts, committed);
-
-            // If the just-validated txn committed, then test it for conflicts.
-            if (committed)
-            {
-                // We need to use the safe_fd_from_ts wrapper for conflict detection
-                // in case either log fd is invalidated by another thread
-                // concurrently advancing the watermark. If either log fd is
-                // invalidated, it must be that another thread has validated our
-                // txn, so we can exit early.
-                try
-                {
-                    safe_fd_from_ts validating_fd(commit_ts);
-                    safe_fd_from_ts new_committed_fd(ts);
-
-                    if (txn_logs_conflict(validating_fd.get_fd(), new_committed_fd.get_fd()))
-                    {
-                        return false;
-                    }
-                }
-                catch (const invalid_log_fd& e)
-                {
-                    // invalid_log_fd can only be thrown if the
-                    // log fd of the commit_ts it references has been invalidated, which can only happen if the
-                    // watermark has advanced past the commit_ts.
-                    // The watermark cannot advance past our begin_ts unless our txn
-                    // has already been validated, so if either of the fds we are
-                    // testing for conflicts is invalidated, it must mean that our
-                    // txn has already been validated. Since our commit_ts always
-                    // follows the commit_ts of the undecided txn we are testing for
-                    // conflicts, and the watermark always advances in order, it
-                    // cannot be the case that this txn's log fd has not been
-                    // invalidated while our txn's log fd has been invalidated.
-                    gaia_txn_id_t invalidated_commit_ts = e.get_ts();
-                    retail_assert(
-                        is_txn_decided(invalidated_commit_ts),
-                        c_message_txn_log_fd_cannot_be_invalidated);
-                    if (invalidated_commit_ts == commit_ts)
-                    {
-                        retail_assert(
-                            get_txn_log_fd(ts) == -1,
-                            c_message_txn_log_fd_should_have_been_invalidated);
-                    }
-                    else
-                    {
-                        retail_assert(
-                            invalidated_commit_ts == ts,
-                            c_message_unexpected_commit_ts_value);
-                        retail_assert(
-                            is_txn_decided(commit_ts),
-                            c_message_validating_txn_should_have_been_validated);
-                    }
-                    // If either log fd was invalidated, then the validating txn
-                    // must have been validated, so we can return the decision
-                    // immediately.
-                    return is_txn_committed(commit_ts);
-                }
-            }
-        }
-        // Check if another thread has already validated this txn.
-        if (is_txn_decided(commit_ts))
-        {
-            return is_txn_committed(commit_ts);
-        }
-    }
-
-    // At this point, there are no undecided txns that could possibly conflict
-    // with this txn, and all committed txns have been tested for conflicts, so
-    // we can commit.
+    // At this point, there are no undecided txns in the conflict window, and
+    // all committed txns have been tested for conflicts, so we can commit.
     return true;
 }
 
