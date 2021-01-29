@@ -45,7 +45,10 @@ static const char *ruleContextTypeName = "rule_context__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
+    // Clang complains if we add a default clause to a switch that covers all values of an enum,
+    // so this code is written to avoid that.
     QualType returnType = context->VoidTy;
+
     switch(dbType)
     {
         case catalog::data_type_t::e_bool:
@@ -85,6 +88,11 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
             returnType = context->getPointerType((context->CharTy).withConst());
             break;
     }
+
+    // We should not be reaching this line with this value,
+    // unless there is an error in code.
+    assert(returnType != context->VoidTy);
+
     return returnType;
 }
 
