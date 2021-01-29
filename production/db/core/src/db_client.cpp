@@ -373,10 +373,7 @@ void client::txn_cleanup()
 
     // Destroy the locator mapping.
     unmap_fd(s_locators, sizeof(*s_locators));
-}
 
-void client::state_cleanup()
-{
     // Reset transaction id.
     s_txn_id = c_invalid_gaia_txn_id;
 
@@ -618,8 +615,7 @@ void client::rollback_transaction()
     verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto txn_clean = make_scope_guard(txn_cleanup);
-    auto state_clean = make_scope_guard(state_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     size_t log_size = s_log->size();
     unmap_fd(s_log, c_initial_log_size);
@@ -657,8 +653,7 @@ void client::commit_transaction()
     }
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto txn_clean = make_scope_guard(txn_cleanup);
-    auto state_clean = make_scope_guard(state_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     // Remove intermediate update log records.
     // FIXME: this leaks all intermediate object versions!!!
