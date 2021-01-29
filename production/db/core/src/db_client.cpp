@@ -694,6 +694,14 @@ void client::commit_transaction()
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
+    // Execute trigger only if rules engine is initialized.
+    if (s_txn_commit_trigger
+        && event == session_event_t::DECIDE_TXN_COMMIT
+        && s_events.size() > 0)
+    {
+        s_txn_commit_trigger(s_txn_id, s_events);
+    }
+
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
     // transaction_update_conflict
@@ -701,14 +709,6 @@ void client::commit_transaction()
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict();
-    }
-
-    // Execute trigger only if rules engine is initialized.
-    if (s_txn_commit_trigger
-        && event == session_event_t::DECIDE_TXN_COMMIT
-        && s_events.size() > 0)
-    {
-        s_txn_commit_trigger(s_txn_id, s_events);
     }
 }
 
