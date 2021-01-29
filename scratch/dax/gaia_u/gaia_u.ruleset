@@ -32,7 +32,8 @@ ruleset event_planner
     // Requires:  Staff <- register later
     //  Requires: Person
     {
-        gaia_log::app().trace("Rule 1");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
 
         if (Buildings.LastOperation == INSERT)
         {
@@ -47,7 +48,9 @@ ruleset event_planner
     // Note that this is not currently possible if the event has any reference defined
     //
     {
-        gaia_log::app().trace("Rule 2");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (Events.LastOperation == DELETE)
         {
             event_planner::cancel_event(Events.gaia_id());
@@ -57,7 +60,9 @@ ruleset event_planner
     // When a new room is added then adjust the restricted capacity
     // according to the restriction
     {
-        gaia_log::app().trace("Rule 3");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (Rooms.LastOperation == INSERT)
         {
             RestrictedCapacity = @Capacity * (PercentFull / 100.0);
@@ -66,7 +71,9 @@ ruleset event_planner
 
     // If someone registers for an event then bump the number of enrollments
     {
-        gaia_log::app().trace("Rule 4");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (Registrations.LastOperation == INSERT)
         {
             Enrolled++;
@@ -76,13 +83,17 @@ ruleset event_planner
     // If a restriction to PercentFull changes, then update all the rooms Restricted Capacity
     // capacity.
     {
-        gaia_log::app().trace("Rule 5");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         RestrictedCapacity = @Capacity * (PercentFull / 100.0);
     }
 
     // If the room capacity has changed and is less than the enrollment for the event then move the room
     {
-        gaia_log::app().trace("Rule 6");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (RestrictedCapacity < Enrolled)
         {
             gaia_log::app().info("Event '{}' has '{}' enrollments but the restricted capacity is '{}'.  Attempting to change location.",
@@ -99,7 +110,9 @@ ruleset event_planner
     // Search for room in the same building first and then
     // expand to other rooms if required.
      {
-        gaia_log::app().trace("Rule 7");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (!ChangeLocation)
         {
             return;
@@ -204,7 +217,9 @@ ruleset event_planner
 
     // Reschedule an event.  Found a room but we need to change the date.
     {
-        gaia_log::app().trace("Rule 8");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         if (!ChangeDate)
         {
             return;
@@ -235,7 +250,9 @@ ruleset event_planner
 
     // Notify staff of event changes
     {
-        gaia_log::app().trace("Rule 9");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
 
         std::string staff_email = "Notifying staff '";
         std::string student_email = "Notifying student '";
@@ -278,7 +295,9 @@ ruleset event_planner
 
     // Notify registered students of event changes
     {
-        gaia_log::app().trace("Rule 10");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         std::string student_email = "Notifying student '";
         std::string reason = "' that event '";
 
@@ -325,7 +344,9 @@ ruleset event_planner
     // We don't have a room anywhere on campus that can fit the number of enrollments so
     // we need to stop dropping enrollments
     {
-        gaia_log::app().trace("Rule 11");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         // Send out notifications to all those who have registered
         if (!DropEnrollments)
         {
@@ -373,7 +394,9 @@ ruleset event_planner
     // Notify student that they have been dropped from the enrollment
     // And delete the registration from the event
     {
-        gaia_log::app().trace("Rule 12");
+        gaia_log::app().trace("{}:{} [{},{}]", 
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.gaia_type, rule_context.event_type);
+
         std::string student_email = "Notifying student '";
         std::string reason = "' that they have been unregistered for event '";
 

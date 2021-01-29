@@ -36,7 +36,7 @@ void event_planner::move_event_room(
         }
 
         gaia_log::app().info("Erase '{}' from '{}'", event.Name(), old_room.RoomName());
-        old_room.Events_list().erase(event);
+        old_room.Events_list().remove(event);
     }
     gaia_log::app().info("Insert '{}' into '{}'", event.Name(), new_room.RoomName());
     new_room.Events_list().insert(event);
