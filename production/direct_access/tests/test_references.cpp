@@ -764,7 +764,7 @@ TEST_F(gaia_references_test, thread_inserts)
     EXPECT_EQ(count, 3);
 }
 
-// Testing the arrow dereference operator->() in gaia_set_iterator_t.
+// Testing the arrow dereference operator->() in edc_set_iterator_t.
 TEST_F(gaia_references_test, set_iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
