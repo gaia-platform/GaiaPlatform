@@ -375,6 +375,15 @@ void client::txn_cleanup()
     unmap_fd(s_locators, sizeof(*s_locators));
 }
 
+void client::state_cleanup()
+{
+    // Reset transaction id.
+    s_txn_id = c_invalid_gaia_txn_id;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
+}
+
 int client::get_session_socket()
 {
     // Unlike the session socket on the server, this socket must be blocking,
@@ -609,7 +618,8 @@ void client::rollback_transaction()
     verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = make_scope_guard(txn_cleanup);
+    auto txn_clean = make_scope_guard(txn_cleanup);
+    auto state_clean = make_scope_guard(state_cleanup);
 
     size_t log_size = s_log->size();
     unmap_fd(s_log, c_initial_log_size);
@@ -628,12 +638,6 @@ void client::rollback_transaction()
         build_client_request(builder, session_event_t::ROLLBACK_TXN);
         send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
     }
-
-    // Reset transaction id.
-    s_txn_id = c_invalid_gaia_txn_id;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -653,7 +657,8 @@ void client::commit_transaction()
     }
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = make_scope_guard(txn_cleanup);
+    auto txn_clean = make_scope_guard(txn_cleanup);
+    auto state_clean = make_scope_guard(state_cleanup);
 
     // Remove intermediate update log records.
     // FIXME: this leaks all intermediate object versions!!!
@@ -710,11 +715,6 @@ void client::commit_transaction()
     {
         s_txn_commit_trigger(s_txn_id, s_events);
     }
-    // Reset transaction id.
-    s_txn_id = c_invalid_gaia_txn_id;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
 }
 
 address_offset_t client::request_memory(size_t object_size)

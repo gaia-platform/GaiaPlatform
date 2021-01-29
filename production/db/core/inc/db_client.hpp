@@ -76,8 +76,10 @@ public:
 
 private:
     // These fields have transaction lifetime.
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
+
     thread_local static inline locators_t* s_locators = nullptr;
 
     // These fields have session lifetime.
@@ -86,7 +88,6 @@ private:
     thread_local static inline shared_data_t* s_data = nullptr;
     thread_local static inline shared_id_index_t* s_id_index = nullptr;
     thread_local static inline int s_session_socket = -1;
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
@@ -108,6 +109,8 @@ private:
         size_t size);
 
     static void txn_cleanup();
+
+    static void state_cleanup();
 
     static void dedup_log();
 
