@@ -130,12 +130,13 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
             gaia_field_t gaia_field = gaia_field_t::get(field_id);
             if (gaia_field.position() == requested_position)
             {
-                // If the field is deprecated then we should not be able to subscribe to it.
-                // TODO[GAIAPLAT-622] If we ever add a "strict" mode to the database
-                // then we should reinstate checking for active fields.
+                // If the field is deprecated, then we should not be able to subscribe to it.
+                // TODO[GAIAPLAT-622] If we ever add a "strict" mode to the database, then we
+                // should reinstate checking for active fields.
                 if (gaia_field.deprecated())
                 {
-                    throw invalid_subscription(id, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
+                    throw invalid_subscription(
+                        id, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;

@@ -162,7 +162,7 @@ TEST_F(rule_checker_test, inactive_field)
     field_position_list_t fields;
     fields.emplace_back(g_field_positions["inactive"]);
 
-    // The following should not throw since we don't require the field
+    // The following should not throw because we don't require the field
     // to be marked as 'active' in the schema.  Note that this behavior may
     // change if a strict mode is enabled as described in GAIAPLAT-622.
     rule_checker.check_catalog(g_table_type, fields);
@@ -208,7 +208,7 @@ TEST_F(rule_checker_test, multiple_fields)
     fields.emplace_back(g_field_positions["active"]);
     fields.emplace_back(g_field_positions["inactive"]);
 
-    // The following should not throw since we don't require the field
+    // The following should not throw because we don't require the field
     // to be marked as 'active' in the schema.  Note that this behavior may
     // change if a strict mode is enabled as described in GAIAPLAT-622.
     rule_checker.check_catalog(g_table_type, fields);
