@@ -36,15 +36,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()
 
-# Add project folders.
-if (DEFINED GAIA_PROD_BUILD AND EXISTS ${GAIA_PROD_BUILD})
-  # Convert relative path to absolute path so custom commands will work if given a relative path
-  get_filename_component(GAIA_PROD_BUILD "${GAIA_PROD_BUILD}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
-  # Setup internal build variables for building incubator
-  set(GAIA_LIB "${GAIA_PROD_BUILD}/sdk/libgaia.so")
-  set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
-  set(GAIA_TRANSLATE ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat)
-  add_subdirectory(incubator)
-else()
-  message(STATUS "To build the incubator demo, build production first and set GAIA_PROD_BUILD to the build dir.")
-endif()
+# We currently don't have any code to build under demos.
+# If any new code gets added, we can build it by hooking it up below.
