@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -19,6 +21,7 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#pragma clang diagnostic pop
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
@@ -184,7 +187,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     {
         db_monitor monitor;
 
-        for (catalog::gaia_field_t field : catalog::gaia_field_t::list())
+        for (const auto& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
@@ -209,7 +212,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             fill_table_db_data(tbl);
         }
 
-        for (catalog::gaia_relationship_t relationship : catalog::gaia_relationship_t::list())
+        for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
             catalog::gaia_table_t child_table = relationship.child_gaia_table();
             if (!child_table)
@@ -1644,7 +1647,7 @@ public:
 class last_operation_switch_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run(const MatchFinder::MatchResult& result) override
+    void run(const MatchFinder::MatchResult&) override
     {
         g_delete_operation_in_rule = true;
     }
@@ -1653,7 +1656,7 @@ public:
 class last_operation_if_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run(const MatchFinder::MatchResult& result) override
+    void run(const MatchFinder::MatchResult&) override
     {
         g_delete_operation_in_rule = true;
     }
@@ -1662,7 +1665,7 @@ public:
 class function_call_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run(const MatchFinder::MatchResult& result) override
+    void run(const MatchFinder::MatchResult&) override
     {
         g_function_call_in_rule = true;
     }
@@ -1783,7 +1786,7 @@ private:
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
-    explicit translation_engine_consumer_t(ASTContext* context, Rewriter& r)
+    explicit translation_engine_consumer_t(ASTContext*, Rewriter& r)
         : m_field_get_match_handler(r)
         , m_field_set_match_handler(r)
         , m_rule_match_handler(r)
@@ -1972,7 +1975,7 @@ class translation_engine_action_t : public clang::ASTFrontendAction
 {
 public:
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-        clang::CompilerInstance& compiler, llvm::StringRef in_file) override
+        clang::CompilerInstance& compiler, llvm::StringRef) override
     {
         m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         return std::unique_ptr<clang::ASTConsumer>(
