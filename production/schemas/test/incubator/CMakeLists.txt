@@ -4,7 +4,7 @@
 #############################################
 
 # Set the project name.
-project(incubator)
+project(incubator_schema)
 
 set(INCUBATOR_DDL "${PROJECT_SOURCE_DIR}/barn_storage.ddl")
 
