@@ -63,40 +63,40 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
-// gaia_base_t implementation
+// edc_base_t implementation
 //
 
 static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr));
 
 template <typename T_ptr>
-constexpr T_ptr* gaia_base_t::to_ptr()
+constexpr T_ptr* edc_base_t::to_ptr()
 {
     return reinterpret_cast<T_ptr*>(&m_record);
 }
 
 template <typename T_ptr>
-constexpr const T_ptr* gaia_base_t::to_const_ptr() const
+constexpr const T_ptr* edc_base_t::to_const_ptr() const
 {
     return reinterpret_cast<const T_ptr*>(&m_record);
 }
 
 // We only support a single specialization of our ptr functions above using gaia_ptr
-template gaia_ptr* gaia_base_t::to_ptr();
-template const gaia_ptr* gaia_base_t::to_const_ptr() const;
+template gaia_ptr* edc_base_t::to_ptr();
+template const gaia_ptr* edc_base_t::to_const_ptr() const;
 
-gaia_base_t::gaia_base_t(const char* gaia_typename)
+edc_base_t::edc_base_t(const char* gaia_typename)
     : m_typename(gaia_typename)
 {
     *(to_ptr<gaia_ptr>()) = gaia_ptr();
 }
 
-gaia_base_t::gaia_base_t(const char* gaia_typename, gaia_id_t id)
+edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
     : m_typename(gaia_typename)
 {
     *(to_ptr<gaia_ptr>()) = gaia_ptr(id);
 }
 
-gaia_id_t gaia_base_t::id() const
+gaia_id_t edc_base_t::id() const
 {
     auto ptr = to_const_ptr<gaia_ptr>();
     if (*ptr)
@@ -107,22 +107,22 @@ gaia_id_t gaia_base_t::id() const
     return c_invalid_gaia_id;
 }
 
-bool gaia_base_t::exists() const
+bool edc_base_t::exists() const
 {
     return static_cast<bool>(*to_const_ptr<gaia_ptr>());
 }
 
-const char* gaia_base_t::data() const
+const char* edc_base_t::data() const
 {
     return to_const_ptr<gaia_ptr>()->data();
 }
 
-bool gaia_base_t::equals(const gaia_base_t& other) const
+bool edc_base_t::equals(const edc_base_t& other) const
 {
     return (*(to_const_ptr<gaia_ptr>()) == *(other.to_const_ptr<gaia_ptr>()));
 }
 
-gaia_id_t* gaia_base_t::references() const
+gaia_id_t* edc_base_t::references() const
 {
     return to_const_ptr<gaia_ptr>()->references();
 }
@@ -145,7 +145,7 @@ bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)
     return false;
 }
 
-gaia_id_t gaia_base_t::find_next()
+gaia_id_t edc_base_t::find_next()
 {
     gaia_ptr node = to_ptr<gaia_ptr>()->find_next();
     if (node)

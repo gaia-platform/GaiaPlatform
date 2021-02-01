@@ -49,31 +49,31 @@ protected:
  */
 
 /**
- * The gaia_base_t struct is a tag to mark extended data class objects as well as provide
+ * The edc_base_t struct is a tag to mark extended data class objects as well as provide
  * non-template functionality.
  */
-struct gaia_base_t : edc_db_t
+struct edc_base_t : edc_db_t
 {
     /**
-     * The gaia_base_t and gaia_object_t shouldn't be instantiated directly. The
-     * gaia_object_t is created to be subclassed by a "typed" class that is identified
+     * The edc_base_t and edc_object_t shouldn't be instantiated directly. The
+     * edc_object_t is created to be subclassed by a "typed" class that is identified
      * with a flatbuffer table. This method returns the name of that type.
      */
-    gaia_base_t() = delete;
-    explicit gaia_base_t(const char* gaia_typename);
-    gaia_base_t(const char* gaia_typename, common::gaia_id_t id);
+    edc_base_t() = delete;
+    explicit edc_base_t(const char* gaia_typename);
+    edc_base_t(const char* gaia_typename, common::gaia_id_t id);
 
     const char* gaia_typename()
     {
         return m_typename;
     }
     virtual common::gaia_type_t gaia_type() = 0;
-    virtual ~gaia_base_t() = default;
+    virtual ~edc_base_t() = default;
 
 protected:
     common::gaia_id_t id() const;
     bool exists() const;
-    bool equals(const gaia_base_t& other) const;
+    bool equals(const edc_base_t& other) const;
     const char* data() const;
     common::gaia_id_t find_next();
 
