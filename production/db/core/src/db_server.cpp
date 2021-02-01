@@ -2223,64 +2223,63 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
     // undecided txns by skipping over them on the first pass while we check
     // committed txns for conflicts, hoping that some undecided txns will be
     // decided before the second pass. This adds some complexity (e.g., tracking
-    // committed txns already tested for conflicts), and may not be a worthwhile
-    // optimization.
+    // committed txns already tested for conflicts), but avoids unnecessary
+    // duplicated work, by deferring helping other txns validate until all
+    // necessary work is complete and we would be forced to block otherwise.
     //
-    // Possible optimization for conflict detection, since mmap() is so
+    // 1. Find all committed transactions in conflict window, i.e., between our
+    //    begin and commit timestamps, traversing from oldest to newest txns and
+    //    testing for conflicts as we go, to allow as much time as possible for
+    //    undecided txns to be validated, and for commit timestamps allocated
+    //    within our conflict window to be registered. Invalidate all unknown
+    //    timestamps we encounter, so no active txns can be submitted within our
+    //    conflict window. Any submitted txns which have allocated a commit
+    //    timestamp within our conflict window but have not yet registered their
+    //    commit timestamp must now retry with a new timestamp. (This allows us
+    //    to treat our conflict window as an immutable snapshot of submitted
+    //    txns, without needing to acquire any locks.) Skip over all invalidated
+    //    timestamps, active txns, undecided txns, and aborted txns. Repeat this
+    //    phase until no newly committed txns are discovered.
+    //
+    // 2. Recursively validate all undecided txns in the conflict window, from
+    //    oldest to newest. Note that we cannot recurse indefinitely, since by
+    //    hypothesis no undecided txns can precede our begin timestamp (because
+    //    a new transaction must validate any undecided transactions with commit
+    //    timestamps preceding its begin timestamp before it can proceed).
+    //    However, we could duplicate work with other session threads validating
+    //    their committing txns. We mitigate this by 1) deferring any recursive
+    //    validation until no more committed txns have been found during a
+    //    repeated scan of the conflict window, 2) tracking all txns' validation
+    //    status in their commit timestamp entries, and 3) rechecking validation
+    //    status for the current txn after scanning each possibly conflicting
+    //    txn log (and aborting validation if it has already been validated).
+    //
+    // 3. Test any committed txns validated in the preceding step for conflicts.
+    //    (This also includes any txns which were undecided in the first pass
+    //    but committed before the second pass.)
+    //
+    // 4. If any of these steps finds that our write set conflicts with the
+    //    write set of any committed txn, we must abort. Otherwise, we commit.
+    //    In either case, we set the decided state in our commit timestamp entry
+    //    and return the commit decision to the client.
+    //
+    // REVIEW: Possible optimization for conflict detection, since mmap() is so
     // expensive: store compact signatures in the txn log (either sorted
     // fingerprint sequence or bloom filter, at beginning or end of file), read
     // the signatures with pread(2), and test against signatures in committing
     // txn's log. Only mmap() the txn log if a possible conflict is indicated.
     //
-    // A simpler and possibly more important optimization: use the existing
-    // mapped view of the committing txn's log instead of mapping it again on
-    // every conflict check.
+    // REVIEW: A simpler and possibly more important optimization: use the
+    // existing mapped view of the committing txn's log instead of mapping it
+    // again on every conflict check.
     //
-    // Possible optimization (in the original version but removed in the current
-    // code for simplicity): find the latest undecided txn which conflicts with
-    // our write set. Any undecided txns later than this don't need to be
-    // validated (but earlier, non-conflicting undecided txns still need to be
-    // validated, since they could conflict with a later undecided txn with a
-    // conflicting write set, which would abort and hence not cause us to
-    // abort).
-    //
-    // 1. Invalidate all unknown timestamps, so no txns can be submitted within
-    //    our conflict window. Any submitted txns which have allocated a commit
-    //    timestamp within our conflict window but have not yet registered their
-    //    commit timestamp must now retry with a new timestamp. (This allows us
-    //    to treat our conflict window as an immutable snapshot of submitted
-    //    txns, without needing to acquire any locks.)
-    //
-    // 2. Find all committed transactions in conflict window, i.e., between our
-    //    begin and commit timestamps, traversing from oldest to newest txns and
-    //    testing for conflicts as we go, to allow as much time as possible for
-    //    undecided txns to be validated, and for commit timestamps allocated
-    //    within our conflict window to be registered. Skip over all unknown
-    //    timestamps, invalidated timestamps, active txns, undecided txns, and
-    //    aborted txns. Repeat this phase until no newly committed txns are
-    //    discovered.
-    //
-    // 3. Recursively validate all undecided txns preceding the last conflicting
-    //    undecided txn identified in the preceding step, from oldest to newest.
-    //    Note that we cannot recurse indefinitely, since by hypothesis no
-    //    undecided txns can precede our begin timestamp (because a new
-    //    transaction must validate any undecided transactions with commit
-    //    timestamps preceding its begin timestamp before it can proceed).
-    //    However, we could duplicate work with other session threads validating
-    //    their committing txns. We mitigate this by 1) tracking all txns'
-    //    validation status in their commit timestamp entries, and 2) rechecking
-    //    validation status for the current txn after scanning each possibly
-    //    conflicting txn log (and aborting validation if it has already been
-    //    validated).
-    //
-    // 4. Test any committed txns validated in the preceding step for conflicts.
-    //    (This also includes any txns which were undecided in the first pass
-    //    but committed before the second pass.)
-    //
-    // 5. If any of these steps finds that our write set conflicts with the
-    //    write set of any committed txn, we must abort. Otherwise, we commit.
-    //    In either case, we set the decided state in our commit timestamp entry
-    //    and return the commit decision to the client.
+    // REVIEW: Possible optimization (in the original version but removed in the
+    // current code for simplicity): find the latest undecided txn which
+    // conflicts with our write set. Any undecided txns later than this don't
+    // need to be validated (but earlier, non-conflicting undecided txns still
+    // need to be validated, since they could conflict with a later undecided
+    // txn with a conflicting write set, which would abort and hence not cause
+    // us to abort).
 
     // Since we make multiple passes over the conflict window, we need to track
     // committed txns that have already been tested for conflicts.
