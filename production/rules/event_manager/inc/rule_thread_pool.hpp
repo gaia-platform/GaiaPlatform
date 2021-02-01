@@ -33,8 +33,6 @@ public:
         db::triggers::event_type_t event_type;
         gaia_id_t record;
         field_position_list_t fields;
-        uint64_t invocation_id;
-        gaia_txn_id_t txn_id;
     };
 
     struct invocation_t
@@ -42,8 +40,6 @@ public:
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
-        uint64_t invocation_id;
-        gaia_txn_id_t txn_id;
         uint32_t num_retries{0};
     };
 
