@@ -12,7 +12,6 @@ if (BUILD_GAIA_RELEASE)
   add_subdirectory(gaia_translate)
 endif()
 
-add_subdirectory(tests/ping_pong)
 add_subdirectory(gaia_dump)
 
 # This should be enabled only for testing and improving .clang-tidy and .clang-format
@@ -21,4 +20,12 @@ option(BUILD_GAIA_STYLE_TESTS "Build clang-tidy/clang-format tests" OFF)
 
 if(BUILD_GAIA_STYLE_TESTS)
   add_subdirectory(gaia_style)
+endif()
+
+# The ping_pong test requires the gaia_db_server to be explicitly run. Keeping it disable otherwise
+# TeamCity fails. TODO work on a better solution.
+option(BUILD_PING_PONG_TEST "Build ping_pong test. Requires gaia_db_server to be running." OFF)
+
+if(BUILD_PING_PONG_TEST)
+  add_subdirectory(tests/ping_pong)
 endif()
