@@ -42,7 +42,8 @@ set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_index.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -90,7 +91,12 @@ add_library(gaia_db_client STATIC
   src/type_id_mapping.cpp
   src/index_builder.cpp
   src/client_index_impl.cpp)
-add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
+add_dependencies(gaia_db_client
+  "messages.fbs"
+  "gaia_table.fbs"
+  "gaia_field.fbs"
+  "gaia_relationship.fbs"
+  "gaia_index.fbs")
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 

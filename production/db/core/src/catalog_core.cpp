@@ -6,9 +6,12 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "gaia/common.hpp"
+#include "gaia/db/catalog.hpp"
 
 #include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
@@ -18,6 +21,7 @@
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
+#include "gaia_index_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
 
@@ -93,6 +97,35 @@ namespace db
     return m_obj_ptr->references()[c_child_gaia_table_ref_offset];
 }
 
+[[nodiscard]] const char* index_view_t::name() const
+{
+    return catalog::Getgaia_index(m_obj_ptr->data())->name()->c_str();
+}
+
+[[nodiscard]] bool index_view_t::unique() const
+{
+    return catalog::Getgaia_index(m_obj_ptr->data())->unique();
+}
+
+[[nodiscard]] gaia::catalog::ddl::index_type_t index_view_t::type() const
+{
+    return static_cast<gaia::catalog::ddl::index_type_t>(
+        catalog::Getgaia_index(m_obj_ptr->data())->type());
+}
+
+[[nodiscard]] std::vector<common::gaia_id_t> index_view_t::fields() const
+{
+    std::vector<gaia_id_t> field_ids;
+    std::stringstream ss;
+    ss << catalog::Getgaia_index(m_obj_ptr->data())->fields();
+    std::string field_str;
+    while (std::getline(ss, field_str, ','))
+    {
+        field_ids.push_back(std::stoull(field_str));
+    }
+    return field_ids;
+}
+
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
     return table_view_t{id_to_ptr(table_id)};
@@ -160,6 +193,14 @@ relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
         table_id,
         c_gaia_table_first_child_gaia_relationship_offset,
         c_gaia_relationship_next_child_gaia_relationship_offset);
+}
+
+index_list_t catalog_core_t::list_indexs(common::gaia_id_t table_id)
+{
+    return list_catalog_obj_reference_chain<index_view_t>(
+        table_id,
+        c_gaia_table_first_child_gaia_index_offset,
+        c_gaia_index_next_gaia_index_offset);
 }
 
 } // namespace db
