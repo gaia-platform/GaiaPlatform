@@ -13,5 +13,12 @@ A couple of considerations:
 1. The Rules will always check for "ping" and write "pong"
 1. The record updated by Main and Rules is always the same.
 
+## Usage
+
+1. Set `BUILD_PING_PONG_TEST=ON` in Cmake. 
+1. Run `gaia_db_server`, currently you are required to manually run it.
+1. Build everything.   
+1. Run `./ping_pong [num_workers]`. `num_workers` is optional, if not specified the Main will run 1 worker.
+
 Note: to increase the chance of seeing problems increase the Main worker threads or the rules engine threads. Also, 
 running the application in Debug, reduces the frequency of problems.
