@@ -22,6 +22,7 @@ message(VERBOSE "GAIA_MULTI_PROCESS_INCLUDES=${GAIA_MULTI_PROCESS_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common STATIC
+  src/config.cpp
   src/exceptions.cpp
   src/file.cpp
   src/timer.cpp

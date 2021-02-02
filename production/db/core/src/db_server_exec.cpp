@@ -7,6 +7,11 @@
 #include <iostream>
 #include <string>
 
+#include "gaia/system.hpp"
+
+#include "gaia_internal/common/config.hpp"
+
+#include "cpptoml.h"
 #include "db_server.hpp"
 
 static void usage()
@@ -23,9 +28,14 @@ static void usage()
         << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag
         << "] "
-        << "["
+        << std::endl
+        << "                      ["
         << gaia::db::persistent_store_manager::c_data_dir_command_flag
         << " <data dir>]"
+        << std::endl
+        << "                      ["
+        << gaia::common::c_conf_file_flag
+        << " <config file path>]"
         << std::endl;
     std::exit(1);
 }
@@ -36,6 +46,9 @@ int main(int argc, char* argv[])
 
     {
         std::set<std::string> used_flags;
+        bool found_data_dir = false;
+        const char* conf_file = nullptr;
+
         for (int i = 1; i < argc; ++i)
         {
             used_flags.insert(argv[i]);
@@ -54,6 +67,11 @@ int main(int argc, char* argv[])
             else if ((strcmp(argv[i], gaia::db::persistent_store_manager::c_data_dir_command_flag) == 0) && (i + 1 < argc))
             {
                 gaia::db::persistent_store_manager::s_data_dir_path = argv[++i];
+                found_data_dir = true;
+            }
+            else if ((strcmp(argv[i], gaia::common::c_conf_file_flag) == 0) && (i + 1 < argc))
+            {
+                conf_file = argv[++i];
             }
             else
             {
@@ -66,6 +84,21 @@ int main(int argc, char* argv[])
                 usage();
             }
         }
+        if (!found_data_dir)
+        {
+            // Since there is no --data-dir parameter, locate it from the configuration.
+            static const char* c_data_dir_string_key = "Database.data_dir";
+
+            std::string c_gaia_conf = gaia::common::get_conf_file(conf_file, c_default_conf_file_name);
+            std::shared_ptr<cpptoml::table> root_config = cpptoml::parse_file(c_gaia_conf);
+            auto data_dir_string = root_config->get_qualified_as<std::string>(c_data_dir_string_key);
+            // If there is no data_dir string in the configuration file, it falls to "/var/lib/gaia/db".
+            if (!data_dir_string->empty())
+            {
+                gaia::db::persistent_store_manager::s_data_dir_path = *data_dir_string;
+            }
+        }
+
         for (const auto& flag_pair : std::initializer_list<std::pair<std::string, std::string>>{
                  // Disable persistence flag is mutually exclusive with specifying data directory for persistence.
                  {gaia::db::server::c_disable_persistence_flag, gaia::db::persistent_store_manager::c_data_dir_command_flag},

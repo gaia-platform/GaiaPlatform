@@ -10,6 +10,7 @@
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
+#include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
@@ -22,76 +23,14 @@ using namespace gaia::system;
 using namespace gaia::common;
 using namespace scope_guard;
 
-namespace gaia
-{
-namespace system
-{
-
-bool file_exists(const char* filename)
-{
-    ifstream the_file(filename);
-    return static_cast<bool>(the_file);
-}
-
-void error_if_not_exists(const char* filename)
-{
-    if (!file_exists(filename))
-    {
-        throw configuration_error(filename);
-    }
-}
-
-string get_default_conf_file(const char* default_filename)
-{
-    // Default locations for log files are placed under/opt/gaia/etc/
-    static const char* c_default_conf_directory = "/opt/gaia/etc/";
-    string str = c_default_conf_directory;
-    str.append(default_filename);
-
-    if (!file_exists(str.c_str()))
-    {
-        // Okay, just return an empty string then.
-        str.clear();
-    }
-
-    return str;
-}
-
-// If the user passed in a filename, then throw an exception if it does not exist.
-// If the user did not pass in a filename, then look under /opt/gaia/etc/ for the
-// file and see if that exists.  If that file doesn't exist, then continue on
-// without throwing an exception.  Components can initialize themselves with
-// appropriate defaults.
-string get_conf_file(const char* user_filename, const char* default_filename)
-{
-    string str;
-
-    if (user_filename)
-    {
-        error_if_not_exists(user_filename);
-        str = user_filename;
-    }
-    else
-    {
-        str = get_default_conf_file(default_filename);
-    }
-
-    return str;
-}
-
-} // namespace system
-} // namespace gaia
-
 void gaia::system::initialize(const char* gaia_config_file, const char* logger_config_file)
 {
     // Default locations for log files are placed under/opt/gaia/etc/
-    static const char* c_default_gaia_conf = "gaia.conf";
-    static const char* c_default_logger_conf = "gaia_log.conf";
     bool db_initialized = false;
     shared_ptr<cpptoml::table> root_config;
 
-    string gaia_config_str = get_conf_file(gaia_config_file, c_default_gaia_conf);
-    string logger_config_str = get_conf_file(logger_config_file, c_default_logger_conf);
+    string gaia_config_str = get_conf_file(gaia_config_file, c_default_conf_file_name);
+    string logger_config_str = get_conf_file(logger_config_file, c_default_logger_conf_file_name);
 
     if (!gaia_config_str.empty())
     {
