@@ -3,6 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <csignal>
+
+#include <atomic>
+#include <iostream>
 #include <thread>
 #include <vector>
 
@@ -17,6 +21,7 @@ using namespace std;
 using namespace gaia::ping_pong;
 
 constexpr int c_log_heartbeat_frequency = 10000;
+static atomic_bool g_worker_alive = true;
 
 /**
  * Worker thread that will set ping_pong.status = "ping" whenever it is == "pong".
@@ -24,6 +29,11 @@ constexpr int c_log_heartbeat_frequency = 10000;
  * @param ping_pong_id id of the ping_pong object
  */
 void worker(gaia::common::gaia_id_t ping_pong_id);
+
+/**
+ * Stop workers execution.
+ */
+void stop_workers_handler(int signal);
 
 int main(int argc, char* argv[])
 {
@@ -42,6 +52,14 @@ int main(int argc, char* argv[])
     {
         abort();
     }
+
+    // Termination handlers.
+    struct sigaction sigbreak;
+    sigbreak.sa_handler = &stop_workers_handler;
+    sigemptyset(&sigbreak.sa_mask);
+    sigbreak.sa_flags = 0;
+    sigaction(SIGINT, &sigbreak, nullptr);
+    sigaction(SIGTERM, &sigbreak, nullptr);
 
     // You may want to tune the application behavior by changing the configuration.
     gaia::system::initialize("gaia.conf", "gaia_log.conf");
@@ -64,13 +82,15 @@ int main(int argc, char* argv[])
     }
 
     gaia::system::shutdown();
+    cout << "Ping pong application terminated" << endl;
 }
 
 void worker(gaia::common::gaia_id_t ping_pong_id)
 {
+    gaia::db::begin_session();
     int count = 0;
 
-    while (true)
+    while (g_worker_alive)
     {
         count++;
         try
@@ -98,4 +118,12 @@ void worker(gaia::common::gaia_id_t ping_pong_id)
             gaia_log::app().error("Main:{} txn:{}", ex.what(), 0 /* txn_id not exposed yet */);
         }
     }
+    gaia::db::end_session();
+}
+
+void stop_workers_handler(int signal)
+{
+    std::cout << "Caught signal " << signal << endl;
+
+    g_worker_alive = false;
 }
