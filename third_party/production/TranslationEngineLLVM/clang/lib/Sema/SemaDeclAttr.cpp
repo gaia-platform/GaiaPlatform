@@ -2073,10 +2073,9 @@ static bool validateRuleAttribute(StringRef attribute,
     {
         // might be a field
         bool returnValue = false;
-        for (auto it : tableData)
+        for (auto table : tableData)
         {
-            auto fieldDescription = it.second.find(attribute);
-            if (fieldDescription != it.second.end())
+            if (table.second.find(attribute) != table.second.end())
             {
                 if (returnValue)
                 {
@@ -2094,12 +2093,15 @@ static bool validateRuleAttribute(StringRef attribute,
         }
         return returnValue;
     }
-    // could be a table or a field. Should check for validity
-    if (tableDescription->second.find(attribute) != tableDescription->second.end())
+    // could be a table or a field. Should check if there is a field with the same name
+    for (auto table : tableData)
     {
-          S.Diag(AL.getLoc(), diag::err_duplicate_field)
+        if (table.second.find(attribute) != table.second.end())
+        {
+            S.Diag(AL.getLoc(), diag::err_duplicate_field)
                 << attribute;
-          return false;
+            return false;
+        }
     }
 
     return true;

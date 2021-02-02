@@ -454,3 +454,18 @@ ruleset test50
 
   }
 }
+
+ruleset test51
+{
+  { //expected-error {{expected unqualified-id}}
+
+  }
+}
+
+ruleset test52
+{
+  OnUpdate(value) // expected-error {{Duplicate field 'value'.}}
+  {
+
+  }
+}
