@@ -2028,13 +2028,130 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         {
           S.Diag(AL.getLoc(), diag::err_invalid_table_name)
                 << tableArg->Ident->getName();
-            return;
+          return;
         }
         tables.push_back(tableArg->Ident);
     }
     D->addAttr(::new (S.Context) RulesetTableAttr(
         AL.getRange(), S.Context, tables.data(), tables.size(),
         AL.getAttributeSpellingListIndex()));
+}
+
+static bool validateRuleAttribute(StringRef attribute,
+    Sema &S, const ParsedAttr &AL)
+{
+    auto tableData = S.getTableData(AL.getLoc());
+    if (tableData.empty())
+    {
+        return false;
+    }
+    size_t dotPosition = attribute.find('.');
+    // handle fully qualified reference
+    if (dotPosition != StringRef::npos)
+    {
+        StringRef table = attribute.take_front(dotPosition);
+        StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
+        auto tableDescription = tableData.find(table);
+        if (tableDescription == tableData.end())
+        {
+            S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+                << table;
+            return false;
+        }
+        auto fieldDescription = tableDescription->second.find(field);
+        if(fieldDescription == tableDescription->second.end())
+        {
+            S.Diag(AL.getLoc(), diag::err_unknown_field)
+                << field;
+            return false;
+        }
+        return true;
+    }
+
+    auto tableDescription = tableData.find(attribute);
+    if (tableDescription == tableData.end())
+    {
+        // might be a field
+        bool returnValue = false;
+        for (auto it : tableData)
+        {
+            auto fieldDescription = it.second.find(attribute);
+            if (fieldDescription != it.second.end())
+            {
+                if (returnValue)
+                {
+                    S.Diag(AL.getLoc(), diag::err_duplicate_field)
+                        << attribute;
+                    return false;
+                }
+                returnValue = true;
+            }
+        }
+        if (!returnValue)
+        {
+            S.Diag(AL.getLoc(), diag::err_unknown_field)
+                << attribute;
+        }
+        return returnValue;
+    }
+    // could be a table or a field. Should check for validity
+    if (tableDescription->second.find(attribute) != tableDescription->second.end())
+    {
+          S.Diag(AL.getLoc(), diag::err_duplicate_field)
+                << attribute;
+          return false;
+    }
+
+    return true;
+}
+
+static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+    {
+        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+            << AL << AANT_ArgumentIdentifier;
+        return;
+    }
+
+    SmallVector<StringRef, 4> tables;
+    for (unsigned I = 0, E = AL.getNumArgs(); I != E; ++I)
+    {
+      StringRef table;
+      if (!S.checkStringLiteralArgumentAttr(AL, I, table))
+      {
+        return;
+      }
+
+      if (!validateRuleAttribute(table, S, AL))
+      {
+          return;
+      }
+
+      tables.push_back(table);
+    }
+
+    switch (AL.getKind())
+    {
+      case ParsedAttr::AT_GaiaOnUpdate:
+          D->addAttr(::new (S.Context)
+              GaiaOnUpdateAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+              AL.getAttributeSpellingListIndex()));
+          break;
+      case ParsedAttr::AT_GaiaOnInsert:
+          D->addAttr(::new (S.Context)
+              GaiaOnInsertAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+              AL.getAttributeSpellingListIndex()));
+          break;
+      case ParsedAttr::AT_GaiaOnChange:
+          D->addAttr(::new (S.Context)
+              GaiaOnChangeAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+              AL.getAttributeSpellingListIndex()));
+          break;
+      default:
+        break;
+    }
+
 }
 
 static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
@@ -7174,7 +7291,11 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_GaiaLastOperationNONE:
     handleGaiaLastOperationNoneAttr(S, D, AL);
     break;
-
+  case ParsedAttr::AT_GaiaOnUpdate:
+  case ParsedAttr::AT_GaiaOnInsert:
+  case ParsedAttr::AT_GaiaOnChange:
+    handleGaiaRuleAttr(S, D, AL);
+    break;
   }
 }
 

@@ -91,7 +91,7 @@ class DBMonitor
         }
 };
 
-static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema *s, SourceLocation loc)
+unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
     try
@@ -103,22 +103,22 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
-                s->Diag(loc, diag::err_invalid_table_field) << field.name();
+                Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                s->Diag(loc, diag::err_duplicate_field) << field.name();
+                Diag(loc, diag::err_duplicate_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
-            fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &s->Context);
+            fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
             retVal[tbl.name()] = fields;
         }
     }
     catch (const exception &e)
     {
-        s->Diag(loc, diag::err_catalog_exception) << e.what();
+        Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_map<string, unordered_map<string, QualType>>();
     }
     return retVal;
@@ -289,7 +289,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
         }
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
     auto tableDescription = tableData.find(tableName);
     if (tableDescription == tableData.end())
     {
@@ -336,10 +336,10 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 {
     StringRef fieldNameStrRef = id->getName();
 
-    if(!fieldNameStrRef.compare(updateVarName) ||
-         !fieldNameStrRef.compare(deleteVarName) ||
-         !fieldNameStrRef.compare(insertVarName) ||
-         !fieldNameStrRef.compare(noneVarName))
+    if(fieldNameStrRef.equals(updateVarName) ||
+         fieldNameStrRef.equals(deleteVarName) ||
+         fieldNameStrRef.equals(insertVarName) ||
+         fieldNameStrRef.equals(noneVarName))
     {
         return Context.IntTy.withConst();
     }
@@ -364,7 +364,7 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
     vector<string> tables;
     RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
     RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
 
     if (attr != nullptr)
     {
@@ -434,22 +434,22 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
 
-    if (!varName.compare(updateVarName))
+    if (varName.equals(updateVarName))
     {
         varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
         varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
-    else if (!varName.compare(insertVarName))
+    else if (varName.equals(insertVarName))
     {
         varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
         varDecl->setInit(ActOnIntegerConstant(loc, 1).get());
     }
-    else if (!varName.compare(deleteVarName))
+    else if (varName.equals(deleteVarName))
     {
         varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
         varDecl->setInit(ActOnIntegerConstant(loc, 2).get());
     }
-    else if (!varName.compare(noneVarName))
+    else if (varName.equals(noneVarName))
     {
         varDecl->addAttr(GaiaLastOperationNONEAttr::CreateImplicit(Context));
         varDecl->setInit(ActOnIntegerConstant(loc, 3).get());

@@ -3246,3 +3246,24 @@ def FieldTable : Attr {
     let Documentation = [Undocumented];
     let Args = [IdentifierArgument<"table">];
 }
+
+def GaiaOnUpdate : Attr {
+    let Spellings = [Keyword<"OnUpdate">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
+}
+
+def GaiaOnInsert : Attr {
+    let Spellings = [Keyword<"OnInsert">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
+}
+
+def GaiaOnChange : Attr {
+    let Spellings = [Keyword<"OnChange">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
+}

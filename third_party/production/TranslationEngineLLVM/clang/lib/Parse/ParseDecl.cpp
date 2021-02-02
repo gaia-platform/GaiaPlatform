@@ -3191,6 +3191,23 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
     case tok::kw___super:
     case tok::kw_decltype:
     case tok::identifier: {
+      if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
+        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+      {
+        IdentifierInfo *Id = Tok.getIdentifierInfo();
+        if (Id != nullptr)
+        {
+          if (Id->getName().equals(c_on_update_rule_attribute) ||
+            Id->getName().equals(c_on_insert_rule_attribute) ||
+            Id->getName().equals(c_on_change_rule_attribute))
+          {
+            //Declarator DeclaratorInfo(DS, DeclaratorContext::BlockLiteralContext);
+            //DeclaratorInfo.setFunctionDefinitionKind(FDK_Definition);
+            //ParseRule(DeclaratorInfo);
+            goto DoneWithDeclSpec;
+          }
+        }
+      }
       // This identifier can only be a typedef name if we haven't already seen
       // a type-specifier.  Without this check we misparse:
       //  typedef int X; struct Y { short X; };  as 'short int'.
@@ -5567,11 +5584,21 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
         D.getCXXScopeSpec().isEmpty())
       return ParseDecompositionDeclarator(D);
 
-    if (getCurScope()->isRulesetScope() && Tok.is(tok::l_brace))
-    {
-        InjectRuleFunction(D);
-        return;
-    }
+  if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
+        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+      {
+        IdentifierInfo *Id = Tok.getIdentifierInfo();
+        if (Id != nullptr)
+        {
+          if (Id->getName().equals(c_on_update_rule_attribute) ||
+            Id->getName().equals(c_on_insert_rule_attribute) ||
+            Id->getName().equals(c_on_change_rule_attribute))
+          {
+            ParseRule(D);
+            return;
+          }
+        }
+      }
     // Don't parse FOO:BAR as if it were a typo for FOO::BAR inside a class, in
     // this context it is a bitfield. Also in range-based for statement colon
     // may delimit for-range-declaration.
@@ -6682,7 +6709,6 @@ void Parser::ParseMisplacedBracketDeclarator(Declarator &D) {
     D.getName().EndLocation = StartBracketLoc;
 
   SourceLocation SuggestParenLoc = Tok.getLocation();
-
   // Now that the brackets are removed, try parsing the declarator again.
   ParseDeclaratorInternal(D, &Parser::ParseDirectDeclarator);
 
