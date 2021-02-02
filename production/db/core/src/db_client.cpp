@@ -373,6 +373,12 @@ void client::txn_cleanup()
 
     // Destroy the locator mapping.
     unmap_fd(s_locators, sizeof(*s_locators));
+
+    // Reset transaction id.
+    s_txn_id = c_invalid_gaia_txn_id;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
 }
 
 int client::get_session_socket()
@@ -628,12 +634,6 @@ void client::rollback_transaction()
         build_client_request(builder, session_event_t::ROLLBACK_TXN);
         send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
     }
-
-    // Reset transaction id.
-    s_txn_id = c_invalid_gaia_txn_id;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -694,6 +694,14 @@ void client::commit_transaction()
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
+    // Execute trigger only if rules engine is initialized.
+    if (s_txn_commit_trigger
+        && event == session_event_t::DECIDE_TXN_COMMIT
+        && s_events.size() > 0)
+    {
+        s_txn_commit_trigger(s_txn_id, s_events);
+    }
+
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
     // transaction_update_conflict
@@ -702,19 +710,6 @@ void client::commit_transaction()
     {
         throw transaction_update_conflict();
     }
-
-    // Execute trigger only if rules engine is initialized.
-    if (s_txn_commit_trigger
-        && event == session_event_t::DECIDE_TXN_COMMIT
-        && s_events.size() > 0)
-    {
-        s_txn_commit_trigger(s_txn_id, s_events);
-    }
-    // Reset transaction id.
-    s_txn_id = c_invalid_gaia_txn_id;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
 }
 
 address_offset_t client::request_memory(size_t object_size)

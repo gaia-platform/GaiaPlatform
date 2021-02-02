@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(addr_book_schema)
 

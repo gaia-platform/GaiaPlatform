@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 // NOTE: This is included included by edc_object.hpp as this is a template
-// implementation file.  Because the template specializations of gaia_object_t are
+// implementation file.  Because the template specializations of edc_object_t are
 // created by user-defined schema, we don't know what they will be a priori.
 namespace gaia
 {
@@ -12,110 +12,110 @@ namespace direct_access
 {
 
 //
-// The gaia_object_t implementation.
+// The edc_object_t implementation.
 //
 
-// Macros for strongly-typed field accessors used by gaia_object_t objects below.
+// Macros for strongly-typed field accessors used by edc_object_t objects below.
 #define GET(field) (row()->field())
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::gaia_object_t(
+edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::edc_object_t(
     const char* gaia_typename)
-    : gaia_base_t(gaia_typename)
+    : edc_base_t(gaia_typename)
 {
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::gaia_object_t(
+edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::edc_object_t(
     gaia::common::gaia_id_t id, const char* gaia_typename)
-    : gaia_base_t(gaia_typename, id)
+    : edc_base_t(gaia_typename, id)
 {
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::gaia_id() const
+gaia::common::gaia_id_t edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::gaia_id() const
 {
-    return gaia_base_t::id();
+    return edc_base_t::id();
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-const T_flatbuffer* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::row() const
+const T_flatbuffer* edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::row() const
 {
-    if (!gaia_base_t::exists())
+    if (!edc_base_t::exists())
     {
         throw gaia::db::invalid_node_id(0);
     }
-    return flatbuffers::GetRoot<T_flatbuffer>(gaia_base_t::data());
+    return flatbuffers::GetRoot<T_flatbuffer>(edc_base_t::data());
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::operator bool() const
+edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::operator bool() const
 {
-    return gaia_base_t::exists();
+    return edc_base_t::exists();
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-bool gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::operator==(
-    const gaia_object_t& other) const
+bool edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::operator==(
+    const edc_object_t& other) const
 {
-    return gaia_base_t::equals(other);
+    return edc_base_t::equals(other);
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::references() const
+gaia::common::gaia_id_t* edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::references() const
 {
-    if (!gaia_base_t::exists())
+    if (!edc_base_t::exists())
     {
         throw gaia::db::invalid_node_id(0);
     }
-    return gaia_base_t::references();
+    return edc_base_t::references();
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::writer()
+edc_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>
+edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::writer()
 {
-    if (!gaia_base_t::exists())
+    if (!edc_base_t::exists())
     {
         throw gaia::db::invalid_node_id(0);
     }
 
-    auto writer = gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>();
+    auto writer = edc_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>();
     writer.m_gaia.id = id();
     row()->UnPackTo(&writer);
     return writer;
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_first()
+T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_first()
 {
-    gaia::common::gaia_id_t id = gaia_base_t::find_first(T_container);
+    gaia::common::gaia_id_t id = edc_base_t::find_first(T_container);
     return T_class(id);
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_next()
+T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_next()
 {
-    if (!gaia_base_t::exists())
+    if (!edc_base_t::exists())
     {
         throw gaia::db::invalid_node_id(0);
     }
-    gaia::common::gaia_id_t id = gaia_base_t::find_next();
+    gaia::common::gaia_id_t id = edc_base_t::find_next();
     return T_class(id);
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
+T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
 {
     return T_class(verify_type(id));
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(gaia::common::gaia_id_t id)
+gaia::common::gaia_id_t edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(gaia::common::gaia_id_t id)
 {
     gaia::common::gaia_type_t target_type = gaia::common::c_invalid_gaia_type;
-    if (!gaia_base_t::get_type(id, target_type))
+    if (!edc_base_t::get_type(id, target_type))
     {
         return gaia::common::c_invalid_gaia_id;
     }
@@ -131,16 +131,16 @@ gaia::common::gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flat
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::insert_row(
+gaia::common::gaia_id_t edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::insert_row(
     flatbuffers::FlatBufferBuilder& fbb)
 {
-    return gaia_base_t::insert(T_container, fbb.GetSize(), fbb.GetBufferPointer());
+    return edc_base_t::insert(T_container, fbb.GetSize(), fbb.GetBufferPointer());
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row()
+void edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row()
 {
-    if (!gaia_base_t::exists())
+    if (!edc_base_t::exists())
     {
         throw gaia::db::invalid_node_id(0);
     }
@@ -149,20 +149,20 @@ void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::del
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(gaia::common::gaia_id_t id)
+void edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(gaia::common::gaia_id_t id)
 {
-    gaia_base_t::delete_row(verify_type(id));
+    edc_base_t::delete_row(verify_type(id));
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_type_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::s_gaia_type
+gaia::common::gaia_type_t edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::s_gaia_type
     = T_container;
 
 //
-// The gaia_writer_t implementation.
+// The edc_writer_t implementation.
 //
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::insert_row()
+gaia::common::gaia_id_t edc_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::insert_row()
 {
     auto u = T_flatbuffer::Pack(m_builder, this);
     m_builder.Finish(u);
@@ -172,7 +172,7 @@ gaia::common::gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flat
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::update_row()
+void edc_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::update_row()
 {
     auto u = T_flatbuffer::Pack(m_builder, this);
     m_builder.Finish(u);

@@ -29,12 +29,12 @@ namespace direct_access
 
 // C++17 compliant way when std::iterator is deprecated.
 //
-// A gaia_iterator_t contains the methods that satisfy an iterator interface.
-// Only used from gaia_container_t template, which defines the begin(), where() and end().
+// A edc_iterator_t contains the methods that satisfy an iterator interface.
+// Only used from edc_container_t template, which defines the begin(), where() and end().
 //
 // @tparam T_class the Extended Data Class
 template <typename T_class>
-class gaia_iterator_t
+class edc_iterator_t
 {
     T_class m_obj;
     std::function<bool(const T_class&)> m_filter_fn;
@@ -46,53 +46,53 @@ public:
     using reference = T_class&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_iterator_t(gaia::common::gaia_id_t id);
-    explicit gaia_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function);
-    gaia_iterator_t() = default;
+    explicit edc_iterator_t(gaia::common::gaia_id_t id);
+    explicit edc_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function);
+    edc_iterator_t() = default;
 
-    gaia_iterator_t<T_class>& operator++();
+    edc_iterator_t<T_class>& operator++();
 
-    gaia_iterator_t<T_class> operator++(int);
+    edc_iterator_t<T_class> operator++(int);
 
-    bool operator==(const gaia_iterator_t& rhs) const;
+    bool operator==(const edc_iterator_t& rhs) const;
 
-    bool operator!=(const gaia_iterator_t& rhs) const;
+    bool operator!=(const edc_iterator_t& rhs) const;
 
     reference operator*();
 
     pointer operator->();
 };
 
-// A gaia_container_t is all objects of the same Extended Data Class in the database.
+// A edc_container_t is all objects of the same Extended Data Class in the database.
 //
 // @tparam T_container the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
 template <gaia::common::gaia_type_t T_container, typename T_class>
-struct gaia_container_t : edc_db_t
+struct edc_container_t : edc_db_t
 {
     // This constructor will be used by the where() method to create a filtered container.
-    gaia_container_t(std::function<bool(const T_class&)> filter_function)
+    edc_container_t(std::function<bool(const T_class&)> filter_function)
         : m_filter_fn(filter_function)
     {
     }
-    gaia_container_t() = default;
+    edc_container_t() = default;
 
-    gaia_iterator_t<T_class> begin() const;
-    static gaia_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
-    gaia_iterator_t<T_class> end() const;
+    edc_iterator_t<T_class> begin() const;
+    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
+    edc_iterator_t<T_class> end() const;
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
 };
 
-// A gaia_set_iterator_t is only used from reference_chain_container_t. It
+// A edc_set_iterator_t is only used from reference_chain_container_t. It
 // contains the methods that implement an iterator for scanning through the
 // linked list forming a "set" between a parent and multiple child instances of
 // a class.
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 template <typename T_child>
-class gaia_set_iterator_t
+class edc_set_iterator_t
 {
     T_child m_child_obj;
     std::function<bool(const T_child&)> m_filter_fn;
@@ -105,21 +105,21 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset);
-    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset);
-    gaia_set_iterator_t() = default;
+    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset);
+    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset);
+    edc_set_iterator_t() = default;
 
     reference operator*();
 
     pointer operator->();
 
-    gaia_set_iterator_t<T_child>& operator++();
+    edc_set_iterator_t<T_child>& operator++();
 
-    gaia_set_iterator_t<T_child> operator++(int);
+    edc_set_iterator_t<T_child> operator++(int);
 
-    bool operator==(const gaia_set_iterator_t& rhs) const;
+    bool operator==(const edc_set_iterator_t& rhs) const;
 
-    bool operator!=(const gaia_set_iterator_t& rhs) const;
+    bool operator!=(const edc_set_iterator_t& rhs) const;
 };
 
 // A reference_chain_container_t is defined within each EDC that is a parent in
@@ -161,17 +161,17 @@ public:
     reference_chain_container_t(const reference_chain_container_t&) = default;
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
-    gaia_set_iterator_t<T_child> begin() const;
+    edc_set_iterator_t<T_child> begin() const;
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 
-    gaia_set_iterator_t<T_child> end() const;
+    edc_set_iterator_t<T_child> end() const;
 
     void insert(gaia::common::gaia_id_t child_id);
 
     void insert(T_child& child_edc);
 
-    gaia_set_iterator_t<T_child> erase(gaia_set_iterator_t<T_child> position);
+    edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
 
     void remove(gaia::common::gaia_id_t child_id);
 

@@ -3,10 +3,8 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
-project(airport)
+project(airport_Schema)
 
 set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
 

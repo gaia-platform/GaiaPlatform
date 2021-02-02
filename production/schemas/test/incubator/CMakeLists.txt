@@ -3,10 +3,8 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
-project(incubator)
+project(incubator_schema)
 
 set(INCUBATOR_DDL "${PROJECT_SOURCE_DIR}/barn_storage.ddl")
 

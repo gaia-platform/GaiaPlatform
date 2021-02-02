@@ -269,9 +269,9 @@ static string generate_edc_struct(
     code.SetValue("TABLE_NAME", table_record.name());
     code.SetValue("POSITION", to_string(table_type_id));
 
-    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
+    code += "typedef gaia::direct_access::edc_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
             "{{TABLE_NAME}}_writer;";
-    code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
+    code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
             "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> {";
 
     code.IncrementIdentLevel();
@@ -301,7 +301,7 @@ static string generate_edc_struct(
     }
 
     // Default public constructor.
-    code += "{{TABLE_NAME}}_t() : gaia_object_t(\"{{TABLE_NAME}}_t\") {}";
+    code += "{{TABLE_NAME}}_t() : edc_object_t(\"{{TABLE_NAME}}_t\") {}";
 
     // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or
     // as Create{{TABLE_NAME}}Direct. The choice is determined by whether any of the
@@ -327,7 +327,7 @@ static string generate_edc_struct(
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
     }
 
-    code += "using gaia_object_t::insert_row;";
+    code += "using edc_object_t::insert_row;";
 
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
@@ -357,7 +357,7 @@ static string generate_edc_struct(
     }
     param_list += "));";
     code += param_list;
-    code += "return gaia_object_t::insert_row(b);";
+    code += "return edc_object_t::insert_row(b);";
     code.DecrementIdentLevel();
     code += "}";
 
@@ -388,9 +388,9 @@ static string generate_edc_struct(
     }
 
     // The table range.
-    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
     code.IncrementIdentLevel();
-    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
     code += "return list;";
     code.DecrementIdentLevel();
     code += "}";
@@ -430,11 +430,11 @@ static string generate_edc_struct(
     code.DecrementIdentLevel();
     code += "private:";
     code.IncrementIdentLevel();
-    code += "friend struct gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+    code += "friend struct edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
 
     // The constructor.
-    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
+    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
     code.DecrementIdentLevel();

@@ -9,23 +9,23 @@ namespace direct_access
 {
 
 //
-// Implementation for gaia_iterator_t.
+// Implementation for edc_iterator_t.
 //
 template <typename T_class>
-gaia_iterator_t<T_class>::gaia_iterator_t(gaia::common::gaia_id_t id)
+edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id)
 {
     m_obj = T_class::get(id);
 }
 
 template <typename T_class>
-gaia_iterator_t<T_class>::gaia_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function)
+edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function)
     : m_filter_fn(filter_function)
 {
     m_obj = T_class::get(id);
 }
 
 template <typename T_class>
-gaia_iterator_t<T_class>& gaia_iterator_t<T_class>::operator++()
+edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
 {
     if (!m_obj)
     {
@@ -54,53 +54,53 @@ gaia_iterator_t<T_class>& gaia_iterator_t<T_class>::operator++()
 }
 
 template <typename T_class>
-gaia_iterator_t<T_class> gaia_iterator_t<T_class>::operator++(int)
+edc_iterator_t<T_class> edc_iterator_t<T_class>::operator++(int)
 {
-    gaia_iterator_t<T_class> old = *this;
+    edc_iterator_t<T_class> old = *this;
     operator++();
     return old;
 }
 
 template <typename T_class>
-bool gaia_iterator_t<T_class>::operator==(const gaia_iterator_t& rhs) const
+bool edc_iterator_t<T_class>::operator==(const edc_iterator_t& rhs) const
 {
     return m_obj == rhs.m_obj;
 }
 
 template <typename T_class>
-bool gaia_iterator_t<T_class>::operator!=(const gaia_iterator_t& rhs) const
+bool edc_iterator_t<T_class>::operator!=(const edc_iterator_t& rhs) const
 {
     return !(m_obj == rhs.m_obj);
 }
 
 template <typename T_class>
-typename gaia_iterator_t<T_class>::reference gaia_iterator_t<T_class>::operator*()
+typename edc_iterator_t<T_class>::reference edc_iterator_t<T_class>::operator*()
 {
     return m_obj;
 }
 
 template <typename T_class>
-typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->()
+typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 {
     return &m_obj;
 }
 
 //
-// Implementation for gaia_container_t
+// Implementation for edc_container_t
 //
 
 // The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
 template <gaia::common::gaia_type_t T_container, typename T_class>
-gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin() const
+edc_iterator_t<T_class> edc_container_t<T_container, T_class>::begin() const
 {
-    gaia::common::gaia_id_t id = gaia_base_t::find_first(T_container);
+    gaia::common::gaia_id_t id = edc_base_t::find_first(T_container);
     while (id != common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
         {
             if (m_filter_fn(T_class::get(id)))
             {
-                return gaia_iterator_t<T_class>(id, m_filter_fn);
+                return edc_iterator_t<T_class>(id, m_filter_fn);
             }
         }
         else
@@ -110,34 +110,34 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin() const
 
         id = edc_db_t::find_next(id);
     }
-    return gaia_iterator_t<T_class>(id);
+    return edc_iterator_t<T_class>(id);
 }
 
-// The where() method constructs a gaia_container_t with a std::function to be used for filtering.
+// The where() method constructs a edc_container_t with a std::function to be used for filtering.
 template <gaia::common::gaia_type_t T_container, typename T_class>
-gaia_container_t<T_container, T_class> gaia_container_t<T_container, T_class>::where(std::function<bool(const T_class&)> filter_function)
+edc_container_t<T_container, T_class> edc_container_t<T_container, T_class>::where(std::function<bool(const T_class&)> filter_function)
 {
-    return gaia_container_t<T_container, T_class>(filter_function);
+    return edc_container_t<T_container, T_class>(filter_function);
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class>
-gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end() const
+edc_iterator_t<T_class> edc_container_t<T_container, T_class>::end() const
 {
-    return gaia_iterator_t<T_class>(0);
+    return edc_iterator_t<T_class>(0);
 }
 
 //
-// Implementation for gaia_set_iterator_t.
+// Implementation for edc_set_iterator_t.
 //
 template <typename T_child>
-gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset)
+edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset)
     : m_next_offset(next_offset)
 {
     m_child_obj = T_child::get(id);
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset)
+edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset)
     : m_filter_fn(filter_function)
     , m_next_offset(next_offset)
 {
@@ -145,19 +145,19 @@ gaia_set_iterator_t<T_child>::gaia_set_iterator_t(gaia::common::gaia_id_t id, st
 }
 
 template <typename T_child>
-typename gaia_set_iterator_t<T_child>::reference gaia_set_iterator_t<T_child>::operator*()
+typename edc_set_iterator_t<T_child>::reference edc_set_iterator_t<T_child>::operator*()
 {
     return m_child_obj;
 }
 
 template <typename T_child>
-typename gaia_set_iterator_t<T_child>::pointer gaia_set_iterator_t<T_child>::operator->()
+typename edc_set_iterator_t<T_child>::pointer edc_set_iterator_t<T_child>::operator->()
 {
     return &m_child_obj;
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child>& gaia_set_iterator_t<T_child>::operator++()
+edc_set_iterator_t<T_child>& edc_set_iterator_t<T_child>::operator++()
 {
     if (!m_child_obj)
     {
@@ -188,21 +188,21 @@ gaia_set_iterator_t<T_child>& gaia_set_iterator_t<T_child>::operator++()
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child> gaia_set_iterator_t<T_child>::operator++(int)
+edc_set_iterator_t<T_child> edc_set_iterator_t<T_child>::operator++(int)
 {
-    gaia_set_iterator_t<T_child> old = *this;
+    edc_set_iterator_t<T_child> old = *this;
     operator++();
     return old;
 }
 
 template <typename T_child>
-bool gaia_set_iterator_t<T_child>::operator==(const gaia_set_iterator_t& rhs) const
+bool edc_set_iterator_t<T_child>::operator==(const edc_set_iterator_t& rhs) const
 {
     return m_child_obj == rhs.m_child_obj;
 }
 
 template <typename T_child>
-bool gaia_set_iterator_t<T_child>::operator!=(const gaia_set_iterator_t& rhs) const
+bool edc_set_iterator_t<T_child>::operator!=(const edc_set_iterator_t& rhs) const
 {
     return !(m_child_obj == rhs.m_child_obj);
 }
@@ -211,13 +211,13 @@ bool gaia_set_iterator_t<T_child>::operator!=(const gaia_set_iterator_t& rhs) co
 // Implementation for reference_chain_container_t.
 //
 template <typename T_child>
-gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
+edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
 {
     gaia::common::gaia_id_t id = 0;
 
     if (m_parent_id)
     {
-        id = gaia_base_t::get_reference(m_parent_id, m_child_offset);
+        id = edc_base_t::get_reference(m_parent_id, m_child_offset);
         while (id)
         {
             if (m_filter_fn)
@@ -226,7 +226,7 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
                 {
                     break;
                 }
-                id = gaia_base_t::get_reference(id, m_next_offset);
+                id = edc_base_t::get_reference(id, m_next_offset);
             }
             else
             {
@@ -234,7 +234,7 @@ gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
             }
         }
     }
-    return gaia_set_iterator_t<T_child>(id, m_filter_fn, m_next_offset);
+    return edc_set_iterator_t<T_child>(id, m_filter_fn, m_next_offset);
 }
 
 // The where() method saves the address of the std::function, to be called for each candidate return value.
@@ -246,9 +246,9 @@ reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> 
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::end() const
+edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::end() const
 {
-    return gaia_set_iterator_t<T_child>(0, 0);
+    return edc_set_iterator_t<T_child>(0, 0);
 }
 
 template <typename T_child>
@@ -261,7 +261,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
         throw edc_invalid_state(m_parent_id, child_id, received.gaia_typename());
     }
 
-    gaia_base_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
+    edc_base_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
@@ -273,7 +273,7 @@ void reference_chain_container_t<T_child>::insert(T_child& child_edc)
 template <typename T_child>
 void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_id)
 {
-    gaia_base_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
+    edc_base_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
@@ -283,7 +283,7 @@ void reference_chain_container_t<T_child>::remove(T_child& child_edc)
 }
 
 template <typename T_child>
-gaia_set_iterator_t<T_child> reference_chain_container_t<T_child>::erase(gaia_set_iterator_t<T_child> position)
+edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::erase(edc_set_iterator_t<T_child> position)
 {
     auto current = *position;
     position++;

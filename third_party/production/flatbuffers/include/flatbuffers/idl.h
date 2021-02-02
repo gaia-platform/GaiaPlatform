@@ -566,8 +566,6 @@ struct IDLOptions {
   std::string proto_namespace_suffix;
   std::string filename_suffix;
   std::string filename_extension;
-  bool generate_events;
-  bool generate_setters;
   uint64_t gaia_type_initial_value;
 
   // Possible options for the more general generator below.
@@ -655,8 +653,6 @@ struct IDLOptions {
         cs_gen_json_serializer(false),
         filename_suffix("_generated"),
         filename_extension(),
-        generate_events(false),
-        generate_setters(false),
         gaia_type_initial_value(1),
         lang(IDLOptions::kJava),
         mini_reflect(IDLOptions::kNone),
