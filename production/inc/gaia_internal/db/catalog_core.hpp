@@ -77,7 +77,7 @@ struct index_view_t : catalog_se_object_view_t
     using catalog_se_object_view_t::catalog_se_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] bool unique() const;
-    [[nodiscard]] catalog::value_index_type_t type() const;
+    [[nodiscard]] catalog::index_type_t type() const;
     [[nodiscard]] std::vector<common::gaia_id_t> fields() const;
 };
 

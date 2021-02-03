@@ -107,9 +107,9 @@ namespace db
     return catalog::Getgaia_index(m_obj_ptr->data())->unique();
 }
 
-[[nodiscard]] gaia::catalog::value_index_type_t index_view_t::type() const
+[[nodiscard]] gaia::catalog::index_type_t index_view_t::type() const
 {
-    return static_cast<gaia::catalog::value_index_type_t>(
+    return static_cast<gaia::catalog::index_type_t>(
         catalog::Getgaia_index(m_obj_ptr->data())->type());
 }
 

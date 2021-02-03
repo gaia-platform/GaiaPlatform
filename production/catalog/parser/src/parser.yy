@@ -28,7 +28,7 @@
     enum class data_type_t : uint8_t;
     }
     namespace catalog {
-    enum class value_index_type_t : uint8_t;
+    enum class index_type_t : uint8_t;
     namespace ddl {
         struct statement_t;
         struct create_statement_t;
@@ -45,7 +45,7 @@
     using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::base_field_def_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
-    using index_type_t = gaia::catalog::value_index_type_t;
+    using index_type_t = gaia::catalog::index_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
     using field_list_t = std::vector<std::string>;
 }

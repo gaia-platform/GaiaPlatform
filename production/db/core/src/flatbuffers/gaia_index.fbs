@@ -1,8 +1,8 @@
 namespace gaia.db.catalog;
 table gaia_index{
-        name:string;
-        unique:bool;
-        type:uint8;
-        fields:string;
+    name:string;
+    unique:bool;
+    type:uint8;
+    fields:string;
 }
 root_type gaia_index;

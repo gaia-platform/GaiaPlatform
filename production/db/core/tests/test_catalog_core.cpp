@@ -144,11 +144,11 @@ TEST_F(catalog_core_test, list_indexes)
     auto table_id = gaia::catalog::create_table("book", fields);
 
     auto title_idx_id = gaia::catalog::create_index(
-        "title_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"title"});
+        "title_idx", false, gaia::catalog::index_type_t::range, "", "book", {"title"});
     auto author_idx_id = gaia::catalog::create_index(
-        "author_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"author"});
+        "author_idx", false, gaia::catalog::index_type_t::range, "", "book", {"author"});
     auto isbn_idx_id = gaia::catalog::create_index(
-        "isbn_idx", true, gaia::catalog::value_index_type_t::hash, "", "book", {"isbn"});
+        "isbn_idx", true, gaia::catalog::index_type_t::hash, "", "book", {"isbn"});
 
     std::set<gaia_id_t> index_ids;
     begin_transaction();

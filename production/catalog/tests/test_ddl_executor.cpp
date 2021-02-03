@@ -552,9 +552,8 @@ TEST_F(ddl_executor_test, create_index)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     check_table_name(table_id, test_table_name);
-
     string test_index_name{"test_index"};
-    gaia_id_t index_id = create_index(test_index_name, true, value_index_type_t::hash, "", test_table_name, {"name"});
+    gaia_id_t index_id = create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"});
 
     auto_transaction_t txn;
     ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
@@ -573,13 +572,12 @@ TEST_F(ddl_executor_test, list_indexes)
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("author", data_type_t::e_string, 1));
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("isbn", data_type_t::e_string, 1));
     auto table_id = gaia::catalog::create_table("book", fields);
-
     auto title_idx_id = gaia::catalog::create_index(
-        "title_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"title"});
+        "title_idx", false, gaia::catalog::index_type_t::range, "", "book", {"title"});
     auto author_idx_id = gaia::catalog::create_index(
-        "author_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"author"});
+        "author_idx", false, gaia::catalog::index_type_t::range, "", "book", {"author"});
     auto isbn_idx_id = gaia::catalog::create_index(
-        "isbn_idx", true, gaia::catalog::value_index_type_t::hash, "", "book", {"isbn"});
+        "isbn_idx", true, gaia::catalog::index_type_t::hash, "", "book", {"isbn"});
 
     std::set<gaia_id_t> index_ids;
     begin_transaction();
