@@ -68,13 +68,8 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
 
-    // HACKHACK: work around the de facto limit of 4 fds/datagram by sending the
-    // last one in an extra datagram.
-    int send_fds_1[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index};
-    int send_fds_2[] = {s_fd_page_alloc_counts};
-    constexpr char c_dummy_data[] = "dummy";
-    send_msg_with_fds(s_session_socket, send_fds_1, std::size(send_fds_1), builder.GetBufferPointer(), builder.GetSize());
-    send_msg_with_fds(s_session_socket, send_fds_2, std::size(send_fds_2), (void*)c_dummy_data, sizeof(c_dummy_data));
+    int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index, s_fd_page_alloc_counts};
+    send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_begin_txn(

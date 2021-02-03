@@ -433,32 +433,23 @@ void client::begin_session()
 
     // Extract the data and locator shared memory segment fds from the server's response.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    constexpr size_t c_fd_count = 4;
+    constexpr size_t c_fd_count = 5;
     int fds[c_fd_count] = {-1};
     size_t fd_count = c_fd_count;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-    auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
+    auto [fd_locators, fd_counters, fd_data, fd_id_index, fd_page_alloc_counts] = fds;
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
     retail_assert(fd_counters != -1, "Invalid counters fd detected!");
     retail_assert(fd_data != -1, "Invalid data fd detected!");
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
+    retail_assert(fd_page_alloc_counts != -1, "Invalid page_alloc_counts fd detected!");
 
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
-
-    // HACKHACK: we can't seem to pass >4 fds per datagram now, so pass the last fd in a separate message.
-    int fd_page_alloc_counts = -1;
-    fd_count = 1;
-    ::memset(&msg_buf, 0, sizeof(msg_buf));
-    constexpr char c_dummy_data[] = "dummy";
-    bytes_read = recv_msg_with_fds(s_session_socket, &fd_page_alloc_counts, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read == sizeof(c_dummy_data), "Failed to read message!");
-    retail_assert(fd_page_alloc_counts != -1, "Invalid page_alloc_counts fd detected!");
-    retail_assert(0 == strcmp(c_dummy_data, (const char*)msg_buf), "Unexpected message value for page_alloc_counts fd datagram!");
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto cleanup_mapping_fds = make_scope_guard([fd_counters = fd_counters,
