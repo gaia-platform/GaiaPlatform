@@ -168,9 +168,7 @@ struct shared_data_t
     // reserved invalid value), the first word (at offset 0) is unused by data,
     // so we use it to store the last offset allocated (minus 1 since all
     // offsets are obtained by incrementing the counter by 1).
-    // NB: We now align all objects on a 64-byte boundary (for cache efficiency
-    // and to allow us to later switch to 32-bit offsets).
-    alignas(64) uint64_t objects[c_data_segment_size_bytes / sizeof(uint64_t)];
+    uint64_t objects[c_data_segment_size_bytes / sizeof(uint64_t)];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
