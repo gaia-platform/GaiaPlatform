@@ -11,16 +11,16 @@ in subfolders that are organized by version and then by the customers that have 
 
 The script `get-sdk-url.sh` can generate presigned URLs for existing S3 objects.
 
-For details about the usage of these scripts, see the `--help` output 
+For details about the usage of these scripts, see the `--help` output. 
 
 # AWS SDK
 
-The scripts use the AWS CLI V2. For installation instructrions, see: 
+The scripts use the AWS CLI V2. For installation instructions, see: 
 https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 
 # AWS Credentials
 
-To run the scripts you must use AWS credentials that have permissions for S3. Store the credentials in `~/.aws/credentials` (`aws configure`). The `sdk` IAM user has the correct credentials to access the S3 bucket.
+To run the scripts, you must use AWS credentials that have permissions for S3. Store the credentials in `~/.aws/credentials` (`aws configure`). The `sdk` IAM user has the correct credentials to access the S3 bucket.
 
 # TeamCity
 
@@ -29,7 +29,7 @@ AWS credentials are installed on the machine.
 
 ## Publish the SDK
 
-To publish a targeted SDK that and upload it to the S3 bucket use the `publish-sdk-to-s3.sh` script.
+To publish a targeted SDK and upload it to the S3 bucket use the `publish-sdk-to-s3.sh` script.
 
 ### Example
 
@@ -50,10 +50,10 @@ You can give this URL to the customer `customer1`. They will have 5 days to use 
 
 ## Generate the URL for existing SDK
 
-To publish a targeted SDK that for an SDK that has already been uploaded to the S3 Bucket use the 'get-sdk-url.sh' script.
+To publish a targeted SDK for an SDK that has already been uploaded to the S3 Bucket use the 'get-sdk-url.sh' script.
 
 ### Example
-Let say that you need to retrieve the URL for an SDK that has already been uploaded to the S3 Bucket. You can list all the existing SDK
+Let's say that you need to retrieve the URL for an SDK that has already been uploaded to the S3 Bucket. You can list all the existing SDK
 for a given customer:
 
 ```
@@ -64,7 +64,7 @@ Listing all the files in s3://gaia-sdk/private-releases/0.1.0/customer1
 2021-01-08 08:20:55   15096308 gaia-0.1.0_amd64-20210108082053.deb
 ```
 
-The following exmaple shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
+The following exapple shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1 -f gaia-0.1.0_amd64-20210108082053.deb
@@ -73,7 +73,7 @@ Generating presigned URL for gaia-0.1.0_amd64-20210108082053.deb
 The presigned URL is: https://gaia-sdk.s3.us-west-2.amazonaws.com/private-releases/0.1.0/customer1/gaia-0.1.0_amd64-20210108082053.deb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXX%XXXX%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20210108T162330Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=YYYY
 ```
 
-To create a URL for the latest uploaded SDK. 
+To create a URL for the latest uploaded SDK:
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1
@@ -84,5 +84,4 @@ The presigned URL is: https://gaia-sdk.s3.us-west-2.amazonaws.com/private-releas
 
 **Important**:
 
-The S3 list command sorts the output alphabetically not by date. Our naming pattern should ensure that the last file in alphabetical order is also the last 
-file in chronological order.
+The S3 list command sorts the output alphabetically, not by date. Our naming pattern should ensure that the last file in alphabetical order is also the last file in chronological order.
