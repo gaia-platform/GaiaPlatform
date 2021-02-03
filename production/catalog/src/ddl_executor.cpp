@@ -730,7 +730,7 @@ string ddl_executor_t::get_full_table_name(const string& db, const string& table
 gaia_id_t ddl_executor_t::create_index(
     const std::string& index_name,
     bool unique,
-    ddl::index_type_t type,
+    value_index_type_t type,
     const std::string& db_name,
     const std::string& table_name,
     const std::vector<std::string>& field_names)

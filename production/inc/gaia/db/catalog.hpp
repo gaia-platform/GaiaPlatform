@@ -80,7 +80,7 @@ enum class trim_action_type_t : uint8_t
 /*
  * Value index types.
  */
-enum value_index_type_t : uint8_t
+enum class value_index_type_t : uint8_t
 {
     hash,
     range
@@ -218,12 +218,6 @@ enum class create_type_t : uint8_t
     create_index,
 };
 
-enum class index_type_t : uint8_t
-{
-    range,
-    hash,
-};
-
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
@@ -248,7 +242,7 @@ struct create_statement_t : statement_t
 
     bool unique_index;
 
-    index_type_t index_type;
+    value_index_type_t index_type;
 
     std::string index_table;
 
@@ -453,7 +447,7 @@ gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_d
 gaia::common::gaia_id_t create_index(
     const std::string& index_name,
     bool unique,
-    ddl::index_type_t type,
+    value_index_type_t type,
     const std::string& db_name,
     const std::string& table_name,
     const std::vector<std::string>& field_names);

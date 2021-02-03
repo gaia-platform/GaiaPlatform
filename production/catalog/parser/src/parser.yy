@@ -28,12 +28,12 @@
     enum class data_type_t : uint8_t;
     }
     namespace catalog {
+    enum class value_index_type_t : uint8_t;
     namespace ddl {
         struct statement_t;
         struct create_statement_t;
         struct drop_statement_t;
         enum class field_type_t : uint8_t;
-        enum class index_type_t : uint8_t;
         struct base_field_def_t;
         struct data_field_def_t;
         struct ref_field_def_t;
@@ -45,6 +45,7 @@
     using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::base_field_def_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
+    using index_type_t = gaia::catalog::value_index_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
     using field_list_t = std::vector<std::string>;
 }
@@ -96,7 +97,7 @@
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
 %type <bool> opt_unique
-%type <gaia::catalog::ddl::index_type_t> opt_index_type
+%type <index_type_t> opt_index_type
 %type <std::unique_ptr<field_list_t>> field_commalist
 
 %printer { yyo << "statement"; } statement

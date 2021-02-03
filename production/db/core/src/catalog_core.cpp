@@ -107,9 +107,9 @@ namespace db
     return catalog::Getgaia_index(m_obj_ptr->data())->unique();
 }
 
-[[nodiscard]] gaia::catalog::ddl::index_type_t index_view_t::type() const
+[[nodiscard]] gaia::catalog::value_index_type_t index_view_t::type() const
 {
-    return static_cast<gaia::catalog::ddl::index_type_t>(
+    return static_cast<gaia::catalog::value_index_type_t>(
         catalog::Getgaia_index(m_obj_ptr->data())->type());
 }
 
@@ -195,11 +195,11 @@ relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
         c_gaia_relationship_next_child_gaia_relationship_offset);
 }
 
-index_list_t catalog_core_t::list_indexs(common::gaia_id_t table_id)
+index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<index_view_t>(
         table_id,
-        c_gaia_table_first_child_gaia_index_offset,
+        c_gaia_table_first_gaia_index_offset,
         c_gaia_index_next_gaia_index_offset);
 }
 

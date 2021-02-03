@@ -554,12 +554,44 @@ TEST_F(ddl_executor_test, create_index)
     check_table_name(table_id, test_table_name);
 
     string test_index_name{"test_index"};
-    gaia_id_t index_id = create_index(test_index_name, true, ddl::index_type_t::hash, "", test_table_name, {"name"});
+    gaia_id_t index_id = create_index(test_index_name, true, value_index_type_t::hash, "", test_table_name, {"name"});
 
     auto_transaction_t txn;
     ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
     ASSERT_EQ(gaia_index_t::get(index_id).gaia_table().gaia_id(), table_id);
     txn.commit();
+}
+
+TEST_F(ddl_executor_test, list_indexes)
+{
+    // CREATE TABLE book(title STRING, author STRING, isbn STRING);
+    // CREATE INDEX title_idx ON book(title);
+    // CREATE INDEX author_idx ON book(author);
+    // CREATE UNIQUE HASH INDEX isbn_idx ON book(isbn);
+    gaia::catalog::ddl::field_def_list_t fields;
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("title", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("author", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("isbn", data_type_t::e_string, 1));
+    auto table_id = gaia::catalog::create_table("book", fields);
+
+    auto title_idx_id = gaia::catalog::create_index(
+        "title_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"title"});
+    auto author_idx_id = gaia::catalog::create_index(
+        "author_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"author"});
+    auto isbn_idx_id = gaia::catalog::create_index(
+        "isbn_idx", true, gaia::catalog::value_index_type_t::hash, "", "book", {"isbn"});
+
+    std::set<gaia_id_t> index_ids;
+    begin_transaction();
+    for (const auto& idx : gaia_table_t::get(table_id).gaia_index_list())
+    {
+        index_ids.insert(idx.gaia_id());
+    }
+    commit_transaction();
+
+    ASSERT_NE(index_ids.find(title_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(author_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(isbn_idx_id), index_ids.end());
 }
 
 TEST_F(ddl_executor_test, metadata_init)

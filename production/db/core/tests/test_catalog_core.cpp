@@ -130,3 +130,35 @@ TEST_F(catalog_core_test, list_relationship_to)
     ASSERT_EQ(tables_with_relationship_to_object, std::set({color_table_id, shape_table_id}));
     commit_transaction();
 }
+
+TEST_F(catalog_core_test, list_indexes)
+{
+    // CREATE TABLE book(title STRING, author STRING, isbn STRING);
+    // CREATE INDEX title_idx ON book(title);
+    // CREATE INDEX author_idx ON book(author);
+    // CREATE UNIQUE HASH INDEX isbn_idx ON book(isbn);
+    gaia::catalog::ddl::field_def_list_t fields;
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("title", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("author", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("isbn", data_type_t::e_string, 1));
+    auto table_id = gaia::catalog::create_table("book", fields);
+
+    auto title_idx_id = gaia::catalog::create_index(
+        "title_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"title"});
+    auto author_idx_id = gaia::catalog::create_index(
+        "author_idx", false, gaia::catalog::value_index_type_t::range, "", "book", {"author"});
+    auto isbn_idx_id = gaia::catalog::create_index(
+        "isbn_idx", true, gaia::catalog::value_index_type_t::hash, "", "book", {"isbn"});
+
+    std::set<gaia_id_t> index_ids;
+    begin_transaction();
+    for (index_view_t index : catalog_core_t::list_indexes(table_id))
+    {
+        index_ids.insert(index.id());
+    }
+    commit_transaction();
+
+    ASSERT_NE(index_ids.find(title_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(author_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(isbn_idx_id), index_ids.end());
+}

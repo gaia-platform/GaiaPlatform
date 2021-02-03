@@ -111,6 +111,7 @@ void type_registry_t::init()
     auto relationship = static_cast<gaia_type_t>(catalog_table_type_t::gaia_relationship);
     auto rule = static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule);
     auto ruleset = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset);
+    auto index = static_cast<gaia_type_t>(catalog_table_type_t::gaia_index);
 
     auto db_table_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = database,
@@ -157,6 +158,15 @@ void type_registry_t::init()
         .cardinality = cardinality_t::many,
         .parent_required = false});
 
+    auto table_index_relationship = std::make_shared<relationship_t>(relationship_t{
+        .parent_type = table,
+        .child_type = index,
+        .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_index_offset,
+        .next_child_offset = catalog_core_t::c_gaia_index_next_gaia_index_offset,
+        .parent_offset = catalog_core_t::c_gaia_index_parent_gaia_table_offset,
+        .cardinality = cardinality_t::many,
+        .parent_required = false});
+
     auto& db_metadata = get_or_create_no_lock(database);
     db_metadata.add_parent_relationship(db_table_relationship);
     db_metadata.mark_as_initialized();
@@ -166,6 +176,7 @@ void type_registry_t::init()
     table_metadata.add_parent_relationship(table_field_relationship);
     table_metadata.add_parent_relationship(relationship_child_table_relationship);
     table_metadata.add_parent_relationship(relationship_parent_table_relationship);
+    table_metadata.add_parent_relationship(table_index_relationship);
     table_metadata.mark_as_initialized();
 
     auto& field_metadata = get_or_create_no_lock(field);
@@ -184,6 +195,10 @@ void type_registry_t::init()
     auto& rule_metadata = get_or_create_no_lock(rule);
     rule_metadata.add_child_relationship(ruleset_rule_relationship);
     rule_metadata.mark_as_initialized();
+
+    auto& index_metadata = get_or_create_no_lock(index);
+    index_metadata.add_child_relationship(table_index_relationship);
+    index_metadata.mark_as_initialized();
 }
 
 gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
