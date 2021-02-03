@@ -10,6 +10,7 @@
 #include <thread>
 #include <vector>
 
+#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
 #include "gaia/system.hpp"
@@ -37,19 +38,16 @@ void stop_workers_handler(int signal);
 
 int main(int argc, char* argv[])
 {
-    int num_workers;
+    int num_workers = 1;
 
-    if (argc == 1)
-    {
-        num_workers = 1;
-    }
-    else if (argc == 2)
+    if (argc == 2)
     {
         num_workers = stoi(argv[0]);
         assert(num_workers > 0);
     }
-    else
+    else if (argc > 2)
     {
+        cout << "Usage: ping_pong [num_workers]" << endl;
         abort();
     }
 
@@ -61,9 +59,10 @@ int main(int argc, char* argv[])
     sigaction(SIGINT, &sigbreak, nullptr);
     sigaction(SIGTERM, &sigbreak, nullptr);
 
-    // You may want to tune the application behavior by changing the configuration.
+    // You may want to tune the Gaia behavior by changing the default configuration.
+    // Eg. change the number of the rule engine threads.
     gaia::system::initialize("gaia.conf", "gaia_log.conf");
-    gaia_log::app().info("Starting Ping Pong example with {} workers.", num_workers);
+    gaia_log::app().info("Starting Ping Pong example with '{}' workers.", num_workers);
 
     gaia::db::begin_transaction();
     auto ping_pong_id = ping_pong_t::insert_row(c_pong);
@@ -88,25 +87,28 @@ int main(int argc, char* argv[])
 void worker(gaia::common::gaia_id_t ping_pong_id)
 {
     gaia::db::begin_session();
-    int count = 0;
+    int iteration_count = 0;
+
+    // We don't have access to txn_id at this point, but we may add it later.
+    uint64_t txn_id = 0;
 
     while (g_worker_alive)
     {
-        count++;
+        iteration_count++;
         try
         {
             gaia::db::begin_transaction();
             auto ping_pong = ping_pong_t::get(ping_pong_id);
 
-            if (count % c_log_heartbeat_frequency == 0)
+            if (iteration_count % c_log_heartbeat_frequency == 0)
             {
                 // If, for whatever reason, the next condition is never met, at least we log something.
-                gaia_log::app().info("Main:{} iteration:{}", ping_pong.status(), count);
+                gaia_log::app().info("Main:'{}' iteration:'{}'", ping_pong.status(), iteration_count);
             }
 
             if (strcmp(ping_pong.status(), c_pong) == 0)
             {
-                gaia_log::app().info("Main:{}->{} iteration:{} txn_id:{}", ping_pong.status(), c_ping, count, 0 /* txn_id not exposed yet */);
+                gaia_log::app().info("Main:'{}'->'{}' iteration:'{}' txn_id:'{}'", ping_pong.status(), c_ping, iteration_count, txn_id);
                 auto ping_pong_writer = ping_pong.writer();
                 ping_pong_writer.status = c_ping;
                 ping_pong_writer.update_row();
@@ -115,7 +117,7 @@ void worker(gaia::common::gaia_id_t ping_pong_id)
         }
         catch (const gaia::db::transaction_update_conflict& ex)
         {
-            gaia_log::app().error("Main:{} txn:{}", ex.what(), 0 /* txn_id not exposed yet */);
+            gaia_log::app().error("Main:'{}' txn:'{}'", ex.what(), txn_id);
         }
     }
     gaia::db::end_session();
@@ -123,7 +125,7 @@ void worker(gaia::common::gaia_id_t ping_pong_id)
 
 void stop_workers_handler(int signal)
 {
-    std::cout << "Caught signal " << signal << endl;
+    std::cout << "Caught signal '" << signal << "'." << endl;
 
     g_worker_alive = false;
 }

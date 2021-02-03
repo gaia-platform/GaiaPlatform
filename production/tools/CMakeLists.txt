@@ -8,7 +8,7 @@ project(tools)
 
 add_subdirectory(gaia_generate)
 
-if (BUILD_GAIA_RELEASE)
+if(BUILD_GAIA_RELEASE)
   add_subdirectory(gaia_translate)
 endif()
 
@@ -22,8 +22,9 @@ if(BUILD_GAIA_STYLE_TESTS)
   add_subdirectory(gaia_style)
 endif()
 
-# The ping_pong test requires the gaia_db_server to be explicitly run. Keeping it disable otherwise
-# TeamCity fails. TODO work on a better solution.
+# The ping_pong test requires the gaia_db_server to be explicitly run.
+# Keeping it disable, otherwise TeamCity fails.
+# TODO, work on a better solution.
 option(BUILD_PING_PONG_TEST "Build ping_pong test. Requires gaia_db_server to be running." OFF)
 
 if(BUILD_PING_PONG_TEST)

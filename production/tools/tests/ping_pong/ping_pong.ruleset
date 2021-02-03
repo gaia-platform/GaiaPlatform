@@ -17,18 +17,21 @@ constexpr int c_log_heartbeat_frequency = 10000;
 ruleset ping_pong
 {
     {
-        static int count = 0;
-        count++;
+        // We don't have access to txn_id at this point, but we may add it later.
+        static uint64_t txn_id = 0;
 
-        if (count % c_log_heartbeat_frequency)
+        static int iteration_count = 0;
+        iteration_count++;
+
+        if (iteration_count % c_log_heartbeat_frequency)
         {
             // If, for whatever reason, the next condition is never met, at least we log something.
-            gaia_log::app().info("Rules:{} iteration:{}", ping_pong.status, count);
+            gaia_log::app().info("Rules:'{}' iteration:'{}'", ping_pong.status, iteration_count);
         }
 
         if (strcmp(ping_pong.status, c_ping) == 0)
         {
-            gaia_log::app().info("Rules:{}->{} iteration:{} txn_id:{}", ping_pong.status, c_pong, count, 0 /* txn_id not exposed yet */);
+            gaia_log::app().info("Rules:'{}'->'{}' iteration:'{}' txn_id:'{}'", ping_pong.status, c_pong, iteration_count, txn_id);
             // If I dont' use a fully qualified name, it will fail here.
             status = c_pong;
         }
