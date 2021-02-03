@@ -27,11 +27,11 @@ void error_if_not_exists(const char* filename)
     }
 }
 
-string get_default_conf_file(const char* default_filename)
+string get_default_conf_file_path(const char* default_filename)
 {
     // Default locations for log files are placed under /opt/gaia/etc/
-    string str = c_default_conf_directory;
-    str.append(default_filename);
+    filesystem::path str = c_default_conf_directory;
+    str /= default_filename;
 
     if (!file_exists(str.c_str()))
     {
@@ -50,18 +50,18 @@ string get_default_conf_file(const char* default_filename)
 // file and see if that exists.  If that file doesn't exist, then continue
 // without throwing an exception.  Components can initialize themselves with
 // appropriate defaults.
-string gaia::common::get_conf_file(const char* user_filepath, const char* default_filename)
+string gaia::common::get_conf_file_path(const char* user_file_path, const char* default_filename)
 {
     string str;
 
-    if (user_filepath)
+    if (user_file_path)
     {
-        error_if_not_exists(user_filepath);
-        str = user_filepath;
+        error_if_not_exists(user_file_path);
+        str = user_file_path;
     }
     else
     {
-        str = get_default_conf_file(default_filename);
+        str = get_default_conf_file_path(default_filename);
     }
 
     return str;

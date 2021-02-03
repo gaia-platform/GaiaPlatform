@@ -17,22 +17,17 @@
 static void usage()
 {
     std::cerr
-        << std::endl
-        << "Copyright (c) Gaia Platform LLC"
-        << std::endl
-        << std::endl
+        << "\nCopyright (c) Gaia Platform LLC\n\n"
         << "Usage: gaia_db_server ["
         << gaia::db::server::c_disable_persistence_flag
         << " | "
         << gaia::db::server::c_disable_persistence_after_recovery_flag
         << " | "
         << gaia::db::server::c_reinitialize_persistent_store_flag
-        << "] "
-        << std::endl
+        << "] \n"
         << "                      ["
         << gaia::db::persistent_store_manager::c_data_dir_command_flag
-        << " <data dir>]"
-        << std::endl
+        << " <data dir>]\n"
         << "                      ["
         << gaia::common::c_conf_file_flag
         << " <config file path>]"
@@ -44,7 +39,7 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_flags;
     bool found_data_dir = false;
-    const char* conf_file = nullptr;
+    const char* conf_file_path = nullptr;
 
     server::persistence_mode_t persistence_mode{server::persistence_mode_t::e_default};
 
@@ -70,34 +65,36 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         }
         else if ((strcmp(argv[i], gaia::common::c_conf_file_flag) == 0) && (i + 1 < argc))
         {
-            conf_file = argv[++i];
+            conf_file_path = argv[++i];
         }
         else
         {
             std::cerr
-                << std::endl
-                << "Unrecognized argument, \""
+                << "\nUnrecognized argument, \""
                 << argv[i]
                 << "\"."
                 << std::endl;
             usage();
         }
     }
+
     std::string gaia_configuration_file;
     if (!found_data_dir && (persistence_mode != server::persistence_mode_t::e_disabled))
     {
         // Since there is no --data-dir parameter, locate it from the configuration.
-        static const char* c_data_dir_string_key = "Database.data_dir";
-
-        gaia_configuration_file = gaia::common::get_conf_file(conf_file, c_default_conf_file_name);
-        // The data_dir will fail to "/var/lib/gaia/db" if the configuration file doesn't have it.
+        gaia_configuration_file = gaia::common::get_conf_file_path(conf_file_path, c_default_conf_file_name);
+        // s_data_dir_path will remain set to "/var/lib/gaia/db" if the configuration file doesn't have it.
         if (!gaia_configuration_file.empty())
         {
             std::shared_ptr<cpptoml::table> root_config = cpptoml::parse_file(gaia_configuration_file);
             auto data_dir_string = root_config->get_qualified_as<std::string>(c_data_dir_string_key);
-            if (!data_dir_string->empty())
+            if (data_dir_string)
             {
-                gaia::db::persistent_store_manager::s_data_dir_path = *data_dir_string;
+                // The 'data_dir' key exists. Make sure it is non-empty.
+                if (!data_dir_string->empty())
+                {
+                    gaia::db::persistent_store_manager::s_data_dir_path = *data_dir_string;
+                }
             }
         }
     }
@@ -152,8 +149,7 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         if ((used_flags.find(flag_pair.first) != used_flags.end()) && (used_flags.find(flag_pair.second) != used_flags.end()))
         {
             std::cerr
-                << std::endl
-                << "\""
+                << "\n\""
                 << flag_pair.first
                 << "\" and \""
                 << flag_pair.second
