@@ -171,11 +171,11 @@ public:
 };
 
 void encode_object(
-    const se_object_t* gaia_object,
+    const db_object_t* gaia_object,
     string_writer_t& key,
     string_writer_t& value);
 
-se_object_t* decode_object(
+db_object_t* decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value);
 

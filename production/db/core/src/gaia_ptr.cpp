@@ -46,35 +46,35 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, cons
     return create(id, type, num_references, data_size, data);
 }
 
-gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_t data_size, const void* data)
+gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_references, size_t data_size, const void* data)
 {
-    size_t refs_len = num_refs * sizeof(gaia_id_t);
-    size_t total_len = data_size + refs_len;
-    if (total_len > se_object_t::c_max_payload_size)
+    size_t references_size = num_references * sizeof(gaia_id_t);
+    size_t total_payload_size = data_size + references_size;
+    if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_len, se_object_t::c_max_payload_size);
+        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
-    // TODO this constructor allows creating a gaia_ptr in an invalid state
-    //  the se_object_t should either be initialized before and passed in
-    //  or initialized inside the constructor.
+    // TODO: this constructor allows creating a gaia_ptr in an invalid state;
+    //  the db_object_t should either be initialized before and passed in
+    //  or it should be initialized inside the constructor.
     hash_node_t* hash_node = db_hash_map::insert(id);
-    size_t object_size = total_len + sizeof(se_object_t);
+    size_t object_size = total_payload_size + sizeof(db_object_t);
     hash_node->locator = allocate_locator();
     address_offset_t offset = client::allocate_object(hash_node->locator, object_size);
     gaia_ptr obj(hash_node->locator, offset);
-    se_object_t* obj_ptr = obj.to_ptr();
+    db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
-    obj_ptr->num_references = num_refs;
-    if (num_refs)
+    obj_ptr->num_references = num_references;
+    if (num_references)
     {
-        memset(obj_ptr->payload, 0, refs_len);
+        memset(obj_ptr->payload, 0, references_size);
     }
-    obj_ptr->payload_size = total_len;
+    obj_ptr->payload_size = total_payload_size;
     if (data)
     {
-        memcpy(obj_ptr->payload + refs_len, data, data_size);
+        memcpy(obj_ptr->payload + references_size, data, data_size);
     }
     else
     {
@@ -105,10 +105,10 @@ void gaia_ptr::remove(gaia_ptr& node)
 
 void gaia_ptr::clone_no_txn()
 {
-    se_object_t* old_this = to_ptr();
-    size_t new_size = sizeof(se_object_t) + old_this->payload_size;
+    db_object_t* old_this = to_ptr();
+    size_t new_size = sizeof(db_object_t) + old_this->payload_size;
     client::allocate_object(m_locator, new_size);
-    se_object_t* new_this = to_ptr();
+    db_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
 
@@ -119,7 +119,7 @@ gaia_ptr& gaia_ptr::clone()
 
     client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
 
-    se_object_t* new_this = to_ptr();
+    db_object_t* new_this = to_ptr();
     if (client::is_valid_event(new_this->type))
     {
         client::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list);
@@ -130,29 +130,29 @@ gaia_ptr& gaia_ptr::clone()
 
 gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 {
-    se_object_t* old_this = to_ptr();
+    db_object_t* old_this = to_ptr();
     gaia_offset_t old_offset = to_offset();
 
-    size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
-    size_t total_len = data_size + ref_len;
-    if (total_len > se_object_t::c_max_payload_size)
+    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
+    size_t total_payload_size = data_size + references_size;
+    if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_len, se_object_t::c_max_payload_size);
+        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
-    // updates m_locator to point to the new object
-    client::allocate_object(m_locator, sizeof(se_object_t) + total_len);
+    // Updates m_locator to point to the new object.
+    client::allocate_object(m_locator, sizeof(db_object_t) + total_payload_size);
 
-    se_object_t* new_this = to_ptr();
+    db_object_t* new_this = to_ptr();
 
-    memcpy(new_this, old_this, sizeof(se_object_t));
-    new_this->payload_size = total_len;
+    memcpy(new_this, old_this, sizeof(db_object_t));
+    new_this->payload_size = total_payload_size;
     if (old_this->num_references > 0)
     {
-        memcpy(new_this->payload, old_this->payload, ref_len);
+        memcpy(new_this->payload, old_this->payload, references_size);
     }
     new_this->num_references = old_this->num_references;
-    memcpy(new_this->payload + ref_len, data, data_size);
+    memcpy(new_this->payload + references_size, data, data_size);
 
     client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
@@ -160,9 +160,9 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     {
         auto new_data = reinterpret_cast<const uint8_t*>(data);
         auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
-        const uint8_t* old_data_payload = old_data + ref_len;
+        const uint8_t* old_data_payload = old_data + references_size;
 
-        // Compute field diff
+        // Compute field difference.
         field_position_list_t position_list;
         compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
         client::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list);
@@ -190,7 +190,7 @@ gaia_ptr::gaia_ptr(gaia_locator_t locator, address_offset_t offset)
     client::txn_log(m_locator, 0, get_gaia_offset(offset), gaia_operation_t::create);
 }
 
-se_object_t* gaia_ptr::to_ptr() const
+db_object_t* gaia_ptr::to_ptr() const
 {
     client::verify_txn_active();
     return locator_to_ptr(m_locator);
@@ -205,7 +205,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 void gaia_ptr::find_next(gaia_type_t type)
 {
     gaia::db::shared_counters_t* counters = gaia::db::get_shared_counters();
-    // We need an acquire barrier before reading `last_locator`. We can
+    // We need an acquire a barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
@@ -252,7 +252,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
         throw invalid_reference_offset(parent_type, first_child_offset);
     }
 
-    // CHECK TYPES
+    // Check types.
 
     auto child_ptr = gaia_ptr(child_id);
 
@@ -271,12 +271,12 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
         throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
     }
 
-    // CHECK CARDINALITY
+    // Check cardinality.
 
     if (references()[first_child_offset] != c_invalid_gaia_id)
     {
         // This parent already has a child for this relationship.
-        // If the relationship is one-to-one we fail.
+        // If the relationship is one-to-one, we fail.
         if (relationship->cardinality == cardinality_t::one)
         {
             throw single_cardinality_violation(parent_type, first_child_offset);
@@ -284,7 +284,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     }
 
     // Note: we check only for parent under the assumption that the relational integrity
-    // is preserved thus if there are no parent references there are no next_child_offset either
+    // is preserved, thus if there are no parent references there are no next_child_offset values either.
     if (child_ptr.references()[relationship->parent_offset] != c_invalid_gaia_id)
     {
         // If the child already has a reference to this parent, handle gracefully.
@@ -297,7 +297,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     }
 
     // BUILD THE REFERENCES
-    // TODO (Mihir) if the parent/child have been created in the same txn the clone may not be necessary
+    // TODO (Mihir): if the parent/child have been created in the same txn, the clone may not be necessary.
     gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
 
@@ -345,9 +345,9 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         throw invalid_reference_offset(parent_type, first_child_offset);
     }
 
-    // CHECK TYPES
-    // TODO Note this check could be removed, or the failure could be gracefully handled
-    //   I still prefer to fail because calling this method with wrong arguments means there
+    // Check types.
+    // TODO: Note that this check could be removed or the failure could be gracefully handled.
+    //   We prefer to fail because calling this method with wrong arguments means there
     //   is something seriously ill in the caller code.
 
     auto child_ptr = gaia_ptr(child_id);
@@ -372,7 +372,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         throw invalid_child(child_ptr.type(), child_id, type(), id());
     }
 
-    // REMOVE REFERENCE
+    // Remove reference.
     gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
     gaia_offset_t old_child_offset = child_ptr.to_offset();
@@ -387,19 +387,19 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         curr_child = gaia_ptr(prev_child).references()[relationship->next_child_offset];
     }
 
-    // match found
+    // Match found.
     if (curr_child == child_id)
     {
         auto curr_ptr = gaia_ptr(curr_child);
 
         if (!prev_child)
         {
-            // first child in the linked list, need to update the parent
+            // First child in the linked list, need to update the parent.
             references()[first_child_offset] = curr_ptr.references()[relationship->next_child_offset];
         }
         else
         {
-            // non-first child in the linked list, update the previous child
+            // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr(prev_child);
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
@@ -432,7 +432,7 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
         throw invalid_node_id(parent_id);
     }
 
-    // REMOVE REFERENCE
+    // Remove reference.
     parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
 }
 
@@ -455,11 +455,11 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
         throw invalid_node_id(new_parent_id);
     }
 
-    // TODO this implementation will produce more garbage than necessary. Also many of the RI methods
+    // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods
     //  perform redundant checks. Created JIRA to improve RI performance/api:
     //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
 
-    // CHECK CARDINALITY
+    // Check cardinality.
     if (new_parent_ptr.references()[relationship->first_child_offset] != c_invalid_gaia_id)
     {
         // This parent already has a child for this relationship.

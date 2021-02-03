@@ -23,7 +23,7 @@ namespace db
  * Value: type, reference_count, payload_size, payload
  */
 void gaia::db::persistence::encode_object(
-    const se_object_t* gaia_object,
+    const db_object_t* gaia_object,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
@@ -38,7 +38,7 @@ void gaia::db::persistence::encode_object(
     value.write(gaia_object->payload, gaia_object->payload_size);
 }
 
-se_object_t* gaia::db::persistence::decode_object(
+db_object_t* gaia::db::persistence::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value)
 {
