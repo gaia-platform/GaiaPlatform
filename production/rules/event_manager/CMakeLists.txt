@@ -67,7 +67,7 @@ add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
 add_gtest(test_rule_stats "tests/test_rule_stats.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system")
 
-# The test needs gaia parser to load test DDLs.
+# These tests needs gaia parser to load test DDLs.
 set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc
@@ -75,5 +75,10 @@ set(TEST_RULE_INTEGRATION_INCLUDES
 
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
+  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
+
+add_gtest(test_rule_exceptions
+  "tests/test_rule_exceptions.cpp;tests/event_manager_test_helpers.cpp"
   "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

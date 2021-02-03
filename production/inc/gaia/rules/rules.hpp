@@ -53,7 +53,7 @@ extern "C" void initialize_rules();
  * function is invoked if an exception is caused either when calling the rule
  * or there is an underlying platform issue.
  */
-extern "C" void handle_rule_exception(const std::exception& exception);
+extern "C" void handle_rule_exception();
 
 /**
  * The application may provide an implementation of subscribe_ruleset().  This

@@ -50,38 +50,6 @@ atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
-// Exception testing
-atomic<int> g_invalid_node_id_count;
-atomic<int> g_update_conflict_count;
-
-namespace gaia
-{
-namespace rules
-{
-
-// This test exception handler will handle invalid_node_id
-// and transaction_update_conflict exceptions.  All other
-// exceptions will terminate the program.  Note that funcion
-// is invoked from the rule engine's catch block.
-extern "C" void handle_rule_exception(const std::exception&)
-{
-    try
-    {
-        throw;
-    }
-    catch (const gaia::db::invalid_node_id&)
-    {
-        g_invalid_node_id_count++;
-    }
-    catch (const gaia::db::transaction_update_conflict&)
-    {
-        g_update_conflict_count++;
-    }
-}
-
-} // namespace rules
-} // namespace gaia
-
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
@@ -166,14 +134,6 @@ void rule_sleep(const rule_context_t*)
     g_wait_for_count--;
 }
 
-void rule_bad(const rule_context_t*)
-{
-
-    employee_t bad;
-    // Accessing this object should throw an exception since the employee does not exist in the database.
-    bad = bad.get_next();
-}
-
 void rule_conflict(const rule_context_t* context)
 {
     {
@@ -256,12 +216,6 @@ public:
     void subscribe_sleep()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
-    }
-
-    void subscribe_bad()
-    {
-        rule_binding_t rule{"ruleset", "rule_bad", rule_bad};
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
@@ -602,39 +556,12 @@ TEST_F(rule_integration_test, test_reinit)
     gaia::rules::initialize_rules_engine();
 }
 
-// Ensures the exception is caught by the rules engine and
-// doesn't escape to the test process.
-TEST_F(rule_integration_test, test_exception)
-{
-    g_invalid_node_id_count = 0;
-    g_update_conflict_count = 0;
-
-    subscribe_bad();
-    {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        employee_writer writer;
-        writer.name_first = c_name;
-        writer.insert_row();
-        txn.commit();
-    }
-    // Shut down the rules engine to ensure the rule fires.
-    gaia::rules::shutdown_rules_engine();
-    EXPECT_EQ(g_invalid_node_id_count, 1);
-    EXPECT_EQ(g_update_conflict_count, 0);
-
-    // And reinitialize to provide harmony for other tests.
-    gaia::rules::initialize_rules_engine();
-}
-
 TEST_F(rule_integration_test, test_retry)
 {
     auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name) {
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
         gaia::rules::test::initialize_rules_engine(settings);
-
-        g_invalid_node_id_count = 0;
-        g_update_conflict_count = 0;
 
         subscribe_conflict();
 
@@ -662,24 +589,6 @@ TEST_F(rule_integration_test, test_retry)
         {
             EXPECT_EQ(string(employee_t::get(id).name_first()), expected_name);
         }
-
-        EXPECT_EQ(g_invalid_node_id_count, 0);
-
-        // The user's exception handler should only be called when we have exceeded
-        // the max_retries for update conflicts.
-        int expected_exception_count = 0;
-
-        // Everytime we call this function, we kick off two rule invocations of the same rule.
-        // The max_retries setting applies to rule invocations and not to the rule itself.
-        // The check below is ensuring that we only propogate update conflict exceptions to the
-        // exception handler after we've exhausted the max retries for each invocation.  In our
-        // case, that number is equal to the number of invocations which is 2.
-        if (num_conflicts > max_retries)
-        {
-            expected_exception_count = 2;
-        }
-        EXPECT_EQ(g_update_conflict_count, expected_exception_count);
-        EXPECT_EQ(g_invalid_node_id_count, 0);
     };
 
     // Each iteration of test_inner will initialize the rules engine with a different value for

@@ -206,7 +206,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
                 txn.commit();
             }
         }
-        catch (const transaction_update_conflict& e)
+        catch (const gaia::db::transaction_update_conflict& e)
         {
             // If should_schedule == false, rule scheduling failed and we drop any pending
             // invocations. We may retry our current rule and re-enqueue our pending.
@@ -224,11 +224,26 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
             }
         }
     }
+    catch (const gaia::common::retail_assertion_failure& e)
+    {
+        // Always rethrow internal asserts.  Do not eat them and
+        // do not pass them along to the users exception handler.
+        // TODO[GAIAPLAT-446]: Before shipping V1, we need to review
+        // all retail asserts to ensure that they always indicate
+        // a fatal error.
+        throw;
+    }
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
         gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
-        handle_rule_exception(e);
+        gaia::rules::handle_rule_exception();
+    }
+    catch (...)
+    {
+        m_stats_manager.inc_exceptions(rule_id);
+        gaia_log::rules().warn("exception: {}, {}", rule_id, "Unknown exception");
+        gaia::rules::handle_rule_exception();
     }
 
     process_pending_invocations(should_schedule);

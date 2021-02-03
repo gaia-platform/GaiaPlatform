@@ -36,7 +36,7 @@ extern "C" void __attribute__((weak)) initialize_rules()
 {
 }
 
-extern "C" void __attribute__((weak)) handle_rule_exception(const std::exception&)
+extern "C" void __attribute__((weak)) handle_rule_exception()
 {
 }
 
