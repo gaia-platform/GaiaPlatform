@@ -36,6 +36,7 @@
 #include "se_hash_map.hpp"
 #include "se_helpers.hpp"
 #include "se_object.hpp"
+#include "se_object_helpers.hpp"
 #include "se_shared_data.hpp"
 #include "se_types.hpp"
 #include "socket_helpers.hpp"
@@ -518,6 +519,42 @@ void server::init_shared_memory()
     map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_data, 0);
     map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_id_index, 0);
     map_fd(s_page_alloc_counts, sizeof(*s_page_alloc_counts), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_page_alloc_counts, 0);
+
+    // Register an object deallocator that just frees pages when they're empty.
+    register_object_deallocator([](gaia_offset_t offset) {
+        std::cerr << "Deallocating object with offset " << offset << std::endl;
+        size_t byte_offset = offset * sizeof(uint64_t);
+        size_t end_byte_offset = byte_offset + size_from_offset(offset);
+        size_t start_page_index = byte_offset / c_page_size_bytes;
+        size_t end_page_index = end_byte_offset / c_page_size_bytes;
+        size_t page_byte_offset = byte_offset % c_page_size_bytes;
+        std::cerr << "Deallocating object with offset " << offset << ", byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
+        // Decrement the allocation count for each page containing this object.
+        for (size_t page_index = start_page_index; page_index <= end_page_index; ++page_index)
+        {
+            size_t old_count = (*s_page_alloc_counts)[page_index].fetch_sub(1);
+            std::cerr << "Decrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
+            // Don't free the first page until we relocate the last offset counter.
+            if (old_count == 1 && page_index > 0)
+            {
+                // Actually free the page.
+                // MADV_REMOVE is supposed to be equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
+                // REVIEW: is MADV_REMOVE the only flag that will work with a memfd mapping?
+                // MADV_FREE seems to be the choice for other allocators, but:
+                // https://man7.org/linux/man-pages/man2/madvise.2.html
+                // "The MADV_FREE operation can be applied only to private anonymous pages."
+                // HACKHACK: since offset counter is on first page, we can't free it.
+                // Fix this when we move the offset counter to the "counters" shared
+                // memory segment.
+                void* page_address = reinterpret_cast<unsigned char*>(s_data->objects) + (page_index * c_page_size_bytes);
+                cerr << "Freeing page at address " << page_address << endl;
+                if (-1 == ::madvise(page_address, c_page_size_bytes, MADV_REMOVE))
+                {
+                    throw_system_error("madvise(MADV_REMOVE) failed");
+                }
+            }
+        }
+    });
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -2765,34 +2802,6 @@ void server::run(persistence_mode_t persistence_mode)
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
-
-    // Register an object deallocator that just frees pages when they're empty.
-    register_object_deallocator([](gaia_offset_t offset) {
-        // Calculate the index of the page allocation count.
-        size_t page_index = get_page_index_from_offset(offset);
-        size_t old_count = (*s_page_alloc_counts)[page_index].fetch_sub(1);
-        retail_assert(old_count > 0, "Page allocation count must be nonzero before deallocation!");
-        cerr << "Decrementing allocation count for page index " << page_index << ", old value was " << old_count << endl;
-        // Do nothing if this wasn't the last allocation.
-        if (old_count > 1)
-        {
-            return;
-        }
-        // If this was the last allocation in the page, free the page.
-        // Find the absolute page address of this offset.
-        void* page_address = s_data + (page_index * c_page_size_bytes);
-        // Actually free the page.
-        // MADV_REMOVE is supposed to be equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
-        // REVIEW: is MADV_REMOVE the only flag that will work with a memfd mapping?
-        // MADV_FREE seems to be the choice for other allocators, but:
-        // https://man7.org/linux/man-pages/man2/madvise.2.html
-        // "The MADV_FREE operation can be applied only to private anonymous pages."
-        cerr << "Freeing page at virtual address " << page_address << endl;
-        if (-1 == ::madvise(page_address, c_page_size_bytes, MADV_REMOVE))
-        {
-            throw_system_error("madvise(MADV_REMOVE) failed");
-        }
-    });
 
     while (true)
     {

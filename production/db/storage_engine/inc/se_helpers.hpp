@@ -22,14 +22,6 @@ namespace db
 
 constexpr size_t c_page_size_bytes = 4096ULL;
 
-inline size_t get_page_index_from_offset(gaia_offset_t offset)
-{
-    // Convert the word-size offset into bytes.
-    size_t byte_offset = offset * sizeof(uint64_t);
-    // Calculate the index of the page in the data segment.
-    return byte_offset / c_page_size_bytes;
-}
-
 inline gaia_id_t allocate_id()
 {
     shared_counters_t* counters = gaia::db::get_shared_counters();
@@ -78,16 +70,40 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
     {
         throw oom();
     }
+    // Size in alignment units, rounded up to the nearest alignment unit.
+    size_t alignment_unit_size = (size + sizeof(int64_t) - 1) / sizeof(int64_t);
     // We use the first 64-bit word in the data array for the next available
     // offset, so we need to return the end of the previous allocation as the
     // current allocation's offset and add 1 to account for the first word.
-    gaia_offset_t offset = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(int64_t) - 1) / sizeof(int64_t));
-    // We need to increment the refcount for any pages touched by this object.
-    // First calculate the page index.
-    size_t page_index = get_page_index_from_offset(offset);
-    // Increment the allocation count for the page containing this object.
-    size_t old_count = (*page_alloc_counts)[page_index].fetch_add(1);
-    std::cerr << "Incrementing allocation count for page index " << page_index << ", old value was " << old_count << std::endl;
+    gaia_offset_t offset = 1 + __sync_fetch_and_add(&data->objects[0], alignment_unit_size);
+    std::cerr << "Allocating object with offset " << offset << " at locator " << locator << " with size " << size << std::endl;
+    // Convert the word-size offset into bytes.
+    size_t byte_offset = offset * sizeof(uint64_t);
+    size_t end_byte_offset = byte_offset + size;
+    size_t start_page_index = byte_offset / c_page_size_bytes;
+    size_t end_page_index = end_byte_offset / c_page_size_bytes;
+    size_t page_byte_offset = byte_offset % c_page_size_bytes;
+    std::cerr << "Object has byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
+
+    // Increment the allocation count for each page containing this object.
+    for (size_t page_index = start_page_index; page_index <= end_page_index; ++page_index)
+    {
+        size_t old_count = (*page_alloc_counts)[page_index].fetch_add(1);
+        std::cerr << "Incrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
+        // If this is the first allocation on a page, then add an extra refcount to
+        // prevent freeing the page while it is still being used for allocations.
+        if (old_count == 0)
+        {
+            std::cerr << "Adding extra allocation count for first allocation on page index " << page_index << std::endl;
+            (*page_alloc_counts)[page_index].fetch_add(1);
+            // Decrement the extra refcount on the preceding page to ensure it's freed.
+            if (page_index > 0)
+            {
+                std::cerr << "Removing extra allocation count on page index " << (page_index - 1) << std::endl;
+                (*page_alloc_counts)[page_index - 1].fetch_sub(1);
+            }
+        }
+    }
     // Update the object's locator entry with this offset.
     (*locators)[locator] = offset;
 }
