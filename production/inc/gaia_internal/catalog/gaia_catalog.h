@@ -133,7 +133,7 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         return child_gaia_relationship_list_t(gaia_id(), c_first_child_gaia_relationship, c_next_child_gaia_relationship);
     }
     gaia_index_list_t gaia_index_list() const {
-        return gaia_index_list_t(gaia_id(), c_parent_gaia_table_gaia_index, c_next_gaia_table_gaia_index);
+        return gaia_index_list_t(gaia_id(), c_first_gaia_table_gaia_index, c_next_gaia_table_gaia_index);
     }
 private:
     friend struct edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
