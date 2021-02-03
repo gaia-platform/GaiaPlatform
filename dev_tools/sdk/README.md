@@ -1,11 +1,11 @@
-The scripts in this folder allow you to generate custom SDK builds that you can target to specific customers. The scripts to upload the SDK artifacts to Gaia's Amazom Simple Storage (S3) account.
+The scripts in this folder allow you to generate custom SDK builds that you can target to specific customers. The scripts upload the SDK artifacts to Gaia's Amazom Simple Storage (S3) account.
 
-At the time of writing (01/2021) we assume that the SDK is released to a small circle of initial customers. Use these scripts to generate presigned URLs are valid only for the specified duration. Anyone who receives the presigned URL can then access the object. This allows us to keep tight control over who can access the S3 resources and for how much time.
+At the time of writing (01/2021) we assume that the SDK is released to a small circle of initial customers. Use these scripts to generate presigned URLs that are valid only for the specified duration. Anyone who receives the presigned URL can then access the object. This allows us to keep tight control over who can access the S3 resources and for how much time.
 
 For more information about presigned URLs, see [Share an object with others](https://docs.aws.amazon.com/AmazonS3/latest/dev/ShareObjectPreSignedURL.html) in the AWS documentation.  
 
 The script `publish-sdk-to-s3.sh` uploads SDK files to the S3 bucket and generates a presigned URL. The artifacts are published 
-in subfolders that are organzide by version and then customers that have received that version. For example:  
+in subfolders that are organized by version and then by the customers that have received that version. For example:  
 
 `s3://gaia-sdk/private-releases/0.1.0/customer1/gaia-0.1.0_amd64-20210107162449.deb`
 
@@ -64,7 +64,7 @@ Listing all the files in s3://gaia-sdk/private-releases/0.1.0/customer1
 2021-01-08 08:20:55   15096308 gaia-0.1.0_amd64-20210108082053.deb
 ```
 
-The followin exmaple shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
+The following exmaple shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1 -f gaia-0.1.0_amd64-20210108082053.deb
