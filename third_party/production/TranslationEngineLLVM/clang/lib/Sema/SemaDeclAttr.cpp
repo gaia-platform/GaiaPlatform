@@ -2116,6 +2116,14 @@ static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         return;
     }
 
+    if (D->hasAttr<GaiaOnUpdateAttr>() ||
+        D->hasAttr<GaiaOnInsertAttr>() ||
+        D->hasAttr<GaiaOnChangeAttr>())
+    {
+        S.Diag(AL.getLoc(), diag::err_invalid_rule_attribute);
+        return;
+    }
+
     SmallVector<StringRef, 4> tables;
     for (unsigned I = 0, E = AL.getNumArgs(); I != E; ++I)
     {

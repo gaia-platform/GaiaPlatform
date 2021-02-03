@@ -469,3 +469,19 @@ ruleset test52
 
   }
 }
+
+ruleset test53
+{
+  OnUpdate(incubator),OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+  {
+
+  }
+}
+
+ruleset test54
+{
+  OnUpdate(sensor.value.value)// expected-error {{expected ')'}} expected-note {{to match this '('}}
+  {
+
+  }
+}

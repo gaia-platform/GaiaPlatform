@@ -98,7 +98,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
     {
         DBMonitor monitor;
 
-        for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
+        for(const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
@@ -131,7 +131,7 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
     {
         DBMonitor monitor;
 
-        for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
+        for(const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
@@ -273,7 +273,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     if (attr != nullptr)
     {
         bool table_found = false;
-        for (const IdentifierInfo * id : attr->tables())
+        for (const IdentifierInfo *id : attr->tables())
         {
             if (id->getName().str() == tableName)
             {
