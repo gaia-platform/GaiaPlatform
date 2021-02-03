@@ -50,13 +50,41 @@ atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
-optional_timer_t g_timer;
-steady_clock::time_point g_start;
+// Exception testing
+atomic<int> g_invalid_node_id_count;
+atomic<int> g_update_conflict_count;
+
+namespace gaia
+{
+namespace rules
+{
+
+// This test exception handler will handle invalid_node_id
+// and transaction_update_conflict exceptions.  All other
+// exceptions will terminate the program.  Note that funcion
+// is invoked from the rule engine's catch block.
+extern "C" void handle_rule_exception(const std::exception&)
+{
+    try
+    {
+        throw;
+    }
+    catch (const gaia::db::invalid_node_id&)
+    {
+        g_invalid_node_id_count++;
+    }
+    catch (const gaia::db::transaction_update_conflict&)
+    {
+        g_update_conflict_count++;
+    }
+}
+
+} // namespace rules
+} // namespace gaia
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -102,7 +130,6 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule update_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -111,7 +138,6 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule field_phone_number");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
@@ -120,7 +146,6 @@ void rule_field_phone_number(const rule_context_t* context)
 
 void rule_field_phone_type(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule field_phone_type");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_type, p.type());
@@ -129,7 +154,6 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule delete");
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -292,9 +316,6 @@ protected:
         // Otherwise, the event log activities will cause out of order test table IDs.
         load_catalog(ddl_file);
 
-        // NOTE: uncomment next line to get latency measurements.
-        // g_timer.set_enabled(true);
-
         event_manager_settings_t settings;
 
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
@@ -332,7 +353,6 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 
@@ -358,7 +378,6 @@ TEST_F(rule_integration_test, test_delete)
         employee_t e = employee_t::get(writer.insert_row());
         txn.commit();
         e.delete_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -376,7 +395,6 @@ TEST_F(rule_integration_test, test_update)
         writer = e.writer();
         writer.name_first = c_name;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -395,7 +413,6 @@ TEST_F(rule_integration_test, test_update_field)
         writer = p.writer();
         writer.phone_number = c_phone_number;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -417,7 +434,6 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -442,7 +458,6 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
-            g_start = g_timer.get_time_point();
             txn.commit();
         }
 
@@ -452,7 +467,6 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
             writer.update_row();
-            g_start = g_timer.get_time_point();
             txn.commit();
         }
     }
@@ -480,7 +494,6 @@ TEST_F(rule_integration_test, test_two_rules)
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -593,6 +606,9 @@ TEST_F(rule_integration_test, test_reinit)
 // doesn't escape to the test process.
 TEST_F(rule_integration_test, test_exception)
 {
+    g_invalid_node_id_count = 0;
+    g_update_conflict_count = 0;
+
     subscribe_bad();
     {
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
@@ -603,6 +619,9 @@ TEST_F(rule_integration_test, test_exception)
     }
     // Shut down the rules engine to ensure the rule fires.
     gaia::rules::shutdown_rules_engine();
+    EXPECT_EQ(g_invalid_node_id_count, 1);
+    EXPECT_EQ(g_update_conflict_count, 0);
+
     // And reinitialize to provide harmony for other tests.
     gaia::rules::initialize_rules_engine();
 }
@@ -613,6 +632,9 @@ TEST_F(rule_integration_test, test_retry)
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
         gaia::rules::test::initialize_rules_engine(settings);
+
+        g_invalid_node_id_count = 0;
+        g_update_conflict_count = 0;
 
         subscribe_conflict();
 
@@ -640,6 +662,24 @@ TEST_F(rule_integration_test, test_retry)
         {
             EXPECT_EQ(string(employee_t::get(id).name_first()), expected_name);
         }
+
+        EXPECT_EQ(g_invalid_node_id_count, 0);
+
+        // The user's exception handler should only be called when we have exceeded
+        // the max_retries for update conflicts.
+        int expected_exception_count = 0;
+
+        // Everytime we call this function, we kick off two rule invocations of the same rule.
+        // The max_retries setting applies to rule invocations and not to the rule itself.
+        // The check below is ensuring that we only propogate update conflict exceptions to the
+        // exception handler after we've exhausted the max retries for each invocation.  In our
+        // case, that number is equal to the number of invocations which is 2.
+        if (num_conflicts > max_retries)
+        {
+            expected_exception_count = 2;
+        }
+        EXPECT_EQ(g_update_conflict_count, expected_exception_count);
+        EXPECT_EQ(g_invalid_node_id_count, 0);
     };
 
     // Each iteration of test_inner will initialize the rules engine with a different value for

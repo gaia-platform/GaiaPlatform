@@ -228,6 +228,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
     {
         m_stats_manager.inc_exceptions(rule_id);
         gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
+        handle_rule_exception(e);
     }
 
     process_pending_invocations(should_schedule);

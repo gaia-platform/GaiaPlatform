@@ -48,6 +48,13 @@ typedef void (*gaia_rule_fn)(const rule_context_t* context);
  */
 extern "C" void initialize_rules();
 
+/** 
+ * The application may provide an implementation of handle_rule_exception(). This
+ * function is invoked if an exception is caused either when calling the rule
+ * or there is an underlying platform issue.
+ */
+extern "C" void handle_rule_exception(const std::exception& exception);
+
 /**
  * The application may provide an implementation of subscribe_ruleset().  This
  * is a convenience method to subscribe all the rules in a ruleset at once.

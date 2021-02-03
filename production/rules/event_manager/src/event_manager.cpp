@@ -27,9 +27,16 @@ using namespace gaia::db::triggers;
 using namespace std;
 using namespace std::chrono;
 
-// Provide a weak reference for initialize_rules() so that the user doesn't have to provide one.
-// When the user does provide one, the linker will choose their strong reference.
+/**
+ * These functions are supplied by the user (either via the translation engine or custom applicatino code).
+ * However, since they are optional, provide empty implementations to satisfy the linker.  
+ * When the user does provide one, the linker will choose their strong reference.
+ */
 extern "C" void __attribute__((weak)) initialize_rules()
+{
+}
+
+extern "C" void __attribute__((weak)) handle_rule_exception(const std::exception&)
 {
 }
 
