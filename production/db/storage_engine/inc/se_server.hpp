@@ -402,7 +402,7 @@ private:
 
     static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd);
+    static void gc_txn_undo_log(int log_fd, bool committed);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 

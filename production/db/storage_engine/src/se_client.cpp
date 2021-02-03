@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <thread>
 #include <unordered_set>
@@ -34,6 +35,8 @@
 #include "socket_helpers.hpp"
 #include "system_error.hpp"
 #include "triggers.hpp"
+
+using namespace std;
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -252,7 +255,7 @@ static void build_client_request(FlatBufferBuilder& builder, session_event_t eve
 // removed by this method! We need to pass a list of the offsets of removed
 // versions to the memory manager for deallocation, possibly in a separate
 // shared memory object.
-void client::dedup_log()
+void client::sort_log()
 {
     retail_assert(s_log, "Transaction log must be mapped!");
 
@@ -261,63 +264,10 @@ void client::dedup_log()
     // locator.
     std::stable_sort(
         &s_log->log_records[0],
-        &s_log->log_records[s_log->count],
+        &s_log->log_records[s_log->record_count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
-
-    // This is a bit weird: we want to preserve the *last* update to a locator,
-    // but std::unique preserves the *first* duplicate it encounters.
-    // So we reverse the sorted array so that the last update will be the first
-    // that std::unique sees, then reverse the deduplicated array so that locators
-    // are again in ascending order.
-    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
-
-    // More weirdness: we need to record the initial offset of the first log
-    // record for each locator, so we can fix up the initial offset of its last
-    // log record (the one we will keep) with this offset. Otherwise we'll get
-    // bogus write conflicts because the initial offset of the last log record
-    // for a locator doesn't match its last known offset in the locator segment.
-    // Since the array is reversed, we'll see the first log record for a locator
-    // last, so we get the desired behavior if we overwrite the last seen entry
-    // in the initial offsets map.
-    std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
-
-    for (size_t i = 0; i < s_log->count; ++i)
-    {
-        gaia_locator_t locator = s_log->log_records[i].locator;
-        gaia_offset_t initial_offset = s_log->log_records[i].old_offset;
-        initial_offsets[locator] = initial_offset;
-    }
-
-    txn_log_t::log_record_t* unique_array_end = std::unique(
-        &s_log->log_records[0],
-        &s_log->log_records[s_log->count],
-        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
-            return lhs.locator == rhs.locator;
-        });
-
-    // It's OK to leave the duplicate log records at the end of the array, since
-    // they'll be removed when we truncate the txn log memfd before sending it
-    // to the server.
-    size_t unique_array_len = unique_array_end - s_log->log_records;
-    s_log->count = unique_array_len;
-
-    // Now that all log records for each locator are deduplicated, reverse the
-    // array again to order by locator value in ascending order.
-    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
-
-    // Now we need to fix up each log record with the initial offset we recorded earlier.
-    retail_assert(
-        s_log->count == initial_offsets.size(),
-        "Count of deduped log records must equal number of unique initial offsets!");
-
-    for (size_t i = 0; i < s_log->count; ++i)
-    {
-        gaia_locator_t locator = s_log->log_records[i].locator;
-        gaia_offset_t initial_offset = initial_offsets[locator];
-        s_log->log_records[i].old_offset = initial_offset;
-    }
 }
 
 // This function must be called before establishing a new session. It ensures
@@ -579,7 +529,7 @@ void client::apply_txn_log(int log_fd)
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, get_fd_size(log_fd));
     });
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         auto lr = txn_log->log_records + i;
         (*s_locators)[lr->locator] = lr->new_offset;
@@ -593,6 +543,9 @@ void client::rollback_transaction()
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
+    // Note that because we don't send the txn log to the server, all object
+    // versions we allocated are leaked! We'll fix this later when we introduce
+    // per-session arenas (we'll just rewind the bump pointer in that case).
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
@@ -614,7 +567,7 @@ void client::commit_transaction()
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
-    if (s_log->count == 0)
+    if (s_log->record_count == 0)
     {
         rollback_transaction();
         return;
@@ -623,9 +576,11 @@ void client::commit_transaction()
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // Remove intermediate update log records.
-    // FIXME: this leaks all intermediate object versions!!!
-    dedup_log();
+    // Sort log records by locator.
+    sort_log();
+
+    cerr << "Log for txn " << s_txn_id << ":" << endl
+         << *s_log << endl;
 
     // Get final size of log.
     size_t log_size = s_log->size();

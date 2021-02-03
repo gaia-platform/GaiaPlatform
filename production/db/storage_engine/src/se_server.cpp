@@ -2089,7 +2089,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
     });
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1->count && log2_idx < log2->count)
+    while (log1_idx < log1->record_count && log2_idx < log2->record_count)
     {
         txn_log_t::log_record_t* lr1 = log1->log_records + log1_idx;
         txn_log_t::log_record_t* lr2 = log2->log_records + log2_idx;
@@ -2516,7 +2516,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2530,7 +2530,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     }
 }
 
-void server::gc_txn_undo_log(int log_fd)
+void server::gc_txn_undo_log(int log_fd, bool committed)
 {
     txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
@@ -2539,15 +2539,30 @@ void server::gc_txn_undo_log(int log_fd)
         unmap_fd(txn_log, txn_log->size());
     });
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    cerr << "Freeing log with fd " << log_fd << ":\n"
+         << *txn_log << endl;
+
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
-        // Free each undo version (i.e., the version superseded by an update or
-        // delete operation), using the registered object deallocator (if it
-        // exists).
-        gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
-        if (old_offset && s_object_deallocator_fn)
+        // For committed txns, free each undo version (i.e., the version
+        // superseded by an update or delete operation), using the registered
+        // object deallocator (if it exists), since the redo versions may still
+        // be visible but the undo versions cannot be. For aborted txns, free
+        // only the redo versions (since the undo versions may still be
+        // visible).
+        // NB: we can't safely free the redo versions and txn logs of aborted
+        // txns in the decide handler, because concurrently validating txns
+        // might be testing the aborted txn for conflicts while they still think
+        // it is undecided. The only safe place to free the redo versions and
+        // txn log of an aborted txn is after it falls behind the watermark,
+        // since at that point it cannot be in the conflict window of any
+        // committing txn.
+        gaia_offset_t offset_to_free = committed
+            ? txn_log->log_records[i].old_offset
+            : txn_log->log_records[i].new_offset;
+        if (offset_to_free && s_object_deallocator_fn)
         {
-            s_object_deallocator_fn(old_offset);
+            s_object_deallocator_fn(offset_to_free);
         }
     }
 }
@@ -2682,14 +2697,14 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             // Invalidate the log fd, GC the undo versions in the log, and close the fd.
             bool has_invalidated_fd = invalidate_txn_log_fd(ts);
             retail_assert(has_invalidated_fd, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
-            // We only want to deallocate undo versions if this txn committed.
-            // Otherwise we do nothing since the undo versions are still visible
-            // and the redo versions were already freed in the txn abort
-            // handler.
-            if (is_txn_committed(ts))
-            {
-                gc_txn_undo_log(log_fd);
-            }
+            // If the txn committed, we deallocate only undo versions, since the
+            // redo versions may still be visible after the txn has fallen
+            // behind the watermark. If the txn aborted, then we deallocate only
+            // redo versions, since the undo versions may still be visible. Note
+            // that we could deallocate intermediate versions (i.e., those
+            // superseded within the same txn) immediately, but we do it here
+            // for simplicity.
+            gc_txn_undo_log(log_fd, is_txn_committed(ts));
             close_fd(log_fd);
         }
     }
