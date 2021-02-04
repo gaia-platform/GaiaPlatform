@@ -5584,21 +5584,30 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
         D.getCXXScopeSpec().isEmpty())
       return ParseDecompositionDeclarator(D);
 
-  if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
-        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
-      {
-        IdentifierInfo *Id = Tok.getIdentifierInfo();
-        if (Id != nullptr)
+    if (getCurScope()->isRulesetScope())
+    {
+        if (Tok.is(tok::identifier)
+            && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
         {
-          if (Id->getName().equals(c_on_update_rule_attribute) ||
-            Id->getName().equals(c_on_insert_rule_attribute) ||
-            Id->getName().equals(c_on_change_rule_attribute))
-          {
-            ParseRule(D);
-            return;
-          }
+            IdentifierInfo *Id = Tok.getIdentifierInfo();
+            if (Id != nullptr)
+            {
+                if (Id->getName().equals(c_on_update_rule_attribute) ||
+                    Id->getName().equals(c_on_insert_rule_attribute) ||
+                    Id->getName().equals(c_on_change_rule_attribute))
+                {
+                  ParseRule(D);
+                  return;
+                }
+            }
         }
-      }
+        if (Tok.is(tok::l_brace))
+        {
+            ParsedAttributesWithRange attrs(AttrFactory);
+            InjectRuleFunction(D, attrs);
+            return;
+        }
+    }
     // Don't parse FOO:BAR as if it were a typo for FOO::BAR inside a class, in
     // this context it is a bitfield. Also in range-based for statement colon
     // may delimit for-range-declaration.

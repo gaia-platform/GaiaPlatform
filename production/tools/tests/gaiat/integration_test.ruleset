@@ -27,6 +27,7 @@ ruleset test3
 
 ruleset test4
 {
+    OnUpdate(sensor)
     {
         if (sensor.LastOperation == INSERT)
         {
@@ -46,10 +47,10 @@ typedef enum
 ruleset test5
 {
     {
-	if (actuator.value < 5)
-	{
-		actuator.value = 5;
-	}
+	    if (actuator.value < 5)
+	    {
+		    actuator.value = 5;
+	    }
     }
 }
 
@@ -86,6 +87,7 @@ void testFunction()
 
 ruleset test7
 {
+  OnChange(sensor)
   {
       auto t = sensor.gaia_id();
 	  if (sensor.LastOperation == DELETE)

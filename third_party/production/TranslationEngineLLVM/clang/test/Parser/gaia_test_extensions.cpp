@@ -102,7 +102,6 @@ typedef enum
 
 ruleset test3 : table (sensor)
 {
-  OnUpdate(sensor)
   {
 	  if (value < 5)
 	  {
@@ -113,7 +112,6 @@ ruleset test3 : table (sensor)
 
 ruleset test4
 {
-  OnUpdate(sensor)
   {
     auto x = rule_context.rule_name;
     auto y = rule_context.ruleset_name;
