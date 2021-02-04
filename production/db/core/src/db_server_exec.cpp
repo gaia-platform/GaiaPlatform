@@ -165,6 +165,15 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         }
 
         expand_user_path(gaia::db::persistent_store_manager::s_data_dir_path);
+        // The RocksDB Open() can create one more subdirectory (e.g. /var/lib/gaia/db can be created if /var/lib/gaia
+        // already exists). To enable the use of longer paths, we will do a mkdir of the entire path.
+        // If there is a failure to open the database after this, there is nothing more we can do about it
+        // here. Let the normal error processing catch and handle the problem.
+        // Note that the mkdir command may fail because the directory already exists, or because it doesn't
+        // have permission.
+        std::string mkdir_command = "mkdir -p " + gaia::db::persistent_store_manager::s_data_dir_path;
+        ::system(mkdir_command.c_str());
+
         std::cerr
             << "Database directory is '"
             << gaia::db::persistent_store_manager::s_data_dir_path

@@ -36,6 +36,8 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     }
 
     string logger_config_str = get_conf_file_path(logger_config_file, c_default_logger_conf_file_name);
+    // An explicitly requested file must exist. Else if the default file doesn't exist, allow the
+    // subsystem to adjust (or not).
     if (logger_config_file && logger_config_str.empty())
     {
         throw configuration_error(logger_config_file);
