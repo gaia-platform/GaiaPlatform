@@ -270,7 +270,7 @@ protected:
 
     void allocate(size_t size);
 
-    se_object_t* to_ptr() const;
+    db_object_t* to_ptr() const;
 
     gaia_offset_t to_offset() const;
 
