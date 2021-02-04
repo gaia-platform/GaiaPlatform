@@ -38,8 +38,6 @@ using namespace gaia::catalog;
 constexpr char c_name[] = "John";
 constexpr int c_num_retries = 3;
 
-atomic<int> g_wait_for_count;
-
 // Exception testing
 enum exception_type_t
 {
@@ -65,10 +63,8 @@ class my_non_std_exception
 {
 };
 
-// This test exception handler will handle invalid_node_id
-// and transaction_update_conflict exceptions.  All other
-// exceptions will terminate the program.  Note that this
-// function is invoked from the rule engine's catch block.
+// This test exception handler will the types of exceptions enumerated
+// in exception_type_t.  All other exceptions will terminate the program.
 extern "C" void handle_rule_exception()
 {
     try
@@ -133,8 +129,6 @@ void rule_conflict_exception(const rule_context_t* context)
         }
         end_session();
     }).join();
-
-    g_wait_for_count--;
 }
 
 /**
@@ -171,9 +165,9 @@ public:
 
     void init_exception_counters()
     {
-        for (int i = 0; i < exception_type_t::count; i++)
+        for (auto& counter : g_exception_counters)
         {
-            g_exception_counters[i] = 0;
+            counter = 0;
         }
     }
 

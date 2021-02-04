@@ -242,7 +242,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
     catch (...)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        gaia_log::rules().warn("exception: {}, {}", rule_id, "Unknown exception");
+        gaia_log::rules().warn("exception: {}, {}", rule_id, "Unknown exception.");
         gaia::rules::handle_rule_exception();
     }
 
