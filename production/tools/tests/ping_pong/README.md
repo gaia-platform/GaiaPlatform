@@ -1,6 +1,6 @@
 # Ping Pong
 
-This is a simple example of high throughput application. The purpose is to test Gaia capabilities with high throughput function_decorator_t<T_class>applications.
+This is a simple example of high throughput application. The purpose is to test Gaia capabilities with high throughput applications.
 
 There are 2 actors, Main and Rules. Main initializes the application by writing "pong" in the `ping_pong.status` column. Main then spawns one or more threads that read the value of `ping_pong.status` and, if the value is "pong", will write "ping". This will trigger the rules that will check if the value of `ping_pong.status` is "ping", and if so, it will write "pong". This will repeat until the application is stopped.
 
