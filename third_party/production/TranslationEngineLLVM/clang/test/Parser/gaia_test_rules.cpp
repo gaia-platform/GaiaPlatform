@@ -433,3 +433,11 @@ ruleset test53
 
   }
 }
+
+ruleset test53
+{
+  OnUpdate(value)// expected-error {{Duplicate field 'value'}}
+  {
+
+  }
+}

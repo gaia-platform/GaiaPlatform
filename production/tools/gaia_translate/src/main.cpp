@@ -808,7 +808,15 @@ void generate_rules(Rewriter& rewriter)
         }
         if (rule_count == 1)
         {
-            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.ReplaceText(g_rule_attribute_source_range, function_prologue);
+            }
+            else
+            {
+                rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            }
+
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 navigation_code.prefix);
@@ -819,7 +827,14 @@ void generate_rules(Rewriter& rewriter)
         else
         {
             function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue);
+            }
+            else
+            {
+                rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            }
         }
 
         rule_count++;
@@ -919,7 +934,14 @@ void generate_rules(Rewriter& rewriter)
         }
         if (rule_count == 1)
         {
-            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.ReplaceText(g_rule_attribute_source_range, function_prologue);
+            }
+            else
+            {
+                rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            }
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 navigation_code.prefix);
@@ -930,7 +952,14 @@ void generate_rules(Rewriter& rewriter)
         else
         {
             function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue);
+            }
+            else
+            {
+                rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            }
         }
 
         rule_count++;
@@ -1030,7 +1059,14 @@ void generate_rules(Rewriter& rewriter)
         }
         if (rule_count == 1)
         {
-            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.ReplaceText(g_rule_attribute_source_range, function_prologue);
+            }
+            else
+            {
+                rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+            }
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 navigation_code.prefix);
@@ -1041,7 +1077,14 @@ void generate_rules(Rewriter& rewriter)
         else
         {
             function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getBegin().isValid())
+            {
+                rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue);
+            }
+            else
+            {
+                rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            }
         }
 
         rule_count++;
@@ -1127,6 +1170,12 @@ public:
                             return;
                         }
                     }
+                    else
+                    {
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
+                    }
+
                 }
             }
             else

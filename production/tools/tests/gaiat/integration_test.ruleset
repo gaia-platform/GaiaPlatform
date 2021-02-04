@@ -27,7 +27,6 @@ ruleset test3
 
 ruleset test4
 {
-    OnUpdate(sensor)
     {
         if (sensor.LastOperation == INSERT)
         {
