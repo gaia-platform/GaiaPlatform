@@ -17,13 +17,18 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 # --- Generate EDC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
-  OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
+  GAIAC_CMD ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+)
 
 # -- Translate ruleset into CPP --
 translate_ruleset(
   RULESET_FILE ${PING_PONG_RULESET}
   OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
-  DEPENDS generate_ping_pong_headers)
+  CLANG_PARAMS -I ${GAIA_INC} -I ${SPDLOG_INC}
+  DEPENDS generate_ping_pong_headers
+  GAIAT_CMD ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat
+)
 
 add_executable(ping_pong
   ping_pong.cpp

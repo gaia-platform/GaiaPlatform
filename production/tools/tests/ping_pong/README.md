@@ -12,7 +12,7 @@ A couple of considerations:
 ## Usage
 
 1. Set `BUILD_PING_PONG_TEST=ON` in Cmake. 
-1. Run `gaia_db_server`, currently you are required to manually run it.
+1. Run `gaia_db_server` with persistence. Currently, you are required to manually run it.
 1. Build everything.   
 1. Run `./ping_pong [num_workers]`. `num_workers` is optional, if not specified the Main will run 1 worker.
 
