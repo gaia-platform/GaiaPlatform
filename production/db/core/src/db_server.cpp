@@ -656,7 +656,7 @@ address_offset_t server::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
+    address_offset_t offset = s_memory_manager->allocate(size + sizeof(db_object_t));
     if (offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
