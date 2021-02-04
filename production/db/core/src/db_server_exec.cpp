@@ -35,6 +35,29 @@ static void usage()
     std::exit(1);
 }
 
+static void expand_user_path(std::string& path)
+{
+    char* home;
+
+    if (path.compare(0, 2, "~/") != 0)
+    {
+        return;
+    }
+
+    home = getenv("HOME");
+    if (!home)
+    {
+        std::cerr
+            << "Unable to expand directory path '"
+            << path
+            << "'. No $HOME environment variable found."
+            << std::endl;
+        usage();
+    }
+
+    path = home + path.substr(1);
+}
+
 static server::persistence_mode_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_flags;
@@ -70,9 +93,9 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         else
         {
             std::cerr
-                << "\nUnrecognized argument, \""
+                << "\nUnrecognized argument, '"
                 << argv[i]
-                << "\"."
+                << "'."
                 << std::endl;
             usage();
         }
@@ -83,7 +106,6 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
     {
         // Since there is no --data-dir parameter, locate it from the configuration.
         gaia_configuration_file = gaia::common::get_conf_file_path(conf_file_path, c_default_conf_file_name);
-        // s_data_dir_path will remain set to "/var/lib/gaia/db" if the configuration file doesn't have it.
         if (!gaia_configuration_file.empty())
         {
             std::shared_ptr<cpptoml::table> root_config = cpptoml::parse_file(gaia_configuration_file);
@@ -96,6 +118,11 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
                     gaia::db::persistent_store_manager::s_data_dir_path = *data_dir_string;
                 }
             }
+        }
+        else
+        {
+            std::cerr
+                << "Configuration file could not be found." << std::endl;
         }
     }
 
@@ -115,23 +142,34 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         std::cerr
             << "Persistence is reinitialized on startup." << std::endl;
     }
-    if (!found_data_dir)
-    {
-        if (!gaia_configuration_file.empty())
-        {
-            std::cerr
-                << "Configuration file found at '"
-                << gaia_configuration_file
-                << "'." << std::endl;
-        }
-        else
-        {
-            std::cerr
-                << "No configuration file found." << std::endl;
-        }
-    }
     if (persistence_mode != server::persistence_mode_t::e_disabled)
     {
+        if (!found_data_dir)
+        {
+            if (!gaia_configuration_file.empty())
+            {
+                std::cerr
+                    << "Configuration file found at '"
+                    << gaia_configuration_file
+                    << "'." << std::endl;
+            }
+            else
+            {
+                std::cerr
+                    << "No configuration file found." << std::endl;
+            }
+        }
+        if (gaia::db::persistent_store_manager::s_data_dir_path.empty())
+        {
+            std::cerr
+                << "Unable to locate a database directory.\n"
+                << "Use the '--data-dir' flag, or the configuration file "
+                << "to identify the location of the database."
+                << std::endl;
+            usage();
+        }
+
+        expand_user_path(gaia::db::persistent_store_manager::s_data_dir_path);
         std::cerr
             << "Database directory is '"
             << gaia::db::persistent_store_manager::s_data_dir_path
@@ -149,11 +187,11 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         if ((used_flags.find(flag_pair.first) != used_flags.end()) && (used_flags.find(flag_pair.second) != used_flags.end()))
         {
             std::cerr
-                << "\n\""
+                << "\n'"
                 << flag_pair.first
-                << "\" and \""
+                << "' and '"
                 << flag_pair.second
-                << "\" flags are mutually exclusive."
+                << "' flags are mutually exclusive."
                 << std::endl;
             usage();
         }

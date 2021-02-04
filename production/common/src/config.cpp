@@ -5,8 +5,6 @@
 
 #include "gaia_internal/common/config.hpp"
 
-#include "gaia/exceptions.hpp"
-
 using namespace std;
 namespace gaia
 {
@@ -17,14 +15,6 @@ bool file_exists(const char* filename)
 {
     ifstream file(filename);
     return static_cast<bool>(file);
-}
-
-void error_if_not_exists(const char* filename)
-{
-    if (!file_exists(filename))
-    {
-        throw configuration_error(filename);
-    }
 }
 
 string get_default_conf_file_path(const char* default_filename)
@@ -42,22 +32,19 @@ string get_default_conf_file_path(const char* default_filename)
     return str;
 }
 
-} // namespace common
-} // namespace gaia
-
-// If the user passed in a filename, then throw an exception if it does not exist.
-// If the user did not pass in a filename, then look under /opt/gaia/etc/ for the
-// file and see if that exists.  If that file doesn't exist, then continue
-// without throwing an exception.  Components can initialize themselves with
-// appropriate defaults.
-string gaia::common::get_conf_file_path(const char* user_file_path, const char* default_filename)
+// If the user passed in a file path, make sure it exists.
+// If the user did not pass in a file path, then look under /opt/gaia/etc/ for the
+// file and see if that exists.  If that a file doesn't exist, return an empty string.
+string get_conf_file_path(const char* user_file_path, const char* default_filename)
 {
     string str;
 
     if (user_file_path)
     {
-        error_if_not_exists(user_file_path);
-        str = user_file_path;
+        if (file_exists(user_file_path))
+        {
+            str = user_file_path;
+        }
     }
     else
     {
@@ -66,3 +53,6 @@ string gaia::common::get_conf_file_path(const char* user_file_path, const char* 
 
     return str;
 }
+
+} // namespace common
+} // namespace gaia

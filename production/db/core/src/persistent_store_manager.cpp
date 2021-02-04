@@ -27,7 +27,9 @@ using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
-string persistent_store_manager::s_data_dir_path = persistent_store_manager::c_data_dir_default_path;
+// There is no built-in path to the data directory - it must be specified by configuration
+// or command-line.
+string persistent_store_manager::s_data_dir_path{};
 
 persistent_store_manager::persistent_store_manager()
     : m_counters(get_shared_counters()), m_locators(get_shared_locators())

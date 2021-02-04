@@ -30,7 +30,16 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     shared_ptr<cpptoml::table> root_config;
 
     string gaia_config_str = get_conf_file_path(gaia_config_file, c_default_conf_file_name);
+    if (gaia_config_file && gaia_config_str.empty())
+    {
+        throw configuration_error(gaia_config_file);
+    }
+
     string logger_config_str = get_conf_file_path(logger_config_file, c_default_logger_conf_file_name);
+    if (logger_config_file && logger_config_str.empty())
+    {
+        throw configuration_error(logger_config_file);
+    }
 
     if (!gaia_config_str.empty())
     {
