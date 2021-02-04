@@ -110,6 +110,10 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
         {
             std::shared_ptr<cpptoml::table> root_config = cpptoml::parse_file(gaia_configuration_file);
             auto data_dir_string = root_config->get_qualified_as<std::string>(c_data_dir_string_key);
+            // There are two cases of data_dir "missing" from the configuration file. First, if the
+            // data_dir key doesn't exist. Second, if the data_dir key exists, but the value doesn't
+            // exist. Either way, we don't care, and the effect is that we obtain no data_dir_string
+            // from the configuration file.
             if (data_dir_string)
             {
                 // The 'data_dir' key exists. Make sure it is non-empty.
