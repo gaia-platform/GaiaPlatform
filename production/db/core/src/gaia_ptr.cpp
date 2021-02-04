@@ -205,7 +205,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 void gaia_ptr::find_next(gaia_type_t type)
 {
     gaia::db::shared_counters_t* counters = gaia::db::get_shared_counters();
-    // We need an acquire a barrier before reading `last_locator`. We can
+    // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
