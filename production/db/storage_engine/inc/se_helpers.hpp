@@ -134,9 +134,16 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 inline se_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     shared_data_t* data = gaia::db::get_shared_data();
-    return (offset != c_invalid_gaia_offset)
-        ? reinterpret_cast<se_object_t*>(data->objects + offset)
-        : nullptr;
+    se_object_t* obj = nullptr;
+    if (offset != c_invalid_gaia_offset)
+    {
+        obj = reinterpret_cast<se_object_t*>(data->objects + offset);
+        // Check if object is poisoned to detect use-after-free.
+        retail_assert(
+            obj->payload_size != se_object_t::c_invalid_payload_size,
+            "Object reused after being freed!");
+    }
+    return obj;
 }
 
 inline se_object_t* locator_to_ptr(gaia_locator_t locator)

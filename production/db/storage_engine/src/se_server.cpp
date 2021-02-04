@@ -529,6 +529,10 @@ void server::init_shared_memory()
         size_t end_page_index = end_byte_offset / c_page_size_bytes;
         size_t page_byte_offset = byte_offset % c_page_size_bytes;
         std::cerr << "Deallocating object with offset " << offset << ", byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
+        // For debugging, poison the deallocated object by setting its size field to the max value.
+        // NB: we cannot read the object again after this step!
+        auto obj = offset_to_ptr(offset);
+        obj->payload_size = se_object_t::c_invalid_payload_size;
         // Decrement the allocation count for each page containing this object.
         for (size_t page_index = start_page_index; page_index <= end_page_index; ++page_index)
         {
@@ -2539,7 +2543,7 @@ void server::gc_txn_undo_log(int log_fd, bool committed)
         unmap_fd(txn_log, txn_log->size());
     });
 
-    cerr << "Freeing log with fd " << log_fd << ":\n"
+    cerr << "Freeing log with fd " << log_fd << " on " << (committed ? "COMMIT" : "ABORT") << ":\n"
          << *txn_log << endl;
 
     for (size_t i = 0; i < txn_log->record_count; ++i)

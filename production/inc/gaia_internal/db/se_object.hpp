@@ -18,8 +18,13 @@ namespace db
 // the object format but doesn't need any gaia_ptr functionality.
 struct se_object_t
 {
-    // Adjust this if gaia_se_object_t::payload_size ever changes size.
-    static constexpr uint16_t c_max_payload_size = std::numeric_limits<uint16_t>::max();
+    // Adjust this if gaia_se_object_t::payload_size ever changes size. This is
+    // one less than the maximum unsigned 16-bit value because we reserve that
+    // value for c_invalid_payload_size.
+    static constexpr uint16_t c_max_payload_size = std::numeric_limits<uint16_t>::max() - 1;
+
+    // Invalid size value for poisoning freed object memory.
+    static constexpr uint16_t c_invalid_payload_size = std::numeric_limits<uint16_t>::max();
 
     gaia::common::gaia_id_t id;
     gaia::common::gaia_type_t type;

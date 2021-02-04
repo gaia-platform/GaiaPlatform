@@ -123,6 +123,7 @@ struct txn_log_t
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
+        os << "begin_ts: " << l.begin_ts << std::endl;
         os << "record_count: " << l.record_count << std::endl;
         const log_record_t* const lr_start = static_cast<const log_record_t*>(l.log_records);
         for (const log_record_t* lr = lr_start; lr < lr_start + l.record_count; ++lr)
