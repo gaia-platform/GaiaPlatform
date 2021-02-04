@@ -9,7 +9,7 @@ in subfolders that are organized by version and then by the customers that have 
 
 `s3://gaia-sdk/private-releases/0.1.0/customer1/gaia-0.1.0_amd64-20210107162449.deb`
 
-The script `get-sdk-url.sh` can generate presigned URLs for existing S3 objects.
+Use the `get-sdk-url.sh` script to list existing S3 objects and generate presigned URLs for those objects.
 
 For details about the usage of these scripts, see the `--help` output. 
 
@@ -23,6 +23,8 @@ https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 To run the scripts, you must use AWS credentials that have permissions for S3. Store the credentials in `~/.aws/credentials` (`aws configure`). The `sdk` IAM user has the correct credentials to access the S3 bucket.
 
 # TeamCity
+
+While the scripts are agnostic as to where the artifacts are, it is a best practice to run them on the machine where TeamCity runs.
 
 The scripts are installed in the TeamCity server in `/home/seagate2/~/.local/bin/` which is part of `$PATH`. The right
 AWS credentials are installed on the machine.
