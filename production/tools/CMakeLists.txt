@@ -27,6 +27,6 @@ endif()
 # TODO, work on a better solution.
 option(BUILD_PING_PONG_TEST "Build ping_pong test. Requires gaia_db_server to be running." OFF)
 
-#if(BUILD_PING_PONG_TEST)
+if(BUILD_PING_PONG_TEST)
   add_subdirectory(tests/ping_pong)
-#endif()
+endif()
