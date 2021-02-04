@@ -1,4 +1,4 @@
-The scripts in this folder allow you to generate custom SDK builds that you can target to specific customers. The scripts upload the SDK artifacts to Gaia's Amazon Simple Storage (S3) account.
+The scripts in this folder allow you to generate custom SDK builds that you can target to specific customers. The scripts upload the SDK artifacts to Gaia's Amazon Simple Storage Service (S3) account.
 
 At the time of writing (01/2021) we assume that the SDK is released to a small circle of initial customers. Use these scripts to generate presigned URLs that are valid only for the specified duration. Anyone who receives the presigned URL can then access the object. This allows us to keep tight control over who can access the S3 resources and for how much time.
 
