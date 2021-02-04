@@ -67,7 +67,7 @@ add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
 add_gtest(test_rule_stats "tests/test_rule_stats.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system")
 
-# These tests needs gaia parser to load test DDLs.
+# The integration tests need gaia parser to load test DDLs.
 set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc

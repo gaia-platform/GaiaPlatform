@@ -227,22 +227,22 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
     catch (const gaia::common::retail_assertion_failure& e)
     {
         // Always rethrow internal asserts.  Do not eat them and
-        // do not pass them along to the users exception handler.
+        // do not pass them along to the user's exception handler.
         // TODO[GAIAPLAT-446]: Before shipping V1, we need to review
         // all retail asserts to ensure that they always indicate
-        // a fatal error.
+        // an internal error.
         throw;
     }
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
+        gaia_log::rules().warn("exception: '{}', '{}'", rule_id, e.what());
         gaia::rules::handle_rule_exception();
     }
     catch (...)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        gaia_log::rules().warn("exception: {}, {}", rule_id, "Unknown exception.");
+        gaia_log::rules().warn("exception: '{}', '{}'", rule_id, "Unknown exception.");
         gaia::rules::handle_rule_exception();
     }
 

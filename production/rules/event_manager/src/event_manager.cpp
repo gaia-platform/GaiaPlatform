@@ -28,9 +28,9 @@ using namespace std;
 using namespace std::chrono;
 
 /**
- * These functions are supplied by the user (either via the translation engine or custom applicatino code).
- * However, since they are optional, provide empty implementations to satisfy the linker.  
- * When the user does provide one, the linker will choose their strong reference.
+ * These functions are supplied by the user (either via the translation engine or custom application code).
+ * However, since they are optional, provide implementations to satisfy the linker here.
+ * If the user does provide their own implementation, the linker will choose the strong reference.
  */
 extern "C" void __attribute__((weak)) initialize_rules()
 {

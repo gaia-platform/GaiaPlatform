@@ -50,8 +50,8 @@ extern "C" void initialize_rules();
 
 /** 
  * The application may provide an implementation of handle_rule_exception(). This
- * function is invoked if an exception is caused either when calling the rule
- * or there is an underlying platform issue.
+ * function is invoked if an exception is caused when calling the rule
+ * or if there is an underlying platform issue.
  */
 extern "C" void handle_rule_exception();
 

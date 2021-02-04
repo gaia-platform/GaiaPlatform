@@ -38,7 +38,6 @@ using namespace gaia::catalog;
 constexpr char c_name[] = "John";
 constexpr int c_num_retries = 3;
 
-// Exception testing
 enum exception_type_t
 {
     invalid_node,
@@ -63,7 +62,7 @@ class my_non_std_exception
 {
 };
 
-// This test exception handler will the types of exceptions enumerated
+// This test exception handler will handle the types of exceptions enumerated
 // in exception_type_t.  All other exceptions will terminate the program.
 extern "C" void handle_rule_exception()
 {
@@ -106,7 +105,7 @@ void rule_invalid_node_exception(const rule_context_t*)
 {
 
     employee_t bad;
-    // Accessing this object should throw an exception since the employee does not exist in the database.
+    // Accessing this object should throw an exception because the employee does not exist in the database.
     bad = bad.get_next();
 }
 
@@ -186,7 +185,7 @@ public:
         }
     }
 
-    // All rules are triggered by an insert into the employees table
+    // All rules are triggered by an insert into the employees table.
     void trigger_rule()
     {
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
