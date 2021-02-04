@@ -119,11 +119,6 @@ static server::persistence_mode_t process_command_line(int argc, char* argv[])
                 }
             }
         }
-        else
-        {
-            std::cerr
-                << "Configuration file could not be found." << std::endl;
-        }
     }
 
     // In case anyone can see this...
