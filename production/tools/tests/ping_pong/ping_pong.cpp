@@ -22,7 +22,7 @@ using namespace std;
 using namespace gaia::ping_pong;
 
 constexpr int c_log_heartbeat_frequency = 10000;
-static atomic_bool g_worker_alive = true;
+static atomic_bool g_enable_workers = true;
 
 /**
  * Worker thread that will set ping_pong.status = "ping" whenever it is == "pong".
@@ -59,10 +59,10 @@ int main(int argc, char* argv[])
     sigaction(SIGINT, &sigbreak, nullptr);
     sigaction(SIGTERM, &sigbreak, nullptr);
 
-    // You may want to tune the Gaia behavior by changing the default configuration.
+    // Users may want to tune the Gaia behavior by changing the default configuration.
     // Eg. change the number of the rule engine threads.
     gaia::system::initialize("gaia.conf", "gaia_log.conf");
-    gaia_log::app().info("Starting Ping Pong example with '{}' workers.", num_workers);
+    gaia_log::app().info("Starting Ping Pong example with {} workers.", num_workers);
 
     gaia::db::begin_transaction();
     auto ping_pong_id = ping_pong_t::insert_row(c_pong);
@@ -92,7 +92,7 @@ void worker(gaia::common::gaia_id_t ping_pong_id)
     // We don't have access to txn_id at this point, but we may add it later.
     uint64_t txn_id = 0;
 
-    while (g_worker_alive)
+    while (g_enable_workers)
     {
         iteration_count++;
         try
@@ -127,5 +127,5 @@ void stop_workers_handler(int signal)
 {
     std::cout << "Caught signal '" << signal << "'." << endl;
 
-    g_worker_alive = false;
+    g_enable_workers = false;
 }

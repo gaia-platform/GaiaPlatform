@@ -6,8 +6,6 @@
 # Set the project name.
 project(ping_pong)
 
-set(CMAKE_CXX_STANDARD 17)
-
 set(PING_PONG_DDL ${PROJECT_SOURCE_DIR}/ping_pong.ddl)
 set(PING_PONG_RULESET ${PROJECT_SOURCE_DIR}/ping_pong.ruleset)
 
