@@ -66,6 +66,10 @@ class my_non_std_exception
 // in exception_type_t.  All other exceptions will terminate the program.
 extern "C" void handle_rule_exception()
 {
+    // A transaction should not be active if we got here because the rules engine
+    // should have aborted the transaction prior to getting in to the catch handler.
+    EXPECT_FALSE(gaia::db::is_transaction_active());
+
     try
     {
         throw;
@@ -86,10 +90,6 @@ extern "C" void handle_rule_exception()
     {
         g_exception_counters[exception_type_t::non_standard]++;
     }
-
-    // A transaction should not be active if we got here because the rules engine
-    // should have aborted the transaction prior to getting in to the catch handler.
-    EXPECT_FALSE(gaia::db::is_transaction_active());
 }
 
 } // namespace rules
