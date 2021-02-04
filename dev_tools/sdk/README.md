@@ -66,7 +66,7 @@ Listing all the files in s3://gaia-sdk/private-releases/0.1.0/customer1
 2021-01-08 08:20:55   15096308 gaia-0.1.0_amd64-20210108082053.deb
 ```
 
-The following exapple shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
+The following example shows how to create a URL for the gaia-0.1.0_amd64-20210108082053.deb version of the SDK:
 
 ```
 $ get-sdk-url.sh -v 0.1.0 -c customer1 -f gaia-0.1.0_amd64-20210108082053.deb
