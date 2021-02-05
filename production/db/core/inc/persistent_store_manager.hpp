@@ -82,7 +82,6 @@ public:
     void destroy_persistent_store();
 
     static constexpr char c_data_dir_command_flag[] = "--data-dir";
-    static constexpr char c_data_dir_default_path[] = "/var/lib/gaia/db";
     static std::string s_data_dir_path;
 
 private:

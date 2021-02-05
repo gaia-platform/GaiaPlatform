@@ -90,6 +90,7 @@ set(CPACK_DEBHELPER_INPUT
   changelog.in
   service.in
   links.in
+  dirs.in
 )
 # List of debhelpers to run.
 # If left unset the default list of debhelpers is executed.

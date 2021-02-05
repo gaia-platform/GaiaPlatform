@@ -33,6 +33,7 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
+constexpr char c_data_dir_flag[] = "--data-dir ~/.local/gaia/db";
 
 inline void wait_for_server_init()
 {
@@ -136,6 +137,8 @@ public:
         {
             cmd.append(" ");
             cmd.append(c_reinitialize_persistent_store_flag);
+            cmd.append(" ");
+            cmd.append(c_data_dir_flag);
         }
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
