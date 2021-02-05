@@ -589,11 +589,13 @@ void server::init_shared_memory()
     {
         throw_system_error(c_message_memfd_create_failed);
     }
+
     s_fd_data = ::memfd_create(c_sch_mem_data, MFD_ALLOW_SEALING);
     if (s_fd_data == -1)
     {
         throw_system_error(c_message_memfd_create_failed);
     }
+
     s_fd_id_index = ::memfd_create(c_sch_mem_id_index, MFD_ALLOW_SEALING);
     if (s_fd_id_index == -1)
     {
@@ -730,6 +732,7 @@ void server::init_txn_info()
 {
     // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
     constexpr size_t c_size_in_bytes = (1ULL << c_txn_ts_bits) * sizeof(*s_txn_info);
+
     // Create an anonymous private mapping with MAP_NORESERVE to indicate that
     // we don't care about reserving swap space.
     // REVIEW: If this causes problems on systems that disable overcommit, we
@@ -859,10 +862,12 @@ bool server::authenticate_client_socket(int socket)
     {
         throw_system_error("getsockopt(SO_PEERCRED) failed!");
     }
+
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
     // Client must have same effective user ID as server.
     // return (cred.uid == ::geteuid());
+
     return true;
 }
 
@@ -1130,15 +1135,19 @@ void server::session_handler(int session_socket)
             }
             throw_system_error(c_message_epoll_wait_failed);
         }
+
         session_event_t event = session_event_t::NOP;
         const void* event_data = nullptr;
+
         // Buffer used to send and receive all message data.
         uint8_t msg_buf[c_max_msg_size] = {0};
+
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
         size_t fd_buf_size = std::size(fd_buf);
         int* fds = nullptr;
         size_t fd_count = 0;
+
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
         for (int i = 0; i < ready_fd_count && !s_session_shutdown; ++i)
@@ -1217,7 +1226,9 @@ void server::session_handler(int session_socket)
                 // We don't monitor any other fds.
                 retail_assert(false, c_message_unexpected_fd);
             }
+
             retail_assert(event != session_event_t::NOP, c_message_unexpected_event_type);
+
             // The transition handlers are the only places we currently call
             // send_msg_with_fds(). We need to handle a peer_disconnected
             // exception thrown from that method (translated from EPIPE).
@@ -1426,6 +1437,7 @@ void server::start_stream_producer(int stream_socket, std::function<std::optiona
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
     reap_exited_threads(s_session_owned_threads);
+
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
         stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
@@ -1657,6 +1669,7 @@ void server::start_fd_stream_producer(int stream_socket, std::function<std::opti
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
     reap_exited_threads(s_session_owned_threads);
+
     // Create fd stream producer thread.
     s_session_owned_threads.emplace_back(
         fd_stream_producer_handler, stream_socket, s_session_shutdown_eventfd, ts_generator_fn);
@@ -2141,6 +2154,7 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
         "commit_ts entry must be in validating or decided state!");
 
     uint64_t decided_status_flags = committed ? c_txn_status_committed : c_txn_status_aborted;
+
     // We can just reuse the log fd and begin_ts from the existing entry.
     ts_entry_t expected_entry = s_txn_info[commit_ts];
     // We may have already been validated by another committing txn.
@@ -2152,6 +2166,7 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
             "Inconsistent txn decision detected!");
         return;
     }
+
     // It's safe to just OR in the new flags since the preceding states don't set
     // any bits not present in the flags.
     ts_entry_t commit_ts_entry = expected_entry | (decided_status_flags << c_txn_status_flags_shift);
@@ -2190,6 +2205,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
     auto cleanup_log2 = make_scope_guard([&]() {
         unmap_fd(log2, get_fd_size(log_fd2));
     });
+
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
     while (log1_idx < log1->count && log2_idx < log2->count)
@@ -2718,7 +2734,6 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
     // oldest active txn (if any) after begin_ts and the newest committed txn
     // (if any) preceding the oldest active txn if it exists, or before the last
     // known timestamp otherwise.
-
     for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
     {
         // We need to invalidate unknown entries as we go along, so that we
