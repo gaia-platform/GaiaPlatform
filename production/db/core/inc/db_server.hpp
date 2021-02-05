@@ -270,20 +270,6 @@ private:
         transition_t transition;
     };
 
-    // DISCONNECTED (client has connected to server listening socket, authenticated, and requested session)
-    // -> CONNECTED
-    // CONNECTED (client datagram socket has been allocated, client thread has been started,
-    // server has replied to client from listening socket with its session socket,
-    // client has connected to server from that socket, server has replied with fds
-    // for data/locator segments)
-    // -> TXN_IN_PROGRESS (client called begin_transaction)
-    // -> DISCONNECTING (server half-closed session socket)
-    // -> DISCONNECTED (client closed or half-closed session socket)
-    // TXN_IN_PROGRESS (client sent begin_transaction message to server, server replied)
-    // -> TXN_COMMITTING (client called commit_transaction)
-    // -> CONNECTED (client rolled back transaction)
-    // TXN_COMMITTING (server decided to commit or abort transaction)
-    // -> CONNECTED
     static inline constexpr valid_transition_t s_valid_transitions[] = {
         {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},
         {session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, {session_state_t::DISCONNECTED, handle_client_shutdown}},
