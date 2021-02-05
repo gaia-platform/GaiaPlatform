@@ -276,7 +276,8 @@ private:
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_txn_id_t txn_id = 0);
+        gaia_txn_id_t txn_id = 0,
+        size_t log_fd_count = 0);
 
     static void clear_shared_memory();
 
@@ -303,18 +304,13 @@ private:
     template <typename element_type>
     static void stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
 
-    static void fd_stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
-
     template <typename element_type>
     static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
-
-    static void start_fd_stream_producer(int stream_socket, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
 
     static std::function<std::optional<gaia_id_t>()>
     get_id_generator_for_type(gaia_type_t type);
 
-    static std::function<std::optional<gaia_txn_id_t>()>
-    get_commit_ts_generator_for_begin_ts(gaia_txn_id_t begin_ts);
+    static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
     static gaia_txn_id_t txn_begin();
 
