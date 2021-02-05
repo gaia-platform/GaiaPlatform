@@ -34,6 +34,7 @@ using namespace clang::tooling;
 using namespace llvm;
 using namespace clang::ast_matchers;
 using namespace gaia;
+using namespace gaia::common;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 cl::opt<string> g_translation_engine_output_option(
@@ -58,7 +59,7 @@ unordered_map<string, string> g_table_db_data;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
 
-unordered_map<string, unordered_map<string, int>> g_field_data;
+unordered_map<string, unordered_map<string, field_position_t>> g_field_data;
 string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
@@ -171,9 +172,9 @@ void fill_table_db_data(catalog::gaia_table_t& table)
     g_table_db_data[table.name()] = db.name();
 }
 
-unordered_map<string, unordered_map<string, int>> get_table_data()
+unordered_map<string, unordered_map<string, field_position_t>> get_table_data()
 {
-    unordered_map<string, unordered_map<string, int>> return_value;
+    unordered_map<string, unordered_map<string, field_position_t>> return_value;
     if (g_generation_error)
     {
         return return_value;
@@ -189,15 +190,15 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
                 g_generation_error = true;
-                return unordered_map<string, unordered_map<string, int>>();
+                return unordered_map<string, unordered_map<string, field_position_t>>();
             }
 
-            unordered_map<string, int> fields = return_value[tbl.name()];
+            unordered_map<string, field_position_t> fields = return_value[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
                 cerr << "Duplicate field '" << field.name() << "'." << endl;
                 g_generation_error = true;
-                return unordered_map<string, unordered_map<string, int>>();
+                return unordered_map<string, unordered_map<string, field_position_t>>();
             }
             fields[field.name()] = field.position();
             return_value[tbl.name()] = fields;
@@ -211,7 +212,7 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
             {
                 cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
                 g_generation_error = true;
-                return unordered_map<string, unordered_map<string, int>>();
+                return unordered_map<string, unordered_map<string, field_position_t>>();
             }
 
             catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
@@ -219,7 +220,7 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
             {
                 cerr << "Incorrect parent table in the relationship " << relationship.name() << "." << endl;
                 g_generation_error = true;
-                return unordered_map<string, unordered_map<string, int>>();
+                return unordered_map<string, unordered_map<string, field_position_t>>();
             }
             table_link_data_t link_data_1;
             link_data_1.table = parent_table.name();
@@ -239,7 +240,7 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
     {
         cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
         g_generation_error = true;
-        return unordered_map<string, unordered_map<string, int>>();
+        return unordered_map<string, unordered_map<string, field_position_t>>();
     }
     return return_value;
 }
