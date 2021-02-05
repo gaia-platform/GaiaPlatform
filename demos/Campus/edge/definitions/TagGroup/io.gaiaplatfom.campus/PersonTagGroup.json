@@ -1,0 +1,20 @@
+{
+  "name": "Person",
+  "context": "io.gaiaplatform.campus",
+  "qosProfile": "telemetry",
+  "version": "v1.0",
+  "description": "Gaiaplatform Campus Demo Person TagGroup",
+  "tags": [{
+    "name": "name",
+    "description": "Name",
+    "kind": "STRING",
+    "unit": ""
+  },
+  {
+    "name": "isThreat",
+    "description": "IsThreat",
+    "kind": "INT32",
+    "unit": ""    
+  }
+  ]
+}

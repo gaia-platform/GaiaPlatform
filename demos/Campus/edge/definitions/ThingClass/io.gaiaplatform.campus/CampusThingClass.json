@@ -1,0 +1,10 @@
+{
+  "name": "Campus",
+  "context": "io.gaiaplatform.campus",
+  "version": "v1.0",
+  "description": "Campus",
+  "outputs": [{
+    "name": "alert",
+    "tagGroupId": "alertTagGroup:io.gaiaplatform.campus:v1.0"
+  }]
+}

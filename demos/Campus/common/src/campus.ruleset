@@ -1,0 +1,148 @@
+#include <atomic>
+#include <algorithm>
+#include <string.h>
+#include <memory>
+#include "../inc/i_campus.hpp"
+
+// - Use of imperative code in the ruleset definition file
+//
+// Here we define a function which can be called from with any rule.
+// While standard imperative code is supported within rules, the 
+// pattern of using procedures in code is of beneit here as it is
+// in any code.
+//
+
+/**
+ * Send an alert message
+ * 
+ * @param[in] std::string title
+ * @param[in] std::string body
+ * @param[in] int severity
+ * @param[in] std::string arg1
+ * @return void
+ * @throws 
+ * @exceptsafe yes
+ */   
+void send_alert_message(std::string title, 
+        std::string body, int severity, std::string arg1){
+    auto cbc = i_Campus::get_callback_class();
+    cbc->cb_alert(title, body, severity, arg1);
+}
+
+// Here we define our declarative rules
+//
+ruleset campus_ruleset
+{
+    {         
+        // - Check a value of a field
+        // Trigger when a field changes, use the field in a comparison operation
+        //
+        // - Block trigger on a field reference
+        // Using a '@' prefix prevents the processor from creating a trigger
+        // to changes in the field
+        //
+        // - Update a field
+        // Notice the assignemnt statement 'campus.in_emergency = true'
+        //
+        // - Forward chaining
+        // Notice that in the rule below this rule we trigger on a change to 
+        // the value in the 'campus.in_emergency' emergency field, which we 
+        // change in this rule.
+        //
+        if( 1 == person.is_threat )
+        {
+            send_alert_message("Deadly Threat", 
+                @person.name + std::string(" is brandishing a weapon"), 2, "");
+
+            campus.in_emergency = true;
+        }
+        
+        if( 0 == person.is_threat )
+        {
+            send_alert_message("All Clear", 
+                @person.name + std::string(" is no longer a threat"), 2, "");
+
+            campus.in_emergency = false;
+        }   
+    }    
+    {                     
+        // - Check a value of a field
+        // Trigger when a field changes, use the field in a comparison operation
+        //
+        // - Forward chaining
+        // Notice that in this rule we trigger on a change to the value in the 
+        // 'campus.in_emergency' emergency field, which we change in the rulke above.
+        //
+        if( campus.in_emergency )
+        {
+            send_alert_message("Campus Emergency", "Active Threat", 1, "");
+        }           
+        
+        if( !campus.in_emergency )
+        {
+            send_alert_message("Campus Emergency", "All Clear", 1, "");
+        }   
+    }
+    {
+        // - Trigger on a change in a field 
+        //
+        // The presence of the field 'person.location' below tiggers the activation
+        // of this rule when the location field changes in any row in the person
+        // table. Note that there is no need for comparison or any type of flow control
+        // in the declarative code in order to trigger this rule.
+        //
+        {
+            send_alert_message("Movement", 
+                @person.name + std::string(" moved to ") + person.location, 0, "");
+
+            if(@campus.in_emergency)
+                send_alert_message("Acess Denied", "Campus in lockdown", 0, "");            
+            else
+                send_alert_message("Acess Granted", "Door unlocked", 3, "");
+        }
+    }
+    {
+        // - Trigger on a row insert operation
+        //
+        // - Use of a non qualified name
+        // - Look-up chain
+        // Notice '@Enrolled' is a member of the 'Events' table, which is referenced
+        // by the 'Registration' table. The system finds and uses this value by
+        // looking up the chain of references from the row which instancied this
+        // trigger event.
+        //
+        if( Registration.LastOperation == INSERT )
+        {
+            Enrolled += 1;
+
+            send_alert_message("Registration", 
+                std::string("Event: ") + @Events.Name + 
+                std::string(", Regsitrant: ") + @person.name  + 
+                std::string(", Enrolled: ") + std::to_string(@Enrolled) +
+                std::string(", Capacity: ") + std::to_string(@Rooms.Capacity), 0, "");
+        } 
+    }
+    {
+        // - Use of a non qualified name
+        // 
+        // Notice '@Enrolled' is a member of the 'Events' table. The system is able
+        // to resolve this because there is only one object in the schema with this name.
+        //        
+        if(Enrolled > @Rooms.Capacity)
+        {
+            auto cbc = i_Campus::get_callback_class();
+
+            send_alert_message("Event over room capacty", 
+                std::string("Event: ") + @Events.Name + 
+                std::string(", Room: ") + @Rooms.RoomName  + 
+                std::string(", Enrolled: ") + std::to_string(@Enrolled) +
+                std::string(", Capacity: ") + std::to_string(@Rooms.Capacity), 0, ""); 
+
+            auto new_room = cbc->cb_find_new_event_room(@Events.Name);    
+
+            send_alert_message("Event room change", 
+                std::string("Event: ") + @Events.Name + 
+                std::string(" moved to room: ") + new_room.c_str(), 0, "");        
+        }
+    }
+}

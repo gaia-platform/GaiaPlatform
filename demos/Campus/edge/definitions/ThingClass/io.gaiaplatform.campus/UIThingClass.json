@@ -1,0 +1,14 @@
+{
+  "name": "UI",
+  "context": "io.gaiaplatform.campus",
+  "version": "v1.0",
+  "description": "UI",
+  "outputs": [{
+    "name": "action",
+    "tagGroupId": "actionTagGroup:io.gaiaplatform.campus:v1.0"
+  }],
+  "inputs":[{
+    "name": "alert",
+    "tagGroupId": "alertTagGroup:io.gaiaplatform.campus:v1.0"
+  }]
+}

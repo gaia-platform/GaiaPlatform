@@ -1,0 +1,35 @@
+# Editor files.
+#.vscode/
+.idea/
+
+# Build files.
+build/
+cmake-build-*/
+
+# Emacs backups.
+*~
+
+# Compiled python files.
+*pyc
+
+# Python packaging folders.
+*.egg-info/
+dist/
+
+# Generated header files.
+*_generated.h
+
+# Generated gdev files.
+*.gdev
+
+# Java class files.
+*.class
+
+# Mac OS index files.
+.DS_Store
+
+# Generated and Translated products
+common/generated
+
+# Allow .vscode/launch.json
+!.vscode/launch.json

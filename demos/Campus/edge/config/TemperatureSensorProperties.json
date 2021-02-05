@@ -1,0 +1,6 @@
+{
+    "id": "79EC6787DA88",
+    "classId": "TemperatureSensor:com.adlinktech.example:v1.0",
+    "contextId": "example1.sensor",
+    "description": "Edge SDK example 1 temperature sensor"
+}

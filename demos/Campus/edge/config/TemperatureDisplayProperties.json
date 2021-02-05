@@ -1,0 +1,6 @@
+{
+    "id": "ada27527-4345-4242-890f-215ade35500c",
+    "classId": "TemperatureDisplay:com.adlinktech.example:v1.0",
+    "contextId": "example1.display",
+    "description": "Edge SDK example 1 display that shows temperature data"
+}
