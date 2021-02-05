@@ -49,6 +49,7 @@ class server
     friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
@@ -61,8 +62,11 @@ public:
         e_disabled_after_recovery,
         e_reinitialized_on_startup,
     };
+
     static void run(persistence_mode_t persistence_mode = persistence_mode_t::e_default);
+
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
+
     static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
     static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
     static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
@@ -70,28 +74,40 @@ public:
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     static constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
+
     static inline int s_server_shutdown_eventfd = -1;
+
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
+
     static inline int s_fd_locators = -1;
     static inline locators_t* s_shared_locators = nullptr;
+
     static inline int s_fd_counters = -1;
     static inline shared_counters_t* s_counters = nullptr;
+
     static inline int s_fd_data = -1;
     static inline shared_data_t* s_data = nullptr;
+
     static inline int s_fd_id_index = -1;
     static inline shared_id_index_t* s_id_index = nullptr;
-    thread_local static inline txn_log_t* s_log = nullptr;
+
     thread_local static inline int s_fd_log = -1;
+    thread_local static inline txn_log_t* s_log = nullptr;
+
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+
     static inline std::unique_ptr<persistent_store_manager> rdb{};
+
     thread_local static inline int s_session_socket = -1;
     thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
+
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
@@ -142,9 +158,9 @@ private:
     //
     // Timestamp entry format:
     // 64 bits: status(3) | log fd (16) | reserved (3) | logical timestamp (42)
-
     typedef uint64_t ts_entry_t;
     static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
+
     // This should always be true on any 64-bit platform, but we assert since we
     // never want to fall back to a lock-based implementation of atomics.
     static_assert(std::atomic<ts_entry_t>::is_always_lock_free);
@@ -173,15 +189,18 @@ private:
 
     // Transaction timestamp entry constants.
     static constexpr uint64_t c_txn_status_entry_bits{64ULL};
+
     static constexpr uint64_t c_txn_status_flags_bits{3ULL};
     static constexpr uint64_t c_txn_status_flags_shift{c_txn_status_entry_bits - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
+
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
     static constexpr uint64_t c_txn_log_fd_shift{
         (c_txn_status_entry_bits - c_txn_log_fd_bits) - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
+
     static constexpr uint64_t c_txn_reserved_bits{3ULL};
     static constexpr uint64_t c_txn_ts_bits{42ULL};
     static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
@@ -191,15 +210,18 @@ private:
     static constexpr uint64_t c_txn_status_active{0b010ULL};
     static constexpr uint64_t c_txn_status_submitted{0b011ULL};
     static constexpr uint64_t c_txn_status_terminated{0b001ULL};
+
     // This is the bitwise intersection of all commit_ts status values.
     static constexpr uint64_t c_txn_status_commit_ts{0b100ULL};
     static constexpr uint64_t c_txn_status_commit_mask{
         c_txn_status_commit_ts << c_txn_status_flags_shift};
+
     // This is the bitwise intersection of all commit_ts decided status values
     // (i.e., committed or aborted).
     static constexpr uint64_t c_txn_status_decided{0b110ULL};
     static constexpr uint64_t c_txn_status_decided_mask{
         c_txn_status_decided << c_txn_status_flags_shift};
+
     // These are all commit_ts status values.
     static constexpr uint64_t c_txn_status_validating{0b100ULL};
     static constexpr uint64_t c_txn_status_committed{0b111ULL};
@@ -208,10 +230,13 @@ private:
     // Transaction special values.
     // The first 3 bits of this value are unused for any txn state.
     static constexpr ts_entry_t c_txn_entry_unknown{0ULL};
+
     // This must always be 0 because a newly-allocated page is initialized to 0.
     static_assert(c_txn_entry_unknown == 0);
+
     // The first 3 bits of this value are unused for any txn state.
     static constexpr ts_entry_t c_txn_entry_invalid{0b101ULL << c_txn_status_flags_shift};
+
     // Since we restrict all fds to 16 bits, this is the largest possible value
     // in that range, which we reserve to indicate an invalidated fd (i.e., one
     // which was claimed for deallocation by a maintenance thread).
@@ -244,21 +269,6 @@ private:
         session_event_t event;
         transition_t transition;
     };
-
-    // DISCONNECTED (client has connected to server listening socket, authenticated, and requested session)
-    // -> CONNECTED
-    // CONNECTED (client datagram socket has been allocated, client thread has been started,
-    // server has replied to client from listening socket with its session socket,
-    // client has connected to server from that socket, server has replied with fds
-    // for data/locator segments)
-    // -> TXN_IN_PROGRESS (client called begin_transaction)
-    // -> DISCONNECTING (server half-closed session socket)
-    // -> DISCONNECTED (client closed or half-closed session socket)
-    // TXN_IN_PROGRESS (client sent begin_transaction message to server, server replied)
-    // -> TXN_COMMITTING (client called commit_transaction)
-    // -> CONNECTED (client rolled back transaction)
-    // TXN_COMMITTING (server decided to commit or abort transaction)
-    // -> CONNECTED
 
     static inline constexpr valid_transition_t s_valid_transitions[] = {
         {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},
