@@ -255,7 +255,7 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool  parse_attribute(string attribute, string &table, string &field)
+bool parse_attribute(string attribute, string &table, string &field)
 {
     if (g_field_data.empty())
     {
@@ -263,7 +263,7 @@ bool  parse_attribute(string attribute, string &table, string &field)
     }
 
     size_t dot_position = attribute.find('.');
-    // handle fully qualified reference
+    // Handle fully qualified reference.
     if (dot_position != string::npos)
     {
         table = attribute.substr(0, dot_position);
@@ -273,7 +273,7 @@ bool  parse_attribute(string attribute, string &table, string &field)
 
     if (g_field_data.find(attribute) == g_field_data.end())
     {
-        // might be a field
+        // Might be a field.
         for (const auto &tbl : g_field_data)
         {
             if (tbl.second.find(attribute) != tbl.second.end())
@@ -357,9 +357,9 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
     unordered_map<string, string> table_prev;
     unordered_map<string, navigation_data_t> table_navigation;
 
-    for (const auto& fd : g_field_data)
+    for (const auto& field_description : g_field_data)
     {
-        table_distance[fd.first] = INT_MAX;
+        table_distance[field_description.first] = INT_MAX;
     }
     table_distance[src] = 0;
 
@@ -677,23 +677,23 @@ void generate_rules(Rewriter& rewriter)
     unordered_map<uint32_t, string> rule_line_numbers;
 
     // Optimize active fields by removing field subscriptions
-    // if entire table was subscribed in rule prolog
+    // if entire table was subscribed in rule prolog.
     for (const auto &table : g_update_tables)
     {
         g_active_fields.erase(table);
     }
 
-    for (const auto &fd : g_active_fields)
+    for (const auto &field_description : g_active_fields)
     {
         if (g_generation_error)
         {
             return;
         }
 
-        string table = fd.first;
+        string table = field_description.first;
         string field_subscription_code;
         string common_subscription_code;
-        if (fd.second.empty())
+        if (field_description.second.empty())
         {
             cerr << "No fields referenced by table '" << table << "'." << endl;
             g_generation_error = true;
@@ -758,7 +758,7 @@ void generate_rules(Rewriter& rewriter)
 
         auto fields = g_field_data[table];
 
-        for (const auto& field : fd.second)
+        for (const auto& field : field_description.second)
         {
             if (fields.find(field) == fields.end())
             {

@@ -3201,9 +3201,6 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
             Id->getName().equals(c_on_insert_rule_attribute) ||
             Id->getName().equals(c_on_change_rule_attribute))
           {
-            //Declarator DeclaratorInfo(DS, DeclaratorContext::BlockLiteralContext);
-            //DeclaratorInfo.setFunctionDefinitionKind(FDK_Definition);
-            //ParseRule(DeclaratorInfo);
             goto DoneWithDeclSpec;
           }
         }
@@ -5586,27 +5583,27 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
 
     if (getCurScope()->isRulesetScope())
     {
-        if (Tok.is(tok::identifier)
-            && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+      if (Tok.is(tok::identifier)
+        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+      {
+        IdentifierInfo *Id = Tok.getIdentifierInfo();
+        if (Id != nullptr)
         {
-            IdentifierInfo *Id = Tok.getIdentifierInfo();
-            if (Id != nullptr)
-            {
-                if (Id->getName().equals(c_on_update_rule_attribute) ||
-                    Id->getName().equals(c_on_insert_rule_attribute) ||
-                    Id->getName().equals(c_on_change_rule_attribute))
-                {
-                  ParseRule(D);
-                  return;
-                }
-            }
-        }
-        if (Tok.is(tok::l_brace))
-        {
-            ParsedAttributesWithRange attrs(AttrFactory);
-            InjectRuleFunction(D, attrs);
+          if (Id->getName().equals(c_on_update_rule_attribute) ||
+            Id->getName().equals(c_on_insert_rule_attribute) ||
+            Id->getName().equals(c_on_change_rule_attribute))
+          {
+            ParseRule(D);
             return;
+          }
         }
+      }
+      else if (Tok.is(tok::l_brace))
+      {
+        ParsedAttributesWithRange attrs(AttrFactory);
+        InjectRuleFunction(D, attrs);
+        return;
+      }
     }
     // Don't parse FOO:BAR as if it were a typo for FOO::BAR inside a class, in
     // this context it is a bitfield. Also in range-based for statement colon

@@ -2007,253 +2007,251 @@ static void handleCPUSpecificAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+  if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+  SmallVector<IdentifierInfo *, 8> tables;
+  auto tableData = S.getCatalogTableList(AL.getLoc());
+  for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo)
+  {
+    if (!AL.isArgIdent(ArgNo))
     {
-        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-            << AL << AANT_ArgumentIdentifier;
-        return;
+      S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+        << AL << AANT_ArgumentIdentifier;
+      return;
     }
-    SmallVector<IdentifierInfo *, 8> tables;
-    auto tableData = S.getCatalogTableList(AL.getLoc());
-    for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo)
+    IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
+    if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
     {
-        if (!AL.isArgIdent(ArgNo))
-        {
-            S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-                << AL << AANT_ArgumentIdentifier;
-            return;
-        }
-        IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
-        if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
-        {
-          S.Diag(AL.getLoc(), diag::err_invalid_table_name)
-                << tableArg->Ident->getName();
-          return;
-        }
-        tables.push_back(tableArg->Ident);
+      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+        << tableArg->Ident->getName();
+      return;
     }
-    D->addAttr(::new (S.Context) RulesetTableAttr(
-        AL.getRange(), S.Context, tables.data(), tables.size(),
-        AL.getAttributeSpellingListIndex()));
+    tables.push_back(tableArg->Ident);
+  }
+  D->addAttr(::new (S.Context) RulesetTableAttr(
+    AL.getRange(), S.Context, tables.data(), tables.size(),
+    AL.getAttributeSpellingListIndex()));
 }
 
 static bool validateRuleAttribute(StringRef attribute,
     Sema &S, const ParsedAttr &AL)
 {
-    auto tableData = S.getTableData(AL.getLoc());
-    if (tableData.empty())
-    {
-        return false;
-    }
-    size_t dotPosition = attribute.find('.');
-    // handle fully qualified reference
-    if (dotPosition != StringRef::npos)
-    {
-        StringRef table = attribute.take_front(dotPosition);
-        StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
-        auto tableDescription = tableData.find(table);
-        if (tableDescription == tableData.end())
-        {
-            S.Diag(AL.getLoc(), diag::err_invalid_table_name)
-                << table;
-            return false;
-        }
-        auto fieldDescription = tableDescription->second.find(field);
-        if(fieldDescription == tableDescription->second.end())
-        {
-            S.Diag(AL.getLoc(), diag::err_unknown_field)
-                << field;
-            return false;
-        }
-        return true;
-    }
-
-    auto tableDescription = tableData.find(attribute);
+  auto tableData = S.getTableData(AL.getLoc());
+  if (tableData.empty())
+  {
+    return false;
+  }
+  size_t dotPosition = attribute.find('.');
+  // Handle fully qualified reference.
+  if (dotPosition != StringRef::npos)
+  {
+    StringRef table = attribute.take_front(dotPosition);
+    StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
+    auto tableDescription = tableData.find(table);
     if (tableDescription == tableData.end())
     {
-        // might be a field
-        bool returnValue = false;
-        for (auto table : tableData)
-        {
-            if (table.second.find(attribute) != table.second.end())
-            {
-                if (returnValue)
-                {
-                    S.Diag(AL.getLoc(), diag::err_duplicate_field)
-                        << attribute;
-                    return false;
-                }
-                returnValue = true;
-            }
-        }
-        if (!returnValue)
-        {
-            S.Diag(AL.getLoc(), diag::err_unknown_field)
-                << attribute;
-        }
-        return returnValue;
+      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+        << table;
+      return false;
     }
-    // could be a table or a field. Should check if there is a field with the same name
+    auto fieldDescription = tableDescription->second.find(field);
+    if(fieldDescription == tableDescription->second.end())
+    {
+      S.Diag(AL.getLoc(), diag::err_unknown_field)
+        << field;
+      return false;
+    }
+    return true;
+  }
+
+  auto tableDescription = tableData.find(attribute);
+  if (tableDescription == tableData.end())
+  {
+    // Might be a field.
+    bool returnValue = false;
     for (auto table : tableData)
     {
-        if (table.second.find(attribute) != table.second.end())
+      if (table.second.find(attribute) != table.second.end())
+      {
+        if (returnValue)
         {
-            S.Diag(AL.getLoc(), diag::err_duplicate_field)
-                << attribute;
-            return false;
+          S.Diag(AL.getLoc(), diag::err_duplicate_field)
+            << attribute;
+          return false;
         }
+        returnValue = true;
+      }
     }
+    if (!returnValue)
+    {
+      S.Diag(AL.getLoc(), diag::err_unknown_field)
+        << attribute;
+    }
+    return returnValue;
+  }
+  // Could be a table or a field. Should check if there is a field with the same name.
+  for (auto table : tableData)
+  {
+    if (table.second.find(attribute) != table.second.end())
+    {
+      S.Diag(AL.getLoc(), diag::err_duplicate_field)
+        << attribute;
+      return false;
+    }
+  }
 
-    return true;
+  return true;
 }
 
 static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+  if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+
+  if (D->hasAttr<GaiaOnUpdateAttr>() ||
+    D->hasAttr<GaiaOnInsertAttr>() ||
+    D->hasAttr<GaiaOnChangeAttr>())
+  {
+    S.Diag(AL.getLoc(), diag::err_invalid_rule_attribute);
+    return;
+  }
+
+  SmallVector<StringRef, 4> tables;
+  for (unsigned I = 0, E = AL.getNumArgs(); I != E; ++I)
+  {
+    StringRef table;
+    if (!S.checkStringLiteralArgumentAttr(AL, I, table))
     {
-        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-            << AL << AANT_ArgumentIdentifier;
-        return;
+      return;
     }
 
-    if (D->hasAttr<GaiaOnUpdateAttr>() ||
-        D->hasAttr<GaiaOnInsertAttr>() ||
-        D->hasAttr<GaiaOnChangeAttr>())
+    if (!validateRuleAttribute(table, S, AL))
     {
-        S.Diag(AL.getLoc(), diag::err_invalid_rule_attribute);
-        return;
+      return;
     }
 
-    SmallVector<StringRef, 4> tables;
-    for (unsigned I = 0, E = AL.getNumArgs(); I != E; ++I)
-    {
-      StringRef table;
-      if (!S.checkStringLiteralArgumentAttr(AL, I, table))
-      {
-        return;
-      }
+    tables.push_back(table);
+  }
 
-      if (!validateRuleAttribute(table, S, AL))
-      {
-          return;
-      }
-
-      tables.push_back(table);
-    }
-
-    switch (AL.getKind())
-    {
-      case ParsedAttr::AT_GaiaOnUpdate:
-          D->addAttr(::new (S.Context)
-              GaiaOnUpdateAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
-              AL.getAttributeSpellingListIndex()));
-          break;
-      case ParsedAttr::AT_GaiaOnInsert:
-          D->addAttr(::new (S.Context)
-              GaiaOnInsertAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
-              AL.getAttributeSpellingListIndex()));
-          break;
-      case ParsedAttr::AT_GaiaOnChange:
-          D->addAttr(::new (S.Context)
-              GaiaOnChangeAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
-              AL.getAttributeSpellingListIndex()));
-          break;
-      default:
-        break;
-    }
-
+  switch (AL.getKind())
+  {
+    case ParsedAttr::AT_GaiaOnUpdate:
+      D->addAttr(::new (S.Context)
+        GaiaOnUpdateAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+        AL.getAttributeSpellingListIndex()));
+      break;
+    case ParsedAttr::AT_GaiaOnInsert:
+      D->addAttr(::new (S.Context)
+        GaiaOnInsertAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+        AL.getAttributeSpellingListIndex()));
+      break;
+    case ParsedAttr::AT_GaiaOnChange:
+      D->addAttr(::new (S.Context)
+        GaiaOnChangeAttr(AL.getRange(), S.Context, tables.data(), tables.size(),
+        AL.getAttributeSpellingListIndex()));
+      break;
+    default:
+      break;
+  }
 }
 
 static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    IdentifierLoc *streamArg = AL.getArgAsIdent(0);
-    if (!AL.isArgIdent(0))
-    {
-        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-            << AL << AANT_ArgumentIdentifier;
-        return;
-    }
-    D->addAttr(::new (S.Context) SerialStreamAttr(
-        AL.getRange(), S.Context, streamArg->Ident,
-        AL.getAttributeSpellingListIndex()));
+  IdentifierLoc *streamArg = AL.getArgAsIdent(0);
+  if (!AL.isArgIdent(0))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+  D->addAttr(::new (S.Context) SerialStreamAttr(
+    AL.getRange(), S.Context, streamArg->Ident,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleFieldTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    IdentifierLoc *tableArg = AL.getArgAsIdent(0);
-    if (!AL.isArgIdent(0))
-    {
-        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-            << AL << AANT_ArgumentIdentifier;
-        return;
-    }
-    D->addAttr(::new (S.Context) FieldTableAttr(
-        AL.getRange(), S.Context, tableArg->Ident,
-        AL.getAttributeSpellingListIndex()));
+  IdentifierLoc *tableArg = AL.getArgAsIdent(0);
+  if (!AL.isArgIdent(0))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+  D->addAttr(::new (S.Context) FieldTableAttr(
+    AL.getRange(), S.Context, tableArg->Ident,
+    AL.getAttributeSpellingListIndex()));
 }
-
 
 static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) RuleAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) RuleAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaLastOperationAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaLastOperationAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaLastOperationAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaLastOperationInsertAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaLastOperationINSERTAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaLastOperationINSERTAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaLastOperationUpdateAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaLastOperationUPDATEAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaLastOperationUPDATEAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaLastOperationDeleteAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaLastOperationDELETEAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaLastOperationDELETEAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaLastOperationNoneAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaLastOperationNONEAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaLastOperationNONEAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleGaiaFieldLValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleFieldAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaFieldAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaFieldAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleFieldValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-    D->addAttr(::new (S.Context) GaiaFieldValueAttr(
-        AL.getRange(), S.Context,
-        AL.getAttributeSpellingListIndex()));
+  D->addAttr(::new (S.Context) GaiaFieldValueAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
 }
 
 static void handleCommonAttr(Sema &S, Decl *D, const ParsedAttr &AL) {

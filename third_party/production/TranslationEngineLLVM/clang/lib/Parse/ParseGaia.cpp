@@ -410,33 +410,36 @@ void Parser::ParseRulesetContents( BalancedDelimiterTracker &tracker)
     }
 }
 
-ExprResult Parser::ParseGaiaRuleContext() {
-  assert(Tok.is(tok::kw_rule_context) && "Not 'rule_context'!");
-  SourceLocation ruleContextLocation = ConsumeToken();
-  if (Tok.isNot(tok::period))
-  {
-      return Diag(ruleContextLocation, diag::err_invalid_rule_context_use);
-  }
-  return Actions.ActOnGaiaRuleContext(ruleContextLocation);
+ExprResult Parser::ParseGaiaRuleContext()
+{
+    assert(Tok.is(tok::kw_rule_context) && "Not 'rule_context'!");
+    SourceLocation ruleContextLocation = ConsumeToken();
+    if (Tok.isNot(tok::period))
+    {
+        return Diag(ruleContextLocation, diag::err_invalid_rule_context_use);
+    }
+    return Actions.ActOnGaiaRuleContext(ruleContextLocation);
 }
 
 Token Parser::getPreviousToken(Token token)
 {
-  Token returnToken;
-  returnToken.setKind(tok::unknown);
-  SourceLocation location = token.getLocation().getLocWithOffset(-1);
-  SourceManager &sourceManager = PP.getSourceManager();
-  auto langOptions = getLangOpts();
-  auto StartOfFile = sourceManager.getLocForStartOfFile(sourceManager.getFileID(location));
-  while (location != StartOfFile) {
-    location = Lexer::GetBeginningOfToken(location, sourceManager, langOptions);
-    if (!Lexer::getRawToken(location, returnToken, sourceManager, langOptions) &&
-        !returnToken.is(tok::comment)) {
-      break;
+    Token returnToken;
+    returnToken.setKind(tok::unknown);
+    SourceLocation location = token.getLocation().getLocWithOffset(-1);
+    SourceManager &sourceManager = PP.getSourceManager();
+    auto langOptions = getLangOpts();
+    auto StartOfFile = sourceManager.getLocForStartOfFile(sourceManager.getFileID(location));
+    while (location != StartOfFile)
+    {
+        location = Lexer::GetBeginningOfToken(location, sourceManager, langOptions);
+        if (!Lexer::getRawToken(location, returnToken, sourceManager, langOptions) &&
+            !returnToken.is(tok::comment))
+        {
+            break;
+        }
+        location = location.getLocWithOffset(-1);
     }
-    location = location.getLocWithOffset(-1);
-  }
-  return returnToken;
+    return returnToken;
 }
 
 void Parser::ParseRule(Declarator &D)
@@ -452,5 +455,4 @@ void Parser::ParseRule(Declarator &D)
         return;
     }
     InjectRuleFunction(D, attrs);
-
 }
