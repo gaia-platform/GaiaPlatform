@@ -24,22 +24,23 @@
 #include <sys/eventfd.h>
 #include <sys/file.h>
 
+#include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/memory_allocation_error.hpp"
+#include "gaia_internal/common/mmap_helpers.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/common/socket_helpers.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
+
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
 #include "db_shared_data.hpp"
-#include "fd_helpers.hpp"
-#include "gaia_db_internal.hpp"
-#include "generator_iterator.hpp"
-#include "memory_allocation_error.hpp"
 #include "messages_generated.h"
-#include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
-#include "retail_assert.hpp"
-#include "scope_guard.hpp"
-#include "socket_helpers.hpp"
-#include "system_error.hpp"
 
 using namespace std;
 
@@ -655,7 +656,7 @@ address_offset_t server::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    address_offset_t offset = s_memory_manager->allocate(size + sizeof(se_object_t));
+    address_offset_t offset = s_memory_manager->allocate(size + sizeof(db_object_t));
     if (offset == c_invalid_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
@@ -2859,6 +2860,10 @@ void server::txn_rollback()
         s_txn_id != c_invalid_gaia_txn_id,
         "txn_rollback() was called without an active transaction!");
 
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(s_fd_log);
+    });
+
     // Set our txn status to TXN_TERMINATED.
     set_active_txn_terminated(s_txn_id);
 
@@ -2873,8 +2878,6 @@ void server::txn_rollback()
         // Free any deallocated objects.
         free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
     }
-
-    s_fd_log = -1;
 }
 
 // Before this method is called, we have already received the log fd from the client

@@ -13,11 +13,8 @@ set(GAIA_EVENT_MANAGER_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_EVENT_MANAGER_PUBLIC_INCLUDES=${GAIA_EVENT_MANAGER_PUBLIC_INCLUDES}")
 
 set(GAIA_EVENT_MANAGER_PRIVATE_INCLUDES
+  ${GAIA_INC}
   ${GAIA_REPO}/production/db/inc/memory_manager
-  ${GAIA_INTERNAL_INC}/common
-  ${GAIA_INTERNAL_INC}/db
-  ${GAIA_INTERNAL_INC}/catalog
-  ${GAIA_INTERNAL_INC}/rules
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
@@ -58,7 +55,7 @@ configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_setting.conf" "${PROJEC
 add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_direct")
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES};${GAIA_INTERNAL_INC}/db" "rt;gaia_system;gaia_db_catalog_test")
+  "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system;gaia_db_catalog_test")
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system;gaia_db_catalog_test")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
@@ -70,7 +67,7 @@ add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
 add_gtest(test_rule_stats "tests/test_rule_stats.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system")
 
-# The test needs gaia parser to load test DDLs.
+# The integration tests need gaia parser to load test DDLs.
 set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc
@@ -78,5 +75,10 @@ set(TEST_RULE_INTEGRATION_INCLUDES
 
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
+  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
+
+add_gtest(test_rule_exceptions
+  "tests/test_rule_exceptions.cpp;tests/event_manager_test_helpers.cpp"
   "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

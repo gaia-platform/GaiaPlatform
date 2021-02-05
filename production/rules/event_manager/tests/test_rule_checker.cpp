@@ -7,9 +7,11 @@
 
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
-#include "db_test_base.hpp"
-#include "db_test_helpers.hpp"
-#include "gaia_catalog.h"
+
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_test_helpers.hpp"
+
 #include "rule_checker.hpp"
 
 using namespace gaia::common;
@@ -159,9 +161,11 @@ TEST_F(rule_checker_test, inactive_field)
     rule_checker_t rule_checker;
     field_position_list_t fields;
     fields.emplace_back(g_field_positions["inactive"]);
-    const char* message = "not marked as active";
 
-    verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
+    // The following should not throw because we don't require the field
+    // to be marked as 'active' in the schema.  Note that this behavior may
+    // change if a strict mode is enabled as described in GAIAPLAT-622.
+    rule_checker.check_catalog(g_table_type, fields);
 }
 
 TEST_F(rule_checker_test, deprecated_field)
@@ -203,7 +207,9 @@ TEST_F(rule_checker_test, multiple_fields)
     field_position_list_t fields;
     fields.emplace_back(g_field_positions["active"]);
     fields.emplace_back(g_field_positions["inactive"]);
-    const char* message = "not marked as active";
 
-    verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
+    // The following should not throw because we don't require the field
+    // to be marked as 'active' in the schema.  Note that this behavior may
+    // change if a strict mode is enabled as described in GAIAPLAT-622.
+    rule_checker.check_catalog(g_table_type, fields);
 }

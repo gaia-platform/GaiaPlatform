@@ -7,9 +7,10 @@
 
 #include <cstring>
 
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "event_manager.hpp"
-#include "logger_internal.hpp"
-#include "retail_assert.hpp"
 
 using namespace std;
 
@@ -22,42 +23,6 @@ using namespace gaia::direct_access;
  */
 thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
-
-void rule_thread_pool_t::log_events(invocation_t& invocation)
-{
-    auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
-    retail_assert(
-        log_invocation.events.size() == log_invocation.rules_invoked.size(),
-        "Event vector and rules_invoked vector sizes must match!");
-
-    gaia::db::begin_transaction();
-    {
-        for (size_t i = 0; i < log_invocation.events.size(); i++)
-        {
-            auto timestamp = static_cast<uint64_t>(time(nullptr));
-            uint16_t column_id = 0;
-            auto& event = log_invocation.events[i];
-            auto rule_invoked = log_invocation.rules_invoked[i];
-
-            // TODO[GAIAPLAT-293]: add support for arrys of simple types
-            // When we have this support we can support the array of changed column fields
-            // in our event log.  Until then, just pick out the first of the list.
-            if (event.columns.size() > 0)
-            {
-                column_id = event.columns[0];
-            }
-
-            event_log::event_log_t::insert_row(
-                static_cast<uint32_t>(event.event_type),
-                static_cast<uint64_t>(event.gaia_type),
-                static_cast<uint64_t>(event.record),
-                column_id,
-                timestamp,
-                rule_invoked);
-        }
-    }
-    gaia::db::commit_transaction();
-}
 
 rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
     : m_stats_manager(stats_manager), m_max_rule_retries(max_retries), m_count_busy_workers(count_threads)
@@ -146,21 +111,12 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
-    if (invocation.type == invocation_type_t::rule)
-    {
-        m_stats_manager.insert_rule_stats(invocation.rule_id);
-        if (s_tls_can_enqueue)
-        {
-            m_stats_manager.inc_scheduled(invocation.rule_id);
-        }
-        else
-        {
-            m_stats_manager.inc_pending(invocation.rule_id);
-        }
-    }
+
+    m_stats_manager.insert_rule_stats(invocation.rule_id);
 
     if (s_tls_can_enqueue)
     {
+        m_stats_manager.inc_scheduled(invocation.rule_id);
         if (m_threads.size() > 0)
         {
             unique_lock lock(m_lock);
@@ -175,6 +131,7 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     }
     else
     {
+        m_stats_manager.inc_pending(invocation.rule_id);
         s_tls_pending_invocations.push(invocation);
     }
 }
@@ -212,12 +169,14 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 
 // We must worry about user-rules that throw exceptions, end the transaction
 // started by the rules engine, and log the event.
-void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
+void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 {
-    auto& rule_invocation = std::get<rule_invocation_t>(invocation.args);
+    rule_invocation_t& rule_invocation = invocation.args;
     s_tls_can_enqueue = false;
     bool should_schedule = false;
     const char* rule_id = invocation.rule_id;
+
+    m_stats_manager.inc_executed(rule_id);
 
     try
     {
@@ -247,7 +206,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
                 txn.commit();
             }
         }
-        catch (const transaction_update_conflict& e)
+        catch (const gaia::db::transaction_update_conflict& e)
         {
             // If should_schedule == false, rule scheduling failed and we drop any pending
             // invocations. We may retry our current rule and re-enqueue our pending.
@@ -265,10 +224,26 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             }
         }
     }
+    catch (const gaia::common::retail_assertion_failure& e)
+    {
+        // Always rethrow internal asserts.  Do not eat them and
+        // do not pass them along to the user's exception handler.
+        // TODO[GAIAPLAT-446]: Before shipping V1, we need to review
+        // all retail asserts to ensure that they always indicate
+        // an internal error.
+        throw;
+    }
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
-        gaia_log::rules().warn("exception: {}, {}", rule_id, e.what());
+        gaia_log::rules().warn("exception: '{}', '{}'", rule_id, e.what());
+        gaia::rules::handle_rule_exception();
+    }
+    catch (...)
+    {
+        m_stats_manager.inc_exceptions(rule_id);
+        gaia_log::rules().warn("exception: '{}', '{}'", rule_id, "Unknown exception.");
+        gaia::rules::handle_rule_exception();
     }
 
     process_pending_invocations(should_schedule);

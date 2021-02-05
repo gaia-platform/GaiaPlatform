@@ -16,6 +16,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "gaia/db/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/Attributes.h"
 #include "clang/Basic/PrettyStackTrace.h"
@@ -23,12 +30,6 @@
 #include "clang/Sema/Sema.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include "gaia_catalog.h"
-#include "gaia/db/catalog.hpp"
-
 
 using namespace gaia;
 using namespace std;
@@ -44,35 +45,55 @@ static const char *ruleContextTypeName = "rule_context__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
+    // Clang complains if we add a default clause to a switch that covers all values of an enum,
+    // so this code is written to avoid that.
+    QualType returnType = context->VoidTy;
+
     switch(dbType)
     {
         case catalog::data_type_t::e_bool:
-            return context->BoolTy;
+            returnType = context->BoolTy;
+            break;
         case catalog::data_type_t::e_int8:
-            return context->SignedCharTy;
+            returnType = context->SignedCharTy;
+            break;
         case catalog::data_type_t::e_uint8:
-            return context->UnsignedCharTy;
+            returnType = context->UnsignedCharTy;
+            break;
         case catalog::data_type_t::e_int16:
-            return context->ShortTy;
+            returnType = context->ShortTy;
+            break;
         case catalog::data_type_t::e_uint16:
-            return context->UnsignedShortTy;
+            returnType = context->UnsignedShortTy;
+            break;
         case catalog::data_type_t::e_int32:
-            return context->IntTy;
+            returnType = context->IntTy;
+            break;
         case catalog::data_type_t::e_uint32:
-            return context->UnsignedIntTy;
+            returnType = context->UnsignedIntTy;
+            break;
         case catalog::data_type_t::e_int64:
-            return context->LongLongTy;
+            returnType = context->LongLongTy;
+            break;
         case catalog::data_type_t::e_uint64:
-            return context->UnsignedLongLongTy;
+            returnType = context->UnsignedLongLongTy;
+            break;
         case catalog::data_type_t::e_float:
-            return context->FloatTy;
+            returnType = context->FloatTy;
+            break;
         case catalog::data_type_t::e_double:
-            return context->DoubleTy;
+            returnType = context->DoubleTy;
+            break;
         case catalog::data_type_t::e_string:
-            return context->getPointerType((context->CharTy).withConst());
-        default:
-            return context->VoidTy;
+            returnType = context->getPointerType((context->CharTy).withConst());
+            break;
     }
+
+    // We should not be reaching this line with this value,
+    // unless there is an error in code.
+    assert(returnType != context->VoidTy);
+
+    return returnType;
 }
 
 class DBMonitor

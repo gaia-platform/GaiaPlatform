@@ -36,35 +36,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()
 
-# Helper function for setting up our tests.
-function(set_test target arg result)
-  add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
-  set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
-endfunction(set_test)
-
-# Set expected test success output string.
-set(TEST_SUCCESS "All tests passed!")
-
-find_program(PYTHON "python")
-
-# Add custom targets for airport demo.
-if (PYTHON)
-  add_custom_target(airport sudo ${PYTHON} ../airport/setup/setup.py install)
-  add_custom_target(airport-clean sudo rm -fr build sudo rm -fr dist sudo rm -fr airport.egg-info)
-  add_custom_target(gaia-init ${PYTHON} ../airport/setup/gaia_init.py)
-endif()
-
-# Add project folders.
-add_subdirectory(cow_se)
-if (DEFINED GAIA_PROD_BUILD AND EXISTS ${GAIA_PROD_BUILD})
-  # Convert relative path to absolute path so custom commands will work if given a relative path
-  get_filename_component(GAIA_PROD_BUILD "${GAIA_PROD_BUILD}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
-  # Setup internal build variables for building incubator
-  set(GAIA_LIB "${GAIA_PROD_BUILD}/sdk/libgaia.so")
-  set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
-  set(GAIA_TRANSLATE ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat)
-  add_subdirectory(incubator)
-  add_subdirectory(tools)
-else()
-  message(STATUS "To build the incubator demo or the rule_subscriber tool, build production first and set GAIA_PROD_BUILD to the build dir.")
-endif()
+# We currently don't have any code to build under demos.
+# If any new code gets added, we can build it by hooking it up below.

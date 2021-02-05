@@ -14,9 +14,9 @@
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/write_batch.h"
 
-#include "db_types.hpp"
-#include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
+#include "gaia_internal/common/persistent_store_error.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
 
@@ -35,6 +35,7 @@ void rdb_internal_t::open_txn_db(const rocksdb::Options& init_options, const roc
     // See https://github.com/facebook/rocksdb/issues/4421
     rocksdb::TransactionDB* txn_db;
     rocksdb::Status s;
+
     s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
     if (s.ok())
     {

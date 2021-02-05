@@ -8,19 +8,20 @@
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
-#include "db_object.hpp"
-#include "db_types.hpp"
-#include "generator_iterator.hpp"
-#include "system_table_types.hpp"
+
+#include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
 
-struct catalog_se_object_view_t
+struct catalog_db_object_view_t
 {
-    explicit catalog_se_object_view_t(const se_object_t* obj_ptr)
+    explicit catalog_db_object_view_t(const db_object_t* obj_ptr)
         : m_obj_ptr{obj_ptr}
     {
     }
@@ -36,32 +37,32 @@ struct catalog_se_object_view_t
     }
 
 protected:
-    const se_object_t* m_obj_ptr;
+    const db_object_t* m_obj_ptr;
 };
 
-struct field_view_t : catalog_se_object_view_t
+struct field_view_t : catalog_db_object_view_t
 {
-    using catalog_se_object_view_t::catalog_se_object_view_t;
+    using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::data_type_t data_type() const;
     [[nodiscard]] common::field_position_t position() const;
 };
 
-struct table_view_t : catalog_se_object_view_t
+struct table_view_t : catalog_db_object_view_t
 {
-    using catalog_se_object_view_t::catalog_se_object_view_t;
+    using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::gaia_type_t table_type() const;
     [[nodiscard]] std::vector<uint8_t> binary_schema() const;
     [[nodiscard]] std::vector<uint8_t> serialization_template() const;
 };
 
-struct relationship_view_t : catalog_se_object_view_t
+struct relationship_view_t : catalog_db_object_view_t
 {
     static constexpr common::reference_offset_t c_parent_gaia_table_ref_offset = 0;
     static constexpr common::reference_offset_t c_child_gaia_table_ref_offset = 2;
 
-    using catalog_se_object_view_t::catalog_se_object_view_t;
+    using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::gaia_id_t parent_table_id() const;
     [[nodiscard]] common::gaia_id_t child_table_id() const;
@@ -115,7 +116,7 @@ struct catalog_core_t
     // The ref slot in gaia_rule pointing to the next gaia_rule.
     static constexpr common::reference_offset_t c_gaia_rule_next_gaia_rule_offset = 1;
 
-    [[nodiscard]] static inline const se_object_t* get_se_object_ptr(common::gaia_id_t);
+    [[nodiscard]] static inline const db_object_t* get_db_object_ptr(common::gaia_id_t);
 
     static table_view_t get_table(common::gaia_id_t table_id);
     static table_list_t list_tables();

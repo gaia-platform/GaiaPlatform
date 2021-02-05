@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
@@ -20,9 +22,10 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#pragma clang diagnostic pop
 
-#include "gaia_catalog.h"
-#include "gaia_version.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/gaia_version.hpp"
 
 using namespace std;
 using namespace clang;
@@ -179,7 +182,7 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
     {
         db_monitor monitor;
 
-        for (const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
+        for (const auto& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
@@ -201,7 +204,7 @@ unordered_map<string, unordered_map<string, int>> get_table_data()
             fill_table_db_data(tbl);
         }
 
-        for (const catalog::gaia_relationship_t &relationship : catalog::gaia_relationship_t::list())
+        for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
             catalog::gaia_table_t child_table = relationship.child_gaia_table();
             if (!child_table)
@@ -417,6 +420,7 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
         }
     }
 
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     string tbl = dst;
     while (table_prev[tbl] != "")
     {
@@ -1080,7 +1084,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (g_rule_context_rule_name_referenced)
         {
-            navigation_code.prefix.insert(0, "const char *gaia_rule_name = \"" + rule_name_log + "\";\n");
+            navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
         }
         if (rule_count == 1)
         {
@@ -1929,16 +1933,15 @@ public:
                 "context->gaia_type");
         }
     }
+
 private:
     Rewriter& m_rewriter;
 };
 
-
-
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
-    explicit translation_engine_consumer_t(ASTContext* context, Rewriter& r)
+    explicit translation_engine_consumer_t(ASTContext*, Rewriter& r)
         : m_field_get_match_handler(r)
         , m_field_set_match_handler(r)
         , m_rule_match_handler(r)
@@ -1950,14 +1953,10 @@ public:
         , m_none_match_handler(r)
         , m_rule_context_match_handler(r)
     {
-        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("ruleset_name"))).bind("ruleset_name");
-        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("rule_name"))).bind("rule_name");
-        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("event_type"))).bind("event_type");
-        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()),
-            member(hasName("gaia_type"))).bind("gaia_type");
+        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
+        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
+        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("event_type"))).bind("event_type");
+        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("gaia_type"))).bind("gaia_type");
 
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -2069,7 +2068,7 @@ class translation_engine_action_t : public clang::ASTFrontendAction
 {
 public:
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-        clang::CompilerInstance& compiler, llvm::StringRef in_file) override
+        clang::CompilerInstance& compiler, llvm::StringRef) override
     {
         m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         return std::unique_ptr<clang::ASTConsumer>(

@@ -7,15 +7,12 @@
 project(catalog)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
-  ${GAIA_INTERNAL_INC}/catalog
   ${GAIA_INC}
 )
 
 message(VERBOSE "GAIA_CATALOG_PUBLIC_INCLUDES=${GAIA_CATALOG_PUBLIC_INCLUDES}")
 
 set(GAIA_CATALOG_PRIVATE_INCLUDES
-  ${GAIA_INTERNAL_INC}/common
-  ${GAIA_INTERNAL_INC}/db
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}

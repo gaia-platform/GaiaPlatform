@@ -16,7 +16,7 @@ namespace db
 
 // This was factored out of gaia_ptr.hpp because the server needs to know
 // the object format but doesn't need any gaia_ptr functionality.
-struct se_object_t
+struct db_object_t
 {
     // Adjust this if gaia_se_object_t::payload_size ever changes size.
     static constexpr uint16_t c_max_payload_size = std::numeric_limits<uint16_t>::max();

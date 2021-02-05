@@ -10,14 +10,15 @@
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
+
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
 #include "rdb_internal.hpp"
 #include "rdb_object_converter.hpp"
-#include "system_table_types.hpp"
 
 using namespace std;
 
@@ -26,9 +27,9 @@ using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
-// Todo (Mihir) Take as input to some options file. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-323
-
-string persistent_store_manager::s_data_dir_path = persistent_store_manager::c_data_dir_default_path;
+// There is no built-in path to the data directory - it must be specified by configuration
+// or command-line.
+string persistent_store_manager::s_data_dir_path{};
 
 persistent_store_manager::persistent_store_manager()
     : m_counters(get_shared_counters()), m_locators(get_shared_locators())
@@ -180,7 +181,7 @@ void persistent_store_manager::recover()
 
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
-        se_object_t* recovered_object = decode_object(it->key(), it->value());
+        db_object_t* recovered_object = decode_object(it->key(), it->value());
         if (recovered_object->type > max_type_id && recovered_object->type < c_system_table_reserved_range_start)
         {
             max_type_id = recovered_object->type;

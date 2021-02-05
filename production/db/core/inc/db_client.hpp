@@ -6,13 +6,15 @@
 #pragma once
 
 #include "gaia/db/db.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/triggers.hpp"
+
 #include "db_shared_data.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
-#include "retail_assert.hpp"
 #include "stack_allocator.hpp"
-#include "system_table_types.hpp"
-#include "triggers.hpp"
 
 namespace gaia
 {
@@ -74,8 +76,10 @@ public:
 
 private:
     // These fields have transaction lifetime.
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
+
     thread_local static inline locators_t* s_locators = nullptr;
 
     // These fields have session lifetime.
@@ -84,7 +88,6 @@ private:
     thread_local static inline shared_data_t* s_data = nullptr;
     thread_local static inline shared_id_index_t* s_id_index = nullptr;
     thread_local static inline int s_session_socket = -1;
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.

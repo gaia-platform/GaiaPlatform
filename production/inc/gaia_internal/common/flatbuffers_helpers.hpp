@@ -10,7 +10,7 @@
 #include <limits>
 #include <vector>
 
-#include "retail_assert.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {

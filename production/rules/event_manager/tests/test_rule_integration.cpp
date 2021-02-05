@@ -18,12 +18,14 @@
 #include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
-#include "db_test_base.hpp"
-#include "ddl_execution.hpp"
+
+#include "gaia_internal/catalog/ddl_execution.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
+
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_catalog.h"
-#include "timer.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -48,13 +50,9 @@ atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
-optional_timer_t g_timer;
-steady_clock::time_point g_start;
-
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -100,7 +98,6 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule update_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -109,7 +106,6 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule field_phone_number");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
@@ -118,7 +114,6 @@ void rule_field_phone_number(const rule_context_t* context)
 
 void rule_field_phone_type(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule field_phone_type");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_type, p.type());
@@ -127,7 +122,6 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
-    g_timer.log_duration(g_start, "latency to rule delete");
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -138,14 +132,6 @@ void rule_sleep(const rule_context_t*)
 {
     sleep(1);
     g_wait_for_count--;
-}
-
-void rule_bad(const rule_context_t*)
-{
-
-    employee_t bad;
-    // Accessing this object should throw an exception since the employee does not exist in the database.
-    bad = bad.get_next();
 }
 
 void rule_conflict(const rule_context_t* context)
@@ -233,12 +219,6 @@ public:
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
-    void subscribe_bad()
-    {
-        rule_binding_t rule{"ruleset", "rule_bad", rule_bad};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
-    }
-
     // We have two rules:  rule_field_phone_number and rule_phone_type.
     // The former is fired when phone_number changes and the latter is
     // fired when the type changes.  Both will fire if the 'primary' field
@@ -290,9 +270,6 @@ protected:
         // Otherwise, the event log activities will cause out of order test table IDs.
         load_catalog(ddl_file);
 
-        // NOTE: uncomment next line to get latency measurements.
-        // g_timer.set_enabled(true);
-
         event_manager_settings_t settings;
 
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
@@ -330,7 +307,6 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 
@@ -356,7 +332,6 @@ TEST_F(rule_integration_test, test_delete)
         employee_t e = employee_t::get(writer.insert_row());
         txn.commit();
         e.delete_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -374,7 +349,6 @@ TEST_F(rule_integration_test, test_update)
         writer = e.writer();
         writer.name_first = c_name;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -393,7 +367,6 @@ TEST_F(rule_integration_test, test_update_field)
         writer = p.writer();
         writer.phone_number = c_phone_number;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -415,7 +388,6 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -440,7 +412,6 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
-            g_start = g_timer.get_time_point();
             txn.commit();
         }
 
@@ -450,7 +421,6 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
             writer.update_row();
-            g_start = g_timer.get_time_point();
             txn.commit();
         }
     }
@@ -478,7 +448,6 @@ TEST_F(rule_integration_test, test_two_rules)
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
-        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -584,24 +553,6 @@ TEST_F(rule_integration_test, test_reinit)
 
     // Should be okay to call init twice.
     gaia::rules::initialize_rules_engine();
-    gaia::rules::initialize_rules_engine();
-}
-
-// Ensures the exception is caught by the rules engine and
-// doesn't escape to the test process.
-TEST_F(rule_integration_test, test_exception)
-{
-    subscribe_bad();
-    {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        employee_writer writer;
-        writer.name_first = c_name;
-        writer.insert_row();
-        txn.commit();
-    }
-    // Shut down the rules engine to ensure the rule fires.
-    gaia::rules::shutdown_rules_engine();
-    // And reinitialize to provide harmony for other tests.
     gaia::rules::initialize_rules_engine();
 }
 

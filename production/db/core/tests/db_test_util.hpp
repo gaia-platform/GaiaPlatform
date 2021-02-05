@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "gaia_ptr.hpp"
-#include "type_metadata.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
+#include "gaia_internal/db/type_metadata.hpp"
 
 using namespace std;
 using namespace gaia::db;

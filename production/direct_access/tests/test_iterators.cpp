@@ -14,7 +14,9 @@
 #include "gtest/gtest.h"
 
 #include "gaia/direct_access/edc_iterators.hpp"
-#include "db_catalog_test_base.hpp"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
+
 #include "gaia_addr_book.h"
 
 using namespace std;
@@ -49,22 +51,22 @@ public:
 
     // Use operator overloading to call the right begin and end methods.  Ignore
     // the parameter, however.
-    T_iterator get_begin(gaia_iterator_t<address_t>&)
+    T_iterator get_begin(edc_iterator_t<address_t>&)
     {
         return address_t::list().begin();
     }
 
-    T_iterator get_begin(gaia_set_iterator_t<address_t, c_next_addressee_address>&)
+    T_iterator get_begin(edc_set_iterator_t<address_t>&)
     {
         return m_employee.addressee_address_list().begin();
     }
 
-    T_iterator get_end(gaia_iterator_t<address_t>&)
+    T_iterator get_end(edc_iterator_t<address_t>&)
     {
         return address_t::list().end();
     }
 
-    T_iterator get_end(gaia_set_iterator_t<address_t, c_next_addressee_address>&)
+    T_iterator get_end(edc_set_iterator_t<address_t>&)
     {
         return m_employee.addressee_address_list().end();
     }
@@ -75,7 +77,7 @@ private:
 
 // Set up the test suite to test the gaia_iterator and gaia_set_iterator types.
 using iterator_types
-    = ::testing::Types<gaia_iterator_t<address_t>, gaia_set_iterator_t<address_t, c_next_addressee_address>>;
+    = ::testing::Types<edc_iterator_t<address_t>, edc_set_iterator_t<address_t>>;
 TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 
 // Tests for LegacyIterator conformance
@@ -107,7 +109,7 @@ TYPED_TEST(iterator_conformance_t, swappable)
     EXPECT_TRUE(is_swappable<TypeParam>::value) << "The iterator is not Swappable as an lvalue.";
 }
 
-// Does iterator_traits<gaia_iterator_t<edc*>> have member typedefs
+// Does iterator_traits<edc_iterator_t<edc*>> have member typedefs
 // value_type, difference_type, reference, pointer, and iterator_category?
 TYPED_TEST(iterator_conformance_t, iterator_traits)
 {

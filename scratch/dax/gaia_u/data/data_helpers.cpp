@@ -124,7 +124,7 @@ void event_planner::delete_buildings()
     {
         //Disconnect from campus
         auto campus = building.Campus();
-        campus.Buildings_list().erase(building);
+        campus.Buildings_list().remove(building);
         building.delete_row();
     }
     tx.commit();
@@ -150,7 +150,7 @@ void event_planner::delete_rooms()
     for (auto room = Rooms_t::get_first() ; room ; room = Rooms_t::get_first())
     {
         // Disconnnect from any buildings
-        room.Buildings().Rooms_list().erase(room);
+        room.Buildings().Rooms_list().remove(room);
         // now delete
         room.delete_row();
     }
@@ -230,7 +230,7 @@ void event_planner::delete_students()
     {
         // Disconnect from Persons
         auto person = s.Persons();
-        person.Students_list().erase(s);
+        person.Students_list().remove(s);
         s.delete_row();
     }
     tx.commit();
@@ -263,7 +263,7 @@ void event_planner::delete_staff()
     for (auto s = Staff_t::get_first() ; s; s = Staff_t::get_first())
     {
         // Disconnect from Persons
-        s.Persons().Staff_list().erase(s);
+        s.Persons().Staff_list().remove(s);
         s.delete_row();
     }
     tx.commit();
@@ -290,7 +290,7 @@ void event_planner::delete_parents()
     for (auto p = Parents_t::get_first() ; p; p = Parents_t::get_first())
     {
         // Disconnect from Persons
-        p.Persons().Parents_list().erase(p);
+        p.Persons().Parents_list().remove(p);
         p.delete_row();
     }
     tx.commit();
@@ -322,9 +322,9 @@ void event_planner::delete_registrations()
     for (auto r = Registrations_t::get_first() ; r; r = Registrations_t::get_first())
     {
         // Disconnect from Event
-        r.Events().Registrations_list().erase(r);
+        r.Events().Registrations_list().remove(r);
         // Disconnect from Student
-        r.Students().Registrations_list().erase(r);
+        r.Students().Registrations_list().remove(r);
         r.delete_row();
     }
     tx.commit();
@@ -366,12 +366,12 @@ void event_planner::delete_events()
     for (auto e = Events_t::get_first() ; e; e = Events_t::get_first())
     {
         // Disconnect from Staff
-        e.Staff().Events_list().erase(e);
+        e.Staff().Events_list().remove(e);
         
         // Disconnect from Room
         if (e.Rooms())
         {
-            e.Rooms().Events_list().erase(e);
+            e.Rooms().Events_list().remove(e);
         }
 
         e.delete_row();
@@ -401,7 +401,7 @@ void event_planner::delete_restrictions()
     {
         //Disconnect from campus
         auto campus = r.Campus();
-        campus.Restrictions_list().erase(r);
+        campus.Restrictions_list().remove(r);
         r.delete_row();
     }
     tx.commit();

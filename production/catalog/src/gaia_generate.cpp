@@ -10,7 +10,9 @@
 #include "flatbuffers/code_generators.h"
 
 #include "gaia/db/catalog.hpp"
-#include "gaia_catalog.h"
+
+#include "gaia_internal/catalog/gaia_catalog.h"
+
 #include "type_id_mapping.hpp"
 
 using namespace std;
@@ -267,10 +269,10 @@ static string generate_edc_struct(
     code.SetValue("TABLE_NAME", table_record.name());
     code.SetValue("POSITION", to_string(table_type_id));
 
-    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, "
-            "c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
-    code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
-            "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
+    code += "typedef gaia::direct_access::edc_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
+            "{{TABLE_NAME}}_writer;";
+    code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
+            "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> {";
 
     code.IncrementIdentLevel();
 
@@ -287,23 +289,19 @@ static string generate_edc_struct(
         {
             code.SetValue("REF_NAME", relationship.name());
 
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_t, "
-                    "c_parent_{{REF_NAME}}_{{CHILD_TABLE}}, "
-                    "c_first_{{REF_NAME}}_{{CHILD_TABLE}}, c_next_{{REF_NAME}}_{{CHILD_TABLE}}> "
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
                     "{{REF_NAME}}_{{CHILD_TABLE}}_list_t;";
         }
         else
         {
             // This relationship is anonymous.
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_t, "
-                    "c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}, "
-                    "c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}}, c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}}> "
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
                     "{{CHILD_TABLE}}_list_t;";
         }
     }
 
     // Default public constructor.
-    code += "{{TABLE_NAME}}_t() : gaia_object_t(\"{{TABLE_NAME}}_t\") {}";
+    code += "{{TABLE_NAME}}_t() : edc_object_t(\"{{TABLE_NAME}}_t\") {}";
 
     // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or
     // as Create{{TABLE_NAME}}Direct. The choice is determined by whether any of the
@@ -329,7 +327,7 @@ static string generate_edc_struct(
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
     }
 
-    code += "using gaia_object_t::insert_row;";
+    code += "using edc_object_t::insert_row;";
 
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
@@ -359,7 +357,7 @@ static string generate_edc_struct(
     }
     param_list += "));";
     code += param_list;
-    code += "return gaia_object_t::insert_row(b);";
+    code += "return edc_object_t::insert_row(b);";
     code.DecrementIdentLevel();
     code += "}";
 
@@ -390,9 +388,9 @@ static string generate_edc_struct(
     }
 
     // The table range.
-    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
     code.IncrementIdentLevel();
-    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
     code += "return list;";
     code.DecrementIdentLevel();
     code += "}";
@@ -403,6 +401,7 @@ static string generate_edc_struct(
         bool is_named_relationship = (0 < strlen(relationship.name()));
 
         code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
 
         if (is_named_relationship)
         {
@@ -411,7 +410,8 @@ static string generate_edc_struct(
             code += "{{REF_NAME}}_{{CHILD_TABLE}}_list_t {{REF_NAME}}_{{CHILD_TABLE}}_list() const {";
 
             code.IncrementIdentLevel();
-            code += "return {{REF_NAME}}_{{CHILD_TABLE}}_list_t(gaia_id());";
+            code += "return {{REF_NAME}}_{{CHILD_TABLE}}_list_t(gaia_id(), "
+                    "c_first_{{REF_NAME}}_{{CHILD_TABLE}}, c_next_{{REF_NAME}}_{{CHILD_TABLE}});";
         }
         else
         {
@@ -419,7 +419,8 @@ static string generate_edc_struct(
             code += "{{CHILD_TABLE}}_list_t {{CHILD_TABLE}}_list() const {";
 
             code.IncrementIdentLevel();
-            code += "return {{CHILD_TABLE}}_list_t(gaia_id());";
+            code += "return {{CHILD_TABLE}}_list_t(gaia_id(), "
+                    "c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}}, c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}});";
         }
         code.DecrementIdentLevel();
         code += "}";
@@ -429,11 +430,11 @@ static string generate_edc_struct(
     code.DecrementIdentLevel();
     code += "private:";
     code.IncrementIdentLevel();
-    code += "friend struct gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
-            "internal::{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+    code += "friend struct edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+            "internal::{{TABLE_NAME}}T>;";
 
     // The constructor.
-    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
+    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
     code.DecrementIdentLevel();

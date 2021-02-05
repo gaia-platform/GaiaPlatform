@@ -11,9 +11,6 @@ endif()
 
 set(GAIA_CATALOG_INCLUDES
   ${GAIA_INC}
-  ${GAIA_INTERNAL_INC}/catalog
-  ${GAIA_INTERNAL_INC}/common
-  ${GAIA_INTERNAL_INC}/db
   ${FLATBUFFERS_INC}
 )
 

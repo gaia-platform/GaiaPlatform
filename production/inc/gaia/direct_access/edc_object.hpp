@@ -36,28 +36,27 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-struct gaia_writer_t;
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+struct edc_writer_t;
 
 /**
- * The gaia_object_t that must be specialized to operate on a flatbuffer type.
+ * The edc_object_t that must be specialized to operate on a flatbuffer type.
  *
  * @tparam T_gaia_type an integer (gaia_type_t) uniquely identifying the flatbuffer table type
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
- * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-struct gaia_object_t : gaia_base_t
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+struct edc_object_t : edc_base_t
 {
 public:
-    explicit gaia_object_t(const char* gaia_typename);
+    explicit edc_object_t(const char* gaia_typename);
 
     /**
      * Return a reference that is pre-populated with values from the row
      */
-    gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references> writer();
+    edc_writer_t<T_gaia_type, T_gaia, T_fb, T_obj> writer();
 
     /**
      * This can be used for subscribing to rules when you don't
@@ -66,7 +65,7 @@ public:
     static gaia::common::gaia_type_t s_gaia_type;
 
     /**
-     * This can be used when you are passed a gaia_base_t
+     * This can be used when you are passed a edc_base_t
      * object and want to know the type at runtime.
      */
     gaia::common::gaia_type_t gaia_type() override
@@ -124,14 +123,14 @@ public:
      * Returns true if the gaia locator these objects represent
      * is the same.
      */
-    bool operator==(const gaia_object_t& other) const;
+    bool operator==(const edc_object_t& other) const;
 
 protected:
     /**
      * This constructor supports creating new objects from existing
      * nodes in the database.  It is called by our get_object below.
      */
-    gaia_object_t(gaia::common::gaia_id_t id, const char* gaia_typename);
+    edc_object_t(gaia::common::gaia_id_t id, const char* gaia_typename);
 
     /**
      * Insert a mutable flatbuffer into a newly created database object. This will be
@@ -154,10 +153,10 @@ protected:
     static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
 };
 
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-struct gaia_writer_t : public T_obj, edc_db_t
+template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+struct edc_writer_t : public T_obj, edc_db_t
 {
-    gaia_writer_t() = default;
+    edc_writer_t() = default;
 
     /**
      * Insert the values in this new object into a newly created database object.
@@ -178,7 +177,7 @@ private:
         gaia::common::gaia_id_t id;
     } m_gaia;
 
-    friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>;
+    friend edc_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
 };
 
 /*@}*/

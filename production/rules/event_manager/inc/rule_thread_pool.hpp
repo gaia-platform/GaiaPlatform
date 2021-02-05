@@ -12,9 +12,11 @@
 #include <variant>
 
 #include "gaia/rules/rules.hpp"
+
+#include "gaia_internal/db/triggers.hpp"
+
 #include "gaia_event_log.h"
 #include "rule_stats_manager.hpp"
-#include "triggers.hpp"
 
 namespace gaia
 {
@@ -24,19 +26,6 @@ namespace rules
 class rule_thread_pool_t
 {
 public:
-    enum class invocation_type_t : uint8_t
-    {
-        not_set,
-        rule,
-        log_events
-    };
-
-    struct log_events_invocation_t
-    {
-        const db::triggers::trigger_event_list_t events;
-        const std::vector<bool> rules_invoked;
-    };
-
     struct rule_invocation_t
     {
         gaia_rule_fn rule_fn;
@@ -48,8 +37,7 @@ public:
 
     struct invocation_t
     {
-        invocation_type_t type;
-        std::variant<rule_invocation_t, log_events_invocation_t> args;
+        rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
         uint32_t num_retries{0};
@@ -106,21 +94,7 @@ public:
 private:
     void rule_worker(int32_t& count_busy_workers);
 
-    void inline invoke_rule(invocation_t& invocation)
-    {
-        const char* rule_id = invocation.rule_id;
-        if (invocation_type_t::rule == invocation.type)
-        {
-            m_stats_manager.inc_executed(rule_id);
-            invoke_user_rule(invocation);
-        }
-        else
-        {
-            log_events(invocation);
-        }
-    }
-
-    void invoke_user_rule(invocation_t& invocation);
+    void invoke_rule(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
     // Each thread has a copy of these two variables to determine

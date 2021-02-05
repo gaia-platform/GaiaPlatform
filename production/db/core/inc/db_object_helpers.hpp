@@ -8,10 +8,12 @@
 #include <cstring>
 
 #include "gaia/common.hpp"
+
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+
 #include "db_hash_map.hpp"
 #include "db_internal_types.hpp"
-#include "db_object.hpp"
-#include "db_types.hpp"
 
 namespace gaia
 {
@@ -21,7 +23,7 @@ namespace db
 // Helper methods to properly construct and allocate an object given either
 // references + data or the whole payload.
 
-inline se_object_t* create_object(
+inline db_object_t* create_object(
     gaia::common::gaia_id_t id, gaia::common::gaia_type_t type,
     size_t num_refs, const gaia::common::gaia_id_t* refs,
     size_t obj_data_size, const void* obj_data)
@@ -30,8 +32,8 @@ inline se_object_t* create_object(
     size_t total_len = obj_data_size + ref_len;
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    allocate_object(hash_node->locator, total_len + sizeof(se_object_t));
-    se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
+    allocate_object(hash_node->locator, total_len + sizeof(db_object_t));
+    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;
@@ -44,15 +46,15 @@ inline se_object_t* create_object(
     return obj_ptr;
 }
 
-inline se_object_t* create_object(
+inline db_object_t* create_object(
     gaia::common::gaia_id_t id, gaia::common::gaia_type_t type,
     size_t num_refs, size_t obj_data_size,
     const void* obj_data)
 {
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator, obj_data_size + sizeof(se_object_t));
-    se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
+    gaia::db::allocate_object(hash_node->locator, obj_data_size + sizeof(db_object_t));
+    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;
@@ -61,7 +63,7 @@ inline se_object_t* create_object(
     return obj_ptr;
 }
 
-inline se_object_t* id_to_ptr(gaia_id_t id)
+inline db_object_t* id_to_ptr(gaia_id_t id)
 {
     gaia_locator_t locator = gaia::db::db_hash_map::find(id);
     retail_assert(

@@ -1,0 +1,48 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+# {SDK-SETUP:CMAKE} - Do not remove this line
+
+# Set the project name.
+project(incubator)
+
+# {SDK-SETUP:CXX_STANDARD} - Do not remove this line
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GAIA_LINK_FLAGS "-ggdb -pthread")
+
+# Enable AddressSanitizer in debug mode.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+endif()
+
+# {SDK-SETUP:VARS} - Do not remove this line
+set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
+set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
+
+# --- Generate EDC from DDL---
+process_schema(
+  DDL_FILE ${INCUBATOR_DDL}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
+
+# -- Translate ruleset into CPP --
+translate_ruleset(
+  RULESET_FILE ${INCUBATOR_RULESET}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
+  DEPENDS generate_incubator_headers)
+
+add_library(gaia SHARED IMPORTED GLOBAL)
+set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB})
+
+add_executable(incubator
+  incubator.cpp
+  ${PROJECT_BINARY_DIR}/incubator_ruleset.cpp
+)
+
+add_dependencies(incubator translate_incubator_ruleset)
+set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(incubator PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_include_directories(incubator PRIVATE ${GAIA_INC} ${PROJECT_BINARY_DIR})
+target_link_libraries(incubator PRIVATE gaia rt pthread)
