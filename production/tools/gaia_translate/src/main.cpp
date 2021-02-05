@@ -917,9 +917,6 @@ void generate_rules(Rewriter& rewriter)
             .append(rule_name)
             .append("binding);\n");
 
-        g_current_ruleset_subscription.append("\n");
-        g_current_ruleset_unsubscription.append("\n");
-
         // optimization to reuse the same rule function and rule_binding_t
         // for the same table
         if (g_insert_tables.find(table) != g_insert_tables.end())
@@ -944,6 +941,9 @@ void generate_rules(Rewriter& rewriter)
 
             g_insert_tables.erase(table);
         }
+
+        g_current_ruleset_subscription.append("\n");
+        g_current_ruleset_unsubscription.append("\n");
 
         navigation_code_data_t navigation_code = generate_navigation_code(table);
         string function_prologue = "\n";
