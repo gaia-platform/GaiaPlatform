@@ -27,8 +27,10 @@ constexpr size_t c_max_msg_size = 1 << 10;
 
 // This is the value of SCM_MAX_FD according to the manpage for unix(7).
 // constexpr size_t c_max_fd_count = 253;
-// This seems to be the largest value that doesn't make sendmsg() return EINVAL.
-constexpr size_t c_max_fd_count = 4;
+
+// Set to a reasonable value for a stack buffer (eventually helper functions
+// will be templated on max fd count).
+constexpr size_t c_max_fd_count = 16;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
@@ -111,7 +113,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     if (fds)
     {
         msg.msg_control = control.buf;
-        msg.msg_controllen = sizeof(control.buf);
+        msg.msg_controllen = CMSG_SPACE(sizeof(int) * fd_count);
         struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
@@ -188,7 +190,7 @@ inline size_t recv_msg_with_fds(
     if (fds)
     {
         msg.msg_control = control.buf;
-        msg.msg_controllen = sizeof(control.buf);
+        msg.msg_controllen = CMSG_SPACE(sizeof(int) * *pfd_count);
     }
     ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
     retail_assert(
