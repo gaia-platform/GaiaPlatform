@@ -47,6 +47,7 @@ table memory_allocation_info_t {
 
 table transaction_info_t {
     transaction_id: uint64;
+    log_fd_count: uint64;
 }
 
 union reply_data_t {
