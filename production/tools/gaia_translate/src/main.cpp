@@ -920,6 +920,31 @@ void generate_rules(Rewriter& rewriter)
         g_current_ruleset_subscription.append("\n");
         g_current_ruleset_unsubscription.append("\n");
 
+        // optimization to reuse the same rule function and rule_binding_t
+        // for the same table
+        if (g_insert_tables.find(table) != g_insert_tables.end())
+        {
+            g_current_ruleset_subscription
+                .append("    subscribe_rule(gaia::")
+                .append(g_table_db_data[table])
+                .append("::")
+                .append(table)
+                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+                .append(rule_name)
+                .append("binding);\n");
+
+            g_current_ruleset_unsubscription
+                .append("    unsubscribe_rule(gaia::")
+                .append(g_table_db_data[table])
+                .append("::")
+                .append(table)
+                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+                .append(rule_name)
+                .append("binding);\n");
+
+            g_insert_tables.erase(table);
+        }
+
         navigation_code_data_t navigation_code = generate_navigation_code(table);
         string function_prologue = "\n";
         function_prologue
