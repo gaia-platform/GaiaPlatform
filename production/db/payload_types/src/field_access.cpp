@@ -314,6 +314,12 @@ data_holder_t get_field_value(
         // so just set the string_value to nullptr as well.
         result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
     }
+    else if (field->type()->base_type() == reflection::Vector)
+    {
+        auto field_value = flatbuffers::GetFieldAnyV(*root_table, *field);
+        result.hold.vector_value.data = (field_value == nullptr) ? nullptr : field_value->Data();
+        result.hold.vector_value.size = (field_value == nullptr) ? 0 : field_value->size();
+    }
     else
     {
         throw unhandled_field_type(field->type()->base_type());

@@ -42,13 +42,29 @@ int data_holder_t::compare(const data_holder_t& other) const
             return strcmp(hold.string_value, other.hold.string_value);
         }
     }
+    else if (type == reflection::Vector)
+    {
+        if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
+        {
+            return 0;
+        }
+        else if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
+        {
+            return (hold.vector_value.data == nullptr) ? -1 : 1;
+        }
+        else
+        {
+            return memcmp(hold.vector_value.data, other.hold.vector_value.data, hold.vector_value.size);
+        }
+    }
     else if (flatbuffers::IsInteger(type))
     {
         if (is_signed_integer(type))
         {
             return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : (hold.integer_value > other.hold.integer_value) ? 1 : -1;
+                : (hold.integer_value > other.hold.integer_value) ? 1
+                                                                  : -1;
         }
         else
         {
@@ -67,7 +83,8 @@ int data_holder_t::compare(const data_holder_t& other) const
     {
         return (hold.float_value == other.hold.float_value)
             ? 0
-            : (hold.float_value > other.hold.float_value) ? 1 : -1;
+            : (hold.float_value > other.hold.float_value) ? 1
+                                                          : -1;
     }
     else
     {
