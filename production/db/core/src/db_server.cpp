@@ -167,13 +167,13 @@ void server::handle_begin_txn(
     // Send all txn log fds to the client in an additional sequence of dummy messages.
     // We need a 1-byte dummy message buffer due to our datagram size convention.
     uint8_t msg_buf[1] = {0};
-    size_t fds_written = 0;
-    while (fds_written < txn_log_fds.size())
+    size_t fds_written_count = 0;
+    while (fds_written_count < txn_log_fds.size())
     {
-        size_t fds_to_write_count = std::min(c_max_fd_count, txn_log_fds.size() - fds_written);
+        size_t fds_to_write_count = std::min(c_max_fd_count, txn_log_fds.size() - fds_written_count);
         send_msg_with_fds(
-            s_session_socket, txn_log_fds.data() + fds_written, fds_to_write_count, msg_buf, sizeof(msg_buf));
-        fds_written += fds_to_write_count;
+            s_session_socket, txn_log_fds.data() + fds_written_count, fds_to_write_count, msg_buf, sizeof(msg_buf));
+        fds_written_count += fds_to_write_count;
     }
 
     // Now we need to close all the duplicated log fds in the buffer.
