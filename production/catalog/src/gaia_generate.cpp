@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "flatbuffers/code_generators.h"
-#include <bits/stdint-uintn.h>
 
 #include "gaia/db/catalog.hpp"
 

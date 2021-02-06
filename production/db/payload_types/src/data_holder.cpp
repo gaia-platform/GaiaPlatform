@@ -63,8 +63,7 @@ int data_holder_t::compare(const data_holder_t& other) const
         {
             return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : (hold.integer_value > other.hold.integer_value) ? 1
-                                                                  : -1;
+                : ((hold.integer_value > other.hold.integer_value) ? 1 : -1);
         }
         else
         {
@@ -83,8 +82,7 @@ int data_holder_t::compare(const data_holder_t& other) const
     {
         return (hold.float_value == other.hold.float_value)
             ? 0
-            : (hold.float_value > other.hold.float_value) ? 1
-                                                          : -1;
+            : ((hold.float_value > other.hold.float_value) ? 1 : -1);
     }
     else
     {
