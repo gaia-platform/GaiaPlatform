@@ -68,7 +68,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint32, 1));
         fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_uint8, 0));
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_string, 1));
         fields.emplace_back(
             make_unique<ref_field_def_t>(
@@ -559,7 +559,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     }
 
     string fbs{generate_fbs(db_name, table_name, fields)};
-    string bfbs{generate_bfbs(fbs)};
+    auto bfbs = generate_bfbs(fbs);
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
@@ -569,7 +569,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         table_name.c_str(),
         table_type,
         is_system,
-        bfbs.c_str(),
+        &bfbs,
         bin.c_str());
 
     gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);

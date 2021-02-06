@@ -5,6 +5,7 @@
 
 #include "gaia_fdw_adapter.hpp"
 
+#include "lib/stringinfo.h"
 /*
  * PostgresSQL "port.h" tries to replace printf() and friends with macros to
  * their own versions. This leads to build error in other headers like spdlog.
@@ -253,10 +254,10 @@ void adapter_t::initialize_caches()
             table_view.name(), table_view.table_type(), table_view.id());
 
         string table_name(table_view.name());
-        vector<uint8_t> binary_schema = table_view.binary_schema();
+        auto binary_schema = table_view.binary_schema();
         vector<uint8_t> serialization_template = table_view.serialization_template();
 
-        if (binary_schema.size() == 0)
+        if (binary_schema->size() == 0)
         {
             elog(ERROR, "Table '%s' is missing binary schema data!", table_view.name());
         }
@@ -270,8 +271,8 @@ void adapter_t::initialize_caches()
 
         initialize_type_information_from_binary_schema(
             type_information.get(),
-            binary_schema.data(),
-            binary_schema.size());
+            binary_schema->data(),
+            binary_schema->size());
 
         type_information.get()->set_serialization_template(serialization_template);
 

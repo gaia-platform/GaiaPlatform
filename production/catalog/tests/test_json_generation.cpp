@@ -6,6 +6,7 @@
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
 
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "fbs_generator.hpp"
@@ -99,11 +100,11 @@ TEST_F(json_generation_test, get_bin)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     begin_transaction();
-    vector<uint8_t> bfbs = get_bfbs(table_id);
+    auto bfbs = gaia_table_t::get(table_id).binary_schema();
     vector<uint8_t> bin = get_bin(table_id);
     commit_transaction();
 
-    const uint8_t* binary_schema = bfbs.data();
+    const uint8_t* binary_schema = bfbs->data();
     const uint8_t* serialized_data = bin.data();
     size_t serialized_data_size = bin.size();
 

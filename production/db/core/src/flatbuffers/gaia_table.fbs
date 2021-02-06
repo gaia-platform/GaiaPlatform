@@ -3,7 +3,7 @@ table gaia_table {
     name:string;
     type:uint32;
     is_system:bool;
-    binary_schema:string;
+    binary_schema:[uint8];
     serialization_template:string;
 }
 root_type gaia_table;

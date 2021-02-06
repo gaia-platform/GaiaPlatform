@@ -60,22 +60,7 @@ TEST_F(fbs_generation_test, generate_bfbs)
     string test_table_name{"test_fbs_generation"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
-    string bfbs = generate_bfbs(fbs);
-
-    // The generated bfbs is basd64 encoded.
-    // There is not much validation we can do for the base64 beforing decoding.
-    // The get_bfbs test below will validate the result using FlatBuffers reflection APIs.
-    ASSERT_GT(bfbs.size(), 0);
-}
-
-TEST_F(fbs_generation_test, get_bfbs)
-{
-    string test_table_name{"bfbs_test"};
-
-    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
-    begin_transaction();
-    vector<uint8_t> bfbs = get_bfbs(table_id);
-    commit_transaction();
+    vector<uint8_t> bfbs = generate_bfbs(fbs);
 
     ASSERT_GT(bfbs.size(), 0);
     flatbuffers::Verifier verifier(bfbs.data(), bfbs.size());

@@ -53,10 +53,9 @@ namespace db
     return catalog::Getgaia_table(m_obj_ptr->data())->type();
 }
 
-[[nodiscard]] std::vector<uint8_t> table_view_t::binary_schema() const
+[[nodiscard]] const flatbuffers::Vector<uint8_t>* table_view_t::binary_schema() const
 {
-    return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(m_obj_ptr->data())->binary_schema()->c_str());
+    return catalog::Getgaia_table(m_obj_ptr->data())->binary_schema();
 }
 
 [[nodiscard]] std::vector<uint8_t> table_view_t::serialization_template() const

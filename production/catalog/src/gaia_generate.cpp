@@ -13,6 +13,7 @@
 #include "gaia/db/catalog.hpp"
 
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/retail_assert.hpp"
 
 #include "type_id_mapping.hpp"
 
@@ -30,37 +31,65 @@ const string c_indent_string("    ");
 typedef std::vector<gaia_field_t> field_vector_t;
 typedef std::vector<gaia_relationship_t> relationship_vector_t;
 
-static string field_cpp_type_string(const gaia_field_t& field)
+static string field_cpp_type_string(const gaia_field_t& field, bool is_param = false)
 {
-    switch (static_cast<data_type_t>(field.type()))
+    string type_str;
+
+    auto get_type = [type = static_cast<data_type_t>(field.type())]() -> string {
+        switch (type)
+        {
+        case data_type_t::e_bool:
+            return "bool";
+        case data_type_t::e_int8:
+            return "int8_t";
+        case data_type_t::e_uint8:
+            return "uint8_t";
+        case data_type_t::e_int16:
+            return "int16_t";
+        case data_type_t::e_uint16:
+            return "uint16_t";
+        case data_type_t::e_int32:
+            return "int32_t";
+        case data_type_t::e_uint32:
+            return "uint32_t";
+        case data_type_t::e_int64:
+            return "int64_t";
+        case data_type_t::e_uint64:
+            return "uint64_t";
+        case data_type_t::e_float:
+            return "float";
+        case data_type_t::e_double:
+            return "double";
+        case data_type_t::e_string:
+            return "const char*";
+        default:
+            retail_assert(false, "Unknown type!");
+        }
+    };
+
+    if (field.repeated_count() == 1)
     {
-    case data_type_t::e_bool:
-        return "bool";
-    case data_type_t::e_int8:
-        return "int8_t";
-    case data_type_t::e_uint8:
-        return "uint8_t";
-    case data_type_t::e_int16:
-        return "int16_t";
-    case data_type_t::e_uint16:
-        return "uint16_t";
-    case data_type_t::e_int32:
-        return "int32_t";
-    case data_type_t::e_uint32:
-        return "uint32_t";
-    case data_type_t::e_int64:
-        return "int64_t";
-    case data_type_t::e_uint64:
-        return "uint64_t";
-    case data_type_t::e_float:
-        return "float";
-    case data_type_t::e_double:
-        return "double";
-    case data_type_t::e_string:
-        return "const char*";
-    default:
-        throw gaia::common::gaia_exception("Unknown type!");
+        type_str = get_type();
     }
+    else if (field.repeated_count() == 0)
+    {
+        if (is_param)
+        {
+            type_str = "const std::vector<" + get_type() + ">*";
+        }
+        else
+        {
+            type_str = "const flatbuffers::Vector<" + get_type() + ">*";
+        }
+    }
+    else
+    {
+        // We should report the input error to the user at data definition time.
+        // If we find fixed size array definition here, it will be either data
+        // corruption or bugs in catching user input errors.
+        retail_assert(false, "Fixed size array is not supported");
+    }
+    return type_str;
 }
 
 // List the relationships where table appear as parent, sorted by offset.
@@ -337,7 +366,7 @@ static string generate_edc_struct(
         {
             first = false;
         }
-        param_list += field_cpp_type_string(f) + " ";
+        param_list += field_cpp_type_string(f, true) + " ";
         param_list += f.name();
     }
     code += param_list + ") {";
