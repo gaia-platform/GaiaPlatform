@@ -54,7 +54,20 @@ int data_holder_t::compare(const data_holder_t& other) const
         }
         else
         {
-            return memcmp(hold.vector_value.data, other.hold.vector_value.data, hold.vector_value.size);
+            int cmp = memcmp(
+                hold.vector_value.data,
+                other.hold.vector_value.data,
+                std::min(hold.vector_value.size, other.hold.vector_value.size));
+            if (cmp != 0)
+            {
+                return cmp;
+            }
+            else
+            {
+                // hold.vector_value.size <=> other.hold.vector_value.size
+                return (hold.vector_value.size > other.hold.vector_value.size)
+                    - (hold.vector_value.size < other.hold.vector_value.size);
+            }
         }
     }
     else if (flatbuffers::IsInteger(type))
