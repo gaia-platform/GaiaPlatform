@@ -111,3 +111,14 @@ ruleset test8
 	    }
     }
 }
+
+void OnUpdate()
+{}
+
+ruleset test9
+{
+  OnUpdate(sensor)
+  {
+      OnUpdate();
+  }
+}

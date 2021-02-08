@@ -443,19 +443,6 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         return return_value;
     }
 
-    if (g_used_tables.empty())
-    {
-        g_generation_error = true;
-        cerr << "No tables are used in the rule." << endl;
-        return navigation_code_data_t();
-    }
-    if (g_used_tables.find(anchor_table) == g_used_tables.end())
-    {
-        g_generation_error = true;
-        cerr << "Table '" << anchor_table << "' is not used in the rule." << endl;
-        return navigation_code_data_t();
-    }
-
     if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
