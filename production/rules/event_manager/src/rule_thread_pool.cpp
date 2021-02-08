@@ -10,8 +10,6 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
-#include "event_manager.hpp"
-
 using namespace std;
 
 using namespace gaia::rules;
