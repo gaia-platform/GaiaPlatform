@@ -284,6 +284,31 @@ void get_fields_data(
             ASSERT_TRUE(credit_amount.hold.float_value <= c_last_yearly_top_credit_amounts[i] + 1);
         }
     }
+
+    // A few quick equality checks.
+    ASSERT_TRUE(are_field_values_equal(
+        c_type_id,
+        data_loader.get_data(),
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::last_name));
+
+    ASSERT_TRUE(are_field_values_equal(
+        c_type_id,
+        data_loader.get_data(),
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::age));
+
+    ASSERT_TRUE(are_field_values_equal(
+        c_type_id,
+        data_loader.get_data(),
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::known_aliases));
 }
 
 void process_flatbuffers_data(bool access_fields = false)
@@ -537,6 +562,23 @@ void update_flatbuffers_data()
         schema_loader.get_data_length(),
         field::last_yearly_top_credit_amounts,
         c_new_count_credit_amounts);
+
+    // A couple of quick (in)equality checks.
+    ASSERT_FALSE(are_field_values_equal(
+        c_type_id,
+        data_loader.get_data(),
+        serialization.data(),
+        schema_loader.get_data(),
+        schema_loader.get_data_length(),
+        field::last_name));
+
+    ASSERT_FALSE(are_field_values_equal(
+        c_type_id,
+        data_loader.get_data(),
+        serialization.data(),
+        schema_loader.get_data(),
+        schema_loader.get_data_length(),
+        field::known_aliases));
 
     // Write out the final serialization.
     ofstream file;
