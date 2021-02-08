@@ -11,6 +11,7 @@
 #include "flatbuffers/reflection.h"
 
 #include "gaia/exception.hpp"
+
 #include "data_holder.hpp"
 #include "type_cache.hpp"
 
@@ -100,6 +101,16 @@ bool verify_data_schema(
     size_t serialized_data_size,
     const uint8_t* binary_schema);
 
+// Returns true if the field values are equal and false if they are different.
+// This function handles both scalar fields and array fields.
+bool are_field_values_equal(
+    gaia::common::gaia_type_t type_id,
+    const uint8_t* first_serialized_data,
+    const uint8_t* second_serialized_data,
+    const uint8_t* binary_schema,
+    size_t binary_schema_size,
+    gaia::common::field_position_t field_position);
+
 // Get the field value of a table record payload.
 data_holder_t get_field_value(
     gaia::common::gaia_type_t type_id,
@@ -110,7 +121,7 @@ data_holder_t get_field_value(
 
 // Set the scalar field value of a table record payload.
 //
-// This function only works for scalar fields (integers and floating point numbers).
+// This function only works for scalar fields of numeric types (integers and floating point numbers).
 bool set_field_value(
     gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
@@ -185,7 +196,7 @@ data_holder_t get_field_array_element(
 //
 // An exception will be thrown if the index is out of bounds.
 //
-// This function only works for scalar fields (integers and floating point numbers).
+// This function only works for scalar fields of numeric types (integers and floating point numbers).
 void set_field_array_element(
     gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
