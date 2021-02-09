@@ -56,6 +56,13 @@ struct data_holder_t
     void clear();
 
     int compare(const data_holder_t& other) const;
+
+    bool operator==(const data_holder_t& other) const;
+
+    inline bool operator!=(const data_holder_t& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 } // namespace payload_types

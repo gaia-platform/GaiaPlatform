@@ -42,34 +42,6 @@ int data_holder_t::compare(const data_holder_t& other) const
             return strcmp(hold.string_value, other.hold.string_value);
         }
     }
-    else if (type == reflection::Vector)
-    {
-        if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
-        {
-            return 0;
-        }
-        else if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
-        {
-            return (hold.vector_value.data == nullptr) ? -1 : 1;
-        }
-        else
-        {
-            int cmp = memcmp(
-                hold.vector_value.data,
-                other.hold.vector_value.data,
-                std::min(hold.vector_value.size, other.hold.vector_value.size));
-            if (cmp != 0)
-            {
-                return cmp;
-            }
-            else
-            {
-                // hold.vector_value.size <=> other.hold.vector_value.size
-                return (hold.vector_value.size > other.hold.vector_value.size)
-                    - (hold.vector_value.size < other.hold.vector_value.size);
-            }
-        }
-    }
     else if (flatbuffers::IsInteger(type))
     {
         if (is_signed_integer(type))
@@ -100,5 +72,32 @@ int data_holder_t::compare(const data_holder_t& other) const
     else
     {
         throw unhandled_field_type(type);
+    }
+}
+
+bool data_holder_t::operator==(const data_holder_t& other) const
+{
+    if (type == reflection::Vector)
+    {
+        if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
+        {
+            return true;
+        }
+        else if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
+        {
+            return false;
+        }
+        else if (hold.vector_value.size != other.hold.vector_value.size)
+        {
+            return false;
+        }
+        else
+        {
+            return 0 == memcmp(hold.vector_value.data, other.hold.vector_value.data, hold.vector_value.size);
+        }
+    }
+    else
+    {
+        return this->compare(other) == 0;
     }
 }

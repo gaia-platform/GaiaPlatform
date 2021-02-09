@@ -6,6 +6,7 @@
 #include "gaia_fdw_adapter.hpp"
 
 #include "lib/stringinfo.h"
+
 /*
  * PostgresSQL "port.h" tries to replace printf() and friends with macros to
  * their own versions. This leads to build error in other headers like spdlog.
