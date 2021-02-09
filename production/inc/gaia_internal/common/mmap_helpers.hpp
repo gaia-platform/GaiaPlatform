@@ -109,7 +109,11 @@ public:
 
     bool is_initialized()
     {
-        return m_data != nullptr || m_fd != -1;
+        retail_assert(
+            (m_data == nullptr && m_fd == -1) || (m_data != nullptr && m_fd != -1),
+            "mmapped_data_t() object is only partially initialized!");
+
+        return m_data != nullptr;
     }
 
 private:
