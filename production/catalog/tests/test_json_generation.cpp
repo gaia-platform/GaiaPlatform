@@ -100,7 +100,7 @@ TEST_F(json_generation_test, get_bin)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     begin_transaction();
-    auto bfbs = gaia_table_t::get(table_id).binary_schema();
+    const gaia::direct_access::vector<uint8_t>* bfbs = gaia_table_t::get(table_id).binary_schema();
     vector<uint8_t> bin = get_bin(table_id);
     commit_transaction();
 

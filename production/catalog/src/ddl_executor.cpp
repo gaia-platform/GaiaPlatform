@@ -562,7 +562,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     }
 
     string fbs{generate_fbs(db_name, table_name, fields)};
-    auto bfbs = generate_bfbs(fbs);
+    const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();

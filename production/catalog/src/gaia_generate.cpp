@@ -371,7 +371,8 @@ static string generate_edc_struct(
         {
             first = false;
         }
-        param_list += field_cpp_type_string(f, true) + " ";
+        bool is_param = true;
+        param_list += field_cpp_type_string(f, is_param) + " ";
         param_list += f.name();
     }
     code += param_list + ") {";

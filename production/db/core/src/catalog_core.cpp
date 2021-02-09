@@ -53,7 +53,7 @@ namespace db
     return catalog::Getgaia_table(m_obj_ptr->data())->type();
 }
 
-[[nodiscard]] const flatbuffers::Vector<uint8_t>* table_view_t::binary_schema() const
+[[nodiscard]] buffer* table_view_t::binary_schema() const
 {
     return catalog::Getgaia_table(m_obj_ptr->data())->binary_schema();
 }

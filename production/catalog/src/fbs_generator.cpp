@@ -16,8 +16,11 @@
 #include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
-using namespace std;
 using namespace gaia::common;
+
+using std::string;
+using std::stringstream;
+using std::to_string;
 
 namespace gaia
 {
@@ -165,13 +168,13 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
     return fbs;
 }
 
-vector<uint8_t> generate_bfbs(const string& fbs)
+std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return vector<uint8_t>(
+    return std::vector<uint8_t>(
         fbs_parser.builder_.GetBufferPointer(),
         fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize());
 }

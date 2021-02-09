@@ -254,7 +254,7 @@ void adapter_t::initialize_caches()
             table_view.name(), table_view.table_type(), table_view.id());
 
         string table_name(table_view.name());
-        auto binary_schema = table_view.binary_schema();
+        const gaia::direct_access::vector<uint8_t>* binary_schema = table_view.binary_schema();
         vector<uint8_t> serialization_template = table_view.serialization_template();
 
         if (binary_schema->size() == 0)
