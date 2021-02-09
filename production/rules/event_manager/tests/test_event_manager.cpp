@@ -23,8 +23,11 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
-using namespace std;
 using namespace gaia::db::triggers;
+
+using std::string;
+using std::to_string;
+using std::unique_ptr;
 
 /**
  * The rule_context_checker_t validates whethe the rule was passed the
@@ -32,7 +35,7 @@ using namespace gaia::db::triggers;
  * to a list for verification of what rules were called.  This is particularly
  * useful for the chaining tests.
  */
-typedef vector<rule_context_t> rule_context_sequence_t;
+typedef std::vector<rule_context_t> rule_context_sequence_t;
 class rule_context_checker_t
 {
 public:
@@ -486,7 +489,7 @@ public:
                 }
             }
 
-            expected_subscriptions.insert(pair<string, subscription_t>(
+            expected_subscriptions.insert(std::pair<string, subscription_t>(
                 make_subscription_key(decl.sub),
                 {decl.sub.ruleset_name, decl.sub.rule_name, decl.sub.gaia_type, decl.sub.event_type, decl.sub.field, decl.sub.line_number}));
         }
@@ -1001,7 +1004,7 @@ TEST_F(event_manager_test, list_rules_none)
 
     // Verify that the list_subscribed_rules api clears the subscription list the caller
     // passes in.
-    rules.emplace_back(make_unique<subscription_t>("a", "b", 0, event_type_t::row_update, c_first_name, 0));
+    rules.emplace_back(std::make_unique<subscription_t>("a", "b", 0, event_type_t::row_update, c_first_name, 0));
 
     EXPECT_EQ(1, rules.size());
 

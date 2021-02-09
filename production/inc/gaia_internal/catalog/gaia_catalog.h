@@ -108,7 +108,7 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     const char* name() const {return GET_STR(name);}
     uint32_t type() const {return GET(type);}
     bool is_system() const {return GET(is_system);}
-    const flatbuffers::Vector<uint8_t>* binary_schema() const {return GET(binary_schema);}
+    const gaia::direct_access::vector<uint8_t>* binary_schema() const {return GET(binary_schema);}
     const char* serialization_template() const {return GET_STR(serialization_template);}
     using edc_object_t::insert_row;
     static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>* binary_schema, const char* serialization_template) {

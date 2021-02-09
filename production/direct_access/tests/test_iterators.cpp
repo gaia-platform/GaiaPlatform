@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -19,11 +20,14 @@
 
 #include "gaia_addr_book.h"
 
-using namespace std;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::common;
 using namespace gaia::addr_book;
+
+using std::iterator_traits;
+using std::string;
+using std::to_string;
 
 template <typename T_iterator>
 class iterator_conformance_t : public db_catalog_test_base_t
@@ -88,25 +92,25 @@ TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 // to be CopyConstructible.
 TYPED_TEST(iterator_conformance_t, copy_constructible)
 {
-    EXPECT_TRUE(is_copy_constructible<TypeParam>::value) << "The iterator is not CopyConstructible.";
+    EXPECT_TRUE(std::is_copy_constructible<TypeParam>::value) << "The iterator is not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
 TYPED_TEST(iterator_conformance_t, copy_assignable)
 {
-    EXPECT_TRUE(is_copy_assignable<TypeParam>::value) << "The iterator is not CopyAssignable.";
+    EXPECT_TRUE(std::is_copy_assignable<TypeParam>::value) << "The iterator is not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
 TYPED_TEST(iterator_conformance_t, destructible)
 {
-    EXPECT_TRUE(is_destructible<TypeParam>::value) << "The iterator is not Destructible.";
+    EXPECT_TRUE(std::is_destructible<TypeParam>::value) << "The iterator is not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
 TYPED_TEST(iterator_conformance_t, swappable)
 {
-    EXPECT_TRUE(is_swappable<TypeParam>::value) << "The iterator is not Swappable as an lvalue.";
+    EXPECT_TRUE(std::is_swappable<TypeParam>::value) << "The iterator is not Swappable as an lvalue.";
 }
 
 // Does iterator_traits<edc_iterator_t<edc*>> have member typedefs
@@ -140,7 +144,7 @@ TYPED_TEST(iterator_conformance_t, pre_incrementable)
     this->insert_records(c_loops);
 
     TypeParam it = this->get_begin(it);
-    unordered_set<const char*> set;
+    std::unordered_set<const char*> set;
 
     const char* a = (*it).street();
     const char* b = (*++it).street();
@@ -237,7 +241,7 @@ TYPED_TEST(iterator_conformance_t, reference_convertibility)
     typedef typename iterator_traits<TypeParam>::reference from_t;
     typedef typename iterator_traits<TypeParam>::value_type to_t;
 
-    bool convertible = is_convertible<from_t, to_t>::value;
+    bool convertible = std::is_convertible<from_t, to_t>::value;
 
     EXPECT_TRUE(convertible) << "The reference iterator trait is not convertible into the value_type iterator trait.";
 }
@@ -331,7 +335,7 @@ TYPED_TEST(iterator_conformance_t, deref_and_postinc)
 // Is the iterator DefaultConstructible?
 TYPED_TEST(iterator_conformance_t, default_constructible)
 {
-    EXPECT_TRUE(is_default_constructible<TypeParam>::value) << "The iterator is not DefaultConstructible.";
+    EXPECT_TRUE(std::is_default_constructible<TypeParam>::value) << "The iterator is not DefaultConstructible.";
 }
 
 // Is equality and inequality defined over all iterators for the same
@@ -399,7 +403,7 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee)
     auto_transaction_t tx;
     this->insert_records(c_count);
 
-    vector<address_t> sequence;
+    std::vector<address_t> sequence;
 
     TypeParam iter;
 
@@ -428,7 +432,7 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee)
 TYPED_TEST(iterator_conformance_t, algorithm_test)
 {
     const int c_count = 10;
-    vector<int> transform_list;
+    std::vector<int> transform_list;
 
     auto_transaction_t tx;
     TypeParam iter;
@@ -437,7 +441,7 @@ TYPED_TEST(iterator_conformance_t, algorithm_test)
 
     std::transform(
         this->get_begin(iter), this->get_end(iter),
-        back_inserter(transform_list),
+        std::back_inserter(transform_list),
         [](const address_t& address) -> int { return atoi(address.street()); });
 
     EXPECT_EQ(transform_list.size(), c_count);

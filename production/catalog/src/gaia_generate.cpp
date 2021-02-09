@@ -34,57 +34,63 @@ static string field_cpp_type_string(const gaia_field_t& field, bool is_param = f
 {
     string type_str;
 
-    auto get_type = [type = static_cast<data_type_t>(field.type())]() -> string {
-        switch (type)
-        {
-        case data_type_t::e_bool:
-            return "bool";
-        case data_type_t::e_int8:
-            return "int8_t";
-        case data_type_t::e_uint8:
-            return "uint8_t";
-        case data_type_t::e_int16:
-            return "int16_t";
-        case data_type_t::e_uint16:
-            return "uint16_t";
-        case data_type_t::e_int32:
-            return "int32_t";
-        case data_type_t::e_uint32:
-            return "uint32_t";
-        case data_type_t::e_int64:
-            return "int64_t";
-        case data_type_t::e_uint64:
-            return "uint64_t";
-        case data_type_t::e_float:
-            return "float";
-        case data_type_t::e_double:
-            return "double";
-        case data_type_t::e_string:
-            return "const char*";
-        default:
-            retail_assert(false, "Unknown type!");
-        }
+    switch (static_cast<data_type_t>(field.type()))
+    {
+    case data_type_t::e_bool:
+        type_str = "bool";
+        break;
+    case data_type_t::e_int8:
+        type_str = "int8_t";
+        break;
+    case data_type_t::e_uint8:
+        type_str = "uint8_t";
+        break;
+    case data_type_t::e_int16:
+        type_str = "int16_t";
+        break;
+    case data_type_t::e_uint16:
+        type_str = "uint16_t";
+        break;
+    case data_type_t::e_int32:
+        type_str = "int32_t";
+        break;
+    case data_type_t::e_uint32:
+        type_str = "uint32_t";
+        break;
+    case data_type_t::e_int64:
+        type_str = "int64_t";
+        break;
+    case data_type_t::e_uint64:
+        type_str = "uint64_t";
+        break;
+    case data_type_t::e_float:
+        type_str = "float";
+        break;
+    case data_type_t::e_double:
+        type_str = "double";
+        break;
+    case data_type_t::e_string:
+        type_str = "const char*";
+        break;
+    default:
+        retail_assert(false, "Unknown type!");
     };
 
-    if (field.repeated_count() == 1)
-    {
-        type_str = get_type();
-    }
-    else if (field.repeated_count() == 0)
+    if (field.repeated_count() == 0)
     {
         if (is_param)
         {
-            type_str = "const std::vector<" + get_type() + ">*";
+            type_str = "const std::vector<" + type_str + ">*";
         }
         else
         {
-            type_str = "const flatbuffers::Vector<" + get_type() + ">*";
+            type_str = "const gaia::direct_access::vector<" + type_str + ">*";
         }
     }
-    else
+    else if (field.repeated_count() > 1)
     {
         // We should report the input error to the user at data definition time.
-        // If we find fixed size array definition here, it will be either data
+        // If we find a fixed size array definition here, it will be either data
         // corruption or bugs in catching user input errors.
         retail_assert(false, "Fixed size array is not supported");
     }

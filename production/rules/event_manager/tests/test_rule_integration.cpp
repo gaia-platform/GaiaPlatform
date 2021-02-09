@@ -31,10 +31,13 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
-using namespace std;
 using namespace gaia::addr_book;
 using namespace gaia::catalog;
 using namespace std::chrono;
+
+using std::atomic;
+using std::string;
+using std::thread;
 
 constexpr char c_name[] = "John";
 constexpr char c_city[] = "Seattle";
@@ -567,12 +570,12 @@ TEST_F(rule_integration_test, test_retry)
 
         // We execute the rule twice for each test to ensure that subsequent rules also have the
         // expected retry behavior.
-        vector<string> names{"FooName", "BarName"};
-        vector<gaia_id_t> ids;
-        for (auto name : names)
+        std::vector<string> names{"FooName", "BarName"};
+        std::vector<gaia_id_t> ids;
+        for (const auto& name : names)
         {
             // First rule execution isn't a retry, thus the "+ 1".
-            rule_monitor_t monitor(min(num_conflicts, max_retries) + 1);
+            rule_monitor_t monitor(std::min(num_conflicts, max_retries) + 1);
             g_num_conflicts = num_conflicts;
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
             employee_writer writer;
