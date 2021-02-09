@@ -353,8 +353,10 @@ void client::clear_shared_memory()
     // This is intended to be called before a session is established.
     verify_no_session();
 
-    // We closed our original fd for the data segment, so we only need to unmap it.
-    unmap_fd(s_data, sizeof(*s_data));
+    // We closed our original fds for these data segments, so we only need to unmap them.
+    s_counters.close();
+    s_data.close();
+    s_id_index.close();
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
@@ -370,7 +372,7 @@ void client::txn_cleanup()
     close_fd(s_fd_log);
 
     // Destroy the locator mapping.
-    unmap_fd(s_locators, sizeof(*s_locators));
+    s_locators.close();
 
     // Reset transaction id.
     s_txn_id = c_invalid_gaia_txn_id;
@@ -438,11 +440,13 @@ void client::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_data == nullptr, "Data segment uninitialized!");
-    retail_assert(s_fd_locators == -1, "Locators file descriptor uninitialized!");
-    retail_assert(s_fd_log == -1, "Log file descriptor uninitialized!");
-    retail_assert(s_log == nullptr, "Log segment uninitialized!");
-    retail_assert(s_locators == nullptr, "Locators segment uninitialized!");
+    retail_assert(s_locators.is_closed(), "Locators segment is already initialized!");
+    retail_assert(s_counters.is_closed(), "Counters segment is already initialized!");
+    retail_assert(s_data.is_closed(), "Data segment is already initialized!");
+    retail_assert(s_id_index.is_closed(), "ID index segment is already initialized!");
+
+    retail_assert(s_fd_log == -1, "Log file descriptor is already initialized!");
+    retail_assert(s_log == nullptr, "Log segment is already initialized!");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -466,22 +470,11 @@ void client::begin_session()
     auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
     retail_assert(bytes_read > 0, c_message_failed_to_read_message);
     retail_assert(fd_count == c_fd_count, c_message_unexpected_fd_count);
+
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
     retail_assert(fd_counters != -1, "Invalid counters fd detected!");
     retail_assert(fd_data != -1, "Invalid data fd detected!");
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
-
-    // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto cleanup_mapping_fds = make_scope_guard([fd_counters = fd_counters,
-                                                 fd_data = fd_data,
-                                                 fd_id_index = fd_id_index]() mutable {
-        // We can unconditionally close all the fds of shared mappings, since
-        // they're not saved anywhere and each mapping increments its shared
-        // memory segment's refcount.
-        close_fd(fd_counters);
-        close_fd(fd_data);
-        close_fd(fd_id_index);
-    });
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto cleanup_locator_fd = make_scope_guard([fd_locators = fd_locators]() mutable {
@@ -496,12 +489,13 @@ void client::begin_session()
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
-    map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_counters, 0);
-    map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_data, 0);
-    map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd_id_index, 0);
+    s_counters.open(fd_counters);
+    s_data.open(fd_data);
+    s_id_index.open(fd_id_index);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
+
     cleanup_locator_fd.dismiss();
     cleanup_session_socket.dismiss();
 }
@@ -519,11 +513,9 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(!s_locators, "Locators segment should be uninitialized!");
-    map_fd(s_locators, sizeof(*s_locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, s_fd_locators, 0);
-    auto cleanup_locator_mapping = make_scope_guard([&]() {
-        unmap_fd(s_locators, sizeof(*s_locators));
-    });
+    retail_assert(s_locators.is_closed(), "Locators segment is already initialized!");
+    bool manage_fd = false;
+    s_locators.open(s_fd_locators, manage_fd);
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
@@ -588,23 +580,24 @@ void client::begin_transaction()
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.
     cleanup_stream_socket.dismiss();
-    cleanup_locator_mapping.dismiss();
     cleanup_log_mapping.dismiss();
     cleanup_log_fd.dismiss();
 }
 
 void client::apply_txn_log(int log_fd)
 {
-    retail_assert(s_locators, "Locators segment must be mapped!");
+    retail_assert(!s_locators.is_closed(), "Locators segment must be mapped!");
+
     txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, get_fd_size(log_fd));
     });
+
     for (size_t i = 0; i < txn_log->count; ++i)
     {
         auto lr = txn_log->log_records + i;
-        (*s_locators)[lr->locator] = lr->new_offset;
+        (*s_locators.data())[lr->locator] = lr->new_offset;
     }
 }
 

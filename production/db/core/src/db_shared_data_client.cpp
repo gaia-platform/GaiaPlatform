@@ -8,7 +8,7 @@
 
 gaia::db::shared_locators_t* gaia::db::get_shared_locators()
 {
-    if (!gaia::db::client::s_locators)
+    if (gaia::db::client::s_locators.is_closed())
     {
         throw no_open_transaction();
     }
@@ -21,7 +21,7 @@ gaia::db::shared_locators_t* gaia::db::get_shared_locators()
     // observing a null locators pointer should always be the result of a
     // programming error, i.e., calling a transactional operation outside a
     // transaction) before adding an assert here.
-    return gaia::db::client::s_locators;
+    return gaia::db::client::s_locators.data();
 }
 
 gaia::db::shared_counters_t* gaia::db::get_shared_counters()
@@ -30,12 +30,12 @@ gaia::db::shared_counters_t* gaia::db::get_shared_counters()
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the counters segment unmapped).
 
-    if (!gaia::db::client::s_counters)
+    if (gaia::db::client::s_counters.is_closed())
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_counters;
+    return gaia::db::client::s_counters.data();
 }
 
 gaia::db::shared_data_t* gaia::db::get_shared_data()
@@ -44,12 +44,12 @@ gaia::db::shared_data_t* gaia::db::get_shared_data()
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the data segment unmapped).
 
-    if (!gaia::db::client::s_data)
+    if (gaia::db::client::s_data.is_closed())
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_data;
+    return gaia::db::client::s_data.data();
 }
 
 gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
@@ -58,12 +58,12 @@ gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the id_index segment unmapped).
 
-    if (!gaia::db::client::s_id_index)
+    if (gaia::db::client::s_id_index.is_closed())
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_id_index;
+    return gaia::db::client::s_id_index.data();
 }
 
 gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(

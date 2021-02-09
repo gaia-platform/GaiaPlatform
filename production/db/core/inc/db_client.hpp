@@ -46,7 +46,7 @@ class client
 public:
     static inline bool is_transaction_active()
     {
-        return (s_locators != nullptr);
+        return (!s_locators.is_closed());
     }
 
     /**
@@ -81,13 +81,15 @@ private:
     thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
 
-    thread_local static inline shared_locators_t* s_locators = nullptr;
+    thread_local static inline mapped_data_t<shared_locators_t> s_locators;
 
     // These fields have session lifetime.
     thread_local static inline int s_fd_locators = -1;
-    thread_local static inline shared_counters_t* s_counters = nullptr;
-    thread_local static inline shared_data_t* s_data = nullptr;
-    thread_local static inline shared_id_index_t* s_id_index = nullptr;
+
+    thread_local static inline mapped_data_t<shared_counters_t> s_counters;
+    thread_local static inline mapped_data_t<shared_data_t> s_data;
+    thread_local static inline mapped_data_t<shared_id_index_t> s_id_index;
+
     thread_local static inline int s_session_socket = -1;
 
     // s_events has transaction lifetime and is cleared after each transaction.

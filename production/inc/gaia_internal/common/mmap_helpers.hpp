@@ -102,7 +102,7 @@ public:
         m_state = state_t::created;
     }
 
-    void open(int fd, int flags = MAP_SHARED)
+    void open(int fd, bool manage_fd = true)
     {
         retail_assert(
             m_state == state_t::closed,
@@ -110,11 +110,18 @@ public:
 
         retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
 
-        flags |= MAP_NORESERVE;
+        if (manage_fd)
+        {
+            m_fd = fd;
 
-        map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, flags, fd, 0);
+            map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
 
-        close_fd(fd);
+            close_fd(m_fd);
+        }
+        else
+        {
+            map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, fd, 0);
+        }
 
         m_state = state_t::opened;
     }
