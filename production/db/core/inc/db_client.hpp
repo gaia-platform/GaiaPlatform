@@ -7,6 +7,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/triggers.hpp"

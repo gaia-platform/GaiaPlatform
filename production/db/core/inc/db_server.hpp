@@ -17,7 +17,6 @@
 
 #include "gaia/exception.hpp"
 
-#include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_internal_types.hpp"
@@ -85,10 +84,10 @@ private:
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
 
-    static inline mmapped_data_t<shared_locators_t> s_locators{};
-    static inline mmapped_data_t<shared_counters_t> s_counters{};
-    static inline mmapped_data_t<shared_data_t> s_data{};
-    static inline mmapped_data_t<shared_id_index_t> s_id_index{};
+    static inline mapped_data_t<shared_locators_t> s_locators{};
+    static inline mapped_data_t<shared_counters_t> s_counters{};
+    static inline mapped_data_t<shared_data_t> s_data{};
+    static inline mapped_data_t<shared_id_index_t> s_id_index{};
 
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;

@@ -557,10 +557,10 @@ void server::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
-    retail_assert(!s_locators.is_initialized(), "Locators memory should be reset!");
-    retail_assert(!s_counters.is_initialized(), "Counters memory should be reset!");
-    retail_assert(!s_data.is_initialized(), "Data memory should be reset!");
-    retail_assert(!s_id_index.is_initialized(), "ID index memory should be reset!");
+    retail_assert(s_locators.is_closed(), "Locators memory should be reset!");
+    retail_assert(s_counters.is_closed(), "Counters memory should be reset!");
+    retail_assert(s_data.is_closed(), "Data memory should be reset!");
+    retail_assert(s_id_index.is_closed(), "ID index memory should be reset!");
 
     // s_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -571,10 +571,10 @@ void server::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_locators.open(c_shmem_locators);
-    s_counters.open(c_shmem_counters);
-    s_data.open(c_shmem_data);
-    s_id_index.open(c_shmem_id_index);
+    s_locators.create(c_shmem_locators);
+    s_counters.create(c_shmem_counters);
+    s_data.create(c_shmem_data);
+    s_id_index.create(c_shmem_id_index);
 
     init_memory_manager();
 

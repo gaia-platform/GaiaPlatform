@@ -13,6 +13,7 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 
 namespace gaia
@@ -52,22 +53,30 @@ inline void unmap_fd(T*& addr, size_t length)
 }
 
 template <typename T>
-class mmapped_data_t
+class mapped_data_t
 {
-public:
-    mmapped_data_t()
+private:
+    enum class state_t : int8_t
     {
-        m_data = nullptr;
-        m_fd = -1;
-    }
+        closed = 0,
+        created = 1,
+        opened = 2,
+    };
 
-    ~mmapped_data_t()
+public:
+    mapped_data_t() = default;
+
+    ~mapped_data_t()
     {
         close();
     }
 
-    void open(const char* name)
+    void create(const char* name)
     {
+        retail_assert(
+            m_state == state_t::closed,
+            "Calling create() on an already initialized mapped_data_t instance!");
+
         m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
         if (m_fd == -1)
         {
@@ -89,12 +98,33 @@ public:
         // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
         // followed by VirtualAlloc(MEM_COMMIT) in Windows).
         map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
+
+        m_state = state_t::created;
+    }
+
+    void open(int fd, int flags = MAP_SHARED)
+    {
+        retail_assert(
+            m_state == state_t::closed,
+            "Calling open() on an already initialized mapped_data_t instance!");
+
+        retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
+
+        flags |= MAP_NORESERVE;
+
+        map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, flags, fd, 0);
+
+        close_fd(fd);
+
+        m_state = state_t::opened;
     }
 
     void close()
     {
         unmap_fd(m_data, sizeof(T));
         close_fd(m_fd);
+
+        m_state = state_t::closed;
     }
 
     T* data()
@@ -107,18 +137,15 @@ public:
         return m_fd;
     }
 
-    bool is_initialized()
+    bool is_closed()
     {
-        retail_assert(
-            (m_data == nullptr && m_fd == -1) || (m_data != nullptr && m_fd != -1),
-            "mmapped_data_t() object is only partially initialized!");
-
-        return m_data != nullptr;
+        return m_state == state_t::closed;
     }
 
 private:
-    T* m_data;
-    int m_fd;
+    state_t m_state{state_t::closed};
+    int m_fd{-1};
+    T* m_data{nullptr};
 };
 
 } // namespace common
