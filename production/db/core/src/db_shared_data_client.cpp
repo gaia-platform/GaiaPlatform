@@ -6,7 +6,7 @@
 #include "db_client.hpp"
 #include "db_shared_data.hpp"
 
-gaia::db::locators_t* gaia::db::get_shared_locators()
+gaia::db::shared_locators_t* gaia::db::get_shared_locators()
 {
     if (!gaia::db::client::s_locators)
     {

@@ -29,7 +29,7 @@ class client
     /**
      * @throws no_open_transaction if there is no active transaction.
      */
-    friend gaia::db::locators_t* gaia::db::get_shared_locators();
+    friend gaia::db::shared_locators_t* gaia::db::get_shared_locators();
 
     /**
      * @throws no_active_session if there is no active session.
@@ -80,7 +80,7 @@ private:
     thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
 
-    thread_local static inline locators_t* s_locators = nullptr;
+    thread_local static inline shared_locators_t* s_locators = nullptr;
 
     // These fields have session lifetime.
     thread_local static inline int s_fd_locators = -1;

@@ -14,7 +14,7 @@ namespace db
 {
 
 // Returns a pointer to a mapping of the "locators" shared memory segment.
-gaia::db::locators_t* get_shared_locators();
+gaia::db::shared_locators_t* get_shared_locators();
 
 // Returns a pointer to a mapping of the "counters" shared memory segment.
 gaia::db::shared_counters_t* get_shared_counters();

@@ -86,7 +86,7 @@ public:
 
 private:
     gaia::db::shared_counters_t* m_counters = nullptr;
-    gaia::db::locators_t* m_locators = nullptr;
+    gaia::db::shared_locators_t* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
 };
 

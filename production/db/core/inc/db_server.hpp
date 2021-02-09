@@ -18,6 +18,7 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_internal_types.hpp"
 #include "memory_manager.hpp"
@@ -45,7 +46,7 @@ public:
 
 class server
 {
-    friend gaia::db::locators_t* gaia::db::get_shared_locators();
+    friend gaia::db::shared_locators_t* gaia::db::get_shared_locators();
     friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
@@ -84,17 +85,10 @@ private:
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
 
-    static inline int s_fd_locators = -1;
-    static inline locators_t* s_shared_locators = nullptr;
-
-    static inline int s_fd_counters = -1;
-    static inline shared_counters_t* s_counters = nullptr;
-
-    static inline int s_fd_data = -1;
-    static inline shared_data_t* s_data = nullptr;
-
-    static inline int s_fd_id_index = -1;
-    static inline shared_id_index_t* s_id_index = nullptr;
+    static inline mmapped_data_t<shared_locators_t> s_locators{};
+    static inline mmapped_data_t<shared_counters_t> s_counters{};
+    static inline mmapped_data_t<shared_data_t> s_data{};
+    static inline mmapped_data_t<shared_id_index_t> s_id_index{};
 
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;

@@ -223,7 +223,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
-    gaia::db::locators_t* locators = gaia::db::get_shared_locators();
+    gaia::db::shared_locators_t* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type))

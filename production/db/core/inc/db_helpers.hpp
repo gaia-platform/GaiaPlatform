@@ -81,7 +81,7 @@ inline void update_locator(
     gaia_locator_t locator,
     gaia::db::memory_manager::address_offset_t offset)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
+    shared_locators_t* locators = gaia::db::get_shared_locators();
     if (!locators)
     {
         throw no_open_transaction();
@@ -92,7 +92,7 @@ inline void update_locator(
 
 inline bool locator_exists(gaia_locator_t locator)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
+    shared_locators_t* locators = gaia::db::get_shared_locators();
     shared_counters_t* counters = gaia::db::get_shared_counters();
 
     // We need an acquire barrier before reading `last_locator`. We can
@@ -107,7 +107,7 @@ inline bool locator_exists(gaia_locator_t locator)
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
+    shared_locators_t* locators = gaia::db::get_shared_locators();
     return locator_exists(locator)
         ? (*locators)[locator]
         : c_invalid_gaia_offset;

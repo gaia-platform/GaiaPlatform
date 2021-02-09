@@ -554,7 +554,7 @@ void client::begin_transaction()
 
     // Allocate a new log segment and map it in our own process.
     std::stringstream memfd_name;
-    memfd_name << c_sch_mem_txn_log << ':' << s_txn_id;
+    memfd_name << c_shmem_txn_log << ':' << s_txn_id;
     int fd_log = ::memfd_create(memfd_name.str().c_str(), MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {

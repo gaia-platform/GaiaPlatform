@@ -55,15 +55,18 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 }
 
 constexpr char c_server_connect_socket_name[] = "gaia_db_server";
-constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
-constexpr char c_sch_mem_counters[] = "gaia_mem_counters";
-constexpr char c_sch_mem_data[] = "gaia_mem_data";
-constexpr char c_sch_mem_id_index[] = "gaia_mem_id_index";
-constexpr char c_sch_mem_txn_log[] = "gaia_mem_txn_log";
+
+constexpr char c_shmem_locators[] = "gaia_mem_locators";
+constexpr char c_shmem_counters[] = "gaia_mem_counters";
+constexpr char c_shmem_data[] = "gaia_mem_data";
+constexpr char c_shmem_id_index[] = "gaia_mem_id_index";
+
+constexpr char c_shmem_txn_log[] = "gaia_mem_txn_log";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32.
 constexpr size_t c_max_locators = 1ULL << 32;
+
 // With 2^32 objects, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
 // lookup (given that each node traversal is effectively random-access), but we
@@ -71,12 +74,13 @@ constexpr size_t c_max_locators = 1ULL << 32;
 // references array rather than gaia_ids. Other expensive index lookups could be
 // similarly optimized by substituting locators for gaia_ids.
 constexpr size_t c_hash_buckets = 1ULL << 20;
+
 // This is arbitrary, but we need to keep txn logs to a reasonable size.
 constexpr size_t c_max_log_records = 1ULL << 20;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
-typedef gaia_offset_t locators_t[c_max_locators];
+typedef gaia_offset_t shared_locators_t[c_max_locators];
 
 struct hash_node_t
 {

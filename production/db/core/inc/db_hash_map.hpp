@@ -21,7 +21,7 @@ class db_hash_map
 public:
     static hash_node_t* insert(gaia::common::gaia_id_t id)
     {
-        locators_t* locators = gaia::db::get_shared_locators();
+        shared_locators_t* locators = gaia::db::get_shared_locators();
         shared_id_index_t* id_index = gaia::db::get_shared_id_index();
         if (locators == nullptr)
         {
@@ -76,7 +76,7 @@ public:
 
     static gaia_locator_t find(gaia::common::gaia_id_t id)
     {
-        locators_t* locators = gaia::db::get_shared_locators();
+        shared_locators_t* locators = gaia::db::get_shared_locators();
         shared_id_index_t* id_index = gaia::db::get_shared_id_index();
         if (locators == nullptr)
         {
