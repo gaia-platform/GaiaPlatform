@@ -557,9 +557,6 @@ void server::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
-    // Clear all shared memory if an exception is thrown.
-    auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
-
     retail_assert(!s_locators.is_initialized(), "Locators memory should be reset!");
     retail_assert(!s_counters.is_initialized(), "Counters memory should be reset!");
     retail_assert(!s_data.is_initialized(), "Data memory should be reset!");
@@ -583,8 +580,6 @@ void server::init_shared_memory()
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
-
-    cleanup_memory.dismiss();
 }
 
 void server::init_memory_manager()
