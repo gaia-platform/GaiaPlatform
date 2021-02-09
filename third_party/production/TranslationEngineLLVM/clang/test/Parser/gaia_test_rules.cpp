@@ -441,3 +441,11 @@ ruleset test53
 
   }
 }
+
+ruleset test54
+{
+  OnUpdate(sensor.)// expected-error {{expected identifier}}
+  {
+
+  }
+}
