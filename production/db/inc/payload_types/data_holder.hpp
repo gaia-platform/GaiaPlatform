@@ -28,12 +28,6 @@ inline bool is_signed_integer(reflection::BaseType type)
     return flatbuffers::IsInteger(type) && (((int)type) % 2 == 1);
 }
 
-struct vector_value_t
-{
-    const uint8_t* data;
-    uint32_t size;
-};
-
 // This union allows us to reference values of different types.
 // We do not manage the string_value memory. The caller is responsible for it.
 union value_holder_t
@@ -41,7 +35,6 @@ union value_holder_t
     int64_t integer_value;
     double float_value;
     const char* string_value;
-    vector_value_t vector_value;
 };
 
 // A simple structure that isolates us from the details
@@ -56,15 +49,8 @@ struct data_holder_t
     void clear();
 
     int compare(const data_holder_t& other) const;
-
-    bool operator==(const data_holder_t& other) const;
-
-    inline bool operator!=(const data_holder_t& other) const
-    {
-        return !(*this == other);
-    }
 };
 
-} // namespace payload_types
-} // namespace db
-} // namespace gaia
+}
+}
+}

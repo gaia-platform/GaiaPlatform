@@ -48,7 +48,7 @@ int data_holder_t::compare(const data_holder_t& other) const
         {
             return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : ((hold.integer_value > other.hold.integer_value) ? 1 : -1);
+                : (hold.integer_value > other.hold.integer_value) ? 1 : -1;
         }
         else
         {
@@ -67,37 +67,10 @@ int data_holder_t::compare(const data_holder_t& other) const
     {
         return (hold.float_value == other.hold.float_value)
             ? 0
-            : ((hold.float_value > other.hold.float_value) ? 1 : -1);
+            : (hold.float_value > other.hold.float_value) ? 1 : -1;
     }
     else
     {
         throw unhandled_field_type(type);
-    }
-}
-
-bool data_holder_t::operator==(const data_holder_t& other) const
-{
-    if (type == reflection::Vector)
-    {
-        if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
-        {
-            return true;
-        }
-        else if (hold.vector_value.data == nullptr || other.hold.vector_value.data == nullptr)
-        {
-            return false;
-        }
-        else if (hold.vector_value.size != other.hold.vector_value.size)
-        {
-            return false;
-        }
-        else
-        {
-            return 0 == memcmp(hold.vector_value.data, other.hold.vector_value.data, hold.vector_value.size);
-        }
-    }
-    else
-    {
-        return this->compare(other) == 0;
     }
 }
