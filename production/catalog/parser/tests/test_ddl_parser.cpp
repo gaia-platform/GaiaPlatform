@@ -3,9 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cstdlib>
+
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
+
 #include "gaia_parser.hpp"
 #include "yy_parser.hpp"
 
@@ -45,7 +48,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 TEST(catalog_ddl_parser_test, create_table_multiple_fields)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[2]);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -69,7 +72,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(1).get());
     EXPECT_EQ(field->name, "c2");
     EXPECT_EQ(field->data_type, data_type_t::e_double);
-    EXPECT_EQ(field->length, 2);
+    EXPECT_EQ(field->length, 0);
     EXPECT_EQ(field->active, false);
 }
 
@@ -230,4 +233,12 @@ TEST(catalog_ddl_parser_test, illegal_characters)
     EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id : int8);"));
     EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE : TABLE t(id int8);"));
     EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id - int8);"));
+}
+
+TEST(catalog_ddl_parser_test, fixed_size_array)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[2]);"));
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[1]);"));
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[0]);"));
 }
