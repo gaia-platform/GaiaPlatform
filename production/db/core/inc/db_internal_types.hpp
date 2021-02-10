@@ -12,6 +12,7 @@
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
@@ -180,6 +181,194 @@ struct id_index_t
 {
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
+};
+
+template <typename T>
+class mapped_data_t
+{
+public:
+    mapped_data_t() = default;
+
+    ~mapped_data_t()
+    {
+        close();
+    }
+
+    void create(const char* name)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "Calling create() on an already initialized mapped_data_t instance!");
+
+        m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
+        if (m_fd == -1)
+        {
+            gaia::common::throw_system_error("memfd_create() failed in mapped_data_t::create()!");
+        }
+
+        gaia::common::truncate_fd(m_fd, sizeof(T));
+
+        // Note that unless we supply the MAP_POPULATE flag to mmap(), only the
+        // pages we actually use will ever be allocated. However, Linux may refuse
+        // to allocate the virtual memory we requested if overcommit is disabled
+        // (i.e., /proc/sys/vm/overcommit_memory = 2). Using MAP_NORESERVE (don't
+        // reserve swap space) should ensure that overcommit always succeeds, unless
+        // it is disabled. We may need to document the requirement that overcommit
+        // is not disabled (i.e., /proc/sys/vm/overcommit_memory != 2).
+        //
+        // Alternatively, we could use the more tedious but reliable approach of
+        // using mmap(PROT_NONE) and calling mprotect(PROT_READ|PROT_WRITE) on any
+        // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
+        // followed by VirtualAlloc(MEM_COMMIT) in Windows).
+        gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
+
+        m_is_initialized = true;
+    }
+
+    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
+    void open(int fd, bool manage_fd = true)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "Calling open() on an already initialized mapped_data_t instance!");
+
+        gaia::common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
+
+        if (manage_fd)
+        {
+            m_fd = fd;
+
+            gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
+
+            gaia::common::close_fd(m_fd);
+        }
+        else
+        {
+            gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, fd, 0);
+        }
+
+        m_is_initialized = true;
+    }
+
+    void close()
+    {
+        gaia::common::unmap_fd_data(m_data, sizeof(T));
+
+        gaia::common::close_fd(m_fd);
+
+        m_is_initialized = false;
+    }
+
+    T* data()
+    {
+        return m_data;
+    }
+
+    int fd()
+    {
+        return m_fd;
+    }
+
+    bool is_initialized()
+    {
+        return m_is_initialized;
+    }
+
+private:
+    bool m_is_initialized{false};
+    int m_fd{-1};
+    T* m_data{nullptr};
+};
+
+class mapped_log_t
+{
+public:
+    mapped_log_t() = default;
+
+    ~mapped_log_t()
+    {
+        close();
+    }
+
+    void create(const char* name, size_t initial_size)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "Calling create() on an already initialized mapped_log_t instance!");
+
+        m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
+        if (m_fd == -1)
+        {
+            gaia::common::throw_system_error("memfd_create() failed in mapped_log_t::create()!");
+        }
+
+        gaia::common::truncate_fd(m_fd, initial_size);
+
+        gaia::common::map_fd_data(m_log, initial_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, 0);
+
+        m_is_initialized = true;
+    }
+
+    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
+    void open(int fd, bool use_fd_for_unmap = true)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "Calling open() on an already initialized mapped_log_t instance!");
+
+        gaia::common::retail_assert(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
+
+        gaia::common::map_fd_data(m_log, gaia::common::get_fd_size(fd), PROT_READ, MAP_PRIVATE, fd, 0);
+
+        if (use_fd_for_unmap)
+        {
+            m_fd_for_unmap = fd;
+        }
+
+        m_is_initialized = true;
+    }
+
+    void close()
+    {
+        if (m_fd_for_unmap != -1)
+        {
+            int fd = m_fd_for_unmap;
+            m_fd_for_unmap = -1;
+            gaia::common::unmap_fd_data(m_log, gaia::common::get_fd_size(fd));
+        }
+        else
+        {
+            gaia::common::unmap_fd_data(m_log, m_log->size());
+        }
+
+        gaia::common::close_fd(m_fd);
+
+        m_is_initialized = false;
+    }
+
+    txn_log_t* log()
+    {
+        return m_log;
+    }
+
+    int fd()
+    {
+        return m_fd;
+    }
+
+    bool is_initialized()
+    {
+        return m_is_initialized;
+    }
+
+private:
+    bool m_is_initialized{false};
+    int m_fd{-1};
+    txn_log_t* m_log{nullptr};
+
+    // This fd is stored only for use during close,
+    // when it is queried to determine the size that should be passed to unmap_fd_data.
+    int m_fd_for_unmap{-1};
 };
 
 } // namespace db

@@ -366,7 +366,7 @@ void client::clear_shared_memory()
 void client::txn_cleanup()
 {
     // Destroy the log memory mapping.
-    unmap_fd(s_log, c_initial_log_size);
+    unmap_fd_data(s_log, c_initial_log_size);
 
     // Destroy the log fd.
     close_fd(s_fd_log);
@@ -554,9 +554,9 @@ void client::begin_transaction()
         close_fd(fd_log);
     });
     truncate_fd(fd_log, c_initial_log_size);
-    map_fd(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
+    map_fd_data(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(s_log, c_initial_log_size);
+        unmap_fd_data(s_log, c_initial_log_size);
     });
 
     // Update the log header with our begin timestamp.
@@ -589,9 +589,9 @@ void client::apply_txn_log(int log_fd)
     retail_assert(s_private_locators.is_initialized(), "Locators segment must be mapped!");
 
     txn_log_t* txn_log;
-    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
+    map_fd_data(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(txn_log, get_fd_size(log_fd));
+        unmap_fd_data(txn_log, get_fd_size(log_fd));
     });
 
     for (size_t i = 0; i < txn_log->count; ++i)
@@ -609,7 +609,7 @@ void client::rollback_transaction()
     auto cleanup = make_scope_guard(txn_cleanup);
 
     size_t log_size = s_log->size();
-    unmap_fd(s_log, c_initial_log_size);
+    unmap_fd_data(s_log, c_initial_log_size);
     truncate_fd(s_fd_log, log_size);
 
     // Seal the txn log memfd for writes/resizing before sending it to the server.
@@ -654,7 +654,7 @@ void client::commit_transaction()
     size_t log_size = s_log->size();
 
     // Unmap the log segment so we can truncate and seal it.
-    unmap_fd(s_log, c_initial_log_size);
+    unmap_fd_data(s_log, c_initial_log_size);
 
     // Truncate the log segment to its final size.
     truncate_fd(s_fd_log, log_size);

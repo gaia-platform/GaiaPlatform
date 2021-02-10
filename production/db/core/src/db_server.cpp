@@ -253,10 +253,10 @@ void server::handle_commit_txn(
 
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    map_fd(s_log, get_fd_size(s_fd_log), PROT_READ, MAP_PRIVATE, s_fd_log, 0);
+    map_fd_data(s_log, get_fd_size(s_fd_log), PROT_READ, MAP_PRIVATE, s_fd_log, 0);
     // Unconditionally unmap the log segment on exit.
     auto cleanup_log = make_scope_guard([]() {
-        unmap_fd(s_log, s_log->size());
+        unmap_fd_data(s_log, s_log->size());
     });
 
     // Actually commit the transaction.
@@ -680,9 +680,9 @@ void server::init_txn_info()
     // need it.
     if (s_txn_info)
     {
-        unmap_fd(s_txn_info, c_size_in_bytes);
+        unmap_fd_data(s_txn_info, c_size_in_bytes);
     }
-    map_fd(
+    map_fd_data(
         s_txn_info,
         c_size_in_bytes,
         PROT_READ | PROT_WRITE,
@@ -2136,14 +2136,14 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 {
     // First map the two fds.
     txn_log_t* log1;
-    map_fd(log1, get_fd_size(log_fd1), PROT_READ, MAP_PRIVATE, log_fd1, 0);
+    map_fd_data(log1, get_fd_size(log_fd1), PROT_READ, MAP_PRIVATE, log_fd1, 0);
     auto cleanup_log1 = make_scope_guard([&]() {
-        unmap_fd(log1, get_fd_size(log_fd1));
+        unmap_fd_data(log1, get_fd_size(log_fd1));
     });
     txn_log_t* log2;
-    map_fd(log2, get_fd_size(log_fd2), PROT_READ, MAP_PRIVATE, log_fd2, 0);
+    map_fd_data(log2, get_fd_size(log_fd2), PROT_READ, MAP_PRIVATE, log_fd2, 0);
     auto cleanup_log2 = make_scope_guard([&]() {
-        unmap_fd(log2, get_fd_size(log_fd2));
+        unmap_fd_data(log2, get_fd_size(log_fd2));
     });
 
     // Now perform standard merge intersection and terminate on the first conflict found.
@@ -2459,10 +2459,10 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     int local_log_fd = committed_txn_log_fd.get_fd();
 
     txn_log_t* txn_log;
-    map_fd(txn_log, get_fd_size(local_log_fd), PROT_READ, MAP_PRIVATE, local_log_fd, 0);
+    map_fd_data(txn_log, get_fd_size(local_log_fd), PROT_READ, MAP_PRIVATE, local_log_fd, 0);
     // Ensure the fd is unmapped when we exit this scope.
     auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(txn_log, txn_log->size());
+        unmap_fd_data(txn_log, txn_log->size());
     });
 
     // Ensure that the begin_ts in this entry matches the txn log header.
@@ -2487,10 +2487,10 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
 void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
 {
     txn_log_t* txn_log;
-    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
+    map_fd_data(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
     // Ensure the fd is unmapped when we exit this scope.
     auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(txn_log, txn_log->size());
+        unmap_fd_data(txn_log, txn_log->size());
     });
 
     retail_assert(txn_log, "txn_log should be mapped when deallocating old offsets.");
