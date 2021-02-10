@@ -75,7 +75,7 @@ typedef enum
 
 ruleset test2
 {
-  OnUpdate(actuator)
+  OnChange(actuator)
   {
 	  if (actuator.value < 5)
 	  {

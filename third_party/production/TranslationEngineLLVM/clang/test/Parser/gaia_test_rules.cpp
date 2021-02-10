@@ -449,3 +449,195 @@ ruleset test54
 
   }
 }
+
+ruleset test55
+{
+  OnChange(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+  {
+
+  }
+}
+
+ruleset test56
+{
+  OnChange(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+  {
+
+  }
+}
+
+ruleset test57
+{
+  OnChange(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
+  {
+
+  }
+}
+
+ruleset test58
+{
+  OnChange
+  { // expected-error {{expected '('}}
+
+  }
+}
+
+ruleset test59
+{
+  OnChange()
+  { // expected-error {{Invalid Gaia rule attribute.}}
+
+  }
+}
+
+ruleset test60
+{
+  OnChange("sensor") // expected-error {{expected identifier}}
+  {
+
+  }
+}
+
+ruleset test61
+{
+  OnChange(5) // expected-error {{expected identifier}}
+  {
+
+  }
+}
+
+ruleset test62
+{
+  OnChange(value) // expected-error {{Duplicate field 'value'.}}
+  {
+
+  }
+}
+
+ruleset test63
+{
+  OnChange(incubator),OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+  {
+
+  }
+}
+
+ruleset test64
+{
+  OnChange(sensor.value.value)// expected-error {{expected ')'}} expected-note {{to match this '('}}
+  {
+
+  }
+}
+
+ruleset test65
+{
+  OnChange(value)// expected-error {{Duplicate field 'value'}}
+  {
+
+  }
+}
+
+ruleset test66
+{
+  OnChange(sensor.)// expected-error {{expected identifier}}
+  {
+
+  }
+}
+
+ruleset test67
+{
+  OnInsert(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+  {
+
+  }
+}
+
+ruleset test68
+{
+  OnInsert(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+  {
+
+  }
+}
+
+ruleset test69
+{
+  OnInsert(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
+  {
+
+  }
+}
+
+ruleset test70
+{
+  OnInsert
+  { // expected-error {{expected '('}}
+
+  }
+}
+
+ruleset test71
+{
+  OnInsert()
+  { // expected-error {{Invalid Gaia rule attribute.}}
+
+  }
+}
+
+ruleset test72
+{
+  OnInsert("sensor") // expected-error {{expected identifier}}
+  {
+
+  }
+}
+
+ruleset test73
+{
+  OnInsert(5) // expected-error {{expected identifier}}
+  {
+
+  }
+}
+
+ruleset test74
+{
+  OnInsert(value) // expected-error {{Duplicate field 'value'.}}
+  {
+
+  }
+}
+
+ruleset test75
+{
+  OnInsert(incubator),OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+  {
+
+  }
+}
+
+ruleset test76
+{
+  OnInsert(sensor.value.value)// expected-error {{expected ')'}} expected-note {{to match this '('}}
+  {
+
+  }
+}
+
+ruleset test77
+{
+  OnInsert(value)// expected-error {{Duplicate field 'value'}}
+  {
+
+  }
+}
+
+ruleset test78
+{
+  OnInsert(sensor.)// expected-error {{expected identifier}}
+  {
+
+  }
+}
