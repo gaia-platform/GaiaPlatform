@@ -112,7 +112,7 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
 
-    int send_fds[] = {s_locators.fd(), s_counters.fd(), s_data.fd(), s_id_index.fd()};
+    int send_fds[] = {s_shared_locators.fd(), s_shared_counters.fd(), s_shared_data.fd(), s_shared_id_index.fd()};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -541,10 +541,10 @@ void server::build_server_reply(
 
 void server::clear_shared_memory()
 {
-    s_locators.close();
-    s_counters.close();
-    s_data.close();
-    s_id_index.close();
+    s_shared_locators.close();
+    s_shared_counters.close();
+    s_shared_data.close();
+    s_shared_id_index.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -557,24 +557,24 @@ void server::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
-    retail_assert(s_locators.is_closed(), "Locators memory should be reset!");
-    retail_assert(s_counters.is_closed(), "Counters memory should be reset!");
-    retail_assert(s_data.is_closed(), "Data memory should be reset!");
-    retail_assert(s_id_index.is_closed(), "ID index memory should be reset!");
+    retail_assert(s_shared_locators.is_closed(), "Locators memory should be reset!");
+    retail_assert(s_shared_counters.is_closed(), "Counters memory should be reset!");
+    retail_assert(s_shared_data.is_closed(), "Data memory should be reset!");
+    retail_assert(s_shared_id_index.is_closed(), "ID index memory should be reset!");
 
-    // s_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
+    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
-    // s_data uses (64B) * c_max_locators = 256GB of virtual address space.
+    // s_shared_data uses (64B) * c_max_locators = 256GB of virtual address space.
     //
-    // s_id_index uses (32B) * c_max_locators = 128GB of virtual address space
+    // s_shared_id_index uses (32B) * c_max_locators = 128GB of virtual address space
     // (assuming 4-byte alignment). We could eventually shrink this to
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_locators.create(c_shmem_locators);
-    s_counters.create(c_shmem_counters);
-    s_data.create(c_shmem_data);
-    s_id_index.create(c_shmem_id_index);
+    s_shared_locators.create(c_gaia_mem_locators);
+    s_shared_counters.create(c_gaia_mem_counters);
+    s_shared_data.create(c_gaia_mem_data);
+    s_shared_id_index.create(c_gaia_mem_id_index);
 
     init_memory_manager();
 
@@ -586,7 +586,7 @@ void server::init_memory_manager()
 {
     s_memory_manager.reset();
     s_memory_manager = make_unique<memory_manager_t>();
-    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_data.data()->objects), sizeof(s_data.data()->objects));
+    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_shared_data.data()->objects), sizeof(s_shared_data.data()->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
         s_memory_manager->free_old_offset(get_address_offset(offset));
@@ -1620,7 +1620,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
     gaia_locator_t locator = 0;
 
     // Fix end of locator segment for length of scan, since it can change during scan.
-    gaia_locator_t last_locator = s_counters.data()->last_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
     return [=]() mutable -> std::optional<gaia_id_t> {
         // REVIEW: Now that the locator segment is no longer locked, we have no
@@ -2480,7 +2480,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
         txn_log_t::log_record_t* lr = &(txn_log->log_records[i]);
-        (*s_locators.data())[lr->locator] = lr->new_offset;
+        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
 }
 

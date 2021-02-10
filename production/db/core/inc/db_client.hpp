@@ -30,14 +30,14 @@ class client
     /**
      * @throws no_open_transaction if there is no active transaction.
      */
-    friend gaia::db::shared_locators_t* gaia::db::get_shared_locators();
+    friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
      * @throws no_active_session if there is no active session.
      */
-    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
-    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
-    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::counters_t* gaia::db::get_counters();
+    friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::id_index_t* gaia::db::get_id_index();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -46,7 +46,7 @@ class client
 public:
     static inline bool is_transaction_active()
     {
-        return (!s_locators.is_closed());
+        return (!s_private_locators.is_closed());
     }
 
     /**
@@ -81,14 +81,14 @@ private:
     thread_local static inline txn_log_t* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
 
-    thread_local static inline mapped_data_t<shared_locators_t> s_locators;
+    thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
     // These fields have session lifetime.
     thread_local static inline int s_fd_locators = -1;
 
-    thread_local static inline mapped_data_t<shared_counters_t> s_counters;
-    thread_local static inline mapped_data_t<shared_data_t> s_data;
-    thread_local static inline mapped_data_t<shared_id_index_t> s_id_index;
+    thread_local static inline mapped_data_t<counters_t> s_shared_counters;
+    thread_local static inline mapped_data_t<data_t> s_shared_data;
+    thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
 
     thread_local static inline int s_session_socket = -1;
 

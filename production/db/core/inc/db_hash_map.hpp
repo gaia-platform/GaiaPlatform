@@ -21,8 +21,8 @@ class db_hash_map
 public:
     static hash_node_t* insert(gaia::common::gaia_id_t id)
     {
-        shared_locators_t* locators = gaia::db::get_shared_locators();
-        shared_id_index_t* id_index = gaia::db::get_shared_id_index();
+        locators_t* locators = gaia::db::get_locators();
+        id_index_t* id_index = gaia::db::get_id_index();
         if (locators == nullptr)
         {
             throw no_open_transaction();
@@ -76,8 +76,8 @@ public:
 
     static gaia_locator_t find(gaia::common::gaia_id_t id)
     {
-        shared_locators_t* locators = gaia::db::get_shared_locators();
-        shared_id_index_t* id_index = gaia::db::get_shared_id_index();
+        locators_t* locators = gaia::db::get_locators();
+        id_index_t* id_index = gaia::db::get_id_index();
         if (locators == nullptr)
         {
             throw no_open_transaction();
@@ -109,7 +109,7 @@ public:
 
     static void remove(gaia::common::gaia_id_t id)
     {
-        shared_id_index_t* id_index = gaia::db::get_shared_id_index();
+        id_index_t* id_index = gaia::db::get_id_index();
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
 
         while (node->id)

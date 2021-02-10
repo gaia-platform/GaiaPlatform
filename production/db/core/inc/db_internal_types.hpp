@@ -56,12 +56,12 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 
 constexpr char c_server_connect_socket_name[] = "gaia_db_server";
 
-constexpr char c_shmem_locators[] = "gaia_mem_locators";
-constexpr char c_shmem_counters[] = "gaia_mem_counters";
-constexpr char c_shmem_data[] = "gaia_mem_data";
-constexpr char c_shmem_id_index[] = "gaia_mem_id_index";
+constexpr char c_gaia_mem_locators[] = "gaia_mem_locators";
+constexpr char c_gaia_mem_counters[] = "gaia_mem_counters";
+constexpr char c_gaia_mem_data[] = "gaia_mem_data";
+constexpr char c_gaia_mem_id_index[] = "gaia_mem_id_index";
 
-constexpr char c_shmem_txn_log[] = "gaia_mem_txn_log";
+constexpr char c_gaia_mem_txn_log[] = "gaia_mem_txn_log";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32.
@@ -80,7 +80,7 @@ constexpr size_t c_max_log_records = 1ULL << 20;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
-typedef gaia_offset_t shared_locators_t[c_max_locators];
+typedef gaia_offset_t locators_t[c_max_locators];
 
 struct hash_node_t
 {
@@ -140,7 +140,7 @@ struct txn_log_t
 
 constexpr size_t c_initial_log_size = sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * c_max_log_records);
 
-struct shared_counters_t
+struct counters_t
 {
     // These fields are used as cross-process atomic counters. We don't need
     // something like a cross-process mutex for this, as long as we use atomic
@@ -158,7 +158,7 @@ struct shared_counters_t
     gaia::db::gaia_locator_t last_locator;
 };
 
-struct shared_data_t
+struct data_t
 {
     // This array is actually an untyped array of bytes, but it's defined as an
     // array of uint64_t just to enforce 8-byte alignment. Allocating
@@ -176,7 +176,7 @@ struct shared_data_t
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
 // need a hash table node for each locator (to store the gaia_id key and the
 // locator value).
-struct shared_id_index_t
+struct id_index_t
 {
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];

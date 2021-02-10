@@ -45,10 +45,10 @@ public:
 
 class server
 {
-    friend gaia::db::shared_locators_t* gaia::db::get_shared_locators();
-    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
-    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
-    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::locators_t* gaia::db::get_locators();
+    friend gaia::db::counters_t* gaia::db::get_counters();
+    friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::id_index_t* gaia::db::get_id_index();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -84,10 +84,10 @@ private:
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
 
-    static inline mapped_data_t<shared_locators_t> s_locators{};
-    static inline mapped_data_t<shared_counters_t> s_counters{};
-    static inline mapped_data_t<shared_data_t> s_data{};
-    static inline mapped_data_t<shared_id_index_t> s_id_index{};
+    static inline mapped_data_t<locators_t> s_shared_locators{};
+    static inline mapped_data_t<counters_t> s_shared_counters{};
+    static inline mapped_data_t<data_t> s_shared_data{};
+    static inline mapped_data_t<id_index_t> s_shared_id_index{};
 
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;

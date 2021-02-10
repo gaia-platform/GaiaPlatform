@@ -102,6 +102,7 @@ public:
         m_state = state_t::created;
     }
 
+    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
     void open(int fd, bool manage_fd = true)
     {
         retail_assert(
