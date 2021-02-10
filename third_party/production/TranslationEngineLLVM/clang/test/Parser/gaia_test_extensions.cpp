@@ -1,6 +1,6 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump %s | FileCheck -strict-whitespace %s
 
-ruleset test : table(sensor, incubator), SerialStream(ttt)
+ruleset test : Table(sensor, incubator), SerialStream(ttt)
 {
 OnUpdate(incubator, sensor.value)
 {
@@ -100,7 +100,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test3 : table (sensor)
+ruleset test3 : Table (sensor)
 {
   {
 	  if (value < 5)

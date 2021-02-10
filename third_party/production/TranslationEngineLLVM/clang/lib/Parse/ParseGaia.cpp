@@ -111,7 +111,7 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs, GaiaA
     {
         if (attributeType == Ruleset)
         {
-            if (Tok.getIdentifierInfo()->getName().equals("table"))
+            if (Tok.getIdentifierInfo()->getName().equals("Table"))
             {
                 return ParseRulesetTable(attrs, EndLoc);
             }
@@ -201,7 +201,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
     }
     if (argExprs.size() == 0)
     {
-        Diag(Tok, diag::err_invalid_Gaia_attribute);
+        Diag(Tok, diag::err_invalid_Gaia_rule_attribute);
         return false;
     }
 
@@ -275,7 +275,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 
     if (argExprs.size() == 0)
     {
-        Diag(Tok, diag::err_invalid_Gaia_attribute);
+        Diag(Tok, diag::err_invalid_ruleset_attribute);
         return false;
     }
 
@@ -289,7 +289,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(!Tok.getIdentifierInfo()->getName().equals("table") && "Not a ruleset table!");
+    assert(!Tok.getIdentifierInfo()->getName().equals("Table") && "Not a ruleset table!");
 
     ArgsVector argExprs;
 
@@ -325,7 +325,7 @@ bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     }
     if (argExprs.size() == 0)
     {
-        Diag(Tok, diag::err_invalid_Gaia_attribute);
+        Diag(Tok, diag::err_invalid_ruleset_attribute);
         return false;
     }
 

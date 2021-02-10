@@ -60,7 +60,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test6 : table (sensor)
+ruleset test6 : Table (sensor)
 {
   {
 	  if (value < 5)
