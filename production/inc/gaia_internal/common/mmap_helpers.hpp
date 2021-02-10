@@ -55,14 +55,6 @@ inline void unmap_fd(T*& addr, size_t length)
 template <typename T>
 class mapped_data_t
 {
-private:
-    enum class state_t : int8_t
-    {
-        closed = 0,
-        created = 1,
-        opened = 2,
-    };
-
 public:
     mapped_data_t() = default;
 
@@ -74,7 +66,7 @@ public:
     void create(const char* name)
     {
         retail_assert(
-            m_state == state_t::closed,
+            !m_is_initialized,
             "Calling create() on an already initialized mapped_data_t instance!");
 
         m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
@@ -99,14 +91,14 @@ public:
         // followed by VirtualAlloc(MEM_COMMIT) in Windows).
         map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
 
-        m_state = state_t::created;
+        m_is_initialized = true;
     }
 
     // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
     void open(int fd, bool manage_fd = true)
     {
         retail_assert(
-            m_state == state_t::closed,
+            !m_is_initialized,
             "Calling open() on an already initialized mapped_data_t instance!");
 
         retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
@@ -124,7 +116,7 @@ public:
             map_fd(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, fd, 0);
         }
 
-        m_state = state_t::opened;
+        m_is_initialized = true;
     }
 
     void close()
@@ -132,7 +124,7 @@ public:
         unmap_fd(m_data, sizeof(T));
         close_fd(m_fd);
 
-        m_state = state_t::closed;
+        m_is_initialized = false;
     }
 
     T* data()
@@ -145,13 +137,13 @@ public:
         return m_fd;
     }
 
-    bool is_closed()
+    bool is_initialized()
     {
-        return m_state == state_t::closed;
+        return m_is_initialized;
     }
 
 private:
-    state_t m_state{state_t::closed};
+    bool m_is_initialized{false};
     int m_fd{-1};
     T* m_data{nullptr};
 };

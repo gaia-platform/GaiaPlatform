@@ -46,7 +46,7 @@ class client
 public:
     static inline bool is_transaction_active()
     {
-        return (!s_private_locators.is_closed());
+        return (s_private_locators.is_initialized());
     }
 
     /**

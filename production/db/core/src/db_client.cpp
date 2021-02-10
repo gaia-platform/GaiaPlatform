@@ -440,10 +440,10 @@ void client::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_private_locators.is_closed(), "Locators segment is already initialized!");
-    retail_assert(s_shared_counters.is_closed(), "Counters segment is already initialized!");
-    retail_assert(s_shared_data.is_closed(), "Data segment is already initialized!");
-    retail_assert(s_shared_id_index.is_closed(), "ID index segment is already initialized!");
+    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
+    retail_assert(!s_shared_counters.is_initialized(), "Counters segment is already initialized!");
+    retail_assert(!s_shared_data.is_initialized(), "Data segment is already initialized!");
+    retail_assert(!s_shared_id_index.is_initialized(), "ID index segment is already initialized!");
 
     retail_assert(s_fd_log == -1, "Log file descriptor is already initialized!");
     retail_assert(s_log == nullptr, "Log segment is already initialized!");
@@ -513,7 +513,7 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(s_private_locators.is_closed(), "Locators segment is already initialized!");
+    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
     bool manage_fd = false;
     s_private_locators.open(s_fd_locators, manage_fd);
 
@@ -586,7 +586,7 @@ void client::begin_transaction()
 
 void client::apply_txn_log(int log_fd)
 {
-    retail_assert(!s_private_locators.is_closed(), "Locators segment must be mapped!");
+    retail_assert(s_private_locators.is_initialized(), "Locators segment must be mapped!");
 
     txn_log_t* txn_log;
     map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
