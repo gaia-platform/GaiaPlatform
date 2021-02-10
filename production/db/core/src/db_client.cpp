@@ -588,15 +588,12 @@ void client::apply_txn_log(int log_fd)
 {
     retail_assert(s_private_locators.is_initialized(), "Locators segment must be mapped!");
 
-    txn_log_t* txn_log;
-    map_fd_data(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd_data(txn_log, get_fd_size(log_fd));
-    });
+    mapped_log_t txn_log;
+    txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log.log()->count; ++i)
     {
-        auto lr = txn_log->log_records + i;
+        auto lr = txn_log.log()->log_records + i;
         (*s_private_locators.data())[lr->locator] = lr->new_offset;
     }
 }

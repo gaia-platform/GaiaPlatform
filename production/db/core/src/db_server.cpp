@@ -2135,23 +2135,17 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 {
     // First map the two fds.
-    txn_log_t* log1;
-    map_fd_data(log1, get_fd_size(log_fd1), PROT_READ, MAP_PRIVATE, log_fd1, 0);
-    auto cleanup_log1 = make_scope_guard([&]() {
-        unmap_fd_data(log1, get_fd_size(log_fd1));
-    });
-    txn_log_t* log2;
-    map_fd_data(log2, get_fd_size(log_fd2), PROT_READ, MAP_PRIVATE, log_fd2, 0);
-    auto cleanup_log2 = make_scope_guard([&]() {
-        unmap_fd_data(log2, get_fd_size(log_fd2));
-    });
+    mapped_log_t log1;
+    log1.open(log_fd1);
+    mapped_log_t log2;
+    log2.open(log_fd2);
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1->count && log2_idx < log2->count)
+    while (log1_idx < log1.log()->count && log2_idx < log2.log()->count)
     {
-        txn_log_t::log_record_t* lr1 = log1->log_records + log1_idx;
-        txn_log_t::log_record_t* lr2 = log2->log_records + log2_idx;
+        txn_log_t::log_record_t* lr1 = log1.log()->log_records + log1_idx;
+        txn_log_t::log_record_t* lr2 = log2.log()->log_records + log2_idx;
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -2458,19 +2452,15 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     safe_fd_from_ts committed_txn_log_fd(commit_ts);
     int local_log_fd = committed_txn_log_fd.get_fd();
 
-    txn_log_t* txn_log;
-    map_fd_data(txn_log, get_fd_size(local_log_fd), PROT_READ, MAP_PRIVATE, local_log_fd, 0);
-    // Ensure the fd is unmapped when we exit this scope.
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd_data(txn_log, txn_log->size());
-    });
+    mapped_log_t txn_log;
+    txn_log.open(local_log_fd);
 
     // Ensure that the begin_ts in this entry matches the txn log header.
     retail_assert(
-        txn_log->begin_ts == get_begin_ts(commit_ts),
+        txn_log.log()->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log.log()->count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2479,22 +2469,18 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         // that txn's snapshot). This update is non-atomic since log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log->log_records[i]);
+        txn_log_t::log_record_t* lr = &(txn_log.log()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
 }
 
 void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
 {
-    txn_log_t* txn_log;
-    map_fd_data(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
-    // Ensure the fd is unmapped when we exit this scope.
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd_data(txn_log, txn_log->size());
-    });
+    mapped_log_t txn_log;
+    txn_log.open(log_fd);
 
-    retail_assert(txn_log, "txn_log should be mapped when deallocating old offsets.");
-    deallocate_txn_log(txn_log, deallocate_new_offsets);
+    retail_assert(txn_log.is_initialized(), "txn_log should be mapped when deallocating old offsets.");
+    deallocate_txn_log(txn_log.log(), deallocate_new_offsets);
 }
 
 void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
