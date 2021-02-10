@@ -13,6 +13,7 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 
 namespace gaia
@@ -22,7 +23,7 @@ namespace common
 
 // We use a template to avoid a cast from void* in the caller.
 template <typename T>
-inline void map_fd(T*& addr, size_t length, int protection, int flags, int fd, size_t offset)
+inline void map_fd_data(T*& addr, size_t length, int protection, int flags, int fd, size_t offset)
 {
     void* mapping = ::mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
     if (mapping == MAP_FAILED)
@@ -36,7 +37,7 @@ inline void map_fd(T*& addr, size_t length, int protection, int flags, int fd, s
 
 // We use a template because the compiler won't convert T* to void*&.
 template <typename T>
-inline void unmap_fd(T*& addr, size_t length)
+inline void unmap_fd_data(T*& addr, size_t length)
 {
     if (addr)
     {

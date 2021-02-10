@@ -7,6 +7,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
@@ -29,14 +30,14 @@ class client
     /**
      * @throws no_open_transaction if there is no active transaction.
      */
-    friend gaia::db::locators_t* gaia::db::get_shared_locators();
+    friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
      * @throws no_active_session if there is no active session.
      */
-    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
-    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
-    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::counters_t* gaia::db::get_counters();
+    friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::id_index_t* gaia::db::get_id_index();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -45,7 +46,7 @@ class client
 public:
     static inline bool is_transaction_active()
     {
-        return (s_locators != nullptr);
+        return (s_private_locators.is_initialized());
     }
 
     /**
@@ -77,16 +78,17 @@ public:
 private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline txn_log_t* s_log = nullptr;
-    thread_local static inline int s_fd_log = -1;
+    thread_local static inline mapped_log_t s_log{};
 
-    thread_local static inline locators_t* s_locators = nullptr;
+    thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
     // These fields have session lifetime.
     thread_local static inline int s_fd_locators = -1;
-    thread_local static inline shared_counters_t* s_counters = nullptr;
-    thread_local static inline shared_data_t* s_data = nullptr;
-    thread_local static inline shared_id_index_t* s_id_index = nullptr;
+
+    thread_local static inline mapped_data_t<counters_t> s_shared_counters;
+    thread_local static inline mapped_data_t<data_t> s_shared_data;
+    thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
+
     thread_local static inline int s_session_socket = -1;
 
     // s_events has transaction lifetime and is cleared after each transaction.
@@ -185,13 +187,13 @@ private:
         }
 
         // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log->count == c_max_log_records)
+        if (s_log.log()->count == c_max_log_records)
         {
             throw transaction_object_limit_exceeded();
         }
 
         // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log->log_records + s_log->count++;
+        txn_log_t::log_record_t* lr = s_log.log()->log_records + s_log.log()->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

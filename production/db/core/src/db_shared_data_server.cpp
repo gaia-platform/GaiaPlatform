@@ -6,39 +6,39 @@
 #include "db_server.hpp"
 #include "db_shared_data.hpp"
 
-gaia::db::locators_t* gaia::db::get_shared_locators()
+gaia::db::locators_t* gaia::db::get_locators()
 {
     // The server's locator segment should always be mapped whenever any callers
     // of this method are able to observe it.
-    retail_assert(gaia::db::server::s_shared_locators, "Server locators segment is unmapped!");
-    return gaia::db::server::s_shared_locators;
+    retail_assert(gaia::db::server::s_shared_locators.is_initialized(), "Server locators segment is unmapped!");
+    return gaia::db::server::s_shared_locators.data();
 }
 
-gaia::db::shared_counters_t* gaia::db::get_shared_counters()
+gaia::db::counters_t* gaia::db::get_counters()
 {
     // Since we don't use this accessor in the server itself, we can assert that
     // it is always non-null (since callers should never be able to see it in
     // its null state, i.e., with the counters segment unmapped).
-    retail_assert(gaia::db::server::s_counters, "Server counters segment is unmapped!");
-    return gaia::db::server::s_counters;
+    retail_assert(gaia::db::server::s_shared_counters.is_initialized(), "Server counters segment is unmapped!");
+    return gaia::db::server::s_shared_counters.data();
 }
 
-gaia::db::shared_data_t* gaia::db::get_shared_data()
+gaia::db::data_t* gaia::db::get_data()
 {
     // Since we don't use this accessor in the server itself, we can assert that
     // it is always non-null (since callers should never be able to see it in
     // its null state, i.e., with the data segment unmapped).
-    retail_assert(gaia::db::server::s_data, "Server data segment is unmapped!");
-    return gaia::db::server::s_data;
+    retail_assert(gaia::db::server::s_shared_data.is_initialized(), "Server data segment is unmapped!");
+    return gaia::db::server::s_shared_data.data();
 }
 
-gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
+gaia::db::id_index_t* gaia::db::get_id_index()
 {
     // Since we don't use this accessor in the server itself, we can assert that
     // it is always non-null (since callers should never be able to see it in
     // its null state, i.e., with the id_index segment unmapped).
-    retail_assert(gaia::db::server::s_id_index, "Server id_index segment is unmapped!");
-    return gaia::db::server::s_id_index;
+    retail_assert(gaia::db::server::s_shared_id_index.is_initialized(), "Server id_index segment is unmapped!");
+    return gaia::db::server::s_shared_id_index.data();
 }
 
 gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
