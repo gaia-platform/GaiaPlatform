@@ -326,6 +326,36 @@ public:
         m_is_initialized = true;
     }
 
+    void truncate_seal_and_close(int& fd, size_t& log_size)
+    {
+        gaia::common::retail_assert(
+            m_is_initialized,
+            "Calling truncate_seal_and_close() on an uninitialized mapped_log_t instance!");
+
+        gaia::common::retail_assert(
+            m_fd != -1,
+            "truncate_seal_and_close() was called on a mapped_log_t instance that lacks a valid fd!");
+
+        fd = m_fd;
+        log_size = m_log->size();
+
+        gaia::common::unmap_fd_data(m_log, m_mapped_log_size);
+        m_mapped_log_size = 0;
+
+        gaia::common::truncate_fd(m_fd, log_size);
+
+        // Seal the txn log memfd for writes/resizing before sending it to the server.
+        if (-1 == ::fcntl(m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
+        {
+            gaia::common::throw_system_error(
+                "fcntl(F_ADD_SEALS) failed in mapped_log_t::truncate_seal_and_close()!");
+        }
+
+        m_fd = -1;
+
+        m_is_initialized = false;
+    }
+
     void close()
     {
         gaia::common::unmap_fd_data(m_log, m_mapped_log_size);

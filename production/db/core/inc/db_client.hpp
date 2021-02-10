@@ -78,8 +78,7 @@ public:
 private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline txn_log_t* s_log = nullptr;
-    thread_local static inline int s_fd_log = -1;
+    thread_local static inline mapped_log_t s_log{};
 
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
@@ -188,13 +187,13 @@ private:
         }
 
         // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log->count == c_max_log_records)
+        if (s_log.log()->count == c_max_log_records)
         {
             throw transaction_object_limit_exceeded();
         }
 
         // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log->log_records + s_log->count++;
+        txn_log_t::log_record_t* lr = s_log.log()->log_records + s_log.log()->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;
