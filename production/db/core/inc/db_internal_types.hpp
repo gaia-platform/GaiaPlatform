@@ -183,6 +183,8 @@ struct id_index_t
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
 
+// This class abstracts the server and client operations with memory-mapped data.
+// T indicates the type of data structure that is managed by an instance of this class.
 template <typename T>
 class mapped_data_t
 {
@@ -194,6 +196,7 @@ public:
         close();
     }
 
+    // Creates a memory-mapping for a data structure.
     void create(const char* name)
     {
         gaia::common::retail_assert(
@@ -225,7 +228,13 @@ public:
         m_is_initialized = true;
     }
 
+    // Opens a memory-mapped structure using a file descriptor.
+    // manage_fd is used to indicate whether the fd should be managed
+    // (i.e. closed at destruction time) by this class or not.
+    //
     // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
+    // This is done for coding convenience because it suits current implementation,
+    // but could be changed in the future if we wish more control over this behavior.
     void open(int fd, bool manage_fd = true)
     {
         gaia::common::retail_assert(
@@ -250,6 +259,8 @@ public:
         m_is_initialized = true;
     }
 
+    // Unmaps the data and closes the file descriptor, if one is tracked.
+    // This permits manual cleanup, before instance destruction time.
     void close()
     {
         gaia::common::unmap_fd_data(m_data, sizeof(T));
@@ -280,6 +291,8 @@ private:
     T* m_data{nullptr};
 };
 
+// This is a variant of mapped_data_t that is specialized for operation on log data structures.
+// There are enough differences from mapped_data_t to warrant a separate implementation.
 class mapped_log_t
 {
 public:
@@ -290,6 +303,7 @@ public:
         close();
     }
 
+    // Creates a memory-mapping for a log data structure.
     void create(const char* name)
     {
         gaia::common::retail_assert(
@@ -311,6 +325,7 @@ public:
         m_is_initialized = true;
     }
 
+    // Opens a memory-mapped log structure using a file descriptor.
     void open(int fd)
     {
         gaia::common::retail_assert(
@@ -326,6 +341,10 @@ public:
         m_is_initialized = true;
     }
 
+    // Truncates and seals a memory-mapped log structure.
+    // Closes the mapped_log_t instance in the sense that it is left in an uninitialized state.
+    // The file descriptor is *NOT* closed.
+    // Passes back the file descriptor and the size of the log.
     void truncate_seal_and_close(int& fd, size_t& log_size)
     {
         gaia::common::retail_assert(
@@ -356,6 +375,8 @@ public:
         m_is_initialized = false;
     }
 
+    // Unmaps the data and closes the file descriptor, if one is tracked.
+    // This permits manual cleanup, before instance destruction time.
     void close()
     {
         gaia::common::unmap_fd_data(m_log, m_mapped_log_size);
@@ -385,6 +406,8 @@ private:
     bool m_is_initialized{false};
     int m_fd{-1};
     txn_log_t* m_log{nullptr};
+
+    // This is used to track the mapped log size, so we can call munmap() with the same value.
     size_t m_mapped_log_size{0};
 };
 
