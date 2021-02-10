@@ -253,11 +253,11 @@ void server::handle_commit_txn(
 
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    map_fd_data(s_log, get_fd_size(s_fd_log), PROT_READ, MAP_PRIVATE, s_fd_log, 0);
-    // Unconditionally unmap the log segment on exit.
-    auto cleanup_log = make_scope_guard([]() {
-        unmap_fd_data(s_log, s_log->size());
-    });
+    // We map the log into a local variable so it gets unmapped automatically on exit.
+    mapped_log_t log;
+    log.open(s_fd_log);
+    // Surface the log in our static variable, to avoid passing it around.
+    s_log = log.log();
 
     // Actually commit the transaction.
     bool success = txn_commit();

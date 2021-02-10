@@ -81,6 +81,7 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
+    // These fields have session lifetime.
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
 
@@ -89,6 +90,7 @@ private:
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
 
+    // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
 
