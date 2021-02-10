@@ -290,7 +290,7 @@ public:
         close();
     }
 
-    void create(const char* name, size_t initial_size)
+    void create(const char* name)
     {
         gaia::common::retail_assert(
             !m_is_initialized,
@@ -302,15 +302,16 @@ public:
             gaia::common::throw_system_error("memfd_create() failed in mapped_log_t::create()!");
         }
 
-        gaia::common::truncate_fd(m_fd, initial_size);
+        m_mapped_log_size = c_initial_log_size;
 
-        gaia::common::map_fd_data(m_log, initial_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, 0);
+        gaia::common::truncate_fd(m_fd, m_mapped_log_size);
+
+        gaia::common::map_fd_data(m_log, m_mapped_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, 0);
 
         m_is_initialized = true;
     }
 
-    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
-    void open(int fd, bool use_fd_for_unmap = true)
+    void open(int fd)
     {
         gaia::common::retail_assert(
             !m_is_initialized,
@@ -318,28 +319,17 @@ public:
 
         gaia::common::retail_assert(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
-        gaia::common::map_fd_data(m_log, gaia::common::get_fd_size(fd), PROT_READ, MAP_PRIVATE, fd, 0);
+        m_mapped_log_size = gaia::common::get_fd_size(fd);
 
-        if (use_fd_for_unmap)
-        {
-            m_fd_for_unmap = fd;
-        }
+        gaia::common::map_fd_data(m_log, m_mapped_log_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
         m_is_initialized = true;
     }
 
     void close()
     {
-        if (m_fd_for_unmap != -1)
-        {
-            int fd = m_fd_for_unmap;
-            m_fd_for_unmap = -1;
-            gaia::common::unmap_fd_data(m_log, gaia::common::get_fd_size(fd));
-        }
-        else
-        {
-            gaia::common::unmap_fd_data(m_log, m_log->size());
-        }
+        gaia::common::unmap_fd_data(m_log, m_mapped_log_size);
+        m_mapped_log_size = 0;
 
         gaia::common::close_fd(m_fd);
 
@@ -365,10 +355,7 @@ private:
     bool m_is_initialized{false};
     int m_fd{-1};
     txn_log_t* m_log{nullptr};
-
-    // This fd is stored only for use during close,
-    // when it is queried to determine the size that should be passed to unmap_fd_data.
-    int m_fd_for_unmap{-1};
+    size_t m_mapped_log_size{0};
 };
 
 } // namespace db
