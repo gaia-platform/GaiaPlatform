@@ -204,7 +204,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 
 void gaia_ptr::find_next(gaia_type_t type)
 {
-    gaia::db::shared_counters_t* counters = gaia::db::get_shared_counters();
+    gaia::db::counters_t* counters = gaia::db::get_counters();
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
@@ -223,7 +223,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
-    gaia::db::locators_t* locators = gaia::db::get_shared_locators();
+    gaia::db::locators_t* locators = gaia::db::get_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type))
