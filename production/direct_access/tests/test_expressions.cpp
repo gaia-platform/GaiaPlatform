@@ -12,9 +12,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/logger.hpp"
 
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
@@ -26,10 +24,10 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-class test_filters : public db_catalog_test_base_t
+class test_expressions : public db_catalog_test_base_t
 {
 public:
-    test_filters()
+    test_expressions()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
 protected:
@@ -103,10 +101,6 @@ protected:
     void assert_contains(T_container gaia_container, std::initializer_list<T_type> expected)
     {
         auto expected_vec = std::vector(expected);
-        //        for (const auto& e : gaia_container)
-        //        {
-        //            cout << "----" << e.name_first() << endl;
-        //        }
 
         ASSERT_EQ(expected.size(), std::distance(gaia_container.begin(), gaia_container.end()));
 
@@ -136,7 +130,7 @@ protected:
     }
 };
 
-TEST_F(test_filters, eq)
+TEST_F(test_expressions, eq)
 {
     auto_transaction_t txn;
 
@@ -152,7 +146,7 @@ TEST_F(test_filters, eq)
     txn.commit();
 }
 
-TEST_F(test_filters, ne)
+TEST_F(test_expressions, ne)
 {
     auto_transaction_t txn;
 
@@ -169,7 +163,7 @@ TEST_F(test_filters, ne)
     txn.commit();
 }
 
-TEST_F(test_filters, gt)
+TEST_F(test_expressions, gt)
 {
     auto_transaction_t txn;
 
@@ -185,7 +179,7 @@ TEST_F(test_filters, gt)
     txn.commit();
 }
 
-TEST_F(test_filters, gteq)
+TEST_F(test_expressions, gteq)
 {
     auto_transaction_t txn;
 
@@ -201,7 +195,7 @@ TEST_F(test_filters, gteq)
     txn.commit();
 }
 
-TEST_F(test_filters, lt)
+TEST_F(test_expressions, lt)
 {
     auto_transaction_t txn;
 
@@ -217,7 +211,7 @@ TEST_F(test_filters, lt)
     txn.commit();
 }
 
-TEST_F(test_filters, lteq)
+TEST_F(test_expressions, lteq)
 {
     auto_transaction_t txn;
 
@@ -233,7 +227,7 @@ TEST_F(test_filters, lteq)
     txn.commit();
 }
 
-TEST_F(test_filters, string_eq)
+TEST_F(test_expressions, string_eq)
 {
     auto_transaction_t txn;
 
@@ -264,7 +258,7 @@ TEST_F(test_filters, string_eq)
     txn.commit();
 }
 
-TEST_F(test_filters, string_eq_case_insensitive)
+TEST_F(test_expressions, string_eq_case_insensitive)
 {
     auto_transaction_t txn;
 
@@ -291,7 +285,7 @@ TEST_F(test_filters, string_eq_case_insensitive)
     txn.commit();
 }
 
-TEST_F(test_filters, string_ne)
+TEST_F(test_expressions, string_ne)
 {
     auto_transaction_t txn;
 
@@ -319,7 +313,7 @@ TEST_F(test_filters, string_ne)
     txn.commit();
 }
 
-TEST_F(test_filters, object_eq)
+TEST_F(test_expressions, object_eq)
 {
     auto_transaction_t txn;
 
@@ -344,7 +338,7 @@ TEST_F(test_filters, object_eq)
     txn.commit();
 }
 
-TEST_F(test_filters, object_ne)
+TEST_F(test_expressions, object_ne)
 {
     auto_transaction_t txn;
 
@@ -371,7 +365,7 @@ TEST_F(test_filters, object_ne)
     txn.commit();
 }
 
-TEST_F(test_filters, or_)
+TEST_F(test_expressions, or_)
 {
     auto_transaction_t txn;
 
@@ -398,7 +392,7 @@ TEST_F(test_filters, or_)
     txn.commit();
 }
 
-TEST_F(test_filters, and_)
+TEST_F(test_expressions, and_)
 {
     auto_transaction_t txn;
 
@@ -425,7 +419,7 @@ TEST_F(test_filters, and_)
     txn.commit();
 }
 
-TEST_F(test_filters, not_)
+TEST_F(test_expressions, not_)
 {
     auto_transaction_t txn;
 
@@ -449,180 +443,3 @@ TEST_F(test_filters, not_)
 
     txn.commit();
 }
-
-double_t percentage_difference(int64_t expr, int64_t plain)
-{
-    return static_cast<double_t>(expr - plain) / plain * 100.0;
-}
-
-void log_performance_difference(int64_t expr_duration_ns, int64_t plain_duration_ns, std::string_view message)
-{
-    cout << "Comparing '" << message << "' performance:" << endl;
-    printf(" [expr]: %0.2f us\n", g_timer_t::ns_to_us(expr_duration_ns));
-    printf(" [plain]: %0.2f us\n", g_timer_t::ns_to_us(plain_duration_ns));
-
-    double_t percentage_diff = percentage_difference(expr_duration_ns, plain_duration_ns);
-
-    if (percentage_diff > 0)
-    {
-        printf(" ->expr is %0.2f%% slower\n", percentage_diff);
-    }
-    else
-    {
-        printf(" ->expr is %0.2f%% faster\n", abs(percentage_diff));
-    }
-
-    cout << endl;
-}
-
-TEST_F(test_filters, performance)
-{
-
-    const uint32_t num_employees = 100000;
-    const uint32_t num_employee_addresses = 3;
-
-    for (uint32_t i = 0; i < num_employees; i++)
-    {
-        auto_transaction_t txn(false);
-        auto employee_writer = gaia::addr_book::employee_writer();
-        employee_writer.name_first = "Name_" + to_string(i);
-        employee_writer.name_last = "Surname_" + to_string(i);
-        employee_writer.hire_date = i;
-        auto employee = employee_t::get(employee_writer.insert_row());
-        txn.commit();
-
-        if (i % 10 == 0)
-        {
-            cout << i << endl;
-        }
-    }
-
-    begin_transaction();
-    for (auto employee : employee_t::list())
-    {
-        for (uint32_t j = 0; j < num_employee_addresses; j++)
-        {
-            auto address = create_address("city_" + to_string(j), "state_" + to_string(j));
-            employee.addressee_address_list().insert(address);
-        }
-    }
-    commit_transaction();
-
-    auto_transaction_t txn;
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == "Name_1000"))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            const char* value = "Name_1000";
-            for (auto& e : employee_t::list())
-            {
-                if (strcmp(e.name_first(), value) == 0)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "const char* ==");
-
-    expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == string("Name_1000")))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            string value = "Name_1000";
-            for (auto& e : employee_t::list())
-            {
-                if (strcmp(e.name_first(), value.c_str()) == 0)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "std::string ==");
-
-    expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first
-                                          .equals("name_1000", string_comparison_t::case_insensitive)))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            string value = "name_1000";
-            for (auto& e : employee_t::list())
-            {
-                string a = e.name_first();
-                if (std::equal(
-                        a.begin(), a.end(), value.begin(), value.end(),
-                        [](const char& a, const char& b) {
-                            return tolower(a) == tolower(b);
-                        }))
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "std::string equals ignore case");
-
-    txn.commit();
-}
-
-//int main()
-//{
-//    //    Comparing const char* == performance
-//    //    [expr]: 24997.57 us
-//    //    [plain]: 25050.11 us
-//    //    expr is 0.00% faster
-//    //
-//    //    Comparing std::string == performance
-//    //    [expr]: 24916.39 us
-//    //    [plain]: 25110.23 us
-//    //    expr is 0.00% faster
-//    //
-//    //    Comparing std::string equals ignore case performance
-//    //    [expr]: 24086.16 us
-//    //    [plain]: 23796.49 us
-//    //    expr is 0.01% slower
-//
-//    printf(" expr is %0.2f%% faster\n", percentage_difference(24997, 25050));
-//    printf(" expr is %0.2f%% faster\n", percentage_difference(24916, 25110));
-//    printf(" expr is %0.2f%% faster\n", percentage_difference(24086, 23796));
-//
-//    std::string a("hello");
-//    std::string b("HELLO");
-//    std::cout << std::equal(a.begin(), a.end(), b.begin(), b.end(), [](const char& a, const char& b) {
-//        return (std::tolower(a) == std::tolower(b));
-//    });
-//}
