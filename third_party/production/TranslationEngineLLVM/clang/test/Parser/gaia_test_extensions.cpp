@@ -100,7 +100,7 @@ typedef enum
 ruleset test3 : table (sensor)
 {
   {
-	  if (value < 5)
+	  if (@value < 5)
 	  {
 		  value = 5;
 	  }

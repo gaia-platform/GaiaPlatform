@@ -960,15 +960,22 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
+                if (field_name == c_last_operation)
                 {
-                    return;
+                   if (!validate_and_add_active_field(table_name, field_name))
+                    {
+                        return;
+                    }
                 }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+                if (!validate_and_add_active_field(table_name, field_name))
+                {
+                    return;
+                }
             }
         }
         else if (member_expression != nullptr)
@@ -990,6 +997,10 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
+                    if (!validate_and_add_active_field(table_name, field_name))
+                    {
+                        return;
+                    }
                 }
                 else
                 {
@@ -997,9 +1008,12 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (!validate_and_add_active_field(table_name, field_name))
+                    if (field_name == c_last_operation)
                     {
-                        return;
+                        if (!validate_and_add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
                     }
                 }
             }

@@ -265,7 +265,7 @@ ruleset test32: table(sensor, incubator, bogus)   // expected-error {{Table 'bog
 ruleset test33: table(sensor)
 {
   {
-    actuator.value += value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
+    actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
   }
 }
 

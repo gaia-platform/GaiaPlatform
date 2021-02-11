@@ -12,8 +12,8 @@ ruleset test
     {
         gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
-        max_temp = sensor.value + 4;
-        if (@actuator.value > 0)
+        max_temp = @sensor.value + 4;
+        if (actuator.value > 0)
         {
             g_actuator_rule_called++;
         }
@@ -25,7 +25,7 @@ ruleset test
 
         if (sensor.LastOperation == UPDATE)
         {
-            if (sensor.value > 5)
+            if (@sensor.value > 5)
             {
                 actuator.value = 1000;
             }

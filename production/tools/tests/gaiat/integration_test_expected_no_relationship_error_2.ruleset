@@ -3,7 +3,7 @@
 ruleset test
 {
     {
-	if (actuator.value < 5)
+	if (@actuator.value < 5)
 	{
 		animal.age = 5;
 	}

@@ -46,7 +46,7 @@ typedef enum
 ruleset test5
 {
     {
-	if (actuator.value < 5)
+	if (@actuator.value < 5)
 	{
 		actuator.value = 5;
 	}
@@ -63,7 +63,7 @@ typedef enum
 ruleset test6 : table (sensor)
 {
   {
-	  if (value < 5)
+	  if (@value < 5)
 	  {
 		  value = 5;
 	  }
@@ -104,7 +104,7 @@ ruleset test8
         auto event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
-	    if (actuator.value < 5 && sensor.value > 10)
+	    if (@actuator.value < 5 && @sensor.value > 10)
 	    {
 		    actuator.value = 5;
 	    }
