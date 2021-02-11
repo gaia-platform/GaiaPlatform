@@ -438,46 +438,24 @@ static string generate_edc_struct(
 
     for (auto& relationship : child_relationships)
     {
-        if (strlen(relationship.name()))
-        {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
 
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+
+        if (is_named_relationship)
+        {
             code.SetValue("REF_NAME", relationship.name());
-            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
-            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t> {{REF_NAME}}_{{REF_TABLE}}{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{REF_TABLE}}};";
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{REF_NAME}}_{{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{PARENT_TABLE}}};";
         }
         else
         {
-            //            // This relationship is anonymous.
-            //            code.SetValue("REF_NAME", relationship.parent_gaia_table().name());
-            //            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
-            //            code += "{{REF_TABLE}}_t {{REF_NAME}}() {";
-            //            code.IncrementIdentLevel();
-            //            code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{TABLE_NAME}}_{{REF_TABLE}}]);";
+            code.SetValue("REF_NAME", relationship.name());
+            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{PARENT_TABLE}}};";
         }
     }
 
-    //    for (auto& relationship : parent_relationships)
-    //    {
-    //        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
-    //
-    //        // auto address_access = list_accessor_t<employee_t, addressee_address_list_t, address_t>(&employee_t::addressee_address_list);
-    //
-    //        if (strlen(relationship.name()))
-    //        {
-    //            code.SetValue("REF_NAME", relationship.name());
-    //
-    //            code += "static inline gaia::direct_access::list_accessor_t<{{TABLE_NAME}}_t, {{REF_NAME}}_{{REF_TABLE}}_list_t, {{REF_TABLE}}_t> {{REF_NAME}}_{{REF_TABLE}}_list"
-    //                    " {&{{TABLE_NAME}}_t::{{REF_NAME}}_{{REF_TABLE}}_list};";
-    //        }
-    //        else
-    //        {
-    //            // This relationship is anonymous.
-    //            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
-    //
-    //            code += "static inline gaia::direct_access::list_accessor_t<{{TABLE_NAME}}_t, {{REF_NAME}}_list_t, {{REF_TABLE}}_t> {{REF_NAME}}_list"
-    //                    " {&{{TABLE_NAME}}_t::{{REF_NAME}}_list};";
-    //        }
-    //    }
     code.DecrementIdentLevel();
     code += "};\n";
 
