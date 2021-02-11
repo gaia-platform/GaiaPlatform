@@ -443,3 +443,31 @@ TEST_F(test_expressions, not_)
 
     txn.commit();
 }
+
+TEST_F(test_expressions, mix_boolean_op)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(
+                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
+                && employee_t::expr::hire_date < date(2036, 2, 7)),
+        wayne);
+
+    assert_contains(
+        employee_t::list()
+            .where(
+                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
+                && (employee_t::expr::hire_date > date(2036, 2, 7)
+                    || employee_t::expr::hire_date == date(2020, 1, 10))),
+        wayne);
+
+    assert_empty(
+        employee_t::list()
+            .where(
+                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
+                && (employee_t::expr::hire_date > date(2036, 2, 7))));
+
+    txn.commit();
+}

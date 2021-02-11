@@ -112,8 +112,8 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::stri
         std::string_view lh = m_member_accessor(e);
 
         // TODO this is probably neither the most efficient nor the most correct
-        //  (considering unicode) to do a string ignore case comparison. Good
-        //  enough for now.
+        //  way (considering unicode) to do a string ignore case comparison.
+        //  Good enough for now.
         return std::equal(
             lh.begin(), lh.end(), value.begin(), value.end(),
             [](char a, char b) {

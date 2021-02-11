@@ -366,10 +366,10 @@ TEST_F(test_expressions_perf, object_eq)
     int64_t expr_duration = g_timer_t::get_function_duration(
         [&dude]() {
             vector<address_t> addresses;
-            for (auto& e : address_t::list()
+            for (auto& a : address_t::list()
                                .where(address_t::expr::addressee_employee == dude))
             {
-                addresses.push_back(e);
+                addresses.push_back(a);
             }
             ASSERT_EQ(addresses.size(), c_num_employee_addresses);
         });
@@ -377,11 +377,11 @@ TEST_F(test_expressions_perf, object_eq)
     int64_t plain_duration = g_timer_t::get_function_duration(
         [&dude]() {
             vector<address_t> addresses;
-            for (auto& e : address_t::list())
+            for (auto& a : address_t::list())
             {
-                if (e.addressee_employee() == dude)
+                if (a.addressee_employee() == dude)
                 {
-                    addresses.push_back(e);
+                    addresses.push_back(a);
                 }
             }
             ASSERT_EQ(addresses.size(), c_num_employee_addresses);
