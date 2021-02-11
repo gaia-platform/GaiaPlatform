@@ -102,7 +102,7 @@ private:
     // been submitted to the system. Entries may be "unknown" (uninitialized),
     // "invalid" (initialized with a special "junk" value and forbidden to be
     // used afterward), or initialized with txn information, consisting of 3
-    // status bits, 16 bits for a txn log fd, 3 reserved bits, and 42 bits for a
+    // status bits, 3 reserved bits, 16 bits for a txn log fd, and 42 bits for a
     // timestamp reference (the commit timestamp of a submitted txn embedded in
     // its begin timestamp entry, or the begin timestamp of a submitted txn
     // embedded in its commit timestamp entry). The 3 status bits use the high
@@ -139,7 +139,7 @@ private:
     // dangerous when we approach wraparound.)
     //
     // Timestamp entry format:
-    // 64 bits: status(3) | log fd (16) | reserved (3) | logical timestamp (42)
+    // 64 bits: status(3) | reserved (3) | log fd (16) | logical timestamp (42)
 
     typedef uint64_t ts_entry_t;
     static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
@@ -175,12 +175,12 @@ private:
     static constexpr uint64_t c_txn_status_flags_shift{c_txn_status_entry_bits - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
+    static constexpr uint64_t c_txn_reserved_bits{3ULL};
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
     static constexpr uint64_t c_txn_log_fd_shift{
-        (c_txn_status_entry_bits - c_txn_log_fd_bits) - c_txn_status_flags_bits};
+        (c_txn_status_entry_bits - c_txn_log_fd_bits) - (c_txn_status_flags_bits + c_txn_reserved_bits)};
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
-    static constexpr uint64_t c_txn_reserved_bits{3ULL};
     static constexpr uint64_t c_txn_ts_bits{42ULL};
     static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
 
