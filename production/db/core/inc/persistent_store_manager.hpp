@@ -85,7 +85,7 @@ public:
     static std::string s_data_dir_path;
 
 private:
-    gaia::db::counters_t* m_counters = nullptr;
+    gaia::db::shared_counters_t* m_counters = nullptr;
     gaia::db::locators_t* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
 };

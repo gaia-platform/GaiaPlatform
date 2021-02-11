@@ -6,9 +6,9 @@
 #include "db_client.hpp"
 #include "db_shared_data.hpp"
 
-gaia::db::locators_t* gaia::db::get_locators()
+gaia::db::locators_t* gaia::db::get_shared_locators()
 {
-    if (!gaia::db::client::s_private_locators.is_initialized())
+    if (!gaia::db::client::s_locators)
     {
         throw no_open_transaction();
     }
@@ -21,49 +21,49 @@ gaia::db::locators_t* gaia::db::get_locators()
     // observing a null locators pointer should always be the result of a
     // programming error, i.e., calling a transactional operation outside a
     // transaction) before adding an assert here.
-    return gaia::db::client::s_private_locators.data();
+    return gaia::db::client::s_locators;
 }
 
-gaia::db::counters_t* gaia::db::get_counters()
+gaia::db::shared_counters_t* gaia::db::get_shared_counters()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the counters segment unmapped).
 
-    if (!gaia::db::client::s_shared_counters.is_initialized())
+    if (!gaia::db::client::s_counters)
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_shared_counters.data();
+    return gaia::db::client::s_counters;
 }
 
-gaia::db::data_t* gaia::db::get_data()
+gaia::db::shared_data_t* gaia::db::get_shared_data()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the data segment unmapped).
 
-    if (!gaia::db::client::s_shared_data.is_initialized())
+    if (!gaia::db::client::s_data)
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_shared_data.data();
+    return gaia::db::client::s_data;
 }
 
-gaia::db::id_index_t* gaia::db::get_id_index()
+gaia::db::shared_id_index_t* gaia::db::get_shared_id_index()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the id_index segment unmapped).
 
-    if (!gaia::db::client::s_shared_id_index.is_initialized())
+    if (!gaia::db::client::s_id_index)
     {
         throw no_active_session();
     }
 
-    return gaia::db::client::s_shared_id_index.data();
+    return gaia::db::client::s_id_index;
 }
 
 gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
