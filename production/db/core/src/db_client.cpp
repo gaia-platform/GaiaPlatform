@@ -587,6 +587,11 @@ void client::rollback_transaction()
     size_t log_size;
     s_log.truncate_seal_and_close(fd_log, log_size);
 
+    // We now own destruction of fd_log.
+    auto cleanup_fd_log = make_scope_guard([&]() {
+        close_fd(fd_log);
+    });
+
     // Avoid sending transaction log fd to the server read only transactions.
     if (log_size > 0)
     {
@@ -622,6 +627,11 @@ void client::commit_transaction()
     int fd_log;
     size_t log_size;
     s_log.truncate_seal_and_close(fd_log, log_size);
+
+    // We now own destruction of fd_log.
+    auto cleanup_fd_log = make_scope_guard([&]() {
+        close_fd(fd_log);
+    });
 
     // Send the server the commit event with the log segment fd.
     FlatBufferBuilder builder;
