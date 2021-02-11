@@ -791,8 +791,6 @@ void generate_table_subscription(string table, string field_subscription_code, i
             .append(rule_name)
             .append("binding);\n");
     }
-    g_current_ruleset_subscription.append("\n");
-    g_current_ruleset_unsubscription.append("\n");
 
     navigation_code_data_t navigation_code = generate_navigation_code(table);
     string function_prologue = "\n";
