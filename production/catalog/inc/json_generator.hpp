@@ -36,7 +36,7 @@ std::string generate_json(const ddl::field_def_list_t& fields);
  * @param json JSON data
  * @return base64 encoded serialization
  */
-std::string generate_bin(const std::string& fbs, const std::string& json);
+std::vector<uint8_t> generate_bin(const std::string& fbs, const std::string& json);
 
 } // namespace catalog
 } // namespace gaia

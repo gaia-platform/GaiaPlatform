@@ -60,8 +60,8 @@ namespace db
 
 [[nodiscard]] std::vector<uint8_t> table_view_t::serialization_template() const
 {
-    return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(m_obj_ptr->data())->serialization_template()->c_str());
+    auto vector_ptr = catalog::Getgaia_table(m_obj_ptr->data())->serialization_template();
+    return std::vector<uint8_t>(vector_ptr->begin(), vector_ptr->end());
 }
 
 [[nodiscard]] const char* relationship_view_t::name() const

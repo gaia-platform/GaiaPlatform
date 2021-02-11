@@ -24,14 +24,6 @@ namespace catalog
 std::string generate_fbs(const std::string& dbname);
 
 /**
- * Retrieve the serialization template (bin) for a given table.
- *
- * @param table_id id of the table
- * @return bin
- */
-std::vector<uint8_t> get_bin(gaia::common::gaia_id_t table_id);
-
-/**
  * Generate a foreign table DDL from parsing the definition of a table.
  *
  * @param table_id table id

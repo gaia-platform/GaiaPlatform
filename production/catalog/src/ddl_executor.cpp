@@ -72,7 +72,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint32, 1));
         fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_uint8, 0));
-        fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
         fields.emplace_back(
             make_unique<ref_field_def_t>(
                 c_anonymous_reference_field_name, "catalog", "gaia_database"));
@@ -145,7 +145,7 @@ void ddl_executor_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("table_ids", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("table_ids", data_type_t::e_uint64, 0));
         fields.emplace_back(make_unique<data_field_def_t>("source_location", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
@@ -563,7 +563,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string fbs{generate_fbs(db_name, table_name, fields)};
     const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
-    string bin{generate_bin(fbs, generate_json(fields))};
+    const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
 
     gaia::db::begin_transaction();
     gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? allocate_type() : fixed_type;
@@ -573,7 +573,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         table_type,
         is_system,
         &bfbs,
-        bin.c_str());
+        &bin);
 
     gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 

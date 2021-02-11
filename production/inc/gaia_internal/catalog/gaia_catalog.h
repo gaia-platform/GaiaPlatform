@@ -109,9 +109,9 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     uint32_t type() const {return GET(type);}
     bool is_system() const {return GET(is_system);}
     const gaia::direct_access::vector<uint8_t>* binary_schema() const {return GET(binary_schema);}
-    const char* serialization_template() const {return GET_STR(serialization_template);}
+    const gaia::direct_access::vector<uint8_t>* serialization_template() const {return GET(serialization_template);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>* binary_schema, const char* serialization_template) {
+    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>* binary_schema, const std::vector<uint8_t>* serialization_template) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
         b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, binary_schema, serialization_template));
         return edc_object_t::insert_row(b);
@@ -266,11 +266,11 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
     gaia_ruleset_t() : edc_object_t("gaia_ruleset_t") {}
     const char* name() const {return GET_STR(name);}
     bool active_on_startup() const {return GET(active_on_startup);}
-    const char* table_ids() const {return GET_STR(table_ids);}
+    const gaia::direct_access::vector<uint64_t>* table_ids() const {return GET(table_ids);}
     const char* source_location() const {return GET_STR(source_location);}
     const char* serial_stream() const {return GET_STR(serial_stream);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const char* table_ids, const char* source_location, const char* serial_stream) {
+    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>* table_ids, const char* source_location, const char* serial_stream) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
         b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, table_ids, source_location, serial_stream));
         return edc_object_t::insert_row(b);

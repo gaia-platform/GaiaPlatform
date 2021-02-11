@@ -4,6 +4,6 @@ table gaia_table {
     type:uint32;
     is_system:bool;
     binary_schema:[uint8];
-    serialization_template:string;
+    serialization_template:[uint8];
 }
 root_type gaia_table;
