@@ -25,7 +25,7 @@ ruleset test
 
         if (sensor.LastOperation == UPDATE)
         {
-            if (@sensor.value > 5)
+            if (sensor.value > 5)
             {
                 actuator.value = 1000;
             }
