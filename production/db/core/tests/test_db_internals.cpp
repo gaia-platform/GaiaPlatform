@@ -24,7 +24,7 @@ TEST(db_internals, mapped_log_t)
     ASSERT_FALSE(log1.is_initialized());
     ASSERT_TRUE(log2.is_initialized());
 
-    log1 = log2;
+    log1.reset(log2);
 
     ASSERT_TRUE(log1.is_initialized());
     ASSERT_FALSE(log2.is_initialized());

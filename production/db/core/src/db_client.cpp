@@ -560,7 +560,7 @@ void client::begin_transaction()
     }
 
     // At this point, we can transfer ownership of log mapping to the static variable.
-    s_log = log;
+    s_log.reset(log);
 
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.

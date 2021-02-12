@@ -193,22 +193,10 @@ public:
         clear();
     }
 
-    base_mapped_data_t(base_mapped_data_t& other)
-    {
-        take_ownership(other);
-    }
-
-    base_mapped_data_t& operator=(base_mapped_data_t& rhs)
-    {
-        take_ownership(rhs);
-        return *this;
-    }
-
-    base_mapped_data_t& operator=(base_mapped_data_t&& rhs)
-    {
-        take_ownership(rhs);
-        return *this;
-    }
+    // Copy semantics is disabled and moves should be performed via reset().
+    base_mapped_data_t(const base_mapped_data_t& other) = delete;
+    base_mapped_data_t& operator=(const base_mapped_data_t& rhs) = delete;
+    base_mapped_data_t& operator=(base_mapped_data_t&& rhs) = delete;
 
     ~base_mapped_data_t()
     {
@@ -222,6 +210,21 @@ public:
         m_fd = -1;
         m_data = nullptr;
         m_mapped_data_size = 0;
+    }
+
+    // Transfers data tracked by another instance into this instance.
+    void reset(base_mapped_data_t<T>& other)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "An initialized base_mapped_data_t instance cannot take ownership of another instance!");
+
+        m_is_initialized = other.m_is_initialized;
+        m_fd = other.m_fd;
+        m_data = other.m_data;
+        m_mapped_data_size = other.m_mapped_data_size;
+
+        other.clear();
     }
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
@@ -254,22 +257,6 @@ public:
     }
 
 protected:
-    // Transfers data tracked by another instance into this instance.
-    void take_ownership(base_mapped_data_t<T>& other)
-    {
-        gaia::common::retail_assert(
-            !m_is_initialized,
-            "An initialized base_mapped_data_t instance cannot take ownership of another instance!");
-
-        m_is_initialized = other.m_is_initialized;
-        m_fd = other.m_fd;
-        m_data = other.m_data;
-        m_mapped_data_size = other.m_mapped_data_size;
-
-        other.clear();
-    }
-
-protected:
     bool m_is_initialized;
     int m_fd;
     T* m_data;
@@ -285,9 +272,12 @@ class mapped_data_t : public base_mapped_data_t<T>
 {
 public:
     mapped_data_t() = default;
-    mapped_data_t(mapped_data_t& other) = default;
-    mapped_data_t& operator=(mapped_data_t& rhs) = default;
-    mapped_data_t& operator=(mapped_data_t&& rhs) = default;
+
+    // Copy semantics is disabled and moves should be performed via reset().
+    mapped_data_t(const mapped_data_t& other) = delete;
+    mapped_data_t& operator=(const mapped_data_t& rhs) = delete;
+    mapped_data_t& operator=(mapped_data_t&& rhs) = delete;
+
     ~mapped_data_t() = default;
 
     // Creates a memory-mapping for a data structure.
@@ -383,9 +373,12 @@ class mapped_log_t : public base_mapped_data_t<txn_log_t>
 {
 public:
     mapped_log_t() = default;
-    mapped_log_t(mapped_log_t& other) = default;
-    mapped_log_t& operator=(mapped_log_t& rhs) = default;
-    mapped_log_t& operator=(mapped_log_t&& rhs) = default;
+
+    // Copy semantics is disabled and moves should be performed via reset().
+    mapped_log_t(const mapped_log_t& other) = delete;
+    mapped_log_t& operator=(const mapped_log_t& rhs) = delete;
+    mapped_log_t& operator=(mapped_log_t&& rhs) = delete;
+
     ~mapped_log_t() = default;
 
     // Creates a memory-mapping for a log data structure.
