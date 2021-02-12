@@ -69,7 +69,7 @@ void restore_sensor(sensor_t& sensor, float min_temp)
 void restore_actuator(actuator_t& actuator)
 {
     actuator_writer w = actuator.writer();
-    w.timestamp = 0;
+    w.timdestamp = 0;
     w.value = 0.0;
     w.update_row();
 }
