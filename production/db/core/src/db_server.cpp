@@ -257,7 +257,7 @@ void server::handle_commit_txn(
     mapped_log_t log;
     log.open(s_fd_log);
     // Surface the log in our static variable, to avoid passing it around.
-    s_log = log.log();
+    s_log = log.data();
 
     // Actually commit the transaction.
     bool success = txn_commit();
@@ -2142,10 +2142,10 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1.log()->count && log2_idx < log2.log()->count)
+    while (log1_idx < log1.data()->count && log2_idx < log2.data()->count)
     {
-        txn_log_t::log_record_t* lr1 = log1.log()->log_records + log1_idx;
-        txn_log_t::log_record_t* lr2 = log2.log()->log_records + log2_idx;
+        txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
+        txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -2457,10 +2457,10 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
 
     // Ensure that the begin_ts in this entry matches the txn log header.
     retail_assert(
-        txn_log.log()->begin_ts == get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log.log()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2469,7 +2469,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         // that txn's snapshot). This update is non-atomic since log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log.log()->log_records[i]);
+        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
 }
@@ -2480,7 +2480,7 @@ void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
     txn_log.open(log_fd);
 
     retail_assert(txn_log.is_initialized(), "txn_log should be mapped when deallocating old offsets.");
-    deallocate_txn_log(txn_log.log(), deallocate_new_offsets);
+    deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
 void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)

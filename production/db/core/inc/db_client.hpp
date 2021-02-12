@@ -187,13 +187,13 @@ private:
         }
 
         // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log.log()->count == c_max_log_records)
+        if (s_log.data()->count == c_max_log_records)
         {
             throw transaction_object_limit_exceeded();
         }
 
         // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log.log()->log_records + s_log.log()->count++;
+        txn_log_t::log_record_t* lr = s_log.data()->log_records + s_log.data()->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

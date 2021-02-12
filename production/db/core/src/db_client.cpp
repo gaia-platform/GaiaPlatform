@@ -284,8 +284,8 @@ void client::dedup_log()
     // stable_sort() to preserve the order of multiple updates to the same
     // locator.
     std::stable_sort(
-        &s_log.log()->log_records[0],
-        &s_log.log()->log_records[s_log.log()->count],
+        &s_log.data()->log_records[0],
+        &s_log.data()->log_records[s_log.data()->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
@@ -295,7 +295,7 @@ void client::dedup_log()
     // So we reverse the sorted array so that the last update will be the first
     // that std::unique sees, then reverse the deduplicated array so that locators
     // are again in ascending order.
-    std::reverse(&s_log.log()->log_records[0], &s_log.log()->log_records[s_log.log()->count]);
+    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
 
     // More weirdness: we need to record the initial offset of the first log
     // record for each locator, so we can fix up the initial offset of its last
@@ -307,16 +307,16 @@ void client::dedup_log()
     // in the initial offsets map.
     std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
 
-    for (size_t i = 0; i < s_log.log()->count; ++i)
+    for (size_t i = 0; i < s_log.data()->count; ++i)
     {
-        gaia_locator_t locator = s_log.log()->log_records[i].locator;
-        gaia_offset_t initial_offset = s_log.log()->log_records[i].old_offset;
+        gaia_locator_t locator = s_log.data()->log_records[i].locator;
+        gaia_offset_t initial_offset = s_log.data()->log_records[i].old_offset;
         initial_offsets[locator] = initial_offset;
     }
 
     txn_log_t::log_record_t* unique_array_end = std::unique(
-        &s_log.log()->log_records[0],
-        &s_log.log()->log_records[s_log.log()->count],
+        &s_log.data()->log_records[0],
+        &s_log.data()->log_records[s_log.data()->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
             return lhs.locator == rhs.locator;
         });
@@ -324,23 +324,23 @@ void client::dedup_log()
     // It's OK to leave the duplicate log records at the end of the array, since
     // they'll be removed when we truncate the txn log memfd before sending it
     // to the server.
-    size_t unique_array_len = unique_array_end - s_log.log()->log_records;
-    s_log.log()->count = unique_array_len;
+    size_t unique_array_len = unique_array_end - s_log.data()->log_records;
+    s_log.data()->count = unique_array_len;
 
     // Now that all log records for each locator are deduplicated, reverse the
     // array again to order by locator value in ascending order.
-    std::reverse(&s_log.log()->log_records[0], &s_log.log()->log_records[s_log.log()->count]);
+    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
 
     // Now we need to fix up each log record with the initial offset we recorded earlier.
     retail_assert(
-        s_log.log()->count == initial_offsets.size(),
+        s_log.data()->count == initial_offsets.size(),
         "Count of deduped log records must equal number of unique initial offsets!");
 
-    for (size_t i = 0; i < s_log.log()->count; ++i)
+    for (size_t i = 0; i < s_log.data()->count; ++i)
     {
-        gaia_locator_t locator = s_log.log()->log_records[i].locator;
+        gaia_locator_t locator = s_log.data()->log_records[i].locator;
         gaia_offset_t initial_offset = initial_offsets[locator];
-        s_log.log()->log_records[i].old_offset = initial_offset;
+        s_log.data()->log_records[i].old_offset = initial_offset;
     }
 }
 
@@ -543,7 +543,7 @@ void client::begin_transaction()
     s_log.create(mem_log_name.str().c_str());
 
     // Update the log header with our begin timestamp.
-    s_log.log()->begin_ts = s_txn_id;
+    s_log.data()->begin_ts = s_txn_id;
 
     // Apply all txn logs received from server to our snapshot, in order. The
     // generator will close the stream socket when it's exhausted, but we need
@@ -569,9 +569,9 @@ void client::apply_txn_log(int log_fd)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log.log()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->count; ++i)
     {
-        auto lr = txn_log.log()->log_records + i;
+        auto lr = txn_log.data()->log_records + i;
         (*s_private_locators.data())[lr->locator] = lr->new_offset;
     }
 }
@@ -611,7 +611,7 @@ void client::commit_transaction()
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
-    if (s_log.log()->count == 0)
+    if (s_log.data()->count == 0)
     {
         rollback_transaction();
         return;

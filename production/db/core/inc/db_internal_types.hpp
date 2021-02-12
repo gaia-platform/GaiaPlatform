@@ -183,87 +183,52 @@ struct id_index_t
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
 
-// This class abstracts the server and client operations with memory-mapped data.
-// T indicates the type of data structure that is managed by an instance of this class.
+// Base class abstracting common functionality for mapped_data_t and mapped_log_t classes.
 template <typename T>
-class mapped_data_t
+class base_mapped_data_t
 {
 public:
-    mapped_data_t() = default;
+    base_mapped_data_t()
+    {
+        reset();
+    }
 
-    ~mapped_data_t()
+    base_mapped_data_t(base_mapped_data_t& other)
+    {
+        take_ownership(other);
+    }
+
+    base_mapped_data_t& operator=(base_mapped_data_t& rhs)
+    {
+        take_ownership(rhs);
+        return *this;
+    }
+
+    base_mapped_data_t& operator=(base_mapped_data_t&& rhs)
+    {
+        take_ownership(rhs);
+        return *this;
+    }
+
+    ~base_mapped_data_t()
     {
         close();
     }
 
-    // Creates a memory-mapping for a data structure.
-    void create(const char* name)
+    virtual void reset()
     {
-        gaia::common::retail_assert(
-            !m_is_initialized,
-            "Calling create() on an already initialized mapped_data_t instance!");
-
-        m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
-        if (m_fd == -1)
-        {
-            gaia::common::throw_system_error("memfd_create() failed in mapped_data_t::create()!");
-        }
-
-        gaia::common::truncate_fd(m_fd, sizeof(T));
-
-        // Note that unless we supply the MAP_POPULATE flag to mmap(), only the
-        // pages we actually use will ever be allocated. However, Linux may refuse
-        // to allocate the virtual memory we requested if overcommit is disabled
-        // (i.e., /proc/sys/vm/overcommit_memory = 2). Using MAP_NORESERVE (don't
-        // reserve swap space) should ensure that overcommit always succeeds, unless
-        // it is disabled. We may need to document the requirement that overcommit
-        // is not disabled (i.e., /proc/sys/vm/overcommit_memory != 2).
-        //
-        // Alternatively, we could use the more tedious but reliable approach of
-        // using mmap(PROT_NONE) and calling mprotect(PROT_READ|PROT_WRITE) on any
-        // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
-        // followed by VirtualAlloc(MEM_COMMIT) in Windows).
-        gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
-
-        m_is_initialized = true;
-    }
-
-    // Opens a memory-mapped structure using a file descriptor.
-    // manage_fd is used to indicate whether the fd should be managed
-    // (i.e. closed at destruction time) by this class or not.
-    //
-    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
-    // This is done for coding convenience because it suits current implementation,
-    // but could be changed in the future if we wish more control over this behavior.
-    void open(int fd, bool manage_fd = true)
-    {
-        gaia::common::retail_assert(
-            !m_is_initialized,
-            "Calling open() on an already initialized mapped_data_t instance!");
-
-        gaia::common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
-
-        if (manage_fd)
-        {
-            m_fd = fd;
-
-            gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, m_fd, 0);
-
-            gaia::common::close_fd(m_fd);
-        }
-        else
-        {
-            gaia::common::map_fd_data(m_data, sizeof(T), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, fd, 0);
-        }
-
-        m_is_initialized = true;
+        m_is_initialized = false;
+        m_fd = -1;
+        m_data = nullptr;
+        m_mapped_data_size = 0;
     }
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // This permits manual cleanup, before instance destruction time.
-    void close()
+    virtual void close()
     {
-        gaia::common::unmap_fd_data(m_data, sizeof(T));
+        gaia::common::unmap_fd_data(m_data, m_mapped_data_size);
+        m_mapped_data_size = 0;
 
         gaia::common::close_fd(m_fd);
 
@@ -285,60 +250,187 @@ public:
         return m_is_initialized;
     }
 
-private:
-    bool m_is_initialized{false};
-    int m_fd{-1};
-    T* m_data{nullptr};
+protected:
+    virtual void take_ownership(base_mapped_data_t<T>& other)
+    {
+        gaia::common::retail_assert(
+            !m_is_initialized,
+            "An initialized base_mapped_data_t instance cannot take ownership of another instance!");
+
+        m_is_initialized = other.m_is_initialized;
+        m_fd = other.m_fd;
+        m_data = other.m_data;
+        m_mapped_data_size = other.m_mapped_data_size;
+
+        other.reset();
+    }
+
+protected:
+    bool m_is_initialized;
+    int m_fd;
+    T* m_data;
+
+    // This is used to track the mapped data size, so we can call munmap() with the same value.
+    size_t m_mapped_data_size;
+};
+
+// This class abstracts the server and client operations with memory-mapped data.
+// T indicates the type of data structure that is managed by an instance of this class.
+template <typename T>
+class mapped_data_t : public base_mapped_data_t<T>
+{
+public:
+    mapped_data_t() = default;
+    mapped_data_t(mapped_data_t& other) = default;
+    mapped_data_t& operator=(mapped_data_t& rhs) = default;
+    mapped_data_t& operator=(mapped_data_t&& rhs) = default;
+    ~mapped_data_t() = default;
+
+    // Creates a memory-mapping for a data structure.
+    void create(const char* name)
+    {
+        gaia::common::retail_assert(
+            !this->m_is_initialized,
+            "Calling create() on an already initialized mapped_data_t instance!");
+
+        this->m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
+        if (this->m_fd == -1)
+        {
+            gaia::common::throw_system_error("memfd_create() failed in mapped_data_t::create()!");
+        }
+
+        this->m_mapped_data_size = sizeof(T);
+
+        gaia::common::truncate_fd(this->m_fd, this->m_mapped_data_size);
+
+        // Note that unless we supply the MAP_POPULATE flag to mmap(), only the
+        // pages we actually use will ever be allocated. However, Linux may refuse
+        // to allocate the virtual memory we requested if overcommit is disabled
+        // (i.e., /proc/sys/vm/overcommit_memory = 2). Using MAP_NORESERVE (don't
+        // reserve swap space) should ensure that overcommit always succeeds, unless
+        // it is disabled. We may need to document the requirement that overcommit
+        // is not disabled (i.e., /proc/sys/vm/overcommit_memory != 2).
+        //
+        // Alternatively, we could use the more tedious but reliable approach of
+        // using mmap(PROT_NONE) and calling mprotect(PROT_READ|PROT_WRITE) on any
+        // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
+        // followed by VirtualAlloc(MEM_COMMIT) in Windows).
+        gaia::common::map_fd_data(
+            this->m_data,
+            this->m_mapped_data_size,
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED | MAP_NORESERVE,
+            this->m_fd,
+            0);
+
+        this->m_is_initialized = true;
+    }
+
+    // Opens a memory-mapped structure using a file descriptor.
+    // manage_fd is used to indicate whether the fd should be managed
+    // (i.e. closed at destruction time) by this class or not.
+    //
+    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
+    // This is done for coding convenience because it suits current implementation,
+    // but could be changed in the future if we wish more control over this behavior.
+    void open(int fd, bool manage_fd = true)
+    {
+        gaia::common::retail_assert(
+            !this->m_is_initialized,
+            "Calling open() on an already initialized mapped_data_t instance!");
+
+        gaia::common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
+
+        this->m_mapped_data_size = sizeof(T);
+
+        if (manage_fd)
+        {
+            this->m_fd = fd;
+
+            gaia::common::map_fd_data(
+                this->m_data,
+                this->m_mapped_data_size,
+                PROT_READ | PROT_WRITE,
+                MAP_SHARED | MAP_NORESERVE,
+                this->m_fd,
+                0);
+
+            gaia::common::close_fd(this->m_fd);
+        }
+        else
+        {
+            gaia::common::map_fd_data(
+                this->m_data,
+                this->m_mapped_data_size,
+                PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_NORESERVE,
+                fd,
+                0);
+        }
+
+        this->m_is_initialized = true;
+    }
 };
 
 // This is a variant of mapped_data_t that is specialized for operation on log data structures.
 // There are enough differences from mapped_data_t to warrant a separate implementation.
-class mapped_log_t
+class mapped_log_t : public base_mapped_data_t<txn_log_t>
 {
 public:
     mapped_log_t() = default;
-
-    ~mapped_log_t()
-    {
-        close();
-    }
+    mapped_log_t(mapped_log_t& other) = default;
+    mapped_log_t& operator=(mapped_log_t& rhs) = default;
+    mapped_log_t& operator=(mapped_log_t&& rhs) = default;
+    ~mapped_log_t() = default;
 
     // Creates a memory-mapping for a log data structure.
     void create(const char* name)
     {
         gaia::common::retail_assert(
-            !m_is_initialized,
+            !this->m_is_initialized,
             "Calling create() on an already initialized mapped_log_t instance!");
 
-        m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
-        if (m_fd == -1)
+        this->m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
+        if (this->m_fd == -1)
         {
             gaia::common::throw_system_error("memfd_create() failed in mapped_log_t::create()!");
         }
 
-        m_mapped_log_size = c_initial_log_size;
+        this->m_mapped_data_size = c_initial_log_size;
 
-        gaia::common::truncate_fd(m_fd, m_mapped_log_size);
+        gaia::common::truncate_fd(this->m_fd, this->m_mapped_data_size);
 
-        gaia::common::map_fd_data(m_log, m_mapped_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, 0);
+        gaia::common::map_fd_data(
+            this->m_data,
+            this->m_mapped_data_size,
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED,
+            this->m_fd,
+            0);
 
-        m_is_initialized = true;
+        this->m_is_initialized = true;
     }
 
     // Opens a memory-mapped log structure using a file descriptor.
     void open(int fd)
     {
         gaia::common::retail_assert(
-            !m_is_initialized,
+            !this->m_is_initialized,
             "Calling open() on an already initialized mapped_log_t instance!");
 
         gaia::common::retail_assert(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
-        m_mapped_log_size = gaia::common::get_fd_size(fd);
+        this->m_mapped_data_size = gaia::common::get_fd_size(fd);
 
-        gaia::common::map_fd_data(m_log, m_mapped_log_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        gaia::common::map_fd_data(
+            this->m_data,
+            this->m_mapped_data_size,
+            PROT_READ,
+            MAP_PRIVATE,
+            fd,
+            0);
 
-        m_is_initialized = true;
+        this->m_is_initialized = true;
     }
 
     // Truncates and seals a memory-mapped log structure.
@@ -348,67 +440,32 @@ public:
     void truncate_seal_and_close(int& fd, size_t& log_size)
     {
         gaia::common::retail_assert(
-            m_is_initialized,
+            this->m_is_initialized,
             "Calling truncate_seal_and_close() on an uninitialized mapped_log_t instance!");
 
         gaia::common::retail_assert(
-            m_fd != -1,
+            this->m_fd != -1,
             "truncate_seal_and_close() was called on a mapped_log_t instance that lacks a valid fd!");
 
-        fd = m_fd;
-        log_size = m_log->size();
+        fd = this->m_fd;
+        log_size = this->m_data->size();
 
-        gaia::common::unmap_fd_data(m_log, m_mapped_log_size);
-        m_mapped_log_size = 0;
+        gaia::common::unmap_fd_data(this->m_data, this->m_mapped_data_size);
+        this->m_mapped_data_size = 0;
 
-        gaia::common::truncate_fd(m_fd, log_size);
+        gaia::common::truncate_fd(this->m_fd, log_size);
 
         // Seal the txn log memfd for writes/resizing before sending it to the server.
-        if (-1 == ::fcntl(m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
+        if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
         {
             gaia::common::throw_system_error(
                 "fcntl(F_ADD_SEALS) failed in mapped_log_t::truncate_seal_and_close()!");
         }
 
-        m_fd = -1;
+        this->m_fd = -1;
 
-        m_is_initialized = false;
+        this->m_is_initialized = false;
     }
-
-    // Unmaps the data and closes the file descriptor, if one is tracked.
-    // This permits manual cleanup, before instance destruction time.
-    void close()
-    {
-        gaia::common::unmap_fd_data(m_log, m_mapped_log_size);
-        m_mapped_log_size = 0;
-
-        gaia::common::close_fd(m_fd);
-
-        m_is_initialized = false;
-    }
-
-    txn_log_t* log()
-    {
-        return m_log;
-    }
-
-    int fd()
-    {
-        return m_fd;
-    }
-
-    bool is_initialized()
-    {
-        return m_is_initialized;
-    }
-
-private:
-    bool m_is_initialized{false};
-    int m_fd{-1};
-    txn_log_t* m_log{nullptr};
-
-    // This is used to track the mapped log size, so we can call munmap() with the same value.
-    size_t m_mapped_log_size{0};
 };
 
 } // namespace db
