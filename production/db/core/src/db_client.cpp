@@ -540,10 +540,12 @@ void client::begin_transaction()
     // Allocate a new log segment and map it in our own process.
     std::stringstream mem_log_name;
     mem_log_name << c_gaia_mem_txn_log << ':' << s_txn_id;
-    s_log.create(mem_log_name.str().c_str());
+    // Use a local variable to ensure cleanup in case of an error.
+    mapped_log_t log;
+    log.create(mem_log_name.str().c_str());
 
     // Update the log header with our begin timestamp.
-    s_log.data()->begin_ts = s_txn_id;
+    log.data()->begin_ts = s_txn_id;
 
     // Apply all txn logs received from server to our snapshot, in order. The
     // generator will close the stream socket when it's exhausted, but we need
@@ -556,6 +558,9 @@ void client::begin_transaction()
         apply_txn_log(txn_log_fd);
         close_fd(txn_log_fd);
     }
+
+    // At this point, we can transfer ownership of log mapping to the static variable.
+    s_log = log;
 
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.

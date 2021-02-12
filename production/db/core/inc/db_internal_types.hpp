@@ -215,7 +215,7 @@ public:
         close();
     }
 
-    virtual void reset()
+    void reset()
     {
         m_is_initialized = false;
         m_fd = -1;
@@ -225,7 +225,7 @@ public:
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // This permits manual cleanup, before instance destruction time.
-    virtual void close()
+    void close()
     {
         gaia::common::unmap_fd_data(m_data, m_mapped_data_size);
         m_mapped_data_size = 0;
@@ -251,7 +251,7 @@ public:
     }
 
 protected:
-    virtual void take_ownership(base_mapped_data_t<T>& other)
+    void take_ownership(base_mapped_data_t<T>& other)
     {
         gaia::common::retail_assert(
             !m_is_initialized,
