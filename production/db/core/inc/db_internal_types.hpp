@@ -190,7 +190,7 @@ class base_mapped_data_t
 public:
     base_mapped_data_t()
     {
-        reset();
+        clear();
     }
 
     base_mapped_data_t(base_mapped_data_t& other)
@@ -215,7 +215,8 @@ public:
         close();
     }
 
-    void reset()
+    // Stops tracking any data and reverts back to uninitialized state.
+    void clear()
     {
         m_is_initialized = false;
         m_fd = -1;
@@ -224,7 +225,9 @@ public:
     }
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
+    // Reverts back to uninitialized state.
     // This permits manual cleanup, before instance destruction time.
+    // Can be called repeatedly.
     void close()
     {
         gaia::common::unmap_fd_data(m_data, m_mapped_data_size);
@@ -251,6 +254,7 @@ public:
     }
 
 protected:
+    // Transfers data tracked by another instance into this instance.
     void take_ownership(base_mapped_data_t<T>& other)
     {
         gaia::common::retail_assert(
@@ -262,7 +266,7 @@ protected:
         m_data = other.m_data;
         m_mapped_data_size = other.m_mapped_data_size;
 
-        other.reset();
+        other.clear();
     }
 
 protected:
@@ -270,7 +274,7 @@ protected:
     int m_fd;
     T* m_data;
 
-    // This is used to track the mapped data size, so we can call munmap() with the same value.
+    // This is used to track the mapped data size, so we can call unmap_fd_data()/munmap() with the same value.
     size_t m_mapped_data_size;
 };
 
@@ -327,6 +331,7 @@ public:
     }
 
     // Opens a memory-mapped structure using a file descriptor.
+    //
     // manage_fd is used to indicate whether the fd should be managed
     // (i.e. closed at destruction time) by this class or not.
     //
@@ -372,7 +377,7 @@ public:
     }
 };
 
-// This is a variant of mapped_data_t that is specialized for operation on log data structures.
+// This class is similar to mapped_data_t, but is specialized for operation on log data structures.
 // There are enough differences from mapped_data_t to warrant a separate implementation.
 class mapped_log_t : public base_mapped_data_t<txn_log_t>
 {
@@ -435,7 +440,7 @@ public:
 
     // Truncates and seals a memory-mapped log structure.
     // Closes the mapped_log_t instance in the sense that it is left in an uninitialized state.
-    // The file descriptor is *NOT* closed.
+    // The file descriptor is *NOT* closed - its ownership is transferred to the caller.
     // Passes back the file descriptor and the size of the log.
     void truncate_seal_and_close(int& fd, size_t& log_size)
     {
