@@ -139,7 +139,7 @@ private:
     // dangerous when we approach wraparound.)
     //
     // Timestamp entry format:
-    // 64 bits: status(3) | reserved (3) | log fd (16) | logical timestamp (42)
+    // 64 bits: txn_status (3) | gc_status (2) | persistence_status (1) | log_fd (16) | linked_timestamp (42)
 
     typedef uint64_t ts_entry_t;
     static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
@@ -161,6 +161,8 @@ private:
     // sequence of committed txns that have been applied to the view (since no
     // commit_ts before the boundary can be undecided).
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
@@ -170,19 +172,11 @@ private:
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
     // Transaction timestamp entry constants.
-    static constexpr uint64_t c_txn_status_entry_bits{64ULL};
+    static constexpr uint64_t c_txn_entry_bits{64ULL};
     static constexpr uint64_t c_txn_status_flags_bits{3ULL};
-    static constexpr uint64_t c_txn_status_flags_shift{c_txn_status_entry_bits - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_status_flags_shift{c_txn_entry_bits - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
-    static constexpr uint64_t c_txn_reserved_bits{3ULL};
-    static constexpr uint64_t c_txn_log_fd_bits{16ULL};
-    static constexpr uint64_t c_txn_log_fd_shift{
-        (c_txn_status_entry_bits - c_txn_log_fd_bits) - (c_txn_status_flags_bits + c_txn_reserved_bits)};
-    static constexpr uint64_t c_txn_log_fd_mask{
-        ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
-    static constexpr uint64_t c_txn_ts_bits{42ULL};
-    static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
 
     // Transaction status flags.
     // These are all begin_ts status values.
@@ -202,6 +196,68 @@ private:
     static constexpr uint64_t c_txn_status_validating{0b100ULL};
     static constexpr uint64_t c_txn_status_committed{0b111ULL};
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
+
+    // Transaction GC status values.
+    // These only apply to a commit_ts entry.
+    // Only a commit_ts with TXN_COMMITTED status can have TXN_GC_ELIGIBLE set,
+    // but a commit_ts with TXN_ABORTED status can also have TXN_GC_COMPLETE set,
+    // since its txn log also needs GC (to free redo versions).
+    static constexpr uint64_t c_txn_gc_flags_bits{2ULL};
+    static constexpr uint64_t c_txn_gc_flags_shift{
+        (c_txn_entry_bits - c_txn_gc_flags_bits) - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_gc_flags_mask{
+        ((1ULL << c_txn_gc_flags_bits) - 1) << c_txn_gc_flags_shift};
+    // These are all commit_ts flag values.
+    static constexpr uint64_t c_txn_gc_unknown{0b00ULL};
+    // For a committed txn, this flag indicates that the txn log has been
+    // applied to the shared view, and the txn's undo versions are no longer
+    // visible to any other txn, so the log and undo versions can be safely
+    // reclaimed. For an aborted txn, it means that the txn can no longer be in
+    // the conflict window of any other txn, so its log and redo versions can be
+    // safely reclaimed.
+    static constexpr uint64_t c_txn_gc_eligible{0b10ULL};
+    // This flag indicates that the txn log and all obsolete versions (undo
+    // versions for a committed txn, redo versions for an aborted txn) have been
+    // reclaimed by the system.
+    static constexpr uint64_t c_txn_gc_complete{0b11ULL};
+    // This mask indicates whether GC was initiated for this txn.
+    static constexpr uint64_t c_txn_gc_initiated_mask{0b10ULL};
+
+    // This flag indicates whether the txn has been made externally durable
+    // (i.e., persisted to the write-ahead log). It can't be combined with the
+    // GC flags because a txn might be made durable before or after being
+    // applied to the shared view, and we don't want one to block on the other.
+    // However, a committed txn's redo versions cannot be reclaimed until it has
+    // been marked durable. If persistence is disabled, this flag is unused.
+    static constexpr uint64_t c_txn_persistence_flags_bits{1ULL};
+    static constexpr uint64_t c_txn_persistence_flags_shift{
+        (c_txn_entry_bits - c_txn_persistence_flags_bits)
+        - (c_txn_status_flags_bits + c_txn_gc_flags_bits)};
+    static constexpr uint64_t c_txn_persistence_flags_mask{
+        ((1ULL << c_txn_persistence_flags_bits) - 1) << c_txn_persistence_flags_shift};
+    // These are all commit_ts flag values.
+    static constexpr uint64_t c_txn_persistence_unknown{0b0ULL};
+    static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
+
+    // Txn log fd embedded in the txn timestamp entry.
+    // This is only present in a commit_ts entry.
+    // NB: we assume that any fd will be < 2^16 - 1!
+    static constexpr uint64_t c_txn_log_fd_bits{16ULL};
+    static constexpr uint64_t c_txn_log_fd_shift{
+        (c_txn_entry_bits - c_txn_log_fd_bits)
+        - (c_txn_status_flags_bits + c_txn_gc_flags_bits + c_txn_persistence_flags_bits)};
+    static constexpr uint64_t c_txn_log_fd_mask{
+        ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
+
+    // Linked txn timestamp embedded in the txn timestamp entry.
+    // For a commit_ts entry, this is its associated begin_ts, and for a
+    // begin_ts entry, this is its associated commit_ts. The linked begin_ts is
+    // always present in a commit_ts entry, but the associated begin_ts entry
+    // may not be updated with its linked commit_ts until after the commit_ts
+    // entry has been created.
+    static constexpr uint64_t c_txn_ts_bits{42ULL};
+    static constexpr uint64_t c_txn_ts_shift{0ULL};
+    static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
 
     // Transaction special values.
     // The first 3 bits of this value are unused for any txn state.
@@ -241,21 +297,6 @@ private:
         session_event_t event;
         transition_t transition;
     };
-
-    // DISCONNECTED (client has connected to server listening socket, authenticated, and requested session)
-    // -> CONNECTED
-    // CONNECTED (client datagram socket has been allocated, client thread has been started,
-    // server has replied to client from listening socket with its session socket,
-    // client has connected to server from that socket, server has replied with fds
-    // for data/locator segments)
-    // -> TXN_IN_PROGRESS (client called begin_transaction)
-    // -> DISCONNECTING (server half-closed session socket)
-    // -> DISCONNECTED (client closed or half-closed session socket)
-    // TXN_IN_PROGRESS (client sent begin_transaction message to server, server replied)
-    // -> TXN_COMMITTING (client called commit_transaction)
-    // -> CONNECTED (client rolled back transaction)
-    // TXN_COMMITTING (server decided to commit or abort transaction)
-    // -> CONNECTED
 
     static inline constexpr valid_transition_t s_valid_transitions[] = {
         {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},

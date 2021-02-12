@@ -386,13 +386,13 @@ void server::handle_request_stream(
     // general each data_type corresponds to a generator with a different T_element_type,
     // so we need to invoke start_stream_producer() separately for each data_type
     // (because start_stream_producer() is templated on the generator's T_element_type).
-    // We should logically receive an object corresponding to the request_data_t union,
-    // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(
         request->data_type() == request_data_t::table_scan,
         "Unexpected request data type");
 
+    // We should logically receive an object corresponding to the request_data_t union,
+    // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
 
@@ -1483,7 +1483,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
     // NB: We generally cannot use the is_*_ts() functions since the entry could
     // change while we're reading it!
     ts_entry_t entry = s_txn_info[ts];
-    std::bitset<c_txn_status_entry_bits> entry_bits(entry);
+    std::bitset<c_txn_entry_bits> entry_bits(entry);
 
     cerr << "Timestamp entry for ts " << ts << ": " << entry_bits << endl;
 
@@ -1508,7 +1508,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
         ts_entry_t entry = s_txn_info[begin_ts];
-        std::bitset<c_txn_status_entry_bits> entry_bits(entry);
+        std::bitset<c_txn_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for commit_ts entry's begin_ts " << begin_ts << ": " << entry_bits << endl;
         cerr << "Log FD for commit_ts entry: " << get_txn_log_fd(ts) << endl;
     }
@@ -1521,7 +1521,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
             // We can't recurse here since we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
             ts_entry_t entry = s_txn_info[commit_ts];
-            std::bitset<c_txn_status_entry_bits> entry_bits(entry);
+            std::bitset<c_txn_entry_bits> entry_bits(entry);
             cerr << "Timestamp entry for begin_ts entry's commit_ts " << commit_ts << ": " << entry_bits << endl;
         }
     }
