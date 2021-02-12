@@ -1,0 +1,15 @@
+# Minimal image onto which we can install and test our SDK.
+#
+# Build:
+#   docker build --no-cache -t gaia_sdk -f Dockerfile_gaia_sdk .
+
+FROM gaia_ubuntu20
+ARG DEBIAN_FRONTEND=noninteractive
+
+COPY build.sh .
+RUN wget http://192.168.0.250:8111/guestAuth/repository/download/GaiaPlatform_ProductionGaiaReleaseGdev/.lastSuccessful/gaia-0.1.0_amd64.deb
+RUN apt install ./gaia-0.1.0_amd64.deb
+RUN cp -r /opt/gaia/examples/incubator . \
+  && cp -r /opt/gaia/examples/hello .
+
+CMD sh ./build.sh
