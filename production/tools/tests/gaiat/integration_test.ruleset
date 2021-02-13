@@ -46,10 +46,10 @@ typedef enum
 ruleset test5
 {
     {
-	if (actuator.value < 5)
-	{
-		actuator.value = 5;
-	}
+	    if (actuator.value < 5)
+	    {
+		    actuator.value = 5;
+	    }
     }
 }
 
@@ -60,7 +60,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test6 : table (sensor)
+ruleset test6 : Table (sensor)
 {
   {
 	  if (value < 5)
@@ -86,6 +86,7 @@ void testFunction()
 
 ruleset test7
 {
+  OnChange(sensor)
   {
       auto t = sensor.gaia_id();
 	  if (sensor.LastOperation == DELETE)
@@ -109,4 +110,15 @@ ruleset test8
 		    actuator.value = 5;
 	    }
     }
+}
+
+void OnUpdate()
+{}
+
+ruleset test9
+{
+  OnUpdate(sensor)
+  {
+      OnUpdate();
+  }
 }
