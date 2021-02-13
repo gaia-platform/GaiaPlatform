@@ -31,9 +31,8 @@ typedef std::unordered_map<gaia::common::field_position_t, const reflection::Fie
 // It stores all Field descriptions for a given type,
 // indexed by the corresponding field id values.
 //
-// Currently, we store copies of both the binary schema
-// and the serialization template for the type,
-// but this will change one we can store direct pointers.
+// We store direct pointers of both the binary schema and the serialization
+// template in catalog for the type.
 class type_information_t
 {
     friend class auto_type_information_t;
@@ -43,7 +42,7 @@ public:
     type_information_t() = default;
 
     // Set the binary schema for our type.
-    void set_binary_schema(const std::vector<uint8_t>& binary_schema);
+    void set_binary_schema(const uint8_t* binary_schema, size_t binary_schema_size);
 
     // Set the serialization template for our type.
     void set_serialization_template(const std::vector<uint8_t>& serialization_template);
@@ -79,8 +78,9 @@ protected:
     // Operations that require exclusive locking are meant to be rare.
     mutable std::shared_mutex m_lock;
 
-    // The binary schema for this type.
-    std::vector<uint8_t> m_binary_schema;
+    // Direct pointer to the binary schema for this type in catalog.
+    const uint8_t* m_binary_schema;
+    size_t m_binary_schema_size;
 
     // The serialization template for this type.
     std::vector<uint8_t> m_serialization_template;
