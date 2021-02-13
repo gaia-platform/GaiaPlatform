@@ -121,12 +121,12 @@ public:
     explicit operator bool() const;
 
     /**
-     * Returns true if the both objects have same identity (gaia_id).
+     * Returns true if the both objects have same identity.
      */
     bool operator==(const edc_object_t& other) const;
 
     /**
-     * Returns true if the objects do not have have same identity (gaia_id).
+     * Returns true if the objects do not have have same identity.
      */
     bool operator!=(const edc_object_t& other) const;
 

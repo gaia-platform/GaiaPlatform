@@ -50,7 +50,7 @@ protected:
         kissimmee = create_address("Kissimmee", "FL");
 
         dax = create_employee("Dax", "Hawkins", "dax@gaia.io", date(2019, 11, 15), aberdeen);
-        bill = create_employee("Bill", "Clinton", "dax@gaia.io", date(2019, 11, 20), tyngsborough);
+        bill = create_employee("Bill", "Clinton", "bill@gaia.io", date(2019, 11, 20), tyngsborough);
         wayne = create_employee("Wayne", "Warren", "wayne@personal.com", date(2020, 1, 10), puyallup);
         tobin = create_employee("Tobin", "Baker", "tobin@gaia.io", date(2020, 3, 10), renton);
         laurentiu = create_employee("Laurentiu", "Cristofor", "laurentiu@gaia.io", date(2020, 4, 1), bellevue);
@@ -142,8 +142,6 @@ TEST_F(test_expressions, eq)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::hire_date == date(2050, 5, 10)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, ne)
@@ -159,8 +157,6 @@ TEST_F(test_expressions, ne)
         employee_t::list()
             .where(employee_t::expr::hire_date != date(2050, 5, 10)),
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, gt)
@@ -175,8 +171,6 @@ TEST_F(test_expressions, gt)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::hire_date > date(2050, 5, 10)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, gteq)
@@ -191,8 +185,6 @@ TEST_F(test_expressions, gteq)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::hire_date >= date(2050, 5, 10)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, lt)
@@ -207,8 +199,6 @@ TEST_F(test_expressions, lt)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::hire_date < date(1902, 5, 10)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, lteq)
@@ -223,8 +213,6 @@ TEST_F(test_expressions, lteq)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::hire_date <= date(1902, 5, 10)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, string_eq)
@@ -254,8 +242,6 @@ TEST_F(test_expressions, string_eq)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::name_first == "Olbudio"));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, string_eq_case_insensitive)
@@ -281,8 +267,6 @@ TEST_F(test_expressions, string_eq_case_insensitive)
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::name_first == "olbudio"));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, string_ne)
@@ -309,8 +293,6 @@ TEST_F(test_expressions, string_ne)
         employee_t::list()
             .where(employee_t::expr::name_first != "Olbudio"),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, object_eq)
@@ -334,8 +316,6 @@ TEST_F(test_expressions, object_eq)
     assert_empty(
         address_t::list()
             .where(address_t::expr::addressee_employee == employee_t()));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, object_ne)
@@ -361,8 +341,6 @@ TEST_F(test_expressions, object_ne)
         address_t::list()
             .where(address_t::expr::addressee_employee != employee_t()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, or_)
@@ -388,8 +366,6 @@ TEST_F(test_expressions, or_)
         || employee_t::expr::hire_date >= date(2036, 2, 7));
 
     assert_empty(employees);
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, and_)
@@ -415,8 +391,6 @@ TEST_F(test_expressions, and_)
             .where(
                 employee_t::expr::hire_date <= date(2021, 1, 1)
                 && employee_t::expr::hire_date >= date(2036, 2, 7)));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, not_)
@@ -440,8 +414,6 @@ TEST_F(test_expressions, not_)
         employee_t::list()
             .where(
                 !(employee_t::expr::hire_date > date(2001, 1, 1))));
-
-    txn.commit();
 }
 
 TEST_F(test_expressions, mix_boolean_op)
@@ -459,15 +431,13 @@ TEST_F(test_expressions, mix_boolean_op)
         employee_t::list()
             .where(
                 (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
-                && (employee_t::expr::hire_date > date(2036, 2, 7)
-                    || employee_t::expr::hire_date == date(2020, 1, 10))),
-        wayne);
+                || (employee_t::expr::hire_date > date(2036, 2, 7)
+                    || employee_t::expr::hire_date == date(2019, 11, 15))),
+        {wayne, dax});
 
     assert_empty(
         employee_t::list()
             .where(
                 (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
                 && (employee_t::expr::hire_date > date(2036, 2, 7))));
-
-    txn.commit();
 }

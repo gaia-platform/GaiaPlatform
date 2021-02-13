@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include <iostream>
 #include <string>
 
@@ -26,52 +27,57 @@ static const uint64_t c_num_employees = 100000;
 static const uint64_t c_num_employee_addresses = 3;
 
 /**
- * Test performance of the predicates built with the expression API vs
+ * Test the performance of the predicates built with the expression API vs
  * the performance of the same operation performed manually in a for-loop.
  *
- * NOTE: I've noticed a some variation in test results. This test suite is probably
+ * NOTE: I've noticed some variation in test results. This test suite is probably
  * weak. I'm not an expert in cpp micro-benchmarking. Long story short, the expression
  * API does not seem to be significantly slower than the normal for-loop, instead it
- * is usually faster by few percentage points (on my laptop).
+ * is usually faster by a few percentage points (on my laptop).
  *
- * This is an example result with:
+ * This is an example result with (built with -DCMAKE_BUILD_TYPE=Release):
  *  c_num_employees=100k
  *  c_num_employee_addresses=3
  *
  * Comparing 'int64_t ==' performance:
- *  [expr]: 72512.69 us
- *  [plain]: 75772.47 us
- *  ->expr is 4.30% faster
+ *  [expr]: 75713.92 us
+ *  [plain]: 79738.08 us
+ *  ->expr is 5.05% faster
  *
  * Comparing 'int64_t >' performance:
- *  [expr]: 78785.68 us
- *  [plain]: 76920.81 us
- *  ->expr is 2.42% slower
+ *  [expr]: 85465.62 us
+ *  [plain]: 85384.19 us
+ *  ->expr is 0.10% slower
  *
  * Comparing 'int64_t <' performance:
- *  [expr]: 77221.09 us
- *  [plain]: 79437.41 us
- *  ->expr is 2.79% faster
- *
- * Comparing 'const char* ==' performance:
- *  [expr]: 113421.37 us
- *  [plain]: 120552.75 us
- *  ->expr is 5.92% faster
- *
- * Comparing 'std::string ==' performance:
- *  [expr]: 99087.56 us
- *  [plain]: 102789.92 us
- *  ->expr is 3.60% faster
- *
- * Comparing 'std::string equals ignore case' performance:
- *  [expr]: 87723.36 us
- *  [plain]: 84993.72 us
+ *  [expr]: 80908.72 us
+ *  [plain]: 78395.23 us
  *  ->expr is 3.21% slower
  *
+ * Comparing 'const char* ==' performance:
+ *  [expr]: 89520.14 us
+ *  [plain]: 89476.31 us
+ *  ->expr is 0.05% slower
+ *
+ * Comparing 'std::string ==' performance:
+ *  [expr]: 84398.43 us
+ *  [plain]: 94044.34 us
+ *  ->expr is 10.26% faster
+ *
  * Comparing 'std::string equals ignore case' performance:
- *  [expr]: 155836.77 us
- *  [plain]: 158854.93 us
- *  ->expr is 1.90% faster
+ *  [expr]: 92790.74 us
+ *  [plain]: 91392.17 us
+ *  ->expr is 1.53% slower
+ *
+ * Comparing 'EDC class ==' performance:
+ *  [expr]: 166484.30 us
+ *  [plain]: 169587.11 us
+ *  ->expr is 1.83% faster
+ *
+ * Comparing 'mixed boolean op' performance:
+ *  [expr]: 116633.21 us
+ *  [plain]: 118581.93 us
+ *  ->expr is 1.64% faster
  */
 class test_expressions_perf : public db_catalog_test_base_t
 {
@@ -87,27 +93,27 @@ public:
 
         auto start = g_timer_t::get_time_point();
 
-        for (uint64_t i = 0; i < c_num_employees; i++)
+        for (uint64_t index_employee = 0; index_employee < c_num_employees; index_employee++)
         {
             auto employee_writer = gaia::addr_book::employee_writer();
-            employee_writer.name_first = "Name_" + to_string(i);
-            employee_writer.name_last = "Surname_" + to_string(i);
-            employee_writer.hire_date = static_cast<int64_t>(i);
+            employee_writer.name_first = "Name_" + to_string(index_employee);
+            employee_writer.name_last = "Surname_" + to_string(index_employee);
+            employee_writer.hire_date = static_cast<int64_t>(index_employee);
             auto employee = employee_t::get(employee_writer.insert_row());
 
-            for (uint64_t j = 0; j < c_num_employee_addresses; j++)
+            for (uint64_t index_address = 0; index_address < c_num_employee_addresses; index_address++)
             {
                 auto address_w = address_writer();
-                address_w.city = "city_" + to_string(j);
-                address_w.state = "state_" + to_string(j);
+                address_w.city = "city_" + to_string(index_address);
+                address_w.state = "state_" + to_string(index_address);
                 employee.addressee_address_list().insert(address_w.insert_row());
             }
 
-            if (i % 10000 == 0)
+            if (index_employee % 10000 == 0)
             {
                 txn.commit();
                 auto elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
-                gaia_log::app().debug("Iteration:{} Time in ms:{}", i, elapsed);
+                gaia_log::app().debug("Iteration:{} Time in ms:{}", index_employee, elapsed);
                 start = g_timer_t::get_time_point();
             }
         }
@@ -387,7 +393,43 @@ TEST_F(test_expressions_perf, object_eq)
             ASSERT_EQ(addresses.size(), c_num_employee_addresses);
         });
 
-    log_performance_difference(expr_duration, plain_duration, "std::string equals ignore case");
+    log_performance_difference(expr_duration, plain_duration, "EDC class ==");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, mixed_bool_op)
+{
+    auto_transaction_t txn;
+
+    int64_t expr_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list()
+                               .where(
+                                   (employee_t::expr::name_first == "Name_1000" && employee_t::expr::name_last == "Surname_1000")
+                                   || (employee_t::expr::hire_date >= 100 && employee_t::expr::hire_date < 101)))
+            {
+                employees.push_back(e);
+            }
+            ASSERT_EQ(employees.size(), 2);
+        });
+
+    int64_t plain_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list())
+            {
+                if ((strcmp(e.name_first(), "Name_1000") == 0 && strcmp(e.name_last(), "Surname_1000") == 0)
+                    || (e.hire_date() >= 100 && e.hire_date() < 101))
+                {
+                    employees.push_back(e);
+                }
+            }
+            ASSERT_EQ(employees.size(), 2);
+        });
+
+    log_performance_difference(expr_duration, plain_duration, "mixed boolean op");
 
     txn.commit();
 }

@@ -5,13 +5,6 @@
 
 #pragma once
 
-/////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
-
-#pragma once
-
 #include <functional>
 
 #include "gaia_internal/common/timer.hpp"
@@ -31,13 +24,13 @@ namespace direct_access
  * \addtogroup Direct
  * @{
  *
- * API to build expressions to perform operations on EDC classes such
- * as filtering. An example of expression is: name == "Jhon".
+ * API to build expressions to perform operations on EDC classes,
+ * such as filtering. An example of expression is: name == "Jhon".
  */
 
 /**
  * Pointer to an EDC class (T_class) member accessor method.
- * An EDC accessor method return the data stored in a certain
+ * An EDC accessor method returns the data stored in a certain
  * table column, i.e. &employee_t::name.
  *
  * This accessor is specific to EDC as all EDC class methods
@@ -50,7 +43,7 @@ using member_accessor_ptr_t = T_return (T_class::*)() const;
  * Predicate on EDC classes (T_class).
  */
 template <typename T_class>
-using object_predicate_t = std::function<bool(const T_class&)>;
+using edc_predicate_t = std::function<bool(const T_class&)>;
 
 template <typename T_class, typename T_return>
 class member_accessor_t
@@ -84,30 +77,32 @@ enum class string_comparison_t
  * such as Logical Operators (||, &&, etc..).
  */
 template <typename T_class>
-class predicate_decorator_t
+class expression_decorator_t
 {
 public:
-    using object_predicate_t = object_predicate_t<T_class>;
+    using edc_predicate_t = edc_predicate_t<T_class>;
 
+    // The constructor is templated because often 'predicate_fn' is a lambda
+    // and lambda is not convertible to edc_predicate_t (in this context).
     template <typename T_predicate>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    predicate_decorator_t(T_predicate f)
-        : m_predicate(f){};
+    expression_decorator_t(T_predicate predicate_fn)
+        : m_predicate_fn(predicate_fn){};
 
     bool operator()(const T_class& obj) const;
 
-    predicate_decorator_t operator||(object_predicate_t other_predicate);
+    expression_decorator_t operator||(edc_predicate_t other_predicate);
 
-    predicate_decorator_t operator&&(object_predicate_t other_filter);
+    expression_decorator_t operator&&(edc_predicate_t other_filter);
 
-    predicate_decorator_t operator!();
+    expression_decorator_t operator!();
 
 private:
-    object_predicate_t m_predicate;
+    edc_predicate_t m_predicate_fn;
 };
 
 /**
- * Represent an expression for EDC classes. At the moment only boolean expressions
+ * Represent an expression for EDC classes. At the moment, only boolean expressions
  * (predicates) are supported.
  *
  * The predicates test the value extracted from the EDC instance, via a member_accessor_t,
@@ -132,7 +127,7 @@ class expression_t
 {
 public:
     using member_accessor_t = member_accessor_t<T_class, T_return>;
-    using predicate_decorator_t = predicate_decorator_t<T_class>;
+    using predicate_decorator_t = expression_decorator_t<T_class>;
 
     explicit expression_t(member_accessor_t accessor)
         : m_member_accessor(accessor){};

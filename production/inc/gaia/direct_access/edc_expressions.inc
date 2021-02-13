@@ -15,38 +15,38 @@ T_return member_accessor_t<T_class, T_return>::operator()(const T_class& obj)
 }
 
 template <typename T_class>
-bool predicate_decorator_t<T_class>::operator()(const T_class& obj) const
+bool expression_decorator_t<T_class>::operator()(const T_class& obj) const
 {
-    return m_predicate(obj);
+    return m_predicate_fn(obj);
 }
 
 template <typename T_class>
-predicate_decorator_t<T_class> predicate_decorator_t<T_class>::operator||(object_predicate_t other_predicate)
+expression_decorator_t<T_class> expression_decorator_t<T_class>::operator||(edc_predicate_t other_predicate)
 {
     return [other_predicate, *this](const T_class& e) {
-        return m_predicate(e) || other_predicate(e);
+        return m_predicate_fn(e) || other_predicate(e);
     };
 }
 
 template <typename T_class>
-predicate_decorator_t<T_class> predicate_decorator_t<T_class>::operator&&(object_predicate_t other_filter)
+expression_decorator_t<T_class> expression_decorator_t<T_class>::operator&&(edc_predicate_t other_filter)
 {
     return [other_filter, *this](const T_class& e) {
-        return m_predicate(e) && other_filter(e);
+        return m_predicate_fn(e) && other_filter(e);
     };
 }
 
 template <typename T_class>
-predicate_decorator_t<T_class> predicate_decorator_t<T_class>::operator!()
+expression_decorator_t<T_class> expression_decorator_t<T_class>::operator!()
 {
     return [*this](const T_class& e) {
-        return !m_predicate(e);
+        return !m_predicate_fn(e);
     };
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator>(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator>(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) > value;
@@ -55,7 +55,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator>(T_valu
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator>=(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator>=(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) >= value;
@@ -64,7 +64,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator>=(T_val
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator<(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator<(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) < value;
@@ -73,7 +73,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator<(T_valu
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator<=(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator<=(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) <= value;
@@ -82,7 +82,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator<=(T_val
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator==(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) == value;
@@ -91,7 +91,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator==(T_val
 
 template <typename T_class, typename T_return>
 template <typename T_value>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_value value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_value value)
 {
     return [value, this](const T_class& e) {
         return m_member_accessor(e) != value;
@@ -99,7 +99,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_val
 }
 
 template <typename T_class, typename T_return>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::string_view value, string_comparison_t casing)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::string_view value, string_comparison_t casing)
 {
     if (casing == string_comparison_t::case_sensitive)
     {
@@ -123,19 +123,19 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::stri
 }
 
 template <typename T_class, typename T_return>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const std::string& value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const std::string& value)
 {
     return equals(value, string_comparison_t::case_sensitive);
 }
 
 template <typename T_class, typename T_return>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const char* value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const char* value)
 {
     return equals(value, string_comparison_t::case_sensitive);
 }
 
 template <typename T_class, typename T_return>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const char* value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const char* value)
 {
     return [value, this](const T_class& e) {
         return strcmp(m_member_accessor(e), value) != 0;
@@ -143,7 +143,7 @@ predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const
 }
 
 template <typename T_class, typename T_return>
-predicate_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const std::string& value)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const std::string& value)
 {
     return [value, this](const T_class& e) {
         return strcmp(m_member_accessor(e), value.c_str()) != 0;

@@ -246,7 +246,7 @@ static string generate_declarations(const gaia_id_t db_id)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
     {
         code.SetValue("TABLE_NAME", table.name());
         code += "struct {{TABLE_NAME}}_t;";
@@ -311,7 +311,7 @@ static string generate_edc_struct(
     // or possibly arrays.
     bool has_string = false;
     // Accessors.
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         code.SetValue("TYPE", field_cpp_type_string(f.type));
         code.SetValue("FIELD_NAME", f.name);
@@ -332,7 +332,7 @@ static string generate_edc_struct(
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
     bool first = true;
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         if (!first)
         {
@@ -350,7 +350,7 @@ static string generate_edc_struct(
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.SetValue("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         param_list += ", ";
         param_list += f.name;
@@ -429,7 +429,7 @@ static string generate_edc_struct(
     // Add functional access
     code += "struct expr {";
     code.IncrementIdentLevel();
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         code.SetValue("TYPE", field_cpp_type_string(f.type));
         code.SetValue("FIELD_NAME", f.name);
@@ -500,7 +500,7 @@ string gaia_generate(const string& dbname)
     // This is to workaround the issue of incomplete forward declaration of structs that refer to each other.
     // By collecting the IDs in the sorted set, the structs are generated in the ascending order of their IDs.
     set<gaia_id_t> table_ids;
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
     {
         table_ids.insert(table.gaia_id());
     }
