@@ -91,10 +91,9 @@ struct navigation_code_data_t
 };
 
 // Suppress these clang-tidy warnings for now.
-const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
-const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-const char* c_ident = "    ";
-const char* c_last_operation = "LastOperation";
+static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
+static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+static const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
@@ -1007,13 +1006,6 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (field_name == c_last_operation)
-                {
-                   if (!validate_and_add_active_field(table_name, field_name))
-                    {
-                        return;
-                    }
-                }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -1044,9 +1036,17 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
-                    if (!validate_and_add_active_field(table_name, field_name))
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
                     {
-                        return;
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
                     }
                 }
                 else
@@ -1055,19 +1055,11 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (field_name == c_last_operation)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                    }
-                    else
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
                     {
                         g_update_tables.insert(table_name);
                         g_insert_tables.insert(table_name);
                     }
-
                 }
             }
             else
