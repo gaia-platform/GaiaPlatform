@@ -1,6 +1,6 @@
 // RUN: %gaiat %s  -- 2>&1| FileCheck  %s
 
-ruleset test : table(sensor)
+ruleset test : Table(sensor)
 {
     {
         actuator.value += @value/2;

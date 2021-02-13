@@ -1054,18 +1054,18 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
       Validator->WantRemainingKeywords = Tok.isNot(tok::r_paren);
     }
     Name.setIdentifier(&II, ILoc);
-     Res = Actions.ActOnIdExpression(
+    Res = Actions.ActOnIdExpression(
         getCurScope(), ScopeSpec, TemplateKWLoc, Name, Tok.is(tok::l_paren),
         isAddressOfOperand, std::move(Validator),
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
-        getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope()&& (
-            (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&
-            NextToken().is(tok::identifier)));
+        getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && (
+            (Tok.isOneOf(tok::period, tok::coloncolon) &&
+            NextToken().is(tok::identifier))));
     if (getLangOpts().Gaia && Tok.is(tok::period) &&
         NextToken().is(tok::identifier) && Actions.getCurScope()->isInRulesetScope() &&
         !Res.isInvalid() && !Res.isUnset() &&
-        !NextToken().getIdentifierInfo()->getName().compare("LastOperation"))
+        NextToken().getIdentifierInfo()->getName().equals("LastOperation"))
     {
         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
         if (declExpr != nullptr)

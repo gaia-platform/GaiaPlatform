@@ -1,8 +1,8 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump %s | FileCheck -strict-whitespace %s
 
-ruleset test : table(sensor, incubator), SerialStream(ttt)
+ruleset test : Table(sensor, incubator), SerialStream(ttt)
 {
-
+OnUpdate(incubator, sensor.value)
 {
   min_temp+=@value;
   max_temp += min_temp/2;
@@ -34,12 +34,13 @@ ruleset test : table(sensor, incubator), SerialStream(ttt)
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'UPDATE' 'const int'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'INSERT' 'const int'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'NONE' 'const int'
+// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:1, col:33> incubator sensor
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:1>
 
 
 ruleset test1
 {
-
+OnInsert(incubator)
 {
   incubator.min_temp+=@sensor.value;
   incubator.max_temp += incubator.min_temp/2;
@@ -60,7 +61,8 @@ ruleset test1
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:25> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:17> 'int' lvalue .LastOperation 0x{{[^ ]*}}
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:34> 'const int' lvalue Var 0x{{[^ ]*}} 'DELETE' 'const int'
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:43:1>
+// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:43:1, col:19> incubator
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:44:1>
 
 
 typedef enum
@@ -73,6 +75,7 @@ typedef enum
 
 ruleset test2
 {
+  OnChange(actuator)
   {
 	  if (actuator.value < 5)
 	  {
@@ -87,7 +90,7 @@ ruleset test2
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:14> 'float' lvalue .value 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:76:3>
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:79:3>
 
 
 typedef enum
@@ -97,7 +100,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test3 : table (sensor)
+ruleset test3 : Table (sensor)
 {
   {
 	  if (@value < 5)
