@@ -58,7 +58,7 @@ struct table_view_t : catalog_db_object_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::gaia_type_t table_type() const;
     [[nodiscard]] buffer* binary_schema() const;
-    [[nodiscard]] std::vector<uint8_t> serialization_template() const;
+    [[nodiscard]] buffer* serialization_template() const;
 };
 
 struct relationship_view_t : catalog_db_object_view_t

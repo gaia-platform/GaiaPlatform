@@ -58,10 +58,9 @@ namespace db
     return catalog::Getgaia_table(m_obj_ptr->data())->binary_schema();
 }
 
-[[nodiscard]] std::vector<uint8_t> table_view_t::serialization_template() const
+[[nodiscard]] buffer* table_view_t::serialization_template() const
 {
-    auto vector_ptr = catalog::Getgaia_table(m_obj_ptr->data())->serialization_template();
-    return std::vector<uint8_t>(vector_ptr->begin(), vector_ptr->end());
+    return catalog::Getgaia_table(m_obj_ptr->data())->serialization_template();
 }
 
 [[nodiscard]] const char* relationship_view_t::name() const

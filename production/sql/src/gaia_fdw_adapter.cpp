@@ -253,15 +253,13 @@ void adapter_t::initialize_caches()
             table_view.name(), table_view.table_type(), table_view.id());
 
         string table_name(table_view.name());
-        const gaia::direct_access::vector<uint8_t>* binary_schema = table_view.binary_schema();
-        vector<uint8_t> serialization_template = table_view.serialization_template();
 
-        if (binary_schema->size() == 0)
+        if (table_view.binary_schema()->size() == 0)
         {
             elog(ERROR, "Table '%s' is missing binary schema data!", table_view.name());
         }
 
-        if (serialization_template.size() == 0)
+        if (table_view.serialization_template()->size() == 0)
         {
             elog(ERROR, "Table '%s' is missing serialization template data!", table_view.name());
         }
@@ -270,10 +268,12 @@ void adapter_t::initialize_caches()
 
         initialize_type_information_from_binary_schema(
             type_information.get(),
-            binary_schema->data(),
-            binary_schema->size());
+            table_view.binary_schema()->data(),
+            table_view.binary_schema()->size());
 
-        type_information.get()->set_serialization_template(serialization_template);
+        type_information.get()->set_serialization_template(
+            table_view.serialization_template()->data(),
+            table_view.serialization_template()->size());
 
         bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
         if (result == false)
@@ -788,18 +788,15 @@ void modify_state_t::initialize_payload()
 {
     try
     {
-        // Initialize payload vector during our first call.
-        if (m_current_payload == nullptr)
-        {
-            m_current_payload = new vector<uint8_t>();
-        }
-
         // Get hold of the type cache and lookup the type information for our type.
         auto_type_information_t auto_type_information;
         type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
 
         // Set current payload to a copy of the serialization template bits.
-        *m_current_payload = auto_type_information.get()->get_serialization_template();
+        m_current_payload = make_unique<vector<uint8_t>>(
+            auto_type_information.get()->get_serialization_template(),
+            auto_type_information.get()->get_serialization_template()
+                + auto_type_information.get()->get_serialization_template_size());
 
         // Get a pointer to the binary schema.
         // We only need to do this on the first call.
@@ -1081,11 +1078,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 
 void modify_state_t::end_modify()
 {
-    if (m_current_payload)
-    {
-        delete m_current_payload;
-        m_current_payload = nullptr;
-    }
+    m_current_payload.reset(nullptr);
 }
 
 } // namespace fdw

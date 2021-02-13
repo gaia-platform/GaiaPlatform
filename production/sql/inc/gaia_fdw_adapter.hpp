@@ -239,9 +239,9 @@ protected:
     // and state objects are not deallocated normally by Postgres,
     // we need to allocate the vector dynamically,
     // so we can release its memory manually in end_modify().
-    std::vector<uint8_t>* m_current_payload;
+    std::unique_ptr<std::vector<uint8_t>> m_current_payload;
 
-    // Direct pointer to the binary_schema stored in the cache.
+    // Direct pointer to the binary_schema stored in the catalog.
     // This is safe to hold around in our scenario
     // because the cache does not get modified after its initialization.
     const uint8_t* m_binary_schema;
