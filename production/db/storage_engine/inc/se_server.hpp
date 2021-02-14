@@ -220,8 +220,11 @@ private:
     // versions for a committed txn, redo versions for an aborted txn) have been
     // reclaimed by the system.
     static constexpr uint64_t c_txn_gc_complete{0b11ULL};
+    // This is the bitwise intersection of all non-unknown GC status values.
+    static constexpr uint64_t c_txn_gc_initiated{0b10ULL};
     // This mask indicates whether GC was initiated for this txn.
-    static constexpr uint64_t c_txn_gc_initiated_mask{0b10ULL};
+    static constexpr uint64_t c_txn_gc_initiated_mask{
+        c_txn_gc_initiated << c_txn_gc_flags_shift};
 
     // This flag indicates whether the txn has been made externally durable
     // (i.e., persisted to the write-ahead log). It can't be combined with the
@@ -359,7 +362,7 @@ private:
 
     static bool txn_commit();
 
-    static void update_apply_watermark(gaia_txn_id_t);
+    static void update_watermarks(gaia_txn_id_t);
 
     static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
@@ -396,6 +399,22 @@ private:
     static bool is_txn_entry_aborted(ts_entry_t ts_entry);
 
     static bool is_txn_aborted(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_in_gc(ts_entry_t ts_entry);
+
+    static bool is_txn_in_gc(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_gc_eligible(ts_entry_t ts_entry);
+
+    static bool is_txn_gc_eligible(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_gc_complete(ts_entry_t ts_entry);
+
+    static bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_durable(ts_entry_t ts_entry);
+
+    static bool is_txn_durable(gaia_txn_id_t commit_ts);
 
     static bool is_txn_entry_active(ts_entry_t ts_entry);
 
@@ -437,9 +456,13 @@ private:
 
     static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
-    static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
+    static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd, bool committed);
+    static bool set_txn_gc_eligible(gaia_txn_id_t commit_ts);
+
+    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
+
+    static void gc_txn_log(int log_fd, bool committed);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
