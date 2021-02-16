@@ -130,7 +130,7 @@ protected:
     }
 };
 
-TEST_F(test_expressions, eq)
+TEST_F(test_expressions, int64_eq)
 {
     auto_transaction_t txn;
 
@@ -144,7 +144,7 @@ TEST_F(test_expressions, eq)
             .where(employee_t::expr::hire_date == date(2050, 5, 10)));
 }
 
-TEST_F(test_expressions, ne)
+TEST_F(test_expressions, int64_ne)
 {
     auto_transaction_t txn;
 
@@ -159,7 +159,7 @@ TEST_F(test_expressions, ne)
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
 }
 
-TEST_F(test_expressions, gt)
+TEST_F(test_expressions, int64_gt)
 {
     auto_transaction_t txn;
 
@@ -173,7 +173,7 @@ TEST_F(test_expressions, gt)
             .where(employee_t::expr::hire_date > date(2050, 5, 10)));
 }
 
-TEST_F(test_expressions, gteq)
+TEST_F(test_expressions, int64_gteq)
 {
     auto_transaction_t txn;
 
@@ -187,7 +187,7 @@ TEST_F(test_expressions, gteq)
             .where(employee_t::expr::hire_date >= date(2050, 5, 10)));
 }
 
-TEST_F(test_expressions, lt)
+TEST_F(test_expressions, int64_lt)
 {
     auto_transaction_t txn;
 
@@ -201,7 +201,7 @@ TEST_F(test_expressions, lt)
             .where(employee_t::expr::hire_date < date(1902, 5, 10)));
 }
 
-TEST_F(test_expressions, lteq)
+TEST_F(test_expressions, int64_lteq)
 {
     auto_transaction_t txn;
 
@@ -343,7 +343,7 @@ TEST_F(test_expressions, object_ne)
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
-TEST_F(test_expressions, or_)
+TEST_F(test_expressions, or_predicate)
 {
     auto_transaction_t txn;
 
@@ -368,7 +368,7 @@ TEST_F(test_expressions, or_)
     assert_empty(employees);
 }
 
-TEST_F(test_expressions, and_)
+TEST_F(test_expressions, and_expr)
 {
     auto_transaction_t txn;
 
@@ -393,7 +393,7 @@ TEST_F(test_expressions, and_)
                 && employee_t::expr::hire_date >= date(2036, 2, 7)));
 }
 
-TEST_F(test_expressions, not_)
+TEST_F(test_expressions, not_expr)
 {
     auto_transaction_t txn;
 
@@ -416,7 +416,7 @@ TEST_F(test_expressions, not_)
                 !(employee_t::expr::hire_date > date(2001, 1, 1))));
 }
 
-TEST_F(test_expressions, mix_boolean_op)
+TEST_F(test_expressions, mix_boolean_expr)
 {
     auto_transaction_t txn;
 

@@ -84,9 +84,7 @@ public:
 
     // The constructor is templated because often 'predicate_fn' is a lambda
     // and lambda is not convertible to edc_predicate_t (in this context).
-    template <typename T_predicate>
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    expression_decorator_t(T_predicate predicate_fn)
+    explicit expression_decorator_t(edc_predicate_t predicate_fn)
         : m_predicate_fn(predicate_fn){};
 
     bool operator()(const T_class& obj) const;
