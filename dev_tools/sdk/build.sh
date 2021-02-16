@@ -5,6 +5,8 @@
 # All rights reserved.
 #############################################
 
+set -e
+
 gaia_db_server &
 
 # Make incubator example.
