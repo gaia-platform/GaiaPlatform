@@ -361,6 +361,14 @@ static string generate_edc_struct(
     code.DecrementIdentLevel();
     code += "}";
 
+    // The table range.
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
+    code.IncrementIdentLevel();
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
+    code += "return list;";
+    code.DecrementIdentLevel();
+    code += "}";
+
     // Iterate over the relationships where the current table is the child
     for (auto& relationship : child_relationships)
     {
@@ -386,14 +394,6 @@ static string generate_edc_struct(
         code.DecrementIdentLevel();
         code += "}";
     }
-
-    // The table range.
-    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
-    code.IncrementIdentLevel();
-    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
-    code += "return list;";
-    code.DecrementIdentLevel();
-    code += "}";
 
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
@@ -426,9 +426,12 @@ static string generate_edc_struct(
         code += "}";
     }
 
-    // Add functional access
+    // Add EDC expressions
     code += "struct expr {";
     code.IncrementIdentLevel();
+
+    code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> {{gaia_id}}{&{{TABLE_NAME}}_t::{{gaia_id}}};";
+
     for (const auto& f : field_strings)
     {
         code.SetValue("TYPE", field_cpp_type_string(f.type));
@@ -453,6 +456,25 @@ static string generate_edc_struct(
             code.SetValue("REF_NAME", relationship.name());
             code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
             code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{PARENT_TABLE}}};";
+        }
+    }
+
+    for (auto& relationship : parent_relationships)
+    {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+
+        if (is_named_relationship)
+        {
+            code.SetValue("REF_NAME", relationship.name());
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{REF_NAME}}_{{CHILD_TABLE}}_list_t> {{REF_NAME}}_{{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{CHILD_TABLE}}_list};";
+        }
+        else
+        {
+            // This relationship is anonymous.
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_list_t> {{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{CHILD_TABLE}}_list};";
         }
     }
 

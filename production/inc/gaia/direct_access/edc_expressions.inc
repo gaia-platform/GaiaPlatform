@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "edc_expressions.hpp"
+
 namespace gaia
 {
 namespace direct_access
@@ -145,8 +147,29 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(cons
 template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const std::string& value)
 {
-    return [value, this](const T_class& e) {
+    return [&value, this](const T_class& e) {
         return strcmp(m_member_accessor(e), value.c_str()) != 0;
+    };
+}
+
+template <typename T_class, typename T_return>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(predicate_decorator_t function)
+{
+    return [function, this](const T_class& e) {
+        auto container = m_member_accessor(e).where(function);
+        return container.begin() != container.end();
+    };
+}
+
+template <typename T_class, typename T_return>
+template <typename T_value, typename>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(const T_value& object)
+{
+    return [&object, this](const T_class& e) {
+        auto container = m_member_accessor(e).where([&object](const T_value& c) {
+            return c.gaia_id() == object.id();
+        });
+        return container.begin() != container.end();
     };
 }
 

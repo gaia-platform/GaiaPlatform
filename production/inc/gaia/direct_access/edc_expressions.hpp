@@ -6,8 +6,11 @@
 #pragma once
 
 #include <functional>
+#include <type_traits>
 
 #include "gaia_internal/common/timer.hpp"
+
+#include "edc_object.hpp"
 
 namespace gaia
 {
@@ -84,9 +87,7 @@ public:
 
     // The constructor is templated because often 'predicate_fn' is a lambda
     // and lambda is not convertible to edc_predicate_t (in this context).
-    template <typename T_predicate>
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    expression_decorator_t(T_predicate predicate_fn)
+    explicit expression_decorator_t(edc_predicate_t predicate_fn)
         : m_predicate_fn(predicate_fn){};
 
     bool operator()(const T_class& obj) const;
@@ -161,6 +162,13 @@ public:
     predicate_decorator_t operator!=(const std::string& value);
 
     predicate_decorator_t operator!=(const char* value);
+
+    // --- Containers specializations
+
+    predicate_decorator_t contains(predicate_decorator_t predicate);
+
+    template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
+    predicate_decorator_t contains(const T_value& object);
 
 private:
     member_accessor_t m_member_accessor;

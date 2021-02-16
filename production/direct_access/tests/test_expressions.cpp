@@ -343,7 +343,7 @@ TEST_F(test_expressions, object_ne)
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
-TEST_F(test_expressions, or_)
+TEST_F(test_expressions, or_predicate)
 {
     auto_transaction_t txn;
 
@@ -368,7 +368,7 @@ TEST_F(test_expressions, or_)
     assert_empty(employees);
 }
 
-TEST_F(test_expressions, and_)
+TEST_F(test_expressions, and_predicate)
 {
     auto_transaction_t txn;
 
@@ -393,7 +393,7 @@ TEST_F(test_expressions, and_)
                 && employee_t::expr::hire_date >= date(2036, 2, 7)));
 }
 
-TEST_F(test_expressions, not_)
+TEST_F(test_expressions, not_predicate)
 {
     auto_transaction_t txn;
 
@@ -441,3 +441,62 @@ TEST_F(test_expressions, mix_boolean_op)
                 (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
                 && (employee_t::expr::hire_date > date(2036, 2, 7))));
 }
+
+TEST_F(test_expressions, container_contains_predicate)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list
+                       .contains(address_t::expr::state == "WA")),
+        {dax, wayne, tobin, laurentiu, yiwen, mihir});
+
+    assert_empty(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list
+                       .contains(address_t::expr::state == "CA")));
+}
+
+TEST_F(test_expressions, container_contains_object)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list
+                       .contains(bellevue)),
+        {laurentiu});
+
+    auto marzabotto = create_address("Marzabotto", "IT");
+
+    assert_empty(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list
+                       .contains(marzabotto)));
+}
+
+//int main()
+//{
+//
+//    begin_session();
+//    begin_transaction();
+//
+//    auto e = employee_t();
+//    auto a = address_t::expr::state == "CA";
+//    cout << typeid(decltype(a)).name() << endl;
+//    cout << typeid(decltype(e)).name() << endl;
+//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(a)> << endl;
+//    cout << "<std::is_base_of_v<edc_base_t, T_value> " << std::is_base_of_v<edc_base_t, decltype(e)> << endl;
+//
+//    auto b = std::function<bool()>([]() { return true; });
+//    cout << typeid(decltype(b)).name() << endl;
+//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(b)> << endl;
+//
+//    auto c = []() { return true; };
+//    cout << typeid(decltype(c)).name() << endl;
+//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(c)> << endl;
+//
+//    commit_transaction();
+//    end_session();
+//}
