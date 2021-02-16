@@ -130,6 +130,20 @@ protected:
     }
 };
 
+TEST_F(test_expressions, gaia_id_ed)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(employee_t::expr::gaia_id == yiwen.gaia_id()),
+        yiwen);
+
+    assert_empty(
+        employee_t::list()
+            .where(employee_t::expr::gaia_id == seattle.gaia_id()));
+}
+
 TEST_F(test_expressions, int64_eq)
 {
     auto_transaction_t txn;
