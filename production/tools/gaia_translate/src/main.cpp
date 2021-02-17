@@ -802,7 +802,7 @@ void generate_table_subscription(string table, string field_subscription_code, i
 
     if (g_rule_context_rule_name_referenced)
     {
-        navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
+        navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
     if (rule_count == 1)
     {
