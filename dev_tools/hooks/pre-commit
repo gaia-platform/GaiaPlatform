@@ -19,12 +19,12 @@ forbidden_patterns=(
     "using namespace"
 )
 
-for file in $(git --no-pager diff --cached --name-only | grep -E "^(production|demo).*(\.hpp|\.inc)$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^(production).*(\.hpp|\.inc)$"); do
     for forbidden_pattern in "${forbidden_patterns[@]}"; do
-         if grep -Fq "$forbidden_pattern" "$file"; then
-            echo "File '$file' contains forbidden pattern: '$forbidden_pattern'";
-            exit 1;
-        fi
+    if grep -Fq "$forbidden_pattern" "$file"; then
+        echo "File '$file' contains forbidden pattern: '$forbidden_pattern'";
+        exit 1;
+    fi
     done
 done
 
