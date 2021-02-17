@@ -13,8 +13,9 @@
 #include "gaia_barn_storage.h"
 
 using namespace std;
-using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db;
+using namespace gaia::rules;
 
 extern int g_rule_called;
 extern int g_insert_called;

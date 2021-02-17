@@ -22,9 +22,6 @@
 #include "gaia_internal/db/db_test_helpers.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
-using namespace gaia::common;
-using namespace gaia::db;
-
 namespace gaia
 {
 namespace db

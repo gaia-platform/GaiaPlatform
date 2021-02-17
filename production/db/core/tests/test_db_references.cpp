@@ -10,7 +10,10 @@
 
 #include "db_test_util.hpp"
 
+using namespace std;
+using namespace gaia::db;
 using namespace gaia::db::test;
+using namespace gaia::common;
 
 class gaia_db_references_test : public db_test_base_t
 {

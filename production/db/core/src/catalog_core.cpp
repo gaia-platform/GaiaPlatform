@@ -21,6 +21,8 @@
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
 
+using namespace gaia::common;
+
 namespace gaia
 {
 namespace db

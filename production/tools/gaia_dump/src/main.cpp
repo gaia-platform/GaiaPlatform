@@ -10,6 +10,9 @@
 
 #include "gaia_dump.hpp"
 
+using namespace gaia::common;
+using namespace std;
+
 constexpr gaia_id_t c_high_default = 1000;
 constexpr char c_references_string[] = "--references";
 constexpr char c_payload_string[] = "--payload";

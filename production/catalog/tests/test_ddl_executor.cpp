@@ -21,8 +21,10 @@
 
 using namespace std;
 
-using namespace gaia::direct_access;
 using namespace gaia::catalog;
+using namespace gaia::common;
+using namespace gaia::db;
+using namespace gaia::direct_access;
 
 /*
  * Utilities

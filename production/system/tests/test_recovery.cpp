@@ -30,6 +30,10 @@ using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 using namespace gaia::db::test;
 
+using std::cout;
+using std::endl;
+using std::make_pair;
+using std::map;
 using std::string;
 
 // TODO (Mihir) - Run with ctest?
