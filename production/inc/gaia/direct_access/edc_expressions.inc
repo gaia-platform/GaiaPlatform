@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "edc_expressions.hpp"
-
 namespace gaia
 {
 namespace direct_access

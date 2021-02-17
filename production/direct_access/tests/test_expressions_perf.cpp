@@ -12,11 +12,14 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/logger.hpp"
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
 
 using namespace gaia::addr_book;
+using namespace gaia::addr_book::address_expr;
+using namespace gaia::addr_book::employee_expr;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
@@ -78,6 +81,21 @@ static const uint64_t c_num_employee_addresses = 3;
  *  [expr]: 116633.21 us
  *  [plain]: 118581.93 us
  *  ->expr is 1.64% faster
+ *
+ * Comparing 'container contains' performance:
+ *  [expr]: 299694.76 us
+ *  [plain]: 364134.03 us
+ *  ->expr is 17.70% faster
+ *
+ * Comparing 'container count' performance:
+ *  [expr]: 225746.42 us
+ *  [plain]: 210859.86 us
+ *  ->expr is 7.06% slower
+ *
+ * Comparing 'container empty' performance:
+ *  [expr]: 130322.46 us
+ *  [plain]: 114321.26 us
+ *  ->expr is 14.00% slower
  */
 class test_expressions_perf : public db_catalog_test_base_t
 {
@@ -157,7 +175,7 @@ TEST_F(test_expressions_perf, int_eq)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date == c_time))
+                               .where(hire_date == c_time))
             {
                 employees.push_back(e);
             }
@@ -192,7 +210,7 @@ TEST_F(test_expressions_perf, int_gteq)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date >= c_time))
+                               .where(hire_date >= c_time))
             {
                 employees.push_back(e);
             }
@@ -227,7 +245,7 @@ TEST_F(test_expressions_perf, int_lt)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date < c_time))
+                               .where(hire_date < c_time))
             {
                 employees.push_back(e);
             }
@@ -260,7 +278,7 @@ TEST_F(test_expressions_perf, c_string_eq)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == "Name_1000"))
+                               .where(name_first == "Name_1000"))
             {
                 employees.push_back(e);
             }
@@ -294,7 +312,7 @@ TEST_F(test_expressions_perf, string_eq)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == string("Name_1000")))
+                               .where(name_first == string("Name_1000")))
             {
                 employees.push_back(e);
             }
@@ -320,52 +338,12 @@ TEST_F(test_expressions_perf, string_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, string_eq_case_insensitive)
-{
-    auto_transaction_t txn;
-
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first
-                                          .equals(string("name_1000"), string_comparison_t::case_insensitive)))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            string value = "name_1000";
-            for (auto& e : employee_t::list())
-            {
-                string a = e.name_first();
-                if (std::equal(
-                        a.begin(), a.end(), value.begin(), value.end(),
-                        [](const char& a, const char& b) {
-                            return tolower(a) == tolower(b);
-                        }))
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "std::string equals ignore case");
-
-    txn.commit();
-}
-
 TEST_F(test_expressions_perf, object_eq)
 {
     auto_transaction_t txn;
 
     const employee_t dude = *employee_t::list()
-                                 .where(employee_t::expr::name_first == "Name_0")
+                                 .where(name_first == "Name_0")
                                  .begin();
     ASSERT_TRUE(dude);
 
@@ -373,7 +351,7 @@ TEST_F(test_expressions_perf, object_eq)
         [&dude]() {
             vector<address_t> addresses;
             for (auto& a : address_t::list()
-                               .where(address_t::expr::addressee_employee == dude))
+                               .where(addressee_employee == dude))
             {
                 addresses.push_back(a);
             }
@@ -407,8 +385,8 @@ TEST_F(test_expressions_perf, mixed_bool_op)
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
                                .where(
-                                   (employee_t::expr::name_first == "Name_1000" && employee_t::expr::name_last == "Surname_1000")
-                                   || (employee_t::expr::hire_date >= 100 && employee_t::expr::hire_date < 101)))
+                                   (name_first == "Name_1000" && name_last == "Surname_1000")
+                                   || (hire_date >= 100 && hire_date < 101)))
             {
                 employees.push_back(e);
             }
@@ -430,6 +408,110 @@ TEST_F(test_expressions_perf, mixed_bool_op)
         });
 
     log_performance_difference(expr_duration, plain_duration, "mixed boolean op");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_contains)
+{
+    auto_transaction_t txn;
+
+    int64_t expr_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list()
+                               .where(addressee_address_list.contains(city == "city_1")))
+            {
+                employees.push_back(e);
+            }
+            ASSERT_EQ(employees.size(), c_num_employees);
+        });
+
+    int64_t plain_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list())
+            {
+                for (auto& a : e.addressee_address_list())
+                {
+                    if (string("city_1") == a.city())
+                    {
+                        employees.push_back(e);
+                    }
+                }
+            }
+            ASSERT_EQ(employees.size(), c_num_employees);
+        });
+
+    log_performance_difference(expr_duration, plain_duration, "container contains");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_count)
+{
+    auto_transaction_t txn;
+
+    int64_t expr_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list()
+                               .where(addressee_address_list.count(c_num_employee_addresses)))
+            {
+                employees.push_back(e);
+            }
+            ASSERT_EQ(employees.size(), c_num_employees);
+        });
+
+    int64_t plain_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list())
+            {
+                auto addresses = e.addressee_address_list();
+                if (std::distance(addresses.begin(), addresses.end()) == c_num_employee_addresses)
+                {
+                    employees.push_back(e);
+                }
+            }
+            ASSERT_EQ(employees.size(), c_num_employees);
+        });
+
+    log_performance_difference(expr_duration, plain_duration, "container count");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_empty)
+{
+    auto_transaction_t txn;
+
+    int64_t expr_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list()
+                               .where(addressee_address_list.empty()))
+            {
+                employees.push_back(e);
+            }
+            ASSERT_TRUE(employees.empty());
+        });
+
+    int64_t plain_duration = g_timer_t::get_function_duration(
+        []() {
+            vector<employee_t> employees;
+            for (auto& e : employee_t::list())
+            {
+                auto addresses = e.addressee_address_list();
+                if (addresses.begin() == addresses.end())
+                {
+                    employees.push_back(e);
+                }
+            }
+            ASSERT_TRUE(employees.empty());
+        });
+
+    log_performance_difference(expr_duration, plain_duration, "container empty");
 
     txn.commit();
 }

@@ -19,8 +19,8 @@
 #include "gaia_addr_book.h"
 
 using namespace gaia::addr_book;
-using namespace gaia::addr_book::employee_expr;
 using namespace gaia::addr_book::address_expr;
+using namespace gaia::addr_book::employee_expr;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
@@ -423,14 +423,14 @@ TEST_F(test_expressions, container_contains_predicate)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list
-                       .contains(address_t::expr::state == "WA")),
+            .where(addressee_address_list
+                       .contains(address_expr::state == "WA")),
         {dax, wayne, tobin, laurentiu, yiwen, mihir});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list
-                       .contains(address_t::expr::state == "CA")));
+            .where(addressee_address_list
+                       .contains(address_expr::state == "CA")));
 }
 
 TEST_F(test_expressions, container_contains_object)
@@ -439,7 +439,7 @@ TEST_F(test_expressions, container_contains_object)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list
+            .where(addressee_address_list
                        .contains_object(bellevue)),
         {laurentiu});
 
@@ -447,7 +447,7 @@ TEST_F(test_expressions, container_contains_object)
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list
+            .where(addressee_address_list
                        .contains_object(marzabotto)));
 }
 
@@ -457,12 +457,13 @@ TEST_F(test_expressions, container_empty)
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::phone_list.empty()),
+            // phone_list is ambiguous, need full qualification.
+            .where(address_expr::phone_list.empty()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list.empty()));
+            .where(addressee_address_list.empty()));
 }
 
 TEST_F(test_expressions, container_count)
@@ -471,15 +472,15 @@ TEST_F(test_expressions, container_count)
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::phone_list.count(0)),
+            .where(address_expr::phone_list.count(0)),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list.count(1)),
+            .where(addressee_address_list.count(1)),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::addressee_address_list.count(2)));
+            .where(addressee_address_list.count(2)));
 }
