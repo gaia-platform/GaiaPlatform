@@ -1236,20 +1236,8 @@ public:
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
 
-                    if (op->getOpcode() != BO_Assign)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}() ");
-                    }
-                    else
-                    {
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    }
+                    m_rewriter.InsertTextAfterToken(
+                        op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
                 }
                 else
                 {
@@ -1361,10 +1349,6 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    if (!validate_and_add_active_field(table_name, field_name))
-                    {
-                        return;
-                    }
 
                     if (op->isPostfix())
                     {
