@@ -6,11 +6,6 @@
 #pragma once
 
 #include <functional>
-#include <type_traits>
-
-#include "gaia_internal/common/timer.hpp"
-
-#include "edc_iterators.hpp"
 
 namespace gaia
 {
