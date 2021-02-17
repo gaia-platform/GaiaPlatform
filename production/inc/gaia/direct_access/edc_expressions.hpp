@@ -10,7 +10,7 @@
 
 #include "gaia_internal/common/timer.hpp"
 
-#include "edc_object.hpp"
+#include "edc_iterators.hpp"
 
 namespace gaia
 {
@@ -165,7 +165,8 @@ public:
 
     // --- Containers specializations
 
-    predicate_decorator_t contains(predicate_decorator_t predicate);
+    //    template <typename = std::enable_if<std::is_base_of_v<gaia::direct_access::reference_chain_container_t>
+    //    predicate_decorator_t contains(predicate_decorator_t predicate);
 
     template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
     predicate_decorator_t contains(const T_value& object);

@@ -163,25 +163,27 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(cons
         });
 }
 
-template <typename T_class, typename T_return>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(predicate_decorator_t function)
-{
-    return [function, this](const T_class& e) {
-        auto container = m_member_accessor(e).where(function);
-        return container.begin() != container.end();
-    };
-}
+//template <typename T_class, typename T_return>
+//expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(predicate_decorator_t function)
+//{
+//    return [function, this](const T_class& e) {
+//        auto container = m_member_accessor(e).where(function);
+//        return container.begin() != container.end();
+//    };
+//}
 
 template <typename T_class, typename T_return>
 template <typename T_value, typename>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(const T_value& object)
 {
-    return [&object, this](const T_class& e) {
-        auto container = m_member_accessor(e).where([&object](const T_value& c) {
-            return c.gaia_id() == object.id();
+    std::cout << std::is_base_of_v<edc_base_t, T_value> << std::endl;
+    return expression_decorator_t<T_class>(
+        [&object, this](const T_class& e) {
+            auto container = m_member_accessor(e).where([&object](const T_value& c) {
+                return c.gaia_id() == object.id();
+            });
+            return container.begin() != container.end();
         });
-        return container.begin() != container.end();
-    };
 }
 
 } // namespace direct_access

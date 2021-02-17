@@ -459,17 +459,17 @@ TEST_F(test_expressions, mix_boolean_expr)
 TEST_F(test_expressions, container_contains_predicate)
 {
     auto_transaction_t txn;
-
-    assert_contains(
-        employee_t::list()
-            .where(employee_t::expr::addressee_address_list
-                       .contains(address_t::expr::state == "WA")),
-        {dax, wayne, tobin, laurentiu, yiwen, mihir});
-
-    assert_empty(
-        employee_t::list()
-            .where(employee_t::expr::addressee_address_list
-                       .contains(address_t::expr::state == "CA")));
+    //
+    //    assert_contains(
+    //        employee_t::list()
+    //            .where(employee_t::expr::addressee_address_list
+    //                       .contains(address_t::expr::state == "WA")),
+    //        {dax, wayne, tobin, laurentiu, yiwen, mihir});
+    //
+    //    assert_empty(
+    //        employee_t::list()
+    //            .where(employee_t::expr::addressee_address_list
+    //                       .contains(address_t::expr::state == "CA")));
 }
 
 TEST_F(test_expressions, container_contains_object)
@@ -490,27 +490,53 @@ TEST_F(test_expressions, container_contains_object)
                        .contains(marzabotto)));
 }
 
-//int main()
-//{
-//
-//    begin_session();
-//    begin_transaction();
-//
-//    auto e = employee_t();
-//    auto a = address_t::expr::state == "CA";
-//    cout << typeid(decltype(a)).name() << endl;
-//    cout << typeid(decltype(e)).name() << endl;
-//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(a)> << endl;
-//    cout << "<std::is_base_of_v<edc_base_t, T_value> " << std::is_base_of_v<edc_base_t, decltype(e)> << endl;
-//
-//    auto b = std::function<bool()>([]() { return true; });
-//    cout << typeid(decltype(b)).name() << endl;
-//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(b)> << endl;
-//
-//    auto c = []() { return true; };
-//    cout << typeid(decltype(c)).name() << endl;
-//    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(c)> << endl;
-//
-//    commit_transaction();
-//    end_session();
-//}
+template <typename T_class, typename = void>
+struct is_container_t : std::false_type
+{
+};
+
+template <typename... T_params>
+struct is_container_helper_t
+{
+};
+
+template <typename T_class>
+struct is_container_t<
+    T_class,
+    std::conditional_t<
+        false,
+        is_container_helper_t<
+            decltype(std::declval<T_class>().begin()),
+            decltype(std::declval<T_class>().end())>,
+        void>> : public std::true_type
+{
+};
+
+int main()
+{
+
+    begin_session();
+    begin_transaction();
+
+    auto e = employee_t();
+    auto addr = address_t();
+    auto a = address_t::expr::state == "CA";
+    cout << typeid(decltype(a)).name() << endl;
+    cout << typeid(decltype(e)).name() << endl;
+    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(a)> << endl;
+    cout << "<std::is_base_of_v<edc_base_t, T_value> " << std::is_base_of_v<edc_base_t, decltype(e)> << endl;
+
+    auto b = std::function<bool()>([]() { return true; });
+    cout << typeid(decltype(b)).name() << endl;
+    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(b)> << endl;
+
+    auto c = []() { return true; };
+    cout << typeid(decltype(c)).name() << endl;
+    cout << "std::is_invocable_v<T_predicate> " << std::is_invocable_v<decltype(c)> << endl;
+
+    cout << "Is container " << is_container_t<decltype(addr.phone_list())>::value << endl;
+    cout << "Is container " << is_container_t<decltype(&address_t::state)>::value << endl;
+
+    commit_transaction();
+    end_session();
+}
