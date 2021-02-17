@@ -6,7 +6,6 @@
 #include "gaia_internal/common/file.hpp"
 
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 #include "gaia_internal/common/retail_assert.hpp"
