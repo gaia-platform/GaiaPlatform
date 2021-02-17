@@ -2461,12 +2461,28 @@ private:
 
   IdentifierInfo *TryParseCXX11AttributeIdentifier(SourceLocation &Loc);
 
+  enum GaiaAttributeType
+  {
+    Ruleset,
+    Rule
+  };
+
+  const char *c_on_update_rule_attribute = "OnUpdate";
+  const char *c_on_insert_rule_attribute = "OnInsert";
+  const char *c_on_change_rule_attribute = "OnChange";
+
   bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
+                            GaiaAttributeType attributeType,
                             SourceLocation *EndLoc = nullptr);
   bool ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
+                            GaiaAttributeType attributeType,
                             SourceLocation *EndLoc = nullptr);
-  void InjectRuleFunction(Declarator &D);
+  bool ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
+                            SourceLocation *endLoc);
+  void ParseRule(Declarator &D);
   void ConsumeInvalidRuleset();
+  Token getPreviousToken(Token token);
+  void InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs);
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
                                      SourceLocation *endLoc = nullptr) {

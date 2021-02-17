@@ -13,6 +13,9 @@
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 
+using namespace gaia::common;
+using namespace gaia::db;
+
 class catalog_core_test : public db_test_base_t
 {
 };

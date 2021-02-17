@@ -33,18 +33,18 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 
 using namespace std;
 
+using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 

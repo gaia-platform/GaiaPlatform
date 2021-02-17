@@ -3173,7 +3173,7 @@ def ObjCExternallyRetained : InheritableAttr {
 }
 
 def RulesetTable : Attr {
-    let Spellings = [Keyword<"table">];
+    let Spellings = [Keyword<"Table">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
     let Args = [VariadicIdentifierArgument<"tables">];
@@ -3245,4 +3245,25 @@ def FieldTable : Attr {
     let Subjects = SubjectList<[Var]>;
     let Documentation = [Undocumented];
     let Args = [IdentifierArgument<"table">];
+}
+
+def GaiaOnUpdate : Attr {
+    let Spellings = [Keyword<"OnUpdate">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
+}
+
+def GaiaOnInsert : Attr {
+    let Spellings = [Keyword<"OnInsert">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
+}
+
+def GaiaOnChange : Attr {
+    let Spellings = [Keyword<"OnChange">];
+    let Subjects = SubjectList<[Function]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicStringArgument<"tables">];
 }

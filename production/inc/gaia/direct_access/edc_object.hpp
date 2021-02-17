@@ -15,6 +15,7 @@
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/direct_access/edc_base.hpp"
+#include "gaia/direct_access/edc_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 
 namespace gaia
@@ -120,10 +121,14 @@ public:
     explicit operator bool() const;
 
     /**
-     * Returns true if the gaia locator these objects represent
-     * is the same.
+     * Returns true if the both objects have same identity.
      */
     bool operator==(const edc_object_t& other) const;
+
+    /**
+     * Returns true if the objects do not have have same identity.
+     */
+    bool operator!=(const edc_object_t& other) const;
 
 protected:
     /**
