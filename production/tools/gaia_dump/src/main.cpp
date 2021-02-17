@@ -4,7 +4,10 @@
 ///////////////////////////////////////////////
 #include <cstring>
 
+#include <iostream>
+
 #include "gaia/db/db.hpp"
+
 #include "gaia_dump.hpp"
 
 constexpr gaia_id_t c_high_default = 1000;

@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
+
 namespace gaia
 {
 namespace direct_access
@@ -108,41 +110,21 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_va
 }
 
 template <typename T_class, typename T_return>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::string_view value, string_comparison_t casing)
-{
-    if (casing == string_comparison_t::case_sensitive)
-    {
-        return expression_decorator_t<T_class>(
-            [value, this](const T_class& e) {
-                return m_member_accessor(e) == value;
-            });
-    }
-
-    return expression_decorator_t<T_class>(
-        [value, this](const T_class& e) {
-            std::string_view lh = m_member_accessor(e);
-
-            // TODO this is probably neither the most efficient nor the most correct
-            //  way (considering unicode) to do a string ignore case comparison.
-            //  Good enough for now.
-            return std::equal(
-                lh.begin(), lh.end(), value.begin(), value.end(),
-                [](char a, char b) {
-                    return tolower(a) == tolower(b);
-                });
-        });
-}
-
-template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const std::string& value)
 {
-    return equals(value, string_comparison_t::case_sensitive);
+    return expression_decorator_t<T_class>(
+        [&value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value.c_str()) == 0;
+        });
 }
 
 template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const char* value)
 {
-    return equals(value, string_comparison_t::case_sensitive);
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value) == 0;
+        });
 }
 
 template <typename T_class, typename T_return>
@@ -163,20 +145,21 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(cons
         });
 }
 
-//template <typename T_class, typename T_return>
-//expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(predicate_decorator_t function)
-//{
-//    return [function, this](const T_class& e) {
-//        auto container = m_member_accessor(e).where(function);
-//        return container.begin() != container.end();
-//    };
-//}
+template <typename T_class, typename T_return>
+template <typename T_predicate>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(T_predicate predicate)
+{
+    return [predicate, this](const T_class& e) {
+        auto container = m_member_accessor(e).where(predicate);
+        return container.begin() != container.end();
+    };
+}
 
 template <typename T_class, typename T_return>
 template <typename T_value, typename>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(const T_value& object)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains_object(const T_value& object)
 {
-    std::cout << std::is_base_of_v<edc_base_t, T_value> << std::endl;
+    std::cout << "std::is_base_of_v<edc_base_t, T_value>" << std::is_base_of_v<edc_base_t, T_value> << std::endl;
     return expression_decorator_t<T_class>(
         [&object, this](const T_class& e) {
             auto container = m_member_accessor(e).where([&object](const T_value& c) {

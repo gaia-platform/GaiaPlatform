@@ -86,12 +86,17 @@ struct gaia_database_t : public gaia::direct_access::edc_object_t<c_gaia_type_ga
         return gaia_table_list_t(gaia_id(), c_first_gaia_database_gaia_table, c_next_gaia_database_gaia_table);
     }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_database_t, gaia::common::gaia_id_t> gaia_id{&gaia_database_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_database_t, const char*> name{&gaia_database_t::name};
     };
 
 private:
     friend struct edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
     explicit gaia_database_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_database_t") {}
+};
+
+namespace gaia_database_expr {
+    static auto& name = gaia_database_t::expr::name;
 };
 
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> gaia_table_writer;
@@ -111,12 +116,12 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, binary_schema, serialization_template));
         return edc_object_t::insert_row(b);
     }
-    gaia_database_t gaia_database() const {
-        return gaia_database_t::get(this->references()[c_parent_gaia_database_gaia_table]);
-    }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_table, gaia_table_t>& list() {
         static gaia::direct_access::edc_container_t<c_gaia_type_gaia_table, gaia_table_t> list;
         return list;
+    }
+    gaia_database_t gaia_database() const {
+        return gaia_database_t::get(this->references()[c_parent_gaia_database_gaia_table]);
     }
     gaia_field_list_t gaia_field_list() const {
         return gaia_field_list_t(gaia_id(), c_first_gaia_table_gaia_field, c_next_gaia_table_gaia_field);
@@ -128,6 +133,7 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         return child_gaia_relationship_list_t(gaia_id(), c_first_child_gaia_relationship, c_next_child_gaia_relationship);
     }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_table_t, gaia::common::gaia_id_t> gaia_id{&gaia_table_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_table_t, const char*> name{&gaia_table_t::name};
         static inline gaia::direct_access::expression_t<gaia_table_t, uint32_t> type{&gaia_table_t::type};
         static inline gaia::direct_access::expression_t<gaia_table_t, bool> is_system{&gaia_table_t::is_system};
@@ -139,6 +145,15 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
 private:
     friend struct edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
     explicit gaia_table_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_table_t") {}
+};
+
+namespace gaia_table_expr {
+    static auto& name = gaia_table_t::expr::name;
+    static auto& type = gaia_table_t::expr::type;
+    static auto& is_system = gaia_table_t::expr::is_system;
+    static auto& binary_schema = gaia_table_t::expr::binary_schema;
+    static auto& serialization_template = gaia_table_t::expr::serialization_template;
+    static auto& gaia_database = gaia_table_t::expr::gaia_database;
 };
 
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> gaia_field_writer;
@@ -156,14 +171,15 @@ struct gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active));
         return edc_object_t::insert_row(b);
     }
-    gaia_table_t gaia_table() const {
-        return gaia_table_t::get(this->references()[c_parent_gaia_table_gaia_field]);
-    }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_field, gaia_field_t>& list() {
         static gaia::direct_access::edc_container_t<c_gaia_type_gaia_field, gaia_field_t> list;
         return list;
     }
+    gaia_table_t gaia_table() const {
+        return gaia_table_t::get(this->references()[c_parent_gaia_table_gaia_field]);
+    }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_field_t, gaia::common::gaia_id_t> gaia_id{&gaia_field_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_field_t, const char*> name{&gaia_field_t::name};
         static inline gaia::direct_access::expression_t<gaia_field_t, uint8_t> type{&gaia_field_t::type};
         static inline gaia::direct_access::expression_t<gaia_field_t, uint16_t> repeated_count{&gaia_field_t::repeated_count};
@@ -176,6 +192,16 @@ struct gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
 private:
     friend struct edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
     explicit gaia_field_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_field_t") {}
+};
+
+namespace gaia_field_expr {
+    static auto& name = gaia_field_t::expr::name;
+    static auto& type = gaia_field_t::expr::type;
+    static auto& repeated_count = gaia_field_t::expr::repeated_count;
+    static auto& position = gaia_field_t::expr::position;
+    static auto& deprecated = gaia_field_t::expr::deprecated;
+    static auto& active = gaia_field_t::expr::active;
+    static auto& gaia_table = gaia_field_t::expr::gaia_table;
 };
 
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> gaia_relationship_writer;
@@ -194,17 +220,18 @@ struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_typ
         b.Finish(internal::Creategaia_relationshipDirect(b, name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
         return edc_object_t::insert_row(b);
     }
+    static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t>& list() {
+        static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list;
+        return list;
+    }
     gaia_table_t parent_gaia_table() const {
         return gaia_table_t::get(this->references()[c_parent_parent_gaia_relationship]);
     }
     gaia_table_t child_gaia_table() const {
         return gaia_table_t::get(this->references()[c_parent_child_gaia_relationship]);
     }
-    static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t>& list() {
-        static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list;
-        return list;
-    }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_id{&gaia_relationship_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_relationship_t, const char*> name{&gaia_relationship_t::name};
         static inline gaia::direct_access::expression_t<gaia_relationship_t, uint8_t> cardinality{&gaia_relationship_t::cardinality};
         static inline gaia::direct_access::expression_t<gaia_relationship_t, bool> parent_required{&gaia_relationship_t::parent_required};
@@ -219,6 +246,18 @@ struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_typ
 private:
     friend struct edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
     explicit gaia_relationship_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_relationship_t") {}
+};
+
+namespace gaia_relationship_expr {
+    static auto& name = gaia_relationship_t::expr::name;
+    static auto& cardinality = gaia_relationship_t::expr::cardinality;
+    static auto& parent_required = gaia_relationship_t::expr::parent_required;
+    static auto& deprecated = gaia_relationship_t::expr::deprecated;
+    static auto& first_child_offset = gaia_relationship_t::expr::first_child_offset;
+    static auto& next_child_offset = gaia_relationship_t::expr::next_child_offset;
+    static auto& parent_offset = gaia_relationship_t::expr::parent_offset;
+    static auto& parent_gaia_table = gaia_relationship_t::expr::parent_gaia_table;
+    static auto& child_gaia_table = gaia_relationship_t::expr::child_gaia_table;
 };
 
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT> gaia_ruleset_writer;
@@ -244,6 +283,7 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
         return gaia_rule_list_t(gaia_id(), c_first_gaia_ruleset_gaia_rule, c_next_gaia_ruleset_gaia_rule);
     }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_ruleset_t, gaia::common::gaia_id_t> gaia_id{&gaia_ruleset_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> name{&gaia_ruleset_t::name};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, bool> active_on_startup{&gaia_ruleset_t::active_on_startup};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> table_ids{&gaia_ruleset_t::table_ids};
@@ -256,6 +296,14 @@ private:
     explicit gaia_ruleset_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_ruleset_t") {}
 };
 
+namespace gaia_ruleset_expr {
+    static auto& name = gaia_ruleset_t::expr::name;
+    static auto& active_on_startup = gaia_ruleset_t::expr::active_on_startup;
+    static auto& table_ids = gaia_ruleset_t::expr::table_ids;
+    static auto& source_location = gaia_ruleset_t::expr::source_location;
+    static auto& serial_stream = gaia_ruleset_t::expr::serial_stream;
+};
+
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT> gaia_rule_writer;
 struct gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT> {
     gaia_rule_t() : edc_object_t("gaia_rule_t") {}
@@ -266,14 +314,15 @@ struct gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_r
         b.Finish(internal::Creategaia_ruleDirect(b, name));
         return edc_object_t::insert_row(b);
     }
-    gaia_ruleset_t gaia_ruleset() const {
-        return gaia_ruleset_t::get(this->references()[c_parent_gaia_ruleset_gaia_rule]);
-    }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_rule, gaia_rule_t>& list() {
         static gaia::direct_access::edc_container_t<c_gaia_type_gaia_rule, gaia_rule_t> list;
         return list;
     }
+    gaia_ruleset_t gaia_ruleset() const {
+        return gaia_ruleset_t::get(this->references()[c_parent_gaia_ruleset_gaia_rule]);
+    }
     struct expr {
+        static inline gaia::direct_access::expression_t<gaia_rule_t, gaia::common::gaia_id_t> gaia_id{&gaia_rule_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_rule_t, const char*> name{&gaia_rule_t::name};
         static inline gaia::direct_access::expression_t<gaia_rule_t, gaia_ruleset_t> gaia_ruleset{&gaia_rule_t::gaia_ruleset};
     };
@@ -281,6 +330,11 @@ struct gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_r
 private:
     friend struct edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
     explicit gaia_rule_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_rule_t") {}
+};
+
+namespace gaia_rule_expr {
+    static auto& name = gaia_rule_t::expr::name;
+    static auto& gaia_ruleset = gaia_rule_t::expr::gaia_ruleset;
 };
 
 }  // namespace catalog

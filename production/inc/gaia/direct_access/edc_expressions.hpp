@@ -66,16 +66,6 @@ private:
 };
 
 /**
- * Used on string comparisons to determine the casing
- * of the operations.
- */
-enum class string_comparison_t
-{
-    case_insensitive,
-    case_sensitive
-};
-
-/**
  * Decorates a predicate allowing higher level operations
  * such as Logical Operators (||, &&, etc..).
  */
@@ -153,8 +143,6 @@ public:
 
     // --- String specialization ---
 
-    predicate_decorator_t equals(std::string_view value, string_comparison_t casing = string_comparison_t::case_sensitive);
-
     predicate_decorator_t operator==(const std::string& value);
 
     predicate_decorator_t operator==(const char* value);
@@ -165,11 +153,11 @@ public:
 
     // --- Containers specializations
 
-    //    template <typename = std::enable_if<std::is_base_of_v<gaia::direct_access::reference_chain_container_t>
-    //    predicate_decorator_t contains(predicate_decorator_t predicate);
+    template <typename T_predicate>
+    predicate_decorator_t contains(T_predicate predicate);
 
     template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
-    predicate_decorator_t contains(const T_value& object);
+    predicate_decorator_t contains_object(const T_value& object);
 
 private:
     member_accessor_t m_member_accessor;

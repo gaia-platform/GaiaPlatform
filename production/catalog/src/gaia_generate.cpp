@@ -426,6 +426,10 @@ static string generate_edc_struct(
         code += "}";
     }
 
+    // Stores field names to make it simpler to create a namespace after the class
+    // to allow unqualified access to the expressions.
+    vector<string> field_names;
+
     // Add EDC expressions
     code += "struct expr {";
     code.IncrementIdentLevel();
@@ -437,6 +441,7 @@ static string generate_edc_struct(
         code.SetValue("TYPE", field_cpp_type_string(f.type));
         code.SetValue("FIELD_NAME", f.name);
         code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{TYPE}}> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
+        field_names.push_back(code.GetValue("FIELD_NAME"));
     }
 
     for (auto& relationship : child_relationships)
@@ -450,12 +455,14 @@ static string generate_edc_struct(
         {
             code.SetValue("REF_NAME", relationship.name());
             code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{REF_NAME}}_{{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{PARENT_TABLE}}};";
+            field_names.push_back(code.GetValue("REF_NAME") + "_" + code.GetValue("PARENT_TABLE"));
         }
         else
         {
             code.SetValue("REF_NAME", relationship.name());
             code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
             code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{PARENT_TABLE}}};";
+            field_names.push_back(code.GetValue("PARENT_TABLE"));
         }
     }
 
@@ -492,6 +499,17 @@ static string generate_edc_struct(
     code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
+    code.DecrementIdentLevel();
+    code += "};";
+    code += "";
+
+    code += "namespace {{TABLE_NAME}}_expr {";
+    code.IncrementIdentLevel();
+    for (const string& field_name : field_names)
+    {
+        code.SetValue("FIELD_NAME", field_name);
+        code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
+    }
     code.DecrementIdentLevel();
     code += "};";
     code += "";
