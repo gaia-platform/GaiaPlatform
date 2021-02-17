@@ -240,10 +240,9 @@ public:
     void end_modify();
 
 protected:
-    // Because a vector manages its own memory
-    // and state objects are not deallocated normally by Postgres,
-    // we need to allocate the vector dynamically,
-    // so we can release its memory manually in end_modify().
+    // Use a smart pointer to manage the memory of the payload. Because state
+    // objects are not deallocated normally by Postgres, we will release its
+    // memory manually in end_modify().
     std::unique_ptr<std::vector<uint8_t>> m_current_payload;
 
     // Direct pointer to the binary_schema stored in the catalog.
