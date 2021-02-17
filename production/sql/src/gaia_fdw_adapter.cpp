@@ -158,23 +158,7 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
     nullable_datum.value = 0;
     nullable_datum.isnull = false;
 
-    switch (value.type)
-    {
-    case reflection::Bool:
-    case reflection::Byte:
-    case reflection::UByte:
-    case reflection::Short:
-    case reflection::UShort:
-    case reflection::Int:
-    case reflection::UInt:
-    case reflection::Long:
-    case reflection::ULong:
-    case reflection::Float:
-    case reflection::Double:
-        nullable_datum.value = convert_scalar_to_datum(value);
-        return nullable_datum;
-
-    case reflection::String:
+    if (value.type == reflection::String)
     {
         if (value.hold.string_value == nullptr)
         {
@@ -193,16 +177,13 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
         nullable_datum.value = CStringGetDatum(pg_text);
-        return nullable_datum;
+    }
+    else
+    {
+        nullable_datum.value = convert_scalar_to_datum(value);
     }
 
-    default:
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_datum()!"),
-             errhint("Unhandled data_holder_t type '%d'.", value.type)));
-    }
+    return nullable_datum;
 }
 
 reflection::BaseType convert_to_reflection_type(data_type_t type)
