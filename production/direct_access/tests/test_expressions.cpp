@@ -365,23 +365,17 @@ TEST_F(test_expressions, and_expr)
 
     assert_contains(
         employee_t::list()
-            .where(
-                name_first == "Wayne"
-                && name_last == "Warren"),
+            .where(name_first == "Wayne" && name_last == "Warren"),
         wayne);
 
     assert_contains(
         employee_t::list()
-            .where(
-                hire_date >= date(2019, 11, 20)
-                && name_last == "Clinton"),
+            .where(hire_date >= date(2019, 11, 20) && name_last == "Clinton"),
         bill);
 
     assert_empty(
         employee_t::list()
-            .where(
-                hire_date <= date(2021, 1, 1)
-                && hire_date >= date(2036, 2, 7)));
+            .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
 }
 
 TEST_F(test_expressions, not_expr)
@@ -390,21 +384,17 @@ TEST_F(test_expressions, not_expr)
 
     assert_contains(
         employee_t::list()
-            .where(
-                !(name_first == "Wayne")
-                && !(name_last == "Warren")),
+            .where(!(name_first == "Wayne") && !(name_last == "Warren")),
         {simone, dax, bill, laurentiu, yiwen, mihir, tobin});
 
     assert_contains(
         employee_t::list()
-            .where(
-                !(hire_date >= date(2020, 1, 1))),
+            .where(!(hire_date >= date(2020, 1, 1))),
         {bill, dax});
 
     assert_empty(
         employee_t::list()
-            .where(
-                !(hire_date > date(2001, 1, 1))));
+            .where(!(hire_date > date(2001, 1, 1))));
 }
 
 TEST_F(test_expressions, mix_boolean_expr)
@@ -413,22 +403,15 @@ TEST_F(test_expressions, mix_boolean_expr)
 
     assert_contains(
         employee_t::list()
-            .where(
-                (name_first == "Wayne" && name_last == "Warren")
-                && hire_date < date(2036, 2, 7)),
+            .where((name_first == "Wayne" && name_last == "Warren") && hire_date < date(2036, 2, 7)),
         wayne);
 
     assert_contains(
         employee_t::list()
-            .where(
-                (name_first == "Wayne" && name_last == "Warren")
-                || (hire_date > date(2036, 2, 7)
-                    || hire_date == date(2019, 11, 15))),
+            .where((name_first == "Wayne" && name_last == "Warren") || (hire_date > date(2036, 2, 7) || hire_date == date(2019, 11, 15))),
         {wayne, dax});
 
     assert_empty(
         employee_t::list()
-            .where(
-                (name_first == "Wayne" && name_last == "Warren")
-                && (hire_date > date(2036, 2, 7))));
+            .where((name_first == "Wayne" && name_last == "Warren") && (hire_date > date(2036, 2, 7))));
 }
