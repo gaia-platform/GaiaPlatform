@@ -21,6 +21,7 @@ using namespace gaia::addr_book;
 using namespace gaia::addr_book::employee_expr;
 using namespace gaia::addr_book::address_expr;
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::db;
 using namespace std;

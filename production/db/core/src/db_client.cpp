@@ -278,14 +278,14 @@ static void build_client_request(
 // shared memory object.
 void client::dedup_log()
 {
-    retail_assert(s_log.is_initialized(), "Transaction log must be mapped!");
+    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
     // First sort the record array so we can call std::unique() on it. We use
     // stable_sort() to preserve the order of multiple updates to the same
     // locator.
     std::stable_sort(
-        &s_log.log()->log_records[0],
-        &s_log.log()->log_records[s_log.log()->count],
+        &s_log.data()->log_records[0],
+        &s_log.data()->log_records[s_log.data()->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
@@ -295,7 +295,7 @@ void client::dedup_log()
     // So we reverse the sorted array so that the last update will be the first
     // that std::unique sees, then reverse the deduplicated array so that locators
     // are again in ascending order.
-    std::reverse(&s_log.log()->log_records[0], &s_log.log()->log_records[s_log.log()->count]);
+    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
 
     // More weirdness: we need to record the initial offset of the first log
     // record for each locator, so we can fix up the initial offset of its last
@@ -307,16 +307,16 @@ void client::dedup_log()
     // in the initial offsets map.
     std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
 
-    for (size_t i = 0; i < s_log.log()->count; ++i)
+    for (size_t i = 0; i < s_log.data()->count; ++i)
     {
-        gaia_locator_t locator = s_log.log()->log_records[i].locator;
-        gaia_offset_t initial_offset = s_log.log()->log_records[i].old_offset;
+        gaia_locator_t locator = s_log.data()->log_records[i].locator;
+        gaia_offset_t initial_offset = s_log.data()->log_records[i].old_offset;
         initial_offsets[locator] = initial_offset;
     }
 
     txn_log_t::log_record_t* unique_array_end = std::unique(
-        &s_log.log()->log_records[0],
-        &s_log.log()->log_records[s_log.log()->count],
+        &s_log.data()->log_records[0],
+        &s_log.data()->log_records[s_log.data()->count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
             return lhs.locator == rhs.locator;
         });
@@ -324,23 +324,23 @@ void client::dedup_log()
     // It's OK to leave the duplicate log records at the end of the array, since
     // they'll be removed when we truncate the txn log memfd before sending it
     // to the server.
-    size_t unique_array_len = unique_array_end - s_log.log()->log_records;
-    s_log.log()->count = unique_array_len;
+    size_t unique_array_len = unique_array_end - s_log.data()->log_records;
+    s_log.data()->count = unique_array_len;
 
     // Now that all log records for each locator are deduplicated, reverse the
     // array again to order by locator value in ascending order.
-    std::reverse(&s_log.log()->log_records[0], &s_log.log()->log_records[s_log.log()->count]);
+    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
 
     // Now we need to fix up each log record with the initial offset we recorded earlier.
     retail_assert(
-        s_log.log()->count == initial_offsets.size(),
+        s_log.data()->count == initial_offsets.size(),
         "Count of deduped log records must equal number of unique initial offsets!");
 
-    for (size_t i = 0; i < s_log.log()->count; ++i)
+    for (size_t i = 0; i < s_log.data()->count; ++i)
     {
-        gaia_locator_t locator = s_log.log()->log_records[i].locator;
+        gaia_locator_t locator = s_log.data()->log_records[i].locator;
         gaia_offset_t initial_offset = initial_offsets[locator];
-        s_log.log()->log_records[i].old_offset = initial_offset;
+        s_log.data()->log_records[i].old_offset = initial_offset;
     }
 }
 
@@ -436,12 +436,12 @@ void client::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
-    retail_assert(!s_shared_counters.is_initialized(), "Counters segment is already initialized!");
-    retail_assert(!s_shared_data.is_initialized(), "Data segment is already initialized!");
-    retail_assert(!s_shared_id_index.is_initialized(), "ID index segment is already initialized!");
+    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    retail_assert(!s_shared_counters.is_set(), "Counters segment is already mapped!");
+    retail_assert(!s_shared_data.is_set(), "Data segment is already mapped!");
+    retail_assert(!s_shared_id_index.is_set(), "ID index segment is already mapped!");
 
-    retail_assert(!s_log.is_initialized(), "Log segment is already initialized!");
+    retail_assert(!s_log.is_set(), "Log segment is already mapped!");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -472,10 +472,20 @@ void client::begin_session()
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto cleanup_locator_fd = make_scope_guard([fd_locators = fd_locators]() mutable {
+    auto cleanup_fd_locators = make_scope_guard([fd_locators = fd_locators]() mutable {
         // We should only close the locator fd if we are unwinding from an
         // exception, since we cache it to map later.
         close_fd(fd_locators);
+    });
+
+    auto cleanup_fd_counters = make_scope_guard([fd_counters = fd_counters]() mutable {
+        close_fd(fd_counters);
+    });
+    auto cleanup_fd_data = make_scope_guard([fd_data = fd_data]() mutable {
+        close_fd(fd_data);
+    });
+    auto cleanup_fd_id_index = make_scope_guard([fd_id_index = fd_id_index]() mutable {
+        close_fd(fd_id_index);
     });
 
     const message_t* msg = Getmessage_t(msg_buf);
@@ -484,14 +494,18 @@ void client::begin_session()
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
+    // The mapper objects will take ownership of the fds so we dismiss the guards first.
+    cleanup_fd_counters.dismiss();
     s_shared_counters.open(fd_counters);
+    cleanup_fd_data.dismiss();
     s_shared_data.open(fd_data);
+    cleanup_fd_id_index.dismiss();
     s_shared_id_index.open(fd_id_index);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
 
-    cleanup_locator_fd.dismiss();
+    cleanup_fd_locators.dismiss();
     cleanup_session_socket.dismiss();
 }
 
@@ -508,7 +522,10 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
+    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    auto cleanup_private_locators = make_scope_guard([&]() {
+        s_private_locators.close();
+    });
     bool manage_fd = false;
     s_private_locators.open(s_fd_locators, manage_fd);
 
@@ -540,10 +557,12 @@ void client::begin_transaction()
     // Allocate a new log segment and map it in our own process.
     std::stringstream mem_log_name;
     mem_log_name << c_gaia_mem_txn_log << ':' << s_txn_id;
-    s_log.create(mem_log_name.str().c_str());
+    // Use a local variable to ensure cleanup in case of an error.
+    mapped_log_t log;
+    log.create(mem_log_name.str().c_str());
 
     // Update the log header with our begin timestamp.
-    s_log.log()->begin_ts = s_txn_id;
+    log.data()->begin_ts = s_txn_id;
 
     // Apply all txn logs received from server to our snapshot, in order. The
     // generator will close the stream socket when it's exhausted, but we need
@@ -557,21 +576,25 @@ void client::begin_transaction()
         close_fd(txn_log_fd);
     }
 
+    // At this point, we can transfer ownership of local variables to static ones.
+    s_log.reset(log);
+
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.
     cleanup_stream_socket.dismiss();
+    cleanup_private_locators.dismiss();
 }
 
 void client::apply_txn_log(int log_fd)
 {
-    retail_assert(s_private_locators.is_initialized(), "Locators segment must be mapped!");
+    retail_assert(s_private_locators.is_set(), "Locators segment must be mapped!");
 
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log.log()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->count; ++i)
     {
-        auto lr = txn_log.log()->log_records + i;
+        auto lr = txn_log.data()->log_records + i;
         (*s_private_locators.data())[lr->locator] = lr->new_offset;
     }
 }
@@ -607,11 +630,11 @@ void client::rollback_transaction()
 void client::commit_transaction()
 {
     verify_txn_active();
-    retail_assert(s_log.is_initialized(), "Transaction log must be mapped!");
+    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
-    if (s_log.log()->count == 0)
+    if (s_log.data()->count == 0)
     {
         rollback_transaction();
         return;
