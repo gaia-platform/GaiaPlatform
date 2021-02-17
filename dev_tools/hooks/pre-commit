@@ -11,6 +11,25 @@ if ! command -v clang-format &>/dev/null; then
     exit 1
 fi
 
+# Forbidden header strings
+forbidden_patterns=(
+    "#include <iostream>"
+    "using namespace"
+)
+echo "1"
+for file in $(git --no-pager diff --cached --name-only | grep -E "^(production|demo).*(\.hpp|\.inc)$"); do
+    echo "$file"
+    for forbidden_pattern in "${forbidden_patterns[@]}"; do
+         echo "$forbidden_pattern"
+         if grep -Fq "$forbidden_pattern" "$file"; then
+            echo "File '$file' contains forbidden pattern: '$forbidden_pattern'";
+            exit 1;
+        fi
+    done
+done
+
+exit 1;
+
 # Files excluded from clang-format (interpreted as regex against the full path of the file)
 excluded_files=(
     "gaia_catalog\.h"

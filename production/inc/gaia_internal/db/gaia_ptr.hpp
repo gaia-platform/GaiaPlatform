@@ -13,8 +13,6 @@
 
 #include "stack_allocator.hpp"
 
-using namespace gaia::common;
-
 namespace gaia
 {
 namespace db
@@ -24,7 +22,7 @@ class gaia_ptr
 {
 public:
     gaia_ptr() = default;
-    explicit gaia_ptr(gaia_id_t id);
+    explicit gaia_ptr(common::gaia_id_t id);
 
     bool operator==(const gaia_ptr& other) const
     {
@@ -46,30 +44,30 @@ public:
         return to_ptr() != nullptr;
     }
 
-    static gaia_id_t generate_id();
+    static common::gaia_id_t generate_id();
 
     static gaia_ptr create(
-        gaia_type_t type,
+        common::gaia_type_t type,
         size_t data_size,
         const void* data);
 
     static gaia_ptr create(
-        gaia_id_t id,
-        gaia_type_t type,
+        common::gaia_id_t id,
+        common::gaia_type_t type,
         size_t data_size,
         const void* data);
 
     // TODO This should be private but it is still used in some code paths
     //  that could be painful to update.
     static gaia_ptr create(
-        gaia_id_t id,
-        gaia_type_t type,
+        common::gaia_id_t id,
+        common::gaia_type_t type,
         size_t num_refs,
         size_t data_size,
         const void* data);
 
     static gaia_ptr open(
-        gaia_id_t id)
+        common::gaia_id_t id)
     {
         return gaia_ptr(id);
     }
@@ -81,7 +79,7 @@ public:
 
     gaia_ptr& update_payload(size_t data_size, const void* data);
 
-    static gaia_ptr find_first(gaia_type_t type)
+    static gaia_ptr find_first(common::gaia_type_t type)
     {
         gaia_ptr ptr;
         ptr.m_locator = 1;
@@ -118,12 +116,12 @@ public:
         return m_locator == 0;
     }
 
-    gaia_id_t id() const
+    common::gaia_id_t id() const
     {
         return to_ptr()->id;
     }
 
-    gaia_type_t type() const
+    common::gaia_type_t type() const
     {
         return to_ptr()->type;
     }
@@ -136,14 +134,14 @@ public:
     size_t data_size() const
     {
         size_t total_len = to_ptr()->payload_size;
-        size_t refs_len = to_ptr()->num_references * sizeof(gaia_id_t);
+        size_t refs_len = to_ptr()->num_references * sizeof(common::gaia_id_t);
         size_t data_size = total_len - refs_len;
         return data_size;
     }
 
-    gaia_id_t* references() const
+    common::gaia_id_t* references() const
     {
-        return const_cast<gaia_id_t*>(to_ptr()->references());
+        return const_cast<common::gaia_id_t*>(to_ptr()->references());
     }
 
     size_t num_references() const
@@ -163,7 +161,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child or if other
      *         integrity constraints are violated.
      */
-    void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+    void add_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
 
     /**
      * Add a parent reference to a child object. All the pointers involved in the relationship
@@ -177,7 +175,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child  or if other
      *         integrity constraints are violated.
      */
-    void add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+    void add_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
 
     /**
      * Removes a child reference from a parent object. Without an index this operation
@@ -188,7 +186,7 @@ public:
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
-    void remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+    void remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
 
     /**
      * Removes a parent reference from a child object. Without an index this operation
@@ -199,7 +197,7 @@ public:
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+    void remove_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
 
     /**
      * Update the parent reference with the given new_parent_id. If the this object does not
@@ -211,7 +209,7 @@ public:
      * @param new_parent_id The id of the new parent.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset);
+    void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
     // "function with deduced return type cannot be used before it is defined".
     // The function must be defined in the same translation unit where it is used,
@@ -224,13 +222,13 @@ public:
      * cursors, which will be extended to support server-side filters.
      */
     static auto find_all_iter(
-        gaia_type_t type,
+        common::gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
     {
         // Get the gaia_id generator and wrap it in a gaia_ptr generator.
-        std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
+        std::function<std::optional<common::gaia_id_t>()> id_generator = get_id_generator_for_type(type);
         std::function<std::optional<gaia_ptr>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
-            std::optional<gaia_id_t> id_opt = id_generator();
+            std::optional<common::gaia_id_t> id_opt = id_generator();
             if (id_opt)
             {
                 return gaia_ptr::open(*id_opt);
@@ -259,7 +257,7 @@ public:
      * cursors, which will be extended to support server-side filters.
      */
     static auto find_all_range(
-        gaia_type_t type,
+        common::gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
     {
         return gaia::common::iterators::range(find_all_iter(type, user_predicate));
@@ -274,12 +272,12 @@ protected:
 
     gaia_offset_t to_offset() const;
 
-    bool is(gaia_type_t type) const
+    bool is(common::gaia_type_t type) const
     {
         return to_ptr() && to_ptr()->type == type;
     }
 
-    void find_next(gaia_type_t type);
+    void find_next(common::gaia_type_t type);
 
     void reset();
 
@@ -288,11 +286,11 @@ private:
 
     void clone_no_txn();
 
-    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+    void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
     // This is just a trivial wrapper for a gaia::db::client API,
     // to avoid calling into SE client code from this header file.
-    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
 };
 
 } // namespace db

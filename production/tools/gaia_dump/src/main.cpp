@@ -4,8 +4,14 @@
 ///////////////////////////////////////////////
 #include <cstring>
 
+#include <iostream>
+
 #include "gaia/db/db.hpp"
+
 #include "gaia_dump.hpp"
+
+using namespace gaia::common;
+using namespace std;
 
 constexpr gaia_id_t c_high_default = 1000;
 constexpr char c_references_string[] = "--references";

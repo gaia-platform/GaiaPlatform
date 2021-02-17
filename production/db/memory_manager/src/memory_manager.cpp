@@ -7,8 +7,8 @@
 
 #include <unistd.h>
 
+#include <iostream>
 #include <memory>
-#include <sstream>
 
 #include "gaia_internal/common/retail_assert.hpp"
 

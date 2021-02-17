@@ -7,7 +7,6 @@
 
 #include <cstddef>
 
-#include <iostream>
 #include <ostream>
 
 #include "gaia/common.hpp"
