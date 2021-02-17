@@ -22,6 +22,7 @@ using namespace gaia::addr_book::employee_expr;
 using namespace gaia::addr_book::address_expr;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::db;
 using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
