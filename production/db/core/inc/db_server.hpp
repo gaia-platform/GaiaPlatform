@@ -437,7 +437,7 @@ private:
     class invalid_log_fd : public common::gaia_exception
     {
     public:
-        invalid_log_fd(gaia_txn_id_t commit_ts)
+        explicit invalid_log_fd(gaia_txn_id_t commit_ts)
             : m_commit_ts(commit_ts)
         {
         }
@@ -458,7 +458,7 @@ private:
     class safe_fd_from_ts
     {
     public:
-        safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true)
+        explicit safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true)
             : m_auto_close_fd(auto_close_fd)
         {
             common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");

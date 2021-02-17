@@ -11,6 +11,7 @@
 #include <string>
 
 #include "gaia/exception.hpp"
+
 #include "memory_types.hpp"
 
 namespace gaia
@@ -24,7 +25,7 @@ namespace db
 class memory_allocation_error : public gaia::common::gaia_exception
 {
 public:
-    memory_allocation_error(const std::string& message)
+    explicit memory_allocation_error(const std::string& message)
         : gaia_exception(message)
     {
     }
