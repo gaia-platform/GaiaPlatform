@@ -206,7 +206,7 @@ public:
     // Stops tracking any data and reverts back to uninitialized state.
     void clear()
     {
-        m_is_initialized = false;
+        m_is_set = false;
         m_fd = -1;
         m_data = nullptr;
         m_mapped_data_size = 0;
@@ -216,10 +216,13 @@ public:
     void reset(base_mapped_data_t<T>& other)
     {
         gaia::common::retail_assert(
-            !m_is_initialized,
-            "An initialized base_mapped_data_t instance cannot take ownership of another instance!");
+            !m_is_set,
+            "A set base_mapped_data_t instance should not take ownership of another instance!");
+        gaia::common::retail_assert(
+            other.m_is_set,
+            "An unset base_mapped_data_t instance should not take ownership of another unset instance!");
 
-        m_is_initialized = other.m_is_initialized;
+        m_is_set = other.m_is_set;
         m_fd = other.m_fd;
         m_data = other.m_data;
         m_mapped_data_size = other.m_mapped_data_size;
@@ -238,7 +241,7 @@ public:
 
         gaia::common::close_fd(m_fd);
 
-        m_is_initialized = false;
+        m_is_set = false;
     }
 
     T* data()
@@ -251,13 +254,13 @@ public:
         return m_fd;
     }
 
-    bool is_initialized()
+    bool is_set()
     {
-        return m_is_initialized;
+        return m_is_set;
     }
 
 protected:
-    bool m_is_initialized;
+    bool m_is_set;
     int m_fd;
     T* m_data;
 
@@ -284,8 +287,8 @@ public:
     void create(const char* name)
     {
         gaia::common::retail_assert(
-            !this->m_is_initialized,
-            "Calling create() on an already initialized mapped_data_t instance!");
+            !this->m_is_set,
+            "Calling create() on an already set mapped_data_t instance!");
 
         this->m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
         if (this->m_fd == -1)
@@ -317,7 +320,7 @@ public:
             this->m_fd,
             0);
 
-        this->m_is_initialized = true;
+        this->m_is_set = true;
     }
 
     // Opens a memory-mapped structure using a file descriptor.
@@ -331,8 +334,8 @@ public:
     void open(int fd, bool manage_fd = true)
     {
         gaia::common::retail_assert(
-            !this->m_is_initialized,
-            "Calling open() on an already initialized mapped_data_t instance!");
+            !this->m_is_set,
+            "Calling open() on an already set mapped_data_t instance!");
 
         gaia::common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
 
@@ -363,7 +366,7 @@ public:
                 0);
         }
 
-        this->m_is_initialized = true;
+        this->m_is_set = true;
     }
 };
 
@@ -385,8 +388,8 @@ public:
     void create(const char* name)
     {
         gaia::common::retail_assert(
-            !this->m_is_initialized,
-            "Calling create() on an already initialized mapped_log_t instance!");
+            !this->m_is_set,
+            "Calling create() on an already set mapped_log_t instance!");
 
         this->m_fd = ::memfd_create(name, MFD_ALLOW_SEALING);
         if (this->m_fd == -1)
@@ -406,15 +409,15 @@ public:
             this->m_fd,
             0);
 
-        this->m_is_initialized = true;
+        this->m_is_set = true;
     }
 
     // Opens a memory-mapped log structure using a file descriptor.
     void open(int fd)
     {
         gaia::common::retail_assert(
-            !this->m_is_initialized,
-            "Calling open() on an already initialized mapped_log_t instance!");
+            !this->m_is_set,
+            "Calling open() on an already set mapped_log_t instance!");
 
         gaia::common::retail_assert(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
@@ -428,7 +431,7 @@ public:
             fd,
             0);
 
-        this->m_is_initialized = true;
+        this->m_is_set = true;
     }
 
     // Truncates and seals a memory-mapped log structure.
@@ -438,8 +441,8 @@ public:
     void truncate_seal_and_close(int& fd, size_t& log_size)
     {
         gaia::common::retail_assert(
-            this->m_is_initialized,
-            "Calling truncate_seal_and_close() on an uninitialized mapped_log_t instance!");
+            this->m_is_set,
+            "Calling truncate_seal_and_close() on an unset mapped_log_t instance!");
 
         gaia::common::retail_assert(
             this->m_fd != -1,
@@ -462,7 +465,7 @@ public:
 
         this->m_fd = -1;
 
-        this->m_is_initialized = false;
+        this->m_is_set = false;
     }
 };
 

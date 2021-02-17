@@ -278,7 +278,7 @@ static void build_client_request(
 // shared memory object.
 void client::dedup_log()
 {
-    retail_assert(s_log.is_initialized(), "Transaction log must be mapped!");
+    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
     // First sort the record array so we can call std::unique() on it. We use
     // stable_sort() to preserve the order of multiple updates to the same
@@ -436,12 +436,12 @@ void client::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
-    retail_assert(!s_shared_counters.is_initialized(), "Counters segment is already initialized!");
-    retail_assert(!s_shared_data.is_initialized(), "Data segment is already initialized!");
-    retail_assert(!s_shared_id_index.is_initialized(), "ID index segment is already initialized!");
+    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    retail_assert(!s_shared_counters.is_set(), "Counters segment is already mapped!");
+    retail_assert(!s_shared_data.is_set(), "Data segment is already mapped!");
+    retail_assert(!s_shared_id_index.is_set(), "ID index segment is already mapped!");
 
-    retail_assert(!s_log.is_initialized(), "Log segment is already initialized!");
+    retail_assert(!s_log.is_set(), "Log segment is already mapped!");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -508,7 +508,7 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(!s_private_locators.is_initialized(), "Locators segment is already initialized!");
+    retail_assert(!s_private_locators.is_set(), "Locators segment is already initialized!");
     bool manage_fd = false;
     s_private_locators.open(s_fd_locators, manage_fd);
 
@@ -569,7 +569,7 @@ void client::begin_transaction()
 
 void client::apply_txn_log(int log_fd)
 {
-    retail_assert(s_private_locators.is_initialized(), "Locators segment must be mapped!");
+    retail_assert(s_private_locators.is_set(), "Locators segment must be mapped!");
 
     mapped_log_t txn_log;
     txn_log.open(log_fd);
@@ -612,7 +612,7 @@ void client::rollback_transaction()
 void client::commit_transaction()
 {
     verify_txn_active();
-    retail_assert(s_log.is_initialized(), "Transaction log must be mapped!");
+    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.

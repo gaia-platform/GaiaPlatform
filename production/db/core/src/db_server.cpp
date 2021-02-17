@@ -557,10 +557,10 @@ void server::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
-    retail_assert(!s_shared_locators.is_initialized(), "Locators memory should be reset!");
-    retail_assert(!s_shared_counters.is_initialized(), "Counters memory should be reset!");
-    retail_assert(!s_shared_data.is_initialized(), "Data memory should be reset!");
-    retail_assert(!s_shared_id_index.is_initialized(), "ID index memory should be reset!");
+    retail_assert(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
+    retail_assert(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
+    retail_assert(!s_shared_data.is_set(), "Data memory should be unmapped!");
+    retail_assert(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -2479,7 +2479,7 @@ void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    retail_assert(txn_log.is_initialized(), "txn_log should be mapped when deallocating old offsets.");
+    retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
