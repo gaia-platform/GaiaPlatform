@@ -63,16 +63,6 @@ private:
 };
 
 /**
- * Used on string comparisons to determine the casing
- * of the operations.
- */
-enum class string_comparison_t
-{
-    case_insensitive,
-    case_sensitive
-};
-
-/**
  * Decorates a predicate allowing higher level operations
  * such as Logical Operators (||, &&, etc..).
  */
@@ -149,8 +139,6 @@ public:
     predicate_decorator_t operator!=(T_value value);
 
     // --- String specialization ---
-
-    predicate_decorator_t equals(std::string_view value, string_comparison_t casing = string_comparison_t::case_sensitive);
 
     predicate_decorator_t operator==(const std::string& value);
 

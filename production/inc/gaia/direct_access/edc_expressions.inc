@@ -108,41 +108,21 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_va
 }
 
 template <typename T_class, typename T_return>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::string_view value, string_comparison_t casing)
-{
-    if (casing == string_comparison_t::case_sensitive)
-    {
-        return expression_decorator_t<T_class>(
-            [value, this](const T_class& e) {
-                return m_member_accessor(e) == value;
-            });
-    }
-
-    return expression_decorator_t<T_class>(
-        [value, this](const T_class& e) {
-            std::string_view lh = m_member_accessor(e);
-
-            // TODO this is probably neither the most efficient nor the most correct
-            //  way (considering unicode) to do a string ignore case comparison.
-            //  Good enough for now.
-            return std::equal(
-                lh.begin(), lh.end(), value.begin(), value.end(),
-                [](char a, char b) {
-                    return tolower(a) == tolower(b);
-                });
-        });
-}
-
-template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const std::string& value)
 {
-    return equals(value, string_comparison_t::case_sensitive);
+    return expression_decorator_t<T_class>(
+        [&value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value.c_str()) == 0;
+        });
 }
 
 template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(const char* value)
 {
-    return equals(value, string_comparison_t::case_sensitive);
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value) == 0;
+        });
 }
 
 template <typename T_class, typename T_return>

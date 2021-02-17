@@ -18,6 +18,8 @@
 #include "gaia_addr_book.h"
 
 using namespace gaia::addr_book;
+using namespace gaia::addr_book::employee_expr;
+using namespace gaia::addr_book::address_expr;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
@@ -150,12 +152,12 @@ TEST_F(test_expressions, int64_eq)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date == date(2020, 5, 10)),
+            .where(hire_date == date(2020, 5, 10)),
         {yiwen});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::hire_date == date(2050, 5, 10)));
+            .where(hire_date == date(2050, 5, 10)));
 }
 
 TEST_F(test_expressions, int64_ne)
@@ -164,12 +166,12 @@ TEST_F(test_expressions, int64_ne)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date != date(2020, 5, 10)),
+            .where(hire_date != date(2020, 5, 10)),
         {simone, mihir, laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date != date(2050, 5, 10)),
+            .where(hire_date != date(2050, 5, 10)),
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
 }
 
@@ -179,12 +181,12 @@ TEST_F(test_expressions, int64_gt)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date > date(2020, 5, 10)),
+            .where(hire_date > date(2020, 5, 10)),
         {simone, mihir});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::hire_date > date(2050, 5, 10)));
+            .where(hire_date > date(2050, 5, 10)));
 }
 
 TEST_F(test_expressions, int64_gteq)
@@ -193,12 +195,12 @@ TEST_F(test_expressions, int64_gteq)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date >= date(2020, 5, 10)),
+            .where(hire_date >= date(2020, 5, 10)),
         {simone, mihir, yiwen});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::hire_date >= date(2050, 5, 10)));
+            .where(hire_date >= date(2050, 5, 10)));
 }
 
 TEST_F(test_expressions, int64_lt)
@@ -207,12 +209,12 @@ TEST_F(test_expressions, int64_lt)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date < date(2020, 5, 10)),
+            .where(hire_date < date(2020, 5, 10)),
         {laurentiu, tobin, wayne, bill, dax});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::hire_date < date(1902, 5, 10)));
+            .where(hire_date < date(1902, 5, 10)));
 }
 
 TEST_F(test_expressions, int64_lteq)
@@ -221,12 +223,12 @@ TEST_F(test_expressions, int64_lteq)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::hire_date <= date(2020, 5, 10)),
+            .where(hire_date <= date(2020, 5, 10)),
         {yiwen, laurentiu, tobin, wayne, bill, dax});
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::hire_date <= date(1902, 5, 10)));
+            .where(hire_date <= date(1902, 5, 10)));
 }
 
 TEST_F(test_expressions, string_eq)
@@ -235,52 +237,27 @@ TEST_F(test_expressions, string_eq)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_first == "Simone"),
+            .where(name_first == "Simone"),
         simone);
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_first == std::string("Simone")),
+            .where(name_first == std::string("Simone")),
         simone);
 
     const char* surname = "Hawkins";
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_last == surname),
+            .where(name_last == surname),
         dax);
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::name_first == "simone"));
+            .where(name_first == "simone"));
 
     assert_empty(
         employee_t::list()
-            .where(employee_t::expr::name_first == "Olbudio"));
-}
-
-TEST_F(test_expressions, string_eq_case_insensitive)
-{
-    auto_transaction_t txn;
-
-    assert_contains(
-        employee_t::list()
-            .where(employee_t::expr::name_first.equals("simone", string_comparison_t::case_insensitive)),
-        simone);
-
-    assert_contains(
-        employee_t::list()
-            .where(employee_t::expr::name_first.equals(std::string("simone"), string_comparison_t::case_insensitive)),
-        simone);
-
-    const char* surname = "hawkins";
-    assert_contains(
-        employee_t::list()
-            .where(employee_t::expr::name_last.equals(surname, string_comparison_t::case_insensitive)),
-        dax);
-
-    assert_empty(
-        employee_t::list()
-            .where(employee_t::expr::name_first == "olbudio"));
+            .where(name_first == "Olbudio"));
 }
 
 TEST_F(test_expressions, string_ne)
@@ -289,23 +266,23 @@ TEST_F(test_expressions, string_ne)
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_first != "Simone"),
+            .where(name_first != "Simone"),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_first != std::string("Simone")),
+            .where(name_first != std::string("Simone")),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     const char* surname = "Hawkins";
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_last != surname),
+            .where(name_last != surname),
         {simone, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
         employee_t::list()
-            .where(employee_t::expr::name_first != "Olbudio"),
+            .where(name_first != "Olbudio"),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 }
 
@@ -315,7 +292,7 @@ TEST_F(test_expressions, object_eq)
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::addressee_employee == yiwen),
+            .where(addressee_employee == yiwen),
         seattle);
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -325,11 +302,11 @@ TEST_F(test_expressions, object_eq)
 
     assert_empty(
         address_t::list()
-            .where(address_t::expr::addressee_employee == zack));
+            .where(addressee_employee == zack));
 
     assert_empty(
         address_t::list()
-            .where(address_t::expr::addressee_employee == employee_t()));
+            .where(addressee_employee == employee_t()));
 }
 
 TEST_F(test_expressions, object_ne)
@@ -338,7 +315,7 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::addressee_employee != yiwen),
+            .where(addressee_employee != yiwen),
         {aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -348,12 +325,12 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::addressee_employee != zack),
+            .where(addressee_employee != zack),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
         address_t::list()
-            .where(address_t::expr::addressee_employee != employee_t()),
+            .where(addressee_employee != employee_t()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
@@ -362,22 +339,22 @@ TEST_F(test_expressions, or_predicate)
     auto_transaction_t txn;
 
     auto employees = employee_t::list().where(
-        employee_t::expr::name_first == "Wayne"
-        || employee_t::expr::name_first == "Bill"
-        || employee_t::expr::name_first == "Cristofor");
+        name_first == "Wayne"
+        || name_first == "Bill"
+        || name_first == "Cristofor");
 
     assert_contains(employees, {wayne, bill});
 
     employees = employee_t::list().where(
-        employee_t::expr::hire_date <= date(2020, 1, 10)
-        || employee_t::expr::hire_date >= date(2020, 5, 31)
-        || employee_t::expr::name_last == "Cristofor");
+        hire_date <= date(2020, 1, 10)
+        || hire_date >= date(2020, 5, 31)
+        || name_last == "Cristofor");
 
     assert_contains(employees, {dax, bill, wayne, laurentiu, simone, mihir});
 
     employees = employee_t::list().where(
-        employee_t::expr::hire_date <= date(1991, 1, 1)
-        || employee_t::expr::hire_date >= date(2036, 2, 7));
+        hire_date <= date(1991, 1, 1)
+        || hire_date >= date(2036, 2, 7));
 
     assert_empty(employees);
 }
@@ -389,22 +366,22 @@ TEST_F(test_expressions, and_expr)
     assert_contains(
         employee_t::list()
             .where(
-                employee_t::expr::name_first == "Wayne"
-                && employee_t::expr::name_last == "Warren"),
+                name_first == "Wayne"
+                && name_last == "Warren"),
         wayne);
 
     assert_contains(
         employee_t::list()
             .where(
-                employee_t::expr::hire_date >= date(2019, 11, 20)
-                && employee_t::expr::name_last == "Clinton"),
+                hire_date >= date(2019, 11, 20)
+                && name_last == "Clinton"),
         bill);
 
     assert_empty(
         employee_t::list()
             .where(
-                employee_t::expr::hire_date <= date(2021, 1, 1)
-                && employee_t::expr::hire_date >= date(2036, 2, 7)));
+                hire_date <= date(2021, 1, 1)
+                && hire_date >= date(2036, 2, 7)));
 }
 
 TEST_F(test_expressions, not_expr)
@@ -414,20 +391,20 @@ TEST_F(test_expressions, not_expr)
     assert_contains(
         employee_t::list()
             .where(
-                !(employee_t::expr::name_first == "Wayne")
-                && !(employee_t::expr::name_last == "Warren")),
+                !(name_first == "Wayne")
+                && !(name_last == "Warren")),
         {simone, dax, bill, laurentiu, yiwen, mihir, tobin});
 
     assert_contains(
         employee_t::list()
             .where(
-                !(employee_t::expr::hire_date >= date(2020, 1, 1))),
+                !(hire_date >= date(2020, 1, 1))),
         {bill, dax});
 
     assert_empty(
         employee_t::list()
             .where(
-                !(employee_t::expr::hire_date > date(2001, 1, 1))));
+                !(hire_date > date(2001, 1, 1))));
 }
 
 TEST_F(test_expressions, mix_boolean_expr)
@@ -437,21 +414,21 @@ TEST_F(test_expressions, mix_boolean_expr)
     assert_contains(
         employee_t::list()
             .where(
-                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
-                && employee_t::expr::hire_date < date(2036, 2, 7)),
+                (name_first == "Wayne" && name_last == "Warren")
+                && hire_date < date(2036, 2, 7)),
         wayne);
 
     assert_contains(
         employee_t::list()
             .where(
-                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
-                || (employee_t::expr::hire_date > date(2036, 2, 7)
-                    || employee_t::expr::hire_date == date(2019, 11, 15))),
+                (name_first == "Wayne" && name_last == "Warren")
+                || (hire_date > date(2036, 2, 7)
+                    || hire_date == date(2019, 11, 15))),
         {wayne, dax});
 
     assert_empty(
         employee_t::list()
             .where(
-                (employee_t::expr::name_first == "Wayne" && employee_t::expr::name_last == "Warren")
-                && (employee_t::expr::hire_date > date(2036, 2, 7))));
+                (name_first == "Wayne" && name_last == "Warren")
+                && (hire_date > date(2036, 2, 7))));
 }
