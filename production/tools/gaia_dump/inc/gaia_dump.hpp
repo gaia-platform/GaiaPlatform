@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace std;

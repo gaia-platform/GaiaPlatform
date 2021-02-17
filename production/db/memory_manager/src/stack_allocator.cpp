@@ -5,6 +5,8 @@
 
 #include "stack_allocator.hpp"
 
+#include <iostream>
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
