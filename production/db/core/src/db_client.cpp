@@ -472,10 +472,20 @@ void client::begin_session()
     retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
 
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto cleanup_locator_fd = make_scope_guard([fd_locators = fd_locators]() mutable {
+    auto cleanup_fd_locators = make_scope_guard([fd_locators = fd_locators]() mutable {
         // We should only close the locator fd if we are unwinding from an
         // exception, since we cache it to map later.
         close_fd(fd_locators);
+    });
+
+    auto cleanup_fd_counters = make_scope_guard([fd_counters = fd_counters]() mutable {
+        close_fd(fd_counters);
+    });
+    auto cleanup_fd_data = make_scope_guard([fd_data = fd_data]() mutable {
+        close_fd(fd_data);
+    });
+    auto cleanup_fd_id_index = make_scope_guard([fd_id_index = fd_id_index]() mutable {
+        close_fd(fd_id_index);
     });
 
     const message_t* msg = Getmessage_t(msg_buf);
@@ -484,14 +494,18 @@ void client::begin_session()
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
+    // The mapper objects will take ownership of the fds so we dismiss the guards first.
+    cleanup_fd_counters.dismiss();
     s_shared_counters.open(fd_counters);
+    cleanup_fd_data.dismiss();
     s_shared_data.open(fd_data);
+    cleanup_fd_id_index.dismiss();
     s_shared_id_index.open(fd_id_index);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
 
-    cleanup_locator_fd.dismiss();
+    cleanup_fd_locators.dismiss();
     cleanup_session_socket.dismiss();
 }
 
@@ -508,6 +522,9 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
+    auto cleanup_private_locators = make_scope_guard([&]() {
+        s_private_locators.close();
+    });
     retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
     s_private_locators.open(s_fd_locators, manage_fd);
@@ -559,12 +576,13 @@ void client::begin_transaction()
         close_fd(txn_log_fd);
     }
 
-    // At this point, we can transfer ownership of log mapping to the static variable.
+    // At this point, we can transfer ownership of local variables to static ones.
     s_log.reset(log);
 
     // If we exhausted the generator without throwing an exception, then the
     // generator already closed the stream socket.
     cleanup_stream_socket.dismiss();
+    cleanup_private_locators.dismiss();
 }
 
 void client::apply_txn_log(int log_fd)
