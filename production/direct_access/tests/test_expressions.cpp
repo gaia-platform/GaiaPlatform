@@ -449,3 +449,36 @@ TEST_F(test_expressions, container_contains_object)
             .where(employee_t::expr::addressee_address_list
                        .contains_object(marzabotto)));
 }
+
+TEST_F(test_expressions, container_empty)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        address_t::list()
+            .where(address_t::expr::phone_list.empty()),
+        {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
+
+    assert_empty(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list.empty()));
+}
+
+TEST_F(test_expressions, container_count)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        address_t::list()
+            .where(address_t::expr::phone_list.count(0)),
+        {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
+
+    assert_contains(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list.count(1)),
+        {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
+
+    assert_empty(
+        employee_t::list()
+            .where(employee_t::expr::addressee_address_list.count(2)));
+}

@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
+#include "edc_expressions.hpp"
 
 namespace gaia
 {
@@ -149,23 +149,43 @@ template <typename T_class, typename T_return>
 template <typename T_predicate>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(T_predicate predicate)
 {
-    return [predicate, this](const T_class& e) {
-        auto container = m_member_accessor(e).where(predicate);
-        return container.begin() != container.end();
-    };
+    return expression_decorator_t<T_class>(
+        [predicate, this](const T_class& e) {
+            auto container = m_member_accessor(e).where(predicate);
+            return container.begin() != container.end();
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value, typename>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::contains_object(const T_value& object)
 {
-    std::cout << "std::is_base_of_v<edc_base_t, T_value>" << std::is_base_of_v<edc_base_t, T_value> << std::endl;
     return expression_decorator_t<T_class>(
         [&object, this](const T_class& e) {
             auto container = m_member_accessor(e).where([&object](const T_value& c) {
                 return c.gaia_id() == object.id();
             });
             return container.begin() != container.end();
+        });
+}
+
+template <typename T_class, typename T_return>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::empty()
+{
+    return expression_decorator_t<T_class>(
+        [this](const T_class& e) {
+            auto container = m_member_accessor(e);
+            return container.begin() == container.end();
+        });
+}
+
+template <typename T_class, typename T_return>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::count(uint64_t count)
+{
+    return expression_decorator_t<T_class>(
+        [count, this](const T_class& e) {
+            auto container = m_member_accessor(e);
+            return std::distance(container.begin(), container.end()) == count;
         });
 }
 

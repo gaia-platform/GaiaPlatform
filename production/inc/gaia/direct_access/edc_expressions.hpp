@@ -159,6 +159,10 @@ public:
     template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
     predicate_decorator_t contains_object(const T_value& object);
 
+    predicate_decorator_t empty();
+
+    predicate_decorator_t count(uint64_t number);
+
 private:
     member_accessor_t m_member_accessor;
 };
