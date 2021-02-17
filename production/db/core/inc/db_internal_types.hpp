@@ -195,6 +195,7 @@ public:
 
     // Copy semantics is disabled and moves should be performed via reset().
     base_mapped_data_t(const base_mapped_data_t& other) = delete;
+    base_mapped_data_t(base_mapped_data_t&& other) = delete;
     base_mapped_data_t& operator=(const base_mapped_data_t& rhs) = delete;
     base_mapped_data_t& operator=(base_mapped_data_t&& rhs) = delete;
 
@@ -278,6 +279,7 @@ public:
 
     // Copy semantics is disabled and moves should be performed via reset().
     mapped_data_t(const mapped_data_t& other) = delete;
+    mapped_data_t(mapped_data_t&& other) = delete;
     mapped_data_t& operator=(const mapped_data_t& rhs) = delete;
     mapped_data_t& operator=(mapped_data_t&& rhs) = delete;
 
@@ -379,6 +381,7 @@ public:
 
     // Copy semantics is disabled and moves should be performed via reset().
     mapped_log_t(const mapped_log_t& other) = delete;
+    mapped_log_t(mapped_log_t&& other) = delete;
     mapped_log_t& operator=(const mapped_log_t& rhs) = delete;
     mapped_log_t& operator=(mapped_log_t&& rhs) = delete;
 
