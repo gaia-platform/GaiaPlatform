@@ -51,24 +51,24 @@ public:
     void shutdown();
 
     void subscribe_rule(
-        gaia::common::gaia_type_t gaia_type,
-        gaia::db::triggers::event_type_t event_type,
-        const gaia::common::field_position_list_t& fields,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        const common::field_position_list_t& fields,
         const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
-        gaia::common::gaia_type_t gaia_type,
-        gaia::db::triggers::event_type_t event_type,
-        const gaia::common::field_position_list_t& fields,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        const common::field_position_list_t& fields,
         const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
 
     void list_subscribed_rules(
         const char* ruleset_name,
-        const gaia::common::gaia_type_t* gaia_type,
-        const gaia::db::triggers::event_type_t* event_type,
-        const gaia::common::field_position_t* field,
+        const common::gaia_type_t* gaia_type,
+        const db::triggers::event_type_t* event_type,
+        const common::field_position_t* field,
         subscription_list_t& subscriptions);
 
 private:
@@ -104,7 +104,7 @@ private:
     typedef std::list<const _rule_binding_t*> rule_list_t;
 
     // Map from a referenced column id to a rule_list.
-    typedef std::unordered_map<gaia::common::field_position_t, rule_list_t> fields_map_t;
+    typedef std::unordered_map<common::field_position_t, rule_list_t> fields_map_t;
 
     // An event can be bound because it changed a field that is referenced
     // or because the LastOperation system field was referenced.
@@ -115,7 +115,7 @@ private:
     };
 
     // Map the event type to the event binding.
-    typedef std::unordered_map<gaia::db::triggers::event_type_t, event_binding_t> events_map_t;
+    typedef std::unordered_map<db::triggers::event_type_t, event_binding_t> events_map_t;
 
     // List of all rule subscriptions by gaia type, event type,
     // and column if appropriate
@@ -144,27 +144,27 @@ private:
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
     friend void gaia::rules::test::initialize_rules_engine(const event_manager_settings_t& settings);
-    friend void gaia::rules::test::commit_trigger(gaia::db::gaia_txn_id_t, const gaia::db::triggers::trigger_event_t*, size_t count_events);
+    friend void gaia::rules::test::commit_trigger(gaia::db::gaia_txn_id_t, const db::triggers::trigger_event_t*, size_t count_events);
 
     // Well known trigger function called by the database after commit.
-    void commit_trigger(gaia::db::gaia_txn_id_t txn_id, const gaia::db::triggers::trigger_event_list_t& event_list);
+    void commit_trigger(gaia::db::gaia_txn_id_t txn_id, const db::triggers::trigger_event_list_t& event_list);
     void process_last_operation_events(
         event_binding_t& binding,
-        const gaia::db::triggers::trigger_event_t& event,
+        const db::triggers::trigger_event_t& event,
         std::chrono::steady_clock::time_point& start_time);
     void process_field_events(
         event_binding_t& binding,
-        const gaia::db::triggers::trigger_event_t& event,
+        const db::triggers::trigger_event_t& event,
         std::chrono::steady_clock::time_point& start_time);
     void init(const event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(
-        const gaia::db::triggers::trigger_event_t& event,
+        const db::triggers::trigger_event_t& event,
         const _rule_binding_t* rule_binding,
         std::chrono::steady_clock::time_point& start_time);
-    void check_subscription(gaia::db::triggers::event_type_t event_type, const gaia::common::field_position_list_t& fields);
+    void check_subscription(db::triggers::event_type_t event_type, const common::field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
         if (nullptr == binding.rule || nullptr == binding.rule_name || nullptr == binding.ruleset_name)
@@ -176,9 +176,9 @@ private:
     static void add_subscriptions(
         rules::subscription_list_t& subscriptions,
         const rule_list_t& rules,
-        gaia::common::gaia_type_t gaia_type,
-        gaia::db::triggers::event_type_t event_type,
-        gaia::common::field_position_t field,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        common::field_position_t field,
         const char* ruleset_filter);
 };
 
