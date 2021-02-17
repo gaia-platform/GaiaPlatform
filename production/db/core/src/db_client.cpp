@@ -508,7 +508,7 @@ void client::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(!s_private_locators.is_set(), "Locators segment is already initialized!");
+    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
     s_private_locators.open(s_fd_locators, manage_fd);
 
