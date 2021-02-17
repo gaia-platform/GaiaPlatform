@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "edc_expressions.hpp"
-
 namespace gaia
 {
 namespace direct_access
@@ -25,79 +23,88 @@ bool expression_decorator_t<T_class>::operator()(const T_class& obj) const
 template <typename T_class>
 expression_decorator_t<T_class> expression_decorator_t<T_class>::operator||(edc_predicate_t other_predicate)
 {
-    return [other_predicate, *this](const T_class& e) {
-        return m_predicate_fn(e) || other_predicate(e);
-    };
+    return expression_decorator_t<T_class>(
+        [other_predicate, *this](const T_class& e) {
+            return m_predicate_fn(e) || other_predicate(e);
+        });
 }
 
 template <typename T_class>
 expression_decorator_t<T_class> expression_decorator_t<T_class>::operator&&(edc_predicate_t other_filter)
 {
-    return [other_filter, *this](const T_class& e) {
-        return m_predicate_fn(e) && other_filter(e);
-    };
+    return expression_decorator_t<T_class>(
+        [other_filter, *this](const T_class& e) {
+            return m_predicate_fn(e) && other_filter(e);
+        });
 }
 
 template <typename T_class>
 expression_decorator_t<T_class> expression_decorator_t<T_class>::operator!()
 {
-    return [*this](const T_class& e) {
-        return !m_predicate_fn(e);
-    };
+    return expression_decorator_t<T_class>(
+        [*this](const T_class& e) {
+            return !m_predicate_fn(e);
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator>(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) > value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) > value;
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator>=(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) >= value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) >= value;
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator<(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) < value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) < value;
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator<=(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) <= value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) <= value;
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) == value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) == value;
+        });
 }
 
 template <typename T_class, typename T_return>
 template <typename T_value>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(T_value value)
 {
-    return [value, this](const T_class& e) {
-        return m_member_accessor(e) != value;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return m_member_accessor(e) != value;
+        });
 }
 
 template <typename T_class, typename T_return>
@@ -105,23 +112,25 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::equals(std::str
 {
     if (casing == string_comparison_t::case_sensitive)
     {
-        return [value, this](const T_class& e) {
-            return m_member_accessor(e) == value;
-        };
+        return expression_decorator_t<T_class>(
+            [value, this](const T_class& e) {
+                return m_member_accessor(e) == value;
+            });
     }
 
-    return [value, this](const T_class& e) {
-        std::string_view lh = m_member_accessor(e);
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            std::string_view lh = m_member_accessor(e);
 
-        // TODO this is probably neither the most efficient nor the most correct
-        //  way (considering unicode) to do a string ignore case comparison.
-        //  Good enough for now.
-        return std::equal(
-            lh.begin(), lh.end(), value.begin(), value.end(),
-            [](char a, char b) {
-                return tolower(a) == tolower(b);
-            });
-    };
+            // TODO this is probably neither the most efficient nor the most correct
+            //  way (considering unicode) to do a string ignore case comparison.
+            //  Good enough for now.
+            return std::equal(
+                lh.begin(), lh.end(), value.begin(), value.end(),
+                [](char a, char b) {
+                    return tolower(a) == tolower(b);
+                });
+        });
 }
 
 template <typename T_class, typename T_return>
@@ -139,17 +148,19 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator==(cons
 template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const char* value)
 {
-    return [value, this](const T_class& e) {
-        return strcmp(m_member_accessor(e), value) != 0;
-    };
+    return expression_decorator_t<T_class>(
+        [value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value) != 0;
+        });
 }
 
 template <typename T_class, typename T_return>
 expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(const std::string& value)
 {
-    return [&value, this](const T_class& e) {
-        return strcmp(m_member_accessor(e), value.c_str()) != 0;
-    };
+    return expression_decorator_t<T_class>(
+        [&value, this](const T_class& e) {
+            return strcmp(m_member_accessor(e), value.c_str()) != 0;
+        });
 }
 
 template <typename T_class, typename T_return>

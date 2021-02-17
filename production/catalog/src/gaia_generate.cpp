@@ -430,7 +430,7 @@ static string generate_edc_struct(
     code += "struct expr {";
     code.IncrementIdentLevel();
 
-    code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> {{gaia_id}}{&{{TABLE_NAME}}_t::{{gaia_id}}};";
+    code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> gaia_id{&{{TABLE_NAME}}_t::gaia_id};";
 
     for (const auto& f : field_strings)
     {
