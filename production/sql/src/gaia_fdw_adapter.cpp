@@ -82,6 +82,76 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+Oid convert_to_pg_type(data_type_t type)
+{
+    switch (type)
+    {
+    case data_type_t::e_bool:
+        return BOOLOID;
+
+    case data_type_t::e_int8:
+    case data_type_t::e_uint8:
+    case data_type_t::e_int16:
+    case data_type_t::e_uint16:
+        return INT2OID;
+
+    case data_type_t::e_int32:
+    case data_type_t::e_uint32:
+        return INT4OID;
+
+    case data_type_t::e_int64:
+    case data_type_t::e_uint64:
+        return INT8OID;
+
+    case data_type_t::e_float:
+        return FLOAT4OID;
+
+    case data_type_t::e_double:
+        return FLOAT8OID;
+
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("An FDW internal error was detected in %s!", __func__),
+             errhint("Unhandled data type '%d'.", type)));
+    }
+}
+
+Datum convert_scalar_to_datum(const data_holder_t& value)
+{
+    switch (value.type)
+    {
+    case reflection::Bool:
+    case reflection::Byte:
+    case reflection::UByte:
+    case reflection::Short:
+    case reflection::UShort:
+        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+
+    case reflection::Int:
+    case reflection::UInt:
+        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+
+    case reflection::Long:
+    case reflection::ULong:
+        return Int64GetDatum(value.hold.integer_value);
+
+    case reflection::Float:
+        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+
+    case reflection::Double:
+        return Float8GetDatum(value.hold.float_value);
+
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("An FDW internal error was detected in %s!", __func__),
+             errhint("Unhandled data_holder_t type '%d'.", value.type)));
+    }
+}
+
 NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 {
     NullableDatum nullable_datum{};
@@ -95,25 +165,13 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        nullable_datum.value = Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
-        return nullable_datum;
-
     case reflection::Int:
     case reflection::UInt:
-        nullable_datum.value = Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
-        return nullable_datum;
-
     case reflection::Long:
     case reflection::ULong:
-        nullable_datum.value = Int64GetDatum(value.hold.integer_value);
-        return nullable_datum;
-
     case reflection::Float:
-        nullable_datum.value = Float4GetDatum(static_cast<float>(value.hold.float_value));
-        return nullable_datum;
-
     case reflection::Double:
-        nullable_datum.value = Float8GetDatum(value.hold.float_value);
+        nullable_datum.value = convert_scalar_to_datum(value);
         return nullable_datum;
 
     case reflection::String:
@@ -563,6 +621,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
             m_fields[field_index].position = c_invalid_field_position;
             m_fields[field_index].type = data_type_t::e_uint64;
             m_fields[field_index].is_reference = false;
+            m_fields[field_index].repeated_count = 1;
 
             return true;
         }
@@ -582,6 +641,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                 m_fields[field_index].position = field.position();
                 m_fields[field_index].type = static_cast<data_type_t>(field.type());
                 m_fields[field_index].is_reference = false;
+                m_fields[field_index].repeated_count = field.repeated_count();
 
                 break;
             }
@@ -616,6 +676,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                 m_fields[field_index].position = relationship.parent_offset();
                 m_fields[field_index].type = data_type_t::e_uint64;
                 m_fields[field_index].is_reference = true;
+                m_fields[field_index].repeated_count = 1;
 
                 break;
             }
@@ -723,6 +784,39 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
             {
                 field_value.isnull = true;
             }
+        }
+        else if (m_fields[field_index].repeated_count != 1)
+        {
+            Oid element_type = convert_to_pg_type(m_fields[field_index].type);
+
+            size_t array_size = get_field_array_size(
+                m_container_id,
+                m_current_payload,
+                nullptr,
+                0,
+                m_fields[field_index].position);
+
+            ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
+
+            for (size_t i = 0; i < array_size; i++)
+            {
+                data_holder_t value = get_field_array_element(
+                    m_container_id,
+                    m_current_payload,
+                    nullptr,
+                    0,
+                    m_fields[field_index].position,
+                    i);
+
+                accumArrayResult(
+                    state,
+                    convert_scalar_to_datum(value),
+                    false,
+                    element_type,
+                    CurrentMemoryContext);
+            }
+
+            field_value.value = makeArrayResult(state, CurrentMemoryContext);
         }
         else
         {
