@@ -18,7 +18,6 @@
 
 using namespace gaia::addr_book;
 using namespace gaia::common;
-using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace std;
 
