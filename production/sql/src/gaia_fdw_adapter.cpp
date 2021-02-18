@@ -936,38 +936,83 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
     try
     {
-        // Regular fields are serialized in the payload of the current record.
-        data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
-
-        if (value.type == reflection::String)
+        if (m_fields[field_index].repeated_count == 1)
         {
-            ::set_field_value(
+            // Regular fields are serialized in the payload of the current record.
+            data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
+
+            if (value.type == reflection::String)
+            {
+                ::set_field_value(
+                    m_container_id,
+                    *m_current_payload,
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    value);
+            }
+            else
+            {
+                bool result = ::set_field_value(
+                    m_container_id,
+                    m_current_payload->data(),
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    value);
+
+                if (!result)
+                {
+                    ereport(
+                        ERROR,
+                        (errcode(ERRCODE_FDW_ERROR),
+                         errmsg("Failed to set field value!"),
+                         errhint(
+                             "Table is '%s', container id is '%ld', and field position is '%ld'.",
+                             get_table_name(), m_container_id, m_fields[field_index].position)));
+                }
+            }
+        }
+        else
+        {
+            ArrayType* pg_array
+                = DatumGetArrayTypeP(field_value.value); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+            Oid element_type = ARR_ELEMTYPE(pg_array);
+
+            // Element type metadata defined in 'pg_type' that is needed to access array elements.
+            // See PostgreSQL pg_type docs for more details.
+            int16 elmlen;
+            bool elmbyval;
+            char elmalign;
+            get_typlenbyvalalign(element_type, &elmlen, &elmbyval, &elmalign);
+
+            // Use deconstruct_array() to retrieve element values from the array.
+            // The method will not destroy or modify the array data despite its name.
+            int num_elements;
+            Datum* values;
+            bool* nulls;
+            deconstruct_array(pg_array, element_type, elmlen, elmbyval, elmalign, &values, &nulls, &num_elements);
+
+            ::set_field_array_size(
                 m_container_id,
                 *m_current_payload,
                 m_binary_schema,
                 m_binary_schema_size,
                 m_fields[field_index].position,
-                value);
-        }
-        else
-        {
-            bool result = ::set_field_value(
-                m_container_id,
-                m_current_payload->data(),
-                m_binary_schema,
-                m_binary_schema_size,
-                m_fields[field_index].position,
-                value);
+                num_elements);
 
-            if (!result)
+            for (int array_index = 0; array_index < num_elements; array_index++)
             {
-                ereport(
-                    ERROR,
-                    (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Failed to set field value!"),
-                     errhint(
-                         "Table is '%s', container id is '%ld', and field position is '%ld'.",
-                         get_table_name(), m_container_id, m_fields[field_index].position)));
+                data_holder_t element_value
+                    = convert_to_data_holder(values[array_index], m_fields[field_index].type);
+                ::set_field_array_element(
+                    m_container_id,
+                    m_current_payload->data(),
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    array_index,
+                    element_value);
             }
         }
     }

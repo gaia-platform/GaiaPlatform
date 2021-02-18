@@ -29,10 +29,18 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
     {
         return name + " " + type;
     }
+    else if (count == 0)
+    {
+        return name + " " + type + "[]";
+    }
     else
     {
-        // Handle arrays as bytea for now.
-        return name + " BYTEA";
+        stringstream message;
+        message << "Unexpected fixed size array definition in " << __func__ << "!";
+        // If we use retail_assert(false), the compiler can't figure out
+        // that it will throw an exception and will warn us about
+        // potentially exiting the method without returning a value.
+        throw retail_assertion_failure(message.str());
     }
 }
 

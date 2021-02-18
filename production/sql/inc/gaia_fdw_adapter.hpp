@@ -16,12 +16,11 @@ extern "C"
 
 // postgres.h must be included prior to these headers.
 #include "catalog/pg_type.h"
-#include "catalog/pg_type_d.h"
 #include "lib/stringinfo.h"
 #include "nodes/pg_list.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
-#include "utils/palloc.h"
+#include "utils/lsyscache.h"
 
 } // extern "C"
 
