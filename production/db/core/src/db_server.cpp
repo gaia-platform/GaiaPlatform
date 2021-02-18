@@ -33,18 +33,18 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 
 using namespace std;
 
+using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
@@ -257,7 +257,7 @@ void server::handle_commit_txn(
     mapped_log_t log;
     log.open(s_fd_log);
     // Surface the log in our static variable, to avoid passing it around.
-    s_log = log.log();
+    s_log = log.data();
 
     // Actually commit the transaction.
     bool success = txn_commit();
@@ -557,10 +557,13 @@ void server::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
-    retail_assert(!s_shared_locators.is_initialized(), "Locators memory should be reset!");
-    retail_assert(!s_shared_counters.is_initialized(), "Counters memory should be reset!");
-    retail_assert(!s_shared_data.is_initialized(), "Data memory should be reset!");
-    retail_assert(!s_shared_id_index.is_initialized(), "ID index memory should be reset!");
+    // Clear all shared memory if an exception is thrown.
+    auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
+
+    retail_assert(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
+    retail_assert(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
+    retail_assert(!s_shared_data.is_set(), "Data memory should be unmapped!");
+    retail_assert(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -580,6 +583,8 @@ void server::init_shared_memory()
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
+    cleanup_memory.dismiss();
 }
 
 void server::init_memory_manager()
@@ -2142,10 +2147,10 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1.log()->count && log2_idx < log2.log()->count)
+    while (log1_idx < log1.data()->count && log2_idx < log2.data()->count)
     {
-        txn_log_t::log_record_t* lr1 = log1.log()->log_records + log1_idx;
-        txn_log_t::log_record_t* lr2 = log2.log()->log_records + log2_idx;
+        txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
+        txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -2457,10 +2462,10 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
 
     // Ensure that the begin_ts in this entry matches the txn log header.
     retail_assert(
-        txn_log.log()->begin_ts == get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log.log()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2469,7 +2474,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         // that txn's snapshot). This update is non-atomic since log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log.log()->log_records[i]);
+        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
 }
@@ -2479,8 +2484,8 @@ void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    retail_assert(txn_log.is_initialized(), "txn_log should be mapped when deallocating old offsets.");
-    deallocate_txn_log(txn_log.log(), deallocate_new_offsets);
+    retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
+    deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
 void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)

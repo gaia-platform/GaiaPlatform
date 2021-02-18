@@ -15,6 +15,8 @@ using namespace std;
 
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
+using namespace gaia::common;
+using namespace gaia::db;
 
 class json_generation_test : public db_test_base_t
 {

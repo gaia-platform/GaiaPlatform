@@ -63,6 +63,13 @@ bool edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::oper
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
+bool edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::operator!=(
+    const edc_object_t& other) const
+{
+    return !edc_base_t::equals(other);
+}
+
+template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 gaia::common::gaia_id_t* edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::references() const
 {
     if (!edc_base_t::exists())

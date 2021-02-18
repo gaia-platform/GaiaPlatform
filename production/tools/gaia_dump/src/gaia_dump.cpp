@@ -16,7 +16,9 @@ constexpr int c_line_size = 2 * c_group_size;
 constexpr int c_line_length = 300;
 constexpr int c_bytes_per_line = 16;
 
+using namespace gaia::common;
 using namespace gaia::db;
+using namespace std;
 
 // One printable line of output.
 static char g_longstring[c_line_length];

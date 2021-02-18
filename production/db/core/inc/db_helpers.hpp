@@ -24,17 +24,17 @@ namespace gaia
 namespace db
 {
 
-inline gaia_id_t allocate_id()
+inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    gaia_id_t id = __sync_add_and_fetch(&counters->last_id, 1);
+    common::gaia_id_t id = __sync_add_and_fetch(&counters->last_id, 1);
     return id;
 }
 
-inline gaia_type_t allocate_type()
+inline common::gaia_type_t allocate_type()
 {
     counters_t* counters = gaia::db::get_counters();
-    gaia_type_t type = __sync_add_and_fetch(&counters->last_type_id, 1);
+    common::gaia_type_t type = __sync_add_and_fetch(&counters->last_type_id, 1);
     return type;
 }
 

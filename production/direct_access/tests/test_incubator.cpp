@@ -15,6 +15,8 @@
 #include "gaia_barn_storage.h"
 
 using namespace gaia::barn_storage;
+using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::direct_access;
 
 class gaia_incubator_test : public db_catalog_test_base_t

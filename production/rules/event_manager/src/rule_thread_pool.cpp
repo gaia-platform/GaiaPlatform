@@ -139,7 +139,7 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 {
     unique_lock lock(m_lock, defer_lock);
 
-    begin_session();
+    db::begin_session();
     while (true)
     {
         lock.lock();
@@ -162,7 +162,7 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
         invoke_rule(invocation);
         m_stats_manager.compute_thread_execution_time(start_thread_execution_time);
     }
-    end_session();
+    db::end_session();
 }
 
 // We must worry about user-rules that throw exceptions, end the transaction

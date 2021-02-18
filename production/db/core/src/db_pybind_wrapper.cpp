@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iomanip>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -16,6 +14,7 @@
 
 using namespace std;
 using namespace gaia::db;
+using namespace gaia::common;
 using namespace pybind11;
 
 void print_payload(ostream& o, const size_t size, const char* payload)

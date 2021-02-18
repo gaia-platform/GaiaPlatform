@@ -8,7 +8,6 @@
 #include <chrono>
 #include <cstdlib>
 
-#include <iostream>
 #include <memory>
 #include <random>
 #include <string>
@@ -22,9 +21,6 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_test_helpers.hpp"
 #include "gaia_internal/db/db_types.hpp"
-
-using namespace gaia::common;
-using namespace gaia::db;
 
 namespace gaia
 {
