@@ -43,13 +43,13 @@ public:
 class invalid_field_position : public gaia::common::gaia_exception
 {
 public:
-    invalid_field_position(gaia::common::field_position_t position);
+    explicit invalid_field_position(gaia::common::field_position_t position);
 };
 
 class unhandled_field_type : public gaia::common::gaia_exception
 {
 public:
-    unhandled_field_type(size_t field_type);
+    explicit unhandled_field_type(size_t field_type);
 };
 
 class cannot_set_null_string_value : public gaia::common::gaia_exception

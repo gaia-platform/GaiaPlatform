@@ -28,7 +28,7 @@ namespace common
 class file_open_error : public gaia::common::gaia_exception
 {
 public:
-    file_open_error(const char* filename);
+    explicit file_open_error(const char* filename);
 };
 
 /**

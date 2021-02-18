@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <string.h>
+#include <cstring>
 
 #include <sstream>
 #include <string>
@@ -23,7 +23,7 @@ namespace db
 class persistent_store_error : public gaia::common::gaia_exception
 {
 public:
-    persistent_store_error(const std::string& message, int code = 0)
+    explicit persistent_store_error(const std::string& message, int code = 0)
         : gaia_exception(message)
     {
         m_code = code;
