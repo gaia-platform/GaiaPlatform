@@ -44,6 +44,8 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
     }
 }
 
+// Make sure this function matches the type conversion in fdw adapter.
+// The type conversion is defined in convert_to_pg_type().
 string get_fdw_data_type_name(data_type_t data_type)
 {
     switch (data_type)

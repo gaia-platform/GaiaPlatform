@@ -82,6 +82,8 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+// Make sure this function matches the imported fdw schema.
+// The type conversion is defined in get_fdw_data_type_name().
 Oid convert_to_pg_type(data_type_t type)
 {
     switch (type)
@@ -975,23 +977,32 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         }
         else
         {
-            ArrayType* pg_array
-                = DatumGetArrayTypeP(field_value.value); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+            ArrayType* pg_array = DatumGetArrayTypeP(field_value.value);
             Oid element_type = ARR_ELEMTYPE(pg_array);
 
-            // Element type metadata defined in 'pg_type' that is needed to access array elements.
-            // See PostgreSQL pg_type docs for more details.
-            int16 elmlen;
-            bool elmbyval;
-            char elmalign;
-            get_typlenbyvalalign(element_type, &elmlen, &elmbyval, &elmalign);
+            // The followings are array element type metadata that are needed to
+            // access array elements. Their definitions can be found in the
+            // PostgreSQL system catalog pg_type.
+            int16 element_typlen;
+            bool element_typbyval;
+            char element_typalign;
+            get_typlenbyvalalign(element_type, &element_typlen, &element_typbyval, &element_typalign);
 
             // Use deconstruct_array() to retrieve element values from the array.
             // The method will not destroy or modify the array data despite its name.
             int num_elements;
             Datum* values;
             bool* nulls;
-            deconstruct_array(pg_array, element_type, elmlen, elmbyval, elmalign, &values, &nulls, &num_elements);
+            deconstruct_array(
+                pg_array,
+                element_type,
+                element_typlen,
+                element_typbyval,
+                element_typalign,
+                &values,
+                &nulls,
+                &num_elements);
 
             ::set_field_array_size(
                 m_container_id,
@@ -1005,6 +1016,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             {
                 data_holder_t element_value
                     = convert_to_data_holder(values[array_index], m_fields[field_index].type);
+
                 ::set_field_array_element(
                     m_container_id,
                     m_current_payload->data(),

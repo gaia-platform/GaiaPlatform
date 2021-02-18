@@ -202,6 +202,7 @@ void get_table_field_array_information(
     }
 }
 
+// NOTE: the method does not work for vectors of strings.
 bool are_field_values_equal(
     gaia_type_t type_id,
     const uint8_t* first_serialized_data,

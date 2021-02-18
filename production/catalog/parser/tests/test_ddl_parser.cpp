@@ -242,3 +242,9 @@ TEST(catalog_ddl_parser_test, fixed_size_array)
     ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[1]);"));
     ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[0]);"));
 }
+
+TEST(catalog_ddl_parser_test, vector_of_strings)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c STRING[]);"));
+}
