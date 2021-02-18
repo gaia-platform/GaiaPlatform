@@ -26,8 +26,8 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_employees = 100000;
-static const uint64_t c_num_employee_addresses = 3;
+static const int64_t c_num_employees = 5000;
+static const int64_t c_num_employee_addresses = 3;
 
 /**
  * Test the performance of the predicates built with the expression API vs
@@ -43,61 +43,54 @@ static const uint64_t c_num_employee_addresses = 3;
  *  c_num_employee_addresses=3
  *
  * Comparing 'int64_t ==' performance:
- *  [expr]: 75713.92 us
- *  [plain]: 79738.08 us
- *  ->expr is 5.05% faster
+ *  [expr]: 79120.45 us
+ *  [plain]: 83643.37 us
+ *  ->expr is 5.41% faster
  *
  * Comparing 'int64_t >' performance:
- *  [expr]: 85465.62 us
- *  [plain]: 85384.19 us
- *  ->expr is 0.10% slower
+ *  [expr]: 79161.24 us
+ *  [plain]: 78596.15 us
+ *  ->expr is 0.72% slower
  *
  * Comparing 'int64_t <' performance:
- *  [expr]: 80908.72 us
- *  [plain]: 78395.23 us
- *  ->expr is 3.21% slower
+ *  [expr]: 79771.48 us
+ *  [plain]: 83581.52 us
+ *  ->expr is 4.56% faster
  *
  * Comparing 'const char* ==' performance:
- *  [expr]: 89520.14 us
- *  [plain]: 89476.31 us
- *  ->expr is 0.05% slower
+ *  [expr]: 93254.08 us
+ *  [plain]: 97312.78 us
+ *  ->expr is 4.17% faster
  *
  * Comparing 'std::string ==' performance:
- *  [expr]: 84398.43 us
- *  [plain]: 94044.34 us
- *  ->expr is 10.26% faster
- *
- * Comparing 'std::string equals ignore case' performance:
- *  [expr]: 92790.74 us
- *  [plain]: 91392.17 us
- *  ->expr is 1.53% slower
+ *  [expr]: 89411.93 us
+ *  [plain]: 91808.38 us
+ *  ->expr is 2.61% faster
  *
  * Comparing 'EDC class ==' performance:
- *  [expr]: 166484.30 us
- *  [plain]: 169587.11 us
- *  ->expr is 1.83% faster
+ *  [expr]: 165728.04 us
+ *  [plain]: 158301.00 us
+ *  ->expr is 4.69% slower
  *
  * Comparing 'mixed boolean op' performance:
- *  [expr]: 116633.21 us
- *  [plain]: 118581.93 us
- *  ->expr is 1.64% faster
+ *  [expr]: 114091.69 us
+ *  [plain]: 117007.14 us
+ *  ->expr is 2.49% faster
  *
  * Comparing 'container contains' performance:
- *  [expr]: 299694.76 us
- *  [plain]: 364134.03 us
- *  ->expr is 17.70% faster
+ *  [expr]: 201799.96 us
+ *  [plain]: 248804.97 us
+ *  ->expr is 18.89% faster
  *
  * Comparing 'container count' performance:
- *  [expr]: 225746.42 us
- *  [plain]: 210859.86 us
- *  ->expr is 7.06% slower
+ * [1]    412042 segmentation fault (core dumped)  ./test_expressions_perf
  *
  * Comparing 'container empty' performance:
- *  [expr]: 130322.46 us
- *  [plain]: 114321.26 us
- *  ->expr is 14.00% slower
+ *  [expr]: 114304.32 us
+ *  [plain]: 100311.58 us
+ *  ->expr is 13.95% slower
  */
-class test_expressions_perf : public db_catalog_test_base_t
+class test_expressions_perf : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_expressions_perf()
@@ -456,7 +449,7 @@ TEST_F(test_expressions_perf, test_container_count)
         []() {
             vector<employee_t> employees;
             for (auto& e : employee_t::list()
-                               .where(addressee_address_list.count(c_num_employee_addresses)))
+                               .where(addressee_address_list.count() == c_num_employee_addresses))
             {
                 employees.push_back(e);
             }

@@ -474,15 +474,15 @@ TEST_F(test_expressions, container_count)
 
     assert_contains(
         address_t::list()
-            .where(address_expr::phone_list.count(0)),
+            .where(address_expr::phone_list.count() == 0),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
         employee_t::list()
-            .where(addressee_address_list.count(1)),
+            .where(addressee_address_list.count() >= 1),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_empty(
         employee_t::list()
-            .where(addressee_address_list.count(2)));
+            .where(addressee_address_list.count() > 10));
 }

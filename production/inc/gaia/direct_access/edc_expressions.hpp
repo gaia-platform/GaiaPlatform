@@ -6,6 +6,7 @@
 #pragma once
 
 #include <functional>
+#include <variant>
 
 namespace gaia
 {
@@ -38,26 +39,53 @@ template <typename T_class, typename T_return>
 using member_accessor_ptr_t = T_return (T_class::*)() const;
 
 /**
+ * Function that given an EDC class instance can return a value
+ * from it. The advantage over member_accessor_ptr_t is that
+ * a function is more flexible and can return basically anything.
+ * This allow some neat tricks such as access to nested structure
+ * within the EDC class.
+ *
+ * The downside is that std::function is "heavier" than a function
+ * pointer such as member_accessor_ptr_t.
+ */
+template <typename T_class, typename T_return>
+using member_accessor_fn_t = std::function<T_return(const T_class&)>;
+
+/**
  * Predicate on EDC classes (T_class).
  */
 template <typename T_class>
 using edc_predicate_t = std::function<bool(const T_class&)>;
 
+/**
+ * Access data within EDC classes. Data can be accessed via member_accessor_ptr_t
+ * (eg. &employee_t::name) or via a generic function. Use member_accessor_ptr_t
+ * when possible.
+ *
+ * @tparam T_class The EDC class type
+ * @tparam T_return The type returned when calling the () operator.
+ */
 template <typename T_class, typename T_return>
 class member_accessor_t
 {
 public:
     using member_accessor_ptr_t = member_accessor_ptr_t<T_class, T_return>;
+    using member_accessor_fn_t = member_accessor_fn_t<T_class, T_return>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    member_accessor_t(
-        member_accessor_ptr_t member_accessor)
+    member_accessor_t(member_accessor_ptr_t member_accessor)
         : m_member_accessor(member_accessor){};
 
-    T_return operator()(const T_class& obj);
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    member_accessor_t(member_accessor_fn_t member_accessor)
+        : m_member_accessor(member_accessor){};
+
+    T_return operator()(const T_class& obj) const;
 
 private:
-    member_accessor_ptr_t m_member_accessor;
+    using variant_accessor_t = std::variant<member_accessor_ptr_t, member_accessor_fn_t>;
+
+    variant_accessor_t m_member_accessor;
 };
 
 /**
@@ -70,8 +98,6 @@ class expression_decorator_t
 public:
     using edc_predicate_t = edc_predicate_t<T_class>;
 
-    // The constructor is templated because often 'predicate_fn' is a lambda
-    // and lambda is not convertible to edc_predicate_t (in this context).
     explicit expression_decorator_t(edc_predicate_t predicate_fn)
         : m_predicate_fn(predicate_fn){};
 
@@ -156,7 +182,7 @@ public:
 
     predicate_decorator_t empty();
 
-    predicate_decorator_t count(uint64_t number);
+    expression_t<T_class, int64_t> count();
 
 private:
     member_accessor_t m_member_accessor;
