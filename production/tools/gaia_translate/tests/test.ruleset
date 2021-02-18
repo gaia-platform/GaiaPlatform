@@ -12,7 +12,7 @@ ruleset test
 
         max_temp = @sensor.value + @min_temp;
         max_temp = @sensor.value + 4;
-        if (@actuator.value > 0)
+        if (actuator.value > 0)
         {
             g_actuator_rule_called++;
         }
