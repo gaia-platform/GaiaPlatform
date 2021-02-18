@@ -10,7 +10,6 @@
 
 #include "gaia/common.hpp"
 
-#include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
