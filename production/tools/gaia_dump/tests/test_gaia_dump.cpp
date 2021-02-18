@@ -15,6 +15,7 @@
 #include "gaia_dump.hpp"
 
 using namespace gaia::catalog;
+using namespace gaia::common;
 using namespace gaia::db;
 using namespace std;
 

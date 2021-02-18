@@ -14,6 +14,7 @@
 #include "db_test_util.hpp"
 
 using namespace gaia::db;
+using namespace gaia::common;
 
 // duplicated from production/db/core/inc/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;

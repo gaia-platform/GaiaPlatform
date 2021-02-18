@@ -13,6 +13,7 @@
 #include "gaia_internal/db/db_test_base.hpp"
 
 using namespace std;
+using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
 using namespace gaia::db::triggers;

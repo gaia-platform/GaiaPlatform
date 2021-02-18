@@ -13,6 +13,8 @@ using namespace std;
 
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
+using namespace gaia::common;
+using namespace gaia::db;
 
 constexpr char c_table_name[] = "test_table";
 constexpr char c_server_name[] = "test_server";

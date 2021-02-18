@@ -31,8 +31,8 @@ public:
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
-        gaia_id_t record;
-        field_position_list_t fields;
+        common::gaia_id_t record;
+        common::field_position_list_t fields;
     };
 
     struct invocation_t

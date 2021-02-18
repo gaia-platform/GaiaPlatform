@@ -46,7 +46,7 @@ class client
 public:
     static inline bool is_transaction_active()
     {
-        return (s_private_locators.is_initialized());
+        return (s_private_locators.is_set());
     }
 
     /**
@@ -69,7 +69,7 @@ public:
     static void commit_transaction();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::function<std::optional<gaia::common::gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
 
     // Make IPC call to the server requesting more memory for the current transaction
     // in case the client runs out of memory mid transaction.
@@ -98,13 +98,13 @@ private:
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
-    static constexpr gaia_type_t c_trigger_excluded_types[] = {
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_relationship),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
-        static_cast<gaia_type_t>(system_table_type_t::event_log)};
+    static constexpr common::gaia_type_t c_trigger_excluded_types[] = {
+        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_table),
+        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_field),
+        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_relationship),
+        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_ruleset),
+        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_rule),
+        static_cast<common::gaia_type_t>(common::system_table_type_t::event_log)};
 
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
@@ -118,7 +118,7 @@ private:
 
     static int get_session_socket();
 
-    static int get_id_cursor_socket_for_type(gaia_type_t type);
+    static int get_id_cursor_socket_for_type(common::gaia_type_t type);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
@@ -132,9 +132,9 @@ private:
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(gaia_type_t type)
+    static inline bool is_valid_event(common::gaia_type_t type)
     {
-        constexpr const gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
+        constexpr const common::gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
         return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
     }
 
@@ -177,23 +177,23 @@ private:
         gaia_operation_t operation,
         // `deleted_id` is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia::common::gaia_id_t deleted_id = c_invalid_gaia_id)
+        common::gaia_id_t deleted_id = common::c_invalid_gaia_id)
     {
         if (operation == gaia_operation_t::remove)
         {
-            gaia::common::retail_assert(
-                deleted_id != c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
+            common::retail_assert(
+                deleted_id != common::c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
                 "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
         }
 
         // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log.log()->count == c_max_log_records)
+        if (s_log.data()->count == c_max_log_records)
         {
             throw transaction_object_limit_exceeded();
         }
 
         // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log.log()->log_records + s_log.log()->count++;
+        txn_log_t::log_record_t* lr = s_log.data()->log_records + s_log.data()->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

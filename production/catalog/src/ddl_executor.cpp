@@ -23,6 +23,7 @@ using namespace std;
 
 using namespace gaia::catalog::ddl;
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::direct_access;
 
 namespace gaia
