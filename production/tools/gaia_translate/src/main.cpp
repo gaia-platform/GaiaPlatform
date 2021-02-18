@@ -93,7 +93,8 @@ struct navigation_code_data_t
 // Suppress these clang-tidy warnings for now.
 const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-const char* c_ident = "    ";
+
+const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
@@ -118,9 +119,11 @@ string generate_general_subscription_code()
             .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
             .append(c_ident)
             .append("{\n")
-            .append(c_ident).append(c_ident)
+            .append(c_ident)
+            .append(c_ident)
             .append("::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
-            .append(c_ident).append(c_ident)
+            .append(c_ident)
+            .append(c_ident)
             .append("return;\n")
             .append(c_ident)
             .append("}\n");
@@ -140,9 +143,11 @@ string generate_general_subscription_code()
             .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
             .append(c_ident)
             .append("{\n")
-            .append(c_ident).append(c_ident)
+            .append(c_ident)
+            .append(c_ident)
             .append("::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
-            .append(c_ident).append(c_ident)
+            .append(c_ident)
+            .append(c_ident)
             .append("return;\n")
             .append(c_ident)
             .append("}\n");
@@ -279,7 +284,7 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool parse_attribute(string attribute, string &table, string &field)
+bool parse_attribute(string attribute, string& table, string& field)
 {
     if (g_field_data.empty())
     {
@@ -298,7 +303,7 @@ bool parse_attribute(string attribute, string &table, string &field)
     if (g_field_data.find(attribute) == g_field_data.end())
     {
         // Might be a field.
-        for (const auto &tbl : g_field_data)
+        for (const auto& tbl : g_field_data)
         {
             if (tbl.second.find(attribute) != tbl.second.end())
             {
@@ -673,9 +678,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return return_value;
 }
 
-
-void generate_table_subscription(string table, string field_subscription_code, int rule_count,
-    bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+void generate_table_subscription(string table, string field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
     if (g_field_data.find(table) == g_field_data.end())
@@ -742,13 +745,11 @@ void generate_table_subscription(string table, string field_subscription_code, i
             .append(table);
         if (subscribe_update)
         {
-            g_current_ruleset_subscription.
-                append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,");
         }
         else
         {
-            g_current_ruleset_subscription.
-                append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,");
         }
         g_current_ruleset_subscription
             .append(rule_name)
@@ -861,12 +862,12 @@ void generate_rules(Rewriter& rewriter)
 
     // Optimize active fields by removing field subscriptions
     // if entire table was subscribed in rule prolog.
-    for (const auto &table : g_update_tables)
+    for (const auto& table : g_update_tables)
     {
         g_active_fields.erase(table);
     }
 
-    for (const auto &field_description : g_active_fields)
+    for (const auto& field_description : g_active_fields)
     {
         if (g_generation_error)
         {
@@ -891,7 +892,7 @@ void generate_rules(Rewriter& rewriter)
             .append(c_nolint_identifier_naming)
             .append("\n")
             .append(c_ident)
-            .append("field_position_list_t fields_" )
+            .append("field_position_list_t fields_")
             .append(rule_name)
             .append(";\n");
 
@@ -918,7 +919,7 @@ void generate_rules(Rewriter& rewriter)
         rule_count++;
     }
 
-    for (const auto &table : g_update_tables)
+    for (const auto& table : g_update_tables)
     {
         if (g_generation_error)
         {
@@ -959,7 +960,7 @@ void generate_rules(Rewriter& rewriter)
         rule_count++;
     }
 
-    for (const auto &table : g_insert_tables)
+    for (const auto& table : g_insert_tables)
     {
         if (g_generation_error)
         {
@@ -1055,7 +1056,6 @@ public:
                         g_update_tables.insert(table_name);
                         g_insert_tables.insert(table_name);
                     }
-
                 }
             }
             else
@@ -1464,7 +1464,7 @@ public:
         if (update_attribute != nullptr)
         {
             g_rule_attribute_source_range = update_attribute->getRange();
-            for ( const auto &table_iterator : update_attribute->tables())
+            for (const auto& table_iterator : update_attribute->tables())
             {
                 string table, field;
                 if (parse_attribute(table_iterator, table, field))
@@ -1487,7 +1487,7 @@ public:
         if (insert_attribute != nullptr)
         {
             g_rule_attribute_source_range = insert_attribute->getRange();
-            for ( const auto &table_iterator : insert_attribute->tables())
+            for (const auto& table_iterator : insert_attribute->tables())
             {
                 string table, field;
                 if (parse_attribute(table_iterator, table, field))
@@ -1500,7 +1500,7 @@ public:
         if (change_attribute != nullptr)
         {
             g_rule_attribute_source_range = change_attribute->getRange();
-            for ( const auto &table_iterator : change_attribute->tables())
+            for (const auto& table_iterator : change_attribute->tables())
             {
                 string table, field;
                 if (parse_attribute(table_iterator, table, field))
@@ -1818,8 +1818,9 @@ public:
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
             = functionDecl(allOf(
-                hasAncestor(ruleset_matcher),
-                hasAttr(attr::Rule))).bind("ruleDecl");
+                               hasAncestor(ruleset_matcher),
+                               hasAttr(attr::Rule)))
+                  .bind("ruleDecl");
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
 
         StatementMatcher field_get_matcher
