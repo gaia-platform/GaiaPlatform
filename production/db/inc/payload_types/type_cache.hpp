@@ -55,12 +55,12 @@ public:
     //
     // This is only needed during initialization so that the Field information
     // references the data in our copy.
-    const uint8_t* get_raw_binary_schema() const;
+    const uint8_t* get_binary_schema() const;
 
     // Return the size of the binary schema.
     size_t get_binary_schema_size() const;
 
-    // Return a direct pointer to serialization template in catalog.
+    // Return a direct pointer to the serialization template in catalog.
     const uint8_t* get_serialization_template() const;
 
     // Return the size of the serialization template.

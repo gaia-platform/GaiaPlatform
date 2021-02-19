@@ -82,7 +82,7 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
-// Make sure this function matches the imported fdw schema.
+// Make sure this function matches the imported FDW schema.
 // The type conversion is defined in get_fdw_data_type_name().
 Oid convert_to_pg_type(data_type_t type)
 {
@@ -879,7 +879,7 @@ void modify_state_t::initialize_payload()
         // We only need to do this on the first call.
         if (m_binary_schema == nullptr)
         {
-            m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
+            m_binary_schema = auto_type_information.get()->get_binary_schema();
             m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
         }
     }
@@ -979,6 +979,22 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             ArrayType* pg_array = DatumGetArrayTypeP(field_value.value);
+
+            // PostgreSQL supports setting array element value to NULL even for
+            // scalar types. It will be difficult for us to implement the
+            // feature because both std::vector and flatbuffers::vector do not
+            // support it. Do not allow this behavior at the moment.
+            if (array_contains_nulls(pg_array))
+            {
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("Failed to set field value!"),
+                     errhint(
+                         "Setting array element value to NULL is not supported.",
+                         get_table_name(), m_container_id, m_fields[field_index].position)));
+            }
+
             Oid element_type = ARR_ELEMTYPE(pg_array);
 
             // The followings are array element type metadata that are needed to
@@ -990,7 +1006,6 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             get_typlenbyvalalign(element_type, &element_typlen, &element_typbyval, &element_typalign);
 
             // Use deconstruct_array() to retrieve element values from the array.
-            // The method will not destroy or modify the array data despite its name.
             int num_elements;
             Datum* values;
             bool* nulls;

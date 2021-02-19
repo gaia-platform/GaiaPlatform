@@ -34,7 +34,7 @@ void type_information_t::set_field(field_position_t field_position, const reflec
     m_field_map.insert(make_pair(field_position, field));
 }
 
-const uint8_t* type_information_t::get_raw_binary_schema() const
+const uint8_t* type_information_t::get_binary_schema() const
 {
     return m_binary_schema;
 }

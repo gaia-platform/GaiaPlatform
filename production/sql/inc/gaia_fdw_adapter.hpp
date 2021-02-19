@@ -244,9 +244,9 @@ protected:
     // memory manually in end_modify().
     std::unique_ptr<std::vector<uint8_t>> m_current_payload;
 
-    // Direct pointer to the binary_schema stored in the catalog.
-    // This is safe to hold around in our scenario
-    // because the cache does not get modified after its initialization.
+    // Direct pointer to the binary_schema stored in the catalog. This is safe
+    // to hold around in our scenario because FDW adpter does not modify the
+    // binary schema, and the memory is managed by the gaia_db_server.
     const uint8_t* m_binary_schema;
     size_t m_binary_schema_size;
 };

@@ -69,11 +69,8 @@ void initialize_type_information_from_binary_schema(
     retail_assert(type_information != nullptr, "'type_information' argument should not be null.");
     retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
-    // First save the pointer to the binary schema into the type information.
+    // Save the pointer to the binary schema into the type information.
     type_information->set_binary_schema(binary_schema, binary_schema_size);
-
-    // From now on, we work with the type information copy of the binary schema pointer.
-    binary_schema = type_information->get_raw_binary_schema();
 
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
@@ -202,7 +199,6 @@ void get_table_field_array_information(
     }
 }
 
-// NOTE: the method does not work for vectors of strings.
 bool are_field_values_equal(
     gaia_type_t type_id,
     const uint8_t* first_serialized_data,
