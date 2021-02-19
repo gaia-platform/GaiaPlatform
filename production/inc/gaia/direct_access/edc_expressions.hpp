@@ -174,11 +174,11 @@ public:
 
     // --- Containers specializations
 
-    template <typename T_predicate>
-    predicate_decorator_t contains(T_predicate predicate);
+    template <typename T_value>
+    predicate_decorator_t contains(expression_decorator_t<T_value> predicate);
 
     template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
-    predicate_decorator_t contains_object(const T_value& object);
+    predicate_decorator_t contains(const T_value& object);
 
     predicate_decorator_t empty();
 

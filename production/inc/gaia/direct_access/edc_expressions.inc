@@ -151,8 +151,9 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::operator!=(cons
 }
 
 template <typename T_class, typename T_return>
-template <typename T_predicate>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(T_predicate predicate)
+template <typename T_value>
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(
+    expression_decorator_t<T_value> predicate)
 {
     return expression_decorator_t<T_class>(
         [predicate, this](const T_class& e) {
@@ -163,12 +164,12 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(T_pred
 
 template <typename T_class, typename T_return>
 template <typename T_value, typename>
-expression_decorator_t<T_class> expression_t<T_class, T_return>::contains_object(const T_value& object)
+expression_decorator_t<T_class> expression_t<T_class, T_return>::contains(const T_value& object)
 {
     return expression_decorator_t<T_class>(
         [&object, this](const T_class& e) {
             auto container = m_member_accessor(e).where([&object](const T_value& c) {
-                return c.gaia_id() == object.id();
+                return c == object;
             });
             return container.begin() != container.end();
         });
