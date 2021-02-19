@@ -26,6 +26,15 @@ namespace db
 class client_messenger_t
 {
 public:
+    // Constants for accessing fds in arrays of fds, for different server responses.
+    static const int c_index_stream_socket = 0;
+
+    static const int c_index_locators = 0;
+    static const int c_index_counters = 1;
+    static const int c_index_data = 2;
+    static const int c_index_id_index = 3;
+
+public:
     explicit client_messenger_t(size_t expected_count_received_fds = 0);
 
     ~client_messenger_t();

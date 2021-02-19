@@ -62,7 +62,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     client_messenger_t client_messenger(1);
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
-    int stream_socket = client_messenger.get_received_fd(0);
+    int stream_socket = client_messenger.get_received_fd(client_messenger_t::c_index_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
@@ -321,10 +321,10 @@ void client::begin_session()
     client_messenger_t client_messenger(4);
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
-    int fd_locators = client_messenger.get_received_fd(0);
-    int fd_counters = client_messenger.get_received_fd(1);
-    int fd_data = client_messenger.get_received_fd(2);
-    int fd_id_index = client_messenger.get_received_fd(3);
+    int fd_locators = client_messenger.get_received_fd(client_messenger_t::c_index_locators);
+    int fd_counters = client_messenger.get_received_fd(client_messenger_t::c_index_counters);
+    int fd_data = client_messenger.get_received_fd(client_messenger_t::c_index_data);
+    int fd_id_index = client_messenger.get_received_fd(client_messenger_t::c_index_id_index);
 
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);

@@ -58,19 +58,24 @@ void client_messenger_t::send_and_receive(
     // Sanity checks.
     retail_assert(bytes_read > 0, "Failed to read message!");
 
-    std::stringstream message_stream;
-    message_stream
-        << "Expected " << m_expected_count_received_fds
-        << " fds, but received " << count_received_fds << " fds!";
-    retail_assert(count_received_fds == m_expected_count_received_fds, message_stream.str());
+    if (count_received_fds != m_expected_count_received_fds)
+    {
+        std::stringstream message_stream;
+        message_stream
+            << "Expected " << m_expected_count_received_fds
+            << " fds, but received " << count_received_fds << " fds!";
+        retail_assert(count_received_fds == m_expected_count_received_fds, message_stream.str());
+    }
 
     for (size_t index_fd = 0; index_fd < m_expected_count_received_fds; index_fd++)
     {
-        // Reset the message stream.
-        message_stream.str(std::string());
-
-        message_stream << "The fd received at index " << index_fd << " is invalid!";
-        retail_assert(m_received_fds[index_fd] != -1, message_stream.str());
+        int current_fd = m_received_fds[index_fd];
+        if (current_fd == -1)
+        {
+            std::stringstream message_stream;
+            message_stream << "The fd received at index " << index_fd << " is invalid!";
+            retail_assert(current_fd != -1, message_stream.str());
+        }
     }
 
     // Deserialize the server message.
