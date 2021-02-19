@@ -1,4 +1,5 @@
 #include "gaia/logger.hpp"
+#include "gaia/rules/rules.hpp"
 
 int g_rule_called = 0;
 int g_insert_called = 0;
