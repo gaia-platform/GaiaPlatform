@@ -466,10 +466,10 @@ static string generate_edc_struct(
 
     code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> gaia_id{&{{TABLE_NAME}}_t::gaia_id};";
 
-    for (const auto& f : field_strings)
+    for (const auto& f : field_records)
     {
-        code.SetValue("TYPE", field_cpp_type_string(f.type));
-        code.SetValue("FIELD_NAME", f.name);
+        code.SetValue("TYPE", field_cpp_type_string(f));
+        code.SetValue("FIELD_NAME", f.name());
         code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{TYPE}}> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
         field_names.push_back(code.GetValue("FIELD_NAME"));
     }

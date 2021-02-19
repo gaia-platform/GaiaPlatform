@@ -137,8 +137,8 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         static inline gaia::direct_access::expression_t<gaia_table_t, const char*> name{&gaia_table_t::name};
         static inline gaia::direct_access::expression_t<gaia_table_t, uint32_t> type{&gaia_table_t::type};
         static inline gaia::direct_access::expression_t<gaia_table_t, bool> is_system{&gaia_table_t::is_system};
-        static inline gaia::direct_access::expression_t<gaia_table_t, const char*> binary_schema{&gaia_table_t::binary_schema};
-        static inline gaia::direct_access::expression_t<gaia_table_t, const char*> serialization_template{&gaia_table_t::serialization_template};
+        static inline gaia::direct_access::expression_t<gaia_table_t, const gaia::direct_access::vector<uint8_t>*> binary_schema{&gaia_table_t::binary_schema};
+        static inline gaia::direct_access::expression_t<gaia_table_t, const gaia::direct_access::vector<uint8_t>*> serialization_template{&gaia_table_t::serialization_template};
         static inline gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> gaia_database{&gaia_table_t::gaia_database};
     };
 
@@ -286,7 +286,7 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, gaia::common::gaia_id_t> gaia_id{&gaia_ruleset_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> name{&gaia_ruleset_t::name};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, bool> active_on_startup{&gaia_ruleset_t::active_on_startup};
-        static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> table_ids{&gaia_ruleset_t::table_ids};
+        static inline gaia::direct_access::expression_t<gaia_ruleset_t, const gaia::direct_access::vector<uint64_t>*> table_ids{&gaia_ruleset_t::table_ids};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> source_location{&gaia_ruleset_t::source_location};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> serial_stream{&gaia_ruleset_t::serial_stream};
     };
