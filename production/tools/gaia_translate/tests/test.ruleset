@@ -19,12 +19,12 @@ ruleset test
             g_actuator_rule_called++;
         }
 
-        if (rule_context.event_type == db::triggers::event_type_t::row_insert)
+        if (rule_context.event_type == (int) gaia::db::triggers::event_type_t::row_insert)
         {
             g_insert_called++;
         }
 
-        if (rule_context.event_type == db::triggers::event_type_t::row_update)
+        if (rule_context.event_type == (int) gaia::db::triggers::event_type_t::row_update)
         {
             if (sensor.value > 5)
             {
