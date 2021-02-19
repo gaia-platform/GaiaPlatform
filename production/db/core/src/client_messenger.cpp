@@ -17,57 +17,69 @@ namespace gaia
 namespace db
 {
 
-client_messenger_t::client_messenger_t(size_t expected_count_received_fds)
-{
-    m_expected_count_received_fds = expected_count_received_fds;
-    m_received_fds = (m_expected_count_received_fds > 0) ? new int[m_expected_count_received_fds] : nullptr;
-}
-
-client_messenger_t::~client_messenger_t()
-{
-    if (m_received_fds != nullptr)
-    {
-        delete[] m_received_fds;
-        m_received_fds = nullptr;
-    }
-}
-
 void client_messenger_t::send_and_receive(
     int socket,
     int* fds_to_send,
     size_t count_fds_to_send,
-    const flatbuffers::FlatBufferBuilder& builder)
+    const flatbuffers::FlatBufferBuilder& builder,
+    size_t expected_count_received_fds)
 {
+    m_socket = socket;
+
     // Send our message.
     send_msg_with_fds(
-        socket,
+        m_socket,
         fds_to_send,
         count_fds_to_send,
         builder.GetBufferPointer(),
         builder.GetSize());
 
     // Receive server reply,
-    size_t count_received_fds = m_expected_count_received_fds;
+    receive_server_reply(expected_count_received_fds);
+
+    // Deserialize the server message.
+    deserialize_server_message();
+}
+
+void client_messenger_t::receive_server_reply(
+    size_t expected_count_received_fds)
+{
+    // Special scenario when we're expecting a bunch of fds.
+    // This happens when we're retrieving log fds
+    bool is_in_bulk_fd_retrieval_mode = (expected_count_received_fds == common::c_max_fd_count);
+
+    // Clear information that we may have read in previous calls.
+    clear();
+
+    // Read server response.
+    m_count_received_fds = expected_count_received_fds;
     size_t bytes_read = recv_msg_with_fds(
-        socket,
-        m_received_fds,
-        (m_expected_count_received_fds > 0) ? &count_received_fds : nullptr,
+        m_socket,
+        (expected_count_received_fds > 0) ? m_received_fds : nullptr,
+        (expected_count_received_fds > 0) ? &m_count_received_fds : nullptr,
         m_message_buffer,
         sizeof(m_message_buffer));
 
     // Sanity checks.
     retail_assert(bytes_read > 0, "Failed to read message!");
 
-    if (count_received_fds != m_expected_count_received_fds)
+    if (is_in_bulk_fd_retrieval_mode)
+    {
+        // In this mode, the fds are attached to a dummy 1-byte datagram.
+        retail_assert(bytes_read == 1, "Unexpected message size!");
+
+        retail_assert(m_count_received_fds > 0, "No fds were received!");
+    }
+    else if (m_count_received_fds != expected_count_received_fds)
     {
         std::stringstream message_stream;
         message_stream
-            << "Expected " << m_expected_count_received_fds
-            << " fds, but received " << count_received_fds << " fds!";
-        retail_assert(count_received_fds == m_expected_count_received_fds, message_stream.str());
+            << "Expected " << expected_count_received_fds
+            << " fds, but received " << m_count_received_fds << " fds!";
+        retail_assert(m_count_received_fds == expected_count_received_fds, message_stream.str());
     }
 
-    for (size_t index_fd = 0; index_fd < m_expected_count_received_fds; index_fd++)
+    for (size_t index_fd = 0; index_fd < m_count_received_fds; index_fd++)
     {
         int current_fd = m_received_fds[index_fd];
         if (current_fd == -1)
@@ -77,19 +89,24 @@ void client_messenger_t::send_and_receive(
             retail_assert(current_fd != -1, message_stream.str());
         }
     }
+}
 
-    // Deserialize the server message.
+void client_messenger_t::deserialize_server_message()
+{
     const message_t* message = Getmessage_t(m_message_buffer);
     m_server_reply = message->msg_as_reply();
+}
+
+void client_messenger_t::clear()
+{
+    m_count_received_fds = 0;
+    m_server_reply = nullptr;
 }
 
 int client_messenger_t::get_received_fd(size_t index_fd)
 {
     retail_assert(
-        m_received_fds,
-        "Attempt to access fd when no fd array exists!");
-    retail_assert(
-        index_fd < m_expected_count_received_fds,
+        index_fd < m_count_received_fds,
         "Attempt to access fd is outside the bounds of the fd array!");
 
     return m_received_fds[index_fd];

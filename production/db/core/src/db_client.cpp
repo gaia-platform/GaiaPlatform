@@ -59,8 +59,8 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 
-    client_messenger_t client_messenger(1);
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
 
     int stream_socket = client_messenger.get_received_fd(client_messenger_t::c_index_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
@@ -318,8 +318,8 @@ void client::begin_session()
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::CONNECT);
 
-    client_messenger_t client_messenger(4);
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
     int fd_locators = client_messenger.get_received_fd(client_messenger_t::c_index_locators);
     int fd_counters = client_messenger.get_received_fd(client_messenger_t::c_index_counters);
