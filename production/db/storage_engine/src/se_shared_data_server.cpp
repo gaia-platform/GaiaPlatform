@@ -51,3 +51,8 @@ gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts()
         "Page allocation counts segment is unmapped!");
     return gaia::db::server::s_page_alloc_counts;
 }
+
+gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
+{
+    return gaia::db::server::s_txn_id;
+}

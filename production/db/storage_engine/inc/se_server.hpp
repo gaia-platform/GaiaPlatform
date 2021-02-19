@@ -46,6 +46,7 @@ class server
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
     friend gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
 
 public:
     enum class persistence_mode_t : uint8_t
@@ -139,7 +140,7 @@ private:
     // dangerous when we approach wraparound.)
     //
     // Timestamp entry format:
-    // 64 bits: txn_status (3) | gc_status (2) | persistence_status (1) | log_fd (16) | linked_timestamp (42)
+    // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
 
     typedef uint64_t ts_entry_t;
     static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
@@ -199,32 +200,21 @@ private:
 
     // Transaction GC status values.
     // These only apply to a commit_ts entry.
-    // Only a commit_ts with TXN_COMMITTED status can have TXN_GC_ELIGIBLE set,
-    // but a commit_ts with TXN_ABORTED status can also have TXN_GC_COMPLETE set,
-    // since its txn log also needs GC (to free redo versions).
-    static constexpr uint64_t c_txn_gc_flags_bits{2ULL};
+    // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, since any txn
+    // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
+    // persistence is enabled) is eligible for GC, and an invalidated log fd
+    // indicates that GC is in progress.
+    static constexpr uint64_t c_txn_gc_flags_bits{1ULL};
     static constexpr uint64_t c_txn_gc_flags_shift{
         (c_txn_entry_bits - c_txn_gc_flags_bits) - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_gc_flags_mask{
         ((1ULL << c_txn_gc_flags_bits) - 1) << c_txn_gc_flags_shift};
     // These are all commit_ts flag values.
-    static constexpr uint64_t c_txn_gc_unknown{0b00ULL};
-    // For a committed txn, this flag indicates that the txn log has been
-    // applied to the shared view, and the txn's undo versions are no longer
-    // visible to any other txn, so the log and undo versions can be safely
-    // reclaimed. For an aborted txn, it means that the txn can no longer be in
-    // the conflict window of any other txn, so its log and redo versions can be
-    // safely reclaimed.
-    static constexpr uint64_t c_txn_gc_eligible{0b10ULL};
+    static constexpr uint64_t c_txn_gc_unknown{0b0ULL};
     // This flag indicates that the txn log and all obsolete versions (undo
     // versions for a committed txn, redo versions for an aborted txn) have been
     // reclaimed by the system.
-    static constexpr uint64_t c_txn_gc_complete{0b11ULL};
-    // This is the bitwise intersection of all non-unknown GC status values.
-    static constexpr uint64_t c_txn_gc_initiated{0b10ULL};
-    // This mask indicates whether GC was initiated for this txn.
-    static constexpr uint64_t c_txn_gc_initiated_mask{
-        c_txn_gc_initiated << c_txn_gc_flags_shift};
+    static constexpr uint64_t c_txn_gc_complete{0b1ULL};
 
     // This flag indicates whether the txn has been made externally durable
     // (i.e., persisted to the write-ahead log). It can't be combined with the
@@ -242,13 +232,20 @@ private:
     static constexpr uint64_t c_txn_persistence_unknown{0b0ULL};
     static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
 
+    // This is a placeholder for the single (currently) reserved bit in the txn
+    // timestamp entry.
+    static constexpr uint64_t c_txn_reserved_flags_bits{1ULL};
+
     // Txn log fd embedded in the txn timestamp entry.
     // This is only present in a commit_ts entry.
     // NB: we assume that any fd will be < 2^16 - 1!
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
     static constexpr uint64_t c_txn_log_fd_shift{
         (c_txn_entry_bits - c_txn_log_fd_bits)
-        - (c_txn_status_flags_bits + c_txn_gc_flags_bits + c_txn_persistence_flags_bits)};
+        - (c_txn_status_flags_bits
+           + c_txn_gc_flags_bits
+           + c_txn_persistence_flags_bits
+           + c_txn_reserved_flags_bits)};
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
@@ -399,14 +396,6 @@ private:
     static bool is_txn_entry_aborted(ts_entry_t ts_entry);
 
     static bool is_txn_aborted(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_entry_in_gc(ts_entry_t ts_entry);
-
-    static bool is_txn_in_gc(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_entry_gc_eligible(ts_entry_t ts_entry);
-
-    static bool is_txn_gc_eligible(gaia_txn_id_t commit_ts);
 
     static bool is_txn_entry_gc_complete(ts_entry_t ts_entry);
 

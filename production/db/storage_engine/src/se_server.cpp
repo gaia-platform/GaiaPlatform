@@ -1655,31 +1655,6 @@ inline bool server::is_txn_aborted(gaia_txn_id_t commit_ts)
     return is_txn_entry_aborted(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_in_gc(ts_entry_t ts_entry)
-{
-    return ((ts_entry & c_txn_gc_initiated_mask) == c_txn_gc_initiated_mask);
-}
-
-inline bool server::is_txn_in_gc(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
-    return is_txn_entry_in_gc(commit_ts_entry);
-}
-
-inline bool server::is_txn_entry_gc_eligible(ts_entry_t ts_entry)
-{
-    uint64_t gc_flags = (ts_entry & c_txn_gc_flags_mask) >> c_txn_gc_flags_shift;
-    return (gc_flags == c_txn_gc_eligible);
-}
-
-inline bool server::is_txn_gc_eligible(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
-    ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
-    return is_txn_entry_gc_eligible(commit_ts_entry);
-}
-
 inline bool server::is_txn_entry_gc_complete(ts_entry_t ts_entry)
 {
     uint64_t gc_flags = (ts_entry & c_txn_gc_flags_mask) >> c_txn_gc_flags_shift;
@@ -1807,6 +1782,7 @@ inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
         {
             return false;
         }
+
     } while (!s_txn_info[commit_ts].compare_exchange_weak(
         commit_ts_entry, commit_ts_entry | c_txn_log_fd_mask));
 
@@ -2269,15 +2245,12 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         is_commit_ts(commit_ts) && is_txn_committed(commit_ts),
         "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
 
-    retail_assert(
-        !is_txn_in_gc(commit_ts),
-        "apply_txn_log_from_ts() must be called before TXN_GC_ELIGIBLE is set!");
-
-    // Since logs can only be applied to the shared view if their txn entry does
-    // not have TXN_GC_ELIGIBLE set, we don't need the safe_fd_from_ts wrapper.
+    // Since txn logs are only eligible for GC after they fall behind the
+    // post-apply watermark, we don't need the safe_fd_from_ts wrapper.
     int log_fd = get_txn_log_fd(commit_ts);
 
-    // A txn log fd should never be invalidated until TXN_GC_ELIGIBLE is set.
+    // A txn log fd should never be invalidated until it falls behind the
+    // post-apply watermark.
     retail_assert(
         log_fd != -1,
         "apply_txn_log_from_ts() must be called on a commit_ts with a valid log fd!");
@@ -2306,25 +2279,14 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log_t::log_record_t* lr = &(txn_log->log_records[i]);
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
-}
 
-bool server::set_txn_gc_eligible(gaia_txn_id_t commit_ts)
-{
-    ts_entry_t expected_entry = s_txn_info[commit_ts];
-    uint64_t gc_status = (expected_entry & c_txn_gc_flags_mask) >> c_txn_gc_flags_shift;
-    retail_assert(gc_status == c_txn_gc_unknown, "GC status must transition from unknown to eligible!");
-
-    // Set GC status to TXN_GC_ELIGIBLE.
-    ts_entry_t commit_ts_entry = expected_entry | (c_txn_gc_eligible << c_txn_gc_flags_shift);
-    return s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
+    bool updated_locators_view_version = advance_watermark_ts((*s_shared_locators)[0], commit_ts);
+    retail_assert(updated_locators_view_version, "Committed txn applied to shared locators view out of order!");
 }
 
 bool server::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     ts_entry_t expected_entry = s_txn_info[commit_ts];
-    uint64_t gc_status = (expected_entry & c_txn_gc_flags_mask) >> c_txn_gc_flags_shift;
-    retail_assert(gc_status == c_txn_gc_eligible, "GC status must transition from eligible to complete!");
-
     // Set GC status to TXN_GC_COMPLETE.
     ts_entry_t commit_ts_entry = expected_entry | (c_txn_gc_complete << c_txn_gc_flags_shift);
     return s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
@@ -2350,13 +2312,6 @@ void server::gc_txn_log(int log_fd, bool committed)
         // be visible but the undo versions cannot be. For aborted txns, free
         // only the redo versions (since the undo versions may still be
         // visible).
-        // NB: we can't safely free the redo versions and txn logs of aborted
-        // txns in the decide handler, because concurrently validating txns
-        // might be testing the aborted txn for conflicts while they still think
-        // it is undecided. The only safe place to free the redo versions and
-        // txn log of an aborted txn is after it falls behind the watermark,
-        // since at that point it cannot be in the conflict window of any
-        // committing txn.
         gaia_offset_t offset_to_free = committed
             ? txn_log->log_records[i].old_offset
             : txn_log->log_records[i].new_offset;
@@ -2367,97 +2322,108 @@ void server::gc_txn_log(int log_fd, bool committed)
     }
 }
 
-// This method is called by an active txn when it is terminated or a submitted txn when it is validated.
+// This method is called by an active txn when it is terminated or by a
+// submitted txn when it is validated.
 //
-// It advances three watermarks in three separate passes. In all of these
-// passes, we first find the current value of the timestamp counter, to use as
-// the upper bound of our scan interval. Then we attempt to advance the
-// watermark for this pass from its current value to the next eligible timestamp
-// entry, stopping if we reach the upper bound we previously calculated. If the
-// CAS we use to advance the watermark fails (indicating that another thread
-// concurrently advanced the watermark), then we abort the current pass, to
-// avoid contention on the same timestamp interval. We also abort the current
-// pass if we might have caught up to the preceding watermark (we can make a
-// conservative guess without atomic operations using a relaxed read of the
-// preceding watermark, since it can only go forward).
+// There are currently three watermarks defined: the "pre-apply" watermark,
+// which serves as an upper bound on the last committed txn which was fully
+// applied to the shared view; the "post-apply" watermark, which serves as a
+// lower bound on the last committed txn which was fully applied to the shared
+// view; and the "post-GC" watermark, which serves as a lower bound on the last
+// txn to have its resources fully reclaimed (i.e., its txn log and all its undo
+// or redo versions deallocated, for a committed or aborted txn respectively).
+// The post-GC watermark is currently unused, but will be used to implement
+// trimming the txn table (i.e., deallocating physical pages corresponding to
+// virtual address space that will never be read or written again).
 //
-// 1. We can advance s_last_applied_commit_ts_upper_bound if the next timestamp
-//    entry is either an invalid ts (we invalidate all unknown entries during
-//    the scan), a commit_ts that is decided, or a begin_ts that is terminated
-//    or submitted with a decided commit_ts. If we successfully advanced the
-//    watermark and the current entry is a committed commit_ts, then we can
-//    apply it to the shared view. After applying it, we set its GC status flags
-//    to TXN_GC_ELIGIBLE. If the current entry is an aborted commit_ts, then we
-//    unconditionally set its GC status flags to TXN_GC_ELIGIBLE.
+// At a high level, the first pass applies all committed txn logs to the shared
+// view, in order (not concurrently), and advances two watermarks marking an
+// upper bound and lower bound respectively on the timestamp of the latest txn
+// whose redo log has been completely applied to the shared view. The second
+// pass executes GC operations concurrently on all txns which have either
+// aborted or been fully applied to the shared view (and have been durably
+// logged if persistence is enabled), and sets a flag on each txn when GC is
+// complete. The third pass simply advances a watermark to the latest txn for
+// which GC has completed for it and all its predecessors, marking a lower bound
+// on the oldest txn whose metadata cannot yet be safely reclaimed.
 //
-// 2. We can advance s_last_applied_commit_ts_lower_bound (which always lags
-//    s_last_applied_commit_ts_upper_bound) if the next timestamp entry is
-//    anything except a commit_ts without TXN_GC_ELIGIBLE set. (The preceding
-//    watermark blocks on all the other cases.) If persistence is enabled, then
-//    we also need to check that TXN_PERSISTENCE_COMPLETE is also set, even on
-//    an aborted txn. (This is because in our current implementation, we log all
-//    redo versions in the Prepare phase, before learning the commit decision,
-//    so an aborted txn may still have its redo versions being actively logged.)
-//    Note that this watermark really combines two different invariants in one:
-//    it guarantees that all committed txns with a commit_ts older than the
-//    watermark have had their logs applied to the shared view, and (when
-//    persistence is enabled) it guarantees that all submitted txns with a
-//    commit_ts older than the watermark have had all their redo versions logged
-//    (regardless of whether they committed or aborted), even though the commit
-//    decision itself may not be durable (since this is not required for
-//    recovery). Since these two invariants are both required to hold for GC to
-//    safely proceed, it was convenient to combine them in a single watermark.
-//    After advancing this watermark, we call gc_txn_log() on the txn log fd if
-//    the current entry is a commit_ts, and then set the TXN_GC_COMPLETE status
-//    flag on the entry.
+// 1. We scan the interval from a snapshot of the pre-apply watermark to a
+//    snapshot of the last allocated timestamp, and attempt to advance the
+//    pre-apply watermark if it has the same value as the post-apply watermark,
+//    and if the next timestamp entry is either an invalid timestamp (we
+//    invalidate all unknown entries during the scan), a commit_ts that is
+//    decided, or a begin_ts that is terminated or submitted with a decided
+//    commit_ts. If we successfully advanced the watermark and the current entry
+//    is a committed commit_ts, then we can apply its redo log to the shared
+//    view. After applying it (or immediately after advancing the pre-apply
+//    watermark if the current timestamp is not a comoitted commit_ts), we
+//    advance the post-apply watermark to the same timestamp. (Since we "own"
+//    the current timestamp entry after a successful CAS on the pre-apply
+//    watermark, we can advance the post-apply watermark without a CAS.) Since
+//    the pre-apply watermark can only move forward, updates to the shared view
+//    are applied in timestamp order, and since the pre-apply watermark can only
+//    be advanced if the post-apply watermark has caught up with it (which can
+//    only be the case for a committed commit_ts if the redo log has been fully
+//    applied), updates to the shared view are never applied concurrently.
 //
-// 3. We can advance s_last_freed_commit_ts_lower_bound (which always lags
-//    s_last_applied_commit_ts_lower_bound) if the next timestamp entry is not a
-//    commit_ts, or if it has the TXN_GC_COMPLETE flag set. This watermark will
-//    be used to trim the txn table (but we can't just read the current value
-//    and free all pages behind it, we need to avoid freeing pages out from
-//    under threads that are advancing this watermark and have possibly been
-//    preempted). A safe algorithm requires tracking the last observed value of
-//    this watermark for each thread and trimming up to the minimum of this list
-//    (which can be calculated from a non-atomic scan, since any thread's
-//    observed value only goes forward).
+// 2. We scan the interval from a snapshot of the post-GC watermark to a
+//    snapshot of the post-apply watermark. If the current timestamp is not a
+//    commit_ts, we continue the scan. Otherwise we check if its log fd is
+//    invalidated. If so, then we know that GC is in progress or complete, so we
+//    continue the scan. If persistence is enabled then we also check the
+//    durable flag on the current timestamp entry and abort the scan if it is
+//    not set (to avoid freeing any redo versions that are being applied to the
+//    write-ahead log). Otherwise we try to invalidate its log fd. If
+//    invalidation fails, we abort the pass to avoid contention, otherwise we GC
+//    this txn using the invalidated log fd, set the TXN_GC_COMPLETE flag, and
+//    continue the scan.
 //
-// REVIEW: I don't *think* there are any races in this function from reading the
-// same timestamp entry repeatedly with the is_txn_*(ts) functions, but to be on
-// the safe side we could just read each ts entry once and use the
-// is_txn_entry_*(entry) functions instead.
+// 3. Again, we scan the interval from a snapshot of the post-GC watermark to a
+//    snapshot of the post-apply watermark. If the current entry is a begin_ts
+//    or a commit_ts with TXN_GC_COMPLETE set, we try to advance the post-GC
+//    watermark. If that fails (or the watermark cannot be advanced because the
+//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass.
 //
-// REVIEW: This algorithm uses a CAS on every step of the traversal, which is
-// very expensive and might cause a lot of cache-coherency traffic on many-core
-// machines. We do abort the traversal when concurrency is detected via CAS
-// failure, but this will help only if uncontended CAS is cheaper than contended
-// CAS (which may not be true on all architectures). I think it should be
-// possible to design an algorithm that only does CAS at the very end of the
-// traversal, when we try to install the new watermark. Such an algorithm might
-// require two watermarks: an "apply" watermark and an "invalidate" watermark,
-// where "apply" and "invalidate" operations would be executed after their
-// respective watermarks had advanced (right now "apply" is done before
-// advancing the watermark and "invalidate" is done after).
+// TODO: Deallocate physical pages backing the txn table for addresses preceding
+// the post-GC watermark (via madvise(MADV_FREE)).
 //
-// TODO: deallocate physical pages backing s_txn_info for addresses preceding
-// the watermark (via madvise(MADV_FREE)).
+// The post-GC watermark will be used to trim the txn table (but we can't just
+// read the current value and free all pages behind it, we need to avoid freeing
+// pages out from under threads that are advancing this watermark and have
+// possibly been preempted). A safe algorithm requires tracking the last
+// observed value of this watermark for each thread in a global table and
+// trimming the txn table up to the minimum of this global table (which can be
+// calculated from a non-atomic scan, since any thread's observed value can only
+// go forward). This means that a thread must register its observed value in the
+// global table every time it reads the post-GC watermark, and should clear its
+// entry when it's done with the observed value. (A subtler issue is that
+// reading the current watermark value and registering the read value in the
+// global table must be an atomic operation for the non-atomic minimum scan to
+// be correct, but no CPU has an atomic memory-to-memory copy operation. We can
+// work around this by just checking the current value of the watermark
+// immediately after writing its saved value to the global table. If they're the
+// same, then no other thread could have observed any non-atomicity in the copy
+// operation. If they differ, then we just repeat the sequence. Since this is a
+// very fast sequence of operations, retries should be infrequent, so livelock
+// shouldn't be an issue.)
 
 void server::update_watermarks(gaia_txn_id_t begin_ts)
 {
     // The ts supplied must be a begin_ts.
     retail_assert(is_begin_ts(begin_ts), "update_watermarks() called with a non-begin_ts!");
 
-    // First get a fuzzy snapshot of the timestamp counter (we don't know yet if
-    // this is a begin_ts or commit_ts).
+    // First get a snapshot of the timestamp counter for an upper bound on
+    // the scan (we don't know yet if this is a begin_ts or commit_ts).
     gaia_txn_id_t last_allocated_ts = get_last_txn_id();
     // Now get a snapshot of the last_applied_commit_ts_upper_bound watermark,
-    // so we can scan forward from there.
+    // for a lower bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_upper_bound = s_last_applied_commit_ts_upper_bound;
 
-    // Scan from the saved last_applied_commit_ts_upper_bound watermark to the
-    // last known timestamp, to find the oldest active txn (if any) after
-    // begin_ts and the newest committed txn (if any) preceding the oldest
-    // active txn if it exists, or before the last known timestamp otherwise.
+    // Pass 1: Scan from the saved pre-apply watermark to the last known
+    // timestamp, to find the oldest active txn (if any) after begin_ts and the
+    // newest committed txn (if any) preceding the oldest active txn if it
+    // exists, or before the last known timestamp otherwise, and apply all
+    // committed txn logs in the scan interval to the shared view.
 
     for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
     {
@@ -2489,6 +2455,21 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
             }
         }
 
+        // We can only advance the pre-apply watermark if the post-apply
+        // watermark has caught up to it (this ensures that txn logs cannot be
+        // applied concurrently to the shared view).
+        // This comparison is racy, but the race is benign. If the values become
+        // unequal after an equal comparison, it must be from a successful CAS
+        // in another thread, so this thread's CAS will fail and the invariant
+        // is preserved. OTOH, if the values become equal after an unequal
+        // comparison, another thread must have advanced the post-apply
+        // watermark, so progress has been made even though this thread aborted
+        // its scan.
+        if (s_last_applied_commit_ts_upper_bound != s_last_applied_commit_ts_lower_bound)
+        {
+            break;
+        }
+
         if (!advance_watermark_ts(s_last_applied_commit_ts_upper_bound, ts))
         {
             // If another thread has already advanced the watermark ahead of
@@ -2505,40 +2486,36 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
 
             if (is_txn_committed(ts))
             {
+                // If a new txn starts after or while we apply this txn log to
+                // the shared view, but before we advance the post-apply
+                // watermark, it will re-apply some of our updates to its
+                // snapshot of the shared view, but that is benign since log
+                // replay is idempotent (as long as logs are applied in
+                // timestamp order).
                 apply_txn_log_from_ts(ts);
             }
-
-            bool has_set_entry = set_txn_gc_eligible(ts);
-            // The only part of this entry that could be concurrently modified,
-            // since the txn is already decided, is its persistence status.
-            // No other thread could have already set its GC eligibility, since
-            // we "own" this entry after successfully advancing the watermark.
-            if (!has_set_entry)
-            {
-                retail_assert(
-                    is_txn_durable(ts),
-                    "A txn entry can only change after we advance the watermark if it is marked durable!");
-                // If the txn's persistence status was concurrently modified,
-                // then we should need to retry only once, since it can't be
-                // modified again.
-                has_set_entry = set_txn_gc_eligible(ts);
-                retail_assert(
-                    has_set_entry,
-                    "A txn entry cannot change after we advance the watermark if it is already marked durable!");
-            }
         }
+
+        // Now we advance the post-apply watermark to catch up with the pre-apply watermark.
+        bool advanced_watermark = advance_watermark_ts(s_last_applied_commit_ts_lower_bound, ts);
+        // No other thread should be able to advance the post-apply watermark,
+        // since only one thread can advance the pre-apply watermark to this
+        // timestamp.
+        retail_assert(advanced_watermark, "Couldn't advance the post-apply watermark!");
     }
 
-    // First get a fuzzy snapshot of the previous watermark. This guarantees
-    // that we don't advance the current watermark beyond the previous
-    // watermark (since the previous watermark can only move forward).
-    last_applied_commit_ts_upper_bound = s_last_applied_commit_ts_upper_bound;
-    // Now get a snapshot of the current watermark, so we can scan forward from
-    // there.
+    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
+    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
 
-    // Scan from the saved current watermark to the (newly) saved previous watermark.
-    for (gaia_txn_id_t ts = last_applied_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_upper_bound; ++ts)
+    // Pass 2: Scan from the post-GC watermark to the post-apply watermark,
+    // executing GC on any commit_ts if the log fd is valid (and the durable
+    // flag is set if persistence is enabled). (If we fail to invalidate the log
+    // fd, we abort the scan to avoid contention.) When GC is complete, set the
+    // TXN_GC_COMPLETE flag on the txn entry and continue.
+
+    for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
         retail_assert(!is_unknown_ts(ts), "All unknown txn table entries should be invalidated!");
 
@@ -2546,21 +2523,8 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
             !(is_begin_ts(ts) && is_txn_active(ts)),
             "The watermark should not be advanced to an active begin_ts!");
 
-        // If this is a commit_ts, we cannot advance the watermark unless it's
-        // decided. In that case, we apply its txn log (if it's committed)
-        // before advancing the watermark, and invalidate and close its log fd
-        // after advancing the watermark.
         if (is_commit_ts(ts))
         {
-            retail_assert(is_txn_decided(ts), "The watermark should not be advanced to an undecided commit_ts!");
-
-            // We can only advance the current watermark to a commit_ts if it is
-            // marked TXN_GC_ELIGIBLE.
-            if (!is_txn_gc_eligible(ts))
-            {
-                break;
-            }
-
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
             // deallocated while they're being persisted).
@@ -2571,34 +2535,25 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
             {
                 break;
             }
-        }
 
-        if (!advance_watermark_ts(s_last_applied_commit_ts_lower_bound, ts))
-        {
-            // If another thread has already advanced the watermark ahead of
-            // this ts, we abort advancing it further.
-            retail_assert(
-                s_last_applied_commit_ts_lower_bound > last_applied_commit_ts_lower_bound,
-                "The watermark must have advanced if advance_watermark_ts failed!");
-            break;
-        }
-
-        if (is_commit_ts(ts))
-        {
-            // We always invalidate and close the log fd of a decided
-            // commit_ts after we have advanced the watermark. Since we
-            // successfully advanced the watermark to this commit_ts, no
-            // other thread could have previously advanced it, and since
-            // invalidation is always done after advancing the watermark, no
-            // other thread could have invalidated the log fd.
             int log_fd = get_txn_log_fd(ts);
-            retail_assert(log_fd != -1, "The log fd cannot be invalidated if we advanced the watermark first!");
-            retail_assert(is_fd_valid(log_fd), "The log fd cannot be closed if we advanced the watermark first!");
-            // Invalidate the log fd, GC the undo versions in the log, and close the fd.
-            bool has_invalidated_fd = invalidate_txn_log_fd(ts);
-            retail_assert(
-                has_invalidated_fd,
-                "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
+
+            // Continue the scan if this log fd has already been invalidated,
+            // since GC has already been started.
+            if (log_fd == -1)
+            {
+                continue;
+            }
+
+            // Invalidate the log fd, GC the obsolete versions in the log, and close the fd.
+            if (!invalidate_txn_log_fd(ts))
+            {
+                // Abort the scan to avoid contention.
+                break;
+            }
+
+            // The log fd can't be closed until after it has been invalidated.
+            retail_assert(is_fd_valid(log_fd), "The log fd cannot be closed if we successfully invalidated it!");
 
             // Since we invalidated the log fd, we now hold the only accessible
             // copy of the fd, so we need to ensure it is closed.
@@ -2613,27 +2568,28 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
             // for simplicity.
             gc_txn_log(log_fd, is_txn_committed(ts));
 
-            // We need to mark this txn entry TXN_GC_COMPLETE to allow the "GC
-            // complete" watermark to advance.
+            // We need to mark this txn entry TXN_GC_COMPLETE to allow the
+            // post-GC watermark to advance.
             bool has_set_entry = set_txn_gc_complete(ts);
 
             // If persistence is enabled, then this commit_ts must have been
             // marked durable before we advanced the watermark, and no other
-            // thread can set GC status after we advance the watermark, so it
-            // should not be possible for this CAS to fail.
-            retail_assert(has_set_entry, "This txn entry cannot change after we advance the watermark!");
+            // thread can set TXN_GC_COMPLETE after we invalidate the log fd, so
+            // it should not be possible for this CAS to fail.
+            retail_assert(has_set_entry, "This txn entry cannot change after we invalidate the log fd!");
         }
     }
 
-    // First get a fuzzy snapshot of the previous watermark. This guarantees
-    // that we don't advance the current watermark beyond the previous
-    // watermark (since the previous watermark can only move forward).
+    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
+    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
     last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
-    // Now get a snapshot of the current watermark, so we can scan forward from
-    // there.
-    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
 
-    // Scan from the saved current watermark to the (newly) saved previous watermark.
+    // Pass 3: Scan from the post-GC watermark to the post-apply watermark,
+    // advancing the post-GC watermark on any begin_ts, or any commit_ts that
+    // has the TXN_GC_COMPLETE flag set. If TXN_GC_COMPLETE is unset on the
+    // current commit_ts, abort the scan.
+
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
         retail_assert(!is_unknown_ts(ts), "All unknown txn table entries should be invalidated!");
@@ -2646,7 +2602,7 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
         {
             retail_assert(is_txn_decided(ts), "The watermark should not be advanced to an undecided commit_ts!");
 
-            // We can only advance the current watermark to a commit_ts if it is
+            // We can only advance the post-GC watermark to a commit_ts if it is
             // marked TXN_GC_COMPLETE.
             if (!is_txn_gc_complete(ts))
             {
@@ -2656,21 +2612,22 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
 
         if (!advance_watermark_ts(s_last_freed_commit_ts_lower_bound, ts))
         {
-            // If another thread has already advanced the watermark ahead of
-            // this ts, we abort advancing it further.
+            // If another thread has already advanced the post-GC watermark
+            // ahead of this ts, we abort advancing it further.
             retail_assert(
                 s_last_freed_commit_ts_lower_bound > last_freed_commit_ts_lower_bound,
                 "The watermark must have advanced if advance_watermark_ts failed!");
             break;
         }
 
-        // There are no actions to take after advancing the watermark, since
-        // this watermark only exists to provide a safe lower bound for
-        // truncating transaction history.
+        // There are no actions to take after advancing the post-GC watermark,
+        // since the post-GC watermark only exists to provide a safe lower
+        // bound for truncating transaction history.
     }
 }
 
-// This method allocates a new begin_ts and initializes its entry.
+// This method allocates a new begin_ts and initializes its entry in the txn
+// table.
 gaia_txn_id_t server::txn_begin()
 {
     // Allocate a new begin timestamp.
@@ -2795,9 +2752,12 @@ void server::run(persistence_mode_t persistence_mode)
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
 
+        // Initialize global data structures.
         init_shared_memory();
         init_txn_info();
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+        s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+        s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         std::thread client_dispatch_thread(client_dispatch_handler);
 

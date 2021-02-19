@@ -27,5 +27,8 @@ gaia::db::shared_id_index_t* get_shared_id_index();
 // Returns a pointer to a mapping of the "page_alloc_counts" shared memory segment.
 gaia::db::page_alloc_counts_t* get_shared_page_alloc_counts();
 
+// Returns the current transaction ID.
+gaia::db::gaia_txn_id_t get_txn_id();
+
 } // namespace db
 } // namespace gaia

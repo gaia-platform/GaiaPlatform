@@ -79,3 +79,8 @@ gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts()
 
     return gaia::db::client::s_page_alloc_counts;
 }
+
+gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
+{
+    return gaia::db::client::s_txn_id;
+}

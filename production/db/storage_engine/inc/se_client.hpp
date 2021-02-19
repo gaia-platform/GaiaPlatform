@@ -36,6 +36,7 @@ class client
     friend gaia::db::shared_data_t* gaia::db::get_shared_data();
     friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
     friend gaia::db::page_alloc_counts_t* gaia::db::get_shared_page_alloc_counts();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
 
 public:
     static inline bool is_transaction_active()

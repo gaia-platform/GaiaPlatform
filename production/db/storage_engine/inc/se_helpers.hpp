@@ -127,7 +127,7 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_shared_locators();
     return locator_exists(locator)
-        ? (*locators)[locator]
+        ? (*locators)[locator].load()
         : c_invalid_gaia_offset;
 }
 
