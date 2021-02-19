@@ -802,7 +802,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
     if (g_rule_context_rule_name_referenced)
     {
-        navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
+        navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
     if (rule_count == 1)
     {
@@ -1007,15 +1007,15 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
-                {
-                    return;
-                }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+                if (!validate_and_add_active_field(table_name, field_name))
+                {
+                    return;
+                }
             }
         }
         else if (member_expression != nullptr)
@@ -1037,6 +1037,18 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
+                    {
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
+                    }
                 }
                 else
                 {
@@ -1044,14 +1056,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (!is_last_operation)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                    }
-                    else
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
                     {
                         g_update_tables.insert(table_name);
                         g_insert_tables.insert(table_name);
@@ -1232,20 +1237,8 @@ public:
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
 
-                    if (op->getOpcode() != BO_Assign)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}() ");
-                    }
-                    else
-                    {
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    }
+                    m_rewriter.InsertTextAfterToken(
+                        op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
                 }
                 else
                 {
@@ -1357,10 +1350,6 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    if (!validate_and_add_active_field(table_name, field_name))
-                    {
-                        return;
-                    }
 
                     if (op->isPostfix())
                     {

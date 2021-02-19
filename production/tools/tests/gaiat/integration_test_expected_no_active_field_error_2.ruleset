@@ -3,9 +3,9 @@
 ruleset test
 {
     {
-        if (@actuator.timestamp < 5 )
+        if (actuator.timestamp < 5 )
 	    {
-		    @actuator.value = 5;
+		    actuator.value = 5;
 	    }
     }
 }
