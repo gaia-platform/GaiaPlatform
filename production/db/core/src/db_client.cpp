@@ -288,8 +288,11 @@ void client::clear_shared_memory()
     // This is intended to be called before a session is established.
     verify_no_session();
 
-    // We closed our original fd for the data segment, so we only need to unmap it.
+    // We closed our original fds for all shared segments except the locators,
+    // so we only need to unmap them.
+    unmap_fd(s_counters, sizeof(*s_counters));
     unmap_fd(s_data, sizeof(*s_data));
+    unmap_fd(s_id_index, sizeof(*s_id_index));
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
