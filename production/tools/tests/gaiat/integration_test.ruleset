@@ -28,11 +28,9 @@ ruleset test3
 
 ruleset test4
 {
+    OnInsert(sensor)
     {
-        if (sensor.LastOperation == INSERT)
-        {
-            sensor.delete_row();
-        }
+        sensor.delete_row();
     }
 }
 
@@ -90,7 +88,7 @@ ruleset test7
   OnChange(sensor)
   {
       auto t = sensor.gaia_id();
-	  if (sensor.LastOperation == DELETE)
+	  if (sensor.value == 5)
       {
           test t;
           t.delete_row();

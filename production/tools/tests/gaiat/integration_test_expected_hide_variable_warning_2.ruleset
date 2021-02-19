@@ -2,12 +2,9 @@
 
 ruleset test
 {
+    OnInsert(sensor)
     {
         int incubator = 5;
-        if (sensor.LastOperation == DELETE)
-        {
-
-        }
     }
 }
 

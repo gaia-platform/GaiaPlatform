@@ -1062,21 +1062,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && (
             (Tok.isOneOf(tok::period, tok::coloncolon) &&
             NextToken().is(tok::identifier))));
-    if (getLangOpts().Gaia && Tok.is(tok::period) &&
-        NextToken().is(tok::identifier) && Actions.getCurScope()->isInRulesetScope() &&
-        !Res.isInvalid() && !Res.isUnset() &&
-        NextToken().getIdentifierInfo()->getName().equals("LastOperation"))
-    {
-        DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
-        if (declExpr != nullptr)
-        {
-            ValueDecl *decl = declExpr->getDecl();
-            if (decl->hasAttr<FieldTableAttr>())
-            {
-                decl->addAttr(GaiaLastOperationAttr::CreateImplicit(Actions.Context));
-            }
-        }
-    }
+
 
     if (!Res.isInvalid() && Res.isUnset()) {
       UnconsumeToken(Replacement);

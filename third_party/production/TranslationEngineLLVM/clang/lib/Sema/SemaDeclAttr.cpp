@@ -2198,41 +2198,6 @@ static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     AL.getAttributeSpellingListIndex()));
 }
 
-static void handleGaiaLastOperationAttr(Sema &S, Decl *D, const ParsedAttr &AL)
-{
-  D->addAttr(::new (S.Context) GaiaLastOperationAttr(
-    AL.getRange(), S.Context,
-    AL.getAttributeSpellingListIndex()));
-}
-
-static void handleGaiaLastOperationInsertAttr(Sema &S, Decl *D, const ParsedAttr &AL)
-{
-  D->addAttr(::new (S.Context) GaiaLastOperationINSERTAttr(
-    AL.getRange(), S.Context,
-    AL.getAttributeSpellingListIndex()));
-}
-
-static void handleGaiaLastOperationUpdateAttr(Sema &S, Decl *D, const ParsedAttr &AL)
-{
-  D->addAttr(::new (S.Context) GaiaLastOperationUPDATEAttr(
-    AL.getRange(), S.Context,
-    AL.getAttributeSpellingListIndex()));
-}
-
-static void handleGaiaLastOperationDeleteAttr(Sema &S, Decl *D, const ParsedAttr &AL)
-{
-  D->addAttr(::new (S.Context) GaiaLastOperationDELETEAttr(
-    AL.getRange(), S.Context,
-    AL.getAttributeSpellingListIndex()));
-}
-
-static void handleGaiaLastOperationNoneAttr(Sema &S, Decl *D, const ParsedAttr &AL)
-{
-  D->addAttr(::new (S.Context) GaiaLastOperationNONEAttr(
-    AL.getRange(), S.Context,
-    AL.getAttributeSpellingListIndex()));
-}
-
 static void handleGaiaFieldLValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
   D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
@@ -7278,26 +7243,11 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_SerialStream:
     handleStreamAttr(S, D, AL);
     break;
-  case ParsedAttr::AT_GaiaLastOperation:
-    handleGaiaLastOperationAttr(S, D, AL);
-    break;
-  case ParsedAttr::AT_GaiaLastOperationINSERT:
-    handleGaiaLastOperationInsertAttr(S, D, AL);
-    break;
-  case ParsedAttr::AT_GaiaLastOperationUPDATE:
-    handleGaiaLastOperationUpdateAttr(S, D, AL);
-    break;
-  case ParsedAttr::AT_GaiaLastOperationDELETE:
-    handleGaiaLastOperationDeleteAttr(S, D, AL);
-    break;
   case ParsedAttr::AT_GaiaFieldLValue:
     handleGaiaFieldLValueAttr(S, D, AL);
     break;
   case ParsedAttr::AT_FieldTable:
     handleFieldTableAttr(S, D, AL);
-    break;
-  case ParsedAttr::AT_GaiaLastOperationNONE:
-    handleGaiaLastOperationNoneAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaOnUpdate:
   case ParsedAttr::AT_GaiaOnInsert:

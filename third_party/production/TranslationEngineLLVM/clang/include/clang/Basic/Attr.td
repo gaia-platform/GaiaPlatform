@@ -3204,36 +3204,6 @@ def SerialStream : Attr {
     let Args = [IdentifierArgument<"stream">];
 }
 
-def GaiaLastOperation : Attr {
-  let Spellings = [Keyword<"gaiaLastOperation">];
-  let Subjects = SubjectList<[Var]>;
-  let Documentation = [Undocumented];
-}
-
-def GaiaLastOperationINSERT : Attr {
-  let Spellings = [Keyword<"INSERT">];
-  let Subjects = SubjectList<[Var]>;
-  let Documentation = [Undocumented];
-}
-
-def GaiaLastOperationUPDATE : Attr {
-  let Spellings = [Keyword<"UPDATE">];
-  let Subjects = SubjectList<[Var]>;
-  let Documentation = [Undocumented];
-}
-
-def GaiaLastOperationDELETE : Attr {
-  let Spellings = [Keyword<"DELETE">];
-  let Subjects = SubjectList<[Var]>;
-  let Documentation = [Undocumented];
-}
-
-def GaiaLastOperationNONE : Attr {
-  let Spellings = [Keyword<"NONE">];
-  let Subjects = SubjectList<[Var]>;
-  let Documentation = [Undocumented];
-}
-
 def GaiaFieldLValue : Attr {
   let Spellings = [Keyword<"gaiaFieldLValue">];
   let Subjects = SubjectList<[Var]>;

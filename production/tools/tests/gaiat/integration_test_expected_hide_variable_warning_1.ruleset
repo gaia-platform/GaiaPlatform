@@ -2,8 +2,9 @@
 
 ruleset test
 {
+    OnUpdate(sensor)
     {
-        if (sensor.LastOperation == DELETE)
+        if (sensor.value == 5)
         {
             int value = 5;
         }

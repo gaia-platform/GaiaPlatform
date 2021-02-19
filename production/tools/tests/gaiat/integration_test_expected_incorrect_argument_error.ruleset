@@ -2,11 +2,9 @@
 
 ruleset test
 {
+    OnInsert(sensor)
     {
-        if (sensor.LastOperation == INSERT)
-        {
-            actuator.value ++;
-        }
+        actuator.value ++;
     }
 }
 

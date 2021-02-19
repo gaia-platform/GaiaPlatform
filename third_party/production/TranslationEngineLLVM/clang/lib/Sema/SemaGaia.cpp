@@ -37,11 +37,7 @@ using namespace clang;
 
 static string fieldTableName;
 
-static const char *updateVarName = "UPDATE";
-static const char *deleteVarName = "DELETE";
-static const char *insertVarName = "INSERT";
-static const char *noneVarName = "NONE";
-static const char *ruleContextTypeName = "rule_context__type";
+static const char ruleContextTypeName[] = "rule_context__type";
 
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
@@ -341,8 +337,6 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     }
 
     //insert fields and methods that are not part of the schema
-    addField(&Context.Idents.get("LastOperation"), Context.IntTy, RD, loc);
-
     addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
@@ -356,14 +350,6 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 {
     StringRef fieldNameStrRef = id->getName();
-
-    if(fieldNameStrRef.equals(updateVarName) ||
-         fieldNameStrRef.equals(deleteVarName) ||
-         fieldNameStrRef.equals(insertVarName) ||
-         fieldNameStrRef.equals(noneVarName))
-    {
-        return Context.IntTy.withConst();
-    }
 
     std::string fieldName = fieldNameStrRef.str();
 
@@ -446,8 +432,6 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
         return nullptr;
     }
 
-    StringRef varName = II->getName();
-
     DeclContext *context  = getCurFunctionDecl();
 
     VarDecl *varDecl = VarDecl::Create(Context, context, loc, loc,
@@ -455,36 +439,8 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
 
-    if (varName.equals(updateVarName))
-    {
-        varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
-        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
-    }
-    else if (varName.equals(insertVarName))
-    {
-        varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
-        varDecl->setInit(ActOnIntegerConstant(loc, 1).get());
-    }
-    else if (varName.equals(deleteVarName))
-    {
-        varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
-        varDecl->setInit(ActOnIntegerConstant(loc, 2).get());
-    }
-    else if (varName.equals(noneVarName))
-    {
-        varDecl->addAttr(GaiaLastOperationNONEAttr::CreateImplicit(Context));
-        varDecl->setInit(ActOnIntegerConstant(loc, 3).get());
-    }
-    else if (isGaiaFieldTable)
-    {
-        varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
-        varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
-    }
-    else
-    {
-        varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
-        varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
-    }
+    varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+    varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
 
     context->addDecl(varDecl);
 

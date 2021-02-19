@@ -2737,30 +2737,6 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
                                      TypeSourceInfo *CastTypeInfo,
                                      SourceLocation RPLoc,
                                      Expr *CastExpr) {
-  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
-  {
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(CastExpr);
-    MemberExpr *expm = dyn_cast<MemberExpr>(CastExpr);
-    
-    if (exp == nullptr && expm != nullptr)
-    {
-        exp = dyn_cast<DeclRefExpr>(expm->getBase());
-    }
-
-    if (exp != nullptr)
-    {              
-        ValueDecl *decl = exp->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>() || 
-            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
-            decl->hasAttr<GaiaLastOperationNONEAttr>())
-        {
-            Diag(LPLoc, diag::err_invalid_operand_last_operation);
-            return ExprError();
-        }
-    }
-  }
   CastOperation Op(*this, CastTypeInfo->getType(), CastExpr);
   Op.DestRange = CastTypeInfo->getTypeLoc().getSourceRange();
   Op.OpRange = SourceRange(LPLoc, CastExpr->getEndLoc());
