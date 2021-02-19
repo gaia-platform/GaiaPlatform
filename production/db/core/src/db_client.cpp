@@ -62,7 +62,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     client_messenger_t client_messenger(1);
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
-    int stream_socket = client_messenger.get_received_fds()[0];
+    int stream_socket = client_messenger.get_received_fd(0);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
@@ -321,10 +321,10 @@ void client::begin_session()
     client_messenger_t client_messenger(4);
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
-    int fd_locators = client_messenger.get_received_fds()[0];
-    int fd_counters = client_messenger.get_received_fds()[1];
-    int fd_data = client_messenger.get_received_fds()[2];
-    int fd_id_index = client_messenger.get_received_fds()[3];
+    int fd_locators = client_messenger.get_received_fd(0);
+    int fd_counters = client_messenger.get_received_fd(1);
+    int fd_data = client_messenger.get_received_fd(2);
+    int fd_id_index = client_messenger.get_received_fd(3);
 
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
@@ -513,7 +513,7 @@ void client::commit_transaction()
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::COMMIT_TXN);
 
-    client_messenger_t client_messenger(0);
+    client_messenger_t client_messenger;
     client_messenger.send_and_receive(s_session_socket, &fd_log, 1, builder);
 
     // Extract the commit decision from the server's reply and return it.
@@ -549,7 +549,7 @@ address_offset_t client::request_memory(size_t object_size)
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::REQUEST_MEMORY, object_size);
 
-    client_messenger_t client_messenger(0);
+    client_messenger_t client_messenger;
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     const memory_allocation_info_t* allocation_info

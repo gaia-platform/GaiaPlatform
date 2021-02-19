@@ -37,7 +37,6 @@ void client_messenger_t::send_and_receive(
     int* fds_to_send,
     size_t count_fds_to_send,
     const flatbuffers::FlatBufferBuilder& builder)
-
 {
     // Send our message.
     send_msg_with_fds(
@@ -47,7 +46,7 @@ void client_messenger_t::send_and_receive(
         builder.GetBufferPointer(),
         builder.GetSize());
 
-    // Receive reply,
+    // Receive server reply,
     size_t count_received_fds = m_expected_count_received_fds;
     size_t bytes_read = recv_msg_with_fds(
         socket,
@@ -60,8 +59,9 @@ void client_messenger_t::send_and_receive(
     retail_assert(bytes_read > 0, "Failed to read message!");
 
     std::stringstream message_stream;
-    message_stream << "Expected " << m_expected_count_received_fds
-                   << " fds, but received " << count_received_fds << "!";
+    message_stream
+        << "Expected " << m_expected_count_received_fds
+        << " fds, but received " << count_received_fds << " fds!";
     retail_assert(count_received_fds == m_expected_count_received_fds, message_stream.str());
 
     for (size_t index_fd = 0; index_fd < m_expected_count_received_fds; index_fd++)
@@ -76,6 +76,18 @@ void client_messenger_t::send_and_receive(
     // Deserialize the server message.
     const message_t* message = Getmessage_t(m_message_buffer);
     m_server_reply = message->msg_as_reply();
+}
+
+int client_messenger_t::get_received_fd(size_t index_fd)
+{
+    retail_assert(
+        m_received_fds,
+        "Attempt to access fd when no fd array exists!");
+    retail_assert(
+        index_fd < m_expected_count_received_fds,
+        "Attempt to access fd is outside the bounds of the fd array!");
+
+    return m_received_fds[index_fd];
 }
 
 } // namespace db

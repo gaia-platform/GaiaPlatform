@@ -16,12 +16,17 @@ namespace gaia
 namespace db
 {
 
+// Instances of this class are used to communicate with the server.
+//
+// The send_and_receive() method enables sending a request to the server,
+// receiving the server response, and performing standard validations on that response.
+//
+// The fds returned by the server, if any, are surfaced through get_received_fd().
+// The server reply is surfaced through get_server_reply().
 class client_messenger_t
 {
 public:
-    client_messenger_t() = delete;
-
-    explicit client_messenger_t(size_t expected_count_received_fds);
+    explicit client_messenger_t(size_t expected_count_received_fds = 0);
 
     ~client_messenger_t();
 
@@ -31,10 +36,7 @@ public:
         size_t count_fds_to_send,
         const flatbuffers::FlatBufferBuilder& builder);
 
-    inline int* get_received_fds()
-    {
-        return m_received_fds;
-    }
+    int get_received_fd(size_t index_fd);
 
     inline const messages::server_reply_t* get_server_reply()
     {
@@ -42,10 +44,10 @@ public:
     }
 
 protected:
+    size_t m_expected_count_received_fds = 0;
+    int* m_received_fds = nullptr;
     uint8_t m_message_buffer[common::c_max_msg_size] = {0};
-    int* m_received_fds;
-    size_t m_expected_count_received_fds;
-    const messages::server_reply_t* m_server_reply;
+    const messages::server_reply_t* m_server_reply = nullptr;
 };
 
 } // namespace db
