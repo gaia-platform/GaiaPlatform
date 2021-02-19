@@ -120,7 +120,8 @@ Oid convert_to_pg_type(data_type_t type)
     }
 }
 
-Datum convert_scalar_to_datum(const data_holder_t& value)
+// Convert a non-string data holder value to PostgreSQL Datum.
+Datum convert_to_datum(const data_holder_t& value)
 {
     switch (value.type)
     {
@@ -182,7 +183,7 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
     }
     else
     {
-        nullable_datum.value = convert_scalar_to_datum(value);
+        nullable_datum.value = convert_to_datum(value);
     }
 
     return nullable_datum;
@@ -793,7 +794,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
 
                 accumArrayResult(
                     state,
-                    convert_scalar_to_datum(value),
+                    convert_to_datum(value),
                     false,
                     element_type,
                     CurrentMemoryContext);
@@ -856,7 +857,6 @@ bool scan_state_t::scan_forward()
 
 modify_state_t::modify_state_t()
 {
-    m_current_payload = nullptr;
     m_binary_schema = nullptr;
     m_binary_schema_size = 0;
 }
@@ -870,10 +870,11 @@ void modify_state_t::initialize_payload()
         type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
 
         // Set current payload to a copy of the serialization template bits.
-        m_current_payload = make_unique<vector<uint8_t>>(
+        vector<uint8_t>(
             auto_type_information.get()->get_serialization_template(),
             auto_type_information.get()->get_serialization_template()
-                + auto_type_information.get()->get_serialization_template_size());
+                + auto_type_information.get()->get_serialization_template_size())
+            .swap(m_current_payload);
 
         // Get a pointer to the binary schema.
         // We only need to do this on the first call.
@@ -947,7 +948,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             {
                 ::set_field_value(
                     m_container_id,
-                    *m_current_payload,
+                    m_current_payload,
                     m_binary_schema,
                     m_binary_schema_size,
                     m_fields[field_index].position,
@@ -957,7 +958,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             {
                 bool result = ::set_field_value(
                     m_container_id,
-                    m_current_payload->data(),
+                    m_current_payload.data(),
                     m_binary_schema,
                     m_binary_schema_size,
                     m_fields[field_index].position,
@@ -1021,7 +1022,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
             ::set_field_array_size(
                 m_container_id,
-                *m_current_payload,
+                m_current_payload,
                 m_binary_schema,
                 m_binary_schema_size,
                 m_fields[field_index].position,
@@ -1034,7 +1035,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
                 ::set_field_array_element(
                     m_container_id,
-                    m_current_payload->data(),
+                    m_current_payload.data(),
                     m_binary_schema,
                     m_binary_schema_size,
                     m_fields[field_index].position,
@@ -1062,17 +1063,17 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         gaia_ptr record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload.size(), m_current_payload.data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
             record = gaia_ptr::open(gaia_id);
 
             // Only update payload if it has changed.
-            if (record.data_size() != m_current_payload->size()
-                || memcmp(record.data(), m_current_payload->data(), record.data_size()) != 0)
+            if (record.data_size() != m_current_payload.size()
+                || memcmp(record.data(), m_current_payload.data(), record.data_size()) != 0)
             {
-                record.update_payload(m_current_payload->size(), m_current_payload->data());
+                record.update_payload(m_current_payload.size(), m_current_payload.data());
             }
         }
         else
@@ -1225,7 +1226,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 
 void modify_state_t::end_modify()
 {
-    m_current_payload.reset(nullptr);
+    vector<uint8_t>().swap(m_current_payload);
 }
 
 } // namespace fdw

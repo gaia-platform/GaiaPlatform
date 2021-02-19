@@ -340,7 +340,7 @@ static string generate_edc_struct(
     // or possibly arrays.
     bool has_string = false;
     // Accessors.
-    for (auto const& f : field_records)
+    for (const auto& f : field_records)
     {
         code.SetValue("TYPE", field_cpp_type_string(f));
         code.SetValue("FIELD_NAME", f.name());
@@ -361,7 +361,7 @@ static string generate_edc_struct(
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
     bool first = true;
-    for (auto const& f : field_records)
+    for (const auto& f : field_records)
     {
         if (!first)
         {
@@ -380,7 +380,7 @@ static string generate_edc_struct(
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.SetValue("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
-    for (auto const& f : field_records)
+    for (const auto& f : field_records)
     {
         param_list += ", ";
         param_list += f.name();
