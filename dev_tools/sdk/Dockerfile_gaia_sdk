@@ -9,7 +9,5 @@ ARG DEBIAN_FRONTEND=noninteractive
 COPY build.sh .
 COPY gaia-0.1.0_amd64.deb .
 RUN apt install ./gaia-0.1.0_amd64.deb
-RUN cp -r /opt/gaia/examples/incubator . \
-  && cp -r /opt/gaia/examples/hello .
 
-CMD sh ./build.sh
+RUN sh ./build.sh
