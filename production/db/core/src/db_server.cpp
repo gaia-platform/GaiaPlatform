@@ -134,16 +134,20 @@ void server::handle_begin_txn(
         request->data_type() == request_data_t::memory_info,
         "A call to begin_transaction() must provide memory allocation information.");
 
-    retail_assert(s_txn_id == c_invalid_gaia_txn_id, "s_txn_id should be uninitialized!");
-
     retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
 
-    // Allocate a new begin_ts for this txn and initialize its entry in the txn table.
-    s_txn_id = txn_begin();
+    // Currently we don't need to alter any server-side state for opening a transaction.
+    FlatBufferBuilder builder;
 
-    // The begin_ts returned by txn_begin() should always be valid since it
-    // retries on concurrent invalidation.
-    retail_assert(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
+    // Allocate a new begin_ts for this txn and initialize its entry. Loop until
+    // we are able to install the entry before being invalidated by another
+    // thread.
+    gaia_txn_id_t begin_ts = c_invalid_gaia_txn_id;
+    while (begin_ts == c_invalid_gaia_txn_id)
+    {
+        begin_ts = txn_begin();
+    }
+    s_txn_id = begin_ts;
 
     // Ensure that there are no undecided txns in our snapshot window.
     validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
@@ -151,13 +155,12 @@ void server::handle_begin_txn(
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
     std::vector<int> txn_log_fds;
-    get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+    get_txn_log_fds_for_snapshot(begin_ts, txn_log_fds);
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
     // REVIEW: We could optimize the fast path by piggybacking some small fixed
     // number of log fds on the initial reply message.
-    FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds.size());
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
@@ -2780,39 +2783,39 @@ void server::update_post_gc_watermark(gaia_txn_id_t begin_ts)
     }
 }
 
-// This method allocates a new begin_ts and initializes its entry in the txn
-// table.
+// This method allocates a new begin_ts and initializes its entry.
 gaia_txn_id_t server::txn_begin()
 {
-    // The newly allocated begin timestamp for the new txn.
-    gaia_txn_id_t begin_ts;
+    // Allocate a new begin timestamp.
+    gaia_txn_id_t begin_ts = allocate_txn_id();
 
-    // NB: expected_entry is an inout argument holding the previous value on failure!
-    ts_entry_t expected_entry;
+    // The begin_ts entry must fit in 42 bits.
+    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
 
     // The begin_ts entry must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
     constexpr ts_entry_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
 
-    // Loop until we successfully install a newly allocated begin_ts in the txn
-    // table. (We're possibly racing another beginning or committing txn that
-    // could invalidate our begin_ts entry before we install it.)
-    //
-    // NB: we use compare_exchange_weak() since we need to retry anyway on
-    // concurrent invalidation, so tolerating spurious failures requires no
-    // additional logic.
-    do
+    // We're possibly racing another beginning or committing txn that wants to
+    // invalidate our begin_ts entry.
+    ts_entry_t expected_entry = c_txn_entry_unknown;
+    bool has_set_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
+
+    // Only the txn thread can transition its begin_ts entry from
+    // c_txn_entry_unknown to any state except c_txn_entry_invalid.
+    if (!has_set_entry)
     {
-        // The txn table entry must be uninitialized (not invalidated).
-        expected_entry = c_txn_entry_unknown;
+        // NB: expected_entry is an inout argument holding the previous value on failure!
+        retail_assert(
+            expected_entry == c_txn_entry_invalid,
+            "Only an invalid value can be set on an empty begin_ts entry by another thread!");
 
-        // Allocate a new begin timestamp.
-        begin_ts = allocate_txn_id();
-
-        // The begin_ts entry must fit in 42 bits.
-        retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
-
-    } while (!s_txn_info[begin_ts].compare_exchange_weak(expected_entry, c_begin_ts_entry));
+        // Return c_invalid_gaia_txn_id to indicate failure. The caller can
+        // retry with a new timestamp.
+        // REVIEW: should we do this loop internally using compare_exchange_weak
+        // and allocate a new begin_ts on each retry?
+        begin_ts = c_invalid_gaia_txn_id;
+    }
 
     return begin_ts;
 }

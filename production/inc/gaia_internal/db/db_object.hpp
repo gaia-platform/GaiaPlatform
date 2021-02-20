@@ -28,11 +28,7 @@ struct db_object_t
     // serialized flatbuffer size plus the num_references * sizeof(gaia_id_t).
     uint16_t payload_size;
     uint16_t num_references;
-    // We need to 8-byte-align both the array of 8-byte references at the
-    // beginning of the payload and the serialized flatbuffer payload that
-    // follows it (since 8 bytes is the largest scalar data type size supported
-    // by flatbuffers).
-    alignas(8) char payload[0];
+    char payload[0];
 
     [[nodiscard]] const char* data() const
     {
