@@ -112,7 +112,7 @@ private:
 
     static void txn_cleanup();
 
-    static void dedup_log();
+    static void sort_log();
 
     static void apply_txn_log(int log_fd);
 
@@ -187,13 +187,13 @@ private:
         }
 
         // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log.data()->count == c_max_log_records)
+        if (s_log.data()->record_count == c_max_log_records)
         {
             throw transaction_object_limit_exceeded();
         }
 
         // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log.data()->log_records + s_log.data()->count++;
+        txn_log_t::log_record_t* lr = s_log.data()->log_records + s_log.data()->record_count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;
