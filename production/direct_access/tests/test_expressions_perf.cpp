@@ -12,6 +12,7 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/logger.hpp"
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
@@ -79,7 +80,7 @@ static const uint64_t c_num_employee_addresses = 3;
  *  [plain]: 118581.93 us
  *  ->expr is 1.64% faster
  */
-class test_expressions_perf : public db_catalog_test_base_t
+class test_expressions_perf : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_expressions_perf()
@@ -320,6 +321,7 @@ TEST_F(test_expressions_perf, string_eq)
     txn.commit();
 }
 
+/*
 TEST_F(test_expressions_perf, string_eq_case_insensitive)
 {
     auto_transaction_t txn;
@@ -359,6 +361,7 @@ TEST_F(test_expressions_perf, string_eq_case_insensitive)
 
     txn.commit();
 }
+*/
 
 TEST_F(test_expressions_perf, object_eq)
 {
