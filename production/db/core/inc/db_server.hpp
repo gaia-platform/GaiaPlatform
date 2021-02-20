@@ -497,7 +497,7 @@ private:
 
     static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_log_from_fd(int log_fd, bool committed);
+    static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 

@@ -233,21 +233,6 @@ void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<in
     std::reverse(std::begin(txn_log_fds), std::end(txn_log_fds));
 }
 
-void server::free_uncommitted_allocations(session_event_t txn_status)
-{
-    bool deallocate_new_offsets = true;
-
-    // Deallocate transaction objects in case of an abort or rollback.
-    if (txn_status == session_event_t::ROLLBACK_TXN)
-    {
-        gc_txn_log_from_fd(s_fd_log, deallocate_new_offsets);
-    }
-    else if (txn_status == session_event_t::DECIDE_TXN_ABORT)
-    {
-        deallocate_txn_log(s_log, deallocate_new_offsets);
-    }
-}
-
 void server::handle_rollback_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -260,8 +245,8 @@ void server::handle_rollback_txn(
 
     retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
 
-    // Get the log fd and mmap it if the client sends it.
-    // The client will not send the log segment to the server in case a read only txn was rolled back.
+    // Get the log fd and free it if the client sends it.
+    // The client will not send the txn log to the server if a read-only txn was rolled back.
     if (fds && fd_count == 1)
     {
         s_fd_log = *fds;
@@ -322,11 +307,6 @@ void server::handle_commit_txn(
     // thread advancing the watermark can clean up this txn's log fd.
     cleanup_log_fd.dismiss();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
-
-    // If the txn aborts, then this frees all redo versions, and we ignore all
-    // undo versions when we invalidate the txn log fd, so there is nothing to
-    // do at that point except close the log fd.
-    free_uncommitted_allocations(decision);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -2045,7 +2025,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1->count && log2_idx < log2->count)
+    while (log1_idx < log1->record_count && log2_idx < log2->record_count)
     {
         txn_log_t::log_record_t* lr1 = log1->log_records + log1_idx;
         txn_log_t::log_record_t* lr2 = log2->log_records + log2_idx;
@@ -2370,7 +2350,7 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2416,14 +2396,21 @@ void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
     retail_assert(txn_log, "txn_log must be a valid mapped address!");
 
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         // For committed txns, free each undo version (i.e., the version
         // superseded by an update or delete operation), using the registered
         // object deallocator (if it exists), since the redo versions may still
-        // be visible but the undo versions cannot be. For aborted (or
-        // rolled-back) txns, free only the redo versions (since the undo
+        // be visible but the undo versions cannot be. For aborted or
+        // rolled-back txns, free only the redo versions (since the undo
         // versions may still be visible).
+        // NB: we can't safely free the redo versions and txn logs of aborted
+        // txns in the decide handler, because concurrently validating txns
+        // might be testing the aborted txn for conflicts while they still think
+        // it is undecided. The only safe place to free the redo versions and
+        // txn log of an aborted txn is after it falls behind the watermark,
+        // since at that point it cannot be in the conflict window of any
+        // committing txn.
         gaia_offset_t offset_to_free = deallocate_new_offsets
             ? txn_log->log_records[i].new_offset
             : txn_log->log_records[i].old_offset;
@@ -2843,7 +2830,7 @@ void server::txn_rollback()
     if (s_fd_log != -1)
     {
         // Free any deallocated objects.
-        free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
+        gc_txn_log_from_fd(s_fd_log, false);
     }
 }
 

@@ -91,7 +91,7 @@ struct hash_node_t
 struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
-    size_t count;
+    size_t record_count;
 
     struct log_record_t
     {
@@ -122,9 +122,9 @@ struct txn_log_t
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
-        os << "count: " << l.count << std::endl;
+        os << "record_count: " << l.record_count << std::endl;
         const log_record_t* const lr_start = static_cast<const log_record_t*>(l.log_records);
-        for (const log_record_t* lr = lr_start; lr < lr_start + l.count; ++lr)
+        for (const log_record_t* lr = lr_start; lr < lr_start + l.record_count; ++lr)
         {
             os << *lr;
         }
@@ -134,7 +134,7 @@ struct txn_log_t
 
     inline size_t size()
     {
-        return sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * count);
+        return sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * record_count);
     }
 };
 
