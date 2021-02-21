@@ -68,6 +68,11 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
+    static inline gaia_txn_id_t get_txn_id()
+    {
+        return s_txn_id;
+    }
+
     // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
 

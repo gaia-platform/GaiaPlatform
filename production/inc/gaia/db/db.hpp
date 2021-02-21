@@ -157,6 +157,7 @@ public:
 };
 
 bool is_transaction_active();
+uint64_t get_transaction_id();
 void begin_session();
 void end_session();
 void begin_transaction();
