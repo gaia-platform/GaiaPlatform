@@ -401,13 +401,13 @@ private:
         gaia_locator_t locator,
         size_t size);
 
-    static void update_watermarks(gaia_txn_id_t begin_ts);
+    static void update_watermarks();
 
-    static void update_pre_apply_watermark(gaia_txn_id_t begin_ts);
+    static void update_pre_apply_watermark();
 
-    static void update_post_apply_watermark(gaia_txn_id_t begin_ts);
+    static void update_post_apply_watermark();
 
-    static void update_post_gc_watermark(gaia_txn_id_t begin_ts);
+    static void update_post_gc_watermark();
 
     static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 

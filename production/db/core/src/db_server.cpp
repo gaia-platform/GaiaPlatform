@@ -373,7 +373,7 @@ void server::handle_decide_txn(
     // all maintenance asynchronously in the background. Allowing this work to
     // delay beginning new transactions but not delay committing the current
     // transaction seems like a good compromise.
-    update_watermarks(s_txn_id);
+    update_watermarks();
 }
 
 void server::handle_client_shutdown(
@@ -2507,27 +2507,24 @@ void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 // very fast sequence of operations, retries should be infrequent, so livelock
 // shouldn't be an issue.)
 
-void server::update_watermarks(gaia_txn_id_t begin_ts)
+void server::update_watermarks()
 {
-    // The ts supplied must be a begin_ts.
-    retail_assert(is_begin_ts(begin_ts), "update_watermarks() called with a non-begin_ts!");
-
     // Advance the pre-apply watermark to the end of the longest prefix of
     // committed txns and apply all txn logs within that prefix to the shared
     // view.
-    update_pre_apply_watermark(begin_ts);
+    update_pre_apply_watermark();
 
     // Advance the post-apply watermark to the end of the longest prefix of
     // committed txns which have been completely applied to the shared view, and
     // reclaim the resources of all txns within that prefix.
-    update_post_apply_watermark(begin_ts);
+    update_post_apply_watermark();
 
     // Advance the post-GC watermark to the end of the longest prefix of
     // committed txns whose resources have been completely reclaimed.
-    update_post_gc_watermark(begin_ts);
+    update_post_gc_watermark();
 }
 
-void server::update_pre_apply_watermark(gaia_txn_id_t begin_ts)
+void server::update_pre_apply_watermark()
 {
     // First get a snapshot of the timestamp counter for an upper bound on
     // the scan (we don't know yet if this is a begin_ts or commit_ts).
@@ -2639,7 +2636,7 @@ void server::update_pre_apply_watermark(gaia_txn_id_t begin_ts)
     }
 }
 
-void server::update_post_apply_watermark(gaia_txn_id_t begin_ts)
+void server::update_post_apply_watermark()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
@@ -2720,7 +2717,7 @@ void server::update_post_apply_watermark(gaia_txn_id_t begin_ts)
     }
 }
 
-void server::update_post_gc_watermark(gaia_txn_id_t begin_ts)
+void server::update_post_gc_watermark()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
@@ -2822,7 +2819,7 @@ void server::txn_rollback()
     set_active_txn_terminated(s_txn_id);
 
     // Update watermarks and perform associated maintenance tasks.
-    update_watermarks(s_txn_id);
+    update_watermarks();
 
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
