@@ -7,8 +7,6 @@
 
 #include <functional>
 
-#include "gaia_internal/common/timer.hpp"
-
 namespace gaia
 {
 
