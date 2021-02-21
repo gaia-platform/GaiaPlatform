@@ -38,6 +38,7 @@ public:
 protected:
     address_t seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee;
     employee_t simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
+    phone_t landline, mobile;
 
     void SetUp() override
     {
@@ -63,6 +64,9 @@ protected:
         mihir = create_employee("Mihir", "Jadhav", "mihir@gaia.io", date(2020, 5, 31), redmond);
         simone = create_employee("Simone", "Rondelli", "simone@gaia.io", date(2020, 7, 31), kissimmee);
 
+        landline = create_phone("(206)867-5309", "landline", aberdeen);
+        mobile = create_phone("(407) 123-4567", "mobile", kissimmee);
+
         commit_transaction();
     }
 
@@ -87,6 +91,18 @@ protected:
         address_w.city = city;
         address_w.state = state;
         return address_t::get(address_w.insert_row());
+    }
+
+    phone_t create_phone(const string& number, const string& type, address_t& address)
+    {
+        phone_writer writer;
+        writer.phone_number = number;
+        writer.type = type;
+        phone_t phone = phone_t::get(writer.insert_row());
+
+        address.phone_list().insert(phone);
+
+        return phone;
     }
 
     /**
@@ -157,12 +173,6 @@ TEST_F(test_expressions, int64_eq)
         employee_t::list()
             .where(hire_date == date(2020, 5, 10)),
         yiwen);
-
-    for (auto& e : employee_t::list()
-                       .where(hire_date == date(2020, 5, 10)))
-    {
-        cout << "Found " << e.name_first() << endl;
-    }
 
     assert_empty(
         employee_t::list()
@@ -448,15 +458,22 @@ TEST_F(test_expressions, container_contains_object)
     assert_contains(
         employee_t::list()
             .where(addressee_address_list
-                       .contains_object(bellevue)),
-        laurentiu);
+                       .contains(bellevue)),
+        {laurentiu});
 
     auto marzabotto = create_address("Marzabotto", "IT");
 
-    assert_empty(
-        employee_t::list()
-            .where(addressee_address_list
-                       .contains_object(marzabotto)));
+    assert_empty(employee_t::list().where(addressee_address_list.contains(marzabotto)));
+}
+
+TEST_F(test_expressions, nested_container)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list().where(
+            addressee_address_list.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phone_list.contains(phone_expr::type == "landline"))),
+        {dax});
 }
 
 TEST_F(test_expressions, container_empty)
@@ -467,7 +484,7 @@ TEST_F(test_expressions, container_empty)
         address_t::list()
             // phone_list is ambiguous, need full qualification.
             .where(address_expr::phone_list.empty()),
-        {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
+        {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_empty(
         employee_t::list()
@@ -481,7 +498,7 @@ TEST_F(test_expressions, container_count)
     assert_contains(
         address_t::list()
             .where(address_expr::phone_list.count() == 0),
-        {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
+        {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_contains(
         employee_t::list()
