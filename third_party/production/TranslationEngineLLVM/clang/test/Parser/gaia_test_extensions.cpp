@@ -42,7 +42,7 @@ ruleset test1
 {
 OnInsert(incubator)
 {
-  incubator.min_temp+=@sensor.value;
+  incubator.min_temp +=@sensor.value;
   incubator.max_temp += incubator.min_temp/2;
   if (incubator.LastOperation == DELETE)
   {
@@ -53,8 +53,8 @@ OnInsert(incubator)
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:3, col:13> 'float' lvalue .min_temp 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:24, col:31> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:24> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:25, col:32> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:25> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:3, col:13> 'float' lvalue .max_temp 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:25, col:35> 'float' lvalue .min_temp 0x{{[^ ]*}}
@@ -103,7 +103,7 @@ typedef enum
 ruleset test3 : Table (sensor)
 {
   {
-	  if (value < 5)
+	  if (@value < 5)
 	  {
 		  value = 5;
 	  }

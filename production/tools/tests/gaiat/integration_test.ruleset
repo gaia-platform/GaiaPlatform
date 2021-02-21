@@ -6,20 +6,21 @@ ruleset test
 
 ruleset test1
 {
+    OnUpdate(min_temp)
     {
         min_temp+=1;
     }
 }
 
 ruleset test2
-{
+{   OnUpdate(max_temp)
     {
         max_temp++;
     }
 }
 
 ruleset test3
-{
+{   OnUpdate(animal.age)
     {
       animal.age++;
     }
@@ -46,7 +47,7 @@ typedef enum
 ruleset test5
 {
     {
-	    if (actuator.value < 5)
+	    if (@actuator.value < 5)
 	    {
 		    actuator.value = 5;
 	    }
@@ -63,7 +64,7 @@ typedef enum
 ruleset test6 : Table (sensor)
 {
   {
-	  if (value < 5)
+	  if (@value < 5)
 	  {
 		  value = 5;
 	  }
@@ -105,7 +106,7 @@ ruleset test8
         auto event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
-	    if (actuator.value < 5 && sensor.value > 10)
+	    if (@actuator.value < 5 && @sensor.value > 10)
 	    {
 		    actuator.value = 5;
 	    }

@@ -51,6 +51,6 @@ add_gtest(test_expressions "tests/test_expressions.cpp" "${DIRECT_ACCESS_TEST_IN
 
 option(BUILD_EXPR_PERF_TEST "Build EDC expression performance tests" OFF)
 
-#if(BUILD_EXPR_PERF_TEST)
+if(BUILD_EXPR_PERF_TEST)
   add_gtest(test_expressions_perf "tests/test_expressions_perf.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_incubator_headers")
-#endif()
+endif()

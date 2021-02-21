@@ -91,10 +91,9 @@ struct navigation_code_data_t
 };
 
 // Suppress these clang-tidy warnings for now.
-const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
-const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-
-const char c_ident[] = "    ";
+static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
+static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+static const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
@@ -284,7 +283,7 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool parse_attribute(string attribute, string& table, string& field)
+bool parse_attribute(const string& attribute, string& table, string& field)
 {
     if (g_field_data.empty())
     {
@@ -678,7 +677,8 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return return_value;
 }
 
-void generate_table_subscription(string table, string field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count,
+    bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
     if (g_field_data.find(table) == g_field_data.end())
@@ -687,7 +687,6 @@ void generate_table_subscription(string table, string field_subscription_code, i
         g_generation_error = true;
         return;
     }
-    string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     string rule_name
         = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
     string rule_name_log = to_string(g_current_ruleset_rule_number);
@@ -803,7 +802,7 @@ void generate_table_subscription(string table, string field_subscription_code, i
 
     if (g_rule_context_rule_name_referenced)
     {
-        navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
+        navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
     if (rule_count == 1)
     {
@@ -915,7 +914,8 @@ void generate_rules(Rewriter& rewriter)
                 .append(");\n");
         }
 
-        generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, field_subscription_code, rule_code,
+            rule_count, true, rule_line_numbers, rewriter);
         rule_count++;
     }
 
@@ -926,7 +926,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, "", rule_code, rule_count, true, rule_line_numbers, rewriter);
 
         string rule_name
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
@@ -967,7 +967,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, false, rule_line_numbers, rewriter);
+        generate_table_subscription(table, "", rule_code, rule_count, false, rule_line_numbers, rewriter);
         rule_count++;
     }
 }
@@ -1007,15 +1007,15 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
-                {
-                    return;
-                }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+                if (!validate_and_add_active_field(table_name, field_name))
+                {
+                    return;
+                }
             }
         }
         else if (member_expression != nullptr)
@@ -1037,6 +1037,18 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
+                    {
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
+                    }
                 }
                 else
                 {
@@ -1044,14 +1056,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (!is_last_operation)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                    }
-                    else
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
                     {
                         g_update_tables.insert(table_name);
                         g_insert_tables.insert(table_name);
@@ -1232,20 +1237,8 @@ public:
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
 
-                    if (op->getOpcode() != BO_Assign)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}() ");
-                    }
-                    else
-                    {
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    }
+                    m_rewriter.InsertTextAfterToken(
+                        op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
                 }
                 else
                 {
@@ -1357,10 +1350,6 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    if (!validate_and_add_active_field(table_name, field_name))
-                    {
-                        return;
-                    }
 
                     if (op->isPostfix())
                     {

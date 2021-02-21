@@ -3,7 +3,7 @@
 ruleset test : Table(sensor)
 {
     {
-        actuator.value += value/2;
+        actuator.value += @value/2;
     }
 }
 

@@ -7,9 +7,6 @@
 
 #include <functional>
 #include <type_traits>
-#include <variant>
-
-inline static int g_count = 0;
 
 namespace gaia
 {
