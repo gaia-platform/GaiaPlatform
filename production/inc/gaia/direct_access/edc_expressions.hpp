@@ -71,21 +71,18 @@ template <typename T_class, typename T_return>
 class member_accessor_t
 {
 public:
-    using member_accessor_ptr_t = member_accessor_ptr_t<T_class, T_return>;
-    using member_accessor_fn_t = member_accessor_fn_t<T_class, T_return>;
-
     // NOLINTNEXTLINE(google-explicit-constructor)
-    member_accessor_t(member_accessor_ptr_t member_accessor)
+    member_accessor_t(member_accessor_ptr_t<T_class, T_return> member_accessor)
         : m_member_accessor(member_accessor){};
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    member_accessor_t(member_accessor_fn_t member_accessor)
+    member_accessor_t(member_accessor_fn_t<T_class, T_return> member_accessor)
         : m_member_accessor(member_accessor){};
 
     T_return operator()(const T_class& obj) const;
 
 private:
-    member_accessor_fn_t m_member_accessor;
+    member_accessor_fn_t<T_class, T_return> m_member_accessor;
 };
 
 /**
@@ -96,21 +93,19 @@ template <typename T_class>
 class expression_decorator_t
 {
 public:
-    using edc_predicate_t = edc_predicate_t<T_class>;
-
-    explicit expression_decorator_t(edc_predicate_t predicate_fn)
+    explicit expression_decorator_t(edc_predicate_t<T_class> predicate_fn)
         : m_predicate_fn(predicate_fn){};
 
     bool operator()(const T_class& obj) const;
 
-    expression_decorator_t operator||(edc_predicate_t other_predicate);
+    expression_decorator_t operator||(edc_predicate_t<T_class> other_predicate);
 
-    expression_decorator_t operator&&(edc_predicate_t other_filter);
+    expression_decorator_t operator&&(edc_predicate_t<T_class> other_filter);
 
     expression_decorator_t operator!();
 
 private:
-    edc_predicate_t m_predicate_fn;
+    edc_predicate_t<T_class> m_predicate_fn;
 };
 
 /**
@@ -138,54 +133,51 @@ template <typename T_class, typename T_return>
 class expression_t
 {
 public:
-    using member_accessor_t = member_accessor_t<T_class, T_return>;
-    using predicate_decorator_t = expression_decorator_t<T_class>;
-
-    explicit expression_t(member_accessor_t accessor)
+    explicit expression_t(member_accessor_t<T_class, T_return> accessor)
         : m_member_accessor(accessor){};
 
     template <typename T_value>
-    predicate_decorator_t operator>(T_value value);
+    expression_decorator_t<T_class> operator>(T_value value);
 
     template <typename T_value>
-    predicate_decorator_t operator>=(T_value value);
+    expression_decorator_t<T_class> operator>=(T_value value);
 
     template <typename T_value>
-    predicate_decorator_t operator<(T_value value);
+    expression_decorator_t<T_class> operator<(T_value value);
 
     template <typename T_value>
-    predicate_decorator_t operator<=(T_value value);
+    expression_decorator_t<T_class> operator<=(T_value value);
 
     template <typename T_value>
-    predicate_decorator_t operator==(T_value value);
+    expression_decorator_t<T_class> operator==(T_value value);
 
     template <typename T_value>
-    predicate_decorator_t operator!=(T_value value);
+    expression_decorator_t<T_class> operator!=(T_value value);
 
     // --- String specialization ---
 
-    predicate_decorator_t operator==(const std::string& value);
+    expression_decorator_t<T_class> operator==(const std::string& value);
 
-    predicate_decorator_t operator==(const char* value);
+    expression_decorator_t<T_class> operator==(const char* value);
 
-    predicate_decorator_t operator!=(const std::string& value);
+    expression_decorator_t<T_class> operator!=(const std::string& value);
 
-    predicate_decorator_t operator!=(const char* value);
+    expression_decorator_t<T_class> operator!=(const char* value);
 
     // --- Containers specializations
 
     template <typename T_value>
-    predicate_decorator_t contains(expression_decorator_t<T_value> predicate);
+    expression_decorator_t<T_class> contains(expression_decorator_t<T_value> predicate);
 
     template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
-    predicate_decorator_t contains(const T_value& object);
+    expression_decorator_t<T_class> contains(const T_value& object);
 
-    predicate_decorator_t empty();
+    expression_decorator_t<T_class> empty();
 
     expression_t<T_class, int64_t> count();
 
 private:
-    member_accessor_t m_member_accessor;
+    member_accessor_t<T_class, T_return> m_member_accessor;
 };
 
 /*@}*/
