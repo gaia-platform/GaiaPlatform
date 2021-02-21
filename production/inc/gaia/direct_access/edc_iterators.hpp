@@ -71,10 +71,9 @@ template <gaia::common::gaia_type_t T_container, typename T_class>
 struct edc_container_t : edc_db_t
 {
     // This constructor will be used by the where() method to create a filtered container.
-    edc_container_t(std::function<bool(const T_class&)> filter_function)
-        : m_filter_fn(filter_function)
-    {
-    }
+    explicit edc_container_t(std::function<bool(const T_class&)> filter_function)
+        : m_filter_fn(filter_function){};
+
     edc_container_t() = default;
 
     edc_iterator_t<T_class> begin() const;

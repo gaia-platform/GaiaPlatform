@@ -6,7 +6,10 @@
 #pragma once
 
 #include <functional>
+#include <type_traits>
 #include <variant>
+
+inline static int g_count = 0;
 
 namespace gaia
 {
@@ -41,7 +44,7 @@ using member_accessor_ptr_t = T_return (T_class::*)() const;
 /**
  * Function that given an EDC class instance can return a value
  * from it. The advantage over member_accessor_ptr_t is that
- * a function is more flexible and can return basically anything.
+ * a function is more flexible and can return anything.
  * This allow some neat tricks such as access to nested structure
  * within the EDC class.
  *
@@ -59,8 +62,7 @@ using edc_predicate_t = std::function<bool(const T_class&)>;
 
 /**
  * Access data within EDC classes. Data can be accessed via member_accessor_ptr_t
- * (eg. &employee_t::name) or via a generic function. Use member_accessor_ptr_t
- * when possible.
+ * (eg. &employee_t::name) or via a generic function.
  *
  * @tparam T_class The EDC class type
  * @tparam T_return The type returned when calling the () operator.
@@ -83,9 +85,7 @@ public:
     T_return operator()(const T_class& obj) const;
 
 private:
-    using variant_accessor_t = std::variant<member_accessor_ptr_t, member_accessor_fn_t>;
-
-    variant_accessor_t m_member_accessor;
+    member_accessor_fn_t m_member_accessor;
 };
 
 /**

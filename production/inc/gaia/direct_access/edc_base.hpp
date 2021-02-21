@@ -70,9 +70,8 @@ struct edc_base_t : edc_db_t
     virtual common::gaia_type_t gaia_type() = 0;
     virtual ~edc_base_t() = default;
 
-    common::gaia_id_t id() const;
-
 protected:
+    common::gaia_id_t id() const;
     bool exists() const;
     bool equals(const edc_base_t& other) const;
     const char* data() const;

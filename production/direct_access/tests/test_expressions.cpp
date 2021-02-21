@@ -156,7 +156,13 @@ TEST_F(test_expressions, int64_eq)
     assert_contains(
         employee_t::list()
             .where(hire_date == date(2020, 5, 10)),
-        {yiwen});
+        yiwen);
+
+    for (auto& e : employee_t::list()
+                       .where(hire_date == date(2020, 5, 10)))
+    {
+        cout << "Found " << e.name_first() << endl;
+    }
 
     assert_empty(
         employee_t::list()
@@ -443,7 +449,7 @@ TEST_F(test_expressions, container_contains_object)
         employee_t::list()
             .where(addressee_address_list
                        .contains_object(bellevue)),
-        {laurentiu});
+        laurentiu);
 
     auto marzabotto = create_address("Marzabotto", "IT");
 
