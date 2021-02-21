@@ -117,7 +117,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_server_exec.cpp
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if((NOT DISABLE_STACKTRACE) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
 endif()
 
@@ -135,7 +135,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if((NOT DISABLE_STACKTRACE) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
 install(TARGETS gaia_db_server DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -162,7 +162,7 @@ if(Python3_FOUND AND pybind11_FOUND)
   set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if((NOT DISABLE_ASAN) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
     target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
   endif()
 
@@ -192,7 +192,7 @@ if(JAVA_FOUND AND JNI_FOUND)
   set_target_properties(gaia_db_jni PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(gaia_db_jni PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if((NOT DISABLE_ASAN) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
     target_link_options(gaia_db_jni PRIVATE "-shared-libasan")
   endif()
 endif()

@@ -20,7 +20,7 @@ target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if((NOT DISABLE_ASAN) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_options(gaia PRIVATE "-shared-libasan")
 endif()
 

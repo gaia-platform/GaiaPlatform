@@ -13,7 +13,7 @@ set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
 # Enable AddressSanitizer in debug mode.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if((NOT DISABLE_ASAN) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()

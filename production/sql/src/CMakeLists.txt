@@ -21,7 +21,7 @@ target_link_options(gaia_fdw PRIVATE ${PGSQL_LDFLAGS})
 # We need to un-quote this variable for some reason as well.
 separate_arguments(GAIA_LINK_FLAGS UNIX_COMMAND "${GAIA_LINK_FLAGS}")
 target_link_options(gaia_fdw PRIVATE ${GAIA_LINK_FLAGS})
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if((NOT DISABLE_ASAN) AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_options(gaia_fdw PRIVATE "-shared-libasan")
 endif()
 
