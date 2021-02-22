@@ -505,6 +505,15 @@ private:
             // the call to dup(2)), so we know we aren't reusing a closed fd.
             if (get_txn_log_fd(commit_ts) == -1)
             {
+                // If we got here, we must have a valid dup fd.
+                common::retail_assert(
+                    common::is_fd_valid(m_local_log_fd),
+                    "fd should be valid if dup() succeeded!");
+                // We need to close the duplicated fd since the original fd
+                // might have been reused and we would leak it otherwise
+                // (because the destructor isn't called if the constructor
+                // throws).
+                common::close_fd(m_local_log_fd);
                 throw invalid_log_fd(commit_ts);
             }
         }
