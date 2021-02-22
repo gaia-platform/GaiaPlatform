@@ -45,7 +45,7 @@ void client_messenger_t::receive_server_reply(
     size_t expected_count_received_fds)
 {
     // Special scenario when we're expecting a bunch of fds.
-    // This happens when we're retrieving log fds
+    // This is how we're called for retrieving log fds.
     bool is_in_bulk_fd_retrieval_mode = (expected_count_received_fds == common::c_max_fd_count);
 
     // Clear information that we may have read in previous calls.
