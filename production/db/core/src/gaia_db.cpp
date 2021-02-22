@@ -57,14 +57,13 @@ gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
 
 // Implements Murmur3 64-bit finalizer
 // (https://github.com/aappleby/smhasher/wiki/MurmurHash3).
-// This will map 0 to 0 and acts as a random permutation on all other integer
-// values.
-static inline uint64_t mix_uint64(uint64_t x)
+// This will map 0 to 0 and acts as a pseudorandom permutation on all other integer values.
+static inline uint64_t mix_bits(uint64_t x)
 {
     x ^= x >> 33ULL;
-    x *= 0xff51afd7ed558ccdULL;
+    x *= 0XFF51AFD7ED558CCDULL;
     x ^= x >> 33ULL;
-    x *= 0xc4ceb9fe1a85ec53ULL;
+    x *= 0XC4CEB9FE1A85EC53ULL;
     x ^= x >> 33ULL;
     return x;
 }
@@ -74,9 +73,11 @@ static inline uint64_t mix_uint64(uint64_t x)
 // Returns uint64_t since gaia_txn_id_t isn't a public type.
 uint64_t gaia::db::get_transaction_id()
 {
-    if (!gaia::db::client::is_transaction_active())
-    {
-        return 0;
-    }
-    return mix_uint64(gaia::db::client::get_txn_id());
+    uint64_t txn_id = static_cast<uint64_t>(gaia::db::client::get_txn_id());
+    uint64_t obfuscated_txn_id = mix_bits(txn_id);
+    // We require that mix_bits() maps 0 to 0, and that its inverse does as well.
+    common::retail_assert(
+        (txn_id == 0) != (obfuscated_txn_id == 0),
+        "An internal txn_id of 0 must be mapped to an external txn_id of 0!");
+    return obfuscated_txn_id;
 }
