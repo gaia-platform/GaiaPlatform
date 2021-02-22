@@ -101,8 +101,9 @@ bool verify_data_schema(
     size_t serialized_data_size,
     const uint8_t* binary_schema);
 
-// Returns true if the field values are equal and false if they are different.
-// This function handles both scalar fields and array fields.
+// Return true if the field values are equal and false if they are different.
+//
+// This function handles numeric-type fields and numeric-type-array fields.
 bool are_field_values_equal(
     gaia::common::gaia_type_t type_id,
     const uint8_t* first_serialized_data,
@@ -111,7 +112,9 @@ bool are_field_values_equal(
     size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
-// Get the field value of a table record payload.
+// Get the value of a field.
+//
+// This function handles both numeric-type fields and string-type fields.
 data_holder_t get_field_value(
     gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -119,9 +122,7 @@ data_holder_t get_field_value(
     size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
-// Set the scalar field value of a table record payload.
-//
-// This function only works for scalar fields of numeric types (integers and floating point numbers).
+// Set the value of a numeric-type field.
 bool set_field_value(
     gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
@@ -130,9 +131,7 @@ bool set_field_value(
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
-// Set the string field value of a table record payload.
-//
-// This function only works for string fields.
+// Set the value of a string-type field.
 void set_field_value(
     gaia::common::gaia_type_t type_id,
     std::vector<uint8_t>& serialized_data,
@@ -141,8 +140,7 @@ void set_field_value(
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
-// Alternative method for setting string fields,
-// when the serialization is not already available in a vector.
+// Set the value of a string-type field.
 std::vector<uint8_t> set_field_value(
     gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -152,7 +150,7 @@ std::vector<uint8_t> set_field_value(
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
-// Get the size of a field of array type.
+// Get the size of an array-type field.
 size_t get_field_array_size(
     gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -160,7 +158,8 @@ size_t get_field_array_size(
     size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
-// Set the size of a field of array type.
+// Set the size of an array-type field.
+//
 // If the array is expanded, new entries will be set to 0.
 void set_field_array_size(
     gaia::common::gaia_type_t type_id,
@@ -170,7 +169,8 @@ void set_field_array_size(
     gaia::common::field_position_t field_position,
     size_t new_size);
 
-// Set the size of a field of array type.
+// Set the size of an array-type field.
+//
 // If the array is expanded, new entries will be set to 0.
 std::vector<uint8_t> set_field_array_size(
     gaia::common::gaia_type_t type_id,
@@ -181,7 +181,9 @@ std::vector<uint8_t> set_field_array_size(
     gaia::common::field_position_t field_position,
     size_t new_size);
 
-// Get a specific element of a field of array type.
+// Get a specific element of an array-type field.
+//
+// This function handles both numeric-type elements and string-type elements.
 //
 // An exception will be thrown if the index is out of bounds.
 data_holder_t get_field_array_element(
@@ -192,11 +194,9 @@ data_holder_t get_field_array_element(
     gaia::common::field_position_t field_position,
     size_t array_index);
 
-// Set a specific element of a scalar field of array type.
+// Set a specific numeric-type element of an array-type field .
 //
 // An exception will be thrown if the index is out of bounds.
-//
-// This function only works for scalar fields of numeric types (integers and floating point numbers).
 void set_field_array_element(
     gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
@@ -206,11 +206,9 @@ void set_field_array_element(
     size_t array_index,
     const data_holder_t& value);
 
-// Set a specific element of a string field of array type.
+// Set a specific string-type element of an array-type field.
 //
 // An exception will be thrown if the index is out of bounds.
-//
-// This function only works for string fields.
 void set_field_array_element(
     gaia::common::gaia_type_t type_id,
     std::vector<uint8_t>& serialized_data,
@@ -220,11 +218,9 @@ void set_field_array_element(
     size_t array_index,
     const data_holder_t& value);
 
-// Set a specific element of a string field of array type.
+// Set a specific string-type element of an array-type field.
 //
 // An exception will be thrown if the index is out of bounds.
-//
-// This function only works for string fields.
 std::vector<uint8_t> set_field_array_element(
     gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
