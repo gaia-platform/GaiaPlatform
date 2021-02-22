@@ -13,6 +13,7 @@
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
