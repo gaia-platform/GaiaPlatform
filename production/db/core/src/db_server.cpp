@@ -373,7 +373,7 @@ void server::handle_decide_txn(
     // all maintenance asynchronously in the background. Allowing this work to
     // delay beginning new transactions but not delay committing the current
     // transaction seems like a good compromise.
-    update_watermarks();
+    perform_maintenance();
 }
 
 void server::handle_client_shutdown(
@@ -2305,7 +2305,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 // NB: we use compare_exchange_weak() for the global update since we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
-bool server::advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
+bool server::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
 {
     gaia_txn_id_t last_watermark_ts = watermark;
     do
@@ -2365,7 +2365,7 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // We're using the otherwise-unused first entry of the "locators" array to
     // track the last-applied commit_ts (purely for diagnostic purposes).
-    bool updated_locators_view_version = advance_watermark_ts((*s_shared_locators)[0], commit_ts);
+    bool updated_locators_view_version = advance_watermark((*s_shared_locators)[0], commit_ts);
     retail_assert(
         updated_locators_view_version,
         "Committed txn applied to shared locators view out of order!");
@@ -2423,18 +2423,25 @@ void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 }
 
 // This method is called by an active txn when it is terminated or by a
-// submitted txn when it is validated.
+// submitted txn after it is validated. It performs a few system maintenance
+// tasks, which can be deferred indefinitely with no effect on availability or
+// correctness, but which are essential to maintain acceptable performance and
+// resource usage.
 //
-// There are currently three watermarks defined: the "pre-apply" watermark,
-// which serves as an upper bound on the last committed txn which was fully
-// applied to the shared view; the "post-apply" watermark, which serves as a
-// lower bound on the last committed txn which was fully applied to the shared
-// view; and the "post-GC" watermark, which serves as a lower bound on the last
-// txn to have its resources fully reclaimed (i.e., its txn log and all its undo
-// or redo versions deallocated, for a committed or aborted txn respectively).
-// The post-GC watermark is currently unused, but will be used to implement
-// trimming the txn table (i.e., deallocating physical pages corresponding to
-// virtual address space that will never be read or written again).
+// To enable reasoning about the safety of reclaiming resources which should no
+// longer be needed by any present or future txns, and other invariant-based
+// reasoning, we define a set of "watermarks": upper or lower bounds on the
+// endpoint of a sequence of txns with some property. There are currently three
+// watermarks defined: the "pre-apply" watermark, which serves as an upper bound
+// on the last committed txn which was fully applied to the shared view; the
+// "post-apply" watermark, which serves as a lower bound on the last committed
+// txn which was fully applied to the shared view; and the "post-GC" watermark,
+// which serves as a lower bound on the last txn to have its resources fully
+// reclaimed (i.e., its txn log and all its undo or redo versions deallocated,
+// for a committed or aborted txn respectively). The post-GC watermark is
+// currently unused, but will be used to implement trimming the txn table (i.e.,
+// deallocating physical pages corresponding to virtual address space that will
+// never be read or written again).
 //
 // At a high level, the first pass applies all committed txn logs to the shared
 // view, in order (not concurrently), and advances two watermarks marking an
@@ -2507,24 +2514,23 @@ void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 // very fast sequence of operations, retries should be infrequent, so livelock
 // shouldn't be an issue.)
 
-void server::update_watermarks()
+void server::perform_maintenance()
 {
-    // Advance the pre-apply watermark to the end of the longest prefix of
-    // committed txns and apply all txn logs within that prefix to the shared
-    // view.
-    update_pre_apply_watermark();
+    // Attempt to apply all txn logs to the shared view, from the last value of
+    // the post-apply watermark to the latest committed txn.
+    apply_txn_logs_to_shared_view();
 
-    // Advance the post-apply watermark to the end of the longest prefix of
-    // committed txns which have been completely applied to the shared view, and
-    // reclaim the resources of all txns within that prefix.
-    update_post_apply_watermark();
+    // Attempt to reclaim the resources of all txns from the post-GC watermark
+    // to the post-apply watermark.
+    gc_applied_txn_logs();
 
     // Advance the post-GC watermark to the end of the longest prefix of
-    // committed txns whose resources have been completely reclaimed.
-    update_post_gc_watermark();
+    // committed txns whose resources have been completely reclaimed, to mark a
+    // safe point for truncating transaction history.
+    update_txn_table_safe_truncation_point();
 }
 
-void server::update_pre_apply_watermark()
+void server::apply_txn_logs_to_shared_view()
 {
     // First get a snapshot of the timestamp counter for an upper bound on
     // the scan (we don't know yet if this is a begin_ts or commit_ts).
@@ -2605,13 +2611,13 @@ void server::update_pre_apply_watermark()
             break;
         }
 
-        if (!advance_watermark_ts(s_last_applied_commit_ts_upper_bound, ts))
+        if (!advance_watermark(s_last_applied_commit_ts_upper_bound, ts))
         {
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
             retail_assert(
                 s_last_applied_commit_ts_upper_bound > last_applied_commit_ts_upper_bound,
-                "The watermark must have advanced if advance_watermark_ts failed!");
+                "The watermark must have advanced if advance_watermark failed!");
 
             break;
         }
@@ -2635,16 +2641,16 @@ void server::update_pre_apply_watermark()
         // Now we advance the post-apply watermark to catch up with the pre-apply watermark.
         // REVIEW: Since no other thread can concurrently advance the post-apply watermark,
         // we don't need a full CAS here.
-        bool advanced_watermark = advance_watermark_ts(s_last_applied_commit_ts_lower_bound, ts);
+        bool has_advanced_watermark = advance_watermark(s_last_applied_commit_ts_lower_bound, ts);
 
         // No other thread should be able to advance the post-apply watermark,
         // since only one thread can advance the pre-apply watermark to this
         // timestamp.
-        retail_assert(advanced_watermark, "Couldn't advance the post-apply watermark!");
+        retail_assert(has_advanced_watermark, "Couldn't advance the post-apply watermark!");
     }
 }
 
-void server::update_post_apply_watermark()
+void server::gc_applied_txn_logs()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
@@ -2671,10 +2677,10 @@ void server::update_post_apply_watermark()
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
             // deallocated while they're being persisted).
-            bool persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
+            bool is_persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
                 && (s_persistence_mode != persistence_mode_t::e_disabled_after_recovery);
 
-            if (persistence_enabled && !is_txn_durable(ts))
+            if (is_persistence_enabled && !is_txn_durable(ts))
             {
                 break;
             }
@@ -2725,7 +2731,7 @@ void server::update_post_apply_watermark()
     }
 }
 
-void server::update_post_gc_watermark()
+void server::update_txn_table_safe_truncation_point()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
@@ -2758,13 +2764,13 @@ void server::update_post_gc_watermark()
             }
         }
 
-        if (!advance_watermark_ts(s_last_freed_commit_ts_lower_bound, ts))
+        if (!advance_watermark(s_last_freed_commit_ts_lower_bound, ts))
         {
             // If another thread has already advanced the post-GC watermark
             // ahead of this ts, we abort advancing it further.
             retail_assert(
                 s_last_freed_commit_ts_lower_bound > last_freed_commit_ts_lower_bound,
-                "The watermark must have advanced if advance_watermark_ts failed!");
+                "The watermark must have advanced if advance_watermark failed!");
 
             break;
         }
@@ -2823,11 +2829,11 @@ void server::txn_rollback()
     });
 
     // Set our txn status to TXN_TERMINATED.
-    // NB: this must be done before calling update_watermarks()!
+    // NB: this must be done before calling perform_maintenance()!
     set_active_txn_terminated(s_txn_id);
 
     // Update watermarks and perform associated maintenance tasks.
-    update_watermarks();
+    perform_maintenance();
 
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;

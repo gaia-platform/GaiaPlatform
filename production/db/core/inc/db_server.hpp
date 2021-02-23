@@ -115,23 +115,25 @@ private:
 
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
 
-    // This is an "endless" array of timestamp entries, indexed by the txn
-    // timestamp counter and containing all information for every txn that has
-    // been submitted to the system. Entries may be "unknown" (uninitialized),
-    // "invalid" (initialized with a special "junk" value and forbidden to be
-    // used afterward), or initialized with txn information, consisting of 3
-    // status bits, 1 bit for GC status, 1 bit for persistence status, 1
-    // reserved bit, 16 bits for a txn log fd, and 42 bits for a timestamp
-    // reference (the commit timestamp of a submitted txn embedded in its begin
-    // timestamp entry, or the begin timestamp of a submitted txn embedded in
-    // its commit timestamp entry). The 3 status bits use the high bit to
-    // distinguish begin timestamps from commit timestamps, and 2 bits to store
-    // the state of an active or submitted txn. The array is always accessed
-    // without any locking, but its entries have read and write barriers (via
-    // std::atomic) that ensure a happens-before relationship between any
-    // threads that read or write the same entry. Any writes to entries that may
-    // be written by multiple threads use CAS operations (via
-    // std::atomic::compare_exchange_strong).
+    // This is an effectively infinite array of timestamp entries, indexed by
+    // the txn timestamp counter and containing metadata for every txn that has
+    // been submitted to the system.
+    //
+    // Entries may be "unknown" (uninitialized), "invalid" (initialized with a
+    // special "junk" value and forbidden to be used afterward), or initialized
+    // with txn metadata, consisting of 3 status bits, 1 bit for GC status
+    // (unknown or complete), 1 bit for persistence status (unknown or
+    // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
+    // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
+    // txn embedded in its begin timestamp entry, or the begin timestamp of a
+    // submitted txn embedded in its commit timestamp entry). The 3 status bits
+    // use the high bit to distinguish begin timestamps from commit timestamps,
+    // and 2 bits to store the state of an active, terminated, or submitted txn.
+    //
+    // The array is always accessed without any locking, but its entries have
+    // read and write barriers (via std::atomic) that ensure causal consistency
+    // between any threads that read or write the same entry. Any writes to
+    // entries that may be written by multiple threads use CAS operations.
     //
     // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
     // virtual address space (1/8 of the total virtual address space available
@@ -179,6 +181,15 @@ private:
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. The txn table cannot be
     // truncated at any timestamp entry after the post-GC watermark.
+
+    // Schematically:
+    // commit timestamps of transactions completely garbage-collected
+    // <= post-GC watermark
+    // <= commit timestamps of transactions applied to shared view
+    // <= post-apply watermark
+    // < commit timestamps of transactions partially applied to shared view
+    // <= pre-apply watermark
+    // < commit timestamps of transactions not applied to shared view.
 
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
@@ -401,15 +412,15 @@ private:
         gaia_locator_t locator,
         size_t size);
 
-    static void update_watermarks();
+    static void perform_maintenance();
 
-    static void update_pre_apply_watermark();
+    static void apply_txn_logs_to_shared_view();
 
-    static void update_post_apply_watermark();
+    static void gc_applied_txn_logs();
 
-    static void update_post_gc_watermark();
+    static void update_txn_table_safe_truncation_point();
 
-    static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
+    static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
     static bool invalidate_unknown_ts(gaia_txn_id_t ts);
 
