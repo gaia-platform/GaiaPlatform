@@ -65,7 +65,7 @@ public:
 
     /**
      * Construct a thread pool used for executing rules.
-     * 
+     *
      * @param num_threads create a pool with this many worker threads.
      * If 0 threads are specified then the thread pool is in "immediate"
      * mode and no worker threads are created. If SIZE_MAX is specified
@@ -83,7 +83,7 @@ public:
     /**
      * Enqueue a rule onto the thread pool and notify any worker thread
      * that a rule is ready to be invoked.
-     * 
+     *
      * @param invocation the function pointer of the rule along with the
      *   trigger event information needed to call the rule.
      */
@@ -97,7 +97,7 @@ public:
 
     /**
      * Returns the number of worker threads this thread pool is managing.
-     * 
+     *
      * @return number of threads
      */
     size_t get_num_threads();
@@ -115,7 +115,7 @@ private:
         }
         else
         {
-            log_events(invocation);
+            // log_events(invocation);
         }
     }
 
@@ -152,7 +152,7 @@ private:
     std::vector<std::thread> m_threads;
 
     /**
-     * This lock together with the condition variable ensure synchronized 
+     * This lock together with the condition variable ensure synchronized
      * access and signaling between the enqueue function and the worker
      * threads.
      */
