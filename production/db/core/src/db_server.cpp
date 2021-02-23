@@ -174,21 +174,6 @@ void server::handle_begin_txn(
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::free_uncommitted_allocations(session_event_t txn_status)
-{
-    bool deallocate_new_offsets = true;
-
-    // Deallocate transaction objects in case of an abort or rollback.
-    if (txn_status == session_event_t::ROLLBACK_TXN)
-    {
-        gc_txn_undo_log(s_fd_log, deallocate_new_offsets);
-    }
-    else if (txn_status == session_event_t::DECIDE_TXN_ABORT)
-    {
-        deallocate_txn_log(s_log, deallocate_new_offsets);
-    }
-}
-
 void server::handle_rollback_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -201,8 +186,8 @@ void server::handle_rollback_txn(
 
     retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
 
-    // Get the log fd and mmap it if the client sends it.
-    // The client will not send the log segment to the server in case a read only txn was rolled back.
+    // Get the log fd and free it if the client sends it.
+    // The client will not send the txn log to the server if a read-only txn was rolled back.
     if (fds && fd_count == 1)
     {
         s_fd_log = *fds;
@@ -263,11 +248,6 @@ void server::handle_commit_txn(
     // thread advancing the watermark can clean up this txn's log fd.
     cleanup_log_fd.dismiss();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
-
-    // If the txn aborts, then this frees all redo versions, and we ignore all
-    // undo versions when we invalidate the txn log fd, so there is nothing to
-    // do at that point except close the log fd.
-    free_uncommitted_allocations(decision);
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -2141,7 +2121,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1.data()->count && log2_idx < log2.data()->count)
+    while (log1_idx < log1.data()->record_count && log2_idx < log2.data()->record_count)
     {
         txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
         txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
@@ -2459,7 +2439,7 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log.data()->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log.data()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2473,39 +2453,40 @@ void server::apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts)
     }
 }
 
-void server::gc_txn_undo_log(int log_fd, bool deallocate_new_offsets)
+void server::gc_txn_log(int log_fd, bool committed)
 {
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
     retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
+    bool deallocate_new_offsets = !committed;
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
 void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
-    for (size_t i = 0; i < txn_log->count; ++i)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
-        if (deallocate_new_offsets)
-        {
-            // Need to free the new offset for aborted and rollbacked transactions.
-            gaia_offset_t new_offset = txn_log->log_records[i].new_offset;
-            if (new_offset && s_object_deallocator_fn)
-            {
-                s_object_deallocator_fn(new_offset);
-            }
-        }
-        else
-        {
-            // Free each undo version (i.e., the version superseded by an update or
-            // delete operation), using the registered object deallocator (if it
-            // exists).
-            gaia_offset_t old_offset = txn_log->log_records[i].old_offset;
+        // For committed txns, free each undo version (i.e., the version
+        // superseded by an update or delete operation), using the registered
+        // object deallocator (if it exists), since the redo versions may still
+        // be visible but the undo versions cannot be. For aborted or
+        // rolled-back txns, free only the redo versions (since the undo
+        // versions may still be visible).
+        // NB: we can't safely free the redo versions and txn logs of aborted
+        // txns in the decide handler, because concurrently validating txns
+        // might be testing the aborted txn for conflicts while they still think
+        // it is undecided. The only safe place to free the redo versions and
+        // txn log of an aborted txn is after it falls behind the watermark,
+        // since at that point it cannot be in the conflict window of any
+        // committing txn.
+        gaia_offset_t offset_to_free = deallocate_new_offsets
+            ? txn_log->log_records[i].new_offset
+            : txn_log->log_records[i].old_offset;
 
-            if (old_offset && s_object_deallocator_fn)
-            {
-                s_object_deallocator_fn(old_offset);
-            }
+        if (offset_to_free && s_object_deallocator_fn)
+        {
+            s_object_deallocator_fn(offset_to_free);
         }
     }
 }
@@ -2636,17 +2617,12 @@ void server::update_apply_watermark(gaia_txn_id_t begin_ts)
             int log_fd = get_txn_log_fd(ts);
             retail_assert(log_fd != -1, "log fd cannot be invalidated if we advanced the watermark first!");
             retail_assert(is_fd_valid(log_fd), "log fd cannot be closed if we advanced the watermark first!");
-            // Invalidate the log fd, GC the undo versions in the log, and close the fd.
+            // Invalidate the log fd, GC the log, and close the fd.
             bool has_invalidated_fd = invalidate_txn_log_fd(ts);
-            retail_assert(has_invalidated_fd, "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
-            // We only want to deallocate undo versions if this txn committed.
-            // Otherwise we do nothing since the undo versions are still visible
-            // and the redo versions were already freed in the txn abort
-            // handler.
-            if (is_txn_committed(ts))
-            {
-                gc_txn_undo_log(log_fd);
-            }
+            retail_assert(
+                has_invalidated_fd,
+                "Invalidation must succeed if we were the first thread to advance the watermark to this commit_ts!");
+            gc_txn_log(log_fd, is_txn_committed(ts));
             close_fd(log_fd);
         }
     }
@@ -2711,7 +2687,7 @@ void server::txn_rollback()
     if (s_fd_log != -1)
     {
         // Free any deallocated objects.
-        free_uncommitted_allocations(session_event_t::ROLLBACK_TXN);
+        gc_txn_log(s_fd_log, false);
     }
 }
 

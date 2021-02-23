@@ -426,7 +426,7 @@ private:
 
     static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd, bool deallocate_new_offsets = false);
+    static void gc_txn_log(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
