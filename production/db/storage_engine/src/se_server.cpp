@@ -2458,14 +2458,14 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
         // We can only advance the pre-apply watermark if the post-apply
         // watermark has caught up to it (this ensures that txn logs cannot be
         // applied concurrently to the shared view).
-        // This comparison is racy, but the race is benign. If the values become
-        // unequal after an equal comparison, it must be from a successful CAS
-        // in another thread, so this thread's CAS will fail and the invariant
-        // is preserved. OTOH, if the values become equal after an unequal
-        // comparison, another thread must have advanced the post-apply
-        // watermark, so progress has been made even though this thread aborted
-        // its scan.
-        if (s_last_applied_commit_ts_upper_bound != s_last_applied_commit_ts_lower_bound)
+
+        // The current timestamp in the scan is guaranteed to be positive due to the loop precondition.
+        gaia_txn_id_t prev_ts = ts - 1;
+        // This thread must have observed both the pre- and post-apply watermarks to be equal to the previous timestamp
+        // in the scan in order to advance the pre-apply watermark to the current timestamp in the scan. This means that
+        // any thread applying a txn log at the previous timestamp must have finished applying the log, so we can safely
+        // apply the log at the current timestamp.
+        if (s_last_applied_commit_ts_upper_bound != prev_ts || s_last_applied_commit_ts_lower_bound != prev_ts)
         {
             break;
         }
