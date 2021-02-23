@@ -2465,6 +2465,7 @@ void server::update_watermarks(gaia_txn_id_t begin_ts)
         // in the scan in order to advance the pre-apply watermark to the current timestamp in the scan. This means that
         // any thread applying a txn log at the previous timestamp must have finished applying the log, so we can safely
         // apply the log at the current timestamp.
+        // REVIEW: These loads could be relaxed, since a stale read could only result in premature abort of the scan.
         if (s_last_applied_commit_ts_upper_bound != prev_ts || s_last_applied_commit_ts_lower_bound != prev_ts)
         {
             break;
