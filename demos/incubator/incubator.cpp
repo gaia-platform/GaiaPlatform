@@ -208,7 +208,8 @@ void simulation()
 
     while (g_in_simulation)
     {
-        sleep(1);
+        // sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
