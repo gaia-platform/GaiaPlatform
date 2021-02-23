@@ -71,7 +71,7 @@ static inline uint64_t mix_bits(uint64_t x)
 // Publicly expose begin timestamp of current txn in obfuscated form,
 // to avoid clients depending on sequential txn ids.
 // Returns uint64_t since gaia_txn_id_t isn't a public type.
-uint64_t gaia::db::get_transaction_id()
+uint64_t gaia::db::transaction_id()
 {
     uint64_t txn_id = static_cast<uint64_t>(gaia::db::client::get_txn_id());
     uint64_t obfuscated_txn_id = mix_bits(txn_id);
