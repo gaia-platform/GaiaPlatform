@@ -77,7 +77,7 @@ uint64_t gaia::db::transaction_id()
     uint64_t obfuscated_txn_id = mix_bits(txn_id);
     // We require that mix_bits() maps 0 to 0, and that its inverse does as well.
     common::retail_assert(
-        (txn_id == 0) != (obfuscated_txn_id == 0),
+        (txn_id == 0) == (obfuscated_txn_id == 0),
         "An internal txn_id of 0 must be mapped to an external txn_id of 0!");
     return obfuscated_txn_id;
 }
