@@ -139,9 +139,14 @@ inline se_object_t* offset_to_ptr(gaia_offset_t offset)
     {
         obj = reinterpret_cast<se_object_t*>(data->objects + offset);
         // Check if object is poisoned to detect use-after-free.
-        retail_assert(
-            obj->payload_size != se_object_t::c_invalid_payload_size,
-            "Object reused after being freed!");
+        // retail_assert(
+        //     obj->payload_size != se_object_t::c_invalid_payload_size,
+        //     "Object reused after being freed!");
+        if (obj->payload_size == se_object_t::c_invalid_payload_size)
+        {
+            std::cerr << "Object at offset " << offset << " reused after being freed!" << std::endl;
+            std::abort();
+        }
     }
     return obj;
 }
