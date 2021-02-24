@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <limits>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -18,14 +19,19 @@
 #include "gaia_addr_book.h"
 
 using namespace gaia::addr_book;
+using namespace gaia::addr_book::address_expr;
+using namespace gaia::addr_book::employee_expr;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_employees = 100000;
-static const uint64_t c_num_employee_addresses = 3;
+// For the tests to succeed:
+// - c_num_employees must be >= 101
+// - c_num_employee_addresses must be >= 1
+static const int64_t c_num_employees = 10000;
+static const int64_t c_num_employee_addresses = 2;
 
 /**
  * Test the performance of the predicates built with the expression API vs
@@ -38,48 +44,64 @@ static const uint64_t c_num_employee_addresses = 3;
  *
  * This is an example result with (built with -DCMAKE_BUILD_TYPE=Release):
  *  c_num_employees=100k
- *  c_num_employee_addresses=3
+ *  c_num_employee_addresses=2
+ *  iteration=10
  *
  * Comparing 'int64_t ==' performance:
- *  [expr]: 75713.92 us
- *  [plain]: 79738.08 us
- *  ->expr is 5.05% faster
+ *   [expr]: avg:71202.56us min:68605.46us max:76158.40us
+ *  [plain]: avg:73750.23us min:69868.34us max:78082.55us
+ *  ->expr is 3.45% faster
  *
  * Comparing 'int64_t >' performance:
- *  [expr]: 85465.62 us
- *  [plain]: 85384.19 us
- *  ->expr is 0.10% slower
+ *   [expr]: avg:71434.88us min:66800.11us max:75009.76us
+ *  [plain]: avg:72051.07us min:66190.02us max:76080.16us
+ *  ->expr is 0.86% faster
  *
  * Comparing 'int64_t <' performance:
- *  [expr]: 80908.72 us
- *  [plain]: 78395.23 us
- *  ->expr is 3.21% slower
+ *   [expr]: avg:68504.45us min:62284.45us max:75248.46us
+ *  [plain]: avg:71111.32us min:66372.92us max:74158.02us
+ *  ->expr is 3.67% faster
  *
  * Comparing 'const char* ==' performance:
- *  [expr]: 89520.14 us
- *  [plain]: 89476.31 us
- *  ->expr is 0.05% slower
+ *   [expr]: avg:80654.28us min:75795.57us max:86061.24us
+ *  [plain]: avg:84660.81us min:80487.47us max:88559.94us
+ *  ->expr is 4.73% faster
  *
  * Comparing 'std::string ==' performance:
- *  [expr]: 84398.43 us
- *  [plain]: 94044.34 us
- *  ->expr is 10.26% faster
- *
- * Comparing 'std::string equals ignore case' performance:
- *  [expr]: 92790.74 us
- *  [plain]: 91392.17 us
- *  ->expr is 1.53% slower
+ *   [expr]: avg:81805.88us min:76163.18us max:89563.08us
+ *  [plain]: avg:86178.28us min:80889.47us max:91281.46us
+ *  ->expr is 5.07% faster
  *
  * Comparing 'EDC class ==' performance:
- *  [expr]: 166484.30 us
- *  [plain]: 169587.11 us
- *  ->expr is 1.83% faster
+ *   [expr]: avg:126928.02us min:124232.26us max:133843.79us
+ *  [plain]: avg:131983.32us min:129818.73us max:136030.87us
+ *  ->expr is 3.83% faster
  *
  * Comparing 'mixed boolean op' performance:
- *  [expr]: 116633.21 us
- *  [plain]: 118581.93 us
- *  ->expr is 1.64% faster
- */
+ *   [expr]: avg:110666.83us min:104651.21us max:117001.52us
+ *  [plain]: avg:113004.57us min:106622.64us max:120016.23us
+ *  ->expr is 2.07% faster
+ *
+ * Comparing 'container contains' performance:
+ *   [expr]: avg:215022.69us min:209438.60us max:225074.10us
+ *  [plain]: avg:206749.38us min:202125.78us max:211504.21us
+ *  ->expr is 4.00% slower
+ *
+ * Comparing 'container contains lambda' performance:
+ *   [expr]: avg:213658.99us min:209991.27us max:226889.45us
+ *  [plain]: avg:186504.27us min:182121.90us max:190658.59us
+ *  ->expr is 14.56% slower
+ *
+ * Comparing 'container count' performance:
+ *   [expr]: avg:161366.45us min:155702.49us max:177688.25us
+ *  [plain]: avg:159336.31us min:153831.77us max:175199.49us
+ *  ->expr is 1.27% slower
+ *
+ * Comparing 'container empty' performance:
+ *   [expr]: avg:116276.95us min:109341.40us max:126678.42us
+ *  [plain]: avg:95348.92us min:87834.60us max:107550.61us
+ *  ->expr is 21.95% slower
+ *  */
 class test_expressions_perf : public gaia::db::db_catalog_test_base_t
 {
 public:
@@ -123,18 +145,67 @@ public:
     }
 };
 
+template <typename T_num>
+class accumulator_t
+{
+public:
+    void add(T_num value)
+    {
+        if (value < m_min)
+        {
+            m_min = value;
+        }
+
+        if (value > m_max)
+        {
+            m_max = value;
+        }
+
+        m_sum += value;
+        m_num_observations++;
+    }
+
+    T_num min()
+    {
+        return m_min;
+    }
+
+    T_num max()
+    {
+        return m_max;
+    }
+
+    double_t avg()
+    {
+        return m_sum / (m_num_observations + 0.0);
+    }
+
+private:
+    T_num m_min = std::numeric_limits<T_num>::max();
+    T_num m_max = std::numeric_limits<T_num>::min();
+    T_num m_sum = 0;
+    uint64_t m_num_observations = 0;
+};
+
 double_t percentage_difference(int64_t expr, int64_t plain)
 {
     return static_cast<double_t>(expr - plain) / plain * 100.0;
 }
 
-void log_performance_difference(int64_t expr_duration_ns, int64_t plain_duration_ns, std::string_view message)
+void log_performance_difference(accumulator_t<int64_t> expr_accumulator, accumulator_t<int64_t> plain_accumulator, std::string_view message)
 {
-    cout << "Comparing '" << message << "' performance:" << endl;
-    printf(" [expr]: %0.2f us\n", g_timer_t::ns_to_us(expr_duration_ns));
-    printf(" [plain]: %0.2f us\n", g_timer_t::ns_to_us(plain_duration_ns));
+    double_t avg_expr = g_timer_t::ns_to_us(expr_accumulator.avg());
+    double_t min_expr = g_timer_t::ns_to_us(expr_accumulator.min());
+    double_t max_expr = g_timer_t::ns_to_us(expr_accumulator.max());
+    double_t avg_plain = g_timer_t::ns_to_us(plain_accumulator.avg());
+    double_t min_plain = g_timer_t::ns_to_us(plain_accumulator.min());
+    double_t max_plain = g_timer_t::ns_to_us(plain_accumulator.max());
 
-    double_t percentage_diff = percentage_difference(expr_duration_ns, plain_duration_ns);
+    cout << "Comparing '" << message << "' performance:" << endl;
+    printf("  [expr]: avg:%0.2fus min:%0.2fus max:%0.2fus\n", avg_expr, min_expr, max_expr);
+    printf(" [plain]: avg:%0.2fus min:%0.2fus max:%0.2fus\n", avg_plain, min_plain, max_plain);
+
+    double_t percentage_diff = percentage_difference(avg_expr, avg_plain);
 
     if (percentage_diff > 0)
     {
@@ -148,37 +219,54 @@ void log_performance_difference(int64_t expr_duration_ns, int64_t plain_duration
     cout << endl;
 }
 
+void run_performance_test(
+    std::function<void()> expr_fn,
+    std::function<void()> plain_fn,
+    std::string_view message,
+    uint32_t num_iterations = 5)
+{
+    accumulator_t<int64_t> expr_accumulator;
+    accumulator_t<int64_t> plain_accumulator;
+
+    for (uint32_t iteration = 0; iteration < num_iterations; iteration++)
+    {
+        int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
+        expr_accumulator.add(expr_duration);
+
+        int64_t plain_duration = g_timer_t::get_function_duration(plain_fn);
+        plain_accumulator.add(plain_duration);
+    }
+
+    log_performance_difference(expr_accumulator, plain_accumulator, message);
+}
+
 TEST_F(test_expressions_perf, int_eq)
 {
     auto_transaction_t txn;
 
     static const int64_t c_time = 100;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date == c_time))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(hire_date == c_time);
+        int num_employee = std::distance(container.begin(), container.end());
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list())
-            {
-                if (e.hire_date() == c_time)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+        EXPECT_EQ(num_employee, 1);
+    };
 
-    log_performance_difference(expr_duration, plain_duration, "int64_t ==");
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            if (e.hire_date() == c_time)
+            {
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, 1);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "int64_t ==");
 
     txn.commit();
 }
@@ -187,33 +275,29 @@ TEST_F(test_expressions_perf, int_gteq)
 {
     auto_transaction_t txn;
 
-    static const int64_t c_time = 10000;
+    static const int64_t c_time = 100;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date >= c_time))
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(hire_date >= c_time);
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_num_employees - c_time);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            if (e.hire_date() >= c_time)
             {
-                employees.push_back(e);
+                num_employee++;
             }
-            ASSERT_EQ(employees.size(), c_num_employees - c_time);
-        });
+        }
+        EXPECT_EQ(num_employee, c_num_employees - c_time);
+    };
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list())
-            {
-                if (e.hire_date() >= c_time)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), c_num_employees - c_time);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "int64_t >");
+    run_performance_test(expr_fn, plain_fn, "int64_t >");
 
     txn.commit();
 }
@@ -222,33 +306,29 @@ TEST_F(test_expressions_perf, int_lt)
 {
     auto_transaction_t txn;
 
-    static const int64_t c_time = 1000;
+    static const int64_t c_time = 100;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::hire_date < c_time))
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(hire_date < c_time);
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_time);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            if (e.hire_date() < c_time)
             {
-                employees.push_back(e);
+                num_employee++;
             }
-            ASSERT_EQ(employees.size(), c_time);
-        });
+        }
+        EXPECT_EQ(num_employee, c_time);
+    };
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list())
-            {
-                if (e.hire_date() < c_time)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), c_time);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "int64_t <");
+    run_performance_test(expr_fn, plain_fn, "int64_t <");
 
     txn.commit();
 }
@@ -257,32 +337,28 @@ TEST_F(test_expressions_perf, c_string_eq)
 {
     auto_transaction_t txn;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == "Name_1000"))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(name_first == "Name_100");
+        int num_employee = std::distance(container.begin(), container.end());
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            const char* value = "Name_1000";
-            for (auto& e : employee_t::list())
-            {
-                if (strcmp(e.name_first(), value) == 0)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+        EXPECT_EQ(num_employee, 1);
+    };
 
-    log_performance_difference(expr_duration, plain_duration, "const char* ==");
+    auto plain_fn = []() {
+        int num_employee = 0;
+        const char* value = "Name_100";
+        for (auto& e : employee_t::list())
+        {
+            if (strcmp(e.name_first(), value) == 0)
+            {
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, 1);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "const char* ==");
 
     txn.commit();
 }
@@ -291,112 +367,64 @@ TEST_F(test_expressions_perf, string_eq)
 {
     auto_transaction_t txn;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first == string("Name_1000")))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(name_first == string("Name_100"));
+        int num_employee = std::distance(container.begin(), container.end());
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            string value = "Name_1000";
-            for (auto& e : employee_t::list())
-            {
-                if (strcmp(e.name_first(), value.c_str()) == 0)
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
+        EXPECT_EQ(num_employee, 1);
+    };
 
-    log_performance_difference(expr_duration, plain_duration, "std::string ==");
+    auto plain_fn = []() {
+        int num_employee = 0;
+        string value = "Name_100";
+        for (auto& e : employee_t::list())
+        {
+            if (strcmp(e.name_first(), value.c_str()) == 0)
+            {
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, 1);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "std::string ==");
 
     txn.commit();
 }
-
-/*
-TEST_F(test_expressions_perf, string_eq_case_insensitive)
-{
-    auto_transaction_t txn;
-
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(employee_t::expr::name_first
-                                          .equals(string("name_1000"), string_comparison_t::case_insensitive)))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            string value = "name_1000";
-            for (auto& e : employee_t::list())
-            {
-                string a = e.name_first();
-                if (std::equal(
-                        a.begin(), a.end(), value.begin(), value.end(),
-                        [](const char& a, const char& b) {
-                            return tolower(a) == tolower(b);
-                        }))
-                {
-                    employees.push_back(e);
-                }
-            }
-            ASSERT_EQ(employees.size(), 1);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "std::string equals ignore case");
-
-    txn.commit();
-}
-*/
 
 TEST_F(test_expressions_perf, object_eq)
 {
     auto_transaction_t txn;
 
     const employee_t dude = *employee_t::list()
-                                 .where(employee_t::expr::name_first == "Name_0")
+                                 .where(name_first == "Name_0")
                                  .begin();
-    ASSERT_TRUE(dude);
+    EXPECT_TRUE(dude);
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        [&dude]() {
-            vector<address_t> addresses;
-            for (auto& a : address_t::list()
-                               .where(address_t::expr::addressee_employee == dude))
+    auto expr_fn = [&dude]() {
+        vector<address_t> addresses;
+        for (auto& a : address_t::list()
+                           .where(addressee_employee == dude))
+        {
+            addresses.push_back(a);
+        }
+        EXPECT_EQ(addresses.size(), c_num_employee_addresses);
+    };
+
+    auto plain_fn = [&dude]() {
+        vector<address_t> addresses;
+        for (auto& a : address_t::list())
+        {
+            if (a.addressee_employee() == dude)
             {
                 addresses.push_back(a);
             }
-            ASSERT_EQ(addresses.size(), c_num_employee_addresses);
-        });
+        }
+        EXPECT_EQ(addresses.size(), c_num_employee_addresses);
+    };
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        [&dude]() {
-            vector<address_t> addresses;
-            for (auto& a : address_t::list())
-            {
-                if (a.addressee_employee() == dude)
-                {
-                    addresses.push_back(a);
-                }
-            }
-            ASSERT_EQ(addresses.size(), c_num_employee_addresses);
-        });
-
-    log_performance_difference(expr_duration, plain_duration, "EDC class ==");
+    run_performance_test(expr_fn, plain_fn, "EDC class ==");
 
     txn.commit();
 }
@@ -405,34 +433,153 @@ TEST_F(test_expressions_perf, mixed_bool_op)
 {
     auto_transaction_t txn;
 
-    int64_t expr_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list()
-                               .where(
-                                   (employee_t::expr::name_first == "Name_1000" && employee_t::expr::name_last == "Surname_1000")
-                                   || (employee_t::expr::hire_date >= 100 && employee_t::expr::hire_date < 101)))
-            {
-                employees.push_back(e);
-            }
-            ASSERT_EQ(employees.size(), 2);
-        });
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(
+                                 (name_first == "Name_100" && name_last == "Surname_100")
+                                 || (hire_date >= 10 && hire_date < 11));
+        int num_employee = std::distance(container.begin(), container.end());
 
-    int64_t plain_duration = g_timer_t::get_function_duration(
-        []() {
-            vector<employee_t> employees;
-            for (auto& e : employee_t::list())
+        EXPECT_EQ(num_employee, 2);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            if ((strcmp(e.name_first(), "Name_100") == 0 && strcmp(e.name_last(), "Surname_100") == 0)
+                || (e.hire_date() >= 10 && e.hire_date() < 11))
             {
-                if ((strcmp(e.name_first(), "Name_1000") == 0 && strcmp(e.name_last(), "Surname_1000") == 0)
-                    || (e.hire_date() >= 100 && e.hire_date() < 101))
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, 2);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "mixed boolean op");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_contains)
+{
+    auto_transaction_t txn;
+
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(addressee_address_list.contains(city == "city_0"));
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            for (auto& a : e.addressee_address_list())
+            {
+                if (string("city_0") == a.city())
                 {
-                    employees.push_back(e);
+                    num_employee++;
                 }
             }
-            ASSERT_EQ(employees.size(), 2);
-        });
+        }
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
 
-    log_performance_difference(expr_duration, plain_duration, "mixed boolean op");
+    run_performance_test(expr_fn, plain_fn, "container contains");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_contains_lambda)
+{
+    auto_transaction_t txn;
+
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(addressee_address_list.contains(city == "city_0"));
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
+
+    auto plain_fn = []() {
+        auto container = employee_t::list().where(
+            [](const employee_t& emp) {
+                auto addresses = emp.addressee_address_list().where(
+                    [](const address_t addr) {
+                        return addr.city() == string("city_0");
+                    });
+                return addresses.begin() != addresses.end();
+            });
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "container contains lambda");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_count)
+{
+    auto_transaction_t txn;
+
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(addressee_address_list.count() == c_num_employee_addresses);
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            auto addresses = e.addressee_address_list();
+            if (std::distance(addresses.begin(), addresses.end()) == c_num_employee_addresses)
+            {
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, c_num_employees);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "container count");
+
+    txn.commit();
+}
+
+TEST_F(test_expressions_perf, test_container_empty)
+{
+    auto_transaction_t txn;
+
+    auto expr_fn = []() {
+        auto container = employee_t::list()
+                             .where(addressee_address_list.empty());
+        int num_employee = std::distance(container.begin(), container.end());
+
+        EXPECT_EQ(num_employee, 0);
+    };
+
+    auto plain_fn = []() {
+        int num_employee = 0;
+        for (auto& e : employee_t::list())
+        {
+            auto addresses = e.addressee_address_list();
+            if (addresses.begin() == addresses.end())
+            {
+                num_employee++;
+            }
+        }
+        EXPECT_EQ(num_employee, 0);
+    };
+
+    run_performance_test(expr_fn, plain_fn, "container empty");
 
     txn.commit();
 }

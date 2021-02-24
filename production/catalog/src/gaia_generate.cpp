@@ -466,6 +466,27 @@ static string generate_edc_struct(
         }
     }
 
+    for (auto& relationship : parent_relationships)
+    {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+
+        if (is_named_relationship)
+        {
+            code.SetValue("REF_NAME", relationship.name());
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{REF_NAME}}_{{CHILD_TABLE}}_list_t> {{REF_NAME}}_{{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{CHILD_TABLE}}_list};";
+            field_names.push_back(code.GetValue("REF_NAME") + "_" + code.GetValue("CHILD_TABLE") + "_list");
+        }
+        else
+        {
+            // This relationship is anonymous.
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_list_t> {{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{CHILD_TABLE}}_list};";
+            field_names.push_back(code.GetValue("CHILD_TABLE") + "_list");
+        }
+    }
+
     code.DecrementIdentLevel();
     code += "};\n";
 
