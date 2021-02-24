@@ -7,6 +7,7 @@
 
 #include <cstddef>
 
+#include <atomic>
 #include <ostream>
 
 #include "gaia/common.hpp"
@@ -80,7 +81,9 @@ constexpr size_t c_max_log_records = 1ULL << 20;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
-typedef gaia_offset_t locators_t[c_max_locators];
+// The elements are atomic because reads and writes to shared memory need to be
+// synchronized across threads/processes.
+typedef std::atomic<gaia_offset_t> locators_t[c_max_locators];
 
 struct hash_node_t
 {
@@ -92,7 +95,7 @@ struct hash_node_t
 struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
-    size_t count;
+    size_t record_count;
 
     struct log_record_t
     {
@@ -123,18 +126,19 @@ struct txn_log_t
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
-        os << "count: " << l.count << std::endl;
+        os << "record_count: " << l.record_count << std::endl;
         const log_record_t* const lr_start = static_cast<const log_record_t*>(l.log_records);
-        for (const log_record_t* lr = lr_start; lr < lr_start + l.count; ++lr)
+        for (const log_record_t* lr = lr_start; lr < lr_start + l.record_count; ++lr)
         {
-            os << *lr << std::endl;
+            os << *lr;
         }
+        os << std::endl;
         return os;
     }
 
     inline size_t size()
     {
-        return sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * count);
+        return sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * record_count);
     }
 };
 

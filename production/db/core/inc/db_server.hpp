@@ -106,22 +106,25 @@ private:
 
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
 
-    // This is an "endless" array of timestamp entries, indexed by the txn
-    // timestamp counter and containing all information for every txn that has
-    // been submitted to the system. Entries may be "unknown" (uninitialized),
-    // "invalid" (initialized with a special "junk" value and forbidden to be
-    // used afterward), or initialized with txn information, consisting of 3
-    // status bits, 16 bits for a txn log fd, 3 reserved bits, and 42 bits for a
-    // timestamp reference (the commit timestamp of a submitted txn embedded in
-    // its begin timestamp entry, or the begin timestamp of a submitted txn
-    // embedded in its commit timestamp entry). The 3 status bits use the high
-    // bit to distinguish begin timestamps from commit timestamps, and 2 bits to
-    // store the state of an active or submitted txn. The array is always
-    // accessed without any locking, but its entries have read and write
-    // barriers (via std::atomic) that ensure a happens-before relationship
+    // This is an effectively infinite array of timestamp entries, indexed by
+    // the txn timestamp counter and containing metadata for every txn that has
+    // been submitted to the system.
+    //
+    // Entries may be "unknown" (uninitialized), "invalid" (initialized with a
+    // special "junk" value and forbidden to be used afterward), or initialized
+    // with txn metadata, consisting of 3 status bits, 1 bit for GC status
+    // (unknown or complete), 1 bit for persistence status (unknown or
+    // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
+    // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
+    // txn embedded in its begin timestamp entry, or the begin timestamp of a
+    // submitted txn embedded in its commit timestamp entry). The 3 status bits
+    // use the high bit to distinguish begin timestamps from commit timestamps,
+    // and 2 bits to store the state of an active, terminated, or submitted txn.
+    //
+    // The array is always accessed without any locking, but its entries have
+    // read and write barriers (via std::atomic) that ensure causal consistency
     // between any threads that read or write the same entry. Any writes to
-    // entries that may be written by multiple threads use CAS operations (via
-    // std::atomic::compare_exchange_strong).
+    // entries that may be written by multiple threads use CAS operations.
     //
     // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
     // virtual address space (1/8 of the total virtual address space available
@@ -148,7 +151,7 @@ private:
     // dangerous when we approach wraparound.)
     //
     // Timestamp entry format:
-    // 64 bits: status(3) | log fd (16) | reserved (3) | logical timestamp (42)
+    // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
     typedef uint64_t ts_entry_t;
     static inline std::atomic<ts_entry_t>* s_txn_info = nullptr;
 
@@ -156,20 +159,32 @@ private:
     // never want to fall back to a lock-based implementation of atomics.
     static_assert(std::atomic<ts_entry_t>::is_always_lock_free);
 
-    // This marks a boundary at or before which every committed commit_ts may be
-    // assumed to have been applied to the shared locator view, and after which
-    // no commit_ts may be assumed to have had its txn log invalidated or freed
-    // (even if it aborted). No undecided commit_ts may precede the boundary,
-    // nor may any active or validating begin_ts. Since the shared view is
-    // updated non-atomically, there may be a commit_ts later than the boundary
-    // which is partially or fully applied to the shared locator view. But since
-    // log replay is idempotent, we can safely replay logs that have already
-    // been partially or fully applied to the shared view, starting with the
-    // last commit_ts at or before the boundary. We always apply a full prefix
-    // of committed txns to the shared view; there can be no gaps in the
-    // sequence of committed txns that have been applied to the view (since no
-    // commit_ts before the boundary can be undecided).
+    // These global timestamp variables are "watermarks" that represent the
+    // progress of various system functions with respect to transaction history.
+    // The "pre-apply" watermark represents an upper bound on the latest
+    // commit_ts whose txn log could have been applied to the shared locator
+    // view. A committed txn cannot have its txn log applied to the shared view
+    // until the pre-apply watermark has been advanced to its commit_ts. The
+    // "post-apply" watermark represents a lower bound on the same quantity, and
+    // also an upper bound on the latest commit_ts whose txn log could be
+    // eligible for GC. GC cannot be started for any committed txn until the
+    // post-apply watermark has advanced to its commit_ts. The "post-GC"
+    // watermark represents a lower bound on the latest commit_ts whose txn log
+    // could have had GC reclaim all its resources. The txn table cannot be
+    // truncated at any timestamp entry after the post-GC watermark.
+
+    // Schematically:
+    // commit timestamps of transactions completely garbage-collected
+    // <= post-GC watermark
+    // <= commit timestamps of transactions applied to shared view
+    // <= post-apply watermark
+    // < commit timestamps of transactions partially applied to shared view
+    // <= pre-apply watermark
+    // < commit timestamps of transactions not applied to shared view.
+
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
@@ -179,22 +194,12 @@ private:
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
     // Transaction timestamp entry constants.
-    static constexpr uint64_t c_txn_status_entry_bits{64ULL};
+    static constexpr uint64_t c_txn_entry_bits{64ULL};
 
     static constexpr uint64_t c_txn_status_flags_bits{3ULL};
-    static constexpr uint64_t c_txn_status_flags_shift{c_txn_status_entry_bits - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_status_flags_shift{c_txn_entry_bits - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
-
-    static constexpr uint64_t c_txn_log_fd_bits{16ULL};
-    static constexpr uint64_t c_txn_log_fd_shift{
-        (c_txn_status_entry_bits - c_txn_log_fd_bits) - c_txn_status_flags_bits};
-    static constexpr uint64_t c_txn_log_fd_mask{
-        ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
-
-    static constexpr uint64_t c_txn_reserved_bits{3ULL};
-    static constexpr uint64_t c_txn_ts_bits{42ULL};
-    static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
 
     // Transaction status flags.
     // These are all begin_ts status values.
@@ -217,6 +222,67 @@ private:
     static constexpr uint64_t c_txn_status_validating{0b100ULL};
     static constexpr uint64_t c_txn_status_committed{0b111ULL};
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
+
+    // Transaction GC status values.
+    // These only apply to a commit_ts entry.
+    // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, since any txn
+    // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
+    // persistence is enabled) is eligible for GC, and an invalidated log fd
+    // indicates that GC is in progress.
+    static constexpr uint64_t c_txn_gc_flags_bits{1ULL};
+    static constexpr uint64_t c_txn_gc_flags_shift{
+        (c_txn_entry_bits - c_txn_gc_flags_bits) - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_gc_flags_mask{
+        ((1ULL << c_txn_gc_flags_bits) - 1) << c_txn_gc_flags_shift};
+    // These are all commit_ts flag values.
+    static constexpr uint64_t c_txn_gc_unknown{0b0ULL};
+    // This flag indicates that the txn log and all obsolete versions (undo
+    // versions for a committed txn, redo versions for an aborted txn) have been
+    // reclaimed by the system.
+    static constexpr uint64_t c_txn_gc_complete{0b1ULL};
+
+    // This flag indicates whether the txn has been made externally durable
+    // (i.e., persisted to the write-ahead log). It can't be combined with the
+    // GC flags because a txn might be made durable before or after being
+    // applied to the shared view, and we don't want one to block on the other.
+    // However, a committed txn's redo versions cannot be reclaimed until it has
+    // been marked durable. If persistence is disabled, this flag is unused.
+    static constexpr uint64_t c_txn_persistence_flags_bits{1ULL};
+    static constexpr uint64_t c_txn_persistence_flags_shift{
+        (c_txn_entry_bits - c_txn_persistence_flags_bits)
+        - (c_txn_status_flags_bits + c_txn_gc_flags_bits)};
+    static constexpr uint64_t c_txn_persistence_flags_mask{
+        ((1ULL << c_txn_persistence_flags_bits) - 1) << c_txn_persistence_flags_shift};
+    // These are all commit_ts flag values.
+    static constexpr uint64_t c_txn_persistence_unknown{0b0ULL};
+    static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
+
+    // This is a placeholder for the single (currently) reserved bit in the txn
+    // timestamp entry.
+    static constexpr uint64_t c_txn_reserved_flags_bits{1ULL};
+
+    // Txn log fd embedded in the txn timestamp entry.
+    // This is only present in a commit_ts entry.
+    // NB: we assume that any fd will be < 2^16 - 1!
+    static constexpr uint64_t c_txn_log_fd_bits{16ULL};
+    static constexpr uint64_t c_txn_log_fd_shift{
+        (c_txn_entry_bits - c_txn_log_fd_bits)
+        - (c_txn_status_flags_bits
+           + c_txn_gc_flags_bits
+           + c_txn_persistence_flags_bits
+           + c_txn_reserved_flags_bits)};
+    static constexpr uint64_t c_txn_log_fd_mask{
+        ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
+
+    // Linked txn timestamp embedded in the txn timestamp entry.
+    // For a commit_ts entry, this is its associated begin_ts, and for a
+    // begin_ts entry, this is its associated commit_ts. The linked begin_ts is
+    // always present in a commit_ts entry, but the associated begin_ts entry
+    // may not be updated with its linked commit_ts until after the commit_ts
+    // entry has been created.
+    static constexpr uint64_t c_txn_ts_bits{42ULL};
+    static constexpr uint64_t c_txn_ts_shift{0ULL};
+    static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
 
     // Transaction special values.
     // The first 3 bits of this value are unused for any txn state.
@@ -287,6 +353,7 @@ private:
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
+        size_t log_fd_count = 0,
         gaia::db::memory_manager::address_offset_t object_address_offset = 0);
 
     static void clear_shared_memory();
@@ -323,18 +390,13 @@ private:
     template <typename element_type>
     static void stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
 
-    static void fd_stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
-
     template <typename element_type>
     static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
-
-    static void start_fd_stream_producer(int stream_socket, std::function<std::optional<gaia_txn_id_t>()> ts_generator_fn);
 
     static std::function<std::optional<common::gaia_id_t>()>
     get_id_generator_for_type(common::gaia_type_t type);
 
-    static std::function<std::optional<gaia_txn_id_t>()>
-    get_commit_ts_generator_for_begin_ts(gaia_txn_id_t begin_ts);
+    static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
     static gaia_txn_id_t txn_begin();
 
@@ -346,9 +408,15 @@ private:
         gaia_locator_t locator,
         size_t size);
 
-    static void update_apply_watermark(gaia_txn_id_t);
+    static void perform_maintenance();
 
-    static bool advance_watermark_ts(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
+    static void apply_txn_logs_to_shared_view();
+
+    static void gc_applied_txn_logs();
+
+    static void update_txn_table_safe_truncation_point();
+
+    static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
     static bool invalidate_unknown_ts(gaia_txn_id_t ts);
 
@@ -383,6 +451,14 @@ private:
     static bool is_txn_entry_aborted(ts_entry_t ts_entry);
 
     static bool is_txn_aborted(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_gc_complete(ts_entry_t ts_entry);
+
+    static bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
+
+    static bool is_txn_entry_durable(ts_entry_t ts_entry);
+
+    static bool is_txn_durable(gaia_txn_id_t commit_ts);
 
     static bool is_txn_entry_active(ts_entry_t ts_entry);
 
@@ -424,9 +500,11 @@ private:
 
     static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
-    static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
+    static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd, bool deallocate_new_offsets = false);
+    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
+
+    static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
@@ -505,6 +583,15 @@ private:
             // the call to dup(2)), so we know we aren't reusing a closed fd.
             if (get_txn_log_fd(commit_ts) == -1)
             {
+                // If we got here, we must have a valid dup fd.
+                common::retail_assert(
+                    common::is_fd_valid(m_local_log_fd),
+                    "fd should be valid if dup() succeeded!");
+                // We need to close the duplicated fd since the original fd
+                // might have been reused and we would leak it otherwise
+                // (because the destructor isn't called if the constructor
+                // throws).
+                common::close_fd(m_local_log_fd);
                 throw invalid_log_fd(commit_ts);
             }
         }

@@ -125,7 +125,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
     auto txn = m_rdb_internal->get_txn_by_name(txn_name);
-    for (size_t i = 0; i < log->count; i++)
+    for (size_t i = 0; i < log->record_count; i++)
     {
         auto lr = log->log_records + i;
         if (lr->operation == gaia_operation_t::remove)
@@ -156,7 +156,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
         }
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
-    retail_assert(key_count == log->count, "Count of inserted objects differs from log count!");
+    retail_assert(key_count == log->record_count, "Count of inserted objects differs from log count!");
     m_rdb_internal->prepare_wal_for_write(txn);
 }
 

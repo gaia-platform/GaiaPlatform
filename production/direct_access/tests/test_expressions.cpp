@@ -13,13 +13,14 @@
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
 
 using namespace gaia::addr_book;
-using namespace gaia::addr_book::employee_expr;
 using namespace gaia::addr_book::address_expr;
+using namespace gaia::addr_book::employee_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
@@ -37,6 +38,7 @@ public:
 protected:
     address_t seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee;
     employee_t simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
+    phone_t landline, mobile;
 
     void SetUp() override
     {
@@ -61,6 +63,9 @@ protected:
         yiwen = create_employee("Yi Wen", "Wong", "yiwen@gaia.io", date(2020, 5, 10), seattle);
         mihir = create_employee("Mihir", "Jadhav", "mihir@gaia.io", date(2020, 5, 31), redmond);
         simone = create_employee("Simone", "Rondelli", "simone@gaia.io", date(2020, 7, 31), kissimmee);
+
+        landline = create_phone("(206)867-5309", "landline", aberdeen);
+        mobile = create_phone("(407) 123-4567", "mobile", kissimmee);
 
         commit_transaction();
     }
@@ -88,6 +93,18 @@ protected:
         return address_t::get(address_w.insert_row());
     }
 
+    phone_t create_phone(const string& number, const string& type, address_t& address)
+    {
+        phone_writer writer;
+        writer.phone_number = number;
+        writer.type = type;
+        phone_t phone = phone_t::get(writer.insert_row());
+
+        address.phone_list().insert(phone);
+
+        return phone;
+    }
+
     /**
      * Return the given date in milliseconds since epoch.
      */
@@ -106,7 +123,7 @@ protected:
     {
         auto expected_vec = std::vector(expected);
 
-        ASSERT_EQ(expected.size(), std::distance(gaia_container.begin(), gaia_container.end()));
+        EXPECT_EQ(expected.size(), std::distance(gaia_container.begin(), gaia_container.end()));
 
         for (const T_type& obj : gaia_container)
         {
@@ -118,7 +135,7 @@ protected:
             }
         }
 
-        ASSERT_TRUE(expected_vec.empty());
+        EXPECT_TRUE(expected_vec.empty());
     }
 
     template <class T_container, class T_type>
@@ -130,7 +147,7 @@ protected:
     template <class T_container>
     void assert_empty(T_container gaia_container)
     {
-        ASSERT_EQ(gaia_container.begin(), gaia_container.end());
+        EXPECT_EQ(gaia_container.begin(), gaia_container.end());
     }
 };
 
@@ -155,7 +172,7 @@ TEST_F(test_expressions, int64_eq)
     assert_contains(
         employee_t::list()
             .where(hire_date == date(2020, 5, 10)),
-        {yiwen});
+        yiwen);
 
     assert_empty(
         employee_t::list()
@@ -416,4 +433,79 @@ TEST_F(test_expressions, mix_boolean_expr)
     assert_empty(
         employee_t::list()
             .where((name_first == "Wayne" && name_last == "Warren") && (hire_date > date(2036, 2, 7))));
+}
+
+TEST_F(test_expressions, container_contains_predicate)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(addressee_address_list
+                       .contains(address_expr::state == "WA")),
+        {dax, wayne, tobin, laurentiu, yiwen, mihir});
+
+    assert_empty(
+        employee_t::list()
+            .where(addressee_address_list
+                       .contains(address_expr::state == "CA")));
+}
+
+TEST_F(test_expressions, container_contains_object)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(addressee_address_list
+                       .contains(bellevue)),
+        {laurentiu});
+
+    auto marzabotto = create_address("Marzabotto", "IT");
+
+    assert_empty(employee_t::list().where(addressee_address_list.contains(marzabotto)));
+}
+
+TEST_F(test_expressions, nested_container)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list().where(
+            addressee_address_list.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phone_list.contains(phone_expr::type == "landline"))),
+        {dax});
+}
+
+TEST_F(test_expressions, container_empty)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        address_t::list()
+            // phone_list is ambiguous, need full qualification.
+            .where(address_expr::phone_list.empty()),
+        {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
+
+    assert_empty(
+        employee_t::list()
+            .where(addressee_address_list.empty()));
+}
+
+TEST_F(test_expressions, container_count)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        address_t::list()
+            .where(address_expr::phone_list.count() == 0),
+        {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
+
+    assert_contains(
+        employee_t::list()
+            .where(addressee_address_list.count() >= 1),
+        {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
+
+    assert_empty(
+        employee_t::list()
+            .where(addressee_address_list.count() > 10));
 }

@@ -168,73 +168,6 @@ client::get_stream_generator_for_socket(int stream_socket)
     };
 }
 
-// This generator wraps a socket which reads a stream of fds from the server.
-// Because the socket interfaces for file descriptor passing are so specialized,
-// we can't reuse the generic stream socket generator implementation.
-std::function<std::optional<int>()>
-client::get_fd_stream_generator_for_socket(int stream_socket)
-{
-    // Verify that the socket is the correct type for the semantics we assume.
-    check_socket_type(stream_socket, SOCK_SEQPACKET);
-
-    // The userspace buffer that we use to receive a batch datagram message.
-    std::vector<int> batch_buffer;
-
-    // The definition of the generator we return.
-    return [stream_socket, batch_buffer]() mutable -> std::optional<int> {
-        // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket != -1, c_message_stream_socket_is_invalid);
-
-        // If buffer is empty, block until a new batch is available.
-        if (batch_buffer.size() == 0)
-        {
-            // We only need a 1-byte buffer due to our datagram size convention.
-            uint8_t msg_buf[1] = {0};
-
-            // Resize the vector for maximum fd count, since we don't know
-            // beforehand how many we'll get.
-            batch_buffer.resize(c_max_fd_count);
-            size_t fd_count = batch_buffer.size();
-
-            // We need to set throw_on_zero_bytes_read=false in this call, since
-            // we expect EOF to be returned when the stream is exhausted.
-            size_t datagram_size = recv_msg_with_fds(
-                stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
-
-            // Our datagrams contain one byte by convention, since we need to
-            // distinguish empty datagrams from EOF (even though Linux allows
-            // ancillary data with empty datagrams).
-            if (datagram_size == 0)
-            {
-                // We received EOF from the server, so close
-                // client socket and stop iteration.
-                close_fd(stream_socket);
-
-                // Tell the caller to stop iteration.
-                return std::nullopt;
-            }
-
-            // The datagram size must be 1 byte according to our protocol.
-            retail_assert(datagram_size == 1, c_message_unexpected_datagram_size);
-            retail_assert(
-                fd_count > 0 && fd_count <= c_max_fd_count,
-                c_message_unexpected_fd_count);
-
-            // Resize the vector to its actual fd count.
-            batch_buffer.resize(fd_count);
-        }
-
-        // At this point we know our buffer is non-empty.
-        retail_assert(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
-
-        // Loop through the buffer and return entries in FIFO order
-        // (the server reversed the original buffer before sending).
-        int next_fd = batch_buffer.back();
-        batch_buffer.pop_back();
-        return next_fd;
-    };
-}
-
 std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type)
 {
@@ -267,81 +200,21 @@ static void build_client_request(
     builder.Finish(message);
 }
 
-// Coalesces multiple updates to a single locator into the last update. In the
-// future, some intermediate update log records can be eliminated by updating
-// objects in-place, but not all of them (e.g., any size-changing updates to
-// variable-size fields must copy the whole object first).
-//
-// REVIEW: Currently we leak all object versions from "duplicate" log records
-// removed by this method! We need to pass a list of the offsets of removed
-// versions to the memory manager for deallocation, possibly in a separate
-// shared memory object.
-void client::dedup_log()
+// Sort all txn log records, by locator as primary key, and by offset as
+// secondary key. This enables us to use fast binary search and binary merge
+// algorithms for conflict detection.
+void client::sort_log()
 {
     retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
-    // First sort the record array so we can call std::unique() on it. We use
-    // stable_sort() to preserve the order of multiple updates to the same
-    // locator.
+    // We use stable_sort() to preserve the order of multiple updates to the
+    // same locator.
     std::stable_sort(
         &s_log.data()->log_records[0],
-        &s_log.data()->log_records[s_log.data()->count],
+        &s_log.data()->log_records[s_log.data()->record_count],
         [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
-
-    // This is a bit weird: we want to preserve the *last* update to a locator,
-    // but std::unique preserves the *first* duplicate it encounters.
-    // So we reverse the sorted array so that the last update will be the first
-    // that std::unique sees, then reverse the deduplicated array so that locators
-    // are again in ascending order.
-    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
-
-    // More weirdness: we need to record the initial offset of the first log
-    // record for each locator, so we can fix up the initial offset of its last
-    // log record (the one we will keep) with this offset. Otherwise we'll get
-    // bogus write conflicts because the initial offset of the last log record
-    // for a locator doesn't match its last known offset in the locator segment.
-    // Since the array is reversed, we'll see the first log record for a locator
-    // last, so we get the desired behavior if we overwrite the last seen entry
-    // in the initial offsets map.
-    std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
-
-    for (size_t i = 0; i < s_log.data()->count; ++i)
-    {
-        gaia_locator_t locator = s_log.data()->log_records[i].locator;
-        gaia_offset_t initial_offset = s_log.data()->log_records[i].old_offset;
-        initial_offsets[locator] = initial_offset;
-    }
-
-    txn_log_t::log_record_t* unique_array_end = std::unique(
-        &s_log.data()->log_records[0],
-        &s_log.data()->log_records[s_log.data()->count],
-        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) -> bool {
-            return lhs.locator == rhs.locator;
-        });
-
-    // It's OK to leave the duplicate log records at the end of the array, since
-    // they'll be removed when we truncate the txn log memfd before sending it
-    // to the server.
-    size_t unique_array_len = unique_array_end - s_log.data()->log_records;
-    s_log.data()->count = unique_array_len;
-
-    // Now that all log records for each locator are deduplicated, reverse the
-    // array again to order by locator value in ascending order.
-    std::reverse(&s_log.data()->log_records[0], &s_log.data()->log_records[s_log.data()->count]);
-
-    // Now we need to fix up each log record with the initial offset we recorded earlier.
-    retail_assert(
-        s_log.data()->count == initial_offsets.size(),
-        "Count of deduped log records must equal number of unique initial offsets!");
-
-    for (size_t i = 0; i < s_log.data()->count; ++i)
-    {
-        gaia_locator_t locator = s_log.data()->log_records[i].locator;
-        gaia_offset_t initial_offset = initial_offsets[locator];
-        s_log.data()->log_records[i].old_offset = initial_offset;
-    }
 }
 
 // This function must be called before establishing a new session. It ensures
@@ -535,15 +408,8 @@ void client::begin_transaction()
 
     // Block to receive transaction id and txn logs from the server.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    int stream_socket = -1;
-    size_t fd_count = 1;
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, c_message_failed_to_read_message);
-    retail_assert(fd_count == 1, c_message_unexpected_fd_count);
-    retail_assert(stream_socket != -1, c_message_invalid_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
@@ -564,24 +430,32 @@ void client::begin_transaction()
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;
 
-    // Apply all txn logs received from server to our snapshot, in order. The
-    // generator will close the stream socket when it's exhausted, but we need
-    // to close the stream socket if the generator throws an exception.
-    // REVIEW: might need to think about clearer ownership of the stream socket.
-    auto fd_generator = get_fd_stream_generator_for_socket(stream_socket);
-    auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
-    for (int txn_log_fd : txn_log_fds)
+    // Apply all txn logs received from the server to our snapshot, in order.
+    size_t fds_remaining_count = txn_info->log_fd_count();
+    while (fds_remaining_count > 0)
     {
-        apply_txn_log(txn_log_fd);
-        close_fd(txn_log_fd);
+        int fds[c_max_fd_count] = {-1};
+        size_t fd_count = std::size(fds);
+        size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
+
+        // The fds are attached to a dummy 1-byte datagram.
+        retail_assert(bytes_read == 1, "Unexpected message size!");
+        retail_assert(fd_count > 0, "Unexpected fd count!");
+
+        // Apply log fds as we receive them, to avoid having to buffer all of them.
+        for (size_t i = 0; i < fd_count; ++i)
+        {
+            int txn_log_fd = fds[i];
+            apply_txn_log(txn_log_fd);
+            close_fd(txn_log_fd);
+        }
+
+        fds_remaining_count -= fd_count;
     }
 
     // At this point, we can transfer ownership of local variables to static ones.
     s_log.reset(log);
 
-    // If we exhausted the generator without throwing an exception, then the
-    // generator already closed the stream socket.
-    cleanup_stream_socket.dismiss();
     cleanup_private_locators.dismiss();
 }
 
@@ -592,7 +466,7 @@ void client::apply_txn_log(int log_fd)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log.data()->count; ++i)
+    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
     {
         auto lr = txn_log.data()->log_records + i;
         (*s_private_locators.data())[lr->locator] = lr->new_offset;
@@ -615,13 +489,19 @@ void client::rollback_transaction()
         close_fd(fd_log);
     });
 
-    // Avoid sending transaction log fd to the server read only transactions.
-    if (log_size > 0)
+    int* fds = nullptr;
+    size_t fd_count = 0;
+
+    // Avoid sending the log fd to the server for read-only transactions.
+    if (log_size)
     {
-        FlatBufferBuilder builder;
-        build_client_request(builder, session_event_t::ROLLBACK_TXN);
-        send_msg_with_fds(s_session_socket, &fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
+        fds = &fd_log;
+        fd_count = 1;
     }
+
+    FlatBufferBuilder builder;
+    build_client_request(builder, session_event_t::ROLLBACK_TXN);
+    send_msg_with_fds(s_session_socket, fds, fd_count, builder.GetBufferPointer(), builder.GetSize());
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -634,7 +514,7 @@ void client::commit_transaction()
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
-    if (s_log.data()->count == 0)
+    if (s_log.data()->record_count == 0)
     {
         rollback_transaction();
         return;
@@ -643,9 +523,8 @@ void client::commit_transaction()
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // Remove intermediate update log records.
-    // FIXME: this leaks all intermediate object versions!!!
-    dedup_log();
+    // Sort log by locator for fast conflict detection.
+    sort_log();
 
     int fd_log;
     size_t log_size;
