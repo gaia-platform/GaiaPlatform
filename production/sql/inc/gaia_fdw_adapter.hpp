@@ -92,8 +92,13 @@ public:
         gaia::common::gaia_id_t& table_id,
         gaia::common::gaia_type_t& container_id);
 
-    template <class T_state>
-    static T_state* get_state(const char* table_name, size_t expected_field_count);
+    template <class S>
+    static S* get_state(const char* table_name, size_t expected_field_count)
+    {
+        S* state = (S*)palloc0(sizeof(S));
+
+        return state->initialize(table_name, expected_field_count) ? state : nullptr;
+    }
 
 protected:
     static void initialize_caches();
@@ -234,13 +239,14 @@ public:
     void end_modify();
 
 protected:
-    // Use a vector to hold the payload. Because state objects are not
-    // deallocated normally by Postgres, we will release its memory manually in
-    // end_modify().
-    std::vector<uint8_t> m_current_payload;
+    // Because a vector manages its own memory
+    // and state objects are not deallocated normally by Postgres,
+    // we need to allocate the vector dynamically,
+    // so we can release its memory manually in end_modify().
+    std::vector<uint8_t>* m_current_payload;
 
     // Direct pointer to the binary_schema stored in the catalog. This is safe
-    // to hold around in our scenario because FDW adpter does not modify the
+    // to hold around in our scenario because FDW adapter does not modify the
     // binary schema, and the memory is managed by the gaia_db_server.
     const uint8_t* m_binary_schema;
     size_t m_binary_schema_size;

@@ -30,7 +30,8 @@ const string c_indent_string("    ");
 typedef std::vector<gaia_field_t> field_vector_t;
 typedef std::vector<gaia_relationship_t> relationship_vector_t;
 
-static string field_cpp_type_string(const gaia_field_t& field, bool is_param = false)
+static string field_cpp_type_string(
+    const gaia_field_t& field, bool is_function_parameter = false)
 {
     string type_str;
 
@@ -78,7 +79,7 @@ static string field_cpp_type_string(const gaia_field_t& field, bool is_param = f
 
     if (field.repeated_count() == 0)
     {
-        if (is_param)
+        if (is_function_parameter)
         {
             type_str = "const std::vector<" + type_str + ">*";
         }
@@ -371,8 +372,8 @@ static string generate_edc_struct(
         {
             first = false;
         }
-        bool is_param = true;
-        param_list += field_cpp_type_string(f, is_param) + " ";
+        bool is_function_parameter = true;
+        param_list += field_cpp_type_string(f, is_function_parameter) + " ";
         param_list += f.name();
     }
     code += param_list + ") {";
