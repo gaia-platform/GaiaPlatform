@@ -2,67 +2,44 @@
 
 ruleset test : Table(sensor, incubator), SerialStream(ttt)
 {
-OnUpdate(incubator, sensor.value)
-{
-  min_temp+=@value;
-  max_temp += min_temp/2;
-  switch (sensor.LastOperation)
+  OnUpdate(incubator, sensor.value)
   {
-  	case DELETE:
-  		break;
-  	case UPDATE:
-  		break;
-  	case INSERT:
-  		break;
-  	case NONE:
-  		break;
-  	default:
-  		break;
+    min_temp+=@value;
+    max_temp += min_temp/2;
   }
-}
 }
 // CHECK:      RulesetDecl{{.*}} test
 // CHECK-NEXT:     RulesetTableAttr 0x{{[^ ]*}} <col:16, col:39> 0x{{[^ ]*}} 0x{{[^ ]*}}
 // CHECK-NEXT:     -SerialStreamAttr 0x{{[^ ]*}} <col:42, col:58> ttt
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:14> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'float' lvalue Var 0x{{[^ ]*}} 'max_temp' 'float'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:15> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:11, col:18> 'int' lvalue .LastOperation 0x{{[^ ]*}}
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'DELETE' 'const int'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'UPDATE' 'const int'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'INSERT' 'const int'
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'const int' lvalue Var 0x{{[^ ]*}} 'NONE' 'const int'
-// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:1, col:33> incubator sensor
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:1>
+// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
+// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:16> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
+// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'max_temp' 'float'
+// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:17> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
+// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:3, col:35> incubator sensor
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:3>
 
 
 ruleset test1
 {
-OnInsert(incubator)
-{
-  incubator.min_temp +=@sensor.value;
-  incubator.max_temp += incubator.min_temp/2;
-  if (incubator.LastOperation == DELETE)
+  OnInsert(incubator)
   {
+    incubator.min_temp +=@sensor.value;
+    incubator.max_temp += incubator.min_temp/2;
   }
-}
 }
 // CHECK:      RulesetDecl{{.*}} test1
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:3, col:13> 'float' lvalue .min_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:25, col:32> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:25> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:3, col:13> 'float' lvalue .max_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:25, col:35> 'float' lvalue .min_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:25> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:17> 'int' lvalue .LastOperation 0x{{[^ ]*}}
-// CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:34> 'const int' lvalue Var 0x{{[^ ]*}} 'DELETE' 'const int'
-// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:43:1, col:19> incubator
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:44:1>
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:15> 'float' lvalue .min_temp 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:34> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:15> 'float' lvalue .max_temp 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:37> 'float' lvalue .min_temp 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:21> incubator
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:26:3>
 
 
 typedef enum
@@ -90,7 +67,7 @@ ruleset test2
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:14> 'float' lvalue .value 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:79:3>
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:56:3>
 
 
 typedef enum

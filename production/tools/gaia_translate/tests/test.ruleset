@@ -1,4 +1,5 @@
 #include "gaia/logger.hpp"
+#include "gaia/events.hpp"
 
 int g_rule_called = 0;
 int g_insert_called = 0;
@@ -7,6 +8,7 @@ int g_actuator_rule_called = 0;
 
 ruleset test
 {
+    OnChange(sensor)
     {
         gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
@@ -17,12 +19,12 @@ ruleset test
             g_actuator_rule_called++;
         }
 
-        if (sensor.LastOperation == INSERT)
+        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
         {
             g_insert_called++;
         }
 
-        if (sensor.LastOperation == UPDATE)
+        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
         {
             if (sensor.value > 5)
             {

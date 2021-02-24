@@ -990,7 +990,6 @@ public:
         string table_name;
         string field_name;
         SourceRange expression_source_range;
-        bool is_last_operation = false;
         if (expression != nullptr)
         {
             const ValueDecl* decl = expression->getDecl();
@@ -1026,8 +1025,6 @@ public:
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
                 table_name = declaration_expression->getDecl()->getName().str();
 
-                is_last_operation = declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>();
-
                 g_used_tables.insert(table_name);
                 g_used_dbs.insert(g_table_db_data[table_name]);
 
@@ -1037,17 +1034,9 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
-                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
+                    if (!validate_and_add_active_field(table_name, field_name))
                     {
-                        g_update_tables.insert(table_name);
-                        g_insert_tables.insert(table_name);
-                    }
-                    else
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
+                        return;
                     }
                 }
                 else
@@ -1056,11 +1045,6 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
-                    {
-                        g_update_tables.insert(table_name);
-                        g_insert_tables.insert(table_name);
-                    }
                 }
             }
             else
@@ -1077,18 +1061,7 @@ public:
 
         if (expression_source_range.isValid())
         {
-            if (is_last_operation)
-            {
-                m_rewriter.ReplaceText(
-                    expression_source_range,
-                    "context->last_operation(gaia::"
-                        + g_table_db_data[table_name] + "::"
-                        + table_name + "_t::s_gaia_type)");
-            }
-            else
-            {
-                m_rewriter.ReplaceText(expression_source_range, table_name + "." + field_name + "()");
-            }
+            m_rewriter.ReplaceText(expression_source_range, table_name + "." + field_name + "()");
         }
     }
 
@@ -1585,110 +1558,6 @@ private:
     Rewriter& m_rewriter;
 };
 
-class update_match_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    explicit update_match_handler_t(Rewriter& r)
-        : m_rewriter(r)
-    {
-    }
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("UPDATE");
-        if (exp != nullptr)
-        {
-            m_rewriter.ReplaceText(
-                SourceRange(exp->getLocation(), exp->getEndLoc()),
-                "gaia::rules::last_operation_t::row_update");
-        }
-    }
-
-private:
-    Rewriter& m_rewriter;
-};
-
-class insert_match_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    explicit insert_match_handler_t(Rewriter& r)
-        : m_rewriter(r)
-    {
-    }
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("INSERT");
-        if (exp != nullptr)
-        {
-            m_rewriter.ReplaceText(
-                SourceRange(exp->getLocation(), exp->getEndLoc()),
-                "gaia::rules::last_operation_t::row_insert");
-        }
-    }
-
-private:
-    Rewriter& m_rewriter;
-};
-
-class delete_match_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    explicit delete_match_handler_t(Rewriter& r)
-        : m_rewriter(r)
-    {
-    }
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("DELETE");
-        if (exp != nullptr)
-        {
-            m_rewriter.ReplaceText(
-                SourceRange(exp->getLocation(), exp->getEndLoc()),
-                "gaia::rules::last_operation_t::row_delete");
-        }
-    }
-
-private:
-    Rewriter& m_rewriter;
-};
-
-class none_match_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    explicit none_match_handler_t(Rewriter& r)
-        : m_rewriter(r)
-    {
-    }
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("NONE");
-        if (exp != nullptr)
-        {
-            m_rewriter.ReplaceText(
-                SourceRange(exp->getLocation(), exp->getEndLoc()),
-                "gaia::rules::last_operation_t::row_none");
-        }
-    }
-
-private:
-    Rewriter& m_rewriter;
-};
-
 class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
@@ -1793,10 +1662,6 @@ public:
         , m_rule_match_handler(r)
         , m_ruleset_match_handler(r)
         , m_field_unary_operator_match_handler(r)
-        , m_update_match_handler(r)
-        , m_insert_match_handler(r)
-        , m_delete_match_handler(r)
-        , m_none_match_handler(r)
         , m_rule_context_match_handler(r)
     {
         StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
@@ -1843,8 +1708,7 @@ public:
                       to(varDecl(anyOf(
                           hasAttr(attr::GaiaField),
                           hasAttr(attr::FieldTable),
-                          hasAttr(attr::GaiaFieldValue),
-                          hasAttr(attr::GaiaLastOperation)))))))
+                          hasAttr(attr::GaiaFieldValue)))))))
                   .bind("tableFieldGet");
         StatementMatcher table_field_set_matcher
             = binaryOperator(allOf(
@@ -1858,14 +1722,6 @@ public:
                                     hasOperatorName("--")),
                                 hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
                   .bind("fieldUnaryOp");
-        StatementMatcher update_matcher
-            = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationUPDATE)))).bind("UPDATE");
-        StatementMatcher insert_matcher
-            = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationINSERT)))).bind("INSERT");
-        StatementMatcher delete_matcher
-            = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationDELETE)))).bind("DELETE");
-        StatementMatcher none_matcher
-            = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
@@ -1878,11 +1734,6 @@ public:
         m_matcher.addMatcher(field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
         m_matcher.addMatcher(table_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
-
-        m_matcher.addMatcher(update_matcher, &m_update_match_handler);
-        m_matcher.addMatcher(insert_matcher, &m_insert_match_handler);
-        m_matcher.addMatcher(delete_matcher, &m_delete_match_handler);
-        m_matcher.addMatcher(none_matcher, &m_none_match_handler);
 
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
         m_matcher.addMatcher(ruleset_name_matcher, &m_rule_context_match_handler);
@@ -1903,10 +1754,6 @@ private:
     rule_match_handler_t m_rule_match_handler;
     ruleset_match_handler_t m_ruleset_match_handler;
     field_unary_operator_match_handler_t m_field_unary_operator_match_handler;
-    update_match_handler_t m_update_match_handler;
-    insert_match_handler_t m_insert_match_handler;
-    delete_match_handler_t m_delete_match_handler;
-    none_match_handler_t m_none_match_handler;
     variable_declaration_match_handler_t m_variable_declaration_match_handler;
     rule_context_rule_match_handler_t m_rule_context_match_handler;
 };

@@ -2068,7 +2068,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
                         SourceLocation TemplateKWLoc, UnqualifiedId &Id,
                         bool HasTrailingLParen, bool IsAddressOfOperand,
                         std::unique_ptr<CorrectionCandidateCallback> CCC,
-                        bool IsInlineAsmIdentifier, Token *KeywordReplacement, 
+                        bool IsInlineAsmIdentifier, Token *KeywordReplacement,
                         bool isGaiaFieldTable) {
   assert(!(IsAddressOfOperand && HasTrailingLParen) &&
          "cannot be direct & operand and have a trailing lparen");
@@ -2170,7 +2170,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
       if (S->getFnParent() != nullptr)
       {
         DeclContext *DC = S->getFnParent()->getEntity();
-      
+
         if (DC)
         {
             if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
@@ -2178,7 +2178,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
                 if (FD->hasAttr<RuleAttr>())
                 {
                     NamedDecl *D = injectVariableDefinition(II, NameLoc, isGaiaFieldTable);
-                    if (D) 
+                    if (D)
                     {
                         R.addDecl(D);
                     }
@@ -11209,19 +11209,10 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
 if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
 {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
-        
+
     if (exp != nullptr)
-    {                    
+    {
         ValueDecl *decl = exp->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>() || 
-            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
-            decl->hasAttr<GaiaLastOperationNONEAttr>())
-        {
-            S.Diag(Loc, diag::err_invalid_assignment_last_operation);
-            return true;
-        }
 
         if (decl->hasAttr<GaiaFieldAttr>() ||
             decl->hasAttr<GaiaFieldValueAttr>() ||
@@ -12323,71 +12314,6 @@ static bool needsConversionOfHalfVec(bool OpRequiresConversion, ASTContext &Ctx,
 ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
                                     BinaryOperatorKind Opc,
                                     Expr *LHSExpr, Expr *RHSExpr) {
-  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
-  {
-    bool leftLastOp = false, rightLastOp = false, lOp = false, rOp = false;
-    DeclRefExpr *l = dyn_cast<DeclRefExpr>(LHSExpr);
-    DeclRefExpr *r = dyn_cast<DeclRefExpr>(RHSExpr);
-    MemberExpr *lm = dyn_cast<MemberExpr>(LHSExpr);
-    MemberExpr *rm = dyn_cast<MemberExpr>(RHSExpr);
-    if (l == nullptr && lm != nullptr)
-    {
-        l = dyn_cast<DeclRefExpr>(lm->getBase());
-    }
-
-    if (r == nullptr && rm != nullptr)
-    {
-        r = dyn_cast<DeclRefExpr>(rm->getBase());
-    }
-
-    if (l != nullptr)
-    {                    
-        ValueDecl *decl = l->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>())
-        {
-            leftLastOp = true;
-        }
-        if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
-            decl->hasAttr<GaiaLastOperationNONEAttr>())
-        {
-            lOp = true;
-        }
-    }
-
-    if (r != nullptr)
-    {                    
-        ValueDecl *decl = r->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>())
-        {
-            rightLastOp = true;
-        }
-        if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
-            decl->hasAttr<GaiaLastOperationNONEAttr>())
-        {
-            rOp = true;
-        }
-    }
-    // prohibit all operations with LastOperation except == or !=
-    if (leftLastOp || rightLastOp || lOp || rOp)
-    {
-        if ((leftLastOp && rightLastOp) ||
-            (lOp && rOp) ||
-            (leftLastOp && !rOp) ||
-            (rightLastOp && !lOp) ||
-            (!leftLastOp && rOp) ||
-            (!rightLastOp && lOp) ||
-            (Opc != BO_EQ && Opc != BO_NE) )
-        {
-            Diag(OpLoc, diag::err_invalid_operand_last_operation);
-            return ExprError();
-        }
-    }
-  }
-
   if (getLangOpts().CPlusPlus11 && isa<InitListExpr>(RHSExpr)) {
     // The syntax only allows initializer lists on the RHS of assignment,
     // so we don't need to worry about accepting invalid code for
@@ -13004,25 +12930,15 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
     MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
-    
+
     if (exp == nullptr && expm != nullptr)
     {
         exp = dyn_cast<DeclRefExpr>(expm->getBase());
     }
 
     if (exp != nullptr)
-    {                    
+    {
         ValueDecl *decl = exp->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>() ||
-            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
-            decl->hasAttr<GaiaLastOperationNONEAttr>())
-        {
-            Diag(OpLoc, diag::err_invalid_operand_last_operation);
-            return ExprError();
-        }
-
         if ((decl->hasAttr<GaiaFieldAttr>() ||
             decl->hasAttr<GaiaFieldValueAttr>()) &&
             (Opc == UO_AddrOf || Opc == UO_Deref))
