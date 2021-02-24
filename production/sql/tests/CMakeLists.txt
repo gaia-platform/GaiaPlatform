@@ -18,13 +18,21 @@ if(EXECUTE_FDW_TESTS)
   if(BASH_PROGRAM AND PG_CLIENT)
     # Generate the command line for the test script.
     # It needs the paths from the build environment.
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_command.txt
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_airport_command.txt
       ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test.sh " "
         ${GAIA_REPO}/data/internal/airport " "
         ${PG_CLIENT} " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/setup.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/test.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
+        ${CMAKE_CURRENT_SOURCE_DIR}/setup_airport.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected_airport.txt)
+
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_array_command.txt
+      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test.sh " "
+        ${GAIA_REPO}/data/internal/airport " "
+        ${PG_CLIENT} " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/setup_array.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_array.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected_array.txt)
 
     set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
 
