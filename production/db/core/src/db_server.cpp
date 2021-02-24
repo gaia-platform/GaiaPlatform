@@ -171,11 +171,11 @@ void server::handle_begin_txn(
     }
 
     // Now we need to close all the duplicated log fds in the buffer.
-    for (auto& dup_fd : txn_log_fds)
+    for (auto& fd : txn_log_fds)
     {
         // Each log fd should still be valid.
-        retail_assert(is_fd_valid(dup_fd), "invalid fd!");
-        close_fd(dup_fd);
+        retail_assert(is_fd_valid(fd), "Invalid fd!");
+        close_fd(fd);
     }
 }
 
