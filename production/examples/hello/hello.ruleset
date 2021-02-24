@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "gaia_hello.h"
+//#include "gaia_hello.h"
 
 using namespace std;
 
@@ -14,29 +14,19 @@ ruleset hello_ruleset
 {
     // Rule 1: Whenever a name is inserted,
     // insert a new greeting into the greetings table.
+    OnInsert(names)
     {
-        // This LastOperation reference will indicate to the system
-        // that this rule should be triggered
-        // by any insertion made into the names table.
-        if (names.LastOperation == INSERT)
-        {
-            // Form the greeting using the name.
-            string new_greeting = "Hello " + string(names.name) + "!";
+        // Form the greeting using the name.
+        string new_greeting = "Hello " + string(names.name) + "!";
 
-            // Insert the greeting.
-            gaia::hello::greetings_t::insert_row(new_greeting.c_str());
-        }
+        // Insert the greeting.
+        //gaia::hello::greetings_t::insert_row(new_greeting.c_str());
     }
     // Rule 2: Whenever a greeting is inserted,
     // output it to the console.
+    OnInsert(greetings)
     {
-        // This LastOperation reference will indicate to the system
-        // that this rule should be triggered
-        // by any insertion made into the greetings table.
-        if (greetings.LastOperation == INSERT)
-        {
-            // Output the greeting to the console.
-            cout << endl << greetings.greeting << endl;
-        }
+        // Output the greeting to the console.
+        cout << endl << greetings.greeting << endl;
     }
 }
