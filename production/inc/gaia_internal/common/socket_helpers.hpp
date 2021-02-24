@@ -8,6 +8,7 @@
 #include <ostream>
 #include <stdexcept>
 
+#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 

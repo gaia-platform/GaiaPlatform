@@ -31,6 +31,7 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "client_messenger.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
@@ -44,9 +45,6 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-static const std::string c_message_unexpected_fd_count = "Unexpected fd count!";
-static const std::string c_message_failed_to_read_message = "Failed to read message!";
-static const std::string c_message_invalid_stream_socket = "Invalid stream socket!";
 static const std::string c_message_unexpected_event_received = "Unexpected event received!";
 static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
 static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
@@ -54,30 +52,22 @@ static const std::string c_message_empty_batch_buffer_detected = "Empty batch bu
 
 int client::get_id_cursor_socket_for_type(gaia_type_t type)
 {
-    // Send the server the cursor socket request.
+    // Build the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
     auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Extract the stream socket fd from the server's response.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    int stream_socket = -1;
-    size_t fd_count = 1;
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
-    retail_assert(fd_count == 1, c_message_unexpected_fd_count);
-    retail_assert(stream_socket != -1, c_message_invalid_stream_socket);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
+
+    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
 
-    // Deserialize the server message.
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const session_event_t event = reply->event();
+    const session_event_t event = client_messenger.server_reply()->event();
     retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
@@ -327,43 +317,29 @@ void client::begin_session()
     // Send the server the connection request.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::CONNECT);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Extract the data and locator shared memory segment fds from the server's response.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    constexpr size_t c_fd_count = 4;
-    int fds[c_fd_count] = {-1};
-    size_t fd_count = c_fd_count;
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-    auto [fd_locators, fd_counters, fd_data, fd_id_index] = fds;
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
-    retail_assert(fd_count == c_fd_count, c_message_unexpected_fd_count);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
-    retail_assert(fd_locators != -1, "Invalid locators fd detected!");
-    retail_assert(fd_counters != -1, "Invalid counters fd detected!");
-    retail_assert(fd_data != -1, "Invalid data fd detected!");
-    retail_assert(fd_id_index != -1, "Invalid id_index fd detected!");
+    int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
+    int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
+    int fd_data = client_messenger.received_fd(client_messenger_t::c_index_data);
+    int fd_id_index = client_messenger.received_fd(client_messenger_t::c_index_id_index);
 
-    // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto cleanup_fd_locators = make_scope_guard([fd_locators = fd_locators]() mutable {
-        // We should only close the locator fd if we are unwinding from an
-        // exception, since we cache it to map later.
+    auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
-
-    auto cleanup_fd_counters = make_scope_guard([fd_counters = fd_counters]() mutable {
+    auto cleanup_fd_counters = make_scope_guard([&]() {
         close_fd(fd_counters);
     });
-    auto cleanup_fd_data = make_scope_guard([fd_data = fd_data]() mutable {
+    auto cleanup_fd_data = make_scope_guard([&]() {
         close_fd(fd_data);
     });
-    auto cleanup_fd_id_index = make_scope_guard([fd_id_index = fd_id_index]() mutable {
+    auto cleanup_fd_id_index = make_scope_guard([&]() {
         close_fd(fd_id_index);
     });
 
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    session_event_t event = reply->event();
+    session_event_t event = client_messenger.server_reply()->event();
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
@@ -404,17 +380,12 @@ void client::begin_transaction()
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Block to receive transaction id and txn logs from the server.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
@@ -434,23 +405,17 @@ void client::begin_transaction()
     size_t fds_remaining_count = txn_info->log_fd_count();
     while (fds_remaining_count > 0)
     {
-        int fds[c_max_fd_count] = {-1};
-        size_t fd_count = std::size(fds);
-        size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-
-        // The fds are attached to a dummy 1-byte datagram.
-        retail_assert(bytes_read == 1, "Unexpected message size!");
-        retail_assert(fd_count > 0, "Unexpected fd count!");
+        client_messenger.receive_server_reply();
 
         // Apply log fds as we receive them, to avoid having to buffer all of them.
-        for (size_t i = 0; i < fd_count; ++i)
+        for (size_t i = 0; i < client_messenger.count_received_fds(); ++i)
         {
-            int txn_log_fd = fds[i];
+            int txn_log_fd = client_messenger.received_fd(i);
             apply_txn_log(txn_log_fd);
             close_fd(txn_log_fd);
         }
 
-        fds_remaining_count -= fd_count;
+        fds_remaining_count -= client_messenger.count_received_fds();
     }
 
     // At this point, we can transfer ownership of local variables to static ones.
@@ -538,21 +503,16 @@ void client::commit_transaction()
     // Send the server the commit event with the log segment fd.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::COMMIT_TXN);
-    send_msg_with_fds(s_session_socket, &fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
-    // Block on the server's commit decision.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, &fd_log, 1, builder);
 
     // Extract the commit decision from the server's reply and return it.
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    session_event_t event = reply->event();
+    session_event_t event = client_messenger.server_reply()->event();
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         c_message_unexpected_event_received);
-    const transaction_info_t* txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
@@ -579,16 +539,12 @@ address_offset_t client::request_memory(size_t object_size)
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::REQUEST_MEMORY, object_size);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Receive memory allocation information from the server.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const memory_allocation_info_t* allocation_info = reply->data_as_memory_allocation_info();
+    const memory_allocation_info_t* allocation_info
+        = client_messenger.server_reply()->data_as_memory_allocation_info();
 
     // Obtain allocated offset from the server.
     const address_offset_t object_address_offset = allocation_info->allocation_offset();
