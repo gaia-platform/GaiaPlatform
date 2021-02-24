@@ -13,9 +13,6 @@
  * Showcase how our .clang-tidy configuration works.
  */
 
-using namespace gaia::common;
-using namespace std;
-
 // Should have c_ prefix.
 constexpr int constant_global = 2;
 

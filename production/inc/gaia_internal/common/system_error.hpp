@@ -23,7 +23,7 @@ namespace common
 class system_error : public gaia_exception
 {
 public:
-    system_error(const std::string& message, int err = 0)
+    explicit system_error(const std::string& message, int err = 0)
         : gaia_exception(message), m_err(err)
     {
     }

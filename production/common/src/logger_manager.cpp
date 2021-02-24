@@ -6,7 +6,6 @@
 #include "gaia_internal/common/logger_manager.hpp"
 
 #include <filesystem>
-#include <iostream>
 
 #include "spdlog/async.h"
 #include "spdlog/sinks/stdout_sinks.h"

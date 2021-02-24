@@ -4,16 +4,15 @@ int g_rule_called = 0;
 int g_insert_called = 0;
 int g_update_called = 0;
 int g_actuator_rule_called = 0;
-int g_delete_called = 0;
-bool correct_gaia_id = false;
 
 ruleset test
 {
     {
         gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
-        max_temp = sensor.value + 4;
-        if (@actuator.value > 0)
+        max_temp = @sensor.value + @min_temp;
+        max_temp = @sensor.value + 4;
+        if (actuator.value > 0)
         {
             g_actuator_rule_called++;
         }
@@ -32,21 +31,6 @@ ruleset test
             g_update_called++;
         }
         g_rule_called++;
-    }
-}
-
-ruleset test1
-{
-    {
-        switch (sensor.LastOperation)
-        {
-        case DELETE:
-            g_delete_called++;
-            break;
-        default:
-            break;
-        }
-        correct_gaia_id = sensor.gaia_id() != 0;
     }
 }
 

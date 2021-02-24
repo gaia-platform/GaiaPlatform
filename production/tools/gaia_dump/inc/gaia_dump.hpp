@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include <iostream>
+#include <string>
+#include <vector>
 
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-using namespace std;
+typedef std::vector<gaia::common::gaia_id_t> type_vector;
 
-typedef vector<gaia_id_t> type_vector;
-
-string gaia_dump(gaia_id_t, gaia_id_t, bool, bool, bool, int, type_vector);
+std::string gaia_dump(gaia::common::gaia_id_t, gaia::common::gaia_id_t, bool, bool, bool, int, type_vector);

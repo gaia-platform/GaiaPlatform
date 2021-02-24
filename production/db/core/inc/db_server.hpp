@@ -17,7 +17,7 @@
 
 #include "gaia/exception.hpp"
 
-#include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_internal_types.hpp"
 #include "memory_manager.hpp"
@@ -30,14 +30,10 @@ namespace gaia
 namespace db
 {
 
-using namespace gaia::common;
-using namespace gaia::db::messages;
-using namespace flatbuffers;
-
-class invalid_session_transition : public gaia_exception
+class invalid_session_transition : public common::gaia_exception
 {
 public:
-    invalid_session_transition(const std::string& message)
+    explicit invalid_session_transition(const std::string& message)
         : gaia_exception(message)
     {
     }
@@ -45,10 +41,10 @@ public:
 
 class server
 {
-    friend gaia::db::locators_t* gaia::db::get_shared_locators();
-    friend gaia::db::shared_counters_t* gaia::db::get_shared_counters();
-    friend gaia::db::shared_data_t* gaia::db::get_shared_data();
-    friend gaia::db::shared_id_index_t* gaia::db::get_shared_id_index();
+    friend gaia::db::locators_t* gaia::db::get_locators();
+    friend gaia::db::counters_t* gaia::db::get_counters();
+    friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::id_index_t* gaia::db::get_id_index();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -81,21 +77,16 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
+    // These fields have session lifetime.
     static inline std::vector<std::thread> s_session_threads{};
     static inline int s_listening_socket = -1;
 
-    static inline int s_fd_locators = -1;
-    static inline locators_t* s_shared_locators = nullptr;
+    static inline mapped_data_t<locators_t> s_shared_locators{};
+    static inline mapped_data_t<counters_t> s_shared_counters{};
+    static inline mapped_data_t<data_t> s_shared_data{};
+    static inline mapped_data_t<id_index_t> s_shared_id_index{};
 
-    static inline int s_fd_counters = -1;
-    static inline shared_counters_t* s_counters = nullptr;
-
-    static inline int s_fd_data = -1;
-    static inline shared_data_t* s_data = nullptr;
-
-    static inline int s_fd_id_index = -1;
-    static inline shared_id_index_t* s_id_index = nullptr;
-
+    // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
 
@@ -104,7 +95,7 @@ private:
     static inline std::unique_ptr<persistent_store_manager> rdb{};
 
     thread_local static inline int s_session_socket = -1;
-    thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
+    thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
 
@@ -244,52 +235,57 @@ private:
 
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
-    typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state);
+    typedef void (*transition_handler_fn)(
+        int* fds, size_t fd_count,
+        messages::session_event_t event,
+        const void* event_data,
+        messages::session_state_t old_state,
+        messages::session_state_t new_state);
 
     // Session state transition handler functions.
-    static void handle_connect(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_begin_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_rollback_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_commit_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_decide_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_client_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_server_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_request_stream(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
-    static void handle_request_memory(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_commit_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_decide_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_memory(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
-        session_state_t new_state;
+        messages::session_state_t new_state;
         transition_handler_fn handler;
     };
 
     struct valid_transition_t
     {
-        session_state_t state;
-        session_event_t event;
+        messages::session_state_t state;
+        messages::session_event_t event;
         transition_t transition;
     };
 
     static inline constexpr valid_transition_t s_valid_transitions[] = {
-        {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},
-        {session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, {session_state_t::DISCONNECTED, handle_client_shutdown}},
-        {session_state_t::CONNECTED, session_event_t::BEGIN_TXN, {session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
-        {session_state_t::TXN_IN_PROGRESS, session_event_t::ROLLBACK_TXN, {session_state_t::CONNECTED, handle_rollback_txn}},
-        {session_state_t::TXN_IN_PROGRESS, session_event_t::COMMIT_TXN, {session_state_t::TXN_COMMITTING, handle_commit_txn}},
-        {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_COMMIT, {session_state_t::CONNECTED, handle_decide_txn}},
-        {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
-        {session_state_t::ANY, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTED, handle_server_shutdown}},
-        {session_state_t::ANY, session_event_t::REQUEST_STREAM, {session_state_t::ANY, handle_request_stream}},
-        {session_state_t::ANY, session_event_t::REQUEST_MEMORY, {session_state_t::ANY, handle_request_memory}},
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
+        {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
+        {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
+        {messages::session_state_t::TXN_IN_PROGRESS, messages::session_event_t::ROLLBACK_TXN, {messages::session_state_t::CONNECTED, handle_rollback_txn}},
+        {messages::session_state_t::TXN_IN_PROGRESS, messages::session_event_t::COMMIT_TXN, {messages::session_state_t::TXN_COMMITTING, handle_commit_txn}},
+        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_COMMIT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
+        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ABORT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
+        {messages::session_state_t::ANY, messages::session_event_t::SERVER_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_server_shutdown}},
+        {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
+        {messages::session_state_t::ANY, messages::session_event_t::REQUEST_MEMORY, {messages::session_state_t::ANY, handle_request_memory}},
     };
 
-    static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
+    static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
     static void build_server_reply(
-        FlatBufferBuilder& builder,
-        session_event_t event,
-        session_state_t old_state,
-        session_state_t new_state,
+        flatbuffers::FlatBufferBuilder& builder,
+        messages::session_event_t event,
+        messages::session_state_t old_state,
+        messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
         size_t log_fd_count = 0,
         gaia::db::memory_manager::address_offset_t object_address_offset = 0);
@@ -301,7 +297,7 @@ private:
 
     static void init_memory_manager();
 
-    static void free_uncommitted_allocations(session_event_t txn_status);
+    static void free_uncommitted_allocations(messages::session_event_t txn_status);
 
     static void init_shared_memory();
 
@@ -331,8 +327,8 @@ private:
     template <typename element_type>
     static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
 
-    static std::function<std::optional<gaia_id_t>()>
-    get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<common::gaia_id_t>()>
+    get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
@@ -426,7 +422,7 @@ private:
 
     static void apply_txn_redo_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_undo_log(int log_fd, bool deallocate_new_offsets = false);
+    static void gc_txn_log(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
@@ -434,10 +430,10 @@ private:
 
     static const char* status_to_str(ts_entry_t ts_entry);
 
-    class invalid_log_fd : public gaia_exception
+    class invalid_log_fd : public common::gaia_exception
     {
     public:
-        invalid_log_fd(gaia_txn_id_t commit_ts)
+        explicit invalid_log_fd(gaia_txn_id_t commit_ts)
             : m_commit_ts(commit_ts)
         {
         }
@@ -458,10 +454,10 @@ private:
     class safe_fd_from_ts
     {
     public:
-        safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true)
+        explicit safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true)
             : m_auto_close_fd(auto_close_fd)
         {
-            retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
+            common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
             // If the log fd was invalidated, it is either closed or soon will
             // be closed, and therefore we cannot use it. We return early if the
             // fd has already been invalidated to avoid the dup(2) call.
@@ -478,9 +474,9 @@ private:
             // dup fd and return false.
             try
             {
-                m_local_log_fd = duplicate_fd(log_fd);
+                m_local_log_fd = common::duplicate_fd(log_fd);
             }
-            catch (const system_error& e)
+            catch (const common::system_error& e)
             {
                 // The log fd was already closed by another thread (after being
                 // invalidated).
@@ -490,7 +486,7 @@ private:
                 if (e.get_errno() == EBADF)
                 {
                     // The log fd must have been invalidated before it was closed.
-                    retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
+                    common::retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
                     // We lost the race because the log fd was invalidated and closed after our check.
                     throw invalid_log_fd(commit_ts);
                 }
@@ -505,6 +501,15 @@ private:
             // the call to dup(2)), so we know we aren't reusing a closed fd.
             if (get_txn_log_fd(commit_ts) == -1)
             {
+                // If we got here, we must have a valid dup fd.
+                common::retail_assert(
+                    common::is_fd_valid(m_local_log_fd),
+                    "fd should be valid if dup() succeeded!");
+                // We need to close the duplicated fd since the original fd
+                // might have been reused and we would leak it otherwise
+                // (because the destructor isn't called if the constructor
+                // throws).
+                common::close_fd(m_local_log_fd);
                 throw invalid_log_fd(commit_ts);
             }
         }
@@ -524,7 +529,7 @@ private:
             {
                 // If the constructor fails, this will handle an invalid fd (-1)
                 // correctly.
-                close_fd(m_local_log_fd);
+                common::close_fd(m_local_log_fd);
             }
         }
 

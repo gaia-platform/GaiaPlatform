@@ -246,7 +246,7 @@ static string generate_declarations(const gaia_id_t db_id)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
     {
         code.SetValue("TABLE_NAME", table.name());
         code += "struct {{TABLE_NAME}}_t;";
@@ -311,7 +311,7 @@ static string generate_edc_struct(
     // or possibly arrays.
     bool has_string = false;
     // Accessors.
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         code.SetValue("TYPE", field_cpp_type_string(f.type));
         code.SetValue("FIELD_NAME", f.name);
@@ -332,7 +332,7 @@ static string generate_edc_struct(
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
     bool first = true;
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         if (!first)
         {
@@ -350,7 +350,7 @@ static string generate_edc_struct(
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.SetValue("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
-    for (auto const& f : field_strings)
+    for (const auto& f : field_strings)
     {
         param_list += ", ";
         param_list += f.name;
@@ -358,6 +358,14 @@ static string generate_edc_struct(
     param_list += "));";
     code += param_list;
     code += "return edc_object_t::insert_row(b);";
+    code.DecrementIdentLevel();
+    code += "}";
+
+    // The table range.
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
+    code.IncrementIdentLevel();
+    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
+    code += "return list;";
     code.DecrementIdentLevel();
     code += "}";
 
@@ -386,14 +394,6 @@ static string generate_edc_struct(
         code.DecrementIdentLevel();
         code += "}";
     }
-
-    // The table range.
-    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
-    code.IncrementIdentLevel();
-    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
-    code += "return list;";
-    code.DecrementIdentLevel();
-    code += "}";
 
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
@@ -426,6 +426,49 @@ static string generate_edc_struct(
         code += "}";
     }
 
+    // Stores field names to make it simpler to create a namespace after the class
+    // to allow unqualified access to the expressions.
+    vector<string> field_names;
+
+    // Add EDC expressions
+    code += "struct expr {";
+    code.IncrementIdentLevel();
+
+    code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> gaia_id{&{{TABLE_NAME}}_t::gaia_id};";
+
+    for (const auto& f : field_strings)
+    {
+        code.SetValue("TYPE", field_cpp_type_string(f.type));
+        code.SetValue("FIELD_NAME", f.name);
+        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{TYPE}}> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
+        field_names.push_back(code.GetValue("FIELD_NAME"));
+    }
+
+    for (auto& relationship : child_relationships)
+    {
+        bool is_named_relationship = (0 < strlen(relationship.name()));
+
+        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
+        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
+
+        if (is_named_relationship)
+        {
+            code.SetValue("REF_NAME", relationship.name());
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{REF_NAME}}_{{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{PARENT_TABLE}}};";
+            field_names.push_back(code.GetValue("REF_NAME") + "_" + code.GetValue("PARENT_TABLE"));
+        }
+        else
+        {
+            code.SetValue("REF_NAME", relationship.name());
+            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
+            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{PARENT_TABLE}}};";
+            field_names.push_back(code.GetValue("PARENT_TABLE"));
+        }
+    }
+
+    code.DecrementIdentLevel();
+    code += "};\n";
+
     // The private area.
     code.DecrementIdentLevel();
     code += "private:";
@@ -437,6 +480,17 @@ static string generate_edc_struct(
     code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
+    code.DecrementIdentLevel();
+    code += "};";
+    code += "";
+
+    code += "namespace {{TABLE_NAME}}_expr {";
+    code.IncrementIdentLevel();
+    for (const string& field_name : field_names)
+    {
+        code.SetValue("FIELD_NAME", field_name);
+        code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
+    }
     code.DecrementIdentLevel();
     code += "};";
     code += "";
@@ -467,7 +521,7 @@ string gaia_generate(const string& dbname)
     // This is to workaround the issue of incomplete forward declaration of structs that refer to each other.
     // By collecting the IDs in the sorted set, the structs are generated in the ascending order of their IDs.
     set<gaia_id_t> table_ids;
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
     {
         table_ids.insert(table.gaia_id());
     }

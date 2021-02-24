@@ -14,6 +14,10 @@ project(production VERSION 0.1.0)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
+option(ENABLE_ASAN "Enable ASan in debug builds" ON)
+
+option(ENABLE_STACKTRACE "Enable stack traces in debug builds" ON)
+
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 include(GNUInstallDirs)
 
@@ -52,7 +56,7 @@ else()
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
   set(GAIA_LINK_FLAGS "-ggdb -pthread")
 endif()
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()

@@ -127,13 +127,10 @@ bool verify_data_schema(
 
 // This is an internal helper for the field access methods.
 // It parses the flatbuffers serialization to get the root table
-// and then it retrieves the reflection::Field information
-// from the type's binary schema,
-// which is either loaded from the global type_cache
-// or parsed from the passed-in buffer.
+// and then it retrieves the reflection::Field information from the type's binary schema,
+// which is either loaded from the global type_cache or is parsed from the passed-in buffer.
 //
-// The caller is responsible for allocating the variables
-// that will hold the type_information information.
+// The caller is responsible for allocating the variables that will hold the type_information data.
 void get_table_field_information(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -175,7 +172,7 @@ void get_table_field_information(
     }
 }
 
-// Another helper for the methods that access field arrays.
+// Another helper for the methods that access array-type fields.
 // This helper also retrieves a VectorOfAny pointer
 // that allows operating on the array.
 void get_table_field_array_information(
@@ -206,7 +203,82 @@ void get_table_field_array_information(
     }
 }
 
-// The access method for scalar fields and strings.
+bool are_field_values_equal(
+    gaia_type_t type_id,
+    const uint8_t* first_serialized_data,
+    const uint8_t* second_serialized_data,
+    const uint8_t* binary_schema,
+    size_t binary_schema_size,
+    field_position_t field_position)
+{
+    const flatbuffers::Table* first_root_table = nullptr;
+    auto_type_information_t auto_type_information;
+    type_information_t local_type_information;
+    const reflection::Field* field = nullptr;
+
+    get_table_field_information(
+        type_id, first_serialized_data, binary_schema, binary_schema_size, field_position,
+        first_root_table, auto_type_information, local_type_information, field);
+
+    const flatbuffers::Table* second_root_table = flatbuffers::GetAnyRoot(second_serialized_data);
+    if (second_root_table == nullptr)
+    {
+        throw invalid_serialized_data();
+    }
+
+    // Compare field values according to their type.
+    if (flatbuffers::IsInteger(field->type()->base_type()))
+    {
+        int64_t first_value = flatbuffers::GetAnyFieldI(*first_root_table, *field);
+        int64_t second_value = flatbuffers::GetAnyFieldI(*second_root_table, *field);
+
+        return first_value == second_value;
+    }
+    else if (flatbuffers::IsFloat(field->type()->base_type()))
+    {
+        double first_value = flatbuffers::GetAnyFieldF(*first_root_table, *field);
+        double second_value = flatbuffers::GetAnyFieldF(*second_root_table, *field);
+
+        return first_value == second_value;
+    }
+    else if (field->type()->base_type() == reflection::String)
+    {
+        const flatbuffers::String* first_value = flatbuffers::GetFieldS(*first_root_table, *field);
+        const flatbuffers::String* second_value = flatbuffers::GetFieldS(*second_root_table, *field);
+
+        if (first_value == nullptr || second_value == nullptr)
+        {
+            return first_value == second_value;
+        }
+        else
+        {
+            return strcmp(first_value->c_str(), second_value->c_str()) == 0;
+        }
+    }
+    else if (field->type()->base_type() == reflection::Vector)
+    {
+        flatbuffers::VectorOfAny* first_value = flatbuffers::GetFieldAnyV(*first_root_table, *field);
+        flatbuffers::VectorOfAny* second_value = flatbuffers::GetFieldAnyV(*second_root_table, *field);
+
+        if (first_value == nullptr || second_value == nullptr)
+        {
+            return first_value == second_value;
+        }
+        else if (first_value->size() != second_value->size())
+        {
+            return false;
+        }
+        else
+        {
+            return memcmp(first_value->Data(), second_value->Data(), first_value->size()) == 0;
+        }
+    }
+    else
+    {
+        throw unhandled_field_type(field->type()->base_type());
+    }
+}
+
 data_holder_t get_field_value(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -250,7 +322,6 @@ data_holder_t get_field_value(
     return result;
 }
 
-// The setter method for scalar fields.
 bool set_field_value(
     gaia_type_t type_id,
     uint8_t* serialized_data,
@@ -291,7 +362,6 @@ bool set_field_value(
     }
 }
 
-// The setter method for string fields.
 void set_field_value(
     gaia_type_t type_id,
     vector<uint8_t>& serialized_data,
@@ -340,7 +410,6 @@ void set_field_value(
         &serialized_data);
 }
 
-// Alternative setter method for string fields.
 vector<uint8_t> set_field_value(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -363,7 +432,6 @@ vector<uint8_t> set_field_value(
     return updatable_serialized_data;
 }
 
-// The access method for the size of a field of array type.
 size_t get_field_array_size(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -384,7 +452,6 @@ size_t get_field_array_size(
     return field_value->size();
 }
 
-// The setter method for the size of an array field.
 void set_field_array_size(
     gaia_type_t type_id,
     vector<uint8_t>& serialized_data,
@@ -434,7 +501,6 @@ void set_field_array_size(
         &serialized_data);
 }
 
-// Alternative setter method for the size of an array field.
 vector<uint8_t> set_field_array_size(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -457,7 +523,6 @@ vector<uint8_t> set_field_array_size(
     return updatable_serialized_data;
 }
 
-// The access method for an element of a field of array type.
 data_holder_t get_field_array_element(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
@@ -497,7 +562,7 @@ data_holder_t get_field_array_element(
             = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
         if (field_element_value == nullptr)
         {
-            // Unlike in the string scalar case, when we were calling GetFieldS(),
+            // Unlike in the string case, when we were calling GetFieldS(),
             // GetAnyVectorElemPointer() should not be able to return nullptr.
             throw invalid_serialized_data();
         }
@@ -512,7 +577,6 @@ data_holder_t get_field_array_element(
     return result;
 }
 
-// The setter method for a scalar element of a field of array type.
 void set_field_array_element(
     gaia_type_t type_id,
     uint8_t* serialized_data,
@@ -558,7 +622,6 @@ void set_field_array_element(
     }
 }
 
-// The setter method for a string element of a field of array type.
 void set_field_array_element(
     gaia_type_t type_id,
     vector<uint8_t>& serialized_data,
@@ -601,7 +664,7 @@ void set_field_array_element(
         = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
     if (field_element_value == nullptr)
     {
-        // Unlike in the string scalar case, when we were calling GetFieldS(),
+        // Unlike in the string case, when we were calling GetFieldS(),
         // GetAnyVectorElemPointer() should not be able to return nullptr.
         throw invalid_serialized_data();
     }
@@ -613,7 +676,6 @@ void set_field_array_element(
         &serialized_data);
 }
 
-// Alternative setter method for a string element of a field of array type.
 std::vector<uint8_t> set_field_array_element(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
