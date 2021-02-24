@@ -440,9 +440,7 @@ void client::begin_transaction()
 
         // The fds are attached to a dummy 1-byte datagram.
         retail_assert(bytes_read == 1, "Unexpected message size!");
-        retail_assert(
-            fd_count > 0 && fd_count <= c_max_fd_count,
-            "Unexpected fd count!");
+        retail_assert(fd_count > 0, "Unexpected fd count!");
 
         // Apply log fds as we receive them, to avoid having to buffer all of them.
         for (size_t i = 0; i < fd_count; ++i)
