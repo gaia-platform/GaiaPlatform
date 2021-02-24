@@ -123,7 +123,7 @@ protected:
     {
         auto expected_vec = std::vector(expected);
 
-        ASSERT_EQ(expected.size(), std::distance(gaia_container.begin(), gaia_container.end()));
+        EXPECT_EQ(expected.size(), std::distance(gaia_container.begin(), gaia_container.end()));
 
         for (const T_type& obj : gaia_container)
         {
@@ -135,7 +135,7 @@ protected:
             }
         }
 
-        ASSERT_TRUE(expected_vec.empty());
+        EXPECT_TRUE(expected_vec.empty());
     }
 
     template <class T_container, class T_type>
@@ -147,7 +147,7 @@ protected:
     template <class T_container>
     void assert_empty(T_container gaia_container)
     {
-        ASSERT_EQ(gaia_container.begin(), gaia_container.end());
+        EXPECT_EQ(gaia_container.begin(), gaia_container.end());
     }
 };
 

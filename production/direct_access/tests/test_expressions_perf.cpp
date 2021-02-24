@@ -251,7 +251,7 @@ TEST_F(test_expressions_perf, int_eq)
                              .where(hire_date == c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     auto plain_fn = []() {
@@ -263,7 +263,7 @@ TEST_F(test_expressions_perf, int_eq)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     run_performance_test(expr_fn, plain_fn, "int64_t ==");
@@ -282,7 +282,7 @@ TEST_F(test_expressions_perf, int_gteq)
                              .where(hire_date >= c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_num_employees - c_time);
+        EXPECT_EQ(num_employee, c_num_employees - c_time);
     };
 
     auto plain_fn = []() {
@@ -294,7 +294,7 @@ TEST_F(test_expressions_perf, int_gteq)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, c_num_employees - c_time);
+        EXPECT_EQ(num_employee, c_num_employees - c_time);
     };
 
     run_performance_test(expr_fn, plain_fn, "int64_t >");
@@ -313,7 +313,7 @@ TEST_F(test_expressions_perf, int_lt)
                              .where(hire_date < c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_time);
+        EXPECT_EQ(num_employee, c_time);
     };
 
     auto plain_fn = []() {
@@ -325,7 +325,7 @@ TEST_F(test_expressions_perf, int_lt)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, c_time);
+        EXPECT_EQ(num_employee, c_time);
     };
 
     run_performance_test(expr_fn, plain_fn, "int64_t <");
@@ -342,7 +342,7 @@ TEST_F(test_expressions_perf, c_string_eq)
                              .where(name_first == "Name_100");
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     auto plain_fn = []() {
@@ -355,7 +355,7 @@ TEST_F(test_expressions_perf, c_string_eq)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     run_performance_test(expr_fn, plain_fn, "const char* ==");
@@ -372,7 +372,7 @@ TEST_F(test_expressions_perf, string_eq)
                              .where(name_first == string("Name_100"));
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     auto plain_fn = []() {
@@ -385,7 +385,7 @@ TEST_F(test_expressions_perf, string_eq)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, 1);
+        EXPECT_EQ(num_employee, 1);
     };
 
     run_performance_test(expr_fn, plain_fn, "std::string ==");
@@ -400,7 +400,7 @@ TEST_F(test_expressions_perf, object_eq)
     const employee_t dude = *employee_t::list()
                                  .where(name_first == "Name_0")
                                  .begin();
-    ASSERT_TRUE(dude);
+    EXPECT_TRUE(dude);
 
     auto expr_fn = [&dude]() {
         vector<address_t> addresses;
@@ -409,7 +409,7 @@ TEST_F(test_expressions_perf, object_eq)
         {
             addresses.push_back(a);
         }
-        ASSERT_EQ(addresses.size(), c_num_employee_addresses);
+        EXPECT_EQ(addresses.size(), c_num_employee_addresses);
     };
 
     auto plain_fn = [&dude]() {
@@ -421,7 +421,7 @@ TEST_F(test_expressions_perf, object_eq)
                 addresses.push_back(a);
             }
         }
-        ASSERT_EQ(addresses.size(), c_num_employee_addresses);
+        EXPECT_EQ(addresses.size(), c_num_employee_addresses);
     };
 
     run_performance_test(expr_fn, plain_fn, "EDC class ==");
@@ -440,7 +440,7 @@ TEST_F(test_expressions_perf, mixed_bool_op)
                                  || (hire_date >= 10 && hire_date < 11));
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, 2);
+        EXPECT_EQ(num_employee, 2);
     };
 
     auto plain_fn = []() {
@@ -453,7 +453,7 @@ TEST_F(test_expressions_perf, mixed_bool_op)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, 2);
+        EXPECT_EQ(num_employee, 2);
     };
 
     run_performance_test(expr_fn, plain_fn, "mixed boolean op");
@@ -470,7 +470,7 @@ TEST_F(test_expressions_perf, test_container_contains)
                              .where(addressee_address_list.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     auto plain_fn = []() {
@@ -485,7 +485,7 @@ TEST_F(test_expressions_perf, test_container_contains)
                 }
             }
         }
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     run_performance_test(expr_fn, plain_fn, "container contains");
@@ -502,7 +502,7 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
                              .where(addressee_address_list.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     auto plain_fn = []() {
@@ -516,7 +516,7 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
             });
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     run_performance_test(expr_fn, plain_fn, "container contains lambda");
@@ -533,7 +533,7 @@ TEST_F(test_expressions_perf, test_container_count)
                              .where(addressee_address_list.count() == c_num_employee_addresses);
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     auto plain_fn = []() {
@@ -546,7 +546,7 @@ TEST_F(test_expressions_perf, test_container_count)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, c_num_employees);
+        EXPECT_EQ(num_employee, c_num_employees);
     };
 
     run_performance_test(expr_fn, plain_fn, "container count");
@@ -563,7 +563,7 @@ TEST_F(test_expressions_perf, test_container_empty)
                              .where(addressee_address_list.empty());
         int num_employee = std::distance(container.begin(), container.end());
 
-        ASSERT_EQ(num_employee, 0);
+        EXPECT_EQ(num_employee, 0);
     };
 
     auto plain_fn = []() {
@@ -576,7 +576,7 @@ TEST_F(test_expressions_perf, test_container_empty)
                 num_employee++;
             }
         }
-        ASSERT_EQ(num_employee, 0);
+        EXPECT_EQ(num_employee, 0);
     };
 
     run_performance_test(expr_fn, plain_fn, "container empty");
