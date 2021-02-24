@@ -221,5 +221,5 @@ add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_I
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
+  "${FLATBUFFERS_INC};${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")
