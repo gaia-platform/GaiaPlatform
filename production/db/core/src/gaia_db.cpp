@@ -73,7 +73,7 @@ static inline uint64_t mix_bits(uint64_t x)
 // Returns uint64_t since gaia_txn_id_t isn't a public type.
 uint64_t gaia::db::transaction_id()
 {
-    uint64_t txn_id = static_cast<uint64_t>(gaia::db::client::get_txn_id());
+    auto txn_id = static_cast<uint64_t>(gaia::db::client::get_txn_id());
     uint64_t obfuscated_txn_id = mix_bits(txn_id);
     // We require that mix_bits() maps 0 to 0, and that its inverse does as well.
     common::retail_assert(
