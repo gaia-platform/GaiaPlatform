@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <flatbuffers/flatbuffers.h>
+#include "flatbuffers/flatbuffers.h"
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
