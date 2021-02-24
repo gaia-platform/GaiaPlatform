@@ -380,12 +380,9 @@ void client::begin_transaction()
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Block to receive transaction id and txn logs from the server.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
+    client_messenger_t client_messenger;
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
@@ -408,23 +405,17 @@ void client::begin_transaction()
     size_t fds_remaining_count = txn_info->log_fd_count();
     while (fds_remaining_count > 0)
     {
-        int fds[c_max_fd_count] = {-1};
-        size_t fd_count = std::size(fds);
-        size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-
-        // The fds are attached to a dummy 1-byte datagram.
-        retail_assert(bytes_read == 1, "Unexpected message size!");
-        retail_assert(fd_count > 0, "Unexpected fd count!");
+        client_messenger.receive_server_reply();
 
         // Apply log fds as we receive them, to avoid having to buffer all of them.
-        for (size_t i = 0; i < fd_count; ++i)
+        for (size_t i = 0; i < client_messenger.count_received_fds(); ++i)
         {
-            int txn_log_fd = fds[i];
+            int txn_log_fd = client_messenger.received_fd(i);
             apply_txn_log(txn_log_fd);
             close_fd(txn_log_fd);
         }
 
-        fds_remaining_count -= fd_count;
+        fds_remaining_count -= client_messenger.count_received_fds();
     }
 
     // At this point, we can transfer ownership of local variables to static ones.
