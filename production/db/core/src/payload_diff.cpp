@@ -46,7 +46,7 @@ void compute_payload_diff(
         field_position_t field_position = field_view.position();
 
         if (!payload_types::are_field_values_equal(
-                type_id, payload1, payload2, schema.data(), schema.size(), field_position))
+                type_id, payload1, payload2, schema->data(), schema->size(), field_position))
         {
             changed_fields->push_back(field_position);
         }

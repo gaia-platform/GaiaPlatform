@@ -16,8 +16,11 @@ extern "C"
 
 // postgres.h must be included prior to these headers.
 #include "catalog/pg_type.h"
+#include "lib/stringinfo.h"
 #include "nodes/pg_list.h"
+#include "utils/array.h"
 #include "utils/builtins.h"
+#include "utils/lsyscache.h"
 
 } // extern "C"
 
@@ -130,6 +133,8 @@ struct field_information_t
 
     gaia::common::data_type_t type;
 
+    uint64_t repeated_count;
+
     bool is_reference;
 
     // Note: currently, this is used only for the delayed setting of references.
@@ -240,9 +245,9 @@ protected:
     // so we can release its memory manually in end_modify().
     std::vector<uint8_t>* m_current_payload;
 
-    // Direct pointer to the binary_schema stored in the cache.
-    // This is safe to hold around in our scenario
-    // because the cache does not get modified after its initialization.
+    // Direct pointer to the binary_schema stored in the catalog. This is safe
+    // to hold around in our scenario because FDW adapter does not modify the
+    // binary schema, and the memory is managed by the gaia_db_server.
     const uint8_t* m_binary_schema;
     size_t m_binary_schema_size;
 };

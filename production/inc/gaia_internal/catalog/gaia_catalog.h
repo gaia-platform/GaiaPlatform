@@ -108,10 +108,10 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     const char* name() const {return GET_STR(name);}
     uint32_t type() const {return GET(type);}
     bool is_system() const {return GET(is_system);}
-    const char* binary_schema() const {return GET_STR(binary_schema);}
-    const char* serialization_template() const {return GET_STR(serialization_template);}
+    const gaia::direct_access::vector<uint8_t>* binary_schema() const {return GET(binary_schema);}
+    const gaia::direct_access::vector<uint8_t>* serialization_template() const {return GET(serialization_template);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const char* binary_schema, const char* serialization_template) {
+    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>* binary_schema, const std::vector<uint8_t>* serialization_template) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
         b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, binary_schema, serialization_template));
         return edc_object_t::insert_row(b);
@@ -137,8 +137,8 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         static inline gaia::direct_access::expression_t<gaia_table_t, const char*> name{&gaia_table_t::name};
         static inline gaia::direct_access::expression_t<gaia_table_t, uint32_t> type{&gaia_table_t::type};
         static inline gaia::direct_access::expression_t<gaia_table_t, bool> is_system{&gaia_table_t::is_system};
-        static inline gaia::direct_access::expression_t<gaia_table_t, const char*> binary_schema{&gaia_table_t::binary_schema};
-        static inline gaia::direct_access::expression_t<gaia_table_t, const char*> serialization_template{&gaia_table_t::serialization_template};
+        static inline gaia::direct_access::expression_t<gaia_table_t, const gaia::direct_access::vector<uint8_t>*> binary_schema{&gaia_table_t::binary_schema};
+        static inline gaia::direct_access::expression_t<gaia_table_t, const gaia::direct_access::vector<uint8_t>*> serialization_template{&gaia_table_t::serialization_template};
         static inline gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> gaia_database{&gaia_table_t::gaia_database};
     };
 
@@ -266,11 +266,11 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
     gaia_ruleset_t() : edc_object_t("gaia_ruleset_t") {}
     const char* name() const {return GET_STR(name);}
     bool active_on_startup() const {return GET(active_on_startup);}
-    const char* table_ids() const {return GET_STR(table_ids);}
+    const gaia::direct_access::vector<uint64_t>* table_ids() const {return GET(table_ids);}
     const char* source_location() const {return GET_STR(source_location);}
     const char* serial_stream() const {return GET_STR(serial_stream);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const char* table_ids, const char* source_location, const char* serial_stream) {
+    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>* table_ids, const char* source_location, const char* serial_stream) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
         b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, table_ids, source_location, serial_stream));
         return edc_object_t::insert_row(b);
@@ -286,7 +286,7 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, gaia::common::gaia_id_t> gaia_id{&gaia_ruleset_t::gaia_id};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> name{&gaia_ruleset_t::name};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, bool> active_on_startup{&gaia_ruleset_t::active_on_startup};
-        static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> table_ids{&gaia_ruleset_t::table_ids};
+        static inline gaia::direct_access::expression_t<gaia_ruleset_t, const gaia::direct_access::vector<uint64_t>*> table_ids{&gaia_ruleset_t::table_ids};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> source_location{&gaia_ruleset_t::source_location};
         static inline gaia::direct_access::expression_t<gaia_ruleset_t, const char*> serial_stream{&gaia_ruleset_t::serial_stream};
     };

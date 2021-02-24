@@ -63,51 +63,13 @@ CREATE TABLE rawdata_routes (
 CREATE UNIQUE INDEX rawdata_route_uidx ON rawdata_routes (al_id, src_ap_id, dst_ap_id);
 
 -- Load airport data into rawdata tables.
-\set airlines_file :data_dir '/airlines.dat'
-COPY rawdata_airlines (
-    al_id,
-    name,
-    alias,
-    iata,
-    icao,
-    callsign,
-    country,
-    is_active)
-FROM
-    :'airlines_file' DELIMITER ',' csv quote AS '"' NULL AS '\N';
+\cd :data_dir
 
-\set airports_file :data_dir '/airports.dat'
-COPY rawdata_airports (
-    ap_id,
-    name,
-    city,
-    country,
-    iata,
-    icao,
-    latitude,
-    longitude,
-    altitude,
-    timezone,
-    dst,
-    tztext,
-    TYPE,
-    source)
-FROM
-    :'airports_file' DELIMITER ',' csv quote AS '"' NULL AS '\N';
+\copy rawdata_airlines(al_id, name, alias, iata, icao, callsign, country, is_active) FROM 'airlines.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
 
-\set routes_file :data_dir '/routes.dat'
-COPY rawdata_routes (
-    airline,
-    al_id,
-    src_ap,
-    src_ap_id,
-    dst_ap,
-    dst_ap_id,
-    codeshare,
-    stops,
-    equipment)
-FROM
-    :'routes_file' DELIMITER ',' csv quote AS '"' NULL AS '\N';
+\copy rawdata_airports(ap_id, name, city, country, iata, icao, latitude, longitude, altitude, timezone, dst, tztext, TYPE, source) FROM 'airports.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
+
+\copy rawdata_routes(airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment) FROM 'routes.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
 
 -- Now insert the data into the Gaia tables.
 INSERT INTO airport_fdw.airlines (

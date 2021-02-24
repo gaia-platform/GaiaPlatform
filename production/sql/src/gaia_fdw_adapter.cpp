@@ -82,12 +82,47 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
-NullableDatum convert_to_nullable_datum(const data_holder_t& value)
+// Make sure this function matches the imported FDW schema.
+// The type conversion is defined in get_fdw_data_type_name().
+Oid convert_to_pg_type(data_type_t type)
 {
-    NullableDatum nullable_datum{};
-    nullable_datum.value = 0;
-    nullable_datum.isnull = false;
+    switch (type)
+    {
+    case data_type_t::e_bool:
+        return BOOLOID;
 
+    case data_type_t::e_int8:
+    case data_type_t::e_uint8:
+    case data_type_t::e_int16:
+    case data_type_t::e_uint16:
+        return INT2OID;
+
+    case data_type_t::e_int32:
+    case data_type_t::e_uint32:
+        return INT4OID;
+
+    case data_type_t::e_int64:
+    case data_type_t::e_uint64:
+        return INT8OID;
+
+    case data_type_t::e_float:
+        return FLOAT4OID;
+
+    case data_type_t::e_double:
+        return FLOAT8OID;
+
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("An FDW internal error was detected in %s!", __func__),
+             errhint("Unhandled data type '%d'.", type)));
+    }
+}
+
+// Convert a non-string data holder value to PostgreSQL Datum.
+Datum convert_to_datum(const data_holder_t& value)
+{
     switch (value.type)
     {
     case reflection::Bool:
@@ -95,28 +130,38 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        nullable_datum.value = Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
-        return nullable_datum;
+        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
 
     case reflection::Int:
     case reflection::UInt:
-        nullable_datum.value = Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
-        return nullable_datum;
+        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
 
     case reflection::Long:
     case reflection::ULong:
-        nullable_datum.value = Int64GetDatum(value.hold.integer_value);
-        return nullable_datum;
+        return Int64GetDatum(value.hold.integer_value);
 
     case reflection::Float:
-        nullable_datum.value = Float4GetDatum(static_cast<float>(value.hold.float_value));
-        return nullable_datum;
+        return Float4GetDatum(static_cast<float>(value.hold.float_value));
 
     case reflection::Double:
-        nullable_datum.value = Float8GetDatum(value.hold.float_value);
-        return nullable_datum;
+        return Float8GetDatum(value.hold.float_value);
 
-    case reflection::String:
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("An FDW internal error was detected in %s!", __func__),
+             errhint("Unhandled data_holder_t type '%d'.", value.type)));
+    }
+}
+
+NullableDatum convert_to_nullable_datum(const data_holder_t& value)
+{
+    NullableDatum nullable_datum{};
+    nullable_datum.value = 0;
+    nullable_datum.isnull = false;
+
+    if (value.type == reflection::String)
     {
         if (value.hold.string_value == nullptr)
         {
@@ -135,16 +180,13 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
         nullable_datum.value = CStringGetDatum(pg_text);
-        return nullable_datum;
+    }
+    else
+    {
+        nullable_datum.value = convert_to_datum(value);
     }
 
-    default:
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_datum()!"),
-             errhint("Unhandled data_holder_t type '%d'.", value.type)));
-    }
+    return nullable_datum;
 }
 
 reflection::BaseType convert_to_reflection_type(data_type_t type)
@@ -253,15 +295,13 @@ void adapter_t::initialize_caches()
             table_view.name(), table_view.table_type(), table_view.id());
 
         string table_name(table_view.name());
-        vector<uint8_t> binary_schema = table_view.binary_schema();
-        vector<uint8_t> serialization_template = table_view.serialization_template();
 
-        if (binary_schema.size() == 0)
+        if (table_view.binary_schema()->size() == 0)
         {
             elog(ERROR, "Table '%s' is missing binary schema data!", table_view.name());
         }
 
-        if (serialization_template.size() == 0)
+        if (table_view.serialization_template()->size() == 0)
         {
             elog(ERROR, "Table '%s' is missing serialization template data!", table_view.name());
         }
@@ -270,10 +310,12 @@ void adapter_t::initialize_caches()
 
         initialize_type_information_from_binary_schema(
             type_information.get(),
-            binary_schema.data(),
-            binary_schema.size());
+            table_view.binary_schema()->data(),
+            table_view.binary_schema()->size());
 
-        type_information.get()->set_serialization_template(serialization_template);
+        type_information.get()->set_serialization_template(
+            table_view.serialization_template()->data(),
+            table_view.serialization_template()->size());
 
         bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
         if (result == false)
@@ -563,6 +605,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
             m_fields[field_index].position = c_invalid_field_position;
             m_fields[field_index].type = data_type_t::e_uint64;
             m_fields[field_index].is_reference = false;
+            m_fields[field_index].repeated_count = 1;
 
             return true;
         }
@@ -582,6 +625,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                 m_fields[field_index].position = field.position();
                 m_fields[field_index].type = static_cast<data_type_t>(field.type());
                 m_fields[field_index].is_reference = false;
+                m_fields[field_index].repeated_count = field.repeated_count();
 
                 break;
             }
@@ -616,6 +660,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                 m_fields[field_index].position = relationship.parent_offset();
                 m_fields[field_index].type = data_type_t::e_uint64;
                 m_fields[field_index].is_reference = true;
+                m_fields[field_index].repeated_count = 1;
 
                 break;
             }
@@ -724,6 +769,39 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 field_value.isnull = true;
             }
         }
+        else if (m_fields[field_index].repeated_count != 1)
+        {
+            Oid element_type = convert_to_pg_type(m_fields[field_index].type);
+
+            size_t array_size = get_field_array_size(
+                m_container_id,
+                m_current_payload,
+                nullptr,
+                0,
+                m_fields[field_index].position);
+
+            ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
+
+            for (size_t i = 0; i < array_size; i++)
+            {
+                data_holder_t value = get_field_array_element(
+                    m_container_id,
+                    m_current_payload,
+                    nullptr,
+                    0,
+                    m_fields[field_index].position,
+                    i);
+
+                accumArrayResult(
+                    state,
+                    convert_to_datum(value),
+                    false,
+                    element_type,
+                    CurrentMemoryContext);
+            }
+
+            field_value.value = makeArrayResult(state, CurrentMemoryContext);
+        }
         else
         {
             data_holder_t value = get_field_value(
@@ -788,24 +866,21 @@ void modify_state_t::initialize_payload()
 {
     try
     {
-        // Initialize payload vector during our first call.
-        if (m_current_payload == nullptr)
-        {
-            m_current_payload = new vector<uint8_t>();
-        }
-
         // Get hold of the type cache and lookup the type information for our type.
         auto_type_information_t auto_type_information;
         type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
 
         // Set current payload to a copy of the serialization template bits.
-        *m_current_payload = auto_type_information.get()->get_serialization_template();
+        m_current_payload = new vector<uint8_t>(
+            auto_type_information.get()->get_serialization_template(),
+            auto_type_information.get()->get_serialization_template()
+                + auto_type_information.get()->get_serialization_template_size());
 
         // Get a pointer to the binary schema.
         // We only need to do this on the first call.
         if (m_binary_schema == nullptr)
         {
-            m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
+            m_binary_schema = auto_type_information.get()->get_binary_schema();
             m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
         }
     }
@@ -864,38 +939,108 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
     try
     {
-        // Regular fields are serialized in the payload of the current record.
-        data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
-
-        if (value.type == reflection::String)
+        if (m_fields[field_index].repeated_count == 1)
         {
-            ::set_field_value(
-                m_container_id,
-                *m_current_payload,
-                m_binary_schema,
-                m_binary_schema_size,
-                m_fields[field_index].position,
-                value);
+            // Regular fields are serialized in the payload of the current record.
+            data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
+
+            if (value.type == reflection::String)
+            {
+                ::set_field_value(
+                    m_container_id,
+                    *m_current_payload,
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    value);
+            }
+            else
+            {
+                bool result = ::set_field_value(
+                    m_container_id,
+                    m_current_payload->data(),
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    value);
+
+                if (!result)
+                {
+                    ereport(
+                        ERROR,
+                        (errcode(ERRCODE_FDW_ERROR),
+                         errmsg("Failed to set field value!"),
+                         errhint(
+                             "Table is '%s', container id is '%ld', and field position is '%ld'.",
+                             get_table_name(), m_container_id, m_fields[field_index].position)));
+                }
+            }
         }
         else
         {
-            bool result = ::set_field_value(
-                m_container_id,
-                m_current_payload->data(),
-                m_binary_schema,
-                m_binary_schema_size,
-                m_fields[field_index].position,
-                value);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+            ArrayType* pg_array = DatumGetArrayTypeP(field_value.value);
 
-            if (!result)
+            // PostgreSQL supports setting array element value to NULL even for
+            // scalar types. It will be difficult for us to implement the
+            // feature because both std::vector and flatbuffers::vector do not
+            // support it. Do not allow this behavior at the moment.
+            if (array_contains_nulls(pg_array))
             {
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
                      errmsg("Failed to set field value!"),
                      errhint(
-                         "Table is '%s', container id is '%ld', and field position is '%ld'.",
+                         "Setting array element value to NULL is not supported.",
                          get_table_name(), m_container_id, m_fields[field_index].position)));
+            }
+
+            Oid element_type = ARR_ELEMTYPE(pg_array);
+
+            // The followings are array element type metadata that are needed to
+            // access array elements. Their definitions can be found in the
+            // PostgreSQL system catalog pg_type.
+            int16 element_typlen;
+            bool element_typbyval;
+            char element_typalign;
+            get_typlenbyvalalign(element_type, &element_typlen, &element_typbyval, &element_typalign);
+
+            // Use deconstruct_array() to retrieve element values from the array.
+            int num_elements;
+            Datum* values;
+            bool* nulls;
+            deconstruct_array(
+                pg_array,
+                element_type,
+                element_typlen,
+                element_typbyval,
+                element_typalign,
+                &values,
+                &nulls,
+                &num_elements);
+
+            ::set_field_array_size(
+                m_container_id,
+                *m_current_payload,
+                m_binary_schema,
+                m_binary_schema_size,
+                m_fields[field_index].position,
+                num_elements);
+
+            for (int array_index = 0; array_index < num_elements; array_index++)
+            {
+                data_holder_t element_value
+                    = convert_to_data_holder(values[array_index], m_fields[field_index].type);
+
+                ::set_field_array_element(
+                    m_container_id,
+                    m_current_payload->data(),
+                    m_binary_schema,
+                    m_binary_schema_size,
+                    m_fields[field_index].position,
+                    array_index,
+                    element_value);
             }
         }
     }

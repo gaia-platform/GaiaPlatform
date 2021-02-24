@@ -13,11 +13,13 @@
 #include "flatbuffers/util.h"
 
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
-using namespace std;
 using namespace gaia::common;
+
+using std::string;
+using std::stringstream;
+using std::to_string;
 
 namespace gaia
 {
@@ -165,28 +167,15 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
     return fbs;
 }
 
-string generate_bfbs(const string& fbs)
+std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    // Use the fbs method ""flatbuffers::BufferToHexText" to encode the buffer.
-    // Some encoding is needed to store the binary as string in fbs payload
-    // because fbs assumes strings are null terminated while the binary schema
-    // buffers may have null characters in them.
-    //
-    // The following const defines the line wrap length of the encoded hex text.
-    // We do not need this but fbs method requires it.
-    constexpr size_t c_binary_schema_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(
-        fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(), c_binary_schema_hex_text_len, "", "");
-}
-
-vector<uint8_t> get_bfbs(gaia_id_t table_id)
-{
-    gaia_table_t table = gaia_table_t::get(table_id);
-    return gaia::common::flatbuffers_hex_to_buffer(table.binary_schema());
+    return std::vector<uint8_t>(
+        fbs_parser.builder_.GetBufferPointer(),
+        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize());
 }
 
 } // namespace catalog

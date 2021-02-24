@@ -13,7 +13,6 @@
 #include "flatbuffers/util.h"
 
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
@@ -165,7 +164,7 @@ string generate_json(const ddl::field_def_list_t& fields)
     return json_string_stream.str();
 }
 
-string generate_bin(const string& fbs, const string& json)
+vector<uint8_t> generate_bin(const string& fbs, const string& json)
 {
     flatbuffers::IDLOptions options;
     options.force_defaults = true;
@@ -177,22 +176,9 @@ string generate_bin(const string& fbs, const string& json)
     parsing_result = parser.Parse(json.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers JSON!");
 
-    // Use the fbs method ""flatbuffers::BufferToHexText" to encode the buffer.
-    // Some encoding is needed to store the binary as string in fbs payload
-    // because fbs assumes strings are null terminated whereas the
-    // serialization templates may have null characters in them.
-    //
-    // The following const defines the line wrap length of the encoded hex text.
-    // We do not need this but fbs method requires it.
-    constexpr size_t c_encoding_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(
-        parser.builder_.GetBufferPointer(), parser.builder_.GetSize(),
-        c_encoding_hex_text_len, "", "");
-}
-
-vector<uint8_t> get_bin(gaia_id_t table_id)
-{
-    return flatbuffers_hex_to_buffer(gaia_table_t::get(table_id).serialization_template());
+    return vector(
+        parser.builder_.GetBufferPointer(),
+        parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
 }
 
 } // namespace catalog

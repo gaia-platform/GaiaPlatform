@@ -12,6 +12,7 @@
 #include "gaia/db/catalog.hpp"
 
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/retail_assert.hpp"
 
 #include "type_id_mapping.hpp"
 
@@ -26,46 +27,75 @@ namespace catalog
 
 const string c_indent_string("    ");
 
-struct field_strings_t
-{
-    string name;
-    data_type_t type;
-};
-
-typedef std::vector<field_strings_t> field_vector_t;
+typedef std::vector<gaia_field_t> field_vector_t;
 typedef std::vector<gaia_relationship_t> relationship_vector_t;
 
-static string field_cpp_type_string(data_type_t data_type)
+static string field_cpp_type_string(
+    const gaia_field_t& field, bool is_function_parameter = false)
 {
-    switch (data_type)
+    string type_str;
+
+    switch (static_cast<data_type_t>(field.type()))
     {
     case data_type_t::e_bool:
-        return "bool";
+        type_str = "bool";
+        break;
     case data_type_t::e_int8:
-        return "int8_t";
+        type_str = "int8_t";
+        break;
     case data_type_t::e_uint8:
-        return "uint8_t";
+        type_str = "uint8_t";
+        break;
     case data_type_t::e_int16:
-        return "int16_t";
+        type_str = "int16_t";
+        break;
     case data_type_t::e_uint16:
-        return "uint16_t";
+        type_str = "uint16_t";
+        break;
     case data_type_t::e_int32:
-        return "int32_t";
+        type_str = "int32_t";
+        break;
     case data_type_t::e_uint32:
-        return "uint32_t";
+        type_str = "uint32_t";
+        break;
     case data_type_t::e_int64:
-        return "int64_t";
+        type_str = "int64_t";
+        break;
     case data_type_t::e_uint64:
-        return "uint64_t";
+        type_str = "uint64_t";
+        break;
     case data_type_t::e_float:
-        return "float";
+        type_str = "float";
+        break;
     case data_type_t::e_double:
-        return "double";
+        type_str = "double";
+        break;
     case data_type_t::e_string:
-        return "const char*";
+        type_str = "const char*";
+        break;
     default:
-        throw gaia::common::gaia_exception("Unknown type!");
+        retail_assert(false, "Unknown type!");
+    };
+
+    if (field.repeated_count() == 0)
+    {
+        if (is_function_parameter)
+        {
+            type_str = "const std::vector<" + type_str + ">*";
+        }
+        else
+        {
+            type_str = "const gaia::direct_access::vector<" + type_str + ">*";
+        }
     }
+    else if (field.repeated_count() > 1)
+    {
+        // We should report the input error to the user at data definition time.
+        // If we find a fixed size array definition here, it will be either data
+        // corruption or bugs in catching user input errors.
+        retail_assert(false, "Fixed size array is not supported");
+    }
+    return type_str;
 }
 
 // List the relationships where table appear as parent, sorted by offset.
@@ -259,7 +289,7 @@ static string generate_declarations(const gaia_id_t db_id)
 static string generate_edc_struct(
     gaia_type_t table_type_id,
     gaia_table_t table_record,
-    field_vector_t& field_strings,
+    field_vector_t& field_records,
     relationship_vector_t parent_relationships,
     relationship_vector_t child_relationships)
 {
@@ -311,11 +341,11 @@ static string generate_edc_struct(
     // or possibly arrays.
     bool has_string = false;
     // Accessors.
-    for (const auto& f : field_strings)
+    for (const auto& f : field_records)
     {
-        code.SetValue("TYPE", field_cpp_type_string(f.type));
-        code.SetValue("FIELD_NAME", f.name);
-        if (f.type == data_type_t::e_string)
+        code.SetValue("TYPE", field_cpp_type_string(f));
+        code.SetValue("FIELD_NAME", f.name());
+        if (f.type() == static_cast<uint8_t>(data_type_t::e_string))
         {
             has_string = true;
             code.SetValue("FCN_NAME", "GET_STR");
@@ -332,7 +362,7 @@ static string generate_edc_struct(
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
     bool first = true;
-    for (const auto& f : field_strings)
+    for (const auto& f : field_records)
     {
         if (!first)
         {
@@ -342,18 +372,19 @@ static string generate_edc_struct(
         {
             first = false;
         }
-        param_list += field_cpp_type_string(f.type) + " ";
-        param_list += f.name;
+        bool is_function_parameter = true;
+        param_list += field_cpp_type_string(f, is_function_parameter) + " ";
+        param_list += f.name();
     }
     code += param_list + ") {";
     code.IncrementIdentLevel();
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.SetValue("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
-    for (const auto& f : field_strings)
+    for (const auto& f : field_records)
     {
         param_list += ", ";
-        param_list += f.name;
+        param_list += f.name();
     }
     param_list += "));";
     code += param_list;
@@ -436,10 +467,10 @@ static string generate_edc_struct(
 
     code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> gaia_id{&{{TABLE_NAME}}_t::gaia_id};";
 
-    for (const auto& f : field_strings)
+    for (const auto& f : field_records)
     {
-        code.SetValue("TYPE", field_cpp_type_string(f.type));
-        code.SetValue("FIELD_NAME", f.name);
+        code.SetValue("TYPE", field_cpp_type_string(f));
+        code.SetValue("FIELD_NAME", f.name());
         code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{TYPE}}> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
         field_names.push_back(code.GetValue("FIELD_NAME"));
     }
@@ -548,13 +579,12 @@ string gaia_generate(const string& dbname)
     }
     for (auto table_id : table_ids)
     {
-        field_vector_t field_strings;
+        field_vector_t field_records;
         auto table_record = gaia_table_t::get(table_id);
         for (auto field_id : list_fields(table_id))
         {
             gaia_field_t field_record(gaia_field_t::get(field_id));
-            field_strings.push_back(
-                field_strings_t{field_record.name(), static_cast<data_type_t>(field_record.type())});
+            field_records.push_back(gaia_field_t::get(field_id));
         }
 
         relationship_vector_t parent_relationships = list_parent_relationships(table_record);
@@ -563,7 +593,7 @@ string gaia_generate(const string& dbname)
         code_lines += generate_edc_struct(
             table_id,
             table_record,
-            field_strings,
+            field_records,
             parent_relationships,
             child_relationships);
     }

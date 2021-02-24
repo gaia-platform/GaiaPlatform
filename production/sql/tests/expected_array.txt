@@ -1,0 +1,11 @@
+You are now connected to database "airport" as user "postgres".
+INSERT 0 1
+INSERT 0 1
+Jane Doe,{1000,2000,3000,4000,5000,6000}
+Joe Public,{500,500,1000,1500,2500,4000}
+Jane Doe,4000
+Joe Public,1500
+UPDATE 1
+2000
+DELETE 1
+Joe Public

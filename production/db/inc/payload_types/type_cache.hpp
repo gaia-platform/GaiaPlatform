@@ -31,9 +31,8 @@ typedef std::unordered_map<gaia::common::field_position_t, const reflection::Fie
 // It stores all Field descriptions for a given type,
 // indexed by the corresponding field id values.
 //
-// Currently, we store copies of both the binary schema
-// and the serialization template for the type,
-// but this will change one we can store direct pointers.
+// We store direct pointers of both the binary schema and the serialization
+// template in catalog for the type.
 class type_information_t
 {
     friend class auto_type_information_t;
@@ -43,26 +42,29 @@ public:
     type_information_t() = default;
 
     // Set the binary schema for our type.
-    void set_binary_schema(const std::vector<uint8_t>& binary_schema);
+    void set_binary_schema(const uint8_t* binary_schema, size_t binary_schema_size);
 
     // Set the serialization template for our type.
-    void set_serialization_template(const std::vector<uint8_t>& serialization_template);
+    void set_serialization_template(const uint8_t* serialization_template, size_t serialization_template_size);
 
     // Insert information about a field in the field map.
     // This is used during construction of the field map.
     void set_field(gaia::common::field_position_t field_position, const reflection::Field* field);
 
-    // Return a direct pointer to our copy of the binary schema.
+    // Return a direct pointer to the binary schema in catalog.
     //
     // This is only needed during initialization so that the Field information
     // references the data in our copy.
-    const uint8_t* get_raw_binary_schema() const;
+    const uint8_t* get_binary_schema() const;
 
     // Return the size of the binary schema.
     size_t get_binary_schema_size() const;
 
-    // Return a copy of our serialization template.
-    std::vector<uint8_t> get_serialization_template() const;
+    // Return a direct pointer to the serialization template in catalog.
+    const uint8_t* get_serialization_template() const;
+
+    // Return the size of the serialization template.
+    size_t get_serialization_template_size() const;
 
     // Return field information if the field could be found or nullptr otherwise.
     //
@@ -79,11 +81,13 @@ protected:
     // Operations that require exclusive locking are meant to be rare.
     mutable std::shared_mutex m_lock;
 
-    // The binary schema for this type.
-    std::vector<uint8_t> m_binary_schema;
+    // Direct pointer to the binary schema in catalog for this type.
+    const uint8_t* m_binary_schema;
+    size_t m_binary_schema_size;
 
-    // The serialization template for this type.
-    std::vector<uint8_t> m_serialization_template;
+    // Direct pointer to the serialization template in catalog for this type.
+    const uint8_t* m_serialization_template;
+    size_t m_serialization_template_size;
 
     // A map used to directly reference Field information in the binary schema.
     field_map_t m_field_map;

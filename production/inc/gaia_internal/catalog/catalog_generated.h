@@ -105,7 +105,7 @@ struct gaia_rulesetT : public flatbuffers::NativeTable {
   typedef gaia_ruleset TableType;
   gaia::direct_access::nullable_string_t name;
   bool active_on_startup;
-  gaia::direct_access::nullable_string_t table_ids;
+  std::vector<uint64_t> table_ids;
   gaia::direct_access::nullable_string_t source_location;
   gaia::direct_access::nullable_string_t serial_stream;
   gaia_rulesetT()
@@ -129,8 +129,8 @@ struct gaia_ruleset FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool active_on_startup() const {
     return GetField<uint8_t>(VT_ACTIVE_ON_STARTUP, 0) != 0;
   }
-  const flatbuffers::String *table_ids() const {
-    return GetPointer<const flatbuffers::String *>(VT_TABLE_IDS);
+  const flatbuffers::Vector<uint64_t> *table_ids() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_TABLE_IDS);
   }
   const flatbuffers::String *source_location() const {
     return GetPointer<const flatbuffers::String *>(VT_SOURCE_LOCATION);
@@ -144,7 +144,7 @@ struct gaia_ruleset FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<uint8_t>(verifier, VT_ACTIVE_ON_STARTUP) &&
            VerifyOffset(verifier, VT_TABLE_IDS) &&
-           verifier.VerifyString(table_ids()) &&
+           verifier.VerifyVector(table_ids()) &&
            VerifyOffset(verifier, VT_SOURCE_LOCATION) &&
            verifier.VerifyString(source_location()) &&
            VerifyOffset(verifier, VT_SERIAL_STREAM) &&
@@ -166,7 +166,7 @@ struct gaia_rulesetBuilder {
   void add_active_on_startup(bool active_on_startup) {
     fbb_.AddElement<uint8_t>(gaia_ruleset::VT_ACTIVE_ON_STARTUP, static_cast<uint8_t>(active_on_startup), 0);
   }
-  void add_table_ids(flatbuffers::Offset<flatbuffers::String> table_ids) {
+  void add_table_ids(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> table_ids) {
     fbb_.AddOffset(gaia_ruleset::VT_TABLE_IDS, table_ids);
   }
   void add_source_location(flatbuffers::Offset<flatbuffers::String> source_location) {
@@ -191,7 +191,7 @@ inline flatbuffers::Offset<gaia_ruleset> Creategaia_ruleset(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     bool active_on_startup = false,
-    flatbuffers::Offset<flatbuffers::String> table_ids = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> table_ids = 0,
     flatbuffers::Offset<flatbuffers::String> source_location = 0,
     flatbuffers::Offset<flatbuffers::String> serial_stream = 0) {
   gaia_rulesetBuilder builder_(_fbb);
@@ -207,11 +207,11 @@ inline flatbuffers::Offset<gaia_ruleset> Creategaia_rulesetDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     bool active_on_startup = false,
-    const char *table_ids = nullptr,
+    const std::vector<uint64_t> *table_ids = nullptr,
     const char *source_location = nullptr,
     const char *serial_stream = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto table_ids__ = table_ids ? _fbb.CreateString(table_ids) : 0;
+  auto table_ids__ = table_ids ? _fbb.CreateVector<uint64_t>(*table_ids) : 0;
   auto source_location__ = source_location ? _fbb.CreateString(source_location) : 0;
   auto serial_stream__ = serial_stream ? _fbb.CreateString(serial_stream) : 0;
   return gaia::catalog::internal::Creategaia_ruleset(
@@ -514,8 +514,8 @@ struct gaia_tableT : public flatbuffers::NativeTable {
   gaia::direct_access::nullable_string_t name;
   uint32_t type;
   bool is_system;
-  gaia::direct_access::nullable_string_t binary_schema;
-  gaia::direct_access::nullable_string_t serialization_template;
+  std::vector<uint8_t> binary_schema;
+  std::vector<uint8_t> serialization_template;
   gaia_tableT()
       : type(0),
         is_system(false) {
@@ -541,11 +541,11 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool is_system() const {
     return GetField<uint8_t>(VT_IS_SYSTEM, 0) != 0;
   }
-  const flatbuffers::String *binary_schema() const {
-    return GetPointer<const flatbuffers::String *>(VT_BINARY_SCHEMA);
+  const flatbuffers::Vector<uint8_t> *binary_schema() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_BINARY_SCHEMA);
   }
-  const flatbuffers::String *serialization_template() const {
-    return GetPointer<const flatbuffers::String *>(VT_SERIALIZATION_TEMPLATE);
+  const flatbuffers::Vector<uint8_t> *serialization_template() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_SERIALIZATION_TEMPLATE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -554,9 +554,9 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint32_t>(verifier, VT_TYPE) &&
            VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
            VerifyOffset(verifier, VT_BINARY_SCHEMA) &&
-           verifier.VerifyString(binary_schema()) &&
+           verifier.VerifyVector(binary_schema()) &&
            VerifyOffset(verifier, VT_SERIALIZATION_TEMPLATE) &&
-           verifier.VerifyString(serialization_template()) &&
+           verifier.VerifyVector(serialization_template()) &&
            verifier.EndTable();
   }
   gaia_tableT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -577,10 +577,10 @@ struct gaia_tableBuilder {
   void add_is_system(bool is_system) {
     fbb_.AddElement<uint8_t>(gaia_table::VT_IS_SYSTEM, static_cast<uint8_t>(is_system), 0);
   }
-  void add_binary_schema(flatbuffers::Offset<flatbuffers::String> binary_schema) {
+  void add_binary_schema(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> binary_schema) {
     fbb_.AddOffset(gaia_table::VT_BINARY_SCHEMA, binary_schema);
   }
-  void add_serialization_template(flatbuffers::Offset<flatbuffers::String> serialization_template) {
+  void add_serialization_template(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> serialization_template) {
     fbb_.AddOffset(gaia_table::VT_SERIALIZATION_TEMPLATE, serialization_template);
   }
   explicit gaia_tableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -600,8 +600,8 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     uint32_t type = 0,
     bool is_system = false,
-    flatbuffers::Offset<flatbuffers::String> binary_schema = 0,
-    flatbuffers::Offset<flatbuffers::String> serialization_template = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> binary_schema = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> serialization_template = 0) {
   gaia_tableBuilder builder_(_fbb);
   builder_.add_serialization_template(serialization_template);
   builder_.add_binary_schema(binary_schema);
@@ -616,11 +616,11 @@ inline flatbuffers::Offset<gaia_table> Creategaia_tableDirect(
     const char *name = nullptr,
     uint32_t type = 0,
     bool is_system = false,
-    const char *binary_schema = nullptr,
-    const char *serialization_template = nullptr) {
+    const std::vector<uint8_t> *binary_schema = nullptr,
+    const std::vector<uint8_t> *serialization_template = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto binary_schema__ = binary_schema ? _fbb.CreateString(binary_schema) : 0;
-  auto serialization_template__ = serialization_template ? _fbb.CreateString(serialization_template) : 0;
+  auto binary_schema__ = binary_schema ? _fbb.CreateVector<uint8_t>(*binary_schema) : 0;
+  auto serialization_template__ = serialization_template ? _fbb.CreateVector<uint8_t>(*serialization_template) : 0;
   return gaia::catalog::internal::Creategaia_table(
       _fbb,
       name__,
@@ -734,7 +734,7 @@ inline void gaia_ruleset::UnPackTo(gaia_rulesetT *_o, const flatbuffers::resolve
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
   { auto _e = active_on_startup(); _o->active_on_startup = _e; }
-  { auto _e = table_ids(); if (_e) _o->table_ids = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
+  { auto _e = table_ids(); if (_e) { _o->table_ids.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->table_ids[_i] = _e->Get(_i); } } }
   { auto _e = source_location(); if (_e) _o->source_location = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
   { auto _e = serial_stream(); if (_e) _o->serial_stream = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
 }
@@ -749,7 +749,7 @@ inline flatbuffers::Offset<gaia_ruleset> Creategaia_ruleset(flatbuffers::FlatBuf
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_rulesetT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _active_on_startup = _o->active_on_startup;
-  auto _table_ids = _o->table_ids.empty() ? 0 : _fbb.CreateString(_o->table_ids);
+  auto _table_ids = _o->table_ids.size() ? _fbb.CreateVector(_o->table_ids) : 0;
   auto _source_location = _o->source_location.empty() ? 0 : _fbb.CreateString(_o->source_location);
   auto _serial_stream = _o->serial_stream.empty() ? 0 : _fbb.CreateString(_o->serial_stream);
   return gaia::catalog::internal::Creategaia_ruleset(
@@ -858,8 +858,8 @@ inline void gaia_table::UnPackTo(gaia_tableT *_o, const flatbuffers::resolver_fu
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
   { auto _e = type(); _o->type = _e; }
   { auto _e = is_system(); _o->is_system = _e; }
-  { auto _e = binary_schema(); if (_e) _o->binary_schema = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
-  { auto _e = serialization_template(); if (_e) _o->serialization_template = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
+  { auto _e = binary_schema(); if (_e) { _o->binary_schema.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->binary_schema[_i] = _e->Get(_i); } } }
+  { auto _e = serialization_template(); if (_e) { _o->serialization_template.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->serialization_template[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<gaia_table> gaia_table::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_tableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -873,8 +873,8 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(flatbuffers::FlatBufferB
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _type = _o->type;
   auto _is_system = _o->is_system;
-  auto _binary_schema = _o->binary_schema.empty() ? 0 : _fbb.CreateString(_o->binary_schema);
-  auto _serialization_template = _o->serialization_template.empty() ? 0 : _fbb.CreateString(_o->serialization_template);
+  auto _binary_schema = _o->binary_schema.size() ? _fbb.CreateVector(_o->binary_schema) : 0;
+  auto _serialization_template = _o->serialization_template.size() ? _fbb.CreateVector(_o->serialization_template) : 0;
   return gaia::catalog::internal::Creategaia_table(
       _fbb,
       _name,

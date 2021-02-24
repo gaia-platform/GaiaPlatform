@@ -10,7 +10,6 @@
 
 #include "gaia/common.hpp"
 
-#include "gaia_internal/common/flatbuffers_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -53,16 +52,14 @@ namespace db
     return catalog::Getgaia_table(m_obj_ptr->data())->type();
 }
 
-[[nodiscard]] std::vector<uint8_t> table_view_t::binary_schema() const
+[[nodiscard]] buffer* table_view_t::binary_schema() const
 {
-    return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(m_obj_ptr->data())->binary_schema()->c_str());
+    return catalog::Getgaia_table(m_obj_ptr->data())->binary_schema();
 }
 
-[[nodiscard]] std::vector<uint8_t> table_view_t::serialization_template() const
+[[nodiscard]] buffer* table_view_t::serialization_template() const
 {
-    return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(m_obj_ptr->data())->serialization_template()->c_str());
+    return catalog::Getgaia_table(m_obj_ptr->data())->serialization_template();
 }
 
 [[nodiscard]] const char* relationship_view_t::name() const

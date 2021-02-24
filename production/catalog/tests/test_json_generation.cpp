@@ -6,6 +6,7 @@
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
 
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "fbs_generator.hpp"
@@ -83,25 +84,12 @@ TEST_F(json_generation_test, generate_bin)
     string test_table_name{"test_generate_bin"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
+    const vector<uint8_t> bfbs = generate_bfbs(fbs);
+    ASSERT_GT(bfbs.size(), 0);
+
     string json = generate_json(test_table_fields);
-    string bin = generate_bin(fbs, json);
-
-    // The generated bin is base64 encoded.
-    // There is not much validation we can do for the base64 beforing decoding.
-    // The get_bfbs test below will validate the result using FlatBuffers reflection APIs.
+    const vector<uint8_t> bin = generate_bin(fbs, json);
     ASSERT_GT(bin.size(), 0);
-}
-
-TEST_F(json_generation_test, get_bin)
-{
-    string test_table_name{"test_get_bin"};
-
-    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
-
-    begin_transaction();
-    vector<uint8_t> bfbs = get_bfbs(table_id);
-    vector<uint8_t> bin = get_bin(table_id);
-    commit_transaction();
 
     const uint8_t* binary_schema = bfbs.data();
     const uint8_t* serialized_data = bin.data();

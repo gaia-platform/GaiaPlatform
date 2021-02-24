@@ -13,14 +13,18 @@ using namespace gaia::db::payload_types;
 
 type_cache_t type_cache_t::s_type_cache;
 
-void type_information_t::set_binary_schema(const vector<uint8_t>& binary_schema)
+void type_information_t::set_binary_schema(const uint8_t* binary_schema, size_t binary_schema_size)
 {
     m_binary_schema = binary_schema;
+    m_binary_schema_size = binary_schema_size;
 }
 
-void type_information_t::set_serialization_template(const vector<uint8_t>& serialization_template)
+void type_information_t::set_serialization_template(
+    const uint8_t* serialization_template,
+    size_t serialization_template_size)
 {
     m_serialization_template = serialization_template;
+    m_serialization_template_size = serialization_template_size;
 }
 
 void type_information_t::set_field(field_position_t field_position, const reflection::Field* field)
@@ -30,19 +34,24 @@ void type_information_t::set_field(field_position_t field_position, const reflec
     m_field_map.insert(make_pair(field_position, field));
 }
 
-const uint8_t* type_information_t::get_raw_binary_schema() const
+const uint8_t* type_information_t::get_binary_schema() const
 {
-    return m_binary_schema.data();
+    return m_binary_schema;
 }
 
 size_t type_information_t::get_binary_schema_size() const
 {
-    return m_binary_schema.size();
+    return m_binary_schema_size;
 }
 
-vector<uint8_t> type_information_t::get_serialization_template() const
+const uint8_t* type_information_t::get_serialization_template() const
 {
     return m_serialization_template;
+}
+
+size_t type_information_t::get_serialization_template_size() const
+{
+    return m_serialization_template_size;
 }
 
 const reflection::Field* type_information_t::get_field(field_position_t field_position) const

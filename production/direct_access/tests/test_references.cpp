@@ -13,17 +13,20 @@
 
 #include "gaia_addr_book.h"
 
-using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
+using std::string;
+using std::thread;
+using std::to_string;
+
 class gaia_references_test : public db_catalog_test_base_t
 {
 protected:
     gaia_references_test()
-        : db_catalog_test_base_t(std::string("addr_book.ddl")){};
+        : db_catalog_test_base_t(string("addr_book.ddl")){};
 
     static gaia_id_t find_invalid_id()
     {
@@ -44,7 +47,7 @@ protected:
             }
         }
 
-        throw runtime_error(
+        throw std::runtime_error(
             "Impossible to find an invalid ID in the range "
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
@@ -334,7 +337,7 @@ TEST_F(gaia_references_test, connect_scan)
     commit_transaction();
 }
 
-void scan_manages(vector<string>& employee_vector, employee_t& e)
+void scan_manages(std::vector<string>& employee_vector, employee_t& e)
 {
     employee_vector.emplace_back(e.name_first());
     for (auto eptr : e.manages_employee_list())
@@ -388,7 +391,7 @@ TEST_F(gaia_references_test, recursive_scan)
     e1.manages_employee_list().insert(e7); // Horace to Hank
 
     // Recursive walk through hierarchy
-    vector<string> employee_vector;
+    std::vector<string> employee_vector;
     scan_manages(employee_vector, e1);
     for (auto const& it : employee_vector)
     {

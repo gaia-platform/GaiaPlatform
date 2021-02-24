@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <flatbuffers/flatbuffers.h>
+
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 
@@ -48,13 +50,15 @@ struct field_view_t : catalog_db_object_view_t
     [[nodiscard]] common::field_position_t position() const;
 };
 
+using buffer = const flatbuffers::Vector<uint8_t>;
+
 struct table_view_t : catalog_db_object_view_t
 {
     using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::gaia_type_t table_type() const;
-    [[nodiscard]] std::vector<uint8_t> binary_schema() const;
-    [[nodiscard]] std::vector<uint8_t> serialization_template() const;
+    [[nodiscard]] buffer* binary_schema() const;
+    [[nodiscard]] buffer* serialization_template() const;
 };
 
 struct relationship_view_t : catalog_db_object_view_t

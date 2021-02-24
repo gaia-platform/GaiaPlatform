@@ -85,7 +85,7 @@
 
 %type <int> opt_array
 %type <bool> opt_if_not_exists
-%type <data_type_t> data_type
+%type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
 %type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
@@ -102,7 +102,7 @@
 %printer { yyo << "filed_def_commalist[" << $$->size() << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
-%printer { yyo << "data_type: " << static_cast<uint8_t>($$); } data_type
+%printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << $$; } <*>
 
 %%
@@ -173,11 +173,18 @@ field_def:
 ;
 
 data_field_def:
-  IDENTIFIER data_type opt_array {
+  IDENTIFIER scalar_type opt_array {
       $$ = std::make_unique<data_field_def_t>($1, $2, $3);
   }
-| IDENTIFIER data_type opt_array ACTIVE {
+| IDENTIFIER scalar_type opt_array ACTIVE {
       $$ = std::make_unique<data_field_def_t>($1, $2, $3);
+      $$->active = true;
+  }
+| IDENTIFIER STRING {
+      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
+  }
+| IDENTIFIER STRING ACTIVE {
+      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
       $$->active = true;
   }
 ;
@@ -193,11 +200,10 @@ ref_field_def:
 
 opt_array:
   "[" "]" { $$ = 0; }
-| "[" NUMBER "]" { $$ = $2; }
 | { $$ = 1; }
 ;
 
-data_type:
+scalar_type:
   BOOL { $$ = data_type_t::e_bool; }
 | INT8 { $$ = data_type_t::e_int8; }
 | UINT8 { $$ = data_type_t::e_uint8; }
@@ -209,7 +215,6 @@ data_type:
 | UINT64 { $$ = data_type_t::e_uint64; }
 | FLOAT { $$ = data_type_t::e_float; }
 | DOUBLE { $$ = data_type_t::e_double; }
-| STRING { $$ = data_type_t::e_string; }
 ;
 
 composite_name:
@@ -219,6 +224,7 @@ composite_name:
 
 %%
 
-void yy::parser::error (const location_type& l, const std::string& m) {
+void yy::parser::error(const location_type& l, const std::string& m)
+{
     std::cerr << l << ": " << m << '\n';
 }

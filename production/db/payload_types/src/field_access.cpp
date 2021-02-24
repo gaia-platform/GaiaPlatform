@@ -69,12 +69,8 @@ void initialize_type_information_from_binary_schema(
     retail_assert(type_information != nullptr, "'type_information' argument should not be null.");
     retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
-    // First copy the binary schema into the type information.
-    vector<uint8_t> binary_schema_copy(binary_schema, binary_schema + binary_schema_size);
-    type_information->set_binary_schema(binary_schema_copy);
-
-    // From now on, we work with the type information copy of the binary schema.
-    binary_schema = type_information->get_raw_binary_schema();
+    // Save the pointer to the binary schema into the type information.
+    type_information->set_binary_schema(binary_schema, binary_schema_size);
 
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);

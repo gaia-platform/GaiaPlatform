@@ -40,7 +40,7 @@ std::string generate_fbs(const std::string& db_name, const std::string& table_na
  * @param valid FlatBuffers schema
  * @return base64 encoded bfbs string
  */
-std::string generate_bfbs(const std::string& fbs);
+std::vector<uint8_t> generate_bfbs(const std::string& fbs);
 
 } // namespace catalog
 } // namespace gaia
