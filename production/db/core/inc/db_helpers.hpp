@@ -24,30 +24,30 @@ namespace gaia
 namespace db
 {
 
-inline gaia_id_t allocate_id()
+inline common::gaia_id_t allocate_id()
 {
-    shared_counters_t* counters = gaia::db::get_shared_counters();
-    gaia_id_t id = __sync_add_and_fetch(&counters->last_id, 1);
+    counters_t* counters = gaia::db::get_counters();
+    common::gaia_id_t id = __sync_add_and_fetch(&counters->last_id, 1);
     return id;
 }
 
-inline gaia_type_t allocate_type()
+inline common::gaia_type_t allocate_type()
 {
-    shared_counters_t* counters = gaia::db::get_shared_counters();
-    gaia_type_t type = __sync_add_and_fetch(&counters->last_type_id, 1);
+    counters_t* counters = gaia::db::get_counters();
+    common::gaia_type_t type = __sync_add_and_fetch(&counters->last_type_id, 1);
     return type;
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
-    shared_counters_t* counters = gaia::db::get_shared_counters();
+    counters_t* counters = gaia::db::get_counters();
     gaia_txn_id_t txn_id = __sync_add_and_fetch(&counters->last_txn_id, 1);
     return txn_id;
 }
 
 inline gaia_locator_t allocate_locator()
 {
-    shared_counters_t* counters = gaia::db::get_shared_counters();
+    counters_t* counters = gaia::db::get_counters();
 
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
@@ -81,7 +81,7 @@ inline void update_locator(
     gaia_locator_t locator,
     gaia::db::memory_manager::address_offset_t offset)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
+    locators_t* locators = gaia::db::get_locators();
     if (!locators)
     {
         throw no_open_transaction();
@@ -92,8 +92,8 @@ inline void update_locator(
 
 inline bool locator_exists(gaia_locator_t locator)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
-    shared_counters_t* counters = gaia::db::get_shared_counters();
+    locators_t* locators = gaia::db::get_locators();
+    counters_t* counters = gaia::db::get_counters();
 
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
@@ -107,7 +107,7 @@ inline bool locator_exists(gaia_locator_t locator)
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
-    locators_t* locators = gaia::db::get_shared_locators();
+    locators_t* locators = gaia::db::get_locators();
     return locator_exists(locator)
         ? (*locators)[locator].load()
         : c_invalid_gaia_offset;
@@ -115,7 +115,7 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 
 inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
-    shared_data_t* data = gaia::db::get_shared_data();
+    data_t* data = gaia::db::get_data();
     return (offset != c_invalid_gaia_offset)
         ? reinterpret_cast<db_object_t*>(data->objects + offset)
         : nullptr;
@@ -130,7 +130,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 // are no memory barriers.
 inline gaia_txn_id_t get_last_txn_id()
 {
-    shared_counters_t* counters = gaia::db::get_shared_counters();
+    counters_t* counters = gaia::db::get_counters();
     return counters->last_txn_id;
 }
 

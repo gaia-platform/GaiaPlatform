@@ -24,10 +24,8 @@
 #include <sys/eventfd.h>
 #include <sys/file.h>
 
-#include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
-#include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
@@ -35,18 +33,18 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 
 using namespace std;
 
+using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
@@ -55,7 +53,6 @@ static constexpr char c_message_unexpected_event_received[] = "Unexpected event 
 static constexpr char c_message_current_event_is_inconsistent_with_state_transition[]
     = "Current event is inconsistent with state transition!";
 static constexpr char c_message_unexpected_request_data_type[] = "Unexpected request data type!";
-static constexpr char c_message_memfd_create_failed[] = "memfd_create() failed!";
 static constexpr char c_message_thread_must_be_joinable[] = "Thread must be joinable!";
 static constexpr char c_message_epoll_create1_failed[] = "epoll_create1() failed!";
 static constexpr char c_message_epoll_wait_failed[] = "epoll_wait() failed!";
@@ -115,7 +112,7 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
 
-    int send_fds[] = {s_fd_locators, s_fd_counters, s_fd_data, s_fd_id_index};
+    int send_fds[] = {s_shared_locators.fd(), s_shared_counters.fd(), s_shared_data.fd(), s_shared_id_index.fd()};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -134,20 +131,16 @@ void server::handle_begin_txn(
         request->data_type() == request_data_t::memory_info,
         "A call to begin_transaction() must provide memory allocation information.");
 
-    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
+    retail_assert(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
 
-    // Currently we don't need to alter any server-side state for opening a transaction.
-    FlatBufferBuilder builder;
+    retail_assert(s_fd_log == -1, "Transaction log fd should be uninitialized!");
 
-    // Allocate a new begin_ts for this txn and initialize its entry. Loop until
-    // we are able to install the entry before being invalidated by another
-    // thread.
-    gaia_txn_id_t begin_ts = c_invalid_gaia_txn_id;
-    while (begin_ts == c_invalid_gaia_txn_id)
-    {
-        begin_ts = txn_begin();
-    }
-    s_txn_id = begin_ts;
+    // Allocate a new begin_ts for this txn and initialize its entry in the txn table.
+    s_txn_id = txn_begin();
+
+    // The begin_ts returned by txn_begin() should always be valid since it
+    // retries on concurrent invalidation.
+    retail_assert(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
     validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
@@ -155,12 +148,13 @@ void server::handle_begin_txn(
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
     std::vector<int> txn_log_fds;
-    get_txn_log_fds_for_snapshot(begin_ts, txn_log_fds);
+    get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
     // REVIEW: We could optimize the fast path by piggybacking some small fixed
     // number of log fds on the initial reply message.
+    FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds.size());
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
@@ -187,13 +181,13 @@ void server::handle_begin_txn(
 
 void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
 {
-    // Take a snapshot of the watermark and scan backward from begin_ts,
-    // stopping at either the saved watermark or the first commit_ts whose log
-    // fd has been invalidated. This avoids having our scan race the
-    // concurrently advancing watermark.
+    // Take a snapshot of the post-apply watermark and scan backward from
+    // begin_ts, stopping either just before the saved watermark or at the first
+    // commit_ts whose log fd has been invalidated. This avoids having our scan
+    // race the concurrently advancing watermark.
 
-    gaia_txn_id_t last_applied_commit_ts = s_last_applied_commit_ts_upper_bound;
-    for (gaia_txn_id_t ts = begin_ts - 1; ts > last_applied_commit_ts; --ts)
+    gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
+    for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
     {
         if (is_commit_ts(ts))
         {
@@ -291,11 +285,11 @@ void server::handle_commit_txn(
 
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    map_fd(s_log, get_fd_size(s_fd_log), PROT_READ, MAP_PRIVATE, s_fd_log, 0);
-    // Unconditionally unmap the log segment on exit.
-    auto cleanup_log = make_scope_guard([]() {
-        unmap_fd(s_log, s_log->size());
-    });
+    // We map the log into a local variable so it gets unmapped automatically on exit.
+    mapped_log_t log;
+    log.open(s_fd_log);
+    // Surface the log in our static variable, to avoid passing it around.
+    s_log = log.data();
 
     // Actually commit the transaction.
     bool success = txn_commit();
@@ -575,17 +569,10 @@ void server::build_server_reply(
 
 void server::clear_shared_memory()
 {
-    unmap_fd(s_shared_locators, sizeof(*s_shared_locators));
-    close_fd(s_fd_locators);
-
-    unmap_fd(s_counters, sizeof(*s_counters));
-    close_fd(s_fd_counters);
-
-    unmap_fd(s_data, sizeof(*s_data));
-    close_fd(s_fd_data);
-
-    unmap_fd(s_id_index, sizeof(*s_id_index));
-    close_fd(s_fd_id_index);
+    s_shared_locators.close();
+    s_shared_counters.close();
+    s_shared_data.close();
+    s_shared_id_index.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -601,71 +588,24 @@ void server::init_shared_memory()
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
-    retail_assert(s_fd_locators == -1, "Locator fd should not be valid!");
-    retail_assert(s_fd_counters == -1, "Counters fd should not be valid!");
-    retail_assert(s_fd_data == -1, "Data fd should not be valid!");
-    retail_assert(s_fd_id_index == -1, "ID index fd should not be valid!");
-
-    retail_assert(!s_shared_locators, "Locators memory should be reset!");
-    retail_assert(!s_counters, "Counters memory should be reset!");
-    retail_assert(!s_data, "Data memory should be reset!");
-    retail_assert(!s_id_index, "ID index memory should be reset!");
-
-    s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
-    if (s_fd_locators == -1)
-    {
-        throw_system_error(c_message_memfd_create_failed);
-    }
-
-    s_fd_counters = ::memfd_create(c_sch_mem_counters, MFD_ALLOW_SEALING);
-    if (s_fd_counters == -1)
-    {
-        throw_system_error(c_message_memfd_create_failed);
-    }
-
-    s_fd_data = ::memfd_create(c_sch_mem_data, MFD_ALLOW_SEALING);
-    if (s_fd_data == -1)
-    {
-        throw_system_error(c_message_memfd_create_failed);
-    }
-
-    s_fd_id_index = ::memfd_create(c_sch_mem_id_index, MFD_ALLOW_SEALING);
-    if (s_fd_id_index == -1)
-    {
-        throw_system_error(c_message_memfd_create_failed);
-    }
-
-    truncate_fd(s_fd_locators, sizeof(*s_shared_locators));
-    truncate_fd(s_fd_counters, sizeof(*s_counters));
-    truncate_fd(s_fd_data, sizeof(*s_data));
-    truncate_fd(s_fd_id_index, sizeof(*s_id_index));
+    retail_assert(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
+    retail_assert(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
+    retail_assert(!s_shared_data.is_set(), "Data memory should be unmapped!");
+    retail_assert(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
-    // s_data uses (64B) * c_max_locators = 256GB of virtual address space.
+    // s_shared_data uses (64B) * c_max_locators = 256GB of virtual address space.
     //
-    // s_id_index uses (32B) * c_max_locators = 128GB of virtual address space
+    // s_shared_id_index uses (32B) * c_max_locators = 128GB of virtual address space
     // (assuming 4-byte alignment). We could eventually shrink this to
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    //
-    // Note that unless we supply the MAP_POPULATE flag to mmap(), only the
-    // pages we actually use will ever be allocated. However, Linux may refuse
-    // to allocate the virtual memory we requested if overcommit is disabled
-    // (i.e., /proc/sys/vm/overcommit_memory = 2). Using MAP_NORESERVE (don't
-    // reserve swap space) should ensure that overcommit always succeeds, unless
-    // it is disabled. We may need to document the requirement that overcommit
-    // is not disabled (i.e., /proc/sys/vm/overcommit_memory != 2).
-    //
-    // Alternatively, we could use the more tedious but reliable approach of
-    // using mmap(PROT_NONE) and calling mprotect(PROT_READ|PROT_WRITE) on any
-    // pages we need to use (this is analogous to VirtualAlloc(MEM_RESERVE)
-    // followed by VirtualAlloc(MEM_COMMIT) in Windows).
-    map_fd(s_shared_locators, sizeof(*s_shared_locators), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_locators, 0);
-    map_fd(s_counters, sizeof(*s_counters), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_counters, 0);
-    map_fd(s_data, sizeof(*s_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_data, 0);
-    map_fd(s_id_index, sizeof(*s_id_index), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, s_fd_id_index, 0);
+    s_shared_locators.create(c_gaia_mem_locators);
+    s_shared_counters.create(c_gaia_mem_counters);
+    s_shared_data.create(c_gaia_mem_data);
+    s_shared_id_index.create(c_gaia_mem_id_index);
 
     init_memory_manager();
 
@@ -679,7 +619,7 @@ void server::init_memory_manager()
 {
     s_memory_manager.reset();
     s_memory_manager = make_unique<memory_manager_t>();
-    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
+    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_shared_data.data()->objects), sizeof(s_shared_data.data()->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
         s_memory_manager->free_old_offset(get_address_offset(offset));
@@ -773,9 +713,9 @@ void server::init_txn_info()
     // need it.
     if (s_txn_info)
     {
-        unmap_fd(s_txn_info, c_size_in_bytes);
+        unmap_fd_data(s_txn_info, c_size_in_bytes);
     }
-    map_fd(
+    map_fd_data(
         s_txn_info,
         c_size_in_bytes,
         PROT_READ | PROT_WRITE,
@@ -1199,7 +1139,7 @@ void server::session_handler(int session_socket)
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "client socket error: " << ::strerror(error) << endl;
+                    cerr << "Client socket error: " << ::strerror(error) << endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1271,7 +1211,7 @@ void server::session_handler(int session_socket)
             }
             catch (const peer_disconnected& e)
             {
-                cerr << "client socket error: " << e.what() << endl;
+                cerr << "Client socket error: " << e.what() << endl;
                 s_session_shutdown = true;
             }
         }
@@ -1481,7 +1421,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
     gaia_locator_t locator = 0;
 
     // Fix end of locator segment for length of scan, since it can change during scan.
-    gaia_locator_t last_locator = s_counters->last_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
     return [=]() mutable -> std::optional<gaia_id_t> {
         // REVIEW: Now that the locator segment is no longer locked, we have no
@@ -2010,25 +1950,17 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 {
     // First map the two fds.
-
-    txn_log_t* log1;
-    map_fd(log1, get_fd_size(log_fd1), PROT_READ, MAP_PRIVATE, log_fd1, 0);
-    auto cleanup_log1 = make_scope_guard([&]() {
-        unmap_fd(log1, get_fd_size(log_fd1));
-    });
-
-    txn_log_t* log2;
-    map_fd(log2, get_fd_size(log_fd2), PROT_READ, MAP_PRIVATE, log_fd2, 0);
-    auto cleanup_log2 = make_scope_guard([&]() {
-        unmap_fd(log2, get_fd_size(log_fd2));
-    });
+    mapped_log_t log1;
+    log1.open(log_fd1);
+    mapped_log_t log2;
+    log2.open(log_fd2);
 
     // Now perform standard merge intersection and terminate on the first conflict found.
     size_t log1_idx = 0, log2_idx = 0;
-    while (log1_idx < log1->record_count && log2_idx < log2->record_count)
+    while (log1_idx < log1.data()->record_count && log2_idx < log2.data()->record_count)
     {
-        txn_log_t::log_record_t* lr1 = log1->log_records + log1_idx;
-        txn_log_t::log_record_t* lr2 = log2->log_records + log2_idx;
+        txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
+        txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -2338,19 +2270,15 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         log_fd != -1,
         "apply_txn_log_from_ts() must be called on a commit_ts with a valid log fd!");
 
-    txn_log_t* txn_log;
-    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
-    // Ensure the fd is unmapped when we exit this scope.
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(txn_log, txn_log->size());
-    });
+    mapped_log_t txn_log;
+    txn_log.open(log_fd);
 
     // Ensure that the begin_ts in this entry matches the txn log header.
     retail_assert(
-        txn_log->begin_ts == get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts entry!");
 
-    for (size_t i = 0; i < txn_log->record_count; ++i)
+    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
     {
         // Update the shared locator view with each redo version (i.e., the
         // version created or updated by the txn). This is safe as long as the
@@ -2359,13 +2287,13 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         // that txn's snapshot). This update is non-atomic since log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log->log_records[i]);
-        (*s_shared_locators)[lr->locator] = lr->new_offset;
+        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
+        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
 
     // We're using the otherwise-unused first entry of the "locators" array to
     // track the last-applied commit_ts (purely for diagnostic purposes).
-    bool updated_locators_view_version = advance_watermark((*s_shared_locators)[0], commit_ts);
+    bool updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
     retail_assert(
         updated_locators_view_version,
         "Committed txn applied to shared locators view out of order!");
@@ -2381,15 +2309,12 @@ bool server::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 
 void server::gc_txn_log_from_fd(int log_fd, bool committed)
 {
-    txn_log_t* txn_log;
-    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
-    // Ensure the fd is unmapped when we exit this scope.
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(txn_log, txn_log->size());
-    });
+    mapped_log_t txn_log;
+    txn_log.open(log_fd);
 
+    retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
     bool deallocate_new_offsets = !committed;
-    deallocate_txn_log(txn_log, deallocate_new_offsets);
+    deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
 void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
@@ -2599,13 +2524,19 @@ void server::apply_txn_logs_to_shared_view()
         // timestamp entry, but allows us to avoid reserving another scarce bit
         // for this purpose.
 
-        // The current timestamp in the scan is guaranteed to be positive due to the loop precondition.
+        // The current timestamp in the scan is guaranteed to be positive due to
+        // the loop precondition.
         gaia_txn_id_t prev_ts = ts - 1;
-        // This thread must have observed both the pre- and post-apply watermarks to be equal to the previous timestamp
-        // in the scan in order to advance the pre-apply watermark to the current timestamp in the scan. This means that
-        // any thread applying a txn log at the previous timestamp must have finished applying the log, so we can safely
-        // apply the log at the current timestamp.
-        // REVIEW: These loads could be relaxed, since a stale read could only result in premature abort of the scan.
+
+        // This thread must have observed both the pre- and post-apply
+        // watermarks to be equal to the previous timestamp in the scan in order
+        // to advance the pre-apply watermark to the current timestamp in the
+        // scan. This means that any thread applying a txn log at the previous
+        // timestamp must have finished applying the log, so we can safely apply
+        // the log at the current timestamp.
+        //
+        // REVIEW: These loads could be relaxed, since a stale read could only
+        // result in premature abort of the scan.
         if (s_last_applied_commit_ts_upper_bound != prev_ts || s_last_applied_commit_ts_lower_bound != prev_ts)
         {
             break;
@@ -2617,7 +2548,7 @@ void server::apply_txn_logs_to_shared_view()
             // this ts, we abort advancing it further.
             retail_assert(
                 s_last_applied_commit_ts_upper_bound > last_applied_commit_ts_upper_bound,
-                "The watermark must have advanced if advance_watermark failed!");
+                "The watermark must have advanced if advance_watermark() failed!");
 
             break;
         }
@@ -2770,7 +2701,7 @@ void server::update_txn_table_safe_truncation_point()
             // ahead of this ts, we abort advancing it further.
             retail_assert(
                 s_last_freed_commit_ts_lower_bound > last_freed_commit_ts_lower_bound,
-                "The watermark must have advanced if advance_watermark failed!");
+                "The watermark must have advanced if advance_watermark() failed!");
 
             break;
         }
@@ -2781,39 +2712,39 @@ void server::update_txn_table_safe_truncation_point()
     }
 }
 
-// This method allocates a new begin_ts and initializes its entry.
+// This method allocates a new begin_ts and initializes its entry in the txn
+// table.
 gaia_txn_id_t server::txn_begin()
 {
-    // Allocate a new begin timestamp.
-    gaia_txn_id_t begin_ts = allocate_txn_id();
+    // The newly allocated begin timestamp for the new txn.
+    gaia_txn_id_t begin_ts;
 
-    // The begin_ts entry must fit in 42 bits.
-    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
+    // NB: expected_entry is an inout argument holding the previous value on failure!
+    ts_entry_t expected_entry;
 
     // The begin_ts entry must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
     constexpr ts_entry_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
 
-    // We're possibly racing another beginning or committing txn that wants to
-    // invalidate our begin_ts entry.
-    ts_entry_t expected_entry = c_txn_entry_unknown;
-    bool has_set_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
-
-    // Only the txn thread can transition its begin_ts entry from
-    // c_txn_entry_unknown to any state except c_txn_entry_invalid.
-    if (!has_set_entry)
+    // Loop until we successfully install a newly allocated begin_ts in the txn
+    // table. (We're possibly racing another beginning or committing txn that
+    // could invalidate our begin_ts entry before we install it.)
+    //
+    // NB: we use compare_exchange_weak() since we need to retry anyway on
+    // concurrent invalidation, so tolerating spurious failures requires no
+    // additional logic.
+    do
     {
-        // NB: expected_entry is an inout argument holding the previous value on failure!
-        retail_assert(
-            expected_entry == c_txn_entry_invalid,
-            "Only an invalid value can be set on an empty begin_ts entry by another thread!");
+        // The txn table entry must be uninitialized (not invalidated).
+        expected_entry = c_txn_entry_unknown;
 
-        // Return c_invalid_gaia_txn_id to indicate failure. The caller can
-        // retry with a new timestamp.
-        // REVIEW: should we do this loop internally using compare_exchange_weak
-        // and allocate a new begin_ts on each retry?
-        begin_ts = c_invalid_gaia_txn_id;
-    }
+        // Allocate a new begin timestamp.
+        begin_ts = allocate_txn_id();
+
+        // The begin_ts entry must fit in 42 bits.
+        retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
+
+    } while (!s_txn_info[begin_ts].compare_exchange_weak(expected_entry, c_begin_ts_entry));
 
     return begin_ts;
 }

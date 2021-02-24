@@ -17,9 +17,6 @@
 
 #include "gaia_internal/db/db_types.hpp"
 
-using namespace gaia::common;
-using namespace gaia::db;
-
 namespace gaia
 {
 namespace db
@@ -32,14 +29,14 @@ struct trigger_event_t
     event_type_t event_type;
 
     // Can be 0 if event has no associated tables.
-    gaia_type_t gaia_type;
+    common::gaia_type_t gaia_type;
 
     // Can be 0 if if there is no associated row id.
-    gaia_id_t record;
+    common::gaia_id_t record;
 
-    field_position_list_t columns;
+    common::field_position_list_t columns;
 
-    trigger_event_t(event_type_t event_type, gaia_type_t gaia_type, gaia_id_t record, field_position_list_t columns)
+    trigger_event_t(event_type_t event_type, common::gaia_type_t gaia_type, common::gaia_id_t record, common::field_position_list_t columns)
         : event_type(event_type), gaia_type(gaia_type), record(record), columns(columns)
     {
     }
@@ -55,7 +52,7 @@ typedef void (*commit_trigger_fn)(gaia::db::gaia_txn_id_t, const trigger_event_l
 /**
  * Use this constant to specify that no fields are needed when generating trigger_event_t.
  */
-const field_position_list_t empty_position_list = {};
+const common::field_position_list_t empty_position_list = {};
 
 } // namespace triggers
 } // namespace db

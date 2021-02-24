@@ -32,7 +32,7 @@ using namespace rocksdb;
 string persistent_store_manager::s_data_dir_path{};
 
 persistent_store_manager::persistent_store_manager()
-    : m_counters(get_shared_counters()), m_locators(get_shared_locators())
+    : m_counters(get_counters()), m_locators(get_locators())
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;

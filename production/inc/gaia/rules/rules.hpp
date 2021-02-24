@@ -269,10 +269,10 @@ public:
 class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
+    // Table type not found.
+    explicit invalid_subscription(common::gaia_type_t gaia_type);
     // Invalid event type specified.
     invalid_subscription(db::triggers::event_type_t event_type, const char* reason);
-    // Table type not found.
-    invalid_subscription(common::gaia_type_t gaia_type);
     // Field not found.
     invalid_subscription(common::gaia_type_t gaia_type, const char* table, uint16_t position);
     // Field not active or has been deprecated
@@ -285,7 +285,7 @@ public:
 class ruleset_not_found : public gaia::common::gaia_exception
 {
 public:
-    ruleset_not_found(const char* ruleset_name);
+    explicit ruleset_not_found(const char* ruleset_name);
 };
 
 /**

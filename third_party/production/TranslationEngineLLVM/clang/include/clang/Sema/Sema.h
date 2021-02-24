@@ -4602,6 +4602,7 @@ public:
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,  bool isGaiaFieldTable);
   std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
+  std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
 
 private:
   QualType getFieldType (IdentifierInfo *id, SourceLocation loc) ;

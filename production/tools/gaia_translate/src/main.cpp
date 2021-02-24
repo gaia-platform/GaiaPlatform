@@ -12,6 +12,7 @@
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/Attr.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
@@ -33,6 +34,7 @@ using namespace clang::tooling;
 using namespace llvm;
 using namespace clang::ast_matchers;
 using namespace gaia;
+using namespace gaia::common;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 cl::opt<string> g_translation_engine_output_option(
@@ -42,24 +44,26 @@ std::string g_current_ruleset;
 bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
-bool g_delete_operation_in_rule = false;
 const int c_declaration_to_ruleset_offset = -2;
-bool g_function_call_in_rule = false;
 bool g_rule_context_rule_name_referenced = false;
-vector<SourceRange> g_gaia_id_call_locations;
+SourceRange g_rule_attribute_source_range;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
+unordered_set<string> g_insert_tables;
+unordered_set<string> g_update_tables;
 unordered_set<string> g_used_tables;
 
 unordered_set<string> g_used_dbs;
 unordered_map<string, string> g_table_db_data;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
+
 struct field_data_t
 {
+    bool is_deprecated;
     bool is_active;
-    int position;
+    field_position_t position;
 };
 unordered_map<string, unordered_map<string, field_data_t>> g_field_data;
 string g_current_ruleset_subscription;
@@ -87,10 +91,9 @@ struct navigation_code_data_t
 };
 
 // Suppress these clang-tidy warnings for now.
-const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
-const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-
-const char c_last_operation[] = "LastOperation";
+static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
+static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+static const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
@@ -111,15 +114,23 @@ string generate_general_subscription_code()
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
-            .append("    {\n")
-            .append("        ::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
-            .append("        return;\n")
-            .append("    }\n");
+            .append(c_ident)
+            .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append(c_ident)
+            .append("{\n")
+            .append(c_ident)
+            .append(c_ident)
+            .append("::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append(c_ident)
+            .append(c_ident)
+            .append("return;\n")
+            .append(c_ident)
+            .append("}\n");
     }
 
     return_value
-        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append(c_ident)
+        .append("throw ruleset_not_found(ruleset_name);\n")
         .append("}\n")
         .append("extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n")
         .append("{\n");
@@ -127,15 +138,23 @@ string generate_general_subscription_code()
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("    if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
-            .append("    {\n")
-            .append("        ::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
-            .append("        return;\n")
-            .append("    }\n");
+            .append(c_ident)
+            .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append(c_ident)
+            .append("{\n")
+            .append(c_ident)
+            .append(c_ident)
+            .append("::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append(c_ident)
+            .append(c_ident)
+            .append("return;\n")
+            .append(c_ident)
+            .append("}\n");
     }
 
     return_value
-        .append("    throw ruleset_not_found(ruleset_name);\n")
+        .append(c_ident)
+        .append("throw ruleset_not_found(ruleset_name);\n")
         .append("}\n")
         .append("extern \"C\" void initialize_rules()\n")
         .append("{\n");
@@ -143,7 +162,8 @@ string generate_general_subscription_code()
     for (const string& ruleset : g_rulesets)
     {
         return_value
-            .append("    ::" + ruleset)
+            .append(c_ident)
+            .append("::" + ruleset)
             .append("::subscribe_ruleset_" + ruleset + "();\n");
     }
     return_value
@@ -207,6 +227,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             field_data_t field_data;
             field_data.is_active = field.active();
             field_data.position = field.position();
+            field_data.is_deprecated = field.deprecated();
             fields[field.name()] = field_data;
             return_value[tbl.name()] = fields;
             fill_table_db_data(tbl);
@@ -262,6 +283,41 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
+bool parse_attribute(const string& attribute, string& table, string& field)
+{
+    if (g_field_data.empty())
+    {
+        g_field_data = get_table_data();
+    }
+
+    size_t dot_position = attribute.find('.');
+    // Handle fully qualified reference.
+    if (dot_position != string::npos)
+    {
+        table = attribute.substr(0, dot_position);
+        field = attribute.substr(dot_position + 1);
+        return true;
+    }
+
+    if (g_field_data.find(attribute) == g_field_data.end())
+    {
+        // Might be a field.
+        for (const auto& tbl : g_field_data)
+        {
+            if (tbl.second.find(attribute) != tbl.second.end())
+            {
+                table = tbl.first;
+                field = attribute;
+                return true;
+            }
+        }
+        return false;
+    }
+    table = attribute;
+    field.clear();
+    return true;
+}
+
 // This function adds a field to active fields list if it is marked as active in the catalog;
 // it returns true if there was no error and false otherwise.
 bool validate_and_add_active_field(const string& table_name, const string& field_name)
@@ -283,12 +339,6 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    if (field_name == c_last_operation)
-    {
-        g_active_fields[table_name].insert(c_last_operation);
-        return true;
-    }
-
     auto fields = g_field_data[table_name];
 
     if (fields.find(field_name) == fields.end())
@@ -298,11 +348,17 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    field_data_t field_data = fields[field_name];
-    if (field_data.is_active)
+    if (fields[field_name].is_deprecated)
     {
-        g_active_fields[table_name].insert(field_name);
+        cerr << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog." << endl;
+        g_generation_error = true;
+        return false;
     }
+
+    // TODO[GAIAPLAT-622] If we ever add a "strict" mode to the database, then we
+    // should reinstate checking for active fields.
+
+    g_active_fields[table_name].insert(field_name);
     return true;
 }
 
@@ -339,9 +395,9 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
     unordered_map<string, string> table_prev;
     unordered_map<string, navigation_data_t> table_navigation;
 
-    for (const auto& fd : g_field_data)
+    for (const auto& field_description : g_field_data)
     {
-        table_distance[fd.first] = INT_MAX;
+        table_distance[field_description.first] = INT_MAX;
     }
     table_distance[src] = 0;
 
@@ -416,40 +472,13 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
 navigation_code_data_t generate_navigation_code(const string& anchor_table)
 {
     navigation_code_data_t return_value;
-    // no need to generate navigation code for a rule with LastOperation DELETE
-    if (!g_delete_operation_in_rule)
-    {
-        return_value.prefix = "\nauto " + anchor_table
-            + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
-    }
+    return_value.prefix = "\nauto " + anchor_table
+        + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
 
     //single table used in the rule
     if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
     {
         return return_value;
-    }
-
-    if (g_delete_operation_in_rule)
-    {
-        g_generation_error = true;
-        cerr
-            << "Navigation from a record that has been deleted is currently not supported."
-            << " This condition occurs when a rule is subscribed to a delete operation"
-            << " and is referencing data related to the deleted record." << endl;
-        return navigation_code_data_t();
-    }
-
-    if (g_used_tables.empty())
-    {
-        g_generation_error = true;
-        cerr << "No tables are used in the rule." << endl;
-        return navigation_code_data_t();
-    }
-    if (g_used_tables.find(anchor_table) == g_used_tables.end())
-    {
-        g_generation_error = true;
-        cerr << "Table '" << anchor_table << "' is not used in the rule." << endl;
-        return navigation_code_data_t();
     }
 
     if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
@@ -648,201 +677,266 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return return_value;
 }
 
+void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count,
+    bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+{
+    string common_subscription_code;
+    if (g_field_data.find(table) == g_field_data.end())
+    {
+        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        g_generation_error = true;
+        return;
+    }
+    string rule_name
+        = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+    string rule_name_log = to_string(g_current_ruleset_rule_number);
+    rule_name_log.append("_").append(table);
+
+    string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
+
+    // Declare a constant for the line number of the rule if this is the first
+    // time we've seen this rule.  Note that we may see a rule multiple times if
+    // the rule has multiple anchor rows.
+    if (rule_line_var.empty())
+    {
+        rule_line_var = "c_rule_line_";
+        rule_line_var.append(to_string(g_current_ruleset_rule_number));
+        rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
+
+        common_subscription_code
+            .append(c_ident)
+            .append("const uint32_t ")
+            .append(rule_line_var)
+            .append(" = ")
+            .append(to_string(g_current_ruleset_rule_line_number))
+            .append(";\n");
+    }
+
+    common_subscription_code
+        .append(c_ident)
+        .append(c_nolint_identifier_naming)
+        .append("\n")
+        .append(c_ident)
+        .append("rule_binding_t ")
+        .append(rule_name)
+        .append("binding(\"")
+        .append(g_current_ruleset)
+        .append("\",\"")
+        .append(rule_name_log)
+        .append("\",")
+        .append(g_current_ruleset)
+        .append("::")
+        .append(rule_name)
+        .append(",")
+        .append(rule_line_var)
+        .append(");\n");
+
+    g_current_ruleset_subscription += common_subscription_code;
+    g_current_ruleset_unsubscription += common_subscription_code;
+
+    if (field_subscription_code.empty())
+    {
+        g_current_ruleset_subscription
+            .append(c_ident)
+            .append("subscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table);
+        if (subscribe_update)
+        {
+            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,");
+        }
+        else
+        {
+            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,");
+        }
+        g_current_ruleset_subscription
+            .append(rule_name)
+            .append("binding);\n");
+
+        g_current_ruleset_unsubscription
+            .append(c_ident)
+            .append("unsubscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append(rule_name)
+            .append("binding);\n");
+    }
+    else
+    {
+        g_current_ruleset_subscription
+            .append(field_subscription_code)
+            .append(c_ident)
+            .append("subscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_update, fields_")
+            .append(rule_name)
+            .append(",")
+            .append(rule_name)
+            .append("binding);\n");
+        g_current_ruleset_unsubscription
+            .append(field_subscription_code)
+            .append(c_ident)
+            .append("unsubscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_update, fields_")
+            .append(rule_name)
+            .append(",")
+            .append(rule_name)
+            .append("binding);\n");
+    }
+
+    navigation_code_data_t navigation_code = generate_navigation_code(table);
+    string function_prologue = "\n";
+    function_prologue
+        .append(c_nolint_identifier_naming)
+        .append("\nvoid ")
+        .append(rule_name)
+        .append("(const rule_context_t* context)\n");
+
+    if (g_rule_context_rule_name_referenced)
+    {
+        navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+    }
+    if (rule_count == 1)
+    {
+        if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
+        {
+            rewriter.ReplaceText(g_rule_attribute_source_range, function_prologue);
+        }
+        else
+        {
+            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
+        }
+        rewriter.InsertTextAfterToken(
+            g_current_rule_declaration->getLocation(),
+            navigation_code.prefix);
+        rewriter.InsertText(
+            g_current_rule_declaration->getEndLoc(),
+            navigation_code.postfix);
+    }
+    else
+    {
+        function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
+        if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
+        {
+            rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue);
+        }
+        else
+        {
+            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+        }
+    }
+}
+
 void generate_rules(Rewriter& rewriter)
 {
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
     }
-
     if (g_generation_error)
     {
         return;
     }
-
     if (g_current_rule_declaration == nullptr)
     {
         return;
     }
-    if (g_active_fields.empty())
+    if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
         cerr << "No active fields for the rule." << endl;
         g_generation_error = true;
         return;
     }
-
-    if (g_delete_operation_in_rule)
-    {
-        if (g_function_call_in_rule)
-        {
-            cerr
-                << "Calling extended data class methods of a record that has been deleted is currently not supported."
-                << " This condition occurs when a rule is subscribed to a delete operation"
-                << " and is referencing data related to the deleted record." << endl;
-            g_generation_error = true;
-            return;
-        }
-
-        for (const auto& location : g_gaia_id_call_locations)
-        {
-            rewriter.ReplaceText(location, "context->record");
-        }
-    }
-
     string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
     unordered_map<uint32_t, string> rule_line_numbers;
 
-    for (auto fd : g_active_fields)
+    // Optimize active fields by removing field subscriptions
+    // if entire table was subscribed in rule prolog.
+    for (const auto& table : g_update_tables)
+    {
+        g_active_fields.erase(table);
+    }
+
+    for (const auto& field_description : g_active_fields)
     {
         if (g_generation_error)
         {
             return;
         }
-        string table = fd.first;
-        bool contains_last_operation = false;
-        bool contains_fields = false;
-        string field_subscription_code;
-        string common_subscription_code;
-        if (g_field_data.find(table) == g_field_data.end())
-        {
-            cerr << "Table '" << table << "' was not found in the catalog." << endl;
-            g_generation_error = true;
-            return;
-        }
-        string rule_name
-            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-        string rule_name_log = to_string(g_current_ruleset_rule_number);
-        if (g_active_fields.size() > 1)
-        {
-            rule_name_log.append("_").append(table);
-        }
 
-        string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
+        string table = field_description.first;
 
-        // Declare a constant for the line number of the rule if this is the first
-        // time we've seen this rule.  Note that we may see a rule multiple times if
-        // the rule has multiple anchor rows.
-        if (rule_line_var.empty())
-        {
-            rule_line_var = "c_rule_line_";
-            rule_line_var.append(to_string(g_current_ruleset_rule_number));
-            rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
-
-            common_subscription_code
-                .append("    const uint32_t ")
-                .append(rule_line_var)
-                .append(" = ")
-                .append(to_string(g_current_ruleset_rule_line_number))
-                .append(";\n");
-        }
-
-        common_subscription_code
-            .append("    ")
-            .append(c_nolint_identifier_naming)
-            .append("\n")
-            .append("    rule_binding_t ")
-            .append(rule_name)
-            .append("binding(\"")
-            .append(g_current_ruleset)
-            .append("\",\"")
-            .append(rule_name_log)
-            .append("\",")
-            .append(g_current_ruleset)
-            .append("::")
-            .append(rule_name)
-            .append(",")
-            .append(rule_line_var)
-            .append(");\n");
-
-        field_subscription_code
-            .append("    ")
-            .append(c_nolint_identifier_naming)
-            .append("\n")
-            .append("    field_position_list_t fields_" + rule_name + ";\n");
-
-        if (fd.second.find(c_last_operation) != fd.second.end())
-        {
-            contains_last_operation = true;
-        }
-        else
-        {
-            auto fields = g_field_data[table];
-            contains_fields = !fd.second.empty();
-            for (const auto& field : fd.second)
-            {
-                if (fields.find(field) == fields.end())
-                {
-                    cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
-                    g_generation_error = true;
-                    return;
-                }
-
-                field_data_t field_data = fields[field];
-                if (field_data.is_active)
-                {
-                    field_subscription_code += "    fields_" + rule_name + ".push_back(" + to_string(field_data.position) + ");\n";
-                }
-            }
-        }
-
-        if (!contains_fields && !contains_last_operation)
+        if (field_description.second.empty())
         {
             cerr << "No fields referenced by table '" << table << "'." << endl;
             g_generation_error = true;
             return;
         }
 
-        g_current_ruleset_subscription += common_subscription_code;
-        g_current_ruleset_unsubscription += common_subscription_code;
+        string field_subscription_code;
+        string rule_name
+            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
 
-        if (g_delete_operation_in_rule && fd.second.size() > 1)
+        field_subscription_code
+            .append(c_ident)
+            .append(c_nolint_identifier_naming)
+            .append("\n")
+            .append(c_ident)
+            .append("field_position_list_t fields_")
+            .append(rule_name)
+            .append(";\n");
+
+        auto fields = g_field_data[table];
+
+        for (const auto& field : field_description.second)
         {
-            cerr << "Referencing fields of a record that has been deleted is currently not supported.";
-            cerr << " This condition occurs when a rule is subscribed to a delete operation and";
-            cerr << " is referencing data related to the deleted record.";
-            cerr << endl;
-            g_generation_error = true;
+            if (fields.find(field) == fields.end())
+            {
+                cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
+                g_generation_error = true;
+                return;
+            }
+            field_subscription_code
+                .append(c_ident)
+                .append("fields_")
+                .append(rule_name)
+                .append(".push_back(")
+                .append(to_string(fields[field].position))
+                .append(");\n");
+        }
+
+        generate_table_subscription(table, field_subscription_code, rule_code,
+            rule_count, true, rule_line_numbers, rewriter);
+        rule_count++;
+    }
+
+    for (const auto& table : g_update_tables)
+    {
+        if (g_generation_error)
+        {
             return;
         }
 
-        if (contains_fields)
-        {
-            g_current_ruleset_subscription
-                .append(field_subscription_code)
-                .append("    subscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_update, fields_")
-                .append(rule_name)
-                .append(",")
-                .append(rule_name)
-                .append("binding);\n");
-            g_current_ruleset_unsubscription
-                .append(field_subscription_code)
-                .append("    unsubscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_update, fields_")
-                .append(rule_name)
-                .append(",")
-                .append(rule_name)
-                .append("binding);\n");
-        }
+        generate_table_subscription(table, "", rule_code, rule_count, true, rule_line_numbers, rewriter);
 
-        if (contains_last_operation)
+        string rule_name
+            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+        // optimization to reuse the same rule function and rule_binding_t
+        // for the same table
+        if (g_insert_tables.find(table) != g_insert_tables.end())
         {
             g_current_ruleset_subscription
-                .append("    subscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n")
-                .append("    subscribe_rule(gaia::")
+                .append(c_ident)
+                .append("subscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
@@ -850,77 +944,30 @@ void generate_rules(Rewriter& rewriter)
                 .append(rule_name)
                 .append("binding);\n");
 
-            if (g_delete_operation_in_rule)
-            {
-                g_current_ruleset_subscription
-                    .append("    subscribe_rule(gaia::")
-                    .append(g_table_db_data[table])
-                    .append("::")
-                    .append(table)
-                    .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
-                    .append(rule_name)
-                    .append("binding);\n");
-            }
-
             g_current_ruleset_unsubscription
-                .append("    unsubscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n")
-                .append("    unsubscribe_rule(gaia::")
+                .append(c_ident)
+                .append("unsubscribe_rule(gaia::")
                 .append(g_table_db_data[table])
                 .append("::")
                 .append(table)
                 .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
                 .append(rule_name)
                 .append("binding);\n");
-            if (g_delete_operation_in_rule)
-            {
-                g_current_ruleset_unsubscription
-                    .append("    unsubscribe_rule(gaia::")
-                    .append(g_table_db_data[table])
-                    .append("::")
-                    .append(table)
-                    .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
-                    .append(rule_name)
-                    .append("binding);\n");
-            }
+
+            g_insert_tables.erase(table);
         }
 
-        g_current_ruleset_subscription.append("\n");
-        g_current_ruleset_unsubscription.append("\n");
+        rule_count++;
+    }
 
-        navigation_code_data_t navigation_code = generate_navigation_code(table);
-        string function_prologue = "\n";
-        function_prologue
-            .append(c_nolint_identifier_naming)
-            .append("\nvoid ")
-            .append(rule_name)
-            .append("(const rule_context_t* context)\n");
-
-        if (g_rule_context_rule_name_referenced)
+    for (const auto& table : g_insert_tables)
+    {
+        if (g_generation_error)
         {
-            navigation_code.prefix.insert(0, "const char* gaia_rule_name = \"" + rule_name_log + "\";\n");
-        }
-        if (rule_count == 1)
-        {
-            rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
-            rewriter.InsertTextAfterToken(
-                g_current_rule_declaration->getLocation(),
-                navigation_code.prefix);
-            rewriter.InsertText(
-                g_current_rule_declaration->getEndLoc(),
-                navigation_code.postfix);
-        }
-        else
-        {
-            function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
+            return;
         }
 
+        generate_table_subscription(table, "", rule_code, rule_count, false, rule_line_numbers, rewriter);
         rule_count++;
     }
 }
@@ -960,15 +1007,15 @@ public:
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
-                {
-                    return;
-                }
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+                if (!validate_and_add_active_field(table_name, field_name))
+                {
+                    return;
+                }
             }
         }
         else if (member_expression != nullptr)
@@ -990,6 +1037,18 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
+                    {
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table_name, field_name))
+                        {
+                            return;
+                        }
+                    }
                 }
                 else
                 {
@@ -997,9 +1056,10 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    if (!validate_and_add_active_field(table_name, field_name))
+                    if (declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>())
                     {
-                        return;
+                        g_update_tables.insert(table_name);
+                        g_insert_tables.insert(table_name);
                     }
                 }
             }
@@ -1177,20 +1237,8 @@ public:
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
 
-                    if (op->getOpcode() != BO_Assign)
-                    {
-                        if (!validate_and_add_active_field(table_name, field_name))
-                        {
-                            return;
-                        }
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row();return w." + field_name + ";}() ");
-                    }
-                    else
-                    {
-                        m_rewriter.InsertTextAfterToken(
-                            op->getEndLoc(), "; w.update_row();return w." + field_name + ";}()");
-                    }
+                    m_rewriter.InsertTextAfterToken(
+                        op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
                 }
                 else
                 {
@@ -1302,25 +1350,21 @@ public:
 
                     g_used_tables.insert(table_name);
                     g_used_dbs.insert(g_table_db_data[table_name]);
-                    if (!validate_and_add_active_field(table_name, field_name))
-                    {
-                        return;
-                    }
 
                     if (op->isPostfix())
                     {
                         if (op->isIncrementOp())
                         {
                             replace_string
-                                = "[&]() mutable {auto t="
-                                + table_name + "." + field_name + "();auto w = "
-                                + table_name + ".writer(); w." + field_name + "++; w.update_row();return t;}()";
+                                = "[&]() mutable {auto t = "
+                                + table_name + "." + field_name + "(); auto w = "
+                                + table_name + ".writer(); w." + field_name + "++; w.update_row(); return t;}()";
                         }
                         else if (op->isDecrementOp())
                         {
                             replace_string
-                                = "[&]() mutable {auto t=" + table_name + "." + field_name + "();auto w = "
-                                + table_name + ".writer(); w." + field_name + "--; w.update_row();return t;}()";
+                                = "[&]() mutable {auto t =" + table_name + "." + field_name + "(); auto w = "
+                                + table_name + ".writer(); w." + field_name + "--; w.update_row(); return t;}()";
                         }
                     }
                     else
@@ -1381,6 +1425,10 @@ public:
         }
 
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        const GaiaOnUpdateAttr* update_attribute = rule_declaration->getAttr<GaiaOnUpdateAttr>();
+        const GaiaOnInsertAttr* insert_attribute = rule_declaration->getAttr<GaiaOnInsertAttr>();
+        const GaiaOnChangeAttr* change_attribute = rule_declaration->getAttr<GaiaOnChangeAttr>();
+
         generate_rules(m_rewriter);
         if (g_generation_error)
         {
@@ -1397,11 +1445,70 @@ public:
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
         g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
         g_used_tables.clear();
+        g_insert_tables.clear();
+        g_update_tables.clear();
         g_active_fields.clear();
-        g_delete_operation_in_rule = false;
-        g_function_call_in_rule = false;
-        g_gaia_id_call_locations.clear();
+        g_rule_attribute_source_range = SourceRange();
         g_rule_context_rule_name_referenced = false;
+        if (update_attribute != nullptr)
+        {
+            g_rule_attribute_source_range = update_attribute->getRange();
+            for (const auto& table_iterator : update_attribute->tables())
+            {
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
+                {
+                    if (field.empty())
+                    {
+                        g_update_tables.insert(table);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table, field))
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (insert_attribute != nullptr)
+        {
+            g_rule_attribute_source_range = insert_attribute->getRange();
+            for (const auto& table_iterator : insert_attribute->tables())
+            {
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
+                {
+                    g_insert_tables.insert(table);
+                }
+            }
+        }
+
+        if (change_attribute != nullptr)
+        {
+            g_rule_attribute_source_range = change_attribute->getRange();
+            for (const auto& table_iterator : change_attribute->tables())
+            {
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
+                {
+                    g_insert_tables.insert(table);
+                    if (field.empty())
+                    {
+                        g_update_tables.insert(table);
+                    }
+                    else
+                    {
+                        if (!validate_and_add_active_field(table, field))
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 private:
@@ -1429,6 +1536,9 @@ public:
         g_current_rule_declaration = nullptr;
         g_used_tables.clear();
         g_active_fields.clear();
+        g_insert_tables.clear();
+        g_update_tables.clear();
+        g_rule_attribute_source_range = SourceRange();
 
         const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (ruleset_declaration != nullptr)
@@ -1579,115 +1689,6 @@ private:
     Rewriter& m_rewriter;
 };
 
-class last_operation_comparison_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        if (g_delete_operation_in_rule)
-        {
-            return;
-        }
-        const auto* op = result.Nodes.getNodeAs<BinaryOperator>("LastOperationComparison");
-        if (op != nullptr)
-        {
-            const auto* lhs = op->getLHS();
-            const auto* rhs = op->getRHS();
-            if (lhs != nullptr && rhs != nullptr)
-            {
-                const auto* lhs_expression = lhs;
-                const auto* rhs_expression = rhs;
-                if (dyn_cast<ImplicitCastExpr>(lhs) != nullptr)
-                {
-                    lhs_expression = dyn_cast<ImplicitCastExpr>(lhs)->getSubExpr();
-                }
-                if (dyn_cast<ImplicitCastExpr>(rhs) != nullptr)
-                {
-                    rhs_expression = dyn_cast<ImplicitCastExpr>(rhs)->getSubExpr();
-                }
-                bool lhs_has_delete = false;
-                bool rhs_has_delete = false;
-                if (dyn_cast<MemberExpr>(lhs_expression) == nullptr)
-                {
-                    if (dyn_cast<DeclRefExpr>(lhs_expression) != nullptr)
-                    {
-                        lhs_has_delete = dyn_cast<DeclRefExpr>(lhs_expression)->getDecl()->hasAttr<GaiaLastOperationDELETEAttr>();
-                    }
-                }
-                else if (dyn_cast<MemberExpr>(rhs_expression) == nullptr)
-                {
-                    if (dyn_cast<DeclRefExpr>(rhs_expression) != nullptr)
-                    {
-                        rhs_has_delete = dyn_cast<DeclRefExpr>(rhs_expression)->getDecl()->hasAttr<GaiaLastOperationDELETEAttr>();
-                    }
-                }
-                if (op->getOpcode() == BO_EQ)
-                {
-                    if (lhs_has_delete || rhs_has_delete)
-                    {
-                        g_delete_operation_in_rule = true;
-                    }
-                }
-                else if (op->getOpcode() == BO_NE)
-                {
-                    if (!lhs_has_delete && !rhs_has_delete)
-                    {
-                        g_delete_operation_in_rule = true;
-                    }
-                }
-            }
-        }
-    }
-};
-
-class last_operation_switch_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    void run(const MatchFinder::MatchResult&) override
-    {
-        g_delete_operation_in_rule = true;
-    }
-};
-
-class last_operation_if_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    void run(const MatchFinder::MatchResult&) override
-    {
-        g_delete_operation_in_rule = true;
-    }
-};
-
-class function_call_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    void run(const MatchFinder::MatchResult&) override
-    {
-        g_function_call_in_rule = true;
-    }
-};
-
-class gaia_id_call_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        if (g_generation_error)
-        {
-            return;
-        }
-        const auto* exp = result.Nodes.getNodeAs<CXXMemberCallExpr>("gaia_id_call");
-        if (exp != nullptr)
-        {
-            g_gaia_id_call_locations.emplace_back(SourceRange(exp->getBeginLoc(), exp->getEndLoc()));
-        }
-    }
-};
-
 class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
@@ -1805,63 +1806,12 @@ public:
 
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
-            = functionDecl(allOf(hasAncestor(ruleset_matcher), hasAttr(attr::Rule))).bind("ruleDecl");
+            = functionDecl(allOf(
+                               hasAncestor(ruleset_matcher),
+                               hasAttr(attr::Rule)))
+                  .bind("ruleDecl");
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
-        StatementMatcher gaia_id_call_matcher
-            = cxxMemberCallExpr(
-                  on(declRefExpr(
-                      to(varDecl(
-                          hasAttr(attr::FieldTable))))),
-                  callee(cxxMethodDecl(hasName("gaia_id"))))
-                  .bind("gaia_id_call");
-        StatementMatcher function_call_matcher
-            = cxxMemberCallExpr(
-                  on(declRefExpr(
-                      to(varDecl(
-                          hasAttr(attr::FieldTable))))),
-                  callee(cxxMethodDecl(hasName("delete_row"))))
-                  .bind("delete_row_call");
 
-        StatementMatcher last_operation_switch_matcher
-            = switchStmt(allOf(
-                             hasCondition(expr(ignoringParenImpCasts(memberExpr(
-                                 hasDescendant(declRefExpr(to(varDecl(
-                                     hasAttr(attr::GaiaLastOperation))))))))),
-                             forEachSwitchCase(anyOf(
-                                 defaultStmt(),
-                                 caseStmt(has(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                                     hasAttr(attr::GaiaLastOperationDELETE)))))))))))
-                  .bind("LastOperationSwitch");
-        StatementMatcher last_operation_comparison_matcher
-            = binaryOperator(allOf(
-                                 anyOf(hasOperatorName("=="), hasOperatorName("!=")),
-                                 anyOf(
-                                     allOf(
-                                         hasLHS(ignoringParenImpCasts(memberExpr(
-                                             hasDescendant(declRefExpr(to(varDecl(
-                                                 hasAttr(attr::GaiaLastOperation)))))))),
-                                         hasRHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                                             anyOf(
-                                                 hasAttr(attr::GaiaLastOperationUPDATE),
-                                                 hasAttr(attr::GaiaLastOperationINSERT),
-                                                 hasAttr(attr::GaiaLastOperationDELETE),
-                                                 hasAttr(attr::GaiaLastOperationNONE)))))))),
-                                     allOf(
-                                         hasRHS(ignoringParenImpCasts(memberExpr(
-                                             hasDescendant(declRefExpr(to(varDecl(
-                                                 hasAttr(attr::GaiaLastOperation)))))))),
-                                         hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                                             anyOf(
-                                                 hasAttr(attr::GaiaLastOperationUPDATE),
-                                                 hasAttr(attr::GaiaLastOperationINSERT),
-                                                 hasAttr(attr::GaiaLastOperationDELETE),
-                                                 hasAttr(attr::GaiaLastOperationNONE)))))))))))
-                  .bind("LastOperationComparison");
-        StatementMatcher last_operation_if_statement_matcher
-            = ifStmt(allOf(
-                         hasCondition(last_operation_comparison_matcher),
-                         hasElse(unless(ifStmt(hasCondition(last_operation_comparison_matcher))))))
-                  .bind("ifLastOperation");
         StatementMatcher field_get_matcher
             = declRefExpr(to(varDecl(
                               anyOf(
@@ -1917,9 +1867,6 @@ public:
         StatementMatcher none_matcher
             = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
-        m_matcher.addMatcher(last_operation_if_statement_matcher, &m_last_operation_if_handler);
-        m_matcher.addMatcher(last_operation_comparison_matcher, &m_last_operation_comparison_handler);
-        m_matcher.addMatcher(last_operation_switch_matcher, &m_last_operation_switch_handler);
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -1937,8 +1884,6 @@ public:
         m_matcher.addMatcher(delete_matcher, &m_delete_match_handler);
         m_matcher.addMatcher(none_matcher, &m_none_match_handler);
 
-        m_matcher.addMatcher(function_call_matcher, &m_delete_row_function_call_handler);
-        m_matcher.addMatcher(gaia_id_call_matcher, &m_gaia_id_call_handler);
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
         m_matcher.addMatcher(ruleset_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
@@ -1962,11 +1907,6 @@ private:
     insert_match_handler_t m_insert_match_handler;
     delete_match_handler_t m_delete_match_handler;
     none_match_handler_t m_none_match_handler;
-    last_operation_comparison_handler_t m_last_operation_comparison_handler;
-    last_operation_switch_handler_t m_last_operation_switch_handler;
-    last_operation_if_handler_t m_last_operation_if_handler;
-    function_call_handler_t m_delete_row_function_call_handler;
-    gaia_id_call_handler_t m_gaia_id_call_handler;
     variable_declaration_match_handler_t m_variable_declaration_match_handler;
     rule_context_rule_match_handler_t m_rule_context_match_handler;
 };

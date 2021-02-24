@@ -9520,4 +9520,6 @@ def warn_table_referenced_not_in_table_attribute : Warning<
     "Table '%0' is not referenced in table attribute.">;
 def err_invalid_rule_context_internal_error : Error<
     "Internal error while generating 'rule_context'.">;
+def err_invalid_rule_attribute : Error<
+    "Invalid Gaia rule attribute.">;
 } // end of sema component.

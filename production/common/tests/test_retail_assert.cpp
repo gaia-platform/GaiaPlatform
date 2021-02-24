@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
-
 #include "gtest/gtest.h"
 
 #include "gaia_internal/common/retail_assert.hpp"

@@ -14,6 +14,9 @@
 #include "cpptoml.h"
 #include "db_server.hpp"
 
+using namespace gaia::common;
+using namespace gaia::db;
+
 static void usage()
 {
     std::cerr
