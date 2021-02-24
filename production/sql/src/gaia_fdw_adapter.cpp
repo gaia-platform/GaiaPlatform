@@ -525,6 +525,14 @@ bool adapter_t::get_ids(
     return true;
 }
 
+template <class T_state>
+T_state* adapter_t::get_state(const char* table_name, size_t expected_field_count)
+{
+    static_assert(std::is_base_of<state_t, T_state>::value);
+    auto* state = reinterpret_cast<T_state*>(palloc0(sizeof(T_state)));
+    return state->initialize(table_name, expected_field_count) ? state : nullptr;
+}
+
 bool state_t::initialize(const char* table_name, size_t expected_field_count)
 {
     try

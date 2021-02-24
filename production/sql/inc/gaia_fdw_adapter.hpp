@@ -92,13 +92,8 @@ public:
         gaia::common::gaia_id_t& table_id,
         gaia::common::gaia_type_t& container_id);
 
-    template <class S>
-    static S* get_state(const char* table_name, size_t expected_field_count)
-    {
-        S* state = (S*)palloc0(sizeof(S));
-
-        return state->initialize(table_name, expected_field_count) ? state : nullptr;
-    }
+    template <class T_state>
+    static T_state* get_state(const char* table_name, size_t expected_field_count);
 
 protected:
     static void initialize_caches();
