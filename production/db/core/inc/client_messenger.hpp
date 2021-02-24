@@ -24,9 +24,9 @@ namespace db
 // The receive_server_reply() method is used in scenarios where additional server
 // replies need to be processed ("bulk fd retrieval mode").
 //
-// The fds returned by the server, if any, are surfaced through get_count_received_fds() and get_received_fd().
+// The fds returned by the server, if any, are surfaced through count_received_fds() and received_fd().
 //
-// The server reply is surfaced through get_server_reply().
+// The server reply is surfaced through server_reply().
 class client_messenger_t
 {
 public:
@@ -50,16 +50,17 @@ public:
         size_t expected_count_received_fds = 0);
 
     void receive_server_reply(
-        size_t expected_count_received_fds = common::c_max_fd_count);
+        size_t expected_count_received_fds = common::c_max_fd_count,
+        bool is_in_bulk_fd_retrieval_mode = true);
 
-    size_t get_count_received_fds()
+    size_t count_received_fds()
     {
         return m_count_received_fds;
     }
 
-    int get_received_fd(size_t index_fd);
+    int received_fd(size_t index_fd);
 
-    inline const messages::server_reply_t* get_server_reply()
+    inline const messages::server_reply_t* server_reply()
     {
         return m_server_reply;
     }

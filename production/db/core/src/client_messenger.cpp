@@ -35,19 +35,17 @@ void client_messenger_t::send_and_receive(
         builder.GetSize());
 
     // Receive server reply,
-    receive_server_reply(expected_count_received_fds);
+    bool is_in_bulk_fd_retrieval_mode = false;
+    receive_server_reply(expected_count_received_fds, is_in_bulk_fd_retrieval_mode);
 
     // Deserialize the server message.
     deserialize_server_message();
 }
 
 void client_messenger_t::receive_server_reply(
-    size_t expected_count_received_fds)
+    size_t expected_count_received_fds,
+    bool is_in_bulk_fd_retrieval_mode)
 {
-    // Special scenario when we're expecting a bunch of fds.
-    // This is how we're called for retrieving log fds.
-    bool is_in_bulk_fd_retrieval_mode = (expected_count_received_fds == common::c_max_fd_count);
-
     // Clear information that we may have read in previous calls.
     clear();
 
@@ -103,7 +101,7 @@ void client_messenger_t::clear()
     m_server_reply = nullptr;
 }
 
-int client_messenger_t::get_received_fd(size_t index_fd)
+int client_messenger_t::received_fd(size_t index_fd)
 {
     retail_assert(
         index_fd < m_count_received_fds,

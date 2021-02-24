@@ -62,12 +62,12 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     client_messenger_t client_messenger;
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
 
-    int stream_socket = client_messenger.get_received_fd(client_messenger_t::c_index_stream_socket);
+    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
 
-    const session_event_t event = client_messenger.get_server_reply()->event();
+    const session_event_t event = client_messenger.server_reply()->event();
     retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
@@ -321,10 +321,10 @@ void client::begin_session()
     client_messenger_t client_messenger;
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
-    int fd_locators = client_messenger.get_received_fd(client_messenger_t::c_index_locators);
-    int fd_counters = client_messenger.get_received_fd(client_messenger_t::c_index_counters);
-    int fd_data = client_messenger.get_received_fd(client_messenger_t::c_index_data);
-    int fd_id_index = client_messenger.get_received_fd(client_messenger_t::c_index_id_index);
+    int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
+    int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
+    int fd_data = client_messenger.received_fd(client_messenger_t::c_index_data);
+    int fd_id_index = client_messenger.received_fd(client_messenger_t::c_index_id_index);
 
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
@@ -339,7 +339,7 @@ void client::begin_session()
         close_fd(fd_id_index);
     });
 
-    session_event_t event = client_messenger.get_server_reply()->event();
+    session_event_t event = client_messenger.server_reply()->event();
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
@@ -388,7 +388,7 @@ void client::begin_transaction()
     retail_assert(bytes_read > 0, c_message_failed_to_read_message);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
-    const transaction_info_t* txn_info = client_messenger.get_server_reply()->data_as_transaction_info();
+    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
@@ -517,11 +517,11 @@ void client::commit_transaction()
     client_messenger.send_and_receive(s_session_socket, &fd_log, 1, builder);
 
     // Extract the commit decision from the server's reply and return it.
-    session_event_t event = client_messenger.get_server_reply()->event();
+    session_event_t event = client_messenger.server_reply()->event();
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         c_message_unexpected_event_received);
-    const transaction_info_t* txn_info = client_messenger.get_server_reply()->data_as_transaction_info();
+    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
@@ -553,7 +553,7 @@ address_offset_t client::request_memory(size_t object_size)
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     const memory_allocation_info_t* allocation_info
-        = client_messenger.get_server_reply()->data_as_memory_allocation_info();
+        = client_messenger.server_reply()->data_as_memory_allocation_info();
 
     // Obtain allocated offset from the server.
     const address_offset_t object_address_offset = allocation_info->allocation_offset();
