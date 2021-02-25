@@ -16,32 +16,38 @@ if(EXECUTE_FDW_TESTS)
   find_program(PG_CLIENT psql)
 
   if(BASH_PROGRAM AND PG_CLIENT)
-    # Generate the command line for the test script.
-    # It needs the paths from the build environment.
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_airport_command.txt
+    # Setup the DDL files for each test.
+    #
+    # The test.ddl file can be used for setting up any generic test.
+    # The airport.ddl file is meant for operating with airport data specifically.
+    file(COPY ${PROJECT_SOURCE_DIR}/test.ddl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(COPY ${PROJECT_SOURCE_DIR}/airport.ddl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+    # Generate the command line for the test scripts.
+    # They need the paths from the build environment.
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_array_command.txt
       ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test.sh " "
+        ${PG_CLIENT} " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/setup_array.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_array.sql " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected_array.txt)
+
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_airport_command.txt
+      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sh " "
         ${GAIA_REPO}/data/internal/airport " "
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/setup_airport.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/expected_airport.txt)
 
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_array_command.txt
-      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test.sh " "
-        ${GAIA_REPO}/data/internal/airport " "
-        ${PG_CLIENT} " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/setup_array.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_array.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected_array.txt)
-
-    set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
-
-    file(COPY "${AIRPORT_DDL}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
-    # Add a test to execute our test script.
+    # Add tests to execute our test scripts.
     # We use the test infrastructure to execute the script
     # because we can leverage its ability to start the Gaia server.
     add_gtest(test_fdw test_fdw.cpp
+      "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
+      "gaia_db_client;gaia_catalog;gaia_db_catalog_test")
+
+    add_gtest(test_fdw_airport test_fdw_airport.cpp
       "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
       "gaia_db_client;gaia_catalog;gaia_db_catalog_test")
   endif()
