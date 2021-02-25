@@ -40,14 +40,10 @@ if(EXECUTE_FDW_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/expected_airport.txt)
 
-    # Add tests to execute our test scripts.
+    # Add a test to execute our test scripts.
     # We use the test infrastructure to execute the script
     # because we can leverage its ability to start the Gaia server.
     add_gtest(test_fdw test_fdw.cpp
-      "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
-      "gaia_db_client;gaia_catalog;gaia_db_catalog_test")
-
-    add_gtest(test_fdw_airport test_fdw_airport.cpp
       "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
       "gaia_db_client;gaia_catalog;gaia_db_catalog_test")
   endif()
