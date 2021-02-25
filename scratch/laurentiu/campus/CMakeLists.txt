@@ -11,58 +11,40 @@ project(campus)
 set(CMAKE_CXX_STANDARD 17)
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GAIA_LINK_FLAGS "-ggdb")
 
 set(GAIA "/opt/gaia")
 set(LOCAL "/usr/local")
 
+include(${GAIA}/cmake/gaia.cmake)
+
 set(GAIA_INC "${GAIA}/include")
-set(GAIAC "${GAIA}/bin/gaiac")
-set(GAIAT "${GAIA}/bin/gaiat")
 
 set(CAMPUS_DDL ${PROJECT_SOURCE_DIR}/campus.ddl)
 set(CAMPUS_RULESET ${PROJECT_SOURCE_DIR}/campus.ruleset)
 
-add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/gaia_campus.h
-  COMMAND ${GAIAC}
-    -o ${PROJECT_BINARY_DIR}
-    -g ${CAMPUS_DDL}
-  DEPENDS ${CAMPUS_DDL}
-  COMMENT "Processed campus.ddl."
-)
+# --- Generate EDC from DDL---
+process_schema(
+  DDL_FILE ${CAMPUS_DDL}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
 
-add_custom_target(process_campus_ddl ALL
-  DEPENDS ${PROJECT_BINARY_DIR}/gaia_campus.h
-)
-
-add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/campus_rules.cpp
-  COMMAND ${GAIAT}
-    ${CAMPUS_RULESET}
-    -output ${PROJECT_BINARY_DIR}/campus_rules.cpp
-    --
-    -I /usr/lib/clang/8/include/
-    -I ${GAIA_INC}
-    -I ${PROJECT_BINARY_DIR}
-  DEPENDS ${CAMPUS_RULESET}
-  COMMENT "Processed campus.ruleset."
-)
-
-add_custom_target(process_campus_ruleset ALL
-  DEPENDS process_campus_ddl
-  DEPENDS ${PROJECT_BINARY_DIR}/campus_rules.cpp
-)
+# -- Translate ruleset into CPP --
+translate_ruleset(
+  RULESET_FILE ${CAMPUS_RULESET}
+  OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
+  DEPENDS generate_campus_headers)
 
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${LOCAL}/lib/libgaia.so)
 
 add_executable(campus
   campus.cpp
-  ${PROJECT_BINARY_DIR}/campus_rules.cpp
+  ${PROJECT_BINARY_DIR}/campus_ruleset.cpp
 )
 
-add_dependencies(campus process_campus_ruleset)
+add_dependencies(campus translate_campus_ruleset)
 set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(campus PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_include_directories(campus PRIVATE ${GAIA_INC})
 target_include_directories(campus PRIVATE ${PROJECT_BINARY_DIR})
 target_link_libraries(campus PRIVATE rt pthread gaia)
