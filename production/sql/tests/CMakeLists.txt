@@ -17,28 +17,25 @@ if(EXECUTE_FDW_TESTS)
 
   if(BASH_PROGRAM AND PG_CLIENT)
     # Setup the DDL files for each test.
-    #
-    # The test.ddl file can be used for setting up any generic test.
-    # The airport.ddl file is meant for operating with airport data specifically.
-    file(COPY ${PROJECT_SOURCE_DIR}/test.ddl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(COPY ${PROJECT_SOURCE_DIR}/test_array.ddl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
     file(COPY ${PROJECT_SOURCE_DIR}/airport.ddl DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
     # Generate the command line for the test scripts.
     # They need the paths from the build environment.
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_array_command.txt
-      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test.sh " "
+      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test_fdw.sh " "
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/setup_array.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/test_array.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/expected_array.txt)
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fdw_test_airport_command.txt
-      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sh " "
-        ${GAIA_REPO}/data/internal/airport " "
+      ${BASH_PROGRAM} " " ${CMAKE_CURRENT_SOURCE_DIR}/test_fdw.sh " "
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/setup_airport.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/test_airport.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected_airport.txt)
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected_airport.txt " "
+        ${GAIA_REPO}/data/internal/airport)
 
     # Add a test to execute our test scripts.
     # We use the test infrastructure to execute the script

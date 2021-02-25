@@ -8,10 +8,11 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-PG_CLIENT="$1"
-SETUP_SCRIPT="$2"
-TEST_SCRIPT="$3"
-EXPECTED_FILE="$4"
+PG_CLIENT=$1
+SETUP_SCRIPT=$2
+TEST_SCRIPT=$3
+EXPECTED_FILE=$4
+DATA_DIR=${5:-}
 
 # export PGHOST=${PGHOST-localhost}
 # export PGPORT=${PGPORT-5432}
@@ -19,8 +20,22 @@ EXPECTED_FILE="$4"
 export PGUSER=${PGUSER-postgres}
 # export PGPASSWORD=
 
-# Set up database tables and import airport data.
-"$PG_CLIENT" -f "$SETUP_SCRIPT"
+if [ "$#" == "4" ]; then
+    # Set up database tables.
+    "$PG_CLIENT" -f "$SETUP_SCRIPT"
+else
+    # Unzip data files to a folder under /tmp.
+    TMP_DIR=$(mktemp -d -t fdw-test-data-XXXXXXXXXX)
+    chmod 755 "$TMP_DIR"
+    pushd "$DATA_DIR"
+    for f in *gz; do
+        gzip -dkc < $f > "$TMP_DIR/${f%%.gz}"
+    done
+    popd
+
+    # Set up database tables and import data.
+    "$PG_CLIENT" --set=data_dir="$TMP_DIR" -f "$SETUP_SCRIPT"
+fi
 
 # Execute test queries.
 OUTPUT=$("$PG_CLIENT" -A -F , -X -t -f "$TEST_SCRIPT")

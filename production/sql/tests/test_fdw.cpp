@@ -42,7 +42,7 @@ void verify_command_output(string command_filename)
 
 TEST_F(fdw_test, array)
 {
-    load_schema("test.ddl");
+    load_schema("test_array.ddl");
     verify_command_output("fdw_test_array_command.txt");
 }
 
