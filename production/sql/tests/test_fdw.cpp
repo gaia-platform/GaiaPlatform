@@ -42,12 +42,12 @@ void verify_command_output(string command_filename)
 
 TEST_F(fdw_test, array)
 {
-    load_schema("test_array.ddl");
+    load_schema("array_schema.ddl");
     verify_command_output("fdw_test_array_command.txt");
 }
 
 TEST_F(fdw_test, airport)
 {
-    load_schema("airport.ddl");
+    load_schema("airport_schema.ddl");
     verify_command_output("fdw_test_airport_command.txt");
 }
