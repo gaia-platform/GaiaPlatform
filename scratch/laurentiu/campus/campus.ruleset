@@ -18,52 +18,50 @@ ruleset campus_ruleset
     // If no matches were found, insert a new row for the person.
     // If a match is found and the person was marked for an alert,
     // then issue an alert along with the alert information for that person.
+    OnInsert(face_scanning)
     {
-        if (face_scanning.LastOperation == INSERT)
+        string face_scan = face_scanning.face_signature;
+
+        bool found_match = false;
+        for (auto& person : persons_t::list())
         {
-            string face_scan = face_scanning.face_signature;
-
-            bool found_match = false;
-            for (auto& person : persons_t::list())
+            if (face_scan.compare(person.face_signature()) == 0)
             {
-                if (face_scan.compare(person.face_signature()) == 0)
-                {
-                    found_match = true;
-
-                    cout
-                        << endl << "Found match for face signature '" << face_scan << "'!"
-                        << endl << "Person matched: ";
-                    if (strlen(person.first_name()) == 0 && strlen(person.last_name()) == 0)
-                    {
-                        cout << "Previously seen unknown person.";
-                    }
-                    else
-                    {
-                        cout << person.first_name() << " " << person.last_name() << ".";
-                    }
-                    cout << endl;
-
-                    if (person.alert_on_sight())
-                    {
-                        cout
-                            << endl << "ALERT! ALERT! ALERT!"
-                            << endl << "This person was flagged as: '" << person.alert_description() << "'"
-                            << endl;
-                    }
-
-                    break;
-                }
-            }
-
-            if (!found_match)
-            {
-                persons_t::insert_row("", "", "", "", face_scan.c_str(), false, "");
+                found_match = true;
 
                 cout
-                    << endl << "Failed to find a match for face signature '" << face_scan << "'!"
-                    << endl << "Inserted a new database record for this unknown person."
-                    << endl;
+                    << endl << "Found match for face signature '" << face_scan << "'!"
+                    << endl << "Person matched: ";
+                if (strlen(person.first_name()) == 0 && strlen(person.last_name()) == 0)
+                {
+                    cout << "Previously seen unknown person.";
+                }
+                else
+                {
+                    cout << person.first_name() << " " << person.last_name() << ".";
+                }
+                cout << endl;
+
+                if (person.alert_on_sight())
+                {
+                    cout
+                        << endl << "ALERT! ALERT! ALERT!"
+                        << endl << "This person was flagged as: '" << person.alert_description() << "'"
+                        << endl;
+                }
+
+                break;
             }
+        }
+
+        if (!found_match)
+        {
+            persons_t::insert_row("", "", "", "", face_scan.c_str(), false, "");
+
+            cout
+                << endl << "Failed to find a match for face signature '" << face_scan << "'!"
+                << endl << "Inserted a new database record for this unknown person."
+                << endl;
         }
     }
 }
