@@ -1,5 +1,5 @@
 gaia_hello.h
-hello_generated.h
 hello
-logs/
+hello_generated.h
 hello_ruleset.cpp
+logs/
