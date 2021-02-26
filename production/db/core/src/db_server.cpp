@@ -75,6 +75,84 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 
+server::safe_fd_from_ts::safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd)
+    : m_auto_close_fd(auto_close_fd)
+{
+    common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
+    // If the log fd was invalidated, it is either closed or soon will
+    // be closed, and therefore we cannot use it. We return early if the
+    // fd has already been invalidated to avoid the dup(2) call.
+    int log_fd = get_txn_log_fd(commit_ts);
+    if (log_fd == -1)
+    {
+        throw invalid_log_fd(commit_ts);
+    }
+
+    // To avoid races from the log fd being closed out from under us by a
+    // concurrent updater, we first dup(2) the fd, and then if the dup was
+    // successful, test the log fd entry again to ensure we aren't reusing a
+    // closed log fd. If the log fd was invalidated, then we need to close our
+    // dup fd and return false.
+    try
+    {
+        m_local_log_fd = common::duplicate_fd(log_fd);
+    }
+    catch (const common::system_error& e)
+    {
+        // The log fd was already closed by another thread (after being
+        // invalidated).
+        // NB: This does not handle the case of the log fd being closed and then
+        // reused before our dup(2) call. That case is handled below, where we
+        // check for invalidation.
+        if (e.get_errno() == EBADF)
+        {
+            // The log fd must have been invalidated before it was closed.
+            common::retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
+            // We lost the race because the log fd was invalidated and closed after our check.
+            throw invalid_log_fd(commit_ts);
+        }
+        else
+        {
+            throw;
+        }
+    }
+
+    // If we were able to duplicate the log fd, check to be sure it
+    // wasn't invalidated (and thus possibly closed and reused before
+    // the call to dup(2)), so we know we aren't reusing a closed fd.
+    if (get_txn_log_fd(commit_ts) == -1)
+    {
+        // If we got here, we must have a valid dup fd.
+        common::retail_assert(
+            common::is_fd_valid(m_local_log_fd),
+            "fd should be valid if dup() succeeded!");
+        // We need to close the duplicated fd since the original fd
+        // might have been reused and we would leak it otherwise
+        // (because the destructor isn't called if the constructor
+        // throws).
+        common::close_fd(m_local_log_fd);
+        throw invalid_log_fd(commit_ts);
+    }
+}
+
+server::safe_fd_from_ts::~safe_fd_from_ts()
+{
+    // Ensure we close the dup log fd. If the original log fd was closed
+    // already (indicated by get_txn_log_fd() returning -1), this will free
+    // the shared-memory object referenced by the fd.
+    if (m_auto_close_fd)
+    {
+        // If the constructor fails, this will handle an invalid fd (-1)
+        // correctly.
+        common::close_fd(m_local_log_fd);
+    }
+}
+
+int server::safe_fd_from_ts::get_fd() const
+{
+    return m_local_log_fd;
+}
+
 address_offset_t server::allocate_from_memory_manager(
     size_t memory_request_size_bytes)
 {

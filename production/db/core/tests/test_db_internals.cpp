@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "db_internal_types.hpp"
+#include "mapped_data.hpp"
 
 using namespace gaia::db;
 

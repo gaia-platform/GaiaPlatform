@@ -60,11 +60,15 @@ gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
 // This will map 0 to 0 and acts as a pseudorandom permutation on all other integer values.
 static inline uint64_t mix_bits(uint64_t x)
 {
-    x ^= x >> 33ULL;
-    x *= 0XFF51AFD7ED558CCDULL;
-    x ^= x >> 33ULL;
-    x *= 0XC4CEB9FE1A85EC53ULL;
-    x ^= x >> 33ULL;
+    static const uint64_t c_rotation_factor = 33ULL;
+    static const uint64_t c_first_multiplication_factor = 0XFF51AFD7ED558CCDULL;
+    static const uint64_t c_second_multiplication_factor = 0XC4CEB9FE1A85EC53ULL;
+
+    x ^= x >> c_rotation_factor;
+    x *= c_first_multiplication_factor;
+    x ^= x >> c_rotation_factor;
+    x *= c_second_multiplication_factor;
+    x ^= x >> c_rotation_factor;
     return x;
 }
 

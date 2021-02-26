@@ -78,6 +78,7 @@ add_library(gaia_db_client STATIC
   src/gaia_ptr.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
+  src/mapped_data.cpp
   src/db_client.cpp
   src/db_shared_data_client.cpp
   src/type_metadata.cpp
@@ -113,6 +114,7 @@ set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_DB_SERVER_SOURCES
+  src/mapped_data.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
