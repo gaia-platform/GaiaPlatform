@@ -1,4 +1,4 @@
-You are now connected to database "airport" as user "postgres".
+You are now connected to database "test_array" as user "postgres".
 INSERT 0 1
 INSERT 0 1
 Jane Doe,{1000,2000,3000,4000,5000,6000}

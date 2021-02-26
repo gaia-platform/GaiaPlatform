@@ -42,9 +42,3 @@ create table if not exists routes
     gaia_src_id references airports,
     gaia_dst_id references airports
 );
-
-create table if not exists passengers
-(
-    name string,
-    miles_flown_by_quarter int32[]
-);
