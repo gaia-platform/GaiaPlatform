@@ -18,13 +18,13 @@ namespace gaia
 namespace db
 {
 
-class gaia_ptr
+class gaia_ptr_t
 {
 public:
-    gaia_ptr() = default;
-    explicit gaia_ptr(common::gaia_id_t id);
+    gaia_ptr_t() = default;
+    explicit gaia_ptr_t(common::gaia_id_t id);
 
-    bool operator==(const gaia_ptr& other) const
+    bool operator==(const gaia_ptr_t& other) const
     {
         return m_locator == other.m_locator;
     }
@@ -46,12 +46,12 @@ public:
 
     static common::gaia_id_t generate_id();
 
-    static gaia_ptr create(
+    static gaia_ptr_t create(
         common::gaia_type_t type,
         size_t data_size,
         const void* data);
 
-    static gaia_ptr create(
+    static gaia_ptr_t create(
         common::gaia_id_t id,
         common::gaia_type_t type,
         size_t data_size,
@@ -59,29 +59,29 @@ public:
 
     // TODO This should be private but it is still used in some code paths
     //  that could be painful to update.
-    static gaia_ptr create(
+    static gaia_ptr_t create(
         common::gaia_id_t id,
         common::gaia_type_t type,
         size_t num_refs,
         size_t data_size,
         const void* data);
 
-    static gaia_ptr open(
+    static gaia_ptr_t open(
         common::gaia_id_t id)
     {
-        return gaia_ptr(id);
+        return gaia_ptr_t(id);
     }
 
     // TODO this should either accept a gaia_id_t or be an instance method.
-    static void remove(gaia_ptr& node);
+    static void remove(gaia_ptr_t& node);
 
-    gaia_ptr& clone();
+    gaia_ptr_t& clone();
 
-    gaia_ptr& update_payload(size_t data_size, const void* data);
+    gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
-    static gaia_ptr find_first(common::gaia_type_t type)
+    static gaia_ptr_t find_first(common::gaia_type_t type)
     {
-        gaia_ptr ptr;
+        gaia_ptr_t ptr;
         ptr.m_locator = 1;
 
         if (!ptr.is(type))
@@ -92,7 +92,7 @@ public:
         return ptr;
     }
 
-    gaia_ptr find_next()
+    gaia_ptr_t find_next()
     {
         if (m_locator)
         {
@@ -102,7 +102,7 @@ public:
         return *this;
     }
 
-    gaia_ptr operator++()
+    gaia_ptr_t operator++()
     {
         if (m_locator)
         {
@@ -223,15 +223,15 @@ public:
      */
     static auto find_all_iter(
         common::gaia_type_t type,
-        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
+        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; })
     {
-        // Get the gaia_id generator and wrap it in a gaia_ptr generator.
+        // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
         std::function<std::optional<common::gaia_id_t>()> id_generator = get_id_generator_for_type(type);
-        std::function<std::optional<gaia_ptr>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
+        std::function<std::optional<gaia_ptr_t>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr_t> {
             std::optional<common::gaia_id_t> id_opt = id_generator();
             if (id_opt)
             {
-                return gaia_ptr::open(*id_opt);
+                return gaia_ptr_t::open(*id_opt);
             }
             return std::nullopt;
         };
@@ -242,7 +242,7 @@ public:
         // REVIEW: this can filter out objects that do not exist in the client view,
         // but it cannot return objects that only exist in the client view.
         // That will require merging the client's transaction log.
-        std::function<bool(gaia_ptr)> gaia_ptr_predicate = [user_predicate](gaia_ptr ptr) {
+        std::function<bool(gaia_ptr_t)> gaia_ptr_predicate = [user_predicate](gaia_ptr_t ptr) {
             return !ptr.is_null() && user_predicate(ptr);
         };
         auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator_t(
@@ -258,13 +258,13 @@ public:
      */
     static auto find_all_range(
         common::gaia_type_t type,
-        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
+        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; })
     {
         return gaia::common::iterators::range(find_all_iter(type, user_predicate));
     }
 
 protected:
-    gaia_ptr(gaia_locator_t locator, gaia_offset_t offset);
+    gaia_ptr_t(gaia_locator_t locator, gaia_offset_t offset);
 
     void allocate(size_t size);
 

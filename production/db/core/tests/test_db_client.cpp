@@ -43,7 +43,7 @@ void print_payload(std::ostream& o, size_t size, const char* payload)
     }
 }
 
-void print_node(const gaia_ptr& node, bool indent = false)
+void print_node(const gaia_ptr_t& node, bool indent = false)
 {
     if (!node)
     {
@@ -82,10 +82,10 @@ class db_client_test : public db_test_base_t
 private:
     void init_data()
     {
-        node1_id = gaia_ptr::generate_id();
-        node2_id = gaia_ptr::generate_id();
-        node3_id = gaia_ptr::generate_id();
-        node4_id = gaia_ptr::generate_id();
+        node1_id = gaia_ptr_t::generate_id();
+        node2_id = gaia_ptr_t::generate_id();
+        node3_id = gaia_ptr_t::generate_id();
+        node4_id = gaia_ptr_t::generate_id();
         type1 = 1;
         type2 = 2;
 
@@ -96,13 +96,13 @@ private:
 
             std::cerr << std::endl;
             std::cerr << "*** create test nodes" << std::endl;
-            gaia_ptr node1 = gaia_ptr::create(node1_id, type1, 0, 0);
+            gaia_ptr_t node1 = gaia_ptr_t::create(node1_id, type1, 0, 0);
             print_node(node1);
-            gaia_ptr node2 = gaia_ptr::create(node2_id, type1, 0, 0);
+            gaia_ptr_t node2 = gaia_ptr_t::create(node2_id, type1, 0, 0);
             print_node(node2);
-            gaia_ptr node3 = gaia_ptr::create(node3_id, type2, 0, 0);
+            gaia_ptr_t node3 = gaia_ptr_t::create(node3_id, type2, 0, 0);
             print_node(node3);
-            gaia_ptr node4 = gaia_ptr::create(node4_id, type2, 0, 0);
+            gaia_ptr_t node4 = gaia_ptr_t::create(node4_id, type2, 0, 0);
             print_node(node4);
         }
         commit_transaction();
@@ -128,7 +128,7 @@ TEST_F(db_client_test, creation_fail_for_invalid_type)
     begin_transaction();
     {
         const gaia_id_t c_invalid_id = 8888;
-        EXPECT_THROW(gaia_ptr::create(c_invalid_id, 0, 0), invalid_type);
+        EXPECT_THROW(gaia_ptr_t::create(c_invalid_id, 0, 0), invalid_type);
     }
     commit_transaction();
 }
@@ -136,14 +136,14 @@ TEST_F(db_client_test, creation_fail_for_invalid_type)
 TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
 {
     begin_transaction();
-    gaia_ptr node1 = gaia_ptr::open(node1_id);
+    gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
     commit_transaction();
 
     // Create with existent type fail
-    EXPECT_THROW(gaia_ptr::create(type1, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::create(99999, type1, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::create(99999, type1, 5, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::open(node1_id), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::create(type1, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::create(99999, type1, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::create(99999, type1, 5, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::open(node1_id), no_open_transaction);
     EXPECT_THROW(node1.id(), no_open_transaction);
     EXPECT_THROW(node1.type(), no_open_transaction);
     EXPECT_THROW(node1.data_size(), no_open_transaction);
@@ -156,17 +156,17 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     EXPECT_THROW(node1.remove_child_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.remove_parent_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.update_parent_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove(node1), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::remove(node1), no_open_transaction);
 
     // Test with non existent type
     // TODO there is a bug in GNU libstdc that will the type_id_mapping hang if the initialization
     //  throws an exception and call_once is called again. Disabling the tests for now.
     //  see type_id_mapping_t for more details.
     //    gaia_type_t type3 = 3;
-    //    EXPECT_THROW(gaia_ptr::create(type3, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr::create(99999, type3, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr::create(99999, type3, 5, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr::open(99999), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr_t::create(type3, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 5, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr_t::open(99999), transaction_not_open);
 }
 
 TEST_F(db_client_test, read_data)
@@ -175,10 +175,10 @@ TEST_F(db_client_test, read_data)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
-        gaia_ptr node2 = gaia_ptr::open(node2_id);
-        gaia_ptr node3 = gaia_ptr::open(node3_id);
-        gaia_ptr node4 = gaia_ptr::open(node4_id);
+        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+        gaia_ptr_t node2 = gaia_ptr_t::open(node2_id);
+        gaia_ptr_t node3 = gaia_ptr_t::open(node3_id);
+        gaia_ptr_t node4 = gaia_ptr_t::open(node4_id);
         print_node(node1);
         print_node(node2);
         print_node(node3);
@@ -198,7 +198,7 @@ TEST_F(db_client_test, update_payload)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
         print_node(node1);
         node1.update_payload(strlen(payload), payload);
         print_node(node1);
@@ -210,7 +210,7 @@ TEST_F(db_client_test, update_payload)
     {
         std::cerr << std::endl;
         std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
         print_node(node1);
         EXPECT_STREQ(node1.data(), payload);
     }
@@ -224,7 +224,7 @@ TEST_F(db_client_test, update_payload_rollback)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
         print_node(node1);
         node1.update_payload(strlen(payload), payload);
         print_node(node1);
@@ -236,7 +236,7 @@ TEST_F(db_client_test, update_payload_rollback)
     {
         std::cerr << std::endl;
         std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr node1 = gaia_ptr::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
         print_node(node1);
         EXPECT_EQ(node1.data(), nullptr);
     }
@@ -252,7 +252,7 @@ TEST_F(db_client_test, iterate_type)
 
         gaia_type_t type = type1;
         gaia_id_t id = node1_id;
-        for (auto node_iter = gaia_ptr::find_first(type);
+        for (auto node_iter = gaia_ptr_t::find_first(type);
              node_iter;
              node_iter = node_iter.find_next())
         {
@@ -264,7 +264,7 @@ TEST_F(db_client_test, iterate_type)
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
         type = type2;
-        for (auto node_iter = gaia_ptr::find_first(type);
+        for (auto node_iter = gaia_ptr_t::find_first(type);
              node_iter;
              node_iter = node_iter.find_next())
         {
@@ -299,36 +299,36 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         // create objects for iterator test
         // "one node" test
         gaia_id_t next_type = 4;
-        gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         // "exact buffer size" test
         ++next_type;
         for (size_t i = 0; i < c_buffer_size_exact; i++)
         {
-            gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+            gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         }
         // "exact multiple of buffer size" test
         ++next_type;
         for (size_t i = 0; i < c_buffer_size_exact_multiple; i++)
         {
-            gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+            gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         }
         // "inexact multiple of buffer size" test
         ++next_type;
         for (size_t i = 0; i < c_buffer_size_inexact_multiple; i++)
         {
-            gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+            gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         }
         // "one less than buffer size" test
         ++next_type;
         for (size_t i = 0; i < c_buffer_size_minus_one; i++)
         {
-            gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+            gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         }
         // "one more than buffer size" test
         ++next_type;
         for (size_t i = 0; i < c_buffer_size_plus_one; i++)
         {
-            gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
+            gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0);
         }
     }
     commit_transaction();
@@ -340,8 +340,8 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes in type with predicate:" << std::endl;
         type = 1;
-        for (auto node : gaia_ptr::find_all_range(
-                 type, [](gaia_ptr ptr) { return ptr.id() == 1; }))
+        for (auto node : gaia_ptr_t::find_all_range(
+                 type, [](gaia_ptr_t ptr) { return ptr.id() == 1; }))
         {
             print_node(node);
             EXPECT_EQ(node.id(), 1);
@@ -354,7 +354,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 3;
         count = 0;
         expected_count = 0;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -366,7 +366,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 4;
         count = 0;
         expected_count = 1;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -378,7 +378,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 5;
         count = 0;
         expected_count = c_buffer_size_exact;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -390,7 +390,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 6;
         count = 0;
         expected_count = c_buffer_size_exact_multiple;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -402,7 +402,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 7;
         count = 0;
         expected_count = c_buffer_size_inexact_multiple;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -414,7 +414,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 8;
         count = 0;
         expected_count = c_buffer_size_minus_one;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -426,7 +426,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
         type = 9;
         count = 0;
         expected_count = c_buffer_size_plus_one;
-        for (auto node : gaia_ptr::find_all_range(type))
+        for (auto node : gaia_ptr_t::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
             count++;
@@ -444,14 +444,14 @@ TEST_F(db_client_test, iterate_type_delete)
     {
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes of type 1 before delete:" << std::endl;
-        auto node_iter = gaia_ptr::find_first(type1);
+        auto node_iter = gaia_ptr_t::find_first(type1);
         print_node(node_iter);
         EXPECT_EQ(node_iter.id(), node1_id);
         std::cerr << std::endl;
         std::cerr << "*** Preparing to delete first node of type 1:" << std::endl;
-        gaia_ptr::remove(node_iter);
+        gaia_ptr_t::remove(node_iter);
         std::cerr << "*** Iterating over nodes of type 1 after delete:" << std::endl;
-        node_iter = gaia_ptr::find_first(type1);
+        node_iter = gaia_ptr_t::find_first(type1);
         print_node(node_iter);
         EXPECT_EQ(node_iter.id(), node2_id);
     }
@@ -461,7 +461,7 @@ TEST_F(db_client_test, iterate_type_delete)
     {
         std::cerr << std::endl;
         std::cerr << "*** Reloading data: iterating over nodes of type 1 after delete:" << std::endl;
-        auto node_iter = gaia_ptr::find_first(type1);
+        auto node_iter = gaia_ptr_t::find_first(type1);
         print_node(node_iter);
         EXPECT_EQ(node_iter.id(), node2_id);
     }
@@ -478,15 +478,15 @@ TEST_F(db_client_test, null_payload_check)
         constexpr size_t c_num_refs = 50;
         std::cerr << std::endl;
         std::cerr << "*** Creating a zero-length node with references:" << std::endl;
-        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, c_num_refs, 0, nullptr), nullptr);
+        EXPECT_NE(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, c_num_refs, 0, nullptr), nullptr);
 
         std::cerr << std::endl;
         std::cerr << "*** Creating a zero-length node without references:" << std::endl;
-        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, 0, 0, nullptr), nullptr);
+        EXPECT_NE(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, 0, 0, nullptr), nullptr);
 
         std::cerr << std::endl;
         std::cerr << "*** Creating a node with no payload and non-zero payload size (error):" << std::endl;
-        EXPECT_THROW(gaia_ptr::create(gaia_ptr::generate_id(), node_type, c_num_refs, c_test_payload_size, nullptr), retail_assertion_failure);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, c_num_refs, c_test_payload_size, nullptr), retail_assertion_failure);
     }
     commit_transaction();
 }
@@ -502,12 +502,12 @@ TEST_F(db_client_test, create_large_object)
         size_t payload_size = db_object_t::c_max_payload_size - (num_refs * sizeof(gaia_id_t));
         std::cerr << std::endl;
         std::cerr << "*** Creating the largest node (" << payload_size << " bytes):" << std::endl;
-        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, payload), nullptr);
+        EXPECT_NE(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), nullptr);
 
         num_refs = 51;
         std::cerr << std::endl;
         std::cerr << "*** Creating a too-large node (" << payload_size + sizeof(gaia_id_t) << " bytes):" << std::endl;
-        EXPECT_THROW(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, payload), payload_size_too_large);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), payload_size_too_large);
     }
     commit_transaction();
 }

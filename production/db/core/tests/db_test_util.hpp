@@ -129,9 +129,9 @@ private:
     common::reference_offset_t m_parent_offset = c_parent_doctor_offset;
 };
 
-gaia_ptr create_object(common::gaia_type_t type, std::string payload)
+gaia_ptr_t create_object(common::gaia_type_t type, std::string payload)
 {
-    return gaia_ptr::create(type, payload.size(), payload.data());
+    return gaia_ptr_t::create(type, payload.size(), payload.data());
 }
 
 void clean_type_registry()
