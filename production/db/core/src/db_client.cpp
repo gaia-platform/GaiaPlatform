@@ -165,8 +165,10 @@ client::get_id_generator_for_type(gaia_type_t type)
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
+
     auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
     cleanup_stream_socket.dismiss();
+
     return id_generator;
 }
 
@@ -433,8 +435,8 @@ void client::apply_txn_log(int log_fd)
 
     for (size_t i = 0; i < txn_log.data()->record_count; ++i)
     {
-        auto lr = txn_log.data()->log_records + i;
-        (*s_private_locators.data())[lr->locator] = lr->new_offset;
+        const auto& lr = txn_log.data()->log_records[i];
+        (*s_private_locators.data())[lr.locator] = lr.new_offset;
     }
 }
 
@@ -512,6 +514,7 @@ void client::commit_transaction()
     retail_assert(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         c_message_unexpected_event_received);
+
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
@@ -549,7 +552,9 @@ address_offset_t client::request_memory(size_t object_size)
     // Obtain allocated offset from the server.
     const address_offset_t object_address_offset = allocation_info->allocation_offset();
 
-    retail_assert(allocation_info && object_address_offset != c_invalid_offset, "Failed to fetch memory from the server.");
+    retail_assert(
+        allocation_info && object_address_offset != c_invalid_offset,
+        "Failed to fetch memory from the server.");
 
     return object_address_offset;
 }

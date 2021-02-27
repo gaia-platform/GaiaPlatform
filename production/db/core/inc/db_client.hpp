@@ -13,6 +13,7 @@
 #include "gaia_internal/db/triggers.hpp"
 
 #include "db_shared_data.hpp"
+#include "mapped_data.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "stack_allocator.hpp"
@@ -44,19 +45,13 @@ class client
         size_t size);
 
 public:
-    static inline bool is_transaction_active()
-    {
-        return (s_private_locators.is_set());
-    }
+    static inline bool is_transaction_active();
 
     /**
      * Called by the rules engine only during initialization and
      * shutdown.
      */
-    static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
-    {
-        s_txn_commit_trigger = trigger_fn;
-    }
+    static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
 
     // This test-only function is exported from gaia_db_internal.hpp.
     static void clear_shared_memory();
@@ -68,10 +63,7 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
-    static inline gaia_txn_id_t get_txn_id()
-    {
-        return s_txn_id;
-    }
+    static inline gaia_txn_id_t get_txn_id();
 
     // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
@@ -137,43 +129,13 @@ private:
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(common::gaia_type_t type)
-    {
-        constexpr const common::gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
-        return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
-    }
+    static inline bool is_valid_event(common::gaia_type_t type);
 
-    static inline void verify_txn_active()
-    {
-        if (!is_transaction_active())
-        {
-            throw no_open_transaction();
-        }
-    }
+    static inline void verify_txn_active();
+    static inline void verify_no_txn();
 
-    static inline void verify_no_txn()
-    {
-        if (is_transaction_active())
-        {
-            throw transaction_in_progress();
-        }
-    }
-
-    static inline void verify_session_active()
-    {
-        if (s_session_socket == -1)
-        {
-            throw no_active_session();
-        }
-    }
-
-    static inline void verify_no_session()
-    {
-        if (s_session_socket != -1)
-        {
-            throw session_exists();
-        }
-    }
+    static inline void verify_session_active();
+    static inline void verify_no_session();
 
     static inline void txn_log(
         gaia_locator_t locator,
@@ -182,30 +144,10 @@ private:
         gaia_operation_t operation,
         // `deleted_id` is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        common::gaia_id_t deleted_id = common::c_invalid_gaia_id)
-    {
-        if (operation == gaia_operation_t::remove)
-        {
-            common::retail_assert(
-                deleted_id != common::c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
-                "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
-        }
-
-        // We never allocate more than `c_max_log_records` records in the log.
-        if (s_log.data()->record_count == c_max_log_records)
-        {
-            throw transaction_object_limit_exceeded();
-        }
-
-        // Initialize the new record and increment the record count.
-        txn_log_t::log_record_t* lr = s_log.data()->log_records + s_log.data()->record_count++;
-        lr->locator = locator;
-        lr->old_offset = old_offset;
-        lr->new_offset = new_offset;
-        lr->deleted_id = deleted_id;
-        lr->operation = operation;
-    }
+        common::gaia_id_t deleted_id = common::c_invalid_gaia_id);
 };
+
+#include "db_client.inc"
 
 } // namespace db
 } // namespace gaia
