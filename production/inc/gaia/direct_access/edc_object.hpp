@@ -14,6 +14,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
+#include "gaia/direct_access/edc_array.hpp"
 #include "gaia/direct_access/edc_base.hpp"
 #include "gaia/direct_access/edc_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
@@ -28,15 +29,6 @@ namespace gaia
 
 namespace direct_access
 {
-
-// The vector type for direct access.
-//
-// Currently, it is declared as an alias to the flatbuffers:Vector which is the
-// type of the flatbuffers vector payload in memory. We can create our own
-// implementation in the future if we want to replace the payload format with
-// our own format.
-template <typename T_class>
-using vector = flatbuffers::Vector<T_class>;
 
 /**
  * \addtogroup Direct
