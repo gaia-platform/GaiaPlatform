@@ -39,7 +39,7 @@ void print_payload(ostream& o, const size_t size, const char* payload)
     }
 }
 
-void print_node(const gaia_ptr& node, const bool indent = false)
+void print_node(const gaia_ptr_t& node, const bool indent = false)
 {
     cout << endl;
 
@@ -97,25 +97,25 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     register_exception<gaia::db::payload_size_too_large>(m, "payload_size_too_large");
     register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
-    class_<gaia_ptr>(m, "gaia_ptr")
+    class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(
             "create",
-            static_cast<gaia_ptr (*)(gaia_type_t, size_t, const void*)>(&gaia_ptr::create))
+            static_cast<gaia_ptr_t (*)(gaia_type_t, size_t, const void*)>(&gaia_ptr_t::create))
         .def_static(
             "create",
-            static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr::create))
+            static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr_t::create))
         .def_static(
             "create",
-            static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*)>(&gaia_ptr::create))
-        .def_static("open", &gaia_ptr::open)
-        .def_static("find_first", &gaia_ptr::find_first)
-        .def_static("remove", &gaia_ptr::remove)
-        .def("is_null", &gaia_ptr::is_null)
-        .def("id", &gaia_ptr::id)
-        .def("type", &gaia_ptr::type)
-        .def("data", &gaia_ptr::data, return_value_policy::reference)
-        .def("data_size", &gaia_ptr::data_size)
-        .def("references", &gaia_ptr::references, return_value_policy::reference)
-        .def("num_references", &gaia_ptr::num_references)
-        .def("find_next", static_cast<gaia_ptr (gaia_ptr::*)()>(&gaia_ptr::find_next));
+            static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*)>(&gaia_ptr_t::create))
+        .def_static("open", &gaia_ptr_t::open)
+        .def_static("find_first", &gaia_ptr_t::find_first)
+        .def_static("remove", &gaia_ptr_t::remove)
+        .def("is_null", &gaia_ptr_t::is_null)
+        .def("id", &gaia_ptr_t::id)
+        .def("type", &gaia_ptr_t::type)
+        .def("data", &gaia_ptr_t::data, return_value_policy::reference)
+        .def("data_size", &gaia_ptr_t::data_size)
+        .def("references", &gaia_ptr_t::references, return_value_policy::reference)
+        .def("num_references", &gaia_ptr_t::num_references)
+        .def("find_next", static_cast<gaia_ptr_t (gaia_ptr_t::*)()>(&gaia_ptr_t::find_next));
 }

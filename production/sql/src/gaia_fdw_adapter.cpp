@@ -461,7 +461,7 @@ uint64_t adapter_t::get_new_gaia_id()
 {
     try
     {
-        return gaia_ptr::generate_id();
+        return gaia_ptr_t::generate_id();
     }
     catch (const exception& e)
     {
@@ -699,7 +699,7 @@ bool scan_state_t::initialize_scan()
 {
     try
     {
-        m_current_record = gaia_ptr::find_first(m_container_id);
+        m_current_record = gaia_ptr_t::find_first(m_container_id);
 
         if (m_current_record)
         {
@@ -1060,14 +1060,14 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
 {
     try
     {
-        gaia_ptr record;
+        gaia_ptr_t record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr_t::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            record = gaia_ptr::open(gaia_id);
+            record = gaia_ptr_t::open(gaia_id);
 
             // Only update payload if it has changed.
             if (record.data_size() != m_current_payload->size()
@@ -1195,7 +1195,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
-        auto record = gaia_ptr::open(gaia_id);
+        auto record = gaia_ptr_t::open(gaia_id);
         if (!record)
         {
             ereport(
@@ -1208,7 +1208,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             return false;
         }
 
-        gaia_ptr::remove(record);
+        gaia_ptr_t::remove(record);
 
         return true;
     }

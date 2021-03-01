@@ -26,7 +26,7 @@ namespace db
 
 class client
 {
-    friend class gaia_ptr;
+    friend class gaia_ptr_t;
 
     /**
      * @throws no_open_transaction if there is no active transaction.

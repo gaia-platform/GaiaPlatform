@@ -98,7 +98,7 @@ static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
     return dump;
 }
 
-static string dump_node(gaia_ptr& node_ptr, bool references, bool payload, int& line_limit)
+static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int& line_limit)
 {
     string dump;
     size_t num_references = node_ptr.num_references();
@@ -160,7 +160,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
     {
         try
         {
-            auto node_ptr = gaia_ptr::open(id);
+            auto node_ptr = gaia_ptr_t::open(id);
             if (node_ptr)
             {
                 // If 'catalog' is true, don't check the catalog range.

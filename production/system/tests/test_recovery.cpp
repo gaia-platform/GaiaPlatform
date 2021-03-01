@@ -519,13 +519,13 @@ TEST_F(recovery_test, reference_create_delete_test_new)
             .create_relationship();
 
         // Create the parent.
-        gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t parent = create_object(c_doctor_type, "Dr. House");
         parent_id = parent.id();
 
         // Create the children.
         for (int i = 0; i < c_num_children; i++)
         {
-            gaia_ptr child = create_object(c_patient_type, "John Doe " + std::to_string(i));
+            gaia_ptr_t child = create_object(c_patient_type, "John Doe " + std::to_string(i));
 
             // Add half references from the parent and half from the children.
             // (semantically same operation)
@@ -549,19 +549,19 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         auto_transaction_t txn;
 
         // Get the parent.
-        gaia_ptr parent = gaia_ptr::open(parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(gaia_ptr::remove(parent), node_not_disconnected);
+        ASSERT_THROW(gaia_ptr_t::remove(parent), node_not_disconnected);
 
         // Find the children.
-        gaia_ptr first_child = gaia_ptr::open(parent.references()[c_first_patient_offset]);
+        gaia_ptr_t first_child = gaia_ptr_t::open(parent.references()[c_first_patient_offset]);
         children_ids.push_back(first_child.id());
-        gaia_ptr next_child = gaia_ptr::open(first_child.references()[c_next_patient_offset]);
+        gaia_ptr_t next_child = gaia_ptr_t::open(first_child.references()[c_next_patient_offset]);
 
         while (next_child)
         {
             children_ids.push_back(next_child.id());
-            next_child = gaia_ptr::open(next_child.references()[c_next_patient_offset]);
+            next_child = gaia_ptr_t::open(next_child.references()[c_next_patient_offset]);
         }
 
         // Ensure parent has all the children
@@ -580,7 +580,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
             }
             else
             {
-                gaia_ptr child = gaia_ptr::open(child_id);
+                gaia_ptr_t child = gaia_ptr_t::open(child_id);
                 child.remove_parent_reference(parent_id, c_parent_doctor_offset);
             }
         }
@@ -595,7 +595,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         auto_transaction_t txn;
 
         // Get the parent.
-        gaia_ptr parent = gaia_ptr::open(parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
 
         // Ensure the parent does not have children
         ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
@@ -622,11 +622,11 @@ TEST_F(recovery_test, reference_update_test_new)
             .create_relationship();
 
         // Create the parent.
-        gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t parent = create_object(c_doctor_type, "Dr. House");
         parent_id = parent.id();
 
         // Create child.
-        gaia_ptr child = create_object(c_patient_type, "John Doe ");
+        gaia_ptr_t child = create_object(c_patient_type, "John Doe ");
         child_id = child.id();
 
         parent.add_child_reference(child_id, c_first_patient_offset);
@@ -642,11 +642,11 @@ TEST_F(recovery_test, reference_update_test_new)
         auto_transaction_t txn;
 
         // Create the new parent.
-        gaia_ptr new_parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t new_parent = create_object(c_doctor_type, "Dr. House");
         new_parent_id = new_parent.id();
 
         // Get the child
-        gaia_ptr child = gaia_ptr::open(child_id);
+        gaia_ptr_t child = gaia_ptr_t::open(child_id);
         child.update_parent_reference(new_parent_id, c_parent_doctor_offset);
 
         txn.commit();
@@ -659,9 +659,9 @@ TEST_F(recovery_test, reference_update_test_new)
     {
         auto_transaction_t txn;
 
-        gaia_ptr parent = gaia_ptr::open(parent_id);
-        gaia_ptr child = gaia_ptr::open(child_id);
-        gaia_ptr new_parent = gaia_ptr::open(new_parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
+        gaia_ptr_t child = gaia_ptr_t::open(child_id);
+        gaia_ptr_t new_parent = gaia_ptr_t::open(new_parent_id);
 
         ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
         ASSERT_EQ(new_parent_id, child.references()[c_parent_doctor_offset]);

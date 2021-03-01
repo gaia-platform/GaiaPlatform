@@ -203,7 +203,7 @@ public:
 
 protected:
     // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr m_current_record;
+    gaia::db::gaia_ptr_t m_current_record;
 
     // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;

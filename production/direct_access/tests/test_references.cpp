@@ -39,7 +39,7 @@ protected:
 
         for (int i = c_lower_id_range; i < c_higher_id_range; i++)
         {
-            auto invalid_obj = gaia_ptr::open(i);
+            auto invalid_obj = gaia_ptr_t::open(i);
 
             if (!invalid_obj)
             {
