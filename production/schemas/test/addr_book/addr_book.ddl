@@ -26,3 +26,8 @@ create table if not exists phone (
     references address,
     references employee
 );
+
+create table if not exists customer (
+    name string,
+    sales_by_quarter int32[]
+);
