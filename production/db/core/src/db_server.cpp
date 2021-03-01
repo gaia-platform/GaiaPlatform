@@ -75,10 +75,10 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 
-server::safe_fd_from_ts::safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd)
+db_server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
 {
-    common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts from a valid commit_ts!");
+    common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
     // If the log fd was invalidated, it is either closed or soon will
     // be closed, and therefore we cannot use it. We return early if the
     // fd has already been invalidated to avoid the dup(2) call.
@@ -135,7 +135,7 @@ server::safe_fd_from_ts::safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_clos
     }
 }
 
-server::safe_fd_from_ts::~safe_fd_from_ts()
+db_server_t::safe_fd_from_ts_t::~safe_fd_from_ts_t()
 {
     // Ensure we close the dup log fd. If the original log fd was closed
     // already (indicated by get_txn_log_fd() returning -1), this will free
@@ -148,12 +148,12 @@ server::safe_fd_from_ts::~safe_fd_from_ts()
     }
 }
 
-int server::safe_fd_from_ts::get_fd() const
+int db_server_t::safe_fd_from_ts_t::get_fd() const
 {
     return m_local_log_fd;
 }
 
-address_offset_t server::allocate_from_memory_manager(
+address_offset_t db_server_t::allocate_from_memory_manager(
     size_t memory_request_size_bytes)
 {
     retail_assert(
@@ -171,12 +171,12 @@ address_offset_t server::allocate_from_memory_manager(
 }
 
 // This assignment is non-atomic since there seems to be no reason to expect concurrent invocations.
-void server::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
+void db_server_t::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
 {
     s_object_deallocator_fn = deallocator_fn;
 }
 
-void server::handle_connect(
+void db_server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
@@ -194,7 +194,7 @@ void server::handle_connect(
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_begin_txn(
+void db_server_t::handle_begin_txn(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
@@ -257,7 +257,7 @@ void server::handle_begin_txn(
     }
 }
 
-void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
+void db_server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
 {
     // Take a snapshot of the post-apply watermark and scan backward from
     // begin_ts, stopping either just before the saved watermark or at the first
@@ -277,13 +277,13 @@ void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<in
                 // Since the watermark could advance past its saved value, we
                 // need to be sure that we don't send an invalidated and closed
                 // log fd, so we validate and duplicate each log fd using the
-                // safe_fd_from_ts class before sending it to the client. We set
-                // auto_close_fd = false in the safe_fd_from_ts constructor
+                // safe_fd_from_ts_t class before sending it to the client. We set
+                // auto_close_fd = false in the safe_fd_from_ts_t constructor
                 // because we need to save the dup fds in the buffer until we
                 // pass them to sendmsg().
                 try
                 {
-                    safe_fd_from_ts committed_txn_log_fd(ts, false);
+                    safe_fd_from_ts_t committed_txn_log_fd(ts, false);
                     int local_log_fd = committed_txn_log_fd.get_fd();
                     txn_log_fds.push_back(local_log_fd);
                 }
@@ -305,7 +305,7 @@ void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<in
     std::reverse(std::begin(txn_log_fds), std::end(txn_log_fds));
 }
 
-void server::handle_rollback_txn(
+void db_server_t::handle_rollback_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
@@ -329,7 +329,7 @@ void server::handle_rollback_txn(
     txn_rollback();
 }
 
-void server::handle_commit_txn(
+void db_server_t::handle_commit_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
@@ -384,7 +384,7 @@ void server::handle_commit_txn(
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
-void server::handle_request_memory(
+void db_server_t::handle_request_memory(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(
@@ -414,7 +414,7 @@ void server::handle_request_memory(
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_decide_txn(
+void db_server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(
@@ -448,7 +448,7 @@ void server::handle_decide_txn(
     perform_maintenance();
 }
 
-void server::handle_client_shutdown(
+void db_server_t::handle_client_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     retail_assert(
@@ -475,7 +475,7 @@ void server::handle_client_shutdown(
     }
 }
 
-void server::handle_server_shutdown(
+void db_server_t::handle_server_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     retail_assert(
@@ -493,7 +493,7 @@ void server::handle_server_shutdown(
     s_session_shutdown = true;
 }
 
-std::pair<int, int> server::get_stream_socket_pair()
+std::pair<int, int> db_server_t::get_stream_socket_pair()
 {
     // Create a connected pair of datagram sockets, one of which we will keep
     // and the other we will send to the client.
@@ -521,7 +521,7 @@ std::pair<int, int> server::get_stream_socket_pair()
     return std::pair{client_socket, server_socket};
 }
 
-void server::handle_request_stream(
+void db_server_t::handle_request_stream(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(
@@ -576,7 +576,7 @@ void server::handle_request_stream(
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)
+void db_server_t::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)
 {
     if (event == session_event_t::NOP)
     {
@@ -619,7 +619,7 @@ void server::apply_transition(session_event_t event, const void* event_data, int
         + "'.");
 }
 
-void server::build_server_reply(
+void db_server_t::build_server_reply(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
@@ -645,7 +645,7 @@ void server::build_server_reply(
     builder.Finish(message);
 }
 
-void server::clear_shared_memory()
+void db_server_t::clear_shared_memory()
 {
     s_shared_locators.close();
     s_shared_counters.close();
@@ -655,7 +655,7 @@ void server::clear_shared_memory()
 
 // To avoid synchronization, we assume that this method is only called when
 // no sessions exist and the server is not accepting any new connections.
-void server::init_shared_memory()
+void db_server_t::init_shared_memory()
 {
     // The listening socket must not be open.
     retail_assert(s_listening_socket == -1, "Listening socket should not be open!");
@@ -693,7 +693,7 @@ void server::init_shared_memory()
     cleanup_memory.dismiss();
 }
 
-void server::init_memory_manager()
+void db_server_t::init_memory_manager()
 {
     s_memory_manager.reset();
     s_memory_manager = make_unique<memory_manager_t>();
@@ -705,7 +705,7 @@ void server::init_memory_manager()
     register_object_deallocator(deallocate_object_fn);
 }
 
-address_offset_t server::allocate_object(
+address_offset_t db_server_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
@@ -779,7 +779,7 @@ address_offset_t server::allocate_object(
 // advancing the watermark on termination of the oldest active txn, which is
 // delegated to that txn's session thread.
 
-void server::init_txn_info()
+void db_server_t::init_txn_info()
 {
     // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
     constexpr size_t c_size_in_bytes = (1ULL << c_txn_ts_bits) * sizeof(*s_txn_info);
@@ -802,7 +802,7 @@ void server::init_txn_info()
         0);
 }
 
-void server::recover_db()
+void db_server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
     if (!(s_persistence_mode == persistence_mode_t::e_disabled))
@@ -829,7 +829,7 @@ void server::recover_db()
     }
 }
 
-sigset_t server::mask_signals()
+sigset_t db_server_t::mask_signals()
 {
     sigset_t sigset;
     ::sigemptyset(&sigset);
@@ -848,7 +848,7 @@ sigset_t server::mask_signals()
     return sigset;
 }
 
-void server::signal_handler(sigset_t sigset, int& signum)
+void db_server_t::signal_handler(sigset_t sigset, int& signum)
 {
     // Wait until a signal is delivered.
     // REVIEW: do we have any use for sigwaitinfo()?
@@ -859,7 +859,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     signal_eventfd(s_server_shutdown_eventfd);
 }
 
-void server::init_listening_socket()
+void db_server_t::init_listening_socket()
 {
     // Launch a connection-based listening Unix socket on a well-known address.
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
@@ -905,7 +905,7 @@ void server::init_listening_socket()
     s_listening_socket = listening_socket;
 }
 
-bool server::authenticate_client_socket(int socket)
+bool db_server_t::authenticate_client_socket(int socket)
 {
     struct ucred cred;
     socklen_t cred_len = sizeof(cred);
@@ -986,7 +986,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
     }
 }
 
-void server::client_dispatch_handler()
+void db_server_t::client_dispatch_handler()
 {
     // Register session cleanup handler first, so we can execute it last.
     auto session_cleanup = make_scope_guard([]() {
@@ -1110,7 +1110,7 @@ void server::client_dispatch_handler()
     }
 }
 
-void server::session_handler(int session_socket)
+void db_server_t::session_handler(int session_socket)
 {
     // Set up session socket.
     s_session_shutdown = false;
@@ -1297,7 +1297,7 @@ void server::session_handler(int session_socket)
 }
 
 template <typename T_element_type>
-void server::stream_producer_handler(
+void db_server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::function<std::optional<T_element_type>()> generator_fn)
 {
     // We only support fixed-width integer types for now to avoid framing.
@@ -1483,7 +1483,7 @@ void server::stream_producer_handler(
 }
 
 template <typename T_element_type>
-void server::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
+void db_server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
@@ -1494,7 +1494,7 @@ void server::start_stream_producer(int stream_socket, std::function<std::optiona
         stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
-std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type)
+std::function<std::optional<gaia_id_t>()> db_server_t::get_id_generator_for_type(gaia_type_t type)
 {
     gaia_locator_t locator = 0;
 
@@ -1529,7 +1529,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
     };
 }
 
-void server::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
+void db_server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
 {
     // Scan txn table entries from start_ts to end_ts.
     // Invalidate any unknown entries and validate any undecided txns.
@@ -1551,7 +1551,7 @@ void server::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts
     }
 }
 
-const char* server::status_to_str(ts_entry_t ts_entry)
+const char* db_server_t::status_to_str(ts_entry_t ts_entry)
 {
     retail_assert(
         (ts_entry != c_txn_entry_unknown) && (ts_entry != c_txn_entry_invalid),
@@ -1578,7 +1578,7 @@ const char* server::status_to_str(ts_entry_t ts_entry)
     return nullptr;
 }
 
-void server::dump_ts_entry(gaia_txn_id_t ts)
+void db_server_t::dump_ts_entry(gaia_txn_id_t ts)
 {
     // NB: We generally cannot use the is_*_ts() functions since the entry could
     // change while we're reading it!
@@ -1635,7 +1635,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
 // that timestamp, it simply allocates another timestamp and retries. This is
 // possible because we never publish a newly allocated timestamp until we know
 // that its entry has been successfully initialized.
-inline bool server::invalidate_unknown_ts(gaia_txn_id_t ts)
+inline bool db_server_t::invalidate_unknown_ts(gaia_txn_id_t ts)
 {
     // If the entry is not unknown, we can't invalidate it.
     if (!is_unknown_ts(ts))
@@ -1660,133 +1660,133 @@ inline bool server::invalidate_unknown_ts(gaia_txn_id_t ts)
     return has_invalidated_entry;
 }
 
-inline bool server::is_unknown_ts(gaia_txn_id_t ts)
+inline bool db_server_t::is_unknown_ts(gaia_txn_id_t ts)
 {
     return s_txn_info[ts] == c_txn_entry_unknown;
 }
 
-inline bool server::is_invalid_ts(gaia_txn_id_t ts)
+inline bool db_server_t::is_invalid_ts(gaia_txn_id_t ts)
 {
     return s_txn_info[ts] == c_txn_entry_invalid;
 }
 
-inline bool server::is_txn_entry_begin_ts(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_begin_ts(ts_entry_t ts_entry)
 {
     // The "unknown" value has the commit bit unset, so we need to check it as well.
     return ((ts_entry != c_txn_entry_unknown) && ((ts_entry & c_txn_status_commit_mask) == 0));
 }
 
-inline bool server::is_begin_ts(gaia_txn_id_t ts)
+inline bool db_server_t::is_begin_ts(gaia_txn_id_t ts)
 {
     ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_begin_ts(ts_entry);
 }
 
-inline bool server::is_txn_entry_commit_ts(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_commit_ts(ts_entry_t ts_entry)
 {
     // The "invalid" value has the commit bit set, so we need to check it as well.
     return ((ts_entry != c_txn_entry_invalid) && ((ts_entry & c_txn_status_commit_mask) == c_txn_status_commit_mask));
 }
 
-inline bool server::is_commit_ts(gaia_txn_id_t ts)
+inline bool db_server_t::is_commit_ts(gaia_txn_id_t ts)
 {
     ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_commit_ts(ts_entry);
 }
 
-inline bool server::is_txn_entry_submitted(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_submitted(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_submitted);
 }
 
-inline bool server::is_txn_submitted(gaia_txn_id_t begin_ts)
+inline bool db_server_t::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     ts_entry_t begin_ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_submitted(begin_ts_entry);
 }
 
-inline bool server::is_txn_entry_validating(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_validating(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_validating);
 }
 
-inline bool server::is_txn_validating(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_validating(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_validating(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_decided(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_decided(ts_entry_t ts_entry)
 {
     constexpr uint64_t c_decided_mask = c_txn_status_decided << c_txn_status_flags_shift;
     return ((ts_entry & c_decided_mask) == c_decided_mask);
 }
 
-inline bool server::is_txn_decided(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_decided(gaia_txn_id_t commit_ts)
 {
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     retail_assert(is_txn_entry_commit_ts(commit_ts_entry), c_message_not_a_commit_timestamp);
     return is_txn_entry_decided(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_committed(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_committed(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_committed);
 }
 
-inline bool server::is_txn_committed(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_committed(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_committed(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_aborted(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_aborted(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_aborted);
 }
 
-inline bool server::is_txn_aborted(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_aborted(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_gc_complete(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_gc_complete(ts_entry_t ts_entry)
 {
     uint64_t gc_flags = (ts_entry & c_txn_gc_flags_mask) >> c_txn_gc_flags_shift;
     return (gc_flags == c_txn_gc_complete);
 }
 
-inline bool server::is_txn_gc_complete(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_gc_complete(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_durable(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_durable(ts_entry_t ts_entry)
 {
     uint64_t persistence_flags = (ts_entry & c_txn_persistence_flags_mask) >> c_txn_persistence_flags_shift;
     return (persistence_flags == c_txn_persistence_complete);
 }
 
-inline bool server::is_txn_durable(gaia_txn_id_t commit_ts)
+inline bool db_server_t::is_txn_durable(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
     return is_txn_entry_durable(commit_ts_entry);
 }
 
-inline bool server::is_txn_entry_active(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_active(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_active);
 }
 
-inline bool server::is_txn_active(gaia_txn_id_t begin_ts)
+inline bool db_server_t::is_txn_active(gaia_txn_id_t begin_ts)
 {
     retail_assert(begin_ts != c_txn_entry_unknown, c_message_unknown_timestamp);
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
@@ -1794,12 +1794,12 @@ inline bool server::is_txn_active(gaia_txn_id_t begin_ts)
     return is_txn_entry_active(ts_entry);
 }
 
-inline bool server::is_txn_entry_terminated(ts_entry_t ts_entry)
+inline bool db_server_t::is_txn_entry_terminated(ts_entry_t ts_entry)
 {
     return (get_status_from_entry(ts_entry) == c_txn_status_terminated);
 }
 
-inline bool server::is_txn_terminated(gaia_txn_id_t begin_ts)
+inline bool db_server_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
     retail_assert(begin_ts != c_txn_entry_unknown, c_message_unknown_timestamp);
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
@@ -1807,7 +1807,7 @@ inline bool server::is_txn_terminated(gaia_txn_id_t begin_ts)
     return is_txn_entry_terminated(ts_entry);
 }
 
-inline uint64_t server::get_status(gaia_txn_id_t ts)
+inline uint64_t db_server_t::get_status(gaia_txn_id_t ts)
 {
     retail_assert(
         !is_unknown_ts(ts) && !is_invalid_ts(ts),
@@ -1816,12 +1816,12 @@ inline uint64_t server::get_status(gaia_txn_id_t ts)
     return get_status_from_entry(ts_entry);
 }
 
-inline uint64_t server::get_status_from_entry(ts_entry_t ts_entry)
+inline uint64_t db_server_t::get_status_from_entry(ts_entry_t ts_entry)
 {
     return ((ts_entry & c_txn_status_flags_mask) >> c_txn_status_flags_shift);
 }
 
-inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
+inline gaia_txn_id_t db_server_t::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     ts_entry_t commit_ts_entry = s_txn_info[commit_ts];
@@ -1831,7 +1831,7 @@ inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
     return begin_ts;
 }
 
-inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
+inline gaia_txn_id_t db_server_t::get_commit_ts(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
@@ -1845,13 +1845,13 @@ inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
     return commit_ts;
 }
 
-inline int server::get_txn_log_fd(gaia_txn_id_t commit_ts)
+inline int db_server_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     return get_txn_log_fd_from_entry(s_txn_info[commit_ts]);
 }
 
-inline int server::get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry)
+inline int db_server_t::get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry)
 {
     // The txn log fd is the 16 bits of the ts entry after the 3 status bits.
     uint16_t fd = (commit_ts_entry & c_txn_log_fd_mask) >> c_txn_log_fd_shift;
@@ -1859,7 +1859,7 @@ inline int server::get_txn_log_fd_from_entry(ts_entry_t commit_ts_entry)
     return (fd != c_invalid_txn_log_fd_bits) ? static_cast<int>(fd) : -1;
 }
 
-inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
+inline bool db_server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
@@ -1892,7 +1892,7 @@ inline bool server::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 }
 
 // Sets the begin_ts entry's status to TXN_SUBMITTED.
-inline void server::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
+inline void db_server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
 {
     // Only an active txn can be submitted.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
@@ -1909,7 +1909,7 @@ inline void server::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id
 }
 
 // Sets the begin_ts entry's status to TXN_TERMINATED.
-inline void server::set_active_txn_terminated(gaia_txn_id_t begin_ts)
+inline void db_server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 {
     // Only an active txn can be terminated.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
@@ -1924,7 +1924,7 @@ inline void server::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     s_txn_info[begin_ts] = new_entry;
 }
 
-inline gaia_txn_id_t server::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
+inline gaia_txn_id_t db_server_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
 {
     // We construct the commit_ts entry by concatenating status flags (3 bits),
     // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
@@ -1952,7 +1952,7 @@ inline gaia_txn_id_t server::register_commit_ts(gaia_txn_id_t begin_ts, int log_
     return commit_ts;
 }
 
-gaia_txn_id_t server::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
+gaia_txn_id_t db_server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
     // The begin_ts entry must fit in 42 bits.
     retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
@@ -1974,7 +1974,7 @@ gaia_txn_id_t server::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
     return commit_ts;
 }
 
-void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
+void db_server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 {
     // The commit_ts entry must be in state TXN_VALIDATING or TXN_DECIDED.
     // We allow the latter to enable idempotent concurrent validation.
@@ -2025,7 +2025,7 @@ void server::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 // first common element is found), so we write our own simple merge intersection
 // code. If we ever need to return the IDs of all conflicting objects to clients
 // (or just log them for diagnostics), we could use std::set_intersection.
-bool server::txn_logs_conflict(int log_fd1, int log_fd2)
+bool db_server_t::txn_logs_conflict(int log_fd1, int log_fd2)
 {
     // First map the two fds.
     mapped_log_t log1;
@@ -2055,7 +2055,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
     return false;
 }
 
-bool server::validate_txn(gaia_txn_id_t commit_ts)
+bool db_server_t::validate_txn(gaia_txn_id_t commit_ts)
 {
     // Validation algorithm:
 
@@ -2159,15 +2159,15 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                     // txns more time for validation (and submitted txns more time
                     // for registration).
 
-                    // We need to use the safe_fd_from_ts wrapper for conflict detection
+                    // We need to use the safe_fd_from_ts_t wrapper for conflict detection
                     // in case either log fd is invalidated by another thread
                     // concurrently advancing the watermark. If either log fd is
                     // invalidated, it must be that another thread has validated our
                     // txn, so we can exit early.
                     try
                     {
-                        safe_fd_from_ts validating_fd(commit_ts);
-                        safe_fd_from_ts committed_fd(ts);
+                        safe_fd_from_ts_t validating_fd(commit_ts);
+                        safe_fd_from_ts_t committed_fd(ts);
 
                         if (txn_logs_conflict(validating_fd.get_fd(), committed_fd.get_fd()))
                         {
@@ -2240,15 +2240,15 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
             // If a previously undecided txn has now committed, test it for conflicts.
             if (is_txn_committed(ts) && committed_txns_tested_for_conflicts.count(ts) == 0)
             {
-                // We need to use the safe_fd_from_ts wrapper for conflict
+                // We need to use the safe_fd_from_ts_t wrapper for conflict
                 // detection in case either log fd is invalidated by another
                 // thread concurrently advancing the watermark. If either log fd
                 // is invalidated, it must be that another thread has validated
                 // our txn, so we can exit early.
                 try
                 {
-                    safe_fd_from_ts validating_fd(commit_ts);
-                    safe_fd_from_ts new_committed_fd(ts);
+                    safe_fd_from_ts_t validating_fd(commit_ts);
+                    safe_fd_from_ts_t new_committed_fd(ts);
 
                     if (txn_logs_conflict(validating_fd.get_fd(), new_committed_fd.get_fd()))
                     {
@@ -2315,7 +2315,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 // NB: we use compare_exchange_weak() for the global update since we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
-bool server::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
+bool db_server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
 {
     gaia_txn_id_t last_watermark_ts = watermark;
     do
@@ -2332,14 +2332,14 @@ bool server::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_i
     return true;
 }
 
-void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
+void db_server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(
         is_commit_ts(commit_ts) && is_txn_committed(commit_ts),
         "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
 
     // Since txn logs are only eligible for GC after they fall behind the
-    // post-apply watermark, we don't need the safe_fd_from_ts wrapper.
+    // post-apply watermark, we don't need the safe_fd_from_ts_t wrapper.
     int log_fd = get_txn_log_fd(commit_ts);
 
     // A txn log fd should never be invalidated until it falls behind the
@@ -2377,7 +2377,7 @@ void server::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         "Committed txn applied to shared locators view out of order!");
 }
 
-bool server::set_txn_gc_complete(gaia_txn_id_t commit_ts)
+bool db_server_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     ts_entry_t expected_entry = s_txn_info[commit_ts];
     // Set GC status to TXN_GC_COMPLETE.
@@ -2385,7 +2385,7 @@ bool server::set_txn_gc_complete(gaia_txn_id_t commit_ts)
     return s_txn_info[commit_ts].compare_exchange_strong(expected_entry, commit_ts_entry);
 }
 
-void server::gc_txn_log_from_fd(int log_fd, bool committed)
+void db_server_t::gc_txn_log_from_fd(int log_fd, bool committed)
 {
     mapped_log_t txn_log;
     txn_log.open(log_fd);
@@ -2395,7 +2395,7 @@ void server::gc_txn_log_from_fd(int log_fd, bool committed)
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
-void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
+void db_server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
     retail_assert(txn_log, "txn_log must be a valid mapped address!");
 
@@ -2517,7 +2517,7 @@ void server::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 // very fast sequence of operations, retries should be infrequent, so livelock
 // shouldn't be an issue.)
 
-void server::perform_maintenance()
+void db_server_t::perform_maintenance()
 {
     // Attempt to apply all txn logs to the shared view, from the last value of
     // the post-apply watermark to the latest committed txn.
@@ -2533,7 +2533,7 @@ void server::perform_maintenance()
     update_txn_table_safe_truncation_point();
 }
 
-void server::apply_txn_logs_to_shared_view()
+void db_server_t::apply_txn_logs_to_shared_view()
 {
     // First get a snapshot of the timestamp counter for an upper bound on
     // the scan (we don't know yet if this is a begin_ts or commit_ts).
@@ -2659,7 +2659,7 @@ void server::apply_txn_logs_to_shared_view()
     }
 }
 
-void server::gc_applied_txn_logs()
+void db_server_t::gc_applied_txn_logs()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
@@ -2740,7 +2740,7 @@ void server::gc_applied_txn_logs()
     }
 }
 
-void server::update_txn_table_safe_truncation_point()
+void db_server_t::update_txn_table_safe_truncation_point()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
@@ -2792,7 +2792,7 @@ void server::update_txn_table_safe_truncation_point()
 
 // This method allocates a new begin_ts and initializes its entry in the txn
 // table.
-gaia_txn_id_t server::txn_begin()
+gaia_txn_id_t db_server_t::txn_begin()
 {
     // The newly allocated begin timestamp for the new txn.
     gaia_txn_id_t begin_ts;
@@ -2827,7 +2827,7 @@ gaia_txn_id_t server::txn_begin()
     return begin_ts;
 }
 
-void server::txn_rollback()
+void db_server_t::txn_rollback()
 {
     retail_assert(
         s_txn_id != c_invalid_gaia_txn_id,
@@ -2857,7 +2857,7 @@ void server::txn_rollback()
 // Before this method is called, we have already received the log fd from the client
 // and mmapped it.
 // This method returns true for a commit decision and false for an abort decision.
-bool server::txn_commit()
+bool db_server_t::txn_commit()
 {
     retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
@@ -2901,7 +2901,7 @@ bool server::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run(persistence_mode_t persistence_mode)
+void db_server_t::run(persistence_mode_t persistence_mode)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_persistence_mode = persistence_mode;

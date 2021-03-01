@@ -5,28 +5,28 @@
 
 #pragma once
 
-inline bool client::is_transaction_active()
+inline bool db_client_t::is_transaction_active()
 {
     return (s_private_locators.is_set());
 }
 
-inline void client::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
+inline void db_client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
 {
     s_txn_commit_trigger = trigger_fn;
 }
 
-inline gaia_txn_id_t client::get_txn_id()
+inline gaia_txn_id_t db_client_t::get_txn_id()
 {
     return s_txn_id;
 }
 
-inline bool client::is_valid_event(common::gaia_type_t type)
+inline bool db_client_t::is_valid_event(common::gaia_type_t type)
 {
     constexpr const common::gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
     return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
 }
 
-inline void client::verify_txn_active()
+inline void db_client_t::verify_txn_active()
 {
     if (!is_transaction_active())
     {
@@ -34,7 +34,7 @@ inline void client::verify_txn_active()
     }
 }
 
-inline void client::verify_no_txn()
+inline void db_client_t::verify_no_txn()
 {
     if (is_transaction_active())
     {
@@ -42,7 +42,7 @@ inline void client::verify_no_txn()
     }
 }
 
-inline void client::verify_session_active()
+inline void db_client_t::verify_session_active()
 {
     if (s_session_socket == -1)
     {
@@ -50,7 +50,7 @@ inline void client::verify_session_active()
     }
 }
 
-inline void client::verify_no_session()
+inline void db_client_t::verify_no_session()
 {
     if (s_session_socket != -1)
     {
@@ -58,7 +58,7 @@ inline void client::verify_no_session()
     }
 }
 
-inline void client::txn_log(
+inline void db_client_t::txn_log(
     gaia_locator_t locator,
     gaia_offset_t old_offset,
     gaia_offset_t new_offset,
