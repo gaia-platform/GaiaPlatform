@@ -39,7 +39,7 @@ public:
     }
 };
 
-class db_server_t
+class server_t
 {
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::counters_t* gaia::db::get_counters();

@@ -24,7 +24,7 @@ namespace gaia
 namespace db
 {
 
-class db_client_t
+class client_t
 {
     friend class gaia_ptr_t;
 

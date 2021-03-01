@@ -102,15 +102,15 @@ inline void reset_server()
     wait_for_server_init();
 }
 
-class db_server_t
+class server_t
 {
 public:
-    db_server_t()
+    server_t()
     {
         set_path(nullptr);
     }
 
-    explicit db_server_t(
+    explicit server_t(
         const char* db_server_path,
         bool disable_persistence = false)
         : m_disable_persistence(disable_persistence)

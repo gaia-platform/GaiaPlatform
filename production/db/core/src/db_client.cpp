@@ -50,7 +50,7 @@ static const std::string c_message_stream_socket_is_invalid = "Stream socket is 
 static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
 static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
 
-int db_client_t::get_id_cursor_socket_for_type(gaia_type_t type)
+int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
@@ -80,7 +80,7 @@ int db_client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
 template <typename T_element_type>
 std::function<std::optional<T_element_type>()>
-db_client_t::get_stream_generator_for_socket(int stream_socket)
+client_t::get_stream_generator_for_socket(int stream_socket)
 {
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -159,7 +159,7 @@ db_client_t::get_stream_generator_for_socket(int stream_socket)
 }
 
 std::function<std::optional<gaia_id_t>()>
-db_client_t::get_id_generator_for_type(gaia_type_t type)
+client_t::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
     auto cleanup_stream_socket = make_scope_guard([&]() {
@@ -195,7 +195,7 @@ static void build_client_request(
 // Sort all txn log records, by locator as primary key, and by offset as
 // secondary key. This enables us to use fast binary search and binary merge
 // algorithms for conflict detection.
-void db_client_t::sort_log()
+void client_t::sort_log()
 {
     retail_assert(s_log.is_set(), "Transaction log must be mapped!");
 
@@ -212,7 +212,7 @@ void db_client_t::sort_log()
 // This function must be called before establishing a new session. It ensures
 // that if the server restarts or is reset, no session will start with a stale
 // data mapping or locator fd.
-void db_client_t::clear_shared_memory()
+void client_t::clear_shared_memory()
 {
     // This is intended to be called before a session is established.
     verify_no_session();
@@ -227,7 +227,7 @@ void db_client_t::clear_shared_memory()
     close_fd(s_fd_locators);
 }
 
-void db_client_t::txn_cleanup()
+void client_t::txn_cleanup()
 {
     // Destroy the log memory mapping.
     s_log.close();
@@ -242,7 +242,7 @@ void db_client_t::txn_cleanup()
     s_events.clear();
 }
 
-int db_client_t::get_session_socket()
+int client_t::get_session_socket()
 {
     // Unlike the session socket on the server, this socket must be blocking,
     // since we don't read within a multiplexing poll loop.
@@ -292,7 +292,7 @@ int db_client_t::get_session_socket()
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
-void db_client_t::begin_session()
+void client_t::begin_session()
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -360,14 +360,14 @@ void db_client_t::begin_session()
     cleanup_session_socket.dismiss();
 }
 
-void db_client_t::end_session()
+void client_t::end_session()
 {
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);
 }
 
-void db_client_t::begin_transaction()
+void client_t::begin_transaction()
 {
     verify_session_active();
     verify_no_txn();
@@ -426,7 +426,7 @@ void db_client_t::begin_transaction()
     cleanup_private_locators.dismiss();
 }
 
-void db_client_t::apply_txn_log(int log_fd)
+void client_t::apply_txn_log(int log_fd)
 {
     retail_assert(s_private_locators.is_set(), "Locators segment must be mapped!");
 
@@ -440,7 +440,7 @@ void db_client_t::apply_txn_log(int log_fd)
     }
 }
 
-void db_client_t::rollback_transaction()
+void client_t::rollback_transaction()
 {
     verify_txn_active();
 
@@ -474,7 +474,7 @@ void db_client_t::rollback_transaction()
 // This method returns void on a commit decision and throws on an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
-void db_client_t::commit_transaction()
+void client_t::commit_transaction()
 {
     verify_txn_active();
     retail_assert(s_log.is_set(), "Transaction log must be mapped!");
@@ -536,7 +536,7 @@ void db_client_t::commit_transaction()
     }
 }
 
-address_offset_t db_client_t::request_memory(size_t object_size)
+address_offset_t client_t::request_memory(size_t object_size)
 {
     verify_txn_active();
 
@@ -559,14 +559,14 @@ address_offset_t db_client_t::request_memory(size_t object_size)
     return object_address_offset;
 }
 
-address_offset_t db_client_t::allocate_object(
+address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");
     address_offset_t allocated_memory_offset = c_invalid_offset;
 
-    allocated_memory_offset = db_client_t::request_memory(size);
+    allocated_memory_offset = client_t::request_memory(size);
 
     retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Returned offset not initialized.");
 
