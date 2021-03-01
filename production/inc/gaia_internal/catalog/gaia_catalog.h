@@ -113,9 +113,9 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     gaia::direct_access::vector<uint8_t> binary_schema() const {return gaia::direct_access::vector<uint8_t>GET(binary_schema);}
     gaia::direct_access::vector<uint8_t> serialization_template() const {return gaia::direct_access::vector<uint8_t>GET(serialization_template);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>* binary_schema, const std::vector<uint8_t>* serialization_template) {
+    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, binary_schema, serialization_template));
+        b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, &binary_schema, &serialization_template));
         return edc_object_t::insert_row(b);
     }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_table, gaia_table_t>& list() {
@@ -278,9 +278,9 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
     const char* source_location() const {return GET_STR(source_location);}
     const char* serial_stream() const {return GET_STR(serial_stream);}
     using edc_object_t::insert_row;
-    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>* table_ids, const char* source_location, const char* serial_stream) {
+    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, table_ids, source_location, serial_stream));
+        b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, &table_ids, source_location, serial_stream));
         return edc_object_t::insert_row(b);
     }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t>& list() {

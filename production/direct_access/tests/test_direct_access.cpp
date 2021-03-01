@@ -908,7 +908,7 @@ TEST_F(edc_object_test, array_insert)
     txn.commit();
 
     auto c = customer_t::get(id);
-    EXPECT_TRUE(std::equal(c.sales_by_quarter()->begin(), c.sales_by_quarter()->end(), sales_by_quarter.begin()));
+    EXPECT_TRUE(std::equal(c.sales_by_quarter().begin(), c.sales_by_quarter().end(), sales_by_quarter.begin()));
 }
 
 TEST_F(edc_object_test, array_writer)

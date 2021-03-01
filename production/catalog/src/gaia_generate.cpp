@@ -81,7 +81,7 @@ static string field_cpp_type_string(
     {
         if (is_function_parameter)
         {
-            type_str = "const std::vector<" + type_str + ">*";
+            type_str = "const std::vector<" + type_str + ">&";
         }
         else
         {
@@ -388,6 +388,10 @@ static string generate_edc_struct(
     for (const auto& f : field_records)
     {
         param_list += ", ";
+        if (f.repeated_count() != 1)
+        {
+            param_list += "&";
+        }
         param_list += f.name();
     }
     param_list += "));";
