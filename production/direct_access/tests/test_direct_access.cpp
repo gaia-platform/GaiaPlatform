@@ -14,17 +14,20 @@
 
 #include "gaia_addr_book.h"
 
-using namespace std;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
+using std::exception;
+using std::string;
+using std::thread;
+
 class edc_object_test : public db_catalog_test_base_t
 {
 protected:
     edc_object_test()
-        : db_catalog_test_base_t(std::string("addr_book.ddl")){};
+        : db_catalog_test_base_t(string("addr_book.ddl")){};
 };
 
 int count_rows()
@@ -890,4 +893,47 @@ TEST_F(edc_object_test, list_filter)
         const char* first_name = e.name_first();
         EXPECT_EQ(first_name[strlen(first_name) - 1], 'y');
     }
+}
+
+TEST_F(edc_object_test, array_insert)
+{
+    const char* customer_name = "Unibot";
+    const int32_t q1_sales = 200;
+    const int32_t q2_sales = 300;
+    const int32_t q3_sales = 500;
+
+    auto_transaction_t txn;
+    std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
+    gaia_id_t id = customer_t::insert_row(customer_name, &sales_by_quarter);
+    txn.commit();
+
+    auto c = customer_t::get(id);
+    EXPECT_TRUE(std::equal(c.sales_by_quarter()->begin(), c.sales_by_quarter()->end(), sales_by_quarter.begin()));
+}
+
+TEST_F(edc_object_test, array_writer)
+{
+    const char* customer_name = "xorlab";
+    const int32_t q1_sales = 100;
+    const int32_t q2_sales = 200;
+    const int32_t q3_sales = 300;
+
+    auto_transaction_t txn;
+    auto w = customer_writer();
+    w.name = customer_name;
+    w.sales_by_quarter = {q1_sales, q2_sales};
+    gaia_id_t id = w.insert_row();
+    txn.commit();
+
+    auto c = customer_t::get(id);
+    EXPECT_STREQ(c.name(), customer_name);
+    EXPECT_EQ((*c.sales_by_quarter())[0], q1_sales);
+    EXPECT_EQ((*c.sales_by_quarter())[1], q2_sales);
+
+    w = c.writer();
+    w.sales_by_quarter.push_back(q3_sales);
+    w.update_row();
+    txn.commit();
+
+    EXPECT_EQ((*customer_t::get(id).sales_by_quarter())[2], q3_sales);
 }
