@@ -274,12 +274,22 @@ private:
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
-    // Linked txn timestamp embedded in the txn timestamp entry.
-    // For a commit_ts entry, this is its associated begin_ts, and for a
-    // begin_ts entry, this is its associated commit_ts. The linked begin_ts is
-    // always present in a commit_ts entry, but the associated begin_ts entry
-    // may not be updated with its linked commit_ts until after the commit_ts
-    // entry has been created.
+    // Linked txn timestamp embedded in the txn timestamp entry. For a commit_ts
+    // entry, this is its associated begin_ts, and for a begin_ts entry, this is
+    // its associated commit_ts. A commit_ts entry always contains its linked
+    // begin_ts, but a begin_ts entry may not be updated with its linked
+    // commit_ts until after the associated commit_ts entry has been created.
+    //
+    // REVIEW: We could save at least 10 bits (conservatively) if we replaced
+    // the linked timestamp with its delta from the entry's timestamp (the delta
+    // for a linked begin_ts would be implicitly negative). 32 bits should be
+    // more than we would ever need, and 16 bits could suffice if we enforced
+    // limits on the "age" of an active txn (e.g., if we aborted txns whose
+    // begin_ts was > 2^16 older than the last allocated timestamp). We might
+    // want to enforce an age limit anyway, of course, to avoid unbounded
+    // garbage accumulation (which consumes memory, open fds, and other
+    // resources, and also increases txn begin latency, although it doesn't
+    // affect read/write latency, since we don't use version chains).
     static constexpr uint64_t c_txn_ts_bits{42ULL};
     static constexpr uint64_t c_txn_ts_shift{0ULL};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
