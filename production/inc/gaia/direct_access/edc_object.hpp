@@ -39,7 +39,7 @@ namespace direct_access
  */
 
 template <typename T_type>
-struct edc_vector_t;
+class edc_vector_t;
 
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct edc_writer_t;
