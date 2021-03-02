@@ -12,47 +12,47 @@
 
 bool gaia::db::is_transaction_active()
 {
-    return gaia::db::client::is_transaction_active();
+    return gaia::db::client_t::is_transaction_active();
 }
 
 void gaia::db::begin_session()
 {
-    gaia::db::client::begin_session();
+    gaia::db::client_t::begin_session();
 }
 
 void gaia::db::end_session()
 {
-    gaia::db::client::end_session();
+    gaia::db::client_t::end_session();
 }
 
 void gaia::db::begin_transaction()
 {
-    gaia::db::client::begin_transaction();
+    gaia::db::client_t::begin_transaction();
 }
 
 void gaia::db::rollback_transaction()
 {
-    gaia::db::client::rollback_transaction();
+    gaia::db::client_t::rollback_transaction();
 }
 
 void gaia::db::commit_transaction()
 {
-    gaia::db::client::commit_transaction();
+    gaia::db::client_t::commit_transaction();
 }
 
 void gaia::db::set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn)
 {
-    gaia::db::client::set_commit_trigger(trigger_fn);
+    gaia::db::client_t::set_commit_trigger(trigger_fn);
 }
 
 void gaia::db::clear_shared_memory()
 {
-    gaia::db::client::clear_shared_memory();
+    gaia::db::client_t::clear_shared_memory();
 }
 
 gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
 {
-    return gaia::db::client::get_txn_id();
+    return gaia::db::client_t::get_txn_id();
 }
 
 // Implements Murmur3 64-bit finalizer
@@ -77,7 +77,7 @@ static inline uint64_t mix_bits(uint64_t x)
 // Returns uint64_t since gaia_txn_id_t isn't a public type.
 uint64_t gaia::db::transaction_id()
 {
-    auto txn_id = static_cast<uint64_t>(gaia::db::client::get_txn_id());
+    auto txn_id = static_cast<uint64_t>(gaia::db::client_t::get_txn_id());
     uint64_t obfuscated_txn_id = mix_bits(txn_id);
     // We require that mix_bits() maps 0 to 0, and that its inverse does as well.
     common::retail_assert(

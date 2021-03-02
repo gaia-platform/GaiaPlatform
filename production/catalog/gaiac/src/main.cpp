@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
     gaia_log::initialize({});
 
     int res = EXIT_SUCCESS;
-    db_server_t server;
+    server_t server;
     string output_path;
     string db_name;
     string ddl_filename;

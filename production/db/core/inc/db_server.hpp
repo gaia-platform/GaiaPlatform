@@ -39,7 +39,7 @@ public:
     }
 };
 
-class server
+class server_t
 {
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::counters_t* gaia::db::get_counters();
@@ -534,18 +534,18 @@ private:
     // entry even while it is concurrently invalidated (i.e. the fd is closed and
     // its embedded value set to -1). The constructor throws an invalid_log_fd
     // exception if the fd is invalidated during construction.
-    class safe_fd_from_ts
+    class safe_fd_from_ts_t
     {
     public:
-        explicit safe_fd_from_ts(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
+        explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
 
         // The "rule of 3" doesn't apply here since we never pass this object
         // directly to a function; we always extract the safe fd value first.
-        safe_fd_from_ts() = delete;
-        safe_fd_from_ts(const safe_fd_from_ts&) = delete;
-        safe_fd_from_ts& operator=(const safe_fd_from_ts&) = delete;
+        safe_fd_from_ts_t() = delete;
+        safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
+        safe_fd_from_ts_t& operator=(const safe_fd_from_ts_t&) = delete;
 
-        ~safe_fd_from_ts();
+        ~safe_fd_from_ts_t();
 
         // This is the only public API. Callers are expected to call this method on
         // a stack-constructed instance of the class before they pass an fd to a

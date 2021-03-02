@@ -44,7 +44,7 @@ class recovery_test : public ::testing::Test
 {
 public:
     // Empty server path, enable persistence.
-    static inline db_server_t s_server{nullptr, false};
+    static inline server_t s_server{nullptr, false};
 
     static void set_server_path(const char* server_path)
     {
