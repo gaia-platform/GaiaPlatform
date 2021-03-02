@@ -38,6 +38,9 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
+template <typename T_type>
+struct edc_vector_t;
+
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct edc_writer_t;
 
@@ -157,6 +160,15 @@ protected:
      * exception.
      */
     static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
+
+    /**
+     * Convert a flatbuffers::Vector to the corresponding edc_vector_t.
+     */
+    template <typename T_type>
+    static edc_vector_t<T_type> to_edc_vector(const flatbuffers::Vector<T_type>* vector_ptr)
+    {
+        return edc_vector_t(vector_ptr);
+    };
 };
 
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>

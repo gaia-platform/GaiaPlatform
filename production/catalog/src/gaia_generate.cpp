@@ -85,7 +85,7 @@ static string field_cpp_type_string(
         }
         else
         {
-            type_str = "gaia::direct_access::vector<" + type_str + ">";
+            type_str = "gaia::direct_access::edc_vector_t<" + type_str + ">";
         }
     }
     else if (field.repeated_count() > 1)
@@ -352,7 +352,7 @@ static string generate_edc_struct(
         }
         else if (f.repeated_count() != 1)
         {
-            code.SetValue("FCN_NAME", field_cpp_type_string(f) + "GET");
+            code.SetValue("FCN_NAME", "GET_ARRAY");
         }
         else
         {
@@ -360,8 +360,6 @@ static string generate_edc_struct(
         }
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
     }
-
-    code += "using edc_object_t::insert_row;";
 
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");

@@ -7,29 +7,19 @@
 
 #include "flatbuffers/flatbuffers.h"
 
+#include "gaia/direct_access/edc_object.hpp"
+
 namespace gaia
 {
 
 namespace direct_access
 {
 
-// The vector type for direct access.
-//
-// A pimpl style wrapper class to encapsulate flatbuffers::Vector
-// implementation.
+// A pimpl style wrapper class that encapsulates flatbuffers::Vector.
 template <typename T_type>
-class vector
+struct edc_vector_t
 {
-public:
-    explicit vector(const flatbuffers::Vector<T_type>* vector_ptr)
-        : m_ptr(vector_ptr){};
-
-    explicit operator const flatbuffers::Vector<T_type>*() const
-    {
-        return m_ptr;
-    };
-
-    T_type* data()
+    const T_type* data()
     {
         return m_ptr->data();
     };
@@ -44,17 +34,23 @@ public:
         return (*m_ptr)[i];
     }
 
-    auto begin()
+    auto begin() const
     {
         return m_ptr->begin();
     };
 
-    auto end()
+    auto end() const
     {
         return m_ptr->end();
     };
 
 private:
+    template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+    friend struct edc_object_t;
+
+    explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
+        : m_ptr(vector_ptr){};
+
     const flatbuffers::Vector<T_type>* m_ptr;
 };
 

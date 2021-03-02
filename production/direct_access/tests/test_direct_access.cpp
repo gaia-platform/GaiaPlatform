@@ -903,7 +903,7 @@ TEST_F(edc_object_test, array_insert)
     const int32_t q3_sales = 500;
 
     auto_transaction_t txn;
-    std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
+    const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
     gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
     txn.commit();
 

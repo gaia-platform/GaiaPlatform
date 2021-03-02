@@ -18,6 +18,7 @@ namespace direct_access
 // Macros for strongly-typed field accessors used by edc_object_t objects below.
 #define GET(field) (row()->field())
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
+#define GET_ARRAY(field) (to_edc_vector(row()->field()))
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::edc_object_t(
