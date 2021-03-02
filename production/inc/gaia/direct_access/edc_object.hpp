@@ -14,6 +14,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
+#include "gaia/direct_access/edc_array.hpp"
 #include "gaia/direct_access/edc_base.hpp"
 #include "gaia/direct_access/edc_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
@@ -29,15 +30,6 @@ namespace gaia
 namespace direct_access
 {
 
-// The vector type for direct access.
-//
-// Currently, it is declared as an alias to the flatbuffers:Vector which is the
-// type of the flatbuffers vector payload in memory. We can create our own
-// implementation in the future if we want to replace the payload format with
-// our own format.
-template <typename T_class>
-using vector = flatbuffers::Vector<T_class>;
-
 /**
  * \addtogroup Direct
  * @{
@@ -45,6 +37,9 @@ using vector = flatbuffers::Vector<T_class>;
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
+
+template <typename T_type>
+class edc_vector_t;
 
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct edc_writer_t;
@@ -165,6 +160,15 @@ protected:
      * exception.
      */
     static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
+
+    /**
+     * Convert a flatbuffers::Vector to the corresponding edc_vector_t.
+     */
+    template <typename T_type>
+    static edc_vector_t<T_type> to_edc_vector(const flatbuffers::Vector<T_type>* vector_ptr)
+    {
+        return edc_vector_t(vector_ptr);
+    };
 };
 
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>

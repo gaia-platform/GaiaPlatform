@@ -903,12 +903,12 @@ TEST_F(edc_object_test, array_insert)
     const int32_t q3_sales = 500;
 
     auto_transaction_t txn;
-    std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, &sales_by_quarter);
+    const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
+    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
     txn.commit();
 
     auto c = customer_t::get(id);
-    EXPECT_TRUE(std::equal(c.sales_by_quarter()->begin(), c.sales_by_quarter()->end(), sales_by_quarter.begin()));
+    EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
 }
 
 TEST_F(edc_object_test, array_writer)
@@ -927,13 +927,13 @@ TEST_F(edc_object_test, array_writer)
 
     auto c = customer_t::get(id);
     EXPECT_STREQ(c.name(), customer_name);
-    EXPECT_EQ((*c.sales_by_quarter())[0], q1_sales);
-    EXPECT_EQ((*c.sales_by_quarter())[1], q2_sales);
+    EXPECT_EQ(c.sales_by_quarter()[0], q1_sales);
+    EXPECT_EQ(c.sales_by_quarter()[1], q2_sales);
 
     w = c.writer();
     w.sales_by_quarter.push_back(q3_sales);
     w.update_row();
     txn.commit();
 
-    EXPECT_EQ((*customer_t::get(id).sales_by_quarter())[2], q3_sales);
+    EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
 }

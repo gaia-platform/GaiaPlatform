@@ -81,11 +81,11 @@ static string field_cpp_type_string(
     {
         if (is_function_parameter)
         {
-            type_str = "const std::vector<" + type_str + ">*";
+            type_str = "const std::vector<" + type_str + ">&";
         }
         else
         {
-            type_str = "const gaia::direct_access::vector<" + type_str + ">*";
+            type_str = "gaia::direct_access::edc_vector_t<" + type_str + ">";
         }
     }
     else if (field.repeated_count() > 1)
@@ -350,14 +350,16 @@ static string generate_edc_struct(
             has_string = true;
             code.SetValue("FCN_NAME", "GET_STR");
         }
+        else if (f.repeated_count() != 1)
+        {
+            code.SetValue("FCN_NAME", "GET_ARRAY");
+        }
         else
         {
             code.SetValue("FCN_NAME", "GET");
         }
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
     }
-
-    code += "using edc_object_t::insert_row;";
 
     // The typed insert_row().
     string param_list("static gaia::common::gaia_id_t insert_row(");
@@ -384,6 +386,10 @@ static string generate_edc_struct(
     for (const auto& f : field_records)
     {
         param_list += ", ";
+        if (f.repeated_count() != 1)
+        {
+            param_list += "&";
+        }
         param_list += f.name();
     }
     param_list += "));";

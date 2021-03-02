@@ -572,8 +572,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
         table_name.c_str(),
         table_type,
         is_system,
-        &bfbs,
-        &bin);
+        bfbs,
+        bin);
 
     gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 
