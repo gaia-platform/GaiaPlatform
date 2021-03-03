@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/direct_access/edc_object.hpp"
@@ -20,12 +22,12 @@ template <typename T_type>
 class edc_vector_t
 {
 public:
-    const T_type* data()
+    const T_type* data() const
     {
         return m_vector->data();
     };
 
-    uint32_t size()
+    uint32_t size() const
     {
         return m_vector->size();
     };
@@ -45,7 +47,10 @@ private:
     friend struct edc_object_t;
 
     explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
-        : m_vector(vector_ptr){};
+        : m_vector(vector_ptr)
+    {
+        static_assert(std::is_arithmetic<T_type>::value, "Only support arrays of basic types.");
+    };
 
     const flatbuffers::Vector<T_type>* m_vector;
 };
