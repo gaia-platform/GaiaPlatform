@@ -21,6 +21,7 @@
 using namespace gaia::addr_book;
 using namespace gaia::addr_book::address_expr;
 using namespace gaia::addr_book::employee_expr;
+using namespace gaia::addr_book::customer_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
@@ -39,6 +40,9 @@ protected:
     address_t seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee;
     employee_t simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
     phone_t landline, mobile;
+    customer_t hooli, pied_piper;
+    const vector<int32_t> hooli_sales{3, 1, 4, 1, 5};
+    const vector<int32_t> pied_piper_sales{1, 1, 2, 3, 5};
 
     void SetUp() override
     {
@@ -66,6 +70,9 @@ protected:
 
         landline = create_phone("(206)867-5309", "landline", aberdeen);
         mobile = create_phone("(407) 123-4567", "mobile", kissimmee);
+
+        hooli = create_customer("Hooli", hooli_sales);
+        pied_piper = create_customer("Pied Piper", pied_piper_sales);
 
         commit_transaction();
     }
@@ -103,6 +110,11 @@ protected:
         address.phone_list().insert(phone);
 
         return phone;
+    }
+
+    customer_t create_customer(const char* name, const std::vector<int32_t>& sales_by_quarter)
+    {
+        return customer_t::get(customer_t::insert_row(name, sales_by_quarter));
     }
 
     /**
@@ -508,4 +520,28 @@ TEST_F(test_expressions, container_count)
     assert_empty(
         employee_t::list()
             .where(addressee_address_list.count() > 10));
+}
+
+TEST_F(test_expressions, array)
+{
+    auto_transaction_t txn;
+    assert_contains(
+        customer_t::list().where(
+            [this](const auto& c) {
+                return equal(pied_piper_sales.begin(), pied_piper_sales.end(), c.sales_by_quarter().data());
+            }),
+        pied_piper);
+
+    assert_contains(
+        customer_t::list().where(
+            [this](const auto& c) {
+                return c.sales_by_quarter()[3] == hooli_sales[3];
+            }),
+        hooli);
+
+    assert_empty(
+        customer_t::list().where(
+            [](const auto& c) {
+                return c.sales_by_quarter()[0] == -1;
+            }));
 }
