@@ -130,16 +130,16 @@ struct ts_info_t
 
     // Transaction info special values.
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_value_unknown{0ULL};
+    static constexpr uint64_t c_value_uninitialized{0ULL};
 
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_value_invalid{0b101ULL << c_txn_status_flags_shift};
+    static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 
     ts_info_t() noexcept;
     explicit ts_info_t(uint64_t value);
 
-    inline bool is_unknown() const;
-    inline bool is_invalid() const;
+    inline bool is_uninitialized() const;
+    inline bool is_sealed() const;
     inline bool is_begin_ts() const;
     inline bool is_commit_ts() const;
     inline bool is_submitted() const;

@@ -111,7 +111,7 @@ private:
     // the txn timestamp counter and containing metadata for every txn that has
     // been submitted to the system.
     //
-    // Entries may be "unknown" (uninitialized), "invalid" (initialized with a
+    // Entries may be "uninitialized", "sealed" (initialized with a
     // special "junk" value and forbidden to be used afterward), or initialized
     // with txn metadata, consisting of 3 status bits, 1 bit for GC status
     // (unknown or complete), 1 bit for persistence status (unknown or
@@ -313,13 +313,13 @@ private:
 
     static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
-    static bool invalidate_unknown_ts(gaia_txn_id_t ts);
+    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
 
     static void check_ts_size(gaia_txn_id_t ts);
 
-    static bool is_unknown_ts(gaia_txn_id_t ts);
+    static bool is_uninitialized_ts(gaia_txn_id_t ts);
 
-    static bool is_invalid_ts(gaia_txn_id_t ts);
+    static bool is_sealed_ts(gaia_txn_id_t ts);
 
     static bool is_begin_ts(gaia_txn_id_t ts);
 

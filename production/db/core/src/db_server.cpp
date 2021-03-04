@@ -62,7 +62,7 @@ static constexpr char c_message_epollerr_flag_should_not_be_set[] = "EPOLLERR fl
 static constexpr char c_message_unexpected_fd[] = "Unexpected fd!";
 static constexpr char c_message_not_a_begin_timestamp[] = "Not a begin timestamp!";
 static constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
-static constexpr char c_message_unknown_timestamp[] = "Unknown timestamp!";
+static constexpr char c_message_uninitialized_timestamp[] = "Uninitialized timestamp!";
 static constexpr char c_message_unexpected_errno_value[] = "Unexpected errno value!";
 static constexpr char c_message_txn_log_fd_cannot_be_invalidated[]
     = "A txn log fd can only be invalidated if its commit_ts has been validated!";
@@ -1532,13 +1532,13 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
 {
     // Scan txn table entries from start_ts to end_ts.
-    // Invalidate any unknown entries and validate any undecided txns.
+    // Seal any uninitialized entries and validate any undecided txns.
     for (gaia_txn_id_t ts = start_ts; ts < end_ts; ++ts)
     {
         // Fence off any txns that have allocated a commit_ts between start_ts
         // and end_ts but have not yet registered a commit_ts info in the txn
         // table.
-        invalidate_unknown_ts(ts);
+        seal_uninitialized_ts(ts);
 
         // Validate any undecided submitted txns.
         if (is_commit_ts(ts) && is_txn_validating(ts))
@@ -1560,13 +1560,13 @@ void server_t::dump_ts_info(gaia_txn_id_t ts)
 
     cerr << "Timestamp info for ts " << ts << ": " << info_bits << endl;
 
-    if (ts_info.is_unknown())
+    if (ts_info.is_uninitialized())
     {
         cerr << "UNKNOWN" << endl;
         return;
     }
 
-    if (ts_info.is_invalid())
+    if (ts_info.is_sealed())
     {
         cerr << "INVALID" << endl;
         return;
@@ -1601,36 +1601,36 @@ void server_t::dump_ts_info(gaia_txn_id_t ts)
 }
 
 // This is designed for implementing "fences" that can guarantee no thread can
-// ever claim a timestamp info, by marking that info permanently invalid.
-// Invalidation can only be performed on an "unknown" info, not on any valid
+// ever claim a timestamp info, by marking that info permanently sealed.
+// Sealing can only be performed on an "uninitialized" info, not on any valid
 // info. When a session thread beginning or committing a txn finds that its
-// begin_ts or commit_ts has been invalidated upon initializing the info for
+// begin_ts or commit_ts has been sealed upon initializing the info for
 // that timestamp, it simply allocates another timestamp and retries. This is
 // possible because we never publish a newly allocated timestamp until we know
 // that its info has been successfully initialized.
-inline bool server_t::invalidate_unknown_ts(gaia_txn_id_t ts)
+inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
 {
-    // If the info is not unknown, we can't invalidate it.
-    if (!is_unknown_ts(ts))
+    // If the info is not uninitialized, we can't seal it.
+    if (!is_uninitialized_ts(ts))
     {
         return false;
     }
 
     ts_info_t expected_info;
-    ts_info_t invalid_info(ts_info_t::c_value_invalid);
+    ts_info_t sealed_info(ts_info_t::c_value_sealed);
 
-    bool has_invalidated_info = s_txn_info[ts].compare_exchange_strong(expected_info, invalid_info);
+    bool has_sealed_info = s_txn_info[ts].compare_exchange_strong(expected_info, sealed_info);
     // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
     // submitting thread can transition the txn to these states.
-    if (!has_invalidated_info)
+    if (!has_sealed_info)
     {
         // NB: expected_info is an inout argument holding the previous value on failure!
         retail_assert(
-            !expected_info.is_unknown(),
-            "An unknown timestamp info cannot fail to be invalidated!");
+            !expected_info.is_uninitialized(),
+            "An uninitialized timestamp info cannot fail to be sealed!");
     }
 
-    return has_invalidated_info;
+    return has_sealed_info;
 }
 
 inline void server_t::check_ts_size(gaia_txn_id_t ts)
@@ -1638,23 +1638,23 @@ inline void server_t::check_ts_size(gaia_txn_id_t ts)
     retail_assert(ts < (1ULL << ts_info_t::c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
 }
 
-inline bool server_t::is_unknown_ts(gaia_txn_id_t ts)
+inline bool server_t::is_uninitialized_ts(gaia_txn_id_t ts)
 {
     check_ts_size(ts);
 
     ts_info_t ts_info = s_txn_info[ts];
-    return ts_info.is_unknown();
+    return ts_info.is_uninitialized();
 }
 
-inline bool server_t::is_invalid_ts(gaia_txn_id_t ts)
+inline bool server_t::is_sealed_ts(gaia_txn_id_t ts)
 {
     ts_info_t ts_info = s_txn_info[ts];
-    return ts_info.is_invalid();
+    return ts_info.is_sealed();
 }
 
 inline bool server_t::is_begin_ts(gaia_txn_id_t ts)
 {
-    retail_assert(!is_unknown_ts(ts), c_message_unknown_timestamp);
+    retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
 
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.is_begin_ts();
@@ -1662,7 +1662,7 @@ inline bool server_t::is_begin_ts(gaia_txn_id_t ts)
 
 inline bool server_t::is_commit_ts(gaia_txn_id_t ts)
 {
-    retail_assert(!is_unknown_ts(ts), c_message_unknown_timestamp);
+    retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
 
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.is_commit_ts();
@@ -1743,7 +1743,7 @@ inline bool server_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 inline uint64_t server_t::get_status(gaia_txn_id_t ts)
 {
     retail_assert(
-        !is_unknown_ts(ts) && !is_invalid_ts(ts),
+        !is_uninitialized_ts(ts) && !is_sealed_ts(ts),
         "Invalid timestamp info!");
 
     ts_info_t ts_info = s_txn_info[ts];
@@ -1821,7 +1821,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
 {
     // Only an active txn can be submitted.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
-    retail_assert(!is_unknown_ts(commit_ts), c_message_unknown_timestamp);
+    retail_assert(!is_uninitialized_ts(commit_ts), c_message_uninitialized_timestamp);
 
     // Transition the begin_ts info to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags
@@ -1831,7 +1831,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
     ts_info_t submitted_begin_ts_info(c_submitted_flags | commit_ts);
 
     // We don't need a CAS here since only the session thread can submit or terminate a txn,
-    // and an active txn cannot be invalidated.
+    // and an active txn cannot be sealed.
     s_txn_info[begin_ts] = submitted_begin_ts_info;
 }
 
@@ -1842,7 +1842,7 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
 
     // We don't need a CAS here because only the session thread can submit or terminate a txn,
-    // and an active txn cannot be invalidated.
+    // and an active txn cannot be sealed.
 
     ts_info_t old_info = s_txn_info[begin_ts];
     ts_info_t new_info = old_info.set_terminated();
@@ -1851,7 +1851,7 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 
 inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(!is_unknown_ts(begin_ts), c_message_unknown_timestamp);
+    retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
     // We construct the commit_ts info by concatenating status flags (3 bits),
     // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
@@ -1861,9 +1861,9 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
     ts_info_t commit_ts_info(c_shifted_status_flags | shifted_log_fd | begin_ts);
 
     // We're possibly racing another beginning or committing txn that wants to
-    // invalidate our commit_ts info. We use compare_exchange_weak() since we
+    // seal our commit_ts info. We use compare_exchange_weak() since we
     // need to loop until success anyway. A spurious failure will just waste a
-    // timestamp, and the uninitialized info will eventually be invalidated.
+    // timestamp, and the uninitialized info will eventually be sealed.
     gaia_txn_id_t commit_ts;
     ts_info_t expected_info;
     do
@@ -1882,7 +1882,7 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
 
 gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(!is_unknown_ts(begin_ts), c_message_unknown_timestamp);
+    retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
     // We assume all our log fds are non-negative and fit into 16 bits. (The
     // highest possible value is reserved to indicate an invalid fd.)
@@ -2001,13 +2001,13 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     //    begin and commit timestamps, traversing from oldest to newest txns and
     //    testing for conflicts as we go, to allow as much time as possible for
     //    undecided txns to be validated, and for commit timestamps allocated
-    //    within our conflict window to be registered. Invalidate all unknown
+    //    within our conflict window to be registered. Seal all uninitialized
     //    timestamps we encounter, so no active txns can be submitted within our
     //    conflict window. Any submitted txns which have allocated a commit
     //    timestamp within our conflict window but have not yet registered their
     //    commit timestamp must now retry with a new timestamp. (This allows us
     //    to treat our conflict window as an immutable snapshot of submitted
-    //    txns, without needing to acquire any locks.) Skip over all invalidated
+    //    txns, without needing to acquire any locks.) Skip over all sealed
     //    timestamps, active txns, undecided txns, and aborted txns. Repeat this
     //    phase until no newly committed txns are discovered.
     //
@@ -2065,13 +2065,13 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
         new_committed_txn_found = false;
         for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
-            // Invalidate all unknown timestamps. This marks a "fence" after which
+            // Seal all uninitialized timestamps. This marks a "fence" after which
             // any submitted txns with commit timestamps in our conflict window must
             // already be registered under their commit_ts (they must retry with a
-            // new timestamp otherwise). (The invalidation is necessary only on the
-            // first pass, but the "unknown timestamp info" check is cheap enough
+            // new timestamp otherwise). (The sealing is necessary only on the
+            // first pass, but the "uninitialized timestamp info" check is cheap enough
             // that repeating it on subsequent passes shouldn't matter.)
-            if (invalidate_unknown_ts(ts))
+            if (seal_uninitialized_ts(ts))
             {
                 continue;
             }
@@ -2116,11 +2116,11 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         // conflicts, and the watermark always advances in order, it
                         // cannot be the case that this txn's log fd has not been
                         // invalidated while our txn's log fd has been invalidated.
-                        gaia_txn_id_t invalidated_commit_ts = e.get_ts();
+                        gaia_txn_id_t sealed_commit_ts = e.get_ts();
                         retail_assert(
-                            is_txn_decided(invalidated_commit_ts),
+                            is_txn_decided(sealed_commit_ts),
                             c_message_txn_log_fd_cannot_be_invalidated);
-                        if (invalidated_commit_ts == ts)
+                        if (sealed_commit_ts == ts)
                         {
                             retail_assert(
                                 is_txn_decided(commit_ts),
@@ -2198,11 +2198,11 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     // watermark always advances in order, it cannot be the case
                     // that this txn's log fd has not been invalidated while our
                     // txn's log fd has been invalidated.
-                    gaia_txn_id_t invalidated_commit_ts = e.get_ts();
+                    gaia_txn_id_t sealed_commit_ts = e.get_ts();
                     retail_assert(
-                        is_txn_decided(invalidated_commit_ts),
+                        is_txn_decided(sealed_commit_ts),
                         c_message_txn_log_fd_cannot_be_invalidated);
-                    if (invalidated_commit_ts == commit_ts)
+                    if (sealed_commit_ts == commit_ts)
                     {
                         retail_assert(
                             get_txn_log_fd(ts) == -1,
@@ -2211,7 +2211,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     else
                     {
                         retail_assert(
-                            invalidated_commit_ts == ts,
+                            sealed_commit_ts == ts,
                             c_message_unexpected_commit_ts_value);
                         retail_assert(
                             is_txn_decided(commit_ts),
@@ -2389,8 +2389,8 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 // 1. We scan the interval from a snapshot of the pre-apply watermark to a
 //    snapshot of the last allocated timestamp, and attempt to advance the
 //    pre-apply watermark if it has the same value as the post-apply watermark,
-//    and if the next timestamp info is either an invalid timestamp (we
-//    invalidate all unknown entries during the scan), a commit_ts that is
+//    and if the next timestamp info is either a sealed timestamp (we
+//    seal all uninitialized entries during the scan), a commit_ts that is
 //    decided, or a begin_ts that is terminated or submitted with a decided
 //    commit_ts. If we successfully advanced the watermark and the current entry
 //    is a committed commit_ts, then we can apply its redo log to the shared
@@ -2480,9 +2480,9 @@ void server_t::apply_txn_logs_to_shared_view()
 
     for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
     {
-        // We need to invalidate unknown entries as we go along, so that we
+        // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
-        invalidate_unknown_ts(ts);
+        seal_uninitialized_ts(ts);
 
         // If this is a commit_ts, we cannot advance the watermark unless it's
         // decided.
@@ -2604,7 +2604,7 @@ void server_t::gc_applied_txn_logs()
 
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(!is_unknown_ts(ts), "All unknown txn table entries should be invalidated!");
+        retail_assert(!is_uninitialized_ts(ts), "All uninitialized txn table entries should be sealed!");
 
         retail_assert(
             !(is_begin_ts(ts) && is_txn_active(ts)),
@@ -2684,7 +2684,7 @@ void server_t::update_txn_table_safe_truncation_point()
 
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(!is_unknown_ts(ts), "All unknown txn table entries should be invalidated!");
+        retail_assert(!is_uninitialized_ts(ts), "All uninitialized txn table entries should be sealed!");
 
         retail_assert(
             !(is_begin_ts(ts) && is_txn_active(ts)),
@@ -2742,7 +2742,7 @@ gaia_txn_id_t server_t::txn_begin()
     // additional logic.
     do
     {
-        // The txn table info must be uninitialized (not invalidated).
+        // The txn table info must be uninitialized (not sealed).
         expected_info = ts_info_t();
 
         // Allocate a new begin timestamp.

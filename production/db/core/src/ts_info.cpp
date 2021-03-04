@@ -14,7 +14,7 @@ namespace db
 
 ts_info_t::ts_info_t() noexcept
 {
-    value = c_value_unknown;
+    value = c_value_uninitialized;
 }
 
 ts_info_t::ts_info_t(uint64_t value)
@@ -25,7 +25,7 @@ ts_info_t::ts_info_t(uint64_t value)
 const char* ts_info_t::status_to_str() const
 {
     common::retail_assert(
-        !is_unknown() && !is_invalid(),
+        !is_uninitialized() && !is_sealed(),
         "Not a valid timestamp info!");
 
     uint64_t status = get_status();

@@ -5,26 +5,26 @@
 
 #pragma once
 
-bool ts_info_t::is_unknown() const
+bool ts_info_t::is_uninitialized() const
 {
-    return value == c_value_unknown;
+    return value == c_value_uninitialized;
 }
 
-bool ts_info_t::is_invalid() const
+bool ts_info_t::is_sealed() const
 {
-    return value == c_value_invalid;
+    return value == c_value_sealed;
 }
 
 bool ts_info_t::is_begin_ts() const
 {
-    // The "unknown" value has the commit bit unset, so we need to check it as well.
-    return (!is_unknown() && ((value & c_txn_status_commit_mask) == 0));
+    // The "uninitialized" value has the commit bit unset, so we need to check it as well.
+    return (!is_uninitialized() && ((value & c_txn_status_commit_mask) == 0));
 }
 
 bool ts_info_t::is_commit_ts() const
 {
-    // The "invalid" value has the commit bit set, so we need to check it as well.
-    return (!is_invalid() && ((value & c_txn_status_commit_mask) == c_txn_status_commit_mask));
+    // The "sealed" value has the commit bit set, so we need to check it as well.
+    return (!is_sealed() && ((value & c_txn_status_commit_mask) == c_txn_status_commit_mask));
 }
 
 bool ts_info_t::is_submitted() const
