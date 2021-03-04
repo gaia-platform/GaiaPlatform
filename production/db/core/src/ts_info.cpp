@@ -12,12 +12,17 @@ namespace gaia
 namespace db
 {
 
+ts_info_t::ts_info_t() noexcept
+{
+    value = c_value_unknown;
+}
+
 ts_info_t::ts_info_t(uint64_t value)
 {
     this->value = value;
 }
 
-const char* ts_info_t::status_to_str()
+const char* ts_info_t::status_to_str() const
 {
     common::retail_assert(
         !is_unknown() && !is_invalid(),

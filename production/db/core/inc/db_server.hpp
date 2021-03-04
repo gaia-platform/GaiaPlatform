@@ -315,6 +315,8 @@ private:
 
     static bool invalidate_unknown_ts(gaia_txn_id_t ts);
 
+    static void check_ts_size(gaia_txn_id_t ts);
+
     static bool is_unknown_ts(gaia_txn_id_t ts);
 
     static bool is_invalid_ts(gaia_txn_id_t ts);
@@ -359,7 +361,7 @@ private:
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
-    static void update_txn_decision(gaia_txn_id_t commit_ts, bool committed);
+    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 

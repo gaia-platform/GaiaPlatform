@@ -135,28 +135,34 @@ struct ts_info_t
     // The first 3 bits of this value are unused for any txn state.
     static constexpr uint64_t c_value_invalid{0b101ULL << c_txn_status_flags_shift};
 
-    ts_info_t() = default;
+    ts_info_t() noexcept;
     explicit ts_info_t(uint64_t value);
 
-    inline bool is_unknown();
-    inline bool is_invalid();
-    inline bool is_begin_ts();
-    inline bool is_commit_ts();
-    inline bool is_submitted();
-    inline bool is_validating();
-    inline bool is_decided();
-    inline bool is_committed();
-    inline bool is_aborted();
-    inline bool is_gc_complete();
-    inline bool is_durable();
-    inline bool is_active();
-    inline bool is_terminated();
+    inline bool is_unknown() const;
+    inline bool is_invalid() const;
+    inline bool is_begin_ts() const;
+    inline bool is_commit_ts() const;
+    inline bool is_submitted() const;
+    inline bool is_validating() const;
+    inline bool is_decided() const;
+    inline bool is_committed() const;
+    inline bool is_aborted() const;
+    inline bool is_gc_complete() const;
+    inline bool is_durable() const;
+    inline bool is_active() const;
+    inline bool is_terminated() const;
 
-    inline uint64_t get_status();
+    inline ts_info_t invalidate_txn_log_fd() const;
+    inline ts_info_t set_terminated() const;
+    inline ts_info_t set_gc_complete() const;
 
-    inline int get_txn_log_fd();
+    inline uint64_t get_status() const;
 
-    const char* status_to_str();
+    inline uint64_t get_timestamp() const;
+
+    inline int get_txn_log_fd() const;
+
+    const char* status_to_str() const;
 
     uint64_t value;
 };

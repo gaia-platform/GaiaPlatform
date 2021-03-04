@@ -1543,10 +1543,10 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
         // Validate any undecided submitted txns.
         if (is_commit_ts(ts) && is_txn_validating(ts))
         {
-            bool committed = validate_txn(ts);
+            bool is_committed = validate_txn(ts);
 
             // Update the current txn's decided status.
-            update_txn_decision(ts, committed);
+            update_txn_decision(ts, is_committed);
         }
     }
 }
@@ -1555,46 +1555,46 @@ void server_t::dump_ts_info(gaia_txn_id_t ts)
 {
     // NB: We generally cannot use the is_*_ts() functions because the entry could
     // change while we're reading it!
-    ts_info_t info = s_txn_info[ts];
-    std::bitset<ts_info_t::c_txn_info_bits> info_bits(info.value);
+    ts_info_t ts_info = s_txn_info[ts];
+    std::bitset<ts_info_t::c_txn_info_bits> info_bits(ts_info.value);
 
     cerr << "Timestamp info for ts " << ts << ": " << info_bits << endl;
 
-    if (info.is_unknown())
+    if (ts_info.is_unknown())
     {
         cerr << "UNKNOWN" << endl;
         return;
     }
 
-    if (info.is_invalid())
+    if (ts_info.is_invalid())
     {
         cerr << "INVALID" << endl;
         return;
     }
 
-    cerr << "Type: " << (info.is_commit_ts() ? "COMMIT" : "ACTIVE") << endl;
-    cerr << "Status: " << info.status_to_str() << endl;
+    cerr << "Type: " << (ts_info.is_commit_ts() ? "COMMIT" : "ACTIVE") << endl;
+    cerr << "Status: " << ts_info.status_to_str() << endl;
 
-    if (info.is_commit_ts())
+    if (ts_info.is_commit_ts())
     {
         gaia_txn_id_t begin_ts = get_begin_ts(ts);
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
-        ts_info_t info = s_txn_info[begin_ts];
-        std::bitset<ts_info_t::c_txn_info_bits> info_bits(info.value);
+        ts_info_t ts_info = s_txn_info[begin_ts];
+        std::bitset<ts_info_t::c_txn_info_bits> info_bits(ts_info.value);
         cerr << "Timestamp info for commit_ts info's begin_ts " << begin_ts << ": " << info_bits << endl;
         cerr << "Log fd for commit_ts info: " << get_txn_log_fd(ts) << endl;
     }
 
-    if (info.is_begin_ts() && info.is_submitted())
+    if (ts_info.is_begin_ts() && ts_info.is_submitted())
     {
         gaia_txn_id_t commit_ts = get_commit_ts(ts);
         if (commit_ts != c_invalid_gaia_txn_id)
         {
             // We can't recurse here since we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
-            ts_info_t info = s_txn_info[commit_ts];
-            std::bitset<ts_info_t::c_txn_info_bits> info_bits(info.value);
+            ts_info_t ts_info = s_txn_info[commit_ts];
+            std::bitset<ts_info_t::c_txn_info_bits> info_bits(ts_info.value);
             cerr << "Timestamp info for begin_ts info's commit_ts " << commit_ts << ": " << info_bits << endl;
         }
     }
@@ -1616,7 +1616,7 @@ inline bool server_t::invalidate_unknown_ts(gaia_txn_id_t ts)
         return false;
     }
 
-    ts_info_t expected_info(ts_info_t::c_value_unknown);
+    ts_info_t expected_info;
     ts_info_t invalid_info(ts_info_t::c_value_invalid);
 
     bool has_invalidated_info = s_txn_info[ts].compare_exchange_strong(expected_info, invalid_info);
@@ -1633,8 +1633,15 @@ inline bool server_t::invalidate_unknown_ts(gaia_txn_id_t ts)
     return has_invalidated_info;
 }
 
+inline void server_t::check_ts_size(gaia_txn_id_t ts)
+{
+    retail_assert(ts < (1ULL << ts_info_t::c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
+}
+
 inline bool server_t::is_unknown_ts(gaia_txn_id_t ts)
 {
+    check_ts_size(ts);
+
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.is_unknown();
 }
@@ -1647,12 +1654,16 @@ inline bool server_t::is_invalid_ts(gaia_txn_id_t ts)
 
 inline bool server_t::is_begin_ts(gaia_txn_id_t ts)
 {
+    retail_assert(!is_unknown_ts(ts), c_message_unknown_timestamp);
+
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.is_begin_ts();
 }
 
 inline bool server_t::is_commit_ts(gaia_txn_id_t ts)
 {
+    retail_assert(!is_unknown_ts(ts), c_message_unknown_timestamp);
+
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.is_commit_ts();
 }
@@ -1660,6 +1671,7 @@ inline bool server_t::is_commit_ts(gaia_txn_id_t ts)
 inline bool server_t::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
+
     ts_info_t begin_ts_info = s_txn_info[begin_ts];
     return begin_ts_info.is_submitted();
 }
@@ -1667,20 +1679,23 @@ inline bool server_t::is_txn_submitted(gaia_txn_id_t begin_ts)
 inline bool server_t::is_txn_validating(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
     return commit_ts_info.is_validating();
 }
 
 inline bool server_t::is_txn_decided(gaia_txn_id_t commit_ts)
 {
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
-    retail_assert(commit_ts_info.is_commit_ts(), c_message_not_a_commit_timestamp);
     return commit_ts_info.is_decided();
 }
 
 inline bool server_t::is_txn_committed(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
     return commit_ts_info.is_committed();
 }
@@ -1688,38 +1703,41 @@ inline bool server_t::is_txn_committed(gaia_txn_id_t commit_ts)
 inline bool server_t::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
     return commit_ts_info.is_aborted();
 }
 
 inline bool server_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
     return commit_ts_info.is_gc_complete();
 }
 
 inline bool server_t::is_txn_durable(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
     return commit_ts_info.is_durable();
 }
 
 inline bool server_t::is_txn_active(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != ts_info_t::c_value_unknown, c_message_unknown_timestamp);
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-    ts_info_t ts_info = s_txn_info[begin_ts];
-    return ts_info.is_active();
+
+    ts_info_t begin_ts_info = s_txn_info[begin_ts];
+    return begin_ts_info.is_active();
 }
 
 inline bool server_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != ts_info_t::c_value_unknown, c_message_unknown_timestamp);
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-    ts_info_t ts_info = s_txn_info[begin_ts];
-    return ts_info.is_terminated();
+
+    ts_info_t begin_ts_info = s_txn_info[begin_ts];
+    return begin_ts_info.is_terminated();
 }
 
 inline uint64_t server_t::get_status(gaia_txn_id_t ts)
@@ -1727,6 +1745,7 @@ inline uint64_t server_t::get_status(gaia_txn_id_t ts)
     retail_assert(
         !is_unknown_ts(ts) && !is_invalid_ts(ts),
         "Invalid timestamp info!");
+
     ts_info_t ts_info = s_txn_info[ts];
     return ts_info.get_status();
 }
@@ -1734,10 +1753,11 @@ inline uint64_t server_t::get_status(gaia_txn_id_t ts)
 inline gaia_txn_id_t server_t::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
     ts_info_t commit_ts_info = s_txn_info[commit_ts];
-    // The begin_ts is the low 42 bits of the ts info.
-    gaia_txn_id_t begin_ts = commit_ts_info.value & ts_info_t::c_txn_ts_mask;
+    gaia_txn_id_t begin_ts = commit_ts_info.get_timestamp();
     retail_assert(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
+
     return begin_ts;
 }
 
@@ -1745,21 +1765,23 @@ inline gaia_txn_id_t server_t::get_commit_ts(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
+
     ts_info_t begin_ts_info = s_txn_info[begin_ts];
-    // The commit_ts is the low 42 bits of the begin_ts info.
-    gaia_txn_id_t commit_ts = begin_ts_info.value & ts_info_t::c_txn_ts_mask;
+    gaia_txn_id_t commit_ts = begin_ts_info.get_timestamp();
     if (is_txn_submitted(begin_ts))
     {
         retail_assert(commit_ts != c_invalid_gaia_txn_id, "commit_ts must be valid for a submitted begin_ts!");
     }
+
     return commit_ts;
 }
 
 inline int server_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-    ts_info_t ts_info = s_txn_info[commit_ts];
-    return ts_info.get_txn_log_fd();
+
+    ts_info_t commit_ts_info = s_txn_info[commit_ts];
+    return commit_ts_info.get_txn_log_fd();
 }
 
 inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
@@ -1789,7 +1811,7 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
         }
 
     } while (!s_txn_info[commit_ts].compare_exchange_weak(
-        commit_ts_info, ts_info_t(commit_ts_info.value | ts_info_t::c_txn_log_fd_mask)));
+        commit_ts_info, commit_ts_info.invalidate_txn_log_fd()));
 
     return true;
 }
@@ -1799,6 +1821,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
 {
     // Only an active txn can be submitted.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
+    retail_assert(!is_unknown_ts(commit_ts), c_message_unknown_timestamp);
 
     // Transition the begin_ts info to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags
@@ -1818,19 +1841,18 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     // Only an active txn can be terminated.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
 
-    // We don't need a CAS here since only the session thread can submit or terminate a txn,
+    // We don't need a CAS here because only the session thread can submit or terminate a txn,
     // and an active txn cannot be invalidated.
 
-    // Mask out the existing status flags and mask in the new ones.
-    constexpr uint64_t c_terminated_flags
-        = ts_info_t::c_txn_status_terminated << ts_info_t::c_txn_status_flags_shift;
     ts_info_t old_info = s_txn_info[begin_ts];
-    ts_info_t new_info(c_terminated_flags | (old_info.value & ~ts_info_t::c_txn_status_flags_mask));
+    ts_info_t new_info = old_info.set_terminated();
     s_txn_info[begin_ts] = new_info;
 }
 
 inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
 {
+    retail_assert(!is_unknown_ts(begin_ts), c_message_unknown_timestamp);
+
     // We construct the commit_ts info by concatenating status flags (3 bits),
     // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << ts_info_t::c_txn_log_fd_shift;
@@ -1848,10 +1870,10 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
     {
         // Allocate a new commit timestamp.
         commit_ts = allocate_txn_id();
-        // The commit_ts info must fit in 42 bits.
-        retail_assert(commit_ts < (1ULL << ts_info_t::c_txn_ts_bits), "commit_ts must fit in 42 bits!");
+        check_ts_size(commit_ts);
+
         // The commit_ts info must be uninitialized.
-        expected_info = ts_info_t(ts_info_t::c_value_unknown);
+        expected_info = ts_info_t();
 
     } while (!s_txn_info[commit_ts].compare_exchange_weak(expected_info, commit_ts_info));
 
@@ -1860,8 +1882,7 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
 
 gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
-    // The begin_ts info must fit in 42 bits.
-    retail_assert(begin_ts < (1ULL << ts_info_t::c_txn_ts_bits), "begin_ts must fit in 42 bits!");
+    retail_assert(!is_unknown_ts(begin_ts), c_message_unknown_timestamp);
 
     // We assume all our log fds are non-negative and fit into 16 bits. (The
     // highest possible value is reserved to indicate an invalid fd.)
@@ -1880,7 +1901,7 @@ gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
     return commit_ts;
 }
 
-void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
+void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
 {
     // The commit_ts info must be in state TXN_VALIDATING or TXN_DECIDED.
     // We allow the latter to enable idempotent concurrent validation.
@@ -1889,7 +1910,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
         "commit_ts info must be in validating or decided state!");
 
     uint64_t decided_status_flags
-        = committed ? ts_info_t::c_txn_status_committed : ts_info_t::c_txn_status_aborted;
+        = is_committed ? ts_info_t::c_txn_status_committed : ts_info_t::c_txn_status_aborted;
 
     // We can just reuse the log fd and begin_ts from the existing info.
     ts_info_t expected_info = s_txn_info[commit_ts];
@@ -1899,7 +1920,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
     {
         // If another txn validated before us, they should have reached the same decision.
         retail_assert(
-            expected_info.is_committed() == committed,
+            expected_info.is_committed() == is_committed,
             "Inconsistent txn decision detected!");
 
         return;
@@ -1919,7 +1940,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool committed)
 
         // If another txn validated before us, they should have reached the same decision.
         retail_assert(
-            expected_info.is_committed() == committed,
+            expected_info.is_committed() == is_committed,
             "Inconsistent txn decision detected!");
 
         return;
@@ -2139,10 +2160,10 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     c_message_preceding_txn_should_have_been_validated);
 
                 // Recursively validate the current undecided txn.
-                bool committed = validate_txn(ts);
+                bool is_committed = validate_txn(ts);
 
                 // Update the current txn's decided status.
-                update_txn_decision(ts, committed);
+                update_txn_decision(ts, is_committed);
             }
 
             // If a previously undecided txn has now committed, test it for conflicts.
@@ -2289,8 +2310,7 @@ bool server_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     ts_info_t expected_info = s_txn_info[commit_ts];
     // Set GC status to TXN_GC_COMPLETE.
-    ts_info_t commit_ts_info(
-        expected_info.value | (ts_info_t::c_txn_gc_complete << ts_info_t::c_txn_gc_flags_shift));
+    ts_info_t commit_ts_info = expected_info.set_gc_complete();
     return s_txn_info[commit_ts].compare_exchange_strong(expected_info, commit_ts_info);
 }
 
@@ -2723,14 +2743,11 @@ gaia_txn_id_t server_t::txn_begin()
     do
     {
         // The txn table info must be uninitialized (not invalidated).
-        expected_info = ts_info_t(ts_info_t::c_value_unknown);
+        expected_info = ts_info_t();
 
         // Allocate a new begin timestamp.
         begin_ts = allocate_txn_id();
-
-        // The begin_ts info must fit in 42 bits.
-        retail_assert(begin_ts < (1ULL << ts_info_t::c_txn_ts_bits), "begin_ts must fit in 42 bits!");
-
+        check_ts_size(begin_ts);
     } while (!s_txn_info[begin_ts].compare_exchange_weak(expected_info, c_begin_ts_info));
 
     return begin_ts;
@@ -2787,15 +2804,15 @@ bool server_t::txn_commit()
     retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Validate the committing txn.
-    bool committed = validate_txn(commit_ts);
+    bool is_committed = validate_txn(commit_ts);
 
     // Update the txn info with our commit decision.
-    update_txn_decision(commit_ts, committed);
+    update_txn_decision(commit_ts, is_committed);
 
     // Append commit or rollback marker to the WAL.
     if (rdb)
     {
-        if (committed)
+        if (is_committed)
         {
             rdb->append_wal_commit_marker(txn_name);
         }
@@ -2805,7 +2822,7 @@ bool server_t::txn_commit()
         }
     }
 
-    return committed;
+    return is_committed;
 }
 
 // this must be run on main thread
