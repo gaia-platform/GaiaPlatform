@@ -150,7 +150,7 @@ void server::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<in
     // whose log fd is known to have been applied to the shared locator view.
     // This avoids having our scan race the concurrently advancing watermark.
     gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
-    cerr << "Watermark before scanning for txn logs to apply for begin_ts " << s_txn_id << ": " << last_known_applied_commit_ts << endl;
+    // cerr << "Watermark before scanning for txn logs to apply for begin_ts " << s_txn_id << ": " << last_known_applied_commit_ts << endl;
     for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
     {
         if (is_commit_ts(ts))
@@ -584,13 +584,13 @@ void server::init_shared_memory()
 
     // Register an object deallocator that just frees pages when they're empty.
     register_object_deallocator([](gaia_offset_t offset) {
-        std::cerr << "Deallocating object with offset " << offset << std::endl;
+        // std::cerr << "Deallocating object with offset " << offset << std::endl;
         size_t byte_offset = offset * sizeof(uint64_t);
         size_t end_byte_offset = byte_offset + size_from_offset(offset);
         size_t start_page_index = byte_offset / c_page_size_bytes;
         size_t end_page_index = end_byte_offset / c_page_size_bytes;
         size_t page_byte_offset = byte_offset % c_page_size_bytes;
-        std::cerr << "Deallocating object with offset " << offset << ", byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
+        // std::cerr << "Deallocating object with offset " << offset << ", byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
         // For debugging, poison the deallocated object by setting its size field to the max value.
         // NB: we cannot read the object again after this step!
         auto obj = offset_to_ptr(offset);
@@ -599,7 +599,7 @@ void server::init_shared_memory()
         for (size_t page_index = start_page_index; page_index <= end_page_index; ++page_index)
         {
             size_t old_count = (*s_page_alloc_counts)[page_index].fetch_sub(1);
-            std::cerr << "Decrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
+            // std::cerr << "Decrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
             // Don't free the first page until we relocate the last offset counter.
             if (old_count == 1 && page_index > 0)
             {
@@ -1578,6 +1578,7 @@ inline bool server::is_txn_entry_begin_ts(ts_entry_t ts_entry)
 
 inline bool server::is_begin_ts(gaia_txn_id_t ts)
 {
+    retail_assert(!is_unknown_ts(ts), "Unknown timestamp!");
     ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_begin_ts(ts_entry);
 }
@@ -1590,6 +1591,7 @@ inline bool server::is_txn_entry_commit_ts(ts_entry_t ts_entry)
 
 inline bool server::is_commit_ts(gaia_txn_id_t ts)
 {
+    retail_assert(!is_unknown_ts(ts), "Unknown timestamp!");
     ts_entry_t ts_entry = s_txn_info[ts];
     return is_txn_entry_commit_ts(ts_entry);
 }
@@ -1688,7 +1690,6 @@ inline bool server::is_txn_entry_active(ts_entry_t ts_entry)
 
 inline bool server::is_txn_active(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
     ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_active(ts_entry);
@@ -1701,7 +1702,6 @@ inline bool server::is_txn_entry_terminated(ts_entry_t ts_entry)
 
 inline bool server::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
-    retail_assert(begin_ts != c_txn_entry_unknown, "Unknown timestamp!");
     retail_assert(is_begin_ts(begin_ts), "Not a begin timestamp!");
     ts_entry_t ts_entry = s_txn_info[begin_ts];
     return is_txn_entry_terminated(ts_entry);
@@ -2014,7 +2014,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
     // txn with a conflicting write set, which would abort and hence not cause
     // us to abort).
 
-    cerr << "Validating txn with commit_ts " << commit_ts << " (begin_ts " << get_begin_ts(commit_ts) << ")" << endl;
+    // cerr << "Validating txn with commit_ts " << commit_ts << " (begin_ts " << get_begin_ts(commit_ts) << ")" << endl;
 
     // Since we make multiple passes over the conflict window, we need to track
     // committed txns that have already been tested for conflicts.
@@ -2028,7 +2028,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
     auto pass = 0;
     do
     {
-        cerr << "Starting committed txn pass " << ++pass << " for commit_ts " << commit_ts << endl;
+        // cerr << "Starting committed txn pass " << ++pass << " for commit_ts " << commit_ts << endl;
         new_committed_txn_found = false;
         for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
@@ -2050,7 +2050,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                 if (new_committed_ts)
                 {
                     new_committed_txn_found = true;
-                    cerr << "Testing committed commit_ts " << ts << " for conflicts with top-level commit_ts " << commit_ts << endl;
+                    // cerr << "Testing committed commit_ts " << ts << " for conflicts with top-level commit_ts " << commit_ts << endl;
 
                     // Eagerly test committed txns for conflicts to give undecided
                     // txns more time for validation (and submitted txns more time
@@ -2068,7 +2068,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
                         if (txn_logs_conflict(validating_fd.get_fd(), committed_fd.get_fd()))
                         {
-                            cerr << "Conflict detected with committed commit_ts " << ts << ", aborting commit_ts " << commit_ts << endl;
+                            // cerr << "Conflict detected with committed commit_ts " << ts << ", aborting commit_ts " << commit_ts << endl;
                             return false;
                         }
                     }
@@ -2098,7 +2098,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                         // If either log fd was invalidated, then the validating txn
                         // must have been validated, so we can return the decision
                         // immediately.
-                        cerr << "A txn log fd was invalidated during conflict detection, returning decision " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << " for commit_ts " << commit_ts << endl;
+                        // cerr << "A txn log fd was invalidated during conflict detection, returning decision " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << " for commit_ts " << commit_ts << endl;
                         return is_txn_committed(commit_ts);
                     }
                 }
@@ -2107,7 +2107,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
             // Check if another thread has already validated this txn.
             if (is_txn_decided(commit_ts))
             {
-                cerr << "Another committing txn recursively validated top-level txn with commit_ts " << commit_ts << " (decision: " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << ")" << endl;
+                // cerr << "Another committing txn recursively validated top-level txn with commit_ts " << commit_ts << " (decision: " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << ")" << endl;
                 return is_txn_committed(commit_ts);
             }
         }
@@ -2131,9 +2131,9 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                     c_message_preceding_txn_should_have_been_validated);
 
                 // Recursively validate the current undecided txn.
-                cerr << "Recursively validating commit_ts " << ts << " from top-level validation of commit_ts " << commit_ts << endl;
+                // cerr << "Recursively validating commit_ts " << ts << " from top-level validation of commit_ts " << commit_ts << endl;
                 bool committed = validate_txn(ts);
-                cerr << "Recursive validation of commit_ts " << ts << " from top-level validation of commit_ts " << commit_ts << " returned decision " << (committed ? "COMMIT" : "ABORT") << endl;
+                // cerr << "Recursive validation of commit_ts " << ts << " from top-level validation of commit_ts " << commit_ts << " returned decision " << (committed ? "COMMIT" : "ABORT") << endl;
 
                 // Update the current txn's decided status.
                 update_txn_decision(ts, committed);
@@ -2142,7 +2142,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
             // If a previously undecided txn has now committed, test it for conflicts.
             if (is_txn_committed(ts) && committed_txns_tested_for_conflicts.count(ts) == 0)
             {
-                cerr << "Testing previously undecided committed commit_ts " << ts << " for conflicts with top-level commit_ts " << commit_ts << endl;
+                // cerr << "Testing previously undecided committed commit_ts " << ts << " for conflicts with top-level commit_ts " << commit_ts << endl;
                 // We need to use the safe_fd_from_ts wrapper for conflict
                 // detection in case either log fd is invalidated by another
                 // thread concurrently advancing the watermark. If either log fd
@@ -2155,7 +2155,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
 
                     if (txn_logs_conflict(validating_fd.get_fd(), new_committed_fd.get_fd()))
                     {
-                        cerr << "Conflict detected with previously undecided committed commit_ts " << ts << ", aborting commit_ts " << commit_ts << endl;
+                        // cerr << "Conflict detected with previously undecided committed commit_ts " << ts << ", aborting commit_ts " << commit_ts << endl;
                         return false;
                     }
                 }
@@ -2195,7 +2195,7 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
                     // If either log fd was invalidated, then the validating txn
                     // must have been validated, so we can return the decision
                     // immediately.
-                    cerr << "A txn log fd was invalidated during conflict detection, returning decision " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << " for commit_ts " << commit_ts << endl;
+                    // cerr << "A txn log fd was invalidated during conflict detection, returning decision " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << " for commit_ts " << commit_ts << endl;
                     return is_txn_committed(commit_ts);
                 }
             }
@@ -2204,14 +2204,14 @@ bool server::validate_txn(gaia_txn_id_t commit_ts)
         // Check if another thread has already validated this txn.
         if (is_txn_decided(commit_ts))
         {
-            cerr << "Another committing txn recursively validated top-level txn with commit_ts " << commit_ts << " (decision: " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << ")" << endl;
+            // cerr << "Another committing txn recursively validated top-level txn with commit_ts " << commit_ts << " (decision: " << (is_txn_committed(commit_ts) ? "COMMIT" : "ABORT") << ")" << endl;
             return is_txn_committed(commit_ts);
         }
     }
 
     // At this point, there are no undecided txns in the conflict window, and
     // all committed txns have been tested for conflicts, so we can commit.
-    cerr << "No conflicts found for commit_ts " << commit_ts << ", committing" << endl;
+    // cerr << "No conflicts found for commit_ts " << commit_ts << ", committing" << endl;
     return true;
 }
 
@@ -2301,8 +2301,8 @@ void server::gc_txn_log(int log_fd, bool committed)
         unmap_fd(txn_log, txn_log->size());
     });
 
-    cerr << "Freeing log with fd " << log_fd << " on " << (committed ? "COMMIT" : "ABORT") << ":\n"
-         << *txn_log << endl;
+    // cerr << "Freeing log with fd " << log_fd << " on " << (committed ? "COMMIT" : "ABORT") << ":\n"
+    //  << *txn_log << endl;
 
     for (size_t i = 0; i < txn_log->record_count; ++i)
     {
