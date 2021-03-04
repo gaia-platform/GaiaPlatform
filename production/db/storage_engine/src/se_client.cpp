@@ -418,7 +418,7 @@ void client::begin_transaction()
     // Update the log header with our begin timestamp.
     s_log->begin_ts = s_txn_id;
 
-    cerr << "Opening new txn with begin_ts " << s_txn_id << endl;
+    // cerr << "Opening new txn with begin_ts " << s_txn_id << endl;
 
     // Map a private COW view of the locator shared memory segment.
     retail_assert(!s_locators, "Locators segment should be uninitialized!");
@@ -427,12 +427,12 @@ void client::begin_transaction()
         unmap_fd(s_locators, sizeof(*s_locators));
     });
 
-    cerr << "Last commit_ts applied to private locator mapping for begin_ts " << s_txn_id << ": " << (*s_locators)[0] << endl;
+    // cerr << "Last commit_ts applied to private locator mapping for begin_ts " << s_txn_id << ": " << (*s_locators)[0] << endl;
 
     // Apply all txn logs received from the server to our snapshot, in order.
     size_t fds_remaining_count = txn_info->log_fd_count();
 
-    cerr << "Applying " << fds_remaining_count << " txn logs to txn with begin_ts " << s_txn_id << endl;
+    // cerr << "Applying " << fds_remaining_count << " txn logs to txn with begin_ts " << s_txn_id << endl;
 
     while (fds_remaining_count > 0)
     {
@@ -473,7 +473,7 @@ void client::apply_txn_log(int log_fd)
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(txn_log, get_fd_size(log_fd));
     });
-    cerr << "Applying log with begin_ts " << txn_log->begin_ts << " to snapshot for begin_ts " << s_txn_id << endl;
+    // cerr << "Applying log with begin_ts " << txn_log->begin_ts << " to snapshot for begin_ts " << s_txn_id << endl;
     for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         auto lr = txn_log->log_records + i;
@@ -510,7 +510,7 @@ void client::commit_transaction()
     verify_txn_active();
     retail_assert(s_log, "Transaction log must be mapped!");
 
-    cerr << "Committing txn with begin_ts " << s_txn_id << endl;
+    // cerr << "Committing txn with begin_ts " << s_txn_id << endl;
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
@@ -526,8 +526,8 @@ void client::commit_transaction()
     // Sort log records by locator.
     sort_log();
 
-    cerr << "Log for txn " << s_txn_id << ":" << endl
-         << *s_log << endl;
+    // cerr << "Log for txn " << s_txn_id << ":" << endl
+    //      << *s_log << endl;
 
     // Get final size of log.
     size_t log_size = s_log->size();
