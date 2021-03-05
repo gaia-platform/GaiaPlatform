@@ -14,13 +14,13 @@ namespace gaia
 namespace db
 {
 
-struct ts_info_t
+struct txn_metadata_t
 {
-    // Transaction timestamp info constants.
+    // Transaction timestamp metadata constants.
     //
-    // Timestamp info format:
+    // Timestamp metadata format:
     // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
-    static constexpr uint64_t c_txn_info_bits{64ULL};
+    static constexpr uint64_t c_txn_metadata_bits{64ULL};
 
     // Since we restrict all fds to 16 bits, this is the largest possible value
     // in that range, which we reserve to indicate an invalidated fd (i.e., one
@@ -29,7 +29,7 @@ struct ts_info_t
 
     // Transaction status flags.
     static constexpr uint64_t c_txn_status_flags_bits{3ULL};
-    static constexpr uint64_t c_txn_status_flags_shift{c_txn_info_bits - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_status_flags_shift{c_txn_metadata_bits - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
 
@@ -55,14 +55,14 @@ struct ts_info_t
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
 
     // Transaction GC status values.
-    // These only apply to a commit_ts info.
+    // These only apply to a commit_ts metadata.
     // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, since any txn
     // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
     // persistence is enabled) is eligible for GC, and an invalidated log fd
     // indicates that GC is in progress.
     static constexpr uint64_t c_txn_gc_flags_bits{1ULL};
     static constexpr uint64_t c_txn_gc_flags_shift{
-        (c_txn_info_bits - c_txn_gc_flags_bits) - c_txn_status_flags_bits};
+        (c_txn_metadata_bits - c_txn_gc_flags_bits) - c_txn_status_flags_bits};
     static constexpr uint64_t c_txn_gc_flags_mask{
         ((1ULL << c_txn_gc_flags_bits) - 1) << c_txn_gc_flags_shift};
 
@@ -82,7 +82,7 @@ struct ts_info_t
     // been marked durable. If persistence is disabled, this flag is unused.
     static constexpr uint64_t c_txn_persistence_flags_bits{1ULL};
     static constexpr uint64_t c_txn_persistence_flags_shift{
-        (c_txn_info_bits - c_txn_persistence_flags_bits)
+        (c_txn_metadata_bits - c_txn_persistence_flags_bits)
         - (c_txn_status_flags_bits + c_txn_gc_flags_bits)};
     static constexpr uint64_t c_txn_persistence_flags_mask{
         ((1ULL << c_txn_persistence_flags_bits) - 1) << c_txn_persistence_flags_shift};
@@ -92,15 +92,15 @@ struct ts_info_t
     static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
 
     // This is a placeholder for the single (currently) reserved bit in the txn
-    // timestamp info.
+    // timestamp metadata.
     static constexpr uint64_t c_txn_reserved_flags_bits{1ULL};
 
-    // Txn log fd embedded in the txn timestamp info.
-    // This is only present in a commit_ts info.
+    // Txn log fd embedded in the txn timestamp metadata.
+    // This is only present in a commit_ts metadata.
     // NB: we assume that any fd will be < 2^16 - 1!
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
     static constexpr uint64_t c_txn_log_fd_shift{
-        (c_txn_info_bits - c_txn_log_fd_bits)
+        (c_txn_metadata_bits - c_txn_log_fd_bits)
         - (c_txn_status_flags_bits
            + c_txn_gc_flags_bits
            + c_txn_persistence_flags_bits
@@ -108,14 +108,14 @@ struct ts_info_t
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
-    // Linked txn timestamp embedded in the txn timestamp info. For a commit_ts
-    // info, this is its associated begin_ts, and for a begin_ts info, this is
-    // its associated commit_ts. A commit_ts info always contains its linked
-    // begin_ts, but a begin_ts info may not be updated with its linked
-    // commit_ts until after the associated commit_ts info has been created.
+    // Linked txn timestamp embedded in the txn timestamp metadata. For a commit_ts
+    // metadata, this is its associated begin_ts, and for a begin_ts metadata, this is
+    // its associated commit_ts. A commit_ts metadata always contains its linked
+    // begin_ts, but a begin_ts metadata may not be updated with its linked
+    // commit_ts until after the associated commit_ts metadata has been created.
     //
     // REVIEW: We could save at least 10 bits (conservatively) if we replaced
-    // the linked timestamp with its delta from the info's timestamp (the delta
+    // the linked timestamp with its delta from the metadata's timestamp (the delta
     // for a linked begin_ts would be implicitly negative). 32 bits should be
     // more than we would ever need, and 16 bits could suffice if we enforced
     // limits on the "age" of an active txn (e.g., if we aborted txns whose
@@ -128,15 +128,15 @@ struct ts_info_t
     static constexpr uint64_t c_txn_ts_shift{0ULL};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
 
-    // Transaction info special values.
+    // Transaction metadata special values.
     // The first 3 bits of this value are unused for any txn state.
     static constexpr uint64_t c_value_uninitialized{0ULL};
 
     // The first 3 bits of this value are unused for any txn state.
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 
-    ts_info_t() noexcept;
-    explicit ts_info_t(uint64_t value);
+    txn_metadata_t() noexcept;
+    explicit txn_metadata_t(uint64_t value);
 
     inline bool is_uninitialized() const;
     inline bool is_sealed() const;
@@ -152,9 +152,9 @@ struct ts_info_t
     inline bool is_active() const;
     inline bool is_terminated() const;
 
-    inline ts_info_t invalidate_txn_log_fd() const;
-    inline ts_info_t set_terminated() const;
-    inline ts_info_t set_gc_complete() const;
+    inline txn_metadata_t invalidate_txn_log_fd() const;
+    inline txn_metadata_t set_terminated() const;
+    inline txn_metadata_t set_gc_complete() const;
 
     inline uint64_t get_status() const;
 
@@ -167,7 +167,7 @@ struct ts_info_t
     uint64_t value;
 };
 
-#include "ts_info.inc"
+#include "txn_metadata.inc"
 
 } // namespace db
 } // namespace gaia

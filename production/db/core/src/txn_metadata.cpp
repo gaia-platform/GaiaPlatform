@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "ts_info.hpp"
+#include "txn_metadata.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
 
@@ -12,21 +12,25 @@ namespace gaia
 namespace db
 {
 
-ts_info_t::ts_info_t() noexcept
+static_assert(
+    sizeof(txn_metadata_t) == sizeof(uint64_t),
+    "txn_metadata_t struct should only contain a uint64_t value!");
+
+txn_metadata_t::txn_metadata_t() noexcept
 {
     value = c_value_uninitialized;
 }
 
-ts_info_t::ts_info_t(uint64_t value)
+txn_metadata_t::txn_metadata_t(uint64_t value)
 {
     this->value = value;
 }
 
-const char* ts_info_t::status_to_str() const
+const char* txn_metadata_t::status_to_str() const
 {
     common::retail_assert(
         !is_uninitialized() && !is_sealed(),
-        "Not a valid timestamp info!");
+        "Not a valid timestamp metadata!");
 
     uint64_t status = get_status();
     switch (status)
@@ -44,7 +48,7 @@ const char* ts_info_t::status_to_str() const
     case c_txn_status_aborted:
         return "ABORTED";
     default:
-        common::retail_assert(false, "Unexpected ts_info_t status flags!");
+        common::retail_assert(false, "Unexpected txn_metadata_t status flags!");
     }
 
     return nullptr;

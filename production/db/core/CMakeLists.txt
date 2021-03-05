@@ -115,7 +115,7 @@ set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
-  src/ts_info.cpp
+  src/txn_metadata.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp

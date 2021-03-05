@@ -24,7 +24,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "stack_allocator.hpp"
-#include "ts_info.hpp"
+#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -117,14 +117,14 @@ private:
     // (unknown or complete), 1 bit for persistence status (unknown or
     // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
     // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
-    // txn embedded in its begin timestamp info, or the begin timestamp of a
-    // submitted txn embedded in its commit timestamp info). The 3 status bits
+    // txn embedded in its begin timestamp metadata, or the begin timestamp of a
+    // submitted txn embedded in its commit timestamp metadata). The 3 status bits
     // use the high bit to distinguish begin timestamps from commit timestamps,
     // and 2 bits to store the state of an active, terminated, or submitted txn.
     //
     // The array is always accessed without any locking, but its entries have
     // read and write barriers (via std::atomic) that ensure causal consistency
-    // between any threads that read or write the same info. Any writes to
+    // between any threads that read or write the same metadata. Any writes to
     // entries that may be written by multiple threads use CAS operations.
     //
     // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
@@ -141,23 +141,23 @@ private:
     // about a month and a half. If this is an issue, then we could treat the
     // array as a circular buffer, using a separate wraparound counter to
     // calculate the array offset from a timestamp, and we can use the 3
-    // reserved bits in the timestamp info to extend our range by a factor of
+    // reserved bits in the timestamp metadata to extend our range by a factor of
     // 8, so we could allocate 2^20 timestamps/second for a full year. If we
     // need a still larger timestamp range (say 64-bit timestamps, with
     // wraparound), we could just store the difference between a commit
     // timestamp and its txn's begin timestamp, which should be possible to
     // bound to no more than half the bits we use for the full timestamp, so we
     // would still need only 32 bits for a timestamp reference in the timestamp
-    // info. (We could store the array offset instead, but that would be
+    // metadata. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     //
-    // Timestamp info format:
+    // Timestamp metadata format:
     // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
-    static inline std::atomic<ts_info_t>* s_txn_info = nullptr;
+    static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
 
     // This should always be true on any 64-bit platform, but we assert since we
     // never want to fall back to a lock-based implementation of atomics.
-    static_assert(std::atomic<ts_info_t>::is_always_lock_free);
+    static_assert(std::atomic<txn_metadata_t>::is_always_lock_free);
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -171,7 +171,7 @@ private:
     // post-apply watermark has advanced to its commit_ts. The "post-GC"
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. The txn table cannot be
-    // truncated at any timestamp info after the post-GC watermark.
+    // truncated at any timestamp metadata after the post-GC watermark.
 
     // Schematically:
     // commit timestamps of transactions completely garbage-collected
@@ -263,7 +263,7 @@ private:
 
     static void request_memory();
 
-    static void init_txn_info();
+    static void init_txn_metadata();
 
     static void recover_db();
 
@@ -379,7 +379,7 @@ private:
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
-    static void dump_ts_info(gaia_txn_id_t ts);
+    static void dump_txn_metadata(gaia_txn_id_t ts);
 
     class invalid_log_fd : public common::gaia_exception
     {
@@ -399,7 +399,7 @@ private:
     };
 
     // This class allows txn code to safely use a txn log fd embedded in a commit_ts
-    // info even while it is concurrently invalidated (i.e. the fd is closed and
+    // metadata even while it is concurrently invalidated (i.e. the fd is closed and
     // its embedded value set to -1). The constructor throws an invalid_log_fd
     // exception if the fd is invalidated during construction.
     class safe_fd_from_ts_t
