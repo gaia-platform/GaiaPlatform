@@ -613,11 +613,12 @@ void server::init_shared_memory()
                 // Fix this when we move the offset counter to the "counters" shared
                 // memory segment.
                 void* page_address = reinterpret_cast<unsigned char*>(s_data->objects) + (page_index * c_page_size_bytes);
-                cerr << "Freeing page at address " << page_address << endl;
+                // cerr << "Freeing page at address " << page_address << endl;
                 if (-1 == ::madvise(page_address, c_page_size_bytes, MADV_REMOVE))
                 {
                     throw_system_error("madvise(MADV_REMOVE) failed");
                 }
+                s_pages_freed_count++;
             }
         }
     });
@@ -2784,6 +2785,24 @@ void server::run(persistence_mode_t persistence_mode)
             {
                 cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
             }
+
+            size_t page_alloc_counts_histogram[64] = {0};
+            size_t last_page_index = (s_data->objects[0] * sizeof(uint64_t)) / c_page_size_bytes;
+            for (size_t page_index = 0; page_index <= last_page_index; ++page_index)
+            {
+                size_t page_alloc_count = (*s_page_alloc_counts)[page_index];
+                retail_assert(page_alloc_count < std::size(page_alloc_counts_histogram), "Unexpected page allocation count!");
+                page_alloc_counts_histogram[page_alloc_count]++;
+            }
+            std::cerr << "Page allocation counts:\n"
+                      << std::endl;
+            for (size_t i = 0; i < std::size(page_alloc_counts_histogram); ++i)
+            {
+                std::cerr << "Number of pages with allocation count " << i << ": " << page_alloc_counts_histogram[i] << std::endl;
+            }
+            std::cerr << std::endl;
+            std::cerr << "Pages allocated: " << last_page_index + 1 << std::endl;
+            std::cerr << "Pages freed: " << s_pages_freed_count << std::endl;
 
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.

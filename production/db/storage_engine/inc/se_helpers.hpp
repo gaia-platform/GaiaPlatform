@@ -62,7 +62,7 @@ inline gaia_locator_t allocate_locator()
 
 inline void allocate_object(gaia_locator_t locator, size_t size)
 {
-    std::cerr << "In allocate_object()" << std::endl;
+    // std::cerr << "In allocate_object()" << std::endl;
     locators_t* locators = gaia::db::get_shared_locators();
     shared_data_t* data = gaia::db::get_shared_data();
     page_alloc_counts_t* page_alloc_counts = gaia::db::get_shared_page_alloc_counts();
@@ -76,30 +76,30 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
     // offset, so we need to return the end of the previous allocation as the
     // current allocation's offset and add 1 to account for the first word.
     gaia_offset_t offset = 1 + __sync_fetch_and_add(&data->objects[0], alignment_unit_size);
-    std::cerr << "Allocating object with offset " << offset << " at locator " << locator << " with size " << size << std::endl;
+    // std::cerr << "Allocating object with offset " << offset << " at locator " << locator << " with size " << size << std::endl;
     // Convert the word-size offset into bytes.
     size_t byte_offset = offset * sizeof(uint64_t);
     size_t end_byte_offset = byte_offset + size;
     size_t start_page_index = byte_offset / c_page_size_bytes;
     size_t end_page_index = end_byte_offset / c_page_size_bytes;
-    size_t page_byte_offset = byte_offset % c_page_size_bytes;
-    std::cerr << "Object has byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
+    // size_t page_byte_offset = byte_offset % c_page_size_bytes;
+    // std::cerr << "Object has byte offset " << page_byte_offset << " on page " << start_page_index << std::endl;
 
     // Increment the allocation count for each page containing this object.
     for (size_t page_index = start_page_index; page_index <= end_page_index; ++page_index)
     {
         size_t old_count = (*page_alloc_counts)[page_index].fetch_add(1);
-        std::cerr << "Incrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
+        // std::cerr << "Incrementing allocation count for page index " << page_index << ", old value was " << old_count << ", allocation offset " << offset << std::endl;
         // If this is the first allocation on a page, then add an extra refcount to
         // prevent freeing the page while it is still being used for allocations.
         if (old_count == 0)
         {
-            std::cerr << "Adding extra allocation count for first allocation on page index " << page_index << std::endl;
+            // std::cerr << "Adding extra allocation count for first allocation on page index " << page_index << std::endl;
             (*page_alloc_counts)[page_index].fetch_add(1);
             // Decrement the extra refcount on the preceding page to ensure it's freed.
             if (page_index > 0)
             {
-                std::cerr << "Removing extra allocation count on page index " << (page_index - 1) << std::endl;
+                // std::cerr << "Removing extra allocation count on page index " << (page_index - 1) << std::endl;
                 (*page_alloc_counts)[page_index - 1].fetch_sub(1);
             }
         }

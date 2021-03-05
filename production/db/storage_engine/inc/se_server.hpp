@@ -98,6 +98,8 @@ private:
     // This fd backs the per-page allocation count array and is passed to clients.
     static inline int s_fd_page_alloc_counts = -1;
 
+    static inline std::atomic<size_t> s_pages_freed_count = 0;
+
     // This is an "endless" array of timestamp entries, indexed by the txn
     // timestamp counter and containing all information for every txn that has
     // been submitted to the system. Entries may be "unknown" (uninitialized),
