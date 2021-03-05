@@ -47,6 +47,7 @@ unsigned int g_current_ruleset_rule_line_number = 1;
 const int c_declaration_to_ruleset_offset = -2;
 bool g_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
+bool g_rule_prolog_specified = false;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -320,8 +321,15 @@ bool parse_attribute(const string& attribute, string& table, string& field)
 
 // This function adds a field to active fields list if it is marked as active in the catalog;
 // it returns true if there was no error and false otherwise.
-bool validate_and_add_active_field(const string& table_name, const string& field_name)
+bool validate_and_add_active_field(const string& table_name, const string& field_name, bool from_field = false)
 {
+    if (g_rule_prolog_specified && from_field)
+    {
+        cerr << "Specifying active fields in rule attributes and inside the rule is not supported." << endl;
+        g_generation_error = true;
+        return false;
+    }
+
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
@@ -1011,7 +1019,7 @@ public:
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
+                if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
@@ -1034,7 +1042,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
-                    if (!validate_and_add_active_field(table_name, field_name))
+                    if (!validate_and_add_active_field(table_name, field_name, true))
                     {
                         return;
                     }
@@ -1421,11 +1429,13 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
+        g_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_rule_context_rule_name_referenced = false;
         if (update_attribute != nullptr)
         {
             g_rule_attribute_source_range = update_attribute->getRange();
+            g_rule_prolog_specified = true;
             for (const auto& table_iterator : update_attribute->tables())
             {
                 string table, field;
@@ -1448,6 +1458,7 @@ public:
 
         if (insert_attribute != nullptr)
         {
+            g_rule_prolog_specified = true;
             g_rule_attribute_source_range = insert_attribute->getRange();
             for (const auto& table_iterator : insert_attribute->tables())
             {
@@ -1461,6 +1472,7 @@ public:
 
         if (change_attribute != nullptr)
         {
+            g_rule_prolog_specified = true;
             g_rule_attribute_source_range = change_attribute->getRange();
             for (const auto& table_iterator : change_attribute->tables())
             {
@@ -1511,6 +1523,7 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
+        g_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
         const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
