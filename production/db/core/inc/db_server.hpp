@@ -124,7 +124,7 @@ private:
     //
     // The array is always accessed without any locking, but its entries have
     // read and write barriers (via std::atomic) that ensure causal consistency
-    // between any threads that read or write the same metadata. Any writes to
+    // between any threads that read or write the same txn metadata. Any writes to
     // entries that may be written by multiple threads use CAS operations.
     //
     // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
@@ -141,7 +141,7 @@ private:
     // about a month and a half. If this is an issue, then we could treat the
     // array as a circular buffer, using a separate wraparound counter to
     // calculate the array offset from a timestamp, and we can use the 3
-    // reserved bits in the timestamp metadata to extend our range by a factor of
+    // reserved bits in the txn metadata to extend our range by a factor of
     // 8, so we could allocate 2^20 timestamps/second for a full year. If we
     // need a still larger timestamp range (say 64-bit timestamps, with
     // wraparound), we could just store the difference between a commit
@@ -151,7 +151,7 @@ private:
     // metadata. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     //
-    // Timestamp metadata format:
+    // Transaction metadata format:
     // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
     static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
 
@@ -171,7 +171,7 @@ private:
     // post-apply watermark has advanced to its commit_ts. The "post-GC"
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. The txn table cannot be
-    // truncated at any timestamp metadata after the post-GC watermark.
+    // truncated at any timestamp after the post-GC watermark.
 
     // Schematically:
     // commit timestamps of transactions completely garbage-collected
@@ -263,7 +263,7 @@ private:
 
     static void request_memory();
 
-    static void init_txn_metadata();
+    static void init_txn_metadata_map();
 
     static void recover_db();
 

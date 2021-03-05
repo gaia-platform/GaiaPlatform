@@ -17,20 +17,20 @@ static_assert(
     "txn_metadata_t struct should only contain a uint64_t value!");
 
 txn_metadata_t::txn_metadata_t() noexcept
+    : value(c_value_uninitialized)
 {
-    value = c_value_uninitialized;
 }
 
 txn_metadata_t::txn_metadata_t(uint64_t value)
+    : value(value)
 {
-    this->value = value;
 }
 
 const char* txn_metadata_t::status_to_str() const
 {
     common::retail_assert(
         !is_uninitialized() && !is_sealed(),
-        "Not a valid timestamp metadata!");
+        "Not a valid txn metadata!");
 
     uint64_t status = get_status();
     switch (status)

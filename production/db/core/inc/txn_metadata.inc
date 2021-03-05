@@ -7,12 +7,12 @@
 
 bool txn_metadata_t::is_uninitialized() const
 {
-    return value == c_value_uninitialized;
+    return (value == c_value_uninitialized);
 }
 
 bool txn_metadata_t::is_sealed() const
 {
-    return value == c_value_sealed;
+    return (value == c_value_sealed);
 }
 
 bool txn_metadata_t::is_begin_ts() const
@@ -75,27 +75,21 @@ bool txn_metadata_t::is_terminated() const
     return (get_status() == c_txn_status_terminated);
 }
 
-txn_metadata_t txn_metadata_t::invalidate_txn_log_fd() const
+void txn_metadata_t::invalidate_txn_log_fd()
 {
-    txn_metadata_t new_txn_metadata(value | c_txn_log_fd_mask);
-
-    return new_txn_metadata;
+    value |= c_txn_log_fd_mask;
 }
 
-txn_metadata_t txn_metadata_t::set_terminated() const
+void txn_metadata_t::set_terminated()
 {
     constexpr uint64_t c_terminated_flags = c_txn_status_terminated << c_txn_status_flags_shift;
 
-    txn_metadata_t new_txn_metadata(c_terminated_flags | (value & ~c_txn_status_flags_mask));
-
-    return new_txn_metadata;
+    value = c_terminated_flags | (value & ~c_txn_status_flags_mask);
 }
 
-txn_metadata_t txn_metadata_t::set_gc_complete() const
+void txn_metadata_t::set_gc_complete()
 {
-    txn_metadata_t new_txn_metadata(value | (c_txn_gc_complete << c_txn_gc_flags_shift));
-
-    return new_txn_metadata;
+    value |= (c_txn_gc_complete << c_txn_gc_flags_shift);
 }
 
 uint64_t txn_metadata_t::get_status() const

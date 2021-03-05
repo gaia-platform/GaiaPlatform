@@ -16,9 +16,9 @@ namespace db
 
 struct txn_metadata_t
 {
-    // Transaction timestamp metadata constants.
+    // Transaction metadata constants.
     //
-    // Timestamp metadata format:
+    // Transaction metadata format:
     // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
     static constexpr uint64_t c_txn_metadata_bits{64ULL};
 
@@ -92,10 +92,10 @@ struct txn_metadata_t
     static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
 
     // This is a placeholder for the single (currently) reserved bit in the txn
-    // timestamp metadata.
+    // metadata.
     static constexpr uint64_t c_txn_reserved_flags_bits{1ULL};
 
-    // Txn log fd embedded in the txn timestamp metadata.
+    // Txn log fd embedded in the txn metadata.
     // This is only present in a commit_ts metadata.
     // NB: we assume that any fd will be < 2^16 - 1!
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
@@ -108,7 +108,7 @@ struct txn_metadata_t
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
-    // Linked txn timestamp embedded in the txn timestamp metadata. For a commit_ts
+    // Linked txn timestamp embedded in the txn metadata. For a commit_ts
     // metadata, this is its associated begin_ts, and for a begin_ts metadata, this is
     // its associated commit_ts. A commit_ts metadata always contains its linked
     // begin_ts, but a begin_ts metadata may not be updated with its linked
@@ -132,7 +132,7 @@ struct txn_metadata_t
     // The first 3 bits of this value are unused for any txn state.
     static constexpr uint64_t c_value_uninitialized{0ULL};
 
-    // The first 3 bits of this value are unused for any txn state.
+    // The first 3 bits of this value do not correspond to any valid txn status value.
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 
     txn_metadata_t() noexcept;
@@ -152,9 +152,9 @@ struct txn_metadata_t
     inline bool is_active() const;
     inline bool is_terminated() const;
 
-    inline txn_metadata_t invalidate_txn_log_fd() const;
-    inline txn_metadata_t set_terminated() const;
-    inline txn_metadata_t set_gc_complete() const;
+    inline void invalidate_txn_log_fd();
+    inline void set_terminated();
+    inline void set_gc_complete();
 
     inline uint64_t get_status() const;
 

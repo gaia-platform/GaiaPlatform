@@ -747,7 +747,7 @@ address_offset_t server_t::allocate_object(
 // shared set bit in TXN_COMMITTED and TXN_ABORTED. Each active txn may assume
 // the states TXN_NONE, TXN_ACTIVE, TXN_SUBMITTED, TXN_TERMINATED, while
 // each submitted txn may assume the states TXN_SUBMITTED, TXN_COMMITTED,
-// TXN_ABORTED, so we need 2 bits for each txn metadata to represent all possible
+// TXN_ABORTED, so we need 2 bits for each txn metadata entry to represent all possible
 // states. Combined with the begin/commit bit, we need to reserve the 3 high
 // bits of each 64-bit entry for txn state, leaving 61 bits for other purposes.
 // The remaining bits are used as follows. In the TXN_NONE state, all bits are
@@ -779,7 +779,7 @@ address_offset_t server_t::allocate_object(
 // advancing the watermark on termination of the oldest active txn, which is
 // delegated to that txn's session thread.
 
-void server_t::init_txn_metadata()
+void server_t::init_txn_metadata_map()
 {
     // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
     constexpr size_t c_size_in_bytes = (1ULL << txn_metadata_t::c_txn_ts_bits) * sizeof(*s_txn_metadata_map);
@@ -1558,7 +1558,7 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
     txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
     std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
 
-    cerr << "Timestamp metadata for ts " << ts << ": " << metadata_bits << endl;
+    cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << endl;
 
     if (txn_metadata.is_uninitialized())
     {
@@ -1603,13 +1603,13 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
 }
 
 // This is designed for implementing "fences" that can guarantee no thread can
-// ever claim a timestamp metadata, by marking that metadata permanently sealed.
-// Sealing can only be performed on an "uninitialized" metadata, not on any valid
-// metadata. When a session thread beginning or committing a txn finds that its
-// begin_ts or commit_ts has been sealed upon initializing the metadata for
+// ever claim a timestamp, by marking that timestamp permanently sealed.
+// Sealing can only be performed on an "uninitialized" metadata entry, not on any valid
+// metadata entry. When a session thread beginning or committing a txn finds that its
+// begin_ts or commit_ts has been sealed upon initializing the metadata entry for
 // that timestamp, it simply allocates another timestamp and retries. This is
 // possible because we never publish a newly allocated timestamp until we know
-// that its metadata has been successfully initialized.
+// that its metadata entry has been successfully initialized.
 inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
 {
     // If the metadata is not uninitialized, we can't seal it.
@@ -1629,7 +1629,7 @@ inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
         // NB: expected_metadata is an inout argument holding the previous value on failure!
         retail_assert(
             !expected_metadata.is_uninitialized(),
-            "An uninitialized timestamp metadata cannot fail to be sealed!");
+            "An uninitialized txn metadata cannot fail to be sealed!");
     }
 
     return has_sealed_metadata;
@@ -1746,7 +1746,7 @@ inline uint64_t server_t::get_status(gaia_txn_id_t ts)
 {
     retail_assert(
         !is_uninitialized_ts(ts) && !is_sealed_ts(ts),
-        "Invalid timestamp metadata!");
+        "Invalid txn metadata!");
 
     txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
     return txn_metadata.get_status();
@@ -1791,7 +1791,8 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
     retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
 
-    // The txn log fd is the 16 bits of the ts metadata after the 3 status bits. We
+    // The txn log fd is the the 16 bits of the ts metadata before the final
+    // 42 bits of the linked timestamp. We
     // don't zero these out because 0 is technically a valid fd (even though
     // it's normally reserved for stdin). Instead we follow the same convention
     // as elsewhere, using a reserved value of -1 to indicate an invalid fd.
@@ -1803,6 +1804,7 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
     // requires no additional logic.
 
     txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t invalidated_commit_ts_metadata;
     do
     {
         // NB: commit_ts_metadata is an inout argument holding the previous value
@@ -1812,8 +1814,10 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
             return false;
         }
 
+        invalidated_commit_ts_metadata = commit_ts_metadata;
+        invalidated_commit_ts_metadata.invalidate_txn_log_fd();
     } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(
-        commit_ts_metadata, commit_ts_metadata.invalidate_txn_log_fd()));
+        commit_ts_metadata, invalidated_commit_ts_metadata));
 
     return true;
 }
@@ -1823,7 +1827,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
 {
     // Only an active txn can be submitted.
     retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
-    retail_assert(!is_uninitialized_ts(commit_ts), c_message_uninitialized_timestamp);
+    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
     // Transition the begin_ts metadata to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags
@@ -1847,7 +1851,8 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     // and an active txn cannot be sealed.
 
     txn_metadata_t old_metadata = s_txn_metadata_map[begin_ts];
-    txn_metadata_t new_metadata = old_metadata.set_terminated();
+    txn_metadata_t new_metadata = old_metadata;
+    new_metadata.set_terminated();
     s_txn_metadata_map[begin_ts] = new_metadata;
 }
 
@@ -1855,8 +1860,7 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
 {
     retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
-    // We construct the commit_ts metadata by concatenating status flags (3 bits),
-    // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
+    // We construct the commit_ts metadata by concatenating required bits.
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << txn_metadata_t::c_txn_log_fd_shift;
     constexpr uint64_t c_shifted_status_flags
         = txn_metadata_t::c_txn_status_validating << txn_metadata_t::c_txn_status_flags_shift;
@@ -1884,7 +1888,7 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
 
 gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
+    retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
 
     // We assume all our log fds are non-negative and fit into 16 bits. (The
     // highest possible value is reserved to indicate an invalid fd.)
@@ -1894,7 +1898,7 @@ gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 
     retail_assert(is_fd_valid(log_fd), "Invalid log fd!");
 
-    // Alocate a new commit_ts and initialize its metadata to our begin_ts and log fd.
+    // Alocate a new commit_ts and initialize its metadata with our begin_ts and log fd.
     gaia_txn_id_t commit_ts = register_commit_ts(begin_ts, log_fd);
 
     // Now update the active txn metadata.
@@ -1917,6 +1921,9 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
     // We can just reuse the log fd and begin_ts from the existing metadata.
     txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
 
+    // REVIEW: This condition is probably rare enough that it's not worth optimizing
+    // and we can just let the CAS fail if another thread validated the txn before we did.
+    //
     // We may have already been validated by another committing txn.
     if (expected_metadata.is_decided())
     {
@@ -2072,7 +2079,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
             // any submitted txns with commit timestamps in our conflict window must
             // already be registered under their commit_ts (they must retry with a
             // new timestamp otherwise). (The sealing is necessary only on the
-            // first pass, but the "uninitialized timestamp metadata" check is cheap enough
+            // first pass, but the "uninitialized txn metadata" check is cheap enough
             // that repeating it on subsequent passes shouldn't matter.)
             if (seal_uninitialized_ts(ts))
             {
@@ -2313,7 +2320,8 @@ bool server_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
     // Set GC status to TXN_GC_COMPLETE.
-    txn_metadata_t commit_ts_metadata = expected_metadata.set_gc_complete();
+    txn_metadata_t commit_ts_metadata = expected_metadata;
+    commit_ts_metadata.set_gc_complete();
     return s_txn_metadata_map[commit_ts].compare_exchange_strong(expected_metadata, commit_ts_metadata);
 }
 
@@ -2392,7 +2400,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 // 1. We scan the interval from a snapshot of the pre-apply watermark to a
 //    snapshot of the last allocated timestamp, and attempt to advance the
 //    pre-apply watermark if it has the same value as the post-apply watermark,
-//    and if the next timestamp metadata is either a sealed timestamp (we
+//    and if the next txn metadata is either a sealed timestamp (we
 //    seal all uninitialized entries during the scan), a commit_ts that is
 //    decided, or a begin_ts that is terminated or submitted with a decided
 //    commit_ts. If we successfully advanced the watermark and the current entry
@@ -2400,7 +2408,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    view. After applying it (or immediately after advancing the pre-apply
 //    watermark if the current timestamp is not a comoitted commit_ts), we
 //    advance the post-apply watermark to the same timestamp. (Since we "own"
-//    the current timestamp metadata after a successful CAS on the pre-apply
+//    the current txn metadata after a successful CAS on the pre-apply
 //    watermark, we can advance the post-apply watermark without a CAS.) Since
 //    the pre-apply watermark can only move forward, updates to the shared view
 //    are applied in timestamp order, and since the pre-apply watermark can only
@@ -2413,7 +2421,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    commit_ts, we continue the scan. Otherwise we check if its log fd is
 //    invalidated. If so, then we know that GC is in progress or complete, so we
 //    continue the scan. If persistence is enabled then we also check the
-//    durable flag on the current timestamp metadata and abort the scan if it is
+//    durable flag on the current txn metadata and abort the scan if it is
 //    not set (to avoid freeing any redo versions that are being applied to the
 //    write-ahead log). Otherwise we try to invalidate its log fd. If
 //    invalidation fails, we abort the pass to avoid contention, otherwise we GC
@@ -2531,7 +2539,7 @@ void server_t::apply_txn_logs_to_shared_view()
         // (so-called because like an inchworm, the "front" can only advance
         // after the "back" has caught up) is thus operationally equivalent to
         // locking on a reserved bit flag (call it TXN_GC_ELIGIBLE) in the
-        // timestamp metadata, but allows us to avoid reserving another scarce bit
+        // txn metadata, but allows us to avoid reserving another scarce bit
         // for this purpose.
 
         // The current timestamp in the scan is guaranteed to be positive due to
@@ -2745,7 +2753,7 @@ gaia_txn_id_t server_t::txn_begin()
     // additional logic.
     do
     {
-        // The txn table metadata must be uninitialized (not sealed).
+        // The txn metadata must be uninitialized (not sealed).
         expected_metadata = txn_metadata_t();
 
         // Allocate a new begin timestamp.
@@ -2857,7 +2865,7 @@ void server_t::run(persistence_mode_t persistence_mode)
 
         // Initialize global data structures.
         init_shared_memory();
-        init_txn_metadata();
+        init_txn_metadata_map();
 
         // Initialize watermarks.
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
