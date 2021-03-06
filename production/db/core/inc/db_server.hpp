@@ -22,7 +22,6 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "stack_allocator.hpp"
-#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -236,8 +235,6 @@ private:
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
-    static gaia_txn_id_t txn_begin();
-
     static void txn_rollback();
 
     static bool txn_commit();
@@ -255,8 +252,6 @@ private:
     static void update_txn_table_safe_truncation_point();
 
     static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
-
-    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 

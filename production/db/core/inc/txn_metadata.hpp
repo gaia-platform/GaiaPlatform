@@ -96,6 +96,9 @@ struct txn_metadata_t
     static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
     static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
+    static gaia_txn_id_t txn_begin();
+    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
+
     static void dump_txn_metadata(gaia_txn_id_t ts);
 
     // Transaction metadata constants.

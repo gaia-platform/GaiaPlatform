@@ -10,6 +10,8 @@
 
 #include "gaia_internal/common/mmap_helpers.hpp"
 
+#include "db_helpers.hpp"
+
 namespace gaia
 {
 namespace db
@@ -265,6 +267,72 @@ bool txn_metadata_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
     commit_ts_metadata.set_gc_complete();
     return s_txn_metadata_map[commit_ts].compare_exchange_strong(
         expected_metadata, commit_ts_metadata);
+}
+
+// This method allocates a new begin_ts and initializes its metadata in the txn
+// table.
+gaia_txn_id_t txn_metadata_t::txn_begin()
+{
+    // The newly allocated begin timestamp for the new txn.
+    gaia_txn_id_t begin_ts;
+
+    // NB: expected_metadata is an inout argument holding the previous value on failure!
+    txn_metadata_t expected_metadata;
+
+    // The begin_ts metadata must have its status initialized to TXN_ACTIVE.
+    // All other bits should be 0.
+    const txn_metadata_t c_begin_ts_metadata(
+        c_txn_status_active << c_txn_status_flags_shift);
+
+    // Loop until we successfully install a newly allocated begin_ts in the txn
+    // table. (We're possibly racing another beginning or committing txn that
+    // could invalidate our begin_ts metadata before we install it.)
+    //
+    // NB: we use compare_exchange_weak() since we need to retry anyway on
+    // concurrent invalidation, so tolerating spurious failures requires no
+    // additional logic.
+    do
+    {
+        // The txn metadata must be uninitialized (not sealed).
+        expected_metadata = txn_metadata_t();
+
+        // Allocate a new begin timestamp.
+        begin_ts = db::allocate_txn_id();
+        check_ts_size(begin_ts);
+    } while (!s_txn_metadata_map[begin_ts].compare_exchange_weak(
+        expected_metadata, c_begin_ts_metadata));
+
+    return begin_ts;
+}
+
+gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
+{
+    common::retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
+
+    // We construct the commit_ts metadata by concatenating required bits.
+    uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
+    constexpr uint64_t c_shifted_status_flags
+        = c_txn_status_validating << c_txn_status_flags_shift;
+    txn_metadata_t commit_ts_metadata(c_shifted_status_flags | shifted_log_fd | begin_ts);
+
+    // We're possibly racing another beginning or committing txn that wants to
+    // seal our commit_ts metadata. We use compare_exchange_weak() since we
+    // need to loop until success anyway. A spurious failure will just waste a
+    // timestamp, and the uninitialized metadata will eventually be sealed.
+    gaia_txn_id_t commit_ts;
+    txn_metadata_t expected_metadata;
+    do
+    {
+        // Allocate a new commit timestamp.
+        commit_ts = db::allocate_txn_id();
+        check_ts_size(commit_ts);
+
+        // The commit_ts metadata must be uninitialized.
+        expected_metadata = txn_metadata_t();
+    } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(
+        expected_metadata, commit_ts_metadata));
+
+    return commit_ts;
 }
 
 void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
