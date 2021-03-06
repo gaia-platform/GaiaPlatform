@@ -718,90 +718,6 @@ address_offset_t server_t::allocate_object(
     return offset;
 }
 
-// Use a huge sparse array to store the txn metadata, where each entry is indexed by
-// its begin or commit timestamp. We use 2^45 = 32TB of virtual address space
-// for this array, but only the pages we actually use will ever be allocated.
-// From https://www.kernel.org/doc/Documentation/vm/overcommit-accounting, it
-// appears that MAP_NORESERVE is ignored in overcommit mode 2 (never
-// overcommit), so we may need to check the `vm.overcommit_memory` sysctl and
-// fail if it's set to 2. Alternatively, we could use the more tedious but
-// reliable approach of using mmap(PROT_NONE) and calling
-// mprotect(PROT_READ|PROT_WRITE) on any pages we actually need to use (this is
-// analogous to VirtualAlloc(MEM_RESERVE) followed by VirtualAlloc(MEM_COMMIT)
-// in Windows). 2^45 bytes of virtual address space holds 2^42 8-byte words, so
-// we can allocate at most 2^42 timestamps over the lifetime of the process. If
-// we allocate timestamps at a rate of 1M/s, we can run for about 2^22 seconds,
-// or about a month and a half. If we allocate only 1K/s, we can run a thousand
-// times longer: 2^32 seconds = ~128 years. If running out of timestamps is a
-// concern, we can just convert the array to a circular buffer and store a
-// wraparound counter separately.
-
-// Each entry in the txn_metadata array is an 8-byte word, with the high bit
-// indicating whether the index represents a begin or commit timestamp (they are
-// allocated from the same counter). The next two bits indicate the current
-// state of the txn state machine. The txn state machine's states and
-// transitions are as follows: TXN_NONE -> TXN_ACTIVE -> (TXN_SUBMITTED ->
-// (TXN_COMMITTED, TXN_ABORTED), TXN_TERMINATED). TXN_NONE is necessarily
-// encoded as 0 since all entries of the array are zeroed when a page is
-// allocated. We also introduce the pseudo-state TXN_DECIDED, encoded as the
-// shared set bit in TXN_COMMITTED and TXN_ABORTED. Each active txn may assume
-// the states TXN_NONE, TXN_ACTIVE, TXN_SUBMITTED, TXN_TERMINATED, while
-// each submitted txn may assume the states TXN_SUBMITTED, TXN_COMMITTED,
-// TXN_ABORTED, so we need 2 bits for each txn metadata entry to represent all possible
-// states. Combined with the begin/commit bit, we need to reserve the 3 high
-// bits of each 64-bit entry for txn state, leaving 61 bits for other purposes.
-// The remaining bits are used as follows. In the TXN_NONE state, all bits are
-// 0. In the TXN_ACTIVE state, the non-state bits are currently unused, but
-// they could be used for active txn information like session thread ID, session
-// socket, session userfaultfd, etc. In the TXN_SUBMITTED state, the remaining
-// bits always hold a commit timestamp (which is guaranteed to be at most 42
-// bits per above). The commit timestamp serves as a forwarding pointer to the
-// submitted txn metadata for this txn. Note that the commit timestamp metadata for a
-// txn may be set before its begin timestamp metadata has been updated, since
-// multiple updates to the array cannot be made atomically without locks. (This
-// is similar to insertion into a lock-free singly-linked list, where the new
-// node is linked to its successor before its predecessor is linked to the new
-// node.) Our algorithms are tolerant to this transient inconsistency. A commit
-// timestamp metadata always holds the submitted txn's log fd in the low 16 bits
-// following the 3 high bits used for state (we assume that all log fds fit into
-// 16 bits), and the txn's begin timestamp in the low 42 bits.
-
-// We can always find the watermark by just scanning the txn_metadata array until we
-// find the first begin timestamp metadata not in state TXN_TERMINATED. However, we
-// need to know where to start scanning from since pages toward the beginning of
-// the array may have already been deallocated (as part of advancing the
-// watermark, once all txn logs preceding the watermark have been scanned for
-// garbage and deallocated, all pages preceding the new watermark's position in
-// the array can be freed using madvise(MADV_FREE)). We can store a global
-// watermark variable to cache this information, which could always be stale but
-// tells us where to start scanning to find the current watermark, since the
-// watermark only moves forward. This global variable is also set as part of
-// advancing the watermark on termination of the oldest active txn, which is
-// delegated to that txn's session thread.
-
-void server_t::init_txn_metadata_map()
-{
-    // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
-    constexpr size_t c_size_in_bytes = (1ULL << txn_metadata_t::c_txn_ts_bits) * sizeof(*s_txn_metadata_map);
-
-    // Create an anonymous private mapping with MAP_NORESERVE to indicate that
-    // we don't care about reserving swap space.
-    // REVIEW: If this causes problems on systems that disable overcommit, we
-    // can just use PROT_NONE and mprotect(PROT_READ|PROT_WRITE) each page as we
-    // need it.
-    if (s_txn_metadata_map)
-    {
-        unmap_fd_data(s_txn_metadata_map, c_size_in_bytes);
-    }
-    map_fd_data(
-        s_txn_metadata_map,
-        c_size_in_bytes,
-        PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
-        -1,
-        0);
-}
-
 void server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
@@ -1555,7 +1471,7 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
 {
     // NB: We generally cannot use the is_*_ts() functions because the entry could
     // change while we're reading it!
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
 
     cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << endl;
@@ -1580,7 +1496,7 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
         gaia_txn_id_t begin_ts = get_begin_ts(ts);
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
-        txn_metadata_t txn_metadata = s_txn_metadata_map[begin_ts];
+        txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
         std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
         cerr << "Timestamp metadata for commit_ts metadata's begin_ts " << begin_ts << ": " << metadata_bits << endl;
         cerr << "Log fd for commit_ts metadata: " << get_txn_log_fd(ts) << endl;
@@ -1593,7 +1509,7 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
         {
             // We can't recurse here since we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
-            txn_metadata_t txn_metadata = s_txn_metadata_map[commit_ts];
+            txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
             std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
             cerr
                 << "Timestamp metadata for begin_ts metadata's commit_ts " << commit_ts
@@ -1621,7 +1537,7 @@ inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
     txn_metadata_t expected_metadata;
     txn_metadata_t sealed_metadata(txn_metadata_t::c_value_sealed);
 
-    bool has_sealed_metadata = s_txn_metadata_map[ts].compare_exchange_strong(expected_metadata, sealed_metadata);
+    bool has_sealed_metadata = txn_metadata_t::s_txn_metadata_map[ts].compare_exchange_strong(expected_metadata, sealed_metadata);
     // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
     // submitting thread can transition the txn to these states.
     if (!has_sealed_metadata)
@@ -1644,13 +1560,13 @@ inline bool server_t::is_uninitialized_ts(gaia_txn_id_t ts)
 {
     check_ts_size(ts);
 
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     return txn_metadata.is_uninitialized();
 }
 
 inline bool server_t::is_sealed_ts(gaia_txn_id_t ts)
 {
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     return txn_metadata.is_sealed();
 }
 
@@ -1658,7 +1574,7 @@ inline bool server_t::is_begin_ts(gaia_txn_id_t ts)
 {
     retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
 
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     return txn_metadata.is_begin_ts();
 }
 
@@ -1666,7 +1582,7 @@ inline bool server_t::is_commit_ts(gaia_txn_id_t ts)
 {
     retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
 
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     return txn_metadata.is_commit_ts();
 }
 
@@ -1674,7 +1590,7 @@ inline bool server_t::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
 
-    txn_metadata_t begin_ts_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
     return begin_ts_metadata.is_submitted();
 }
 
@@ -1682,7 +1598,7 @@ inline bool server_t::is_txn_validating(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_validating();
 }
 
@@ -1690,7 +1606,7 @@ inline bool server_t::is_txn_decided(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_decided();
 }
 
@@ -1698,7 +1614,7 @@ inline bool server_t::is_txn_committed(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_committed();
 }
 
@@ -1706,7 +1622,7 @@ inline bool server_t::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_aborted();
 }
 
@@ -1714,7 +1630,7 @@ inline bool server_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_gc_complete();
 }
 
@@ -1722,7 +1638,7 @@ inline bool server_t::is_txn_durable(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.is_durable();
 }
 
@@ -1730,7 +1646,7 @@ inline bool server_t::is_txn_active(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
 
-    txn_metadata_t begin_ts_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
     return begin_ts_metadata.is_active();
 }
 
@@ -1738,7 +1654,7 @@ inline bool server_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
 
-    txn_metadata_t begin_ts_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
     return begin_ts_metadata.is_terminated();
 }
 
@@ -1748,7 +1664,7 @@ inline uint64_t server_t::get_status(gaia_txn_id_t ts)
         !is_uninitialized_ts(ts) && !is_sealed_ts(ts),
         "Invalid txn metadata!");
 
-    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
     return txn_metadata.get_status();
 }
 
@@ -1756,7 +1672,7 @@ inline gaia_txn_id_t server_t::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     gaia_txn_id_t begin_ts = commit_ts_metadata.get_timestamp();
     retail_assert(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
 
@@ -1768,7 +1684,7 @@ inline gaia_txn_id_t server_t::get_commit_ts(gaia_txn_id_t begin_ts)
     retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
 
-    txn_metadata_t begin_ts_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
     gaia_txn_id_t commit_ts = begin_ts_metadata.get_timestamp();
     if (is_txn_submitted(begin_ts))
     {
@@ -1782,7 +1698,7 @@ inline int server_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     return commit_ts_metadata.get_txn_log_fd();
 }
 
@@ -1803,7 +1719,7 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
     // retry anyway on concurrent updates, so tolerating spurious failures
     // requires no additional logic.
 
-    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     txn_metadata_t invalidated_commit_ts_metadata;
     do
     {
@@ -1816,7 +1732,7 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 
         invalidated_commit_ts_metadata = commit_ts_metadata;
         invalidated_commit_ts_metadata.invalidate_txn_log_fd();
-    } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(
+    } while (!txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_weak(
         commit_ts_metadata, invalidated_commit_ts_metadata));
 
     return true;
@@ -1838,7 +1754,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
 
     // We don't need a CAS here since only the session thread can submit or terminate a txn,
     // and an active txn cannot be sealed.
-    s_txn_metadata_map[begin_ts] = submitted_begin_ts_metadata;
+    txn_metadata_t::s_txn_metadata_map[begin_ts] = submitted_begin_ts_metadata;
 }
 
 // Sets the begin_ts metadata's status to TXN_TERMINATED.
@@ -1850,10 +1766,10 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     // We don't need a CAS here because only the session thread can submit or terminate a txn,
     // and an active txn cannot be sealed.
 
-    txn_metadata_t old_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t old_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
     txn_metadata_t new_metadata = old_metadata;
     new_metadata.set_terminated();
-    s_txn_metadata_map[begin_ts] = new_metadata;
+    txn_metadata_t::s_txn_metadata_map[begin_ts] = new_metadata;
 }
 
 inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
@@ -1881,7 +1797,7 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
         // The commit_ts metadata must be uninitialized.
         expected_metadata = txn_metadata_t();
 
-    } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(expected_metadata, commit_ts_metadata));
+    } while (!txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_weak(expected_metadata, commit_ts_metadata));
 
     return commit_ts;
 }
@@ -1919,7 +1835,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
         = is_committed ? txn_metadata_t::c_txn_status_committed : txn_metadata_t::c_txn_status_aborted;
 
     // We can just reuse the log fd and begin_ts from the existing metadata.
-    txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t expected_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
 
     // REVIEW: This condition is probably rare enough that it's not worth optimizing
     // and we can just let the CAS fail if another thread validated the txn before we did.
@@ -1939,7 +1855,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
     // any bits not present in the flags.
     txn_metadata_t commit_ts_metadata(
         expected_metadata.value | (decided_status_flags << txn_metadata_t::c_txn_status_flags_shift));
-    bool has_set_metadata = s_txn_metadata_map[commit_ts].compare_exchange_strong(
+    bool has_set_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_strong(
         expected_metadata, commit_ts_metadata);
     if (!has_set_metadata)
     {
@@ -2318,11 +2234,11 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
 bool server_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
-    txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t expected_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
     // Set GC status to TXN_GC_COMPLETE.
     txn_metadata_t commit_ts_metadata = expected_metadata;
     commit_ts_metadata.set_gc_complete();
-    return s_txn_metadata_map[commit_ts].compare_exchange_strong(expected_metadata, commit_ts_metadata);
+    return txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_strong(expected_metadata, commit_ts_metadata);
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
@@ -2759,7 +2675,7 @@ gaia_txn_id_t server_t::txn_begin()
         // Allocate a new begin timestamp.
         begin_ts = allocate_txn_id();
         check_ts_size(begin_ts);
-    } while (!s_txn_metadata_map[begin_ts].compare_exchange_weak(expected_metadata, c_begin_ts_metadata));
+    } while (!txn_metadata_t::s_txn_metadata_map[begin_ts].compare_exchange_weak(expected_metadata, c_begin_ts_metadata));
 
     return begin_ts;
 }
@@ -2865,7 +2781,7 @@ void server_t::run(persistence_mode_t persistence_mode)
 
         // Initialize global data structures.
         init_shared_memory();
-        init_txn_metadata_map();
+        txn_metadata_t::init_txn_metadata_map();
 
         // Initialize watermarks.
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;

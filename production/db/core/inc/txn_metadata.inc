@@ -97,7 +97,7 @@ uint64_t txn_metadata_t::get_status() const
     return ((value & c_txn_status_flags_mask) >> c_txn_status_flags_shift);
 }
 
-uint64_t txn_metadata_t::get_timestamp() const
+gaia_txn_id_t txn_metadata_t::get_timestamp() const
 {
     // The timestamp is in the low 42 bits of the ts metadata.
     return (value & c_txn_ts_mask);

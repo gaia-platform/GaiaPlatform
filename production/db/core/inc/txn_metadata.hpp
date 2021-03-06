@@ -7,7 +7,10 @@
 
 #include <cstdint>
 
+#include <atomic>
 #include <limits>
+
+#include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
 {
@@ -16,6 +19,53 @@ namespace db
 
 struct txn_metadata_t
 {
+    // This is an effectively infinite array of timestamp entries, indexed by
+    // the txn timestamp counter and containing metadata for every txn that has
+    // been submitted to the system.
+    //
+    // Entries may be "uninitialized", "sealed" (initialized with a
+    // special "junk" value and forbidden to be used afterward), or initialized
+    // with txn metadata, consisting of 3 status bits, 1 bit for GC status
+    // (unknown or complete), 1 bit for persistence status (unknown or
+    // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
+    // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
+    // txn embedded in its begin timestamp metadata, or the begin timestamp of a
+    // submitted txn embedded in its commit timestamp metadata). The 3 status bits
+    // use the high bit to distinguish begin timestamps from commit timestamps,
+    // and 2 bits to store the state of an active, terminated, or submitted txn.
+    //
+    // The array is always accessed without any locking, but its entries have
+    // read and write barriers (via std::atomic) that ensure causal consistency
+    // between any threads that read or write the same txn metadata. Any writes to
+    // entries that may be written by multiple threads use CAS operations.
+    //
+    // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
+    // virtual address space (1/8 of the total virtual address space available
+    // to the process), but allocate physical pages only on first access. When a
+    // range of timestamp entries falls behind the watermark, its physical pages
+    // can be deallocated via madvise(MADV_FREE).
+    //
+    // REVIEW: Since we reserve 2^45 bytes of virtual address space and each
+    // array entry is 8 bytes, we can address the whole range using 2^42
+    // timestamps. If we allocate 2^10 timestamps/second, we will use up all our
+    // timestamps in 2^32 seconds, or about 2^7 years. If we allocate 2^20
+    // timestamps/second, we will use up all our timestamps in 2^22 seconds, or
+    // about a month and a half. If this is an issue, then we could treat the
+    // array as a circular buffer, using a separate wraparound counter to
+    // calculate the array offset from a timestamp, and we can use the 3
+    // reserved bits in the txn metadata to extend our range by a factor of
+    // 8, so we could allocate 2^20 timestamps/second for a full year. If we
+    // need a still larger timestamp range (say 64-bit timestamps, with
+    // wraparound), we could just store the difference between a commit
+    // timestamp and its txn's begin timestamp, which should be possible to
+    // bound to no more than half the bits we use for the full timestamp, so we
+    // would still need only 32 bits for a timestamp reference in the timestamp
+    // metadata. (We could store the array offset instead, but that would be
+    // dangerous when we approach wraparound.)
+    static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
+
+    static void init_txn_metadata_map();
+
     // Transaction metadata constants.
     //
     // Transaction metadata format:
@@ -158,7 +208,7 @@ struct txn_metadata_t
 
     inline uint64_t get_status() const;
 
-    inline uint64_t get_timestamp() const;
+    inline gaia_txn_id_t get_timestamp() const;
 
     inline int get_txn_log_fd() const;
 
