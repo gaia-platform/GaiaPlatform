@@ -240,7 +240,7 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
     // It's safe to just OR in the new flags since the preceding states don't set
     // any bits not present in the flags.
     txn_metadata_t commit_ts_metadata(
-        expected_metadata.value | (decided_status_flags << c_txn_status_flags_shift));
+        expected_metadata.m_value | (decided_status_flags << c_txn_status_flags_shift));
     bool has_set_metadata = s_txn_metadata_map[commit_ts].compare_exchange_strong(
         expected_metadata, commit_ts_metadata);
     if (!has_set_metadata)
@@ -340,7 +340,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
     // NB: We generally cannot use the is_*_ts() functions because the entry could
     // change while we're reading it!
     txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
-    std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+    std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
 
     std::cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << std::endl;
 
@@ -365,7 +365,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
         txn_metadata_t txn_metadata = s_txn_metadata_map[begin_ts];
-        std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+        std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
         std::cerr
             << "Timestamp metadata for commit_ts metadata's begin_ts " << begin_ts
             << ": " << metadata_bits << std::endl;
@@ -380,7 +380,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
             // We can't recurse here since we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
             txn_metadata_t txn_metadata = s_txn_metadata_map[commit_ts];
-            std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+            std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
             std::cerr
                 << "Timestamp metadata for begin_ts metadata's commit_ts " << commit_ts
                 << ": " << metadata_bits << std::endl;
@@ -389,12 +389,12 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
 }
 
 txn_metadata_t::txn_metadata_t() noexcept
-    : value(c_value_uninitialized)
+    : m_value(c_value_uninitialized)
 {
 }
 
 txn_metadata_t::txn_metadata_t(uint64_t value)
-    : value(value)
+    : m_value(value)
 {
 }
 

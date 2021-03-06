@@ -18,8 +18,9 @@ namespace gaia
 namespace db
 {
 
-struct txn_metadata_t
+class txn_metadata_t
 {
+private:
     // This is an effectively infinite array of timestamp entries, indexed by
     // the txn timestamp counter and containing metadata for every txn that has
     // been submitted to the system.
@@ -65,9 +66,10 @@ struct txn_metadata_t
     // dangerous when we approach wraparound.)
     static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
 
-    static void init_txn_metadata_map();
-
     static inline void check_ts_size(gaia_txn_id_t ts);
+
+public:
+    static void init_txn_metadata_map();
 
     static inline bool is_uninitialized_ts(gaia_txn_id_t ts);
     // static inline bool is_sealed_ts(gaia_txn_id_t ts);
@@ -101,6 +103,7 @@ struct txn_metadata_t
 
     static void dump_txn_metadata(gaia_txn_id_t ts);
 
+private:
     // Transaction metadata constants.
     //
     // Transaction metadata format:
@@ -220,6 +223,7 @@ struct txn_metadata_t
     // The first 3 bits of this value do not correspond to any valid txn status value.
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 
+private:
     txn_metadata_t() noexcept;
     explicit txn_metadata_t(uint64_t value);
 
@@ -247,7 +251,8 @@ struct txn_metadata_t
 
     const char* status_to_str() const;
 
-    uint64_t value;
+private:
+    uint64_t m_value;
 };
 
 #include "txn_metadata.inc"
