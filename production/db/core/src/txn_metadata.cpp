@@ -17,9 +17,15 @@ namespace gaia
 namespace db
 {
 
+static_assert(
+    sizeof(txn_metadata_t) == sizeof(uint64_t),
+    "txn_metadata_t struct should only contain a uint64_t value!");
+
 // This should always be true on any 64-bit platform, but we assert since we
 // never want to fall back to a lock-based implementation of atomics.
-static_assert(std::atomic<txn_metadata_t>::is_always_lock_free);
+static_assert(
+    std::atomic<txn_metadata_t>::is_always_lock_free,
+    "std::atomic<txn_metadata_t> implementation was expected to be lock free!");
 
 // Use a huge sparse array to store the txn metadata, where each entry is indexed by
 // its begin or commit timestamp. We use 2^45 = 32TB of virtual address space
