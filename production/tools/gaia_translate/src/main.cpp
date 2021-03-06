@@ -845,12 +845,12 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
 void optimize_subscription(const string& table, int rule_count)
 {
-    string rule_name
-        = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
     // optimization to reuse the same rule function and rule_binding_t
     // for the same table
     if (g_insert_tables.find(table) != g_insert_tables.end())
     {
+        string rule_name
+            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         g_current_ruleset_subscription
             .append(c_ident)
             .append("subscribe_rule(gaia::")

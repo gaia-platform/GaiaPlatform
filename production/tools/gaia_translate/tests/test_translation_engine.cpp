@@ -75,7 +75,7 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (g_rule_called != 2)
+    while (g_rule_called < 2)
     {
         usleep(c_g_rule_execution_delay);
     }
