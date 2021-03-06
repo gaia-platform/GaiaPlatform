@@ -10,6 +10,7 @@
 #include <atomic>
 #include <limits>
 
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
@@ -65,6 +66,30 @@ struct txn_metadata_t
     static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
 
     static void init_txn_metadata_map();
+
+    static inline void check_ts_size(gaia_txn_id_t ts);
+
+    static inline bool is_uninitialized_ts(gaia_txn_id_t ts);
+    // static inline bool is_sealed_ts(gaia_txn_id_t ts);
+    static inline bool is_begin_ts(gaia_txn_id_t ts);
+    static inline bool is_commit_ts(gaia_txn_id_t ts);
+    static inline bool is_txn_submitted(gaia_txn_id_t begin_ts);
+    static inline bool is_txn_validating(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_decided(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_committed(gaia_txn_id_t commit_ts);
+    // static inline bool is_txn_aborted(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_durable(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_active(gaia_txn_id_t begin_ts);
+    // static inline bool is_txn_terminated(gaia_txn_id_t begin_ts);
+
+    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
+    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
+
+    // static inline uint64_t get_status(gaia_txn_id_t ts);
+    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+
+    static void dump_txn_metadata(gaia_txn_id_t ts);
 
     // Transaction metadata constants.
     //
@@ -196,21 +221,19 @@ struct txn_metadata_t
     inline bool is_validating() const;
     inline bool is_decided() const;
     inline bool is_committed() const;
-    inline bool is_aborted() const;
+    // inline bool is_aborted() const;
     inline bool is_gc_complete() const;
     inline bool is_durable() const;
     inline bool is_active() const;
-    inline bool is_terminated() const;
+    // inline bool is_terminated() const;
+
+    inline uint64_t get_status() const;
+    inline gaia_txn_id_t get_timestamp() const;
+    inline int get_txn_log_fd() const;
 
     inline void invalidate_txn_log_fd();
     inline void set_terminated();
     inline void set_gc_complete();
-
-    inline uint64_t get_status() const;
-
-    inline gaia_txn_id_t get_timestamp() const;
-
-    inline int get_txn_log_fd() const;
 
     const char* status_to_str() const;
 

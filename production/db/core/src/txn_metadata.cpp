@@ -5,8 +5,10 @@
 
 #include "txn_metadata.hpp"
 
+#include <bitset>
+#include <iostream>
+
 #include "gaia_internal/common/mmap_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {
@@ -99,6 +101,59 @@ void txn_metadata_t::init_txn_metadata_map()
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         -1,
         0);
+}
+
+void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
+{
+    // NB: We generally cannot use the is_*_ts() functions because the entry could
+    // change while we're reading it!
+    txn_metadata_t txn_metadata = s_txn_metadata_map[ts];
+    std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+
+    std::cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << std::endl;
+
+    if (txn_metadata.is_uninitialized())
+    {
+        std::cerr << "UNKNOWN" << std::endl;
+        return;
+    }
+
+    if (txn_metadata.is_sealed())
+    {
+        std::cerr << "INVALID" << std::endl;
+        return;
+    }
+
+    std::cerr << "Type: " << (txn_metadata.is_commit_ts() ? "COMMIT" : "ACTIVE") << std::endl;
+    std::cerr << "Status: " << txn_metadata.status_to_str() << std::endl;
+
+    if (txn_metadata.is_commit_ts())
+    {
+        gaia_txn_id_t begin_ts = get_begin_ts(ts);
+        // We can't recurse here since we'd just bounce back and forth between a
+        // txn's begin_ts and commit_ts.
+        txn_metadata_t txn_metadata = s_txn_metadata_map[begin_ts];
+        std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+        std::cerr
+            << "Timestamp metadata for commit_ts metadata's begin_ts " << begin_ts
+            << ": " << metadata_bits << std::endl;
+        std::cerr << "Log fd for commit_ts metadata: " << get_txn_log_fd(ts) << std::endl;
+    }
+
+    if (txn_metadata.is_begin_ts() && txn_metadata.is_submitted())
+    {
+        gaia_txn_id_t commit_ts = get_commit_ts(ts);
+        if (commit_ts != c_invalid_gaia_txn_id)
+        {
+            // We can't recurse here since we'd just bounce back and forth between a
+            // txn's begin_ts and commit_ts.
+            txn_metadata_t txn_metadata = s_txn_metadata_map[commit_ts];
+            std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.value);
+            std::cerr
+                << "Timestamp metadata for begin_ts metadata's commit_ts " << commit_ts
+                << ": " << metadata_bits << std::endl;
+        }
+    }
 }
 
 txn_metadata_t::txn_metadata_t() noexcept

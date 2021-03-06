@@ -258,42 +258,6 @@ private:
 
     static bool seal_uninitialized_ts(gaia_txn_id_t ts);
 
-    static void check_ts_size(gaia_txn_id_t ts);
-
-    static bool is_uninitialized_ts(gaia_txn_id_t ts);
-
-    static bool is_sealed_ts(gaia_txn_id_t ts);
-
-    static bool is_begin_ts(gaia_txn_id_t ts);
-
-    static bool is_commit_ts(gaia_txn_id_t ts);
-
-    static bool is_txn_submitted(gaia_txn_id_t begin_ts);
-
-    static bool is_txn_validating(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_decided(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_committed(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_aborted(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_durable(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_active(gaia_txn_id_t begin_ts);
-
-    static bool is_txn_terminated(gaia_txn_id_t begin_ts);
-
-    static uint64_t get_status(gaia_txn_id_t ts);
-
-    static gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
-
-    static gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
-
-    static int get_txn_log_fd(gaia_txn_id_t commit_ts);
-
     static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
@@ -321,8 +285,6 @@ private:
     static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
-
-    static void dump_txn_metadata(gaia_txn_id_t ts);
 
     class invalid_log_fd : public common::gaia_exception
     {

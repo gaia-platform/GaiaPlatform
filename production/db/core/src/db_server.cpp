@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <bitset>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -60,9 +59,6 @@ static constexpr char c_message_epoll_ctl_failed[] = "epoll_ctl() failed!";
 static constexpr char c_message_unexpected_event_type[] = "Unexpected event type!";
 static constexpr char c_message_epollerr_flag_should_not_be_set[] = "EPOLLERR flag should not be set!";
 static constexpr char c_message_unexpected_fd[] = "Unexpected fd!";
-static constexpr char c_message_not_a_begin_timestamp[] = "Not a begin timestamp!";
-static constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
-static constexpr char c_message_uninitialized_timestamp[] = "Uninitialized timestamp!";
 static constexpr char c_message_unexpected_errno_value[] = "Unexpected errno value!";
 static constexpr char c_message_txn_log_fd_cannot_be_invalidated[]
     = "A txn log fd can only be invalidated if its commit_ts has been validated!";
@@ -78,11 +74,14 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
 {
-    common::retail_assert(is_commit_ts(commit_ts), "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
+    common::retail_assert(
+        txn_metadata_t::is_commit_ts(commit_ts),
+        "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
+
     // If the log fd was invalidated, it is either closed or soon will
     // be closed, and therefore we cannot use it. We return early if the
     // fd has already been invalidated to avoid the dup(2) call.
-    int log_fd = get_txn_log_fd(commit_ts);
+    int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
     if (log_fd == -1)
     {
         throw invalid_log_fd(commit_ts);
@@ -107,7 +106,9 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
         if (e.get_errno() == EBADF)
         {
             // The log fd must have been invalidated before it was closed.
-            common::retail_assert(get_txn_log_fd(commit_ts) == -1, "log fd was closed without being invalidated!");
+            common::retail_assert(
+                txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
+                "log fd was closed without being invalidated!");
             // We lost the race because the log fd was invalidated and closed after our check.
             throw invalid_log_fd(commit_ts);
         }
@@ -120,7 +121,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
     // If we were able to duplicate the log fd, check to be sure it
     // wasn't invalidated (and thus possibly closed and reused before
     // the call to dup(2)), so we know we aren't reusing a closed fd.
-    if (get_txn_log_fd(commit_ts) == -1)
+    if (txn_metadata_t::get_txn_log_fd(commit_ts) == -1)
     {
         // If we got here, we must have a valid dup fd.
         common::retail_assert(
@@ -267,12 +268,12 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
     for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
     {
-        if (is_commit_ts(ts))
+        if (txn_metadata_t::is_commit_ts(ts))
         {
             retail_assert(
-                is_txn_decided(ts),
+                txn_metadata_t::is_txn_decided(ts),
                 "Undecided commit_ts found in snapshot window!");
-            if (is_txn_committed(ts))
+            if (txn_metadata_t::txn_metadata_t::is_txn_committed(ts))
             {
                 // Since the watermark could advance past its saved value, we
                 // need to be sure that we don't send an invalidated and closed
@@ -1457,63 +1458,12 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
         seal_uninitialized_ts(ts);
 
         // Validate any undecided submitted txns.
-        if (is_commit_ts(ts) && is_txn_validating(ts))
+        if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_validating(ts))
         {
             bool is_committed = validate_txn(ts);
 
             // Update the current txn's decided status.
             update_txn_decision(ts, is_committed);
-        }
-    }
-}
-
-void server_t::dump_txn_metadata(gaia_txn_id_t ts)
-{
-    // NB: We generally cannot use the is_*_ts() functions because the entry could
-    // change while we're reading it!
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
-
-    cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << endl;
-
-    if (txn_metadata.is_uninitialized())
-    {
-        cerr << "UNKNOWN" << endl;
-        return;
-    }
-
-    if (txn_metadata.is_sealed())
-    {
-        cerr << "INVALID" << endl;
-        return;
-    }
-
-    cerr << "Type: " << (txn_metadata.is_commit_ts() ? "COMMIT" : "ACTIVE") << endl;
-    cerr << "Status: " << txn_metadata.status_to_str() << endl;
-
-    if (txn_metadata.is_commit_ts())
-    {
-        gaia_txn_id_t begin_ts = get_begin_ts(ts);
-        // We can't recurse here since we'd just bounce back and forth between a
-        // txn's begin_ts and commit_ts.
-        txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
-        std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
-        cerr << "Timestamp metadata for commit_ts metadata's begin_ts " << begin_ts << ": " << metadata_bits << endl;
-        cerr << "Log fd for commit_ts metadata: " << get_txn_log_fd(ts) << endl;
-    }
-
-    if (txn_metadata.is_begin_ts() && txn_metadata.is_submitted())
-    {
-        gaia_txn_id_t commit_ts = get_commit_ts(ts);
-        if (commit_ts != c_invalid_gaia_txn_id)
-        {
-            // We can't recurse here since we'd just bounce back and forth between a
-            // txn's begin_ts and commit_ts.
-            txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-            std::bitset<txn_metadata_t::c_txn_metadata_bits> metadata_bits(txn_metadata.value);
-            cerr
-                << "Timestamp metadata for begin_ts metadata's commit_ts " << commit_ts
-                << ": " << metadata_bits << endl;
         }
     }
 }
@@ -1529,7 +1479,7 @@ void server_t::dump_txn_metadata(gaia_txn_id_t ts)
 inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
 {
     // If the metadata is not uninitialized, we can't seal it.
-    if (!is_uninitialized_ts(ts))
+    if (!txn_metadata_t::is_uninitialized_ts(ts))
     {
         return false;
     }
@@ -1537,7 +1487,8 @@ inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
     txn_metadata_t expected_metadata;
     txn_metadata_t sealed_metadata(txn_metadata_t::c_value_sealed);
 
-    bool has_sealed_metadata = txn_metadata_t::s_txn_metadata_map[ts].compare_exchange_strong(expected_metadata, sealed_metadata);
+    bool has_sealed_metadata = txn_metadata_t::s_txn_metadata_map[ts].compare_exchange_strong(
+        expected_metadata, sealed_metadata);
     // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
     // submitting thread can transition the txn to these states.
     if (!has_sealed_metadata)
@@ -1551,161 +1502,10 @@ inline bool server_t::seal_uninitialized_ts(gaia_txn_id_t ts)
     return has_sealed_metadata;
 }
 
-inline void server_t::check_ts_size(gaia_txn_id_t ts)
-{
-    retail_assert(ts < (1ULL << txn_metadata_t::c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
-}
-
-inline bool server_t::is_uninitialized_ts(gaia_txn_id_t ts)
-{
-    check_ts_size(ts);
-
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    return txn_metadata.is_uninitialized();
-}
-
-inline bool server_t::is_sealed_ts(gaia_txn_id_t ts)
-{
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    return txn_metadata.is_sealed();
-}
-
-inline bool server_t::is_begin_ts(gaia_txn_id_t ts)
-{
-    retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
-
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    return txn_metadata.is_begin_ts();
-}
-
-inline bool server_t::is_commit_ts(gaia_txn_id_t ts)
-{
-    retail_assert(!is_uninitialized_ts(ts), c_message_uninitialized_timestamp);
-
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    return txn_metadata.is_commit_ts();
-}
-
-inline bool server_t::is_txn_submitted(gaia_txn_id_t begin_ts)
-{
-    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-
-    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
-    return begin_ts_metadata.is_submitted();
-}
-
-inline bool server_t::is_txn_validating(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_validating();
-}
-
-inline bool server_t::is_txn_decided(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_decided();
-}
-
-inline bool server_t::is_txn_committed(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_committed();
-}
-
-inline bool server_t::is_txn_aborted(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_aborted();
-}
-
-inline bool server_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_gc_complete();
-}
-
-inline bool server_t::is_txn_durable(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.is_durable();
-}
-
-inline bool server_t::is_txn_active(gaia_txn_id_t begin_ts)
-{
-    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-
-    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
-    return begin_ts_metadata.is_active();
-}
-
-inline bool server_t::is_txn_terminated(gaia_txn_id_t begin_ts)
-{
-    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-
-    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
-    return begin_ts_metadata.is_terminated();
-}
-
-inline uint64_t server_t::get_status(gaia_txn_id_t ts)
-{
-    retail_assert(
-        !is_uninitialized_ts(ts) && !is_sealed_ts(ts),
-        "Invalid txn metadata!");
-
-    txn_metadata_t txn_metadata = txn_metadata_t::s_txn_metadata_map[ts];
-    return txn_metadata.get_status();
-}
-
-inline gaia_txn_id_t server_t::get_begin_ts(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    gaia_txn_id_t begin_ts = commit_ts_metadata.get_timestamp();
-    retail_assert(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
-
-    return begin_ts;
-}
-
-inline gaia_txn_id_t server_t::get_commit_ts(gaia_txn_id_t begin_ts)
-{
-    retail_assert(is_begin_ts(begin_ts), c_message_not_a_begin_timestamp);
-    retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
-
-    txn_metadata_t begin_ts_metadata = txn_metadata_t::s_txn_metadata_map[begin_ts];
-    gaia_txn_id_t commit_ts = begin_ts_metadata.get_timestamp();
-    if (is_txn_submitted(begin_ts))
-    {
-        retail_assert(commit_ts != c_invalid_gaia_txn_id, "commit_ts must be valid for a submitted begin_ts!");
-    }
-
-    return commit_ts;
-}
-
-inline int server_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
-{
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-    txn_metadata_t commit_ts_metadata = txn_metadata_t::s_txn_metadata_map[commit_ts];
-    return commit_ts_metadata.get_txn_log_fd();
-}
-
 inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 {
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-    retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
+    retail_assert(txn_metadata_t::is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+    retail_assert(txn_metadata_t::is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
 
     // The txn log fd is the the 16 bits of the ts metadata before the final
     // 42 bits of the linked timestamp. We
@@ -1742,8 +1542,8 @@ inline bool server_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
 {
     // Only an active txn can be submitted.
-    retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
-    retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+    retail_assert(txn_metadata_t::is_txn_active(begin_ts), "Not an active transaction!");
+    retail_assert(txn_metadata_t::is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
     // Transition the begin_ts metadata to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags
@@ -1761,7 +1561,7 @@ inline void server_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_
 inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 {
     // Only an active txn can be terminated.
-    retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
+    retail_assert(txn_metadata_t::is_txn_active(begin_ts), "Not an active transaction!");
 
     // We don't need a CAS here because only the session thread can submit or terminate a txn,
     // and an active txn cannot be sealed.
@@ -1774,7 +1574,7 @@ inline void server_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 
 inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
+    retail_assert(!txn_metadata_t::is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
     // We construct the commit_ts metadata by concatenating required bits.
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << txn_metadata_t::c_txn_log_fd_shift;
@@ -1792,19 +1592,20 @@ inline gaia_txn_id_t server_t::register_commit_ts(gaia_txn_id_t begin_ts, int lo
     {
         // Allocate a new commit timestamp.
         commit_ts = allocate_txn_id();
-        check_ts_size(commit_ts);
+        txn_metadata_t::check_ts_size(commit_ts);
 
         // The commit_ts metadata must be uninitialized.
         expected_metadata = txn_metadata_t();
 
-    } while (!txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_weak(expected_metadata, commit_ts_metadata));
+    } while (!txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_weak(
+        expected_metadata, commit_ts_metadata));
 
     return commit_ts;
 }
 
 gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
+    retail_assert(txn_metadata_t::is_txn_active(begin_ts), "Not an active transaction!");
 
     // We assume all our log fds are non-negative and fit into 16 bits. (The
     // highest possible value is reserved to indicate an invalid fd.)
@@ -1828,7 +1629,7 @@ void server_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
     // The commit_ts metadata must be in state TXN_VALIDATING or TXN_DECIDED.
     // We allow the latter to enable idempotent concurrent validation.
     retail_assert(
-        is_txn_validating(commit_ts) || is_txn_decided(commit_ts),
+        txn_metadata_t::is_txn_validating(commit_ts) || txn_metadata_t::is_txn_decided(commit_ts),
         "commit_ts metadata must be in validating or decided state!");
 
     uint64_t decided_status_flags
@@ -1989,7 +1790,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     do
     {
         new_committed_txn_found = false;
-        for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
             // Seal all uninitialized timestamps. This marks a "fence" after which
             // any submitted txns with commit timestamps in our conflict window must
@@ -2002,7 +1803,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                 continue;
             }
 
-            if (is_commit_ts(ts) && is_txn_committed(ts))
+            if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_committed(ts))
             {
                 // Remember each committed txn commit_ts so we don't test it again.
                 const auto [iter, new_committed_ts] = committed_txns_tested_for_conflicts.insert(ts);
@@ -2044,26 +1845,26 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         // invalidated while our txn's log fd has been invalidated.
                         gaia_txn_id_t sealed_commit_ts = e.get_ts();
                         retail_assert(
-                            is_txn_decided(sealed_commit_ts),
+                            txn_metadata_t::is_txn_decided(sealed_commit_ts),
                             c_message_txn_log_fd_cannot_be_invalidated);
                         if (sealed_commit_ts == ts)
                         {
                             retail_assert(
-                                is_txn_decided(commit_ts),
+                                txn_metadata_t::is_txn_decided(commit_ts),
                                 c_message_validating_txn_should_have_been_validated);
                         }
                         // If either log fd was invalidated, then the validating txn
                         // must have been validated, so we can return the decision
                         // immediately.
-                        return is_txn_committed(commit_ts);
+                        return txn_metadata_t::is_txn_committed(commit_ts);
                     }
                 }
             }
 
             // Check if another thread has already validated this txn.
-            if (is_txn_decided(commit_ts))
+            if (txn_metadata_t::is_txn_decided(commit_ts))
             {
-                return is_txn_committed(commit_ts);
+                return txn_metadata_t::is_txn_committed(commit_ts);
             }
         }
 
@@ -2072,12 +1873,12 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // Validate all undecided txns, from oldest to newest. If any validated txn
     // commits, test it immediately for conflicts. Also test any committed txns
     // for conflicts if they weren't tested in the first pass.
-    for (gaia_txn_id_t ts = get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
     {
-        if (is_commit_ts(ts))
+        if (txn_metadata_t::is_commit_ts(ts))
         {
             // Validate any currently undecided txn.
-            if (is_txn_validating(ts))
+            if (txn_metadata_t::is_txn_validating(ts))
             {
                 // By hypothesis, there are no undecided txns with commit timestamps
                 // preceding the committing txn's begin timestamp.
@@ -2093,7 +1894,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
             }
 
             // If a previously undecided txn has now committed, test it for conflicts.
-            if (is_txn_committed(ts) && committed_txns_tested_for_conflicts.count(ts) == 0)
+            if (txn_metadata_t::is_txn_committed(ts) && committed_txns_tested_for_conflicts.count(ts) == 0)
             {
                 // We need to use the safe_fd_from_ts_t wrapper for conflict
                 // detection in case either log fd is invalidated by another
@@ -2126,12 +1927,12 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     // txn's log fd has been invalidated.
                     gaia_txn_id_t sealed_commit_ts = e.get_ts();
                     retail_assert(
-                        is_txn_decided(sealed_commit_ts),
+                        txn_metadata_t::is_txn_decided(sealed_commit_ts),
                         c_message_txn_log_fd_cannot_be_invalidated);
                     if (sealed_commit_ts == commit_ts)
                     {
                         retail_assert(
-                            get_txn_log_fd(ts) == -1,
+                            txn_metadata_t::get_txn_log_fd(ts) == -1,
                             c_message_txn_log_fd_should_have_been_invalidated);
                     }
                     else
@@ -2140,21 +1941,21 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             sealed_commit_ts == ts,
                             c_message_unexpected_commit_ts_value);
                         retail_assert(
-                            is_txn_decided(commit_ts),
+                            txn_metadata_t::is_txn_decided(commit_ts),
                             c_message_validating_txn_should_have_been_validated);
                     }
                     // If either log fd was invalidated, then the validating txn
                     // must have been validated, so we can return the decision
                     // immediately.
-                    return is_txn_committed(commit_ts);
+                    return txn_metadata_t::is_txn_committed(commit_ts);
                 }
             }
         }
 
         // Check if another thread has already validated this txn.
-        if (is_txn_decided(commit_ts))
+        if (txn_metadata_t::is_txn_decided(commit_ts))
         {
-            return is_txn_committed(commit_ts);
+            return txn_metadata_t::is_txn_committed(commit_ts);
         }
     }
 
@@ -2190,12 +1991,12 @@ bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn
 void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(
-        is_commit_ts(commit_ts) && is_txn_committed(commit_ts),
+        txn_metadata_t::is_commit_ts(commit_ts) && txn_metadata_t::is_txn_committed(commit_ts),
         "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
 
     // Since txn logs are only eligible for GC after they fall behind the
     // post-apply watermark, we don't need the safe_fd_from_ts_t wrapper.
-    int log_fd = get_txn_log_fd(commit_ts);
+    int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
 
     // A txn log fd should never be invalidated until it falls behind the
     // post-apply watermark.
@@ -2208,7 +2009,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // Ensure that the begin_ts in this metadata matches the txn log header.
     retail_assert(
-        txn_log.data()->begin_ts == get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
     for (size_t i = 0; i < txn_log.data()->record_count; ++i)
@@ -2238,7 +2039,8 @@ bool server_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
     // Set GC status to TXN_GC_COMPLETE.
     txn_metadata_t commit_ts_metadata = expected_metadata;
     commit_ts_metadata.set_gc_complete();
-    return txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_strong(expected_metadata, commit_ts_metadata);
+    return txn_metadata_t::s_txn_metadata_map[commit_ts].compare_exchange_strong(
+        expected_metadata, commit_ts_metadata);
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
@@ -2413,9 +2215,9 @@ void server_t::apply_txn_logs_to_shared_view()
 
         // If this is a commit_ts, we cannot advance the watermark unless it's
         // decided.
-        if (is_commit_ts(ts) && is_txn_validating(ts))
+        if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_validating(ts))
         {
-            if (is_txn_validating(ts))
+            if (txn_metadata_t::is_txn_validating(ts))
             {
                 break;
             }
@@ -2425,14 +2227,15 @@ void server_t::apply_txn_logs_to_shared_view()
         // either in the TXN_TERMINATED state or in the TXN_SUBMITTED state with
         // its commit_ts in the TXN_DECIDED state. This means that the watermark
         // can never advance into the conflict window of an undecided txn.
-        if (is_begin_ts(ts))
+        if (txn_metadata_t::is_begin_ts(ts))
         {
-            if (is_txn_active(ts))
+            if (txn_metadata_t::is_txn_active(ts))
             {
                 break;
             }
 
-            if (is_txn_submitted(ts) && is_txn_validating(get_commit_ts(ts)))
+            if (txn_metadata_t::is_txn_submitted(ts)
+                && txn_metadata_t::is_txn_validating(txn_metadata_t::get_commit_ts(ts)))
             {
                 break;
             }
@@ -2487,11 +2290,13 @@ void server_t::apply_txn_logs_to_shared_view()
             break;
         }
 
-        if (is_commit_ts(ts))
+        if (txn_metadata_t::is_commit_ts(ts))
         {
-            retail_assert(is_txn_decided(ts), "The watermark should not be advanced to an undecided commit_ts!");
+            retail_assert(
+                txn_metadata_t::is_txn_decided(ts),
+                "The watermark should not be advanced to an undecided commit_ts!");
 
-            if (is_txn_committed(ts))
+            if (txn_metadata_t::is_txn_committed(ts))
             {
                 // If a new txn starts after or while we apply this txn log to
                 // the shared view, but before we advance the post-apply
@@ -2531,13 +2336,15 @@ void server_t::gc_applied_txn_logs()
 
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(!is_uninitialized_ts(ts), "All uninitialized txn table entries should be sealed!");
+        retail_assert(
+            !txn_metadata_t::is_uninitialized_ts(ts),
+            "All uninitialized txn table entries should be sealed!");
 
         retail_assert(
-            !(is_begin_ts(ts) && is_txn_active(ts)),
+            !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
             "The watermark should not be advanced to an active begin_ts!");
 
-        if (is_commit_ts(ts))
+        if (txn_metadata_t::is_commit_ts(ts))
         {
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
@@ -2545,12 +2352,12 @@ void server_t::gc_applied_txn_logs()
             bool is_persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
                 && (s_persistence_mode != persistence_mode_t::e_disabled_after_recovery);
 
-            if (is_persistence_enabled && !is_txn_durable(ts))
+            if (is_persistence_enabled && !txn_metadata_t::is_txn_durable(ts))
             {
                 break;
             }
 
-            int log_fd = get_txn_log_fd(ts);
+            int log_fd = txn_metadata_t::get_txn_log_fd(ts);
 
             // Continue the scan if this log fd has already been invalidated,
             // since GC has already been started.
@@ -2581,7 +2388,7 @@ void server_t::gc_applied_txn_logs()
             // that we could deallocate intermediate versions (i.e., those
             // superseded within the same txn) immediately, but we do it here
             // for simplicity.
-            gc_txn_log_from_fd(log_fd, is_txn_committed(ts));
+            gc_txn_log_from_fd(log_fd, txn_metadata_t::is_txn_committed(ts));
 
             // We need to mark this txn metadata TXN_GC_COMPLETE to allow the
             // post-GC watermark to advance.
@@ -2611,19 +2418,23 @@ void server_t::update_txn_table_safe_truncation_point()
 
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(!is_uninitialized_ts(ts), "All uninitialized txn table entries should be sealed!");
+        retail_assert(
+            !txn_metadata_t::is_uninitialized_ts(ts),
+            "All uninitialized txn table entries should be sealed!");
 
         retail_assert(
-            !(is_begin_ts(ts) && is_txn_active(ts)),
+            !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
             "The watermark should not be advanced to an active begin_ts!");
 
-        if (is_commit_ts(ts))
+        if (txn_metadata_t::is_commit_ts(ts))
         {
-            retail_assert(is_txn_decided(ts), "The watermark should not be advanced to an undecided commit_ts!");
+            retail_assert(
+                txn_metadata_t::is_txn_decided(ts),
+                "The watermark should not be advanced to an undecided commit_ts!");
 
             // We can only advance the post-GC watermark to a commit_ts if it is
             // marked TXN_GC_COMPLETE.
-            if (!is_txn_gc_complete(ts))
+            if (!txn_metadata_t::is_txn_gc_complete(ts))
             {
                 break;
             }
@@ -2658,7 +2469,8 @@ gaia_txn_id_t server_t::txn_begin()
 
     // The begin_ts metadata must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
-    const txn_metadata_t c_begin_ts_metadata(txn_metadata_t::c_txn_status_active << txn_metadata_t::c_txn_status_flags_shift);
+    const txn_metadata_t c_begin_ts_metadata(
+        txn_metadata_t::c_txn_status_active << txn_metadata_t::c_txn_status_flags_shift);
 
     // Loop until we successfully install a newly allocated begin_ts in the txn
     // table. (We're possibly racing another beginning or committing txn that
@@ -2674,8 +2486,9 @@ gaia_txn_id_t server_t::txn_begin()
 
         // Allocate a new begin timestamp.
         begin_ts = allocate_txn_id();
-        check_ts_size(begin_ts);
-    } while (!txn_metadata_t::s_txn_metadata_map[begin_ts].compare_exchange_weak(expected_metadata, c_begin_ts_metadata));
+        txn_metadata_t::check_ts_size(begin_ts);
+    } while (!txn_metadata_t::s_txn_metadata_map[begin_ts].compare_exchange_weak(
+        expected_metadata, c_begin_ts_metadata));
 
     return begin_ts;
 }
