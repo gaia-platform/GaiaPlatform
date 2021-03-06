@@ -103,6 +103,170 @@ void txn_metadata_t::init_txn_metadata_map()
         0);
 }
 
+// This is designed for implementing "fences" that can guarantee no thread can
+// ever claim a timestamp, by marking that timestamp permanently sealed.
+// Sealing can only be performed on an "uninitialized" metadata entry, not on any valid
+// metadata entry. When a session thread beginning or committing a txn finds that its
+// begin_ts or commit_ts has been sealed upon initializing the metadata entry for
+// that timestamp, it simply allocates another timestamp and retries. This is
+// possible because we never publish a newly allocated timestamp until we know
+// that its metadata entry has been successfully initialized.
+bool txn_metadata_t::seal_uninitialized_ts(gaia_txn_id_t ts)
+{
+    // If the metadata is not uninitialized, we can't seal it.
+    if (!is_uninitialized_ts(ts))
+    {
+        return false;
+    }
+
+    txn_metadata_t expected_metadata;
+    txn_metadata_t sealed_metadata(c_value_sealed);
+
+    bool has_sealed_metadata = s_txn_metadata_map[ts].compare_exchange_strong(
+        expected_metadata, sealed_metadata);
+    // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
+    // submitting thread can transition the txn to these states.
+    if (!has_sealed_metadata)
+    {
+        // NB: expected_metadata is an inout argument holding the previous value on failure!
+        common::retail_assert(
+            !expected_metadata.is_uninitialized(),
+            "An uninitialized txn metadata cannot fail to be sealed!");
+    }
+
+    return has_sealed_metadata;
+}
+
+bool txn_metadata_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
+{
+    common::retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+    common::retail_assert(is_txn_decided(commit_ts), "Cannot invalidate an undecided txn!");
+
+    // The txn log fd is the the 16 bits of the ts metadata before the final
+    // 42 bits of the linked timestamp. We
+    // don't zero these out because 0 is technically a valid fd (even though
+    // it's normally reserved for stdin). Instead we follow the same convention
+    // as elsewhere, using a reserved value of -1 to indicate an invalid fd.
+    // (This means, of course, that we cannot use uint16_t::max() as a valid fd.)
+    // We need a CAS since only one thread can be allowed to invalidate the fd
+    // entry and hence to close the fd.
+    // NB: we use compare_exchange_weak() for the global update since we need to
+    // retry anyway on concurrent updates, so tolerating spurious failures
+    // requires no additional logic.
+
+    txn_metadata_t commit_ts_metadata = s_txn_metadata_map[commit_ts];
+    txn_metadata_t invalidated_commit_ts_metadata;
+    do
+    {
+        // NB: commit_ts_metadata is an inout argument holding the previous value
+        // on failure!
+        if (commit_ts_metadata.get_txn_log_fd() == -1)
+        {
+            return false;
+        }
+
+        invalidated_commit_ts_metadata = commit_ts_metadata;
+        invalidated_commit_ts_metadata.invalidate_txn_log_fd();
+    } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(
+        commit_ts_metadata, invalidated_commit_ts_metadata));
+
+    return true;
+}
+
+// Sets the begin_ts metadata's status to TXN_SUBMITTED.
+void txn_metadata_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
+{
+    // Only an active txn can be submitted.
+    common::retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
+    common::retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+
+    // Transition the begin_ts metadata to the TXN_SUBMITTED state.
+    constexpr uint64_t c_submitted_flags
+        = c_txn_status_submitted << c_txn_status_flags_shift;
+
+    // A submitted begin_ts metadata has the commit_ts in its low bits.
+    txn_metadata_t submitted_begin_ts_metadata(c_submitted_flags | commit_ts);
+
+    // We don't need a CAS here since only the session thread can submit or terminate a txn,
+    // and an active txn cannot be sealed.
+    s_txn_metadata_map[begin_ts] = submitted_begin_ts_metadata;
+}
+
+// Sets the begin_ts metadata's status to TXN_TERMINATED.
+void txn_metadata_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
+{
+    // Only an active txn can be terminated.
+    common::retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
+
+    // We don't need a CAS here because only the session thread can submit or terminate a txn,
+    // and an active txn cannot be sealed.
+
+    txn_metadata_t old_metadata = s_txn_metadata_map[begin_ts];
+    txn_metadata_t new_metadata = old_metadata;
+    new_metadata.set_terminated();
+    s_txn_metadata_map[begin_ts] = new_metadata;
+}
+
+void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
+{
+    // The commit_ts metadata must be in state TXN_VALIDATING or TXN_DECIDED.
+    // We allow the latter to enable idempotent concurrent validation.
+    common::retail_assert(
+        is_txn_validating(commit_ts) || is_txn_decided(commit_ts),
+        "commit_ts metadata must be in validating or decided state!");
+
+    uint64_t decided_status_flags
+        = is_committed ? c_txn_status_committed : c_txn_status_aborted;
+
+    // We can just reuse the log fd and begin_ts from the existing metadata.
+    txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
+
+    // REVIEW: This condition is probably rare enough that it's not worth optimizing
+    // and we can just let the CAS fail if another thread validated the txn before we did.
+    //
+    // We may have already been validated by another committing txn.
+    if (expected_metadata.is_decided())
+    {
+        // If another txn validated before us, they should have reached the same decision.
+        common::retail_assert(
+            expected_metadata.is_committed() == is_committed,
+            "Inconsistent txn decision detected!");
+
+        return;
+    }
+
+    // It's safe to just OR in the new flags since the preceding states don't set
+    // any bits not present in the flags.
+    txn_metadata_t commit_ts_metadata(
+        expected_metadata.value | (decided_status_flags << c_txn_status_flags_shift));
+    bool has_set_metadata = s_txn_metadata_map[commit_ts].compare_exchange_strong(
+        expected_metadata, commit_ts_metadata);
+    if (!has_set_metadata)
+    {
+        // NB: expected_metadata is an inout argument holding the previous value on failure!
+        common::retail_assert(
+            expected_metadata.is_decided(),
+            "commit_ts metadata in validating state can only transition to a decided state!");
+
+        // If another txn validated before us, they should have reached the same decision.
+        common::retail_assert(
+            expected_metadata.is_committed() == is_committed,
+            "Inconsistent txn decision detected!");
+
+        return;
+    }
+}
+
+bool txn_metadata_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
+{
+    txn_metadata_t expected_metadata = s_txn_metadata_map[commit_ts];
+    // Set GC status to TXN_GC_COMPLETE.
+    txn_metadata_t commit_ts_metadata = expected_metadata;
+    commit_ts_metadata.set_gc_complete();
+    return s_txn_metadata_map[commit_ts].compare_exchange_strong(
+        expected_metadata, commit_ts_metadata);
+}
+
 void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
 {
     // NB: We generally cannot use the is_*_ts() functions because the entry could

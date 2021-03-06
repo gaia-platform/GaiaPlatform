@@ -256,19 +256,9 @@ private:
 
     static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
-    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
-
-    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
-
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
 
-    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
-
-    static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
-
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
-
-    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
@@ -279,8 +269,6 @@ private:
     static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
-
-    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
     static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 

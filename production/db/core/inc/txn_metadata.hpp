@@ -89,6 +89,13 @@ struct txn_metadata_t
     // static inline uint64_t get_status(gaia_txn_id_t ts);
     static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
 
+    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
+    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
+    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
+    static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
+    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
+    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
+
     static void dump_txn_metadata(gaia_txn_id_t ts);
 
     // Transaction metadata constants.
