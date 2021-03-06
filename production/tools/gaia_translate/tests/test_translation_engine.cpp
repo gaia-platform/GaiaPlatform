@@ -75,13 +75,13 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (g_rule_called == 0)
+    while (g_rule_called != 2)
     {
         usleep(c_g_rule_execution_delay);
     }
 
-    EXPECT_EQ(g_rule_called, 1);
-    EXPECT_EQ(g_insert_called, 1);
+    EXPECT_EQ(g_rule_called, 2);
+    EXPECT_EQ(g_insert_called, 2);
     EXPECT_EQ(g_update_called, 0);
 
     gaia::db::begin_transaction();
@@ -113,13 +113,13 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::commit_transaction();
 
-    while (g_rule_called == 1)
+    while (g_rule_called == 2)
     {
         usleep(c_g_rule_execution_delay);
     }
 
-    EXPECT_EQ(g_rule_called, 2);
-    EXPECT_EQ(g_insert_called, 1);
+    EXPECT_EQ(g_rule_called, 3);
+    EXPECT_EQ(g_insert_called, 2);
     EXPECT_EQ(g_update_called, 1);
     EXPECT_EQ(g_actuator_rule_called, 0);
 

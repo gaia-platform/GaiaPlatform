@@ -843,6 +843,39 @@ void generate_table_subscription(const string& table, const string& field_subscr
     }
 }
 
+void optimize_subscription(const string& table, int rule_count)
+{
+    string rule_name
+        = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+    // optimization to reuse the same rule function and rule_binding_t
+    // for the same table
+    if (g_insert_tables.find(table) != g_insert_tables.end())
+    {
+        g_current_ruleset_subscription
+            .append(c_ident)
+            .append("subscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append(rule_name)
+            .append("binding);\n");
+
+        g_current_ruleset_unsubscription
+            .append(c_ident)
+            .append("unsubscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append(rule_name)
+            .append("binding);\n");
+
+        g_insert_tables.erase(table);
+    }
+}
+
+
 void generate_rules(Rewriter& rewriter)
 {
     if (g_field_data.empty())
@@ -924,6 +957,9 @@ void generate_rules(Rewriter& rewriter)
 
         generate_table_subscription(table, field_subscription_code, rule_code,
             rule_count, true, rule_line_numbers, rewriter);
+
+        optimize_subscription(table, rule_count);
+
         rule_count++;
     }
 
@@ -936,34 +972,7 @@ void generate_rules(Rewriter& rewriter)
 
         generate_table_subscription(table, "", rule_code, rule_count, true, rule_line_numbers, rewriter);
 
-        string rule_name
-            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-        // optimization to reuse the same rule function and rule_binding_t
-        // for the same table
-        if (g_insert_tables.find(table) != g_insert_tables.end())
-        {
-            g_current_ruleset_subscription
-                .append(c_ident)
-                .append("subscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n");
-
-            g_current_ruleset_unsubscription
-                .append(c_ident)
-                .append("unsubscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n");
-
-            g_insert_tables.erase(table);
-        }
+        optimize_subscription(table, rule_count);
 
         rule_count++;
     }

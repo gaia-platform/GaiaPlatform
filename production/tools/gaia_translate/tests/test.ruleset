@@ -8,7 +8,7 @@ int g_actuator_rule_called = 0;
 
 ruleset test
 {
-    OnChange(sensor.value,incubator.min_temp)
+    OnChange(sensor.value, incubator.min_temp)
     {
         gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
