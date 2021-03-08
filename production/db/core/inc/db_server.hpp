@@ -17,14 +17,11 @@
 
 #include "gaia/exception.hpp"
 
-#include "gaia_internal/common/mmap_helpers.hpp"
-
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "stack_allocator.hpp"
-#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -107,58 +104,6 @@ private:
 
     static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
 
-    // This is an effectively infinite array of timestamp entries, indexed by
-    // the txn timestamp counter and containing metadata for every txn that has
-    // been submitted to the system.
-    //
-    // Entries may be "uninitialized", "sealed" (initialized with a
-    // special "junk" value and forbidden to be used afterward), or initialized
-    // with txn metadata, consisting of 3 status bits, 1 bit for GC status
-    // (unknown or complete), 1 bit for persistence status (unknown or
-    // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
-    // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
-    // txn embedded in its begin timestamp metadata, or the begin timestamp of a
-    // submitted txn embedded in its commit timestamp metadata). The 3 status bits
-    // use the high bit to distinguish begin timestamps from commit timestamps,
-    // and 2 bits to store the state of an active, terminated, or submitted txn.
-    //
-    // The array is always accessed without any locking, but its entries have
-    // read and write barriers (via std::atomic) that ensure causal consistency
-    // between any threads that read or write the same txn metadata. Any writes to
-    // entries that may be written by multiple threads use CAS operations.
-    //
-    // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
-    // virtual address space (1/8 of the total virtual address space available
-    // to the process), but allocate physical pages only on first access. When a
-    // range of timestamp entries falls behind the watermark, its physical pages
-    // can be deallocated via madvise(MADV_FREE).
-
-    // REVIEW: Since we reserve 2^45 bytes of virtual address space and each
-    // array entry is 8 bytes, we can address the whole range using 2^42
-    // timestamps. If we allocate 2^10 timestamps/second, we will use up all our
-    // timestamps in 2^32 seconds, or about 2^7 years. If we allocate 2^20
-    // timestamps/second, we will use up all our timestamps in 2^22 seconds, or
-    // about a month and a half. If this is an issue, then we could treat the
-    // array as a circular buffer, using a separate wraparound counter to
-    // calculate the array offset from a timestamp, and we can use the 3
-    // reserved bits in the txn metadata to extend our range by a factor of
-    // 8, so we could allocate 2^20 timestamps/second for a full year. If we
-    // need a still larger timestamp range (say 64-bit timestamps, with
-    // wraparound), we could just store the difference between a commit
-    // timestamp and its txn's begin timestamp, which should be possible to
-    // bound to no more than half the bits we use for the full timestamp, so we
-    // would still need only 32 bits for a timestamp reference in the timestamp
-    // metadata. (We could store the array offset instead, but that would be
-    // dangerous when we approach wraparound.)
-    //
-    // Transaction metadata format:
-    // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
-    static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
-
-    // This should always be true on any 64-bit platform, but we assert since we
-    // never want to fall back to a lock-based implementation of atomics.
-    static_assert(std::atomic<txn_metadata_t>::is_always_lock_free);
-
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
     // The "pre-apply" watermark represents an upper bound on the latest
@@ -172,7 +117,7 @@ private:
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. The txn table cannot be
     // truncated at any timestamp after the post-GC watermark.
-
+    //
     // Schematically:
     // commit timestamps of transactions completely garbage-collected
     // <= post-GC watermark
@@ -181,7 +126,6 @@ private:
     // < commit timestamps of transactions partially applied to shared view
     // <= pre-apply watermark
     // < commit timestamps of transactions not applied to shared view.
-
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
@@ -263,8 +207,6 @@ private:
 
     static void request_memory();
 
-    static void init_txn_metadata_map();
-
     static void recover_db();
 
     static sigset_t mask_signals();
@@ -293,8 +235,6 @@ private:
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
-    static gaia_txn_id_t txn_begin();
-
     static void txn_rollback();
 
     static bool txn_commit();
@@ -313,55 +253,7 @@ private:
 
     static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
 
-    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
-
-    static void check_ts_size(gaia_txn_id_t ts);
-
-    static bool is_uninitialized_ts(gaia_txn_id_t ts);
-
-    static bool is_sealed_ts(gaia_txn_id_t ts);
-
-    static bool is_begin_ts(gaia_txn_id_t ts);
-
-    static bool is_commit_ts(gaia_txn_id_t ts);
-
-    static bool is_txn_submitted(gaia_txn_id_t begin_ts);
-
-    static bool is_txn_validating(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_decided(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_committed(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_aborted(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_durable(gaia_txn_id_t commit_ts);
-
-    static bool is_txn_active(gaia_txn_id_t begin_ts);
-
-    static bool is_txn_terminated(gaia_txn_id_t begin_ts);
-
-    static uint64_t get_status(gaia_txn_id_t ts);
-
-    static gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
-
-    static gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
-
-    static int get_txn_log_fd(gaia_txn_id_t commit_ts);
-
-    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
-
-    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
-
-    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
-
-    static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
-
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
-
-    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
@@ -373,13 +265,9 @@ private:
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
-
     static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
-
-    static void dump_txn_metadata(gaia_txn_id_t ts);
 
     class invalid_log_fd : public common::gaia_exception
     {
