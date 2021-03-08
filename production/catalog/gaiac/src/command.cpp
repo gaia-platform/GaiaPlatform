@@ -227,7 +227,7 @@ void describe_table(const string& name)
         cout << endl;
         cout << "Binary FlatBuffers Schema (in hex):" << endl;
         auto_transaction_t tx;
-        cout << gaia_table_t::get(table_id).binary_schema() << endl;
+        cout << gaia_table_t::get(table_id).binary_schema().data() << endl;
     }
 #endif
 }
