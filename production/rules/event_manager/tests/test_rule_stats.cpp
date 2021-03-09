@@ -189,7 +189,7 @@ public:
         return c_thread_load_len;
     }
 
-    static void truncate_rule_id(string rule_id)
+    static void truncate_rule_id(string& rule_id)
     {
         rule_id[c_max_rule_id_len - 1] = c_truncate_char;
     }
@@ -795,7 +795,7 @@ TEST_F(rule_stats_test, test_truncated_rule_id)
     rule_stats_t name_exceeds_limit(expected_rule_id.c_str());
     EXPECT_EQ(expected_rule_id, name_exceeds_limit.rule_id);
 
-    expected_rule_id = generate_rule_id(test_rule_stats_t::get_max_rule_id_len() - 1);
+    expected_rule_id = generate_rule_id(test_rule_stats_t::get_max_rule_id_len());
     test_rule_stats_t::truncate_rule_id(expected_rule_id);
     EXPECT_EQ(expected_rule_id, name_exceeds_limit.truncated_rule_id);
 }
