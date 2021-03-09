@@ -7,4 +7,4 @@ ruleset test
         actuator.value = @sensor.value + 5;
     }
 }
-// CHECK: Specifying active fields in rule attributes and inside the rule is not supported.
+// CHECK: Since a rule attribute was provided, specifying active fields inside the rule is not supported.

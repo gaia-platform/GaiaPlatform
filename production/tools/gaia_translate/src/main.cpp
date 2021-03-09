@@ -325,7 +325,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        cerr << "Specifying active fields in rule attributes and inside the rule is not supported." << endl;
+        cerr << "Since a rule attribute was provided, specifying active fields inside the rule is not supported." << endl;
         g_is_generation_error = true;
         return false;
     }
@@ -845,8 +845,8 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
 void optimize_subscription(const string& table, int rule_count)
 {
-    // This is an optimization to reuse the same rule function and rule_binding_t
-    // for the same table.
+    // This is to reuse the same rule function and rule_binding_t
+    // for the same table in case update and insert operation.
     if (g_insert_tables.find(table) != g_insert_tables.end())
     {
         string rule_name
