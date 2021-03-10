@@ -18,8 +18,50 @@ namespace gaia
 namespace db
 {
 
+// This class manages transaction metadata.
+//
+// The external interface is composed of static methods
+// that generally operate on gaia_txn_id_t timestamps.
+//
+// Internally, instances of this class are used to take a snapshot
+// of a transaction metadata entry.
 class txn_metadata_t
 {
+public:
+    static void init_txn_metadata_map();
+
+    static inline bool is_uninitialized_ts(gaia_txn_id_t ts);
+    static inline bool is_sealed_ts(gaia_txn_id_t ts);
+    static inline bool is_begin_ts(gaia_txn_id_t ts);
+    static inline bool is_commit_ts(gaia_txn_id_t ts);
+    static inline bool is_txn_submitted(gaia_txn_id_t begin_ts);
+    static inline bool is_txn_validating(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_decided(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_committed(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_aborted(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_durable(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_active(gaia_txn_id_t begin_ts);
+    static inline bool is_txn_terminated(gaia_txn_id_t begin_ts);
+
+    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
+    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
+
+    static inline uint64_t get_status(gaia_txn_id_t ts);
+    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+
+    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
+    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
+    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
+    static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
+    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
+    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
+
+    static gaia_txn_id_t txn_begin();
+    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
+
+    static void dump_txn_metadata(gaia_txn_id_t ts);
+
 private:
     // This is an effectively infinite array of timestamp entries, indexed by
     // the txn timestamp counter and containing metadata for every txn that has
@@ -64,50 +106,30 @@ private:
     // would still need only 32 bits for a timestamp reference in the timestamp
     // metadata. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
-    static inline std::atomic<txn_metadata_t>* s_txn_metadata_map = nullptr;
+    typedef uint64_t txn_metadata_entry_t;
+    static inline std::atomic<txn_metadata_entry_t>* s_txn_metadata_map = nullptr;
+
+    // These wrappers over std::atomic::compare_exchange_*() enable operation
+    // over instances of txn_metadata_t.
+    static inline bool compare_exchange_weak(txn_metadata_t& expected_metadata, const txn_metadata_t& desired_metadata);
+    static inline bool compare_exchange_strong(txn_metadata_t& expected_metadata, const txn_metadata_t& desired_metadata);
 
     static inline void check_ts_size(gaia_txn_id_t ts);
-
-public:
-    static void init_txn_metadata_map();
-
-    static inline bool is_uninitialized_ts(gaia_txn_id_t ts);
-    // static inline bool is_sealed_ts(gaia_txn_id_t ts);
-    static inline bool is_begin_ts(gaia_txn_id_t ts);
-    static inline bool is_commit_ts(gaia_txn_id_t ts);
-    static inline bool is_txn_submitted(gaia_txn_id_t begin_ts);
-    static inline bool is_txn_validating(gaia_txn_id_t commit_ts);
-    static inline bool is_txn_decided(gaia_txn_id_t commit_ts);
-    static inline bool is_txn_committed(gaia_txn_id_t commit_ts);
-    // static inline bool is_txn_aborted(gaia_txn_id_t commit_ts);
-    static inline bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
-    static inline bool is_txn_durable(gaia_txn_id_t commit_ts);
-    static inline bool is_txn_active(gaia_txn_id_t begin_ts);
-    // static inline bool is_txn_terminated(gaia_txn_id_t begin_ts);
-
-    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
-    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
-
-    // static inline uint64_t get_status(gaia_txn_id_t ts);
-    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
-
-    static bool seal_uninitialized_ts(gaia_txn_id_t ts);
-    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
-    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
-    static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
-    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
-    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
-
-    static gaia_txn_id_t txn_begin();
-    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
-
-    static void dump_txn_metadata(gaia_txn_id_t ts);
 
 private:
     // Transaction metadata constants.
     //
     // Transaction metadata format:
-    // 64 bits: txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
+    // 64 bits:
+    //   0-41 = linked timestamp
+    //   42-57 = log fd
+    //   58 = reserved
+    //   59 = persistence status
+    //   60 = gc status
+    //   61-63 = txn status
+    //
+    // txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
+    //
     static constexpr uint64_t c_txn_metadata_bits{64ULL};
 
     // Since we restrict all fds to 16 bits, this is the largest possible value
@@ -218,14 +240,14 @@ private:
 
     // Transaction metadata special values.
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_value_uninitialized{0ULL};
+    static constexpr txn_metadata_entry_t c_value_uninitialized{0ULL};
 
     // The first 3 bits of this value do not correspond to any valid txn status value.
-    static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
+    static constexpr txn_metadata_entry_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 
 private:
     txn_metadata_t() noexcept;
-    explicit txn_metadata_t(uint64_t value);
+    explicit txn_metadata_t(gaia_txn_id_t ts);
 
     inline bool is_uninitialized() const;
     inline bool is_sealed() const;
@@ -235,24 +257,21 @@ private:
     inline bool is_validating() const;
     inline bool is_decided() const;
     inline bool is_committed() const;
-    // inline bool is_aborted() const;
+    inline bool is_aborted() const;
     inline bool is_gc_complete() const;
     inline bool is_durable() const;
     inline bool is_active() const;
-    // inline bool is_terminated() const;
+    inline bool is_terminated() const;
 
     inline uint64_t get_status() const;
     inline gaia_txn_id_t get_timestamp() const;
     inline int get_txn_log_fd() const;
 
-    inline void invalidate_txn_log_fd();
-    inline void set_terminated();
-    inline void set_gc_complete();
-
     const char* status_to_str() const;
 
 private:
-    uint64_t m_value;
+    gaia_txn_id_t m_ts;
+    txn_metadata_entry_t m_value;
 };
 
 #include "txn_metadata.inc"
