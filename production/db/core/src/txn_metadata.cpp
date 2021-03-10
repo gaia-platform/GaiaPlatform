@@ -304,6 +304,8 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
 
         // The txn metadata must be uninitialized (not sealed).
         expected_metadata_entry = c_value_uninitialized;
+        // REVIEW: There should be an assert that expected_metadata_entry
+        // can only have the "sealed" value if the CAS fails.
     } while (!s_txn_metadata_map[begin_ts].compare_exchange_weak(
         expected_metadata_entry, c_begin_ts_metadata_entry));
 
