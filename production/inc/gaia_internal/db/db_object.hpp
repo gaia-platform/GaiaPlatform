@@ -21,11 +21,13 @@ struct db_object_t
 
     gaia::common::gaia_id_t id;
     gaia::common::gaia_type_t type;
+
     // The flatbuffer size limit is 2GB (the maximum value of a signed 32-bit word). With a 16-bit payload size, the
     // limit is 64KB. The total size of the payload is the serialized flatbuffer size plus the size of the references
     // array (num_references * sizeof(gaia_id_t)).
     uint16_t payload_size;
     uint16_t num_references;
+
     // We need to 8-byte-align both the references array at the beginning of the payload (since references are 8 bytes)
     // and the serialized flatbuffer that follows it (since 8 bytes is the largest scalar data type size supported by
     // flatbuffers). Instead of forcing correct alignment via a compiler directive, we assert that the payload field is

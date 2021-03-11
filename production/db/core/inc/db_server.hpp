@@ -118,14 +118,16 @@ private:
     // could have had GC reclaim all its resources. The txn table cannot be
     // truncated at any timestamp after the post-GC watermark.
     //
+    // The pre-apply watermark must either be equal to the post-apply watermark or greater by 1.
+    //
     // Schematically:
-    // commit timestamps of transactions completely garbage-collected
+    //    commit timestamps of transactions completely garbage-collected
     // <= post-GC watermark
-    // <= commit timestamps of transactions applied to shared view
+    //    <= commit timestamps of transactions applied to shared view
     // <= post-apply watermark
-    // < commit timestamps of transactions partially applied to shared view
+    //    < commit timestamp of transaction partially applied to shared view
     // <= pre-apply watermark
-    // < commit timestamps of transactions not applied to shared view.
+    //    < commit timestamps of transactions not applied to shared view.
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
@@ -170,6 +172,8 @@ private:
         transition_t transition;
     };
 
+    // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
+    // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t s_valid_transitions[] = {
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
