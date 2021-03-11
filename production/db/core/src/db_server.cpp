@@ -1991,7 +1991,6 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 // operation. If they differ, then we just repeat the sequence. Since this is a
 // very fast sequence of operations, retries should be infrequent, so livelock
 // shouldn't be an issue.)
-
 void server_t::perform_maintenance()
 {
     // Attempt to apply all txn logs to the shared view, from the last value of
@@ -2018,12 +2017,12 @@ void server_t::apply_txn_logs_to_shared_view()
     // for a lower bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_upper_bound = s_last_applied_commit_ts_upper_bound;
 
-    // Scan from the saved pre-apply watermark to the last known
-    // timestamp, to find the oldest active txn (if any) after begin_ts and the
-    // newest committed txn (if any) preceding the oldest active txn if it
-    // exists, or before the last known timestamp otherwise, and apply all
-    // committed txn logs in the scan interval to the shared view.
-
+    // Scan from the saved pre-apply watermark to the last known timestamp,
+    // and apply all committed txn logs from the longest prefix of decided
+    // txns that does not overlap with the conflict window of any undecided
+    // txn. Advance the pre-apply watermark before applying the txn log
+    // of a committed txn, and advance the post-apply watermark after
+    // applying the txn log.
     for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
     {
         // We need to seal uninitialized entries as we go along, so that we
@@ -2150,7 +2149,6 @@ void server_t::gc_applied_txn_logs()
     // flag is set if persistence is enabled). (If we fail to invalidate the log
     // fd, we abort the scan to avoid contention.) When GC is complete, set the
     // TXN_GC_COMPLETE flag on the txn metadata and continue.
-
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
         retail_assert(
@@ -2231,7 +2229,6 @@ void server_t::update_txn_table_safe_truncation_point()
     // advancing the post-GC watermark on any begin_ts, or any commit_ts that
     // has the TXN_GC_COMPLETE flag set. If TXN_GC_COMPLETE is unset on the
     // current commit_ts, abort the scan.
-
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
         retail_assert(
