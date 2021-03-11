@@ -1941,7 +1941,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    commit_ts. If we successfully advanced the watermark and the current entry
 //    is a committed commit_ts, then we can apply its redo log to the shared
 //    view. After applying it (or immediately after advancing the pre-apply
-//    watermark if the current timestamp is not a comitted commit_ts), we
+//    watermark if the current timestamp is not a committed commit_ts), we
 //    advance the post-apply watermark to the same timestamp. (Since we "own"
 //    the current txn metadata after a successful CAS on the pre-apply
 //    watermark, we can advance the post-apply watermark without a CAS.) Since
@@ -2028,18 +2028,16 @@ void server_t::apply_txn_logs_to_shared_view()
     {
         // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
-        // We continue the processing of this timestamp
-        // so that watermarks can inchworm their way over them.
+        //
+        // We continue processing sealed timestamps
+        // so that we can advance the pre-apply watermark over them.
         txn_metadata_t::seal_uninitialized_ts(ts);
 
         // If this is a commit_ts, we cannot advance the watermark unless it's
         // decided.
         if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_validating(ts))
         {
-            if (txn_metadata_t::is_txn_validating(ts))
-            {
-                break;
-            }
+            break;
         }
 
         // The watermark cannot be advanced past any begin_ts whose txn is not
