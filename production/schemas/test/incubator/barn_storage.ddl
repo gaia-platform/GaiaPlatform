@@ -1,3 +1,7 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
 
 CREATE TABLE IF NOT EXISTS incubator (
       name	 STRING,

@@ -30,6 +30,8 @@ id    [a-zA-Z][a-zA-Z_0-9]*
 int   [0-9]+
 blank [ \t\r]
 
+comment ("--".*)
+
 %{
     #define YY_USER_ACTION loc.columns (yyleng);
     #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
@@ -42,8 +44,9 @@ blank [ \t\r]
     loc.step ();
 %}
 
-{blank}+     loc.step ();
-\n+          loc.lines (yyleng); loc.step ();
+{blank}+     loc.step();
+{comment}    { /* ignore */ }
+\n+          loc.lines(yyleng); loc.step();
 
 "CREATE"     return yy::parser::make_CREATE(loc);
 "DROP"       return yy::parser::make_DROP(loc);
@@ -75,6 +78,7 @@ blank [ \t\r]
 ";"          return yy::parser::make_SEMICOLON(loc);
 {id}         return yy::parser::make_IDENTIFIER(yytext, loc);
 {int}        return make_NUMBER(yytext, loc);
+
 
 <<EOF>>      return yy::parser::make_END(loc);
 

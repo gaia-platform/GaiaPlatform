@@ -1,3 +1,8 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
+
 create table if not exists incubator (
       name string,
       is_on bool active,

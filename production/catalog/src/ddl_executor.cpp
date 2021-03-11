@@ -63,8 +63,8 @@ void ddl_executor_t::bootstrap_catalog()
         //     name string,
         //     type uint32,
         //     is_system bool,
-        //     binary_schema string,
-        //     serialization_template string,
+        //     binary_schema uint8[],
+        //     serialization_template uint8[],
         //     references gaia_database,
         // );
         field_def_list_t fields;
@@ -138,7 +138,7 @@ void ddl_executor_t::bootstrap_catalog()
         // create table gaia_ruleset (
         //     name string,
         //     active_on_startup bool,
-        //     table_ids string,
+        //     table_ids uint64[],
         //     source_location string,
         //     serial_stream string,
         // );

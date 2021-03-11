@@ -1,3 +1,8 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
+
 create table if not exists employee (
     name_first string active,
     name_last string,
