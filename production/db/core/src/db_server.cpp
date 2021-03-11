@@ -110,6 +110,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
             common::retail_assert(
                 txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
                 "log fd was closed without being invalidated!");
+
             // We lost the race because the log fd was invalidated and closed after our check.
             throw invalid_log_fd(commit_ts);
         }
@@ -128,6 +129,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
         common::retail_assert(
             common::is_fd_valid(m_local_log_fd),
             "fd should be valid if dup() succeeded!");
+
         // We need to close the duplicated fd since the original fd
         // might have been reused and we would leak it otherwise
         // (because the destructor isn't called if the constructor
@@ -261,11 +263,12 @@ void server_t::handle_begin_txn(
 
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
 {
+    retail_assert(txn_log_fds.empty(), "Vector passed in to get_txn_log_fds_for_snapshot() should be empty!");
+
     // Take a snapshot of the post-apply watermark and scan backward from
     // begin_ts, stopping either just before the saved watermark or at the first
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
-
     gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
     for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
     {
@@ -585,8 +588,6 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         return;
     }
 
-    // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
-    // non-wildcard transitions with the same event, or the latter will never be applied.
     for (auto t : s_valid_transitions)
     {
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
@@ -1006,6 +1007,7 @@ void server_t::client_dispatch_handler()
                     // First reap any session threads that have terminated (to
                     // avoid memory and system resource leaks).
                     reap_exited_threads(s_session_threads);
+
                     // Create session thread.
                     s_session_threads.emplace_back(session_handler, session_socket);
                 }
@@ -1159,6 +1161,7 @@ void server_t::session_handler(int session_socket)
                     retail_assert(
                         !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
+
                     // Read client message with possible file descriptors.
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
@@ -1166,10 +1169,10 @@ void server_t::session_handler(int session_socket)
                     // after we have already woken up on EPOLLIN, in which case we would
                     // legitimately read 0 bytes and this assert would be invalid.
                     retail_assert(bytes_read > 0, "Failed to read message!");
+
                     const message_t* msg = Getmessage_t(msg_buf);
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
-
                     event_data = static_cast<const void*>(request);
 
                     if (fd_buf_size > 0)
@@ -1287,6 +1290,7 @@ void server_t::stream_producer_handler(
             }
             throw_system_error(c_message_epoll_wait_failed);
         }
+
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
         for (int i = 0; i < ready_fd_count && !producer_shutdown; ++i)
@@ -1435,7 +1439,7 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
         // or type indexes.
         while (++locator && locator <= last_locator)
         {
-            auto obj = locator_to_ptr(locator);
+            db_object_t* obj = locator_to_ptr(locator);
             if (obj && obj->type == type)
             {
                 return obj->id;
@@ -1456,7 +1460,10 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
         // Fence off any txns that have allocated a commit_ts between start_ts
         // and end_ts but have not yet registered a commit_ts metadata in the txn
         // table.
-        txn_metadata_t::seal_uninitialized_ts(ts);
+        if (txn_metadata_t::seal_uninitialized_ts(ts))
+        {
+            continue;
+        }
 
         // Validate any undecided submitted txns.
         if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_validating(ts))
@@ -1511,6 +1518,7 @@ bool server_t::txn_logs_conflict(int log_fd1, int log_fd2)
     {
         txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
         txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
+
         if (lr1->locator == lr2->locator)
         {
             return true;
@@ -1602,10 +1610,10 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // conflicts. Repeat until no new committed txns are discovered. This gives
     // undecided txns as much time as possible to be validated by their
     // committing txn.
-    bool new_committed_txn_found;
+    bool has_found_new_committed_txn;
     do
     {
-        new_committed_txn_found = false;
+        has_found_new_committed_txn = false;
         for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
             // Seal all uninitialized timestamps. This marks a "fence" after which
@@ -1622,10 +1630,10 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
             if (txn_metadata_t::is_commit_ts(ts) && txn_metadata_t::is_txn_committed(ts))
             {
                 // Remember each committed txn commit_ts so we don't test it again.
-                const auto [iter, new_committed_ts] = committed_txns_tested_for_conflicts.insert(ts);
-                if (new_committed_ts)
+                const auto [iter, is_new_committed_ts] = committed_txns_tested_for_conflicts.insert(ts);
+                if (is_new_committed_ts)
                 {
-                    new_committed_txn_found = true;
+                    has_found_new_committed_txn = true;
 
                     // Eagerly test committed txns for conflicts to give undecided
                     // txns more time for validation (and submitted txns more time
@@ -1684,7 +1692,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
             }
         }
 
-    } while (new_committed_txn_found);
+    } while (has_found_new_committed_txn);
 
     // Validate all undecided txns, from oldest to newest. If any validated txn
     // commits, test it immediately for conflicts. Also test any committed txns
@@ -1745,6 +1753,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     retail_assert(
                         txn_metadata_t::is_txn_decided(sealed_commit_ts),
                         c_message_txn_log_fd_cannot_be_invalidated);
+
                     if (sealed_commit_ts == commit_ts)
                     {
                         retail_assert(
@@ -1760,6 +1769,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             txn_metadata_t::is_txn_decided(commit_ts),
                             c_message_validating_txn_should_have_been_validated);
                     }
+
                     // If either log fd was invalidated, then the validating txn
                     // must have been validated, so we can return the decision
                     // immediately.
@@ -1843,9 +1853,9 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // We're using the otherwise-unused first entry of the "locators" array to
     // track the last-applied commit_ts (purely for diagnostic purposes).
-    bool updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
+    bool has_updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
     retail_assert(
-        updated_locators_view_version,
+        has_updated_locators_view_version,
         "Committed txn applied to shared locators view out of order!");
 }
 
@@ -1855,6 +1865,7 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
     txn_log.open(log_fd);
 
     retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
+
     bool deallocate_new_offsets = !committed;
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
@@ -1930,7 +1941,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    commit_ts. If we successfully advanced the watermark and the current entry
 //    is a committed commit_ts, then we can apply its redo log to the shared
 //    view. After applying it (or immediately after advancing the pre-apply
-//    watermark if the current timestamp is not a comoitted commit_ts), we
+//    watermark if the current timestamp is not a comitted commit_ts), we
 //    advance the post-apply watermark to the same timestamp. (Since we "own"
 //    the current txn metadata after a successful CAS on the pre-apply
 //    watermark, we can advance the post-apply watermark without a CAS.) Since
@@ -2017,6 +2028,8 @@ void server_t::apply_txn_logs_to_shared_view()
     {
         // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
+        // We continue the processing of this timestamp
+        // so that watermarks can inchworm their way over them.
         txn_metadata_t::seal_uninitialized_ts(ts);
 
         // If this is a commit_ts, we cannot advance the watermark unless it's
@@ -2129,10 +2142,10 @@ void server_t::apply_txn_logs_to_shared_view()
 void server_t::gc_applied_txn_logs()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
+    gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
 
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
+    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
@@ -2173,8 +2186,7 @@ void server_t::gc_applied_txn_logs()
             }
 
             // Invalidate the log fd, GC the obsolete versions in the log, and close the fd.
-
-            // Abort the scan when invalidation fails to avoid contention.
+            // Abort the scan when invalidation fails, to avoid contention.
             if (!txn_metadata_t::invalidate_txn_log_fd(ts))
             {
                 break;
@@ -2310,10 +2322,9 @@ bool server_t::txn_commit()
         rdb->prepare_wal_for_write(s_log, txn_name);
     }
 
-    // Validate the txn against all other committed txns in the conflict window.
     retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
 
-    // Validate the committing txn.
+    // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
 
     // Update the txn metadata with our commit decision.
