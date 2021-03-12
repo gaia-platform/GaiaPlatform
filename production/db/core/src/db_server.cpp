@@ -1488,7 +1488,7 @@ gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 
     retail_assert(is_fd_valid(log_fd), "Invalid log fd!");
 
-    // Alocate a new commit_ts and initialize its metadata with our begin_ts and log fd.
+    // Allocate a new commit_ts and initialize its metadata with our begin_ts and log fd.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(begin_ts, log_fd);
 
     // Now update the active txn metadata.
@@ -1671,12 +1671,14 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         retail_assert(
                             txn_metadata_t::is_txn_decided(sealed_commit_ts),
                             c_message_txn_log_fd_cannot_be_invalidated);
+
                         if (sealed_commit_ts == ts)
                         {
                             retail_assert(
                                 txn_metadata_t::is_txn_decided(commit_ts),
                                 c_message_validating_txn_should_have_been_validated);
                         }
+
                         // If either log fd was invalidated, then the validating txn
                         // must have been validated, so we can return the decision
                         // immediately.
@@ -1691,7 +1693,6 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                 return txn_metadata_t::is_txn_committed(commit_ts);
             }
         }
-
     } while (has_found_new_committed_txn);
 
     // Validate all undecided txns, from oldest to newest. If any validated txn
