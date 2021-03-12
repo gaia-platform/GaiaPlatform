@@ -1,0 +1,10 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    OnInsert(sensor)
+    {
+        actuator.value = @sensor.value + 5;
+    }
+}
+// CHECK: Since a rule attribute was provided, specifying active fields inside the rule is not supported.

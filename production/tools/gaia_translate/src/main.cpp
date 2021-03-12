@@ -41,12 +41,13 @@ cl::opt<string> g_translation_engine_output_option(
     "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
-bool g_generation_error = false;
+bool g_is_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
 const int c_declaration_to_ruleset_offset = -2;
-bool g_rule_context_rule_name_referenced = false;
+bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
+bool g_is_rule_prolog_specified = false;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -199,7 +200,7 @@ void fill_table_db_data(catalog::gaia_table_t& table)
 unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 {
     unordered_map<string, unordered_map<string, field_data_t>> return_value;
-    if (g_generation_error)
+    if (g_is_generation_error)
     {
         return return_value;
     }
@@ -213,7 +214,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             if (!tbl)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
 
@@ -221,7 +222,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             if (fields.find(field.name()) != fields.end())
             {
                 cerr << "Duplicate field '" << field.name() << "'." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
             field_data_t field_data;
@@ -239,7 +240,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             if (!child_table)
             {
                 cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
 
@@ -247,7 +248,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             if (!parent_table)
             {
                 cerr << "Incorrect parent table in the relationship " << relationship.name() << "." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
             table_link_data_t link_data_1;
@@ -267,7 +268,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     catch (const exception& e)
     {
         cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
     return return_value;
@@ -320,14 +321,21 @@ bool parse_attribute(const string& attribute, string& table, string& field)
 
 // This function adds a field to active fields list if it is marked as active in the catalog;
 // it returns true if there was no error and false otherwise.
-bool validate_and_add_active_field(const string& table_name, const string& field_name)
+bool validate_and_add_active_field(const string& table_name, const string& field_name, bool is_active_from_field = false)
 {
+    if (g_is_rule_prolog_specified && is_active_from_field)
+    {
+        cerr << "Since a rule attribute was provided, specifying active fields inside the rule is not supported." << endl;
+        g_is_generation_error = true;
+        return false;
+    }
+
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
     }
 
-    if (g_generation_error)
+    if (g_is_generation_error)
     {
         return false;
     }
@@ -335,7 +343,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     if (g_field_data.find(table_name) == g_field_data.end())
     {
         cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return false;
     }
 
@@ -344,14 +352,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     if (fields.find(field_name) == fields.end())
     {
         cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
         cerr << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return false;
     }
 
@@ -484,7 +492,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
-        g_generation_error = true;
+        g_is_generation_error = true;
         cerr << "No path between '" << anchor_table << "' and other tables." << endl;
         return navigation_code_data_t();
     }
@@ -511,7 +519,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
             {
                 if (is_1_relationship)
                 {
-                    g_generation_error = true;
+                    g_is_generation_error = true;
                     cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
@@ -526,7 +534,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
             {
                 if (is_n_relationship)
                 {
-                    g_generation_error = true;
+                    g_is_generation_error = true;
                     cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
@@ -537,7 +545,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
 
         if (is_1_relationship && is_n_relationship)
         {
-            g_generation_error = true;
+            g_is_generation_error = true;
             cerr << "Both relationships exist between tables '" << anchor_table << "' and '" << table << "'." << endl;
             return navigation_code_data_t();
         }
@@ -605,7 +613,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
             }
             else
             {
-                g_generation_error = true;
+                g_is_generation_error = true;
                 cerr << "No path between tables '" << anchor_table << "' and '" << table << "'." << endl;
                 return navigation_code_data_t();
             }
@@ -684,7 +692,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
     if (g_field_data.find(table) == g_field_data.end())
     {
         cerr << "Table '" << table << "' was not found in the catalog." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return;
     }
     string rule_name
@@ -800,7 +808,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         .append(rule_name)
         .append("(const rule_context_t* context)\n");
 
-    if (g_rule_context_rule_name_referenced)
+    if (g_is_rule_context_rule_name_referenced)
     {
         navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
@@ -835,13 +843,46 @@ void generate_table_subscription(const string& table, const string& field_subscr
     }
 }
 
+void optimize_subscription(const string& table, int rule_count)
+{
+    // This is to reuse the same rule function and rule_binding_t
+    // for the same table in case update and insert operation.
+    if (g_insert_tables.find(table) != g_insert_tables.end())
+    {
+        string rule_name
+            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+        g_current_ruleset_subscription
+            .append(c_ident)
+            .append("subscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append(rule_name)
+            .append("binding);\n");
+
+        g_current_ruleset_unsubscription
+            .append(c_ident)
+            .append("unsubscribe_rule(gaia::")
+            .append(g_table_db_data[table])
+            .append("::")
+            .append(table)
+            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append(rule_name)
+            .append("binding);\n");
+
+        g_insert_tables.erase(table);
+    }
+}
+
+
 void generate_rules(Rewriter& rewriter)
 {
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
     }
-    if (g_generation_error)
+    if (g_is_generation_error)
     {
         return;
     }
@@ -852,7 +893,7 @@ void generate_rules(Rewriter& rewriter)
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
         cerr << "No active fields for the rule." << endl;
-        g_generation_error = true;
+        g_is_generation_error = true;
         return;
     }
     string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
@@ -868,7 +909,7 @@ void generate_rules(Rewriter& rewriter)
 
     for (const auto& field_description : g_active_fields)
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -878,7 +919,7 @@ void generate_rules(Rewriter& rewriter)
         if (field_description.second.empty())
         {
             cerr << "No fields referenced by table '" << table << "'." << endl;
-            g_generation_error = true;
+            g_is_generation_error = true;
             return;
         }
 
@@ -902,7 +943,7 @@ void generate_rules(Rewriter& rewriter)
             if (fields.find(field) == fields.end())
             {
                 cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
                 return;
             }
             field_subscription_code
@@ -916,53 +957,29 @@ void generate_rules(Rewriter& rewriter)
 
         generate_table_subscription(table, field_subscription_code, rule_code,
             rule_count, true, rule_line_numbers, rewriter);
+
+        optimize_subscription(table, rule_count);
+
         rule_count++;
     }
 
     for (const auto& table : g_update_tables)
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
 
         generate_table_subscription(table, "", rule_code, rule_count, true, rule_line_numbers, rewriter);
 
-        string rule_name
-            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-        // optimization to reuse the same rule function and rule_binding_t
-        // for the same table
-        if (g_insert_tables.find(table) != g_insert_tables.end())
-        {
-            g_current_ruleset_subscription
-                .append(c_ident)
-                .append("subscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n");
-
-            g_current_ruleset_unsubscription
-                .append(c_ident)
-                .append("unsubscribe_rule(gaia::")
-                .append(g_table_db_data[table])
-                .append("::")
-                .append(table)
-                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name)
-                .append("binding);\n");
-
-            g_insert_tables.erase(table);
-        }
+        optimize_subscription(table, rule_count);
 
         rule_count++;
     }
 
     for (const auto& table : g_insert_tables)
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -981,7 +998,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1011,7 +1028,7 @@ public:
             {
                 expression_source_range
                     = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
-                if (!validate_and_add_active_field(table_name, field_name))
+                if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
@@ -1034,7 +1051,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc().getLocWithOffset(-1),
                             member_expression->getEndLoc());
-                    if (!validate_and_add_active_field(table_name, field_name))
+                    if (!validate_and_add_active_field(table_name, field_name, true))
                     {
                         return;
                     }
@@ -1050,13 +1067,13 @@ public:
             else
             {
                 cerr << "Incorrect base type of generated type." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
             }
         }
         else
         {
             cerr << "Incorrect matched expression." << endl;
-            g_generation_error = true;
+            g_is_generation_error = true;
         }
 
         if (expression_source_range.isValid())
@@ -1078,7 +1095,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1114,7 +1131,7 @@ public:
                         if (declaration_expression == nullptr)
                         {
                             cerr << "Incorrect base type of generated type." << endl;
-                            g_generation_error = true;
+                            g_is_generation_error = true;
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
@@ -1187,7 +1204,7 @@ public:
                     }
                     default:
                         cerr << "Incorrect operator type." << endl;
-                        g_generation_error = true;
+                        g_is_generation_error = true;
                         return;
                     }
 
@@ -1216,19 +1233,19 @@ public:
                 else
                 {
                     cerr << "Incorrect operator expression type." << endl;
-                    g_generation_error = true;
+                    g_is_generation_error = true;
                 }
             }
             else
             {
                 cerr << "Incorrect operator expression" << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
             }
         }
         else
         {
             cerr << "Incorrect matched operator." << endl;
-            g_generation_error = true;
+            g_is_generation_error = true;
         }
     }
 
@@ -1261,7 +1278,7 @@ private:
             return "|=";
         default:
             cerr << "Incorrect operator code " << op_code << "." << endl;
-            g_generation_error = true;
+            g_is_generation_error = true;
             return "";
         }
     }
@@ -1278,7 +1295,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1314,7 +1331,7 @@ public:
                         if (declaration_expression == nullptr)
                         {
                             cerr << "Incorrect base type of generated type." << endl;
-                            g_generation_error = true;
+                            g_is_generation_error = true;
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
@@ -1363,19 +1380,19 @@ public:
                 else
                 {
                     cerr << "Incorrect operator expression type." << endl;
-                    g_generation_error = true;
+                    g_is_generation_error = true;
                 }
             }
             else
             {
                 cerr << "Incorrect operator expression." << endl;
-                g_generation_error = true;
+                g_is_generation_error = true;
             }
         }
         else
         {
             cerr << "Incorrect matched operator." << endl;
-            g_generation_error = true;
+            g_is_generation_error = true;
         }
     }
 
@@ -1392,7 +1409,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1403,7 +1420,7 @@ public:
         const GaiaOnChangeAttr* change_attribute = rule_declaration->getAttr<GaiaOnChangeAttr>();
 
         generate_rules(m_rewriter);
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1421,11 +1438,13 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
+        g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
-        g_rule_context_rule_name_referenced = false;
+        g_is_rule_context_rule_name_referenced = false;
         if (update_attribute != nullptr)
         {
             g_rule_attribute_source_range = update_attribute->getRange();
+            g_is_rule_prolog_specified = true;
             for (const auto& table_iterator : update_attribute->tables())
             {
                 string table, field;
@@ -1448,6 +1467,7 @@ public:
 
         if (insert_attribute != nullptr)
         {
+            g_is_rule_prolog_specified = true;
             g_rule_attribute_source_range = insert_attribute->getRange();
             for (const auto& table_iterator : insert_attribute->tables())
             {
@@ -1461,6 +1481,7 @@ public:
 
         if (change_attribute != nullptr)
         {
+            g_is_rule_prolog_specified = true;
             g_rule_attribute_source_range = change_attribute->getRange();
             for (const auto& table_iterator : change_attribute->tables())
             {
@@ -1497,12 +1518,12 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
         generate_rules(m_rewriter);
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1511,6 +1532,7 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
+        g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
         const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
@@ -1574,7 +1596,7 @@ public:
                     g_field_data = get_table_data();
                 }
 
-                if (g_generation_error)
+                if (g_is_generation_error)
                 {
                     return;
                 }
@@ -1609,7 +1631,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1631,7 +1653,7 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
                 "gaia_rule_name");
-            g_rule_context_rule_name_referenced = true;
+            g_is_rule_context_rule_name_referenced = true;
         }
 
         if (event_expression != nullptr)
@@ -1775,7 +1797,7 @@ public:
             std::remove(g_translation_engine_output_option.c_str());
         }
         generate_rules(m_rewriter);
-        if (g_generation_error)
+        if (g_is_generation_error)
         {
             return;
         }
@@ -1787,7 +1809,7 @@ public:
             + "} // namespace " + g_current_ruleset + "\n"
             + generate_general_subscription_code();
 
-        if (!shouldEraseOutputFiles() && !g_generation_error && !g_translation_engine_output_option.empty())
+        if (!shouldEraseOutputFiles() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
             llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);
@@ -1864,7 +1886,7 @@ int main(int argc, const char** argv)
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
-    if (result == 0 && !g_generation_error)
+    if (result == 0 && !g_is_generation_error)
     {
         return EXIT_SUCCESS;
     }
