@@ -248,3 +248,29 @@ TEST(catalog_ddl_parser_test, vector_of_strings)
     parser_t parser;
     ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c STRING[]);"));
 }
+
+TEST(catalog_ddl_parser_test, code_comments)
+{
+    const string correct_ddl_text = R"(
+-------------------------------
+/*
+ * block comment
+ */
+-------------------------------
+CREATE TABLE t -- create table t
+( /**
+   **/ id int, -- column id
+  /* column c */ c STRING -- column c
+); -- end create table t
+-------------------------------
+)";
+
+    const string incorrect_ddl_text = R"(/*)";
+
+    parser_t parser;
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(correct_ddl_text));
+    EXPECT_EQ(1, parser.statements.size());
+
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(incorrect_ddl_text));
+}

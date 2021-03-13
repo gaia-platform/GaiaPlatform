@@ -26,6 +26,9 @@
     make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
 %}
 
+/* The exclusive start condition for C style comments. */
+%x xcomment
+
 id    [a-zA-Z][a-zA-Z_0-9]*
 int   [0-9]+
 blank [ \t\r]
@@ -44,9 +47,18 @@ comment ("--".*)
     loc.step ();
 %}
 
+
+"/*"              BEGIN(xcomment);
+<xcomment>"*/"    BEGIN(INITIAL);
+<xcomment>[^*\n]+ { /* ignore anything that's not a '*' */ }
+<xcomment>"*"[^/] { /* ignore '*' not followed by a '/' */ }
+<xcomment>\n      loc.lines(yyleng);
+
+
 {blank}+     loc.step();
 {comment}    { /* ignore */ }
 \n+          loc.lines(yyleng); loc.step();
+
 
 "CREATE"     return yy::parser::make_CREATE(loc);
 "DROP"       return yy::parser::make_DROP(loc);
