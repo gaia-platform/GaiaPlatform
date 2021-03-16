@@ -130,7 +130,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
             common::is_fd_valid(m_local_log_fd),
             "fd should be valid if dup() succeeded!");
 
-        // We need to close the duplicated fd since the original fd
+        // We need to close the duplicated fd because the original fd
         // might have been reused and we would leak it otherwise
         // (because the destructor isn't called if the constructor
         // throws).
@@ -174,7 +174,7 @@ address_offset_t server_t::allocate_from_memory_manager(
     return object_address_offset;
 }
 
-// This assignment is non-atomic since there seems to be no reason to expect concurrent invocations.
+// This assignment is non-atomic because there seems to be no reason to expect concurrent invocations.
 void server_t::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
 {
     s_object_deallocator_fn = deallocator_fn;
@@ -220,7 +220,7 @@ void server_t::handle_begin_txn(
     // Allocate a new begin_ts for this txn and initialize its metadata in the txn table.
     s_txn_id = txn_metadata_t::txn_begin();
 
-    // The begin_ts returned by txn_begin() should always be valid since it
+    // The begin_ts returned by txn_begin() should always be valid because it
     // retries on concurrent invalidation.
     retail_assert(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
@@ -279,7 +279,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
                 "Undecided commit_ts found in snapshot window!");
             if (txn_metadata_t::is_txn_committed(ts))
             {
-                // Since the watermark could advance past its saved value, we
+                // Because the watermark could advance past its saved value, we
                 // need to be sure that we don't send an invalidated and closed
                 // log fd, so we validate and duplicate each log fd using the
                 // safe_fd_from_ts_t class before sending it to the client. We set
@@ -294,7 +294,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
                 }
                 catch (const invalid_log_fd&)
                 {
-                    // We ignore an invalidated fd since its log has already
+                    // We ignore an invalidated fd because its log has already
                     // been applied to the shared locator view, so we don't need
                     // to send it to the client anyway. This means all preceding
                     // committed txns have already been applied to the shared
@@ -305,7 +305,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
         }
     }
 
-    // Since we scan the snapshot window backward and append fds to the buffer,
+    // Because we scan the snapshot window backward and append fds to the buffer,
     // they are in reverse timestamp order.
     std::reverse(std::begin(txn_log_fds), std::end(txn_log_fds));
 }
@@ -443,7 +443,7 @@ void server_t::handle_decide_txn(
 
     // Update watermarks and perform associated maintenance tasks. This will
     // block new transactions on this session thread, but that is a feature, not
-    // a bug, since it provides natural backpressure on clients who submit
+    // a bug, because it provides natural backpressure on clients who submit
     // long-running transactions that prevent old versions and logs from being
     // freed. This approach helps keep the system from accumulating more
     // deferred work than it can ever retire, which is a problem with performing
@@ -492,7 +492,7 @@ void server_t::handle_server_shutdown(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     // This transition should only be triggered on notification of the server shutdown event.
-    // Since we are about to shut down, we can't wait for acknowledgment from the client and
+    // Because we are about to shut down, we can't wait for acknowledgment from the client and
     // should just close the session socket. As noted above, setting the shutdown flag will
     // immediately break out of the poll loop and close the session socket.
     s_session_shutdown = true;
@@ -519,7 +519,7 @@ std::pair<int, int> server_t::get_stream_socket_pair()
         close_fd(server_socket);
     });
 
-    // Set server socket to be nonblocking, since we use it within an epoll loop.
+    // Set server socket to be nonblocking, because we use it within an epoll loop.
     set_non_blocking(server_socket);
 
     socket_cleanup.dismiss();
@@ -559,7 +559,7 @@ void server_t::handle_request_stream(
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
 
-    // The client socket should unconditionally be closed on exit since it's
+    // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
     auto client_socket_cleanup = make_scope_guard([&]() {
@@ -1037,11 +1037,11 @@ void server_t::session_handler(int session_socket)
     s_session_socket = session_socket;
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of
-        // shutdown(SHUT_RDWR), since we hold the only fd pointing to this
+        // shutdown(SHUT_RDWR), because we hold the only fd pointing to this
         // socket. That should allow the client to read EOF if they're in a
         // blocking read and exit gracefully. (If they try to write to the
         // socket after we've closed our end, they'll receive EPIPE.) We don't
-        // want to try to read any pending data from the client, since we're
+        // want to try to read any pending data from the client, because we're
         // trying to shut down as quickly as possible.
         close_fd(s_session_socket);
     });
@@ -1126,7 +1126,7 @@ void server_t::session_handler(int session_socket)
             epoll_event ev = events[i];
             if (ev.data.fd == s_session_socket)
             {
-                // NB: Since many event flags are set in combination with others, the
+                // NB: Because many event flags are set in combination with others, the
                 // order we test them in matters! E.g., EPOLLIN seems to always be set
                 // whenever EPOLLRDHUP is set, so we need to test EPOLLRDHUP before
                 // testing EPOLLIN.
@@ -1227,7 +1227,7 @@ void server_t::stream_producer_handler(
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
-        // since we hold the only fd pointing to this socket.
+        // because we hold the only fd pointing to this socket.
         close_fd(stream_socket);
     });
 
@@ -1298,7 +1298,7 @@ void server_t::stream_producer_handler(
             epoll_event ev = events[i];
             if (ev.data.fd == stream_socket)
             {
-                // NB: Since many event flags are set in combination with others, the
+                // NB: Because many event flags are set in combination with others, the
                 // order we test them in matters! E.g., EPOLLIN seems to always be set
                 // whenever EPOLLRDHUP is set, so we need to test EPOLLRDHUP before
                 // testing EPOLLIN.
@@ -1336,7 +1336,7 @@ void server_t::stream_producer_handler(
 
                     // We need to send any pending data in the buffer, followed by EOF
                     // if we reached end of iteration. We let the client decide when to
-                    // close the socket, since their next read may be arbitrarily delayed
+                    // close the socket, because their next read may be arbitrarily delayed
                     // (and they may still have pending data).
 
                     // First send any remaining data in the buffer.
@@ -1356,7 +1356,7 @@ void server_t::stream_producer_handler(
                         if (bytes_written == -1)
                         {
                             // It should never happen that the socket is no longer writable
-                            // after we receive EPOLLOUT, since we are the only writer and
+                            // after we receive EPOLLOUT, because we are the only writer and
                             // the receive buffer is always large enough for a batch.
                             retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
@@ -1376,7 +1376,7 @@ void server_t::stream_producer_handler(
 
                     // If we reached end of iteration, send EOF to client.
                     // (We still need to wait for the client to close their socket,
-                    // since they may still have unread data, so we don't set the
+                    // because they may still have unread data, so we don't set the
                     // producer_shutdown flag.)
                     if (!gen_iter)
                     {
@@ -1420,7 +1420,7 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
 {
     gaia_locator_t locator = 0;
 
-    // Fix end of locator segment for length of scan, since it can change during scan.
+    // Fix end of locator segment for length of scan, because it can change during scan.
     gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
     return [=]() mutable -> std::optional<gaia_id_t> {
@@ -1540,7 +1540,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // Validation algorithm:
 
     // NB: We make two passes over the conflict window, even though only one
-    // pass would suffice, since we want to avoid unnecessary validation of
+    // pass would suffice, because we want to avoid unnecessary validation of
     // undecided txns by skipping over them on the first pass while we check
     // committed txns for conflicts, hoping that some undecided txns will be
     // decided before the second pass. This adds some complexity (e.g., tracking
@@ -1563,7 +1563,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     //    phase until no newly committed txns are discovered.
     //
     // 2. Recursively validate all undecided txns in the conflict window, from
-    //    oldest to newest. Note that we cannot recurse indefinitely, since by
+    //    oldest to newest. Note that we cannot recurse indefinitely, because by
     //    hypothesis no undecided txns can precede our begin timestamp (because
     //    a new transaction must validate any undecided transactions with commit
     //    timestamps preceding its begin timestamp before it can proceed).
@@ -1584,7 +1584,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     //    In either case, we set the decided state in our commit timestamp metadata
     //    and return the commit decision to the client.
     //
-    // REVIEW: Possible optimization for conflict detection, since mmap() is so
+    // REVIEW: Possible optimization for conflict detection, because mmap() is so
     // expensive: store compact signatures in the txn log (either sorted
     // fingerprint sequence or bloom filter, at beginning or end of file), read
     // the signatures with pread(2), and test against signatures in committing
@@ -1598,11 +1598,11 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // current code for simplicity): find the latest undecided txn which
     // conflicts with our write set. Any undecided txns later than this don't
     // need to be validated (but earlier, non-conflicting undecided txns still
-    // need to be validated, since they could conflict with a later undecided
+    // need to be validated, because they could conflict with a later undecided
     // txn with a conflicting write set, which would abort and hence not cause
     // us to abort).
 
-    // Since we make multiple passes over the conflict window, we need to track
+    // Because we make multiple passes over the conflict window, we need to track
     // committed txns that have already been tested for conflicts.
     std::unordered_set<gaia_txn_id_t> committed_txns_tested_for_conflicts;
 
@@ -1662,7 +1662,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         // watermark cannot advance past our begin_ts unless our txn has
                         // already been validated, so if either of the fds we are
                         // testing for conflicts is invalidated, it must mean that our
-                        // txn has already been validated. Since our commit_ts always
+                        // txn has already been validated. Because our commit_ts always
                         // follows the commit_ts of the undecided txn we are testing for
                         // conflicts, and the watermark always advances in order, it
                         // cannot be the case that this txn's log fd has not been
@@ -1745,7 +1745,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     // unless our txn has already been validated, so if either
                     // of the fds we are testing for conflicts is invalidated,
                     // it must mean that our txn has already been validated.
-                    // Since our commit_ts always follows the commit_ts of the
+                    // Because our commit_ts always follows the commit_ts of the
                     // undecided txn we are testing for conflicts, and the
                     // watermark always advances in order, it cannot be the case
                     // that this txn's log fd has not been invalidated while our
@@ -1795,7 +1795,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 // value, unless it has already advanced beyond the given value due to a
 // concurrent update.
 //
-// NB: we use compare_exchange_weak() for the global update since we need to
+// NB: we use compare_exchange_weak() for the global update because we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
 bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
@@ -1821,7 +1821,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_metadata_t::is_commit_ts(commit_ts) && txn_metadata_t::is_txn_committed(commit_ts),
         "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
 
-    // Since txn logs are only eligible for GC after they fall behind the
+    // Because txn logs are only eligible for GC after they fall behind the
     // post-apply watermark, we don't need the safe_fd_from_ts_t wrapper.
     int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
 
@@ -1845,7 +1845,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         // version created or updated by the txn). This is safe as long as the
         // committed txn being applied has commit_ts older than the oldest
         // active txn's begin_ts (so it can't overwrite any versions visible in
-        // that txn's snapshot). This update is non-atomic since log application
+        // that txn's snapshot). This update is non-atomic because log application
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
         txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
@@ -1879,16 +1879,16 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
     {
         // For committed txns, free each undo version (i.e., the version
         // superseded by an update or delete operation), using the registered
-        // object deallocator (if it exists), since the redo versions may still
+        // object deallocator (if it exists), because the redo versions may still
         // be visible but the undo versions cannot be. For aborted or
-        // rolled-back txns, free only the redo versions (since the undo
+        // rolled-back txns, free only the redo versions (because the undo
         // versions may still be visible).
         // NB: we can't safely free the redo versions and txn logs of aborted
         // txns in the decide handler, because concurrently validating txns
         // might be testing the aborted txn for conflicts while they still think
         // it is undecided. The only safe place to free the redo versions and
         // txn log of an aborted txn is after it falls behind the watermark,
-        // since at that point it cannot be in the conflict window of any
+        // because at that point it cannot be in the conflict window of any
         // committing txn.
         gaia_offset_t offset_to_free = deallocate_new_offsets
             ? txn_log->log_records[i].new_offset
@@ -1943,11 +1943,11 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    is a committed commit_ts, then we can apply its redo log to the shared
 //    view. After applying it (or immediately after advancing the pre-apply
 //    watermark if the current timestamp is not a committed commit_ts), we
-//    advance the post-apply watermark to the same timestamp. (Since we "own"
+//    advance the post-apply watermark to the same timestamp. (Because we "own"
 //    the current txn metadata after a successful CAS on the pre-apply
-//    watermark, we can advance the post-apply watermark without a CAS.) Since
+//    watermark, we can advance the post-apply watermark without a CAS.) Because
 //    the pre-apply watermark can only move forward, updates to the shared view
-//    are applied in timestamp order, and since the pre-apply watermark can only
+//    are applied in timestamp order, and because the pre-apply watermark can only
 //    be advanced if the post-apply watermark has caught up with it (which can
 //    only be the case for a committed commit_ts if the redo log has been fully
 //    applied), updates to the shared view are never applied concurrently.
@@ -1979,7 +1979,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 // possibly been preempted). A safe algorithm requires tracking the last
 // observed value of this watermark for each thread in a global table and
 // trimming the txn table up to the minimum of this global table (which can be
-// calculated from a non-atomic scan, since any thread's observed value can only
+// calculated from a non-atomic scan, because any thread's observed value can only
 // go forward). This means that a thread must register its observed value in the
 // global table every time it reads the post-GC watermark, and should clear its
 // entry when it's done with the observed value. (A subtler issue is that
@@ -1989,7 +1989,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 // work around this by just checking the current value of the watermark
 // immediately after writing its saved value to the global table. If they're the
 // same, then no other thread could have observed any non-atomicity in the copy
-// operation. If they differ, then we just repeat the sequence. Since this is a
+// operation. If they differ, then we just repeat the sequence. Because this is a
 // very fast sequence of operations, retries should be infrequent, so livelock
 // shouldn't be an issue.)
 void server_t::perform_maintenance()
@@ -2089,7 +2089,7 @@ void server_t::apply_txn_logs_to_shared_view()
         // timestamp must have finished applying the log, so we can safely apply
         // the log at the current timestamp.
         //
-        // REVIEW: These loads could be relaxed, since a stale read could only
+        // REVIEW: These loads could be relaxed, because a stale read could only
         // result in premature abort of the scan.
         if (s_last_applied_commit_ts_upper_bound != prev_ts || s_last_applied_commit_ts_lower_bound != prev_ts)
         {
@@ -2118,7 +2118,7 @@ void server_t::apply_txn_logs_to_shared_view()
                 // If a new txn starts after or while we apply this txn log to
                 // the shared view, but before we advance the post-apply
                 // watermark, it will re-apply some of our updates to its
-                // snapshot of the shared view, but that is benign since log
+                // snapshot of the shared view, but that is benign because log
                 // replay is idempotent (as long as logs are applied in
                 // timestamp order).
                 apply_txn_log_from_ts(ts);
@@ -2126,12 +2126,12 @@ void server_t::apply_txn_logs_to_shared_view()
         }
 
         // Now we advance the post-apply watermark to catch up with the pre-apply watermark.
-        // REVIEW: Since no other thread can concurrently advance the post-apply watermark,
+        // REVIEW: Because no other thread can concurrently advance the post-apply watermark,
         // we don't need a full CAS here.
         bool has_advanced_watermark = advance_watermark(s_last_applied_commit_ts_lower_bound, ts);
 
         // No other thread should be able to advance the post-apply watermark,
-        // since only one thread can advance the pre-apply watermark to this
+        // because only one thread can advance the pre-apply watermark to this
         // timestamp.
         retail_assert(has_advanced_watermark, "Couldn't advance the post-apply watermark!");
     }
@@ -2176,7 +2176,7 @@ void server_t::gc_applied_txn_logs()
             int log_fd = txn_metadata_t::get_txn_log_fd(ts);
 
             // Continue the scan if this log fd has already been invalidated,
-            // since GC has already been started.
+            // because GC has already been started.
             if (log_fd == -1)
             {
                 continue;
@@ -2192,14 +2192,14 @@ void server_t::gc_applied_txn_logs()
             // The log fd can't be closed until after it has been invalidated.
             retail_assert(is_fd_valid(log_fd), "The log fd cannot be closed if we successfully invalidated it!");
 
-            // Since we invalidated the log fd, we now hold the only accessible
+            // Because we invalidated the log fd, we now hold the only accessible
             // copy of the fd, so we need to ensure it is closed.
             auto cleanup_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
-            // If the txn committed, we deallocate only undo versions, since the
+            // If the txn committed, we deallocate only undo versions, because the
             // redo versions may still be visible after the txn has fallen
             // behind the watermark. If the txn aborted, then we deallocate only
-            // redo versions, since the undo versions may still be visible. Note
+            // redo versions, because the undo versions may still be visible. Note
             // that we could deallocate intermediate versions (i.e., those
             // superseded within the same txn) immediately, but we do it here
             // for simplicity.
@@ -2266,7 +2266,7 @@ void server_t::update_txn_table_safe_truncation_point()
         }
 
         // There are no actions to take after advancing the post-GC watermark,
-        // since the post-GC watermark only exists to provide a safe lower
+        // because the post-GC watermark only exists to provide a safe lower
         // bound for truncating transaction history.
     }
 }
@@ -2409,7 +2409,7 @@ void server_t::run(persistence_mode_t persistence_mode)
             // We may have already received other pending signals by the time
             // we unblock signals, in which case they will be delivered and
             // terminate the process before we can re-raise the caught signal.
-            // That is benign, since we've already performed cleanup actions
+            // That is benign, because we've already performed cleanup actions
             // and the exit status will still be valid.
             ::pthread_sigmask(SIG_UNBLOCK, &handled_signals, nullptr);
             ::raise(caught_signal);

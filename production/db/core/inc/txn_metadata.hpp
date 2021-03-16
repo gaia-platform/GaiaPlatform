@@ -89,7 +89,7 @@ private:
     // range of timestamp entries falls behind the watermark, its physical pages
     // can be deallocated via madvise(MADV_FREE).
     //
-    // REVIEW: Since we reserve 2^45 bytes of virtual address space and each
+    // REVIEW: Because we reserve 2^45 bytes of virtual address space and each
     // array entry is 8 bytes, we can address the whole range using 2^42
     // timestamps. If we allocate 2^10 timestamps/second, we will use up all our
     // timestamps in 2^32 seconds, or about 2^7 years. If we allocate 2^20
@@ -132,7 +132,7 @@ private:
     //
     static constexpr uint64_t c_txn_metadata_bits{64ULL};
 
-    // Since we restrict all fds to 16 bits, this is the largest possible value
+    // Because we restrict all fds to 16 bits, this is the largest possible value
     // in that range, which we reserve to indicate an invalidated fd (i.e., one
     // which was claimed for deallocation by a maintenance thread).
     static constexpr uint16_t c_invalid_txn_log_fd_bits{std::numeric_limits<uint16_t>::max()};
@@ -166,7 +166,7 @@ private:
 
     // Transaction GC status values.
     // These only apply to a commit_ts metadata.
-    // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, since any txn
+    // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, because any txn
     // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
     // persistence is enabled) is eligible for GC, and an invalidated log fd
     // indicates that GC is in progress.
@@ -233,7 +233,7 @@ private:
     // want to enforce an age limit anyway, of course, to avoid unbounded
     // garbage accumulation (which consumes memory, open fds, and other
     // resources, and also increases txn begin latency, although it doesn't
-    // affect read/write latency, since we don't use version chains).
+    // affect read/write latency, because we don't use version chains).
     static constexpr uint64_t c_txn_ts_bits{42ULL};
     static constexpr uint64_t c_txn_ts_shift{0ULL};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};

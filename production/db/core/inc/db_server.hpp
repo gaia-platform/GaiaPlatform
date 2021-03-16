@@ -135,7 +135,7 @@ private:
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
     // allowing all the superseded object versions in txns with commit
-    // timestamps before the watermark to be freed (since they are no longer
+    // timestamps before the watermark to be freed (because they are no longer
     // visible to any present or future txns).
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
@@ -299,7 +299,7 @@ private:
     public:
         explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
 
-        // The "rule of 3" doesn't apply here since we never pass this object
+        // The "rule of 3" doesn't apply here because we never pass this object
         // directly to a function; we always extract the safe fd value first.
         safe_fd_from_ts_t() = delete;
         safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
