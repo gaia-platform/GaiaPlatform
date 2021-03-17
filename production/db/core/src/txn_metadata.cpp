@@ -41,7 +41,7 @@ namespace db
 // state of the txn state machine. The txn state machine's states and
 // transitions are as follows: TXN_NONE -> TXN_ACTIVE -> (TXN_SUBMITTED ->
 // (TXN_COMMITTED, TXN_ABORTED), TXN_TERMINATED). TXN_NONE is necessarily
-// encoded as 0 since all entries of the array are zeroed when a page is
+// encoded as 0 because all entries of the array are zeroed when a page is
 // allocated. We also introduce the pseudo-state TXN_DECIDED, encoded as the
 // shared set bit in TXN_COMMITTED and TXN_ABORTED. Each active txn may assume
 // the states TXN_NONE, TXN_ACTIVE, TXN_SUBMITTED, TXN_TERMINATED, while
@@ -56,7 +56,7 @@ namespace db
 // bits always hold a commit timestamp (which is guaranteed to be at most 42
 // bits per above). The commit timestamp serves as a forwarding pointer to the
 // submitted txn metadata for this txn. Note that the commit timestamp metadata for a
-// txn may be set before its begin timestamp metadata has been updated, since
+// txn may be set before its begin timestamp metadata has been updated, because
 // multiple updates to the array cannot be made atomically without locks. (This
 // is similar to insertion into a lock-free singly-linked list, where the new
 // node is linked to its successor before its predecessor is linked to the new
@@ -67,19 +67,19 @@ namespace db
 //
 // We can always find the watermark by just scanning the txn_metadata array until we
 // find the first begin timestamp metadata not in state TXN_TERMINATED. However, we
-// need to know where to start scanning from since pages toward the beginning of
+// need to know where to start scanning from, because pages toward the beginning of
 // the array may have already been deallocated (as part of advancing the
 // watermark, once all txn logs preceding the watermark have been scanned for
 // garbage and deallocated, all pages preceding the new watermark's position in
 // the array can be freed using madvise(MADV_FREE)). We can store a global
 // watermark variable to cache this information, which could always be stale but
-// tells us where to start scanning to find the current watermark, since the
+// tells us where to start scanning to find the current watermark, because the
 // watermark only moves forward. This global variable is also set as part of
 // advancing the watermark on termination of the oldest active txn, which is
 // delegated to that txn's session thread.
 void txn_metadata_t::init_txn_metadata_map()
 {
-    // This should always be true on any 64-bit platform, but we assert since we
+    // This should always be true on any 64-bit platform, but we assert because we
     // never want to fall back to a lock-based implementation of atomics.
     static_assert(
         std::atomic<txn_metadata_entry_t>::is_always_lock_free,
@@ -128,7 +128,7 @@ bool txn_metadata_t::seal_uninitialized_ts(gaia_txn_id_t ts)
 
     bool has_sealed_metadata = s_txn_metadata_map[ts].compare_exchange_strong(
         expected_metadata_entry, sealed_metadata_entry);
-    // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, since only the
+    // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, because only the
     // submitting thread can transition the txn to these states.
     if (!has_sealed_metadata)
     {
@@ -154,9 +154,9 @@ bool txn_metadata_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
     // it's normally reserved for stdin). Instead we follow the same convention
     // as elsewhere, using a reserved value of -1 to indicate an invalid fd.
     // (This means, of course, that we cannot use uint16_t::max() as a valid fd.)
-    // We need a CAS since only one thread can be allowed to invalidate the fd
+    // We need a CAS because only one thread can be allowed to invalidate the fd
     // entry and hence to close the fd.
-    // NB: we use compare_exchange_weak() for the global update since we need to
+    // NB: we use compare_exchange_weak() for the global update because we need to
     // retry anyway on concurrent updates, so tolerating spurious failures
     // requires no additional logic.
     txn_metadata_t invalidated_commit_ts_metadata;
@@ -242,7 +242,7 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
 
     txn_metadata_t expected_metadata = commit_ts_metadata;
 
-    // It's safe to just OR in the new flags since the preceding states don't set
+    // It's safe to just OR in the new flags because the preceding states don't set
     // any bits not present in the flags.
     commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
 
@@ -293,7 +293,7 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
     // table. (We're possibly racing another beginning or committing txn that
     // could invalidate our begin_ts metadata before we install it.)
     //
-    // NB: we use compare_exchange_weak() since we need to retry anyway on
+    // NB: we use compare_exchange_weak() because we need to retry anyway on
     // concurrent invalidation, so tolerating spurious failures requires no
     // additional logic.
     do
@@ -323,7 +323,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
     txn_metadata_entry_t commit_ts_metadata_entry = c_shifted_status_flags | shifted_log_fd | begin_ts;
 
     // We're possibly racing another beginning or committing txn that wants to
-    // seal our commit_ts metadata. We use compare_exchange_weak() since we
+    // seal our commit_ts metadata. We use compare_exchange_weak() because we
     // need to loop until success anyway. A spurious failure will just waste a
     // timestamp, and the uninitialized metadata will eventually be sealed.
     gaia_txn_id_t commit_ts;
@@ -369,7 +369,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
     if (txn_metadata.is_commit_ts())
     {
         gaia_txn_id_t begin_ts = get_begin_ts(ts);
-        // We can't recurse here since we'd just bounce back and forth between a
+        // We can't recurse here because we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
         txn_metadata_t txn_metadata(begin_ts);
         std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
@@ -384,7 +384,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
         gaia_txn_id_t commit_ts = get_commit_ts(ts);
         if (commit_ts != c_invalid_gaia_txn_id)
         {
-            // We can't recurse here since we'd just bounce back and forth between a
+            // We can't recurse here because we'd just bounce back and forth between a
             // txn's begin_ts and commit_ts.
             txn_metadata_t txn_metadata(commit_ts);
             std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);

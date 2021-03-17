@@ -70,7 +70,7 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     const session_event_t event = client_messenger.server_reply()->event();
     retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
 
-    // Check that our stream socket is blocking (since we need to perform blocking reads).
+    // Check that our stream socket is blocking (because we need to perform blocking reads).
     retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
     cleanup_stream_socket.dismiss();
@@ -132,7 +132,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
             batch_buffer.resize(datagram_size);
 
             // Get the actual data.
-            // This is a nonblocking read, since the previous blocking
+            // This is a nonblocking read, because the previous blocking
             // read will not return until data is available.
             ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
             if (bytes_read == -1)
@@ -142,7 +142,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
                 throw_system_error("recv() failed!");
             }
 
-            // Since our buffer is exactly the same size as the datagram,
+            // Because our buffer is exactly the same size as the datagram,
             // we should read exactly the number of bytes in the datagram.
             retail_assert(bytes_read == datagram_size, "Bytes read differ from datagram size!");
         }
@@ -245,7 +245,7 @@ void client_t::txn_cleanup()
 int client_t::get_session_socket()
 {
     // Unlike the session socket on the server, this socket must be blocking,
-    // since we don't read within a multiplexing poll loop.
+    // because we don't read within a multiplexing poll loop.
     int session_socket = ::socket(PF_UNIX, SOCK_SEQPACKET, 0);
     if (session_socket == -1)
     {
@@ -284,7 +284,7 @@ int client_t::get_session_socket()
 // which serves as a transaction context in the client and a container for
 // client state on the server. The server always passes fds for the data and
 // locator shared memory segments, but we only use them if this is the client
-// process's first call to create_session(), since they are stored globally
+// process's first call to create_session(), because they are stored globally
 // rather than per-session. (The connected socket is stored per-session.)
 // REVIEW: There is currently no way for the client to be asynchronously notified
 // when the server closes the session (e.g., if the server process shuts down).
