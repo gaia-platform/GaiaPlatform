@@ -348,8 +348,10 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 
     if (realType != nullptr)
     {
-        QualType R = Context.getFunctionType( QualType(realType,0), None, FunctionProtoType::ExtProtoInfo());
-        CanQualType ClassType = Context.getCanonicalType(/*Context.getTypeDeclType(RD)*/R);
+        QualType R = Context.getFunctionType(
+            BuildReferenceType(QualType(realType,0), true, loc, DeclarationName()),
+            None, FunctionProtoType::ExtProtoInfo());
+        CanQualType ClassType = Context.getCanonicalType(R);
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 

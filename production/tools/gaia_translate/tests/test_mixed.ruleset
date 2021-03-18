@@ -15,11 +15,18 @@ void f (gaia::barn_storage::incubator_t i)
     i.actuator_list().insert(actuator_t::insert_row("TestActuator1", 0, 0.0));
 }
 
+void f1 (gaia::barn_storage::incubator_t& i)
+{
+    i.sensor_list().insert(sensor_t::insert_row("TestSensor2", 0, 0.0));
+    i.actuator_list().insert(actuator_t::insert_row("TestActuator2", 0, 0.0));
+}
+
 ruleset test_mixed
 {
     OnInsert(incubator)
     {
         f(incubator);
+        f1(incubator);
         g_text_mixed_called++;
     }
 }
