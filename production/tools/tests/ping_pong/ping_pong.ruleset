@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cstring>
+
 #include <string>
 
 #include "gaia/logger.hpp"
@@ -26,12 +28,12 @@ ruleset ping_pong
         if (iteration_count % c_log_heartbeat_frequency)
         {
             // If, for whatever reason, the next condition is never met, at least we log something.
-            gaia_log::app().info("Rules:'{}' iteration:'{}'", ping_pong.status, iteration_count);
+            gaia_log::app().info("Rules:'{}' iteration:'{}'", @ping_pong.status, iteration_count);
         }
 
-        if (strcmp(ping_pong.status, c_ping) == 0)
+        if (strcmp(@ping_pong.status, c_ping) == 0)
         {
-            gaia_log::app().info("Rules:'{}'->'{}' iteration:'{}' txn_id:'{}'", ping_pong.status, c_pong, iteration_count, txn_id);
+            gaia_log::app().info("Rules:'{}'->'{}' iteration:'{}' txn_id:'{}'", @ping_pong.status, c_pong, iteration_count, txn_id);
             // If I dont' use a fully qualified name, it will fail here.
             status = c_pong;
         }

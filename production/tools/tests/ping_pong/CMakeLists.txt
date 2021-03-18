@@ -23,7 +23,7 @@ process_schema(
 translate_ruleset(
   RULESET_FILE ${PING_PONG_RULESET}
   OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
-  CLANG_PARAMS -I ${GAIA_INC} -I ${SPDLOG_INC}
+  CLANG_PARAMS -I ${GAIA_INC} -I ${SPDLOG_INC} -I ${FLATBUFFERS_INC}
   DEPENDS generate_ping_pong_headers
   GAIAT_CMD ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat
 )
@@ -39,6 +39,7 @@ set_target_properties(ping_pong PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_include_directories(ping_pong PRIVATE
   ${GAIA_INC}
   ${SPDLOG_INC}
+  ${FLATBUFFERS_INC}
   ${PROJECT_BINARY_DIR}
   ${PROJECT_SOURCE_DIR})
 target_link_libraries(ping_pong PRIVATE pthread gaia)
