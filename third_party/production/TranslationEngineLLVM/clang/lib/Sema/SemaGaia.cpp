@@ -284,6 +284,27 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
         return Context.VoidTy;
     }
 
+    const Type *realType = nullptr;
+
+    auto &types = Context.getTypes();
+    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
+    {
+        const auto *type = types[typeIdx];
+        const RecordDecl *record = type->getAsRecordDecl();
+        if (record != nullptr)
+        {
+            const auto *id = record->getIdentifier();
+            if (id != nullptr)
+            {
+                if (id->getName().equals(tableName + "_t"))
+                {
+                    realType = type;
+                    break;
+                }
+            }
+        }
+    }
+
     RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
     RulesetTableAttr *attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
@@ -324,6 +345,22 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
+
+    if (realType != nullptr)
+    {
+        QualType R = Context.getFunctionType( QualType(realType,0), None, FunctionProtoType::ExtProtoInfo());
+        CanQualType ClassType = Context.getCanonicalType(/*Context.getTypeDeclType(RD)*/R);
+        DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
+        DeclarationNameInfo NameInfo(Name, loc);
+
+        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
+            Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
+            nullptr, false, false, false, SourceLocation());
+
+        conversionFunctionDeclaration->setAccess(AS_public);
+        RD->addDecl(conversionFunctionDeclaration);
+    }
+
     for (const auto &f : tableDescription->second)
     {
         string fieldName = f.first;
@@ -353,6 +390,22 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 
     std::string fieldName = fieldNameStrRef.str();
 
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+
+    if (tableData.find(fieldName) != tableData.end())
+    {
+        for (auto iterator : tableData)
+        {
+            if (iterator.second.find(fieldName) != iterator.second.end())
+            {
+                Diag(loc,diag::err_ambiguous_field_name) << fieldName;
+                return Context.VoidTy;
+            }
+        }
+
+        return getTableType(id, loc);
+    }
+
     DeclContext *c = getCurFunctionDecl();
     while (c)
     {
@@ -371,7 +424,6 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
     vector<string> tables;
     RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
     RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
 
     if (attr != nullptr)
     {
