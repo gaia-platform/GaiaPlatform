@@ -226,11 +226,11 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
 
     txn_metadata_t decided_commit_ts_metadata = commit_ts_metadata;
 
-    // This masks out just the commit_ts flag bits.
-    constexpr uint64_t c_commit_flags_mask = ~(~c_txn_status_commit_ts << c_txn_status_flags_shift);
+    // This masks out all bits except the commit_ts flag bits.
+    constexpr uint64_t c_commit_flags_mask = ~c_txn_status_commit_ts << c_txn_status_flags_shift;
 
     // Turn off all commit flag bits before turning on the bits for this decision.
-    decided_commit_ts_metadata.m_value &= c_commit_flags_mask;
+    decided_commit_ts_metadata.m_value &= ~c_commit_flags_mask;
 
     // Now set the decision flags.
     decided_commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
