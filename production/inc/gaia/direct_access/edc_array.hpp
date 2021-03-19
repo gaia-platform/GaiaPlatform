@@ -53,8 +53,8 @@ private:
     explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
         : m_vector(vector_ptr)
     {
-        static_assert(std::is_arithmetic<T_type>::value, "edc_vector_t only supports basic types.");
-        common::retail_assert(vector_ptr != nullptr, "edc_vector_t does not support null valued array pointers!");
+        static_assert(std::is_arithmetic<T_type>::value, "edc_vector_t only supports basic types!");
+        common::retail_assert(vector_ptr != nullptr, "edc_vector_t does not support null-valued array pointers!");
     };
 
     const flatbuffers::Vector<T_type>* m_vector;
