@@ -55,6 +55,7 @@ public:
     static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
     static void set_active_txn_terminated(gaia_txn_id_t begin_ts);
     static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
+    static void set_txn_durable(gaia_txn_id_t commit_ts);
     static bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t txn_begin();

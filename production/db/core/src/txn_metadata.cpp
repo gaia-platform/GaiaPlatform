@@ -217,51 +217,54 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
     // The commit_ts metadata must be in state TXN_VALIDATING or TXN_DECIDED.
     // We allow the latter to enable idempotent concurrent validation.
     txn_metadata_t commit_ts_metadata(commit_ts);
+
     common::retail_assert(
         commit_ts_metadata.is_validating() || commit_ts_metadata.is_decided(),
         "commit_ts metadata must be in validating or decided state!");
 
-    uint64_t decided_status_flags
-        = is_committed ? c_txn_status_committed : c_txn_status_aborted;
+    uint64_t decided_status_flags{is_committed ? c_txn_status_committed : c_txn_status_aborted};
 
-    // We can just reuse the log fd and begin_ts from the existing metadata.
-    //
-    // REVIEW: This condition is probably rare enough that it's not worth optimizing
-    // and we can just let the CAS fail if another thread validated the txn before we did.
-    //
-    // We may have already been validated by another committing txn.
-    if (commit_ts_metadata.is_decided())
-    {
-        // If another txn validated before us, they should have reached the same decision.
-        common::retail_assert(
-            commit_ts_metadata.is_committed() == is_committed,
-            "Inconsistent txn decision detected!");
+    txn_metadata_t decided_commit_ts_metadata = commit_ts_metadata;
 
-        return;
-    }
+    // This masks out just the commit_ts flag bits.
+    constexpr uint64_t c_commit_flags_mask = ~(~c_txn_status_commit_ts << c_txn_status_flags_shift);
 
-    txn_metadata_t expected_metadata = commit_ts_metadata;
+    // Turn off all commit flag bits before turning on the bits for this decision.
+    decided_commit_ts_metadata.m_value &= c_commit_flags_mask;
 
-    // It's safe to just OR in the new flags because the preceding states don't set
-    // any bits not present in the flags.
-    commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
+    // Now set the decision flags.
+    decided_commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
 
-    bool has_set_metadata = compare_exchange_strong(
-        expected_metadata, commit_ts_metadata);
+    bool has_set_metadata = compare_exchange_strong(commit_ts_metadata, decided_commit_ts_metadata);
+
     if (!has_set_metadata)
     {
-        // NB: expected_metadata is an inout argument holding the previous value on failure!
+        // The only state transition allowed from TXN_VALIDATING is to TXN_DECIDED.
         common::retail_assert(
-            expected_metadata.is_decided(),
+            commit_ts_metadata.is_decided(),
             "commit_ts metadata in validating state can only transition to a decided state!");
 
         // If another txn validated before us, they should have reached the same decision.
         common::retail_assert(
-            expected_metadata.is_committed() == is_committed,
+            commit_ts_metadata.is_committed() == is_committed,
             "Inconsistent txn decision detected!");
-
-        return;
     }
+}
+
+void txn_metadata_t::set_txn_durable(gaia_txn_id_t commit_ts)
+{
+    txn_metadata_t commit_ts_metadata(commit_ts);
+
+    txn_metadata_t durable_commit_ts_metadata;
+    do
+    {
+        // NB: commit_ts_metadata is an inout argument holding the previous value
+        // on failure!
+        durable_commit_ts_metadata = commit_ts_metadata;
+
+        durable_commit_ts_metadata.m_value |= (c_txn_persistence_complete << c_txn_persistence_flags_shift);
+
+    } while (!compare_exchange_weak(commit_ts_metadata, durable_commit_ts_metadata));
 }
 
 bool txn_metadata_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
