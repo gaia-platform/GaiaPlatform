@@ -166,7 +166,7 @@ public:
     template <typename T_value>
     expression_decorator_t<T_class> contains(expression_decorator_t<T_value> predicate);
 
-    template <typename T_value, typename = std::enable_if<std::is_base_of_v<edc_base_t, T_value>>>
+    template <typename T_value, typename = std::enable_if<std::is_base_of<edc_base_t, T_value>::value>>
     expression_decorator_t<T_class> contains(const T_value& object);
 
     expression_decorator_t<T_class> empty();
