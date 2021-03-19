@@ -17,11 +17,11 @@
 
 #include "gaia/exception.hpp"
 
+#include "chunk_manager.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "stack_allocator.hpp"
 
 namespace gaia
 {
@@ -196,7 +196,7 @@ private:
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
         size_t log_fd_count = 0,
-        gaia::db::memory_manager::address_offset_t object_address_offset = 0);
+        gaia::db::memory_manager::address_offset_t object_address_offset = memory_manager::c_invalid_address_offset);
 
     static void clear_shared_memory();
 

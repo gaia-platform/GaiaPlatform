@@ -17,7 +17,7 @@ using namespace gaia::db::memory_manager;
 base_memory_manager_t::base_memory_manager_t()
 {
     m_base_memory_address = nullptr;
-    m_start_memory_offset = c_invalid_offset;
+    m_start_memory_offset = c_invalid_address_offset;
     m_total_memory_size = 0;
 }
 
@@ -41,57 +41,43 @@ void base_memory_manager_t::set_execution_flags(const execution_flags_t& executi
     m_execution_flags = execution_flags;
 }
 
-// Allocations need to be made on a 64B boundary and need to leave space
-// for a metadata header before the next 64B boundary.
-//
-// We thus need to update the requested size to a value such that
-// when computing the modulo for our alignment,
-// it would result in a minimum allocation size.
+// Allocation sizes need to be multiples of 64B.
 size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 {
-    if (requested_size < c_minimum_allocation_size)
+    if (requested_size < c_allocation_slot_size)
     {
-        return c_minimum_allocation_size;
+        return c_allocation_slot_size;
     }
 
-    size_t allocation_size = 0;
-    size_t extra_block_size = requested_size % c_allocation_alignment;
+    size_t allocation_slot_count = requested_size / c_allocation_slot_size;
+    size_t extra_allocation_size = requested_size % c_allocation_slot_size;
 
-    if (extra_block_size <= c_minimum_allocation_size)
-    {
-        // Extra fits within the minimum allocation size, so replace it with that instead.
-        allocation_size = requested_size - extra_block_size + c_minimum_allocation_size;
-    }
-    else
-    {
-        // Extra exceeds the minimum allocation, so replace it with that plus an extra 64B block.
-        allocation_size = requested_size - extra_block_size + c_allocation_alignment + c_minimum_allocation_size;
-    }
+    size_t allocation_size = (extra_allocation_size == 0)
+        ? requested_size
+        : (allocation_slot_count + 1) * c_allocation_slot_size;
 
-    // Handle the extreme case in which the requested size is so large
-    // that we'd get an integer overflow in the preceding calculations.
-    return (allocation_size < requested_size) ? 0 : allocation_size;
+    return allocation_size;
 }
 
 void base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)
 {
     auto memory_address_as_integer = reinterpret_cast<size_t>(memory_address);
     retail_assert(
-        memory_address_as_integer % c_memory_alignment == 0,
+        memory_address_as_integer % c_allocation_alignment == 0,
         "Misaligned memory address!");
 }
 
 void base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset)
 {
     retail_assert(
-        memory_offset % c_memory_alignment == 0,
+        memory_offset % c_allocation_slot_size == 0,
         "Misaligned memory offset!");
 }
 
 void base_memory_manager_t::validate_size_alignment(size_t memory_size)
 {
     retail_assert(
-        memory_size % c_memory_alignment == 0,
+        memory_size % c_allocation_slot_size == 0,
         "Misaligned memory size!");
 }
 
@@ -140,7 +126,7 @@ void base_memory_manager_t::validate_address(const uint8_t* const memory_address
 void base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
     retail_assert(
-        memory_offset != c_invalid_offset,
+        memory_offset != c_invalid_address_offset,
         "Memory offset is invalid!");
 
     validate_offset_alignment(memory_offset);
@@ -176,19 +162,4 @@ uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) cons
     uint8_t* memory_address = m_base_memory_address + memory_offset;
 
     return memory_address;
-}
-
-memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memory_offset) const
-{
-    validate_offset(memory_offset);
-
-    retail_assert(
-        memory_offset >= sizeof(memory_allocation_metadata_t),
-        "read_allocation_metadata() was called with an offset that is too small!");
-
-    address_offset_t allocation_metadata_offset = memory_offset - sizeof(memory_allocation_metadata_t);
-    uint8_t* allocation_metadata_address = get_address(allocation_metadata_offset);
-    auto allocation_metadata = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
-
-    return allocation_metadata;
 }

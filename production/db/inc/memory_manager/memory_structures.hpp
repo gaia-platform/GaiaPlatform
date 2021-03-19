@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <cstdint>
+#include <algorithm>
 
 #include "access_control.hpp"
 #include "memory_types.hpp"
@@ -17,50 +17,33 @@ namespace db
 namespace memory_manager
 {
 
-// Each memory allocation will be prefixed by such a metadata block.
-struct memory_allocation_metadata_t
+// A chunk manager's metadata information.
+struct chunk_manager_metadata_t
 {
-    // Size of memory allocation block, including this metadata.
-    uint64_t allocation_size;
-};
+    // A 4MB chunk can store 2^16 64B slots.
+    // A bitmap for 2^16 slots takes 8kB, or the space of 128 slots.
+    // Because the bitmap does not need to track those 128 slots, that frees 16B.
+    // In terms of 8B words, the bitmap only needs 1024 - 2 such words for its tracking.
+    // The 2 words can be used to store additional metadata.
+    static constexpr address_offset_t c_slot_bitmap_size = 1024 - 2;
 
-// A stack_allocator_t's metadata information.
-struct stack_allocator_metadata_t
-{
-    // Total allocation count.
-    size_t count_allocations;
+    slot_offset_t last_committed_slot_offset;
+    slot_offset_t last_allocated_slot_offset;
+    uint32_t reserved1;
+    uint64_t reserved2;
+    uint64_t slot_bitmap[c_slot_bitmap_size];
 
-    // Offset where we can make the next allocation.
-    address_offset_t next_allocation_offset;
-
-    void clear()
+    inline void clear()
     {
-        count_allocations = 0;
-        next_allocation_offset = c_invalid_offset;
+        last_committed_slot_offset = c_invalid_slot_offset;
+        last_allocated_slot_offset = c_invalid_slot_offset;
+        std::fill(slot_bitmap, slot_bitmap + c_slot_bitmap_size, 0);
     }
 };
 
-// The information about a stack_allocator_t allocation.
-struct stack_allocator_allocation_t
-{
-    // The slot_id_t associated to this object.
-    // This is an opaque value for us that we just store here,
-    // for the serialization code to read later.
-    slot_id_t slot_id;
-
-    // The offset of the allocation.
-    address_offset_t memory_offset;
-
-    // The offset of the old allocation made for the previous copy of the object.
-    address_offset_t old_memory_offset;
-
-    void clear()
-    {
-        slot_id = 0;
-        memory_offset = c_invalid_offset;
-        old_memory_offset = c_invalid_offset;
-    }
-};
+static_assert(
+    sizeof(chunk_manager_metadata_t) == 8 * 1024,
+    "chunk_manager_metadata_t was expected to be 8kB!");
 
 } // namespace memory_manager
 } // namespace db

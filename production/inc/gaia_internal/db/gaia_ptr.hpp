@@ -11,8 +11,6 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "stack_allocator.hpp"
-
 namespace gaia
 {
 namespace db
