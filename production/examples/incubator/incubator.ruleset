@@ -37,9 +37,8 @@ ruleset incubator_ruleset
     }
 
     // Rule 2:  Turn off all the fans if the incubator is powered down.
-    OnUpdate(incubator.is_on)
     {
-        if (!incubator.is_on)
+        if (!@incubator.is_on)
         {
             actuator.value = 0;
             actuator.timestamp = g_timestamp;

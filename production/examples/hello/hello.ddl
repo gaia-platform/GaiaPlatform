@@ -5,10 +5,10 @@
 
 create table if not exists names
 (
-    name string active
+    name string
 );
 
 create table if not exists greetings
 (
-    greeting string active
+    greeting string
 );

@@ -167,7 +167,7 @@ protected:
     template <typename T_type>
     static edc_vector_t<T_type> to_edc_vector(const flatbuffers::Vector<T_type>* vector_ptr)
     {
-        return edc_vector_t(vector_ptr);
+        return edc_vector_t<T_type>(vector_ptr);
     };
 };
 

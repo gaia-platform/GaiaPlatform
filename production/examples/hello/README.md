@@ -18,8 +18,8 @@ select * from hello_fdw.greetings;
 You can also build this code with the `cmake` and `make` tools, by using the included CMakeLists.txt file. Before doing this, you should specify the clang compiler by setting the following variables in your environment:
 
 ```
-export CC=/usr/bin/clang-8
-export CXX=/usr/bin/clang++-8
+export CC=/usr/bin/clang-10
+export CXX=/usr/bin/clang++-10
 ```
 
 The steps for the cmake build are:
