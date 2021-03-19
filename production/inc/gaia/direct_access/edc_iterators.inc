@@ -307,6 +307,7 @@ void reference_chain_container_t<T_child>::clear()
         it = erase(it);
     }
 }
+
 template <typename T_child>
 size_t reference_chain_container_t<T_child>::size() const
 {

@@ -77,7 +77,9 @@ struct edc_container_t : edc_db_t
     edc_container_t() = default;
 
     edc_iterator_t<T_class> begin() const;
+
     edc_iterator_t<T_class> end() const;
+
     size_t size() const;
 
     static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
