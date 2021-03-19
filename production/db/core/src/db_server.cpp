@@ -2318,11 +2318,9 @@ bool server_t::txn_commit()
         // This is effectively asynchronous with validation, because if it takes
         // too long, then another thread may recursively validate this txn,
         // before the committing thread has a chance to do so.
+        // NB: We only mark the txn as durable after validation, to simplify
+        // reasoning about txn state transitions.
         rdb->prepare_wal_for_write(s_log, txn_name);
-        // Mark txn as durable in metadata so we can GC the txn log.
-        // We consider the txn durable even if it hasn't yet been validated,
-        // since the decision can be reconstructed from the durable log.
-        txn_metadata_t::set_txn_durable(commit_ts);
     }
 
     retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
@@ -2339,6 +2337,14 @@ bool server_t::txn_commit()
     // from the durable log itself, without the decision record).
     if (rdb)
     {
+        // Mark txn as durable in metadata so we can GC the txn log.
+        // The txn may be considered durable even if it hasn't yet been
+        // validated, since the decision can be reconstructed from the durable
+        // log, but we only mark it durable after validation to simplify the
+        // state transitions: we only allow
+        // TXN_VALIDATING -> TXN_DECIDED -> TXN_DURABLE.
+        txn_metadata_t::set_txn_durable(commit_ts);
+
         if (is_committed)
         {
             rdb->append_wal_commit_marker(txn_name);
