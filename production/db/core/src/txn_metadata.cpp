@@ -226,8 +226,13 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
 
     txn_metadata_t decided_commit_ts_metadata = commit_ts_metadata;
 
-    // It's safe to just OR in the new flags since the preceding states don't set
-    // any bits not present in the flags.
+    // This masks out just the commit_ts flag bits.
+    constexpr uint64_t c_commit_flags_mask = ~(~c_txn_status_commit_ts << c_txn_status_flags_shift);
+
+    // Turn off all commit flag bits before turning on the bits for this decision.
+    decided_commit_ts_metadata.m_value &= c_commit_flags_mask;
+
+    // Now set the decision flags.
     decided_commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
 
     bool has_set_metadata = compare_exchange_strong(commit_ts_metadata, decided_commit_ts_metadata);
@@ -244,8 +249,10 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
 
             decided_commit_ts_metadata = commit_ts_metadata;
 
-            // It's safe to just OR in the new flags because the preceding states don't set
-            // any bits not present in the flags.
+            // Turn off all commit flag bits before turning on the bits for this decision.
+            decided_commit_ts_metadata.m_value &= c_commit_flags_mask;
+
+            // Now set the decision flags.
             decided_commit_ts_metadata.m_value |= (decided_status_flags << c_txn_status_flags_shift);
 
             // Try to set the txn decision again. If it fails this time, it can
