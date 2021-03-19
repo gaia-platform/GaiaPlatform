@@ -1,0 +1,12 @@
+# Minimal image onto which we can install and test our SDK.
+#
+# Build:
+#   docker build -t gaia_ubuntu20 -f Dockerfile_gaia_ubuntu20 .
+
+FROM ubuntu:18.04
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y clang-10 \
+  cmake \
+  && apt-get clean

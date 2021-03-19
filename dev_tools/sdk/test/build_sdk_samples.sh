@@ -19,7 +19,7 @@ make
 #./incubator sim 10
 cd /
 
-# Make Hello World example.
+# Make and execute Hello World example.
 cp -r /opt/gaia/examples/hello .
 cd hello
 ./build.sh
