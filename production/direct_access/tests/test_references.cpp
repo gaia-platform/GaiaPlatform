@@ -924,4 +924,48 @@ TEST_F(gaia_references_test, test_clear)
     commit_transaction();
 }
 
-// Create a hierarchy
+TEST_F(gaia_references_test, test_edc_container_size)
+{
+    begin_transaction();
+
+    ASSERT_EQ(0, employee_t::list().size());
+
+    const size_t c_num_employees = 11;
+    const size_t c_num_addresses = 1;
+
+    for (size_t i = 0; i < c_num_employees; i++)
+    {
+        insert_records(c_num_addresses);
+    }
+
+    ASSERT_EQ(c_num_employees, employee_t::list().size());
+
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_refernece_container_size)
+{
+    begin_transaction();
+
+    employee_t employee = insert_records(0);
+
+    ASSERT_EQ(0, employee.addressee_address_list().size());
+
+    const size_t c_num_addresses = 11;
+
+    for (size_t i = 0; i < c_num_addresses; i++)
+    {
+        address_writer address_w;
+        address_w.street = to_string(i);
+        gaia_id_t address_id = address_w.insert_row();
+        employee.addressee_address_list().insert(address_id);
+    }
+
+    ASSERT_EQ(c_num_addresses, employee.addressee_address_list().size());
+
+    employee.addressee_address_list().clear();
+
+    ASSERT_EQ(0, employee.addressee_address_list().size());
+
+    commit_transaction();
+}

@@ -77,8 +77,10 @@ struct edc_container_t : edc_db_t
     edc_container_t() = default;
 
     edc_iterator_t<T_class> begin() const;
-    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
     edc_iterator_t<T_class> end() const;
+    size_t size() const;
+
+    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
@@ -162,9 +164,11 @@ public:
 
     edc_set_iterator_t<T_child> begin() const;
 
-    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
-
     edc_set_iterator_t<T_child> end() const;
+
+    size_t size() const;
+
+    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 
     void insert(gaia::common::gaia_id_t child_id);
 
