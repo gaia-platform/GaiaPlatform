@@ -42,7 +42,7 @@ make
 ./ping_pong
 ```
 
-To revert the CMake configuration (I'm sure there is a better way to handle this thing):
+To revert the CMake configuration (I'm sure there is a better way to handle two configurations):
 
 ```bash
 mv CMakeLists.txt CMakeLists-sdk.txt
