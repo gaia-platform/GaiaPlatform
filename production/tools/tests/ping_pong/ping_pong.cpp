@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 
     // Users may want to tune the Gaia behavior by changing the default configuration.
     // Eg. change the number of the rule engine threads.
-    gaia::system::initialize("gaia.conf", "gaia_log.conf");
+    gaia::system::initialize();
     gaia_log::app().info("Starting Ping Pong example with {} workers.", num_workers);
 
     gaia::db::begin_transaction();
