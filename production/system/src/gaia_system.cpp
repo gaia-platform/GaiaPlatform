@@ -3,13 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"

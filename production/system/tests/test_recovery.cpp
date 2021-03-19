@@ -11,9 +11,9 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger_internal.hpp"

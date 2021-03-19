@@ -8,9 +8,11 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
+
+#include "gaia_internal/catalog/catalog.hpp"
+
 #include "gaia_addr_book.h"
 
 using namespace std;

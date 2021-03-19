@@ -8,8 +8,9 @@
 #include <set>
 #include <vector>
 
-#include "gaia/db/catalog.hpp"
 #include "gaia/db/db.hpp"
+
+#include "gaia_internal/catalog/catalog.hpp"
 
 using namespace gaia::catalog;
 using namespace std;

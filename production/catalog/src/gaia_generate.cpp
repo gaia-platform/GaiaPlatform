@@ -9,8 +9,7 @@
 
 #include "flatbuffers/code_generators.h"
 
-#include "gaia/db/catalog.hpp"
-
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
 

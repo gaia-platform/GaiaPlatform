@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "gaia/db/catalog.hpp"
+#include "catalog.hpp"
 
 namespace gaia
 {
