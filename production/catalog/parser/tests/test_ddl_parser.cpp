@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/db/catalog.hpp"
+#include "gaia_internal/catalog/catalog.hpp"
 
 #include "gaia_parser.hpp"
 #include "yy_parser.hpp"

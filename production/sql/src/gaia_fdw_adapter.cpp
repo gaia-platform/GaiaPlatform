@@ -15,7 +15,7 @@
 
 #include <sstream>
 
-#include "gaia_internal/catalog/catalog_internal.hpp"
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/db/catalog_core.hpp"

@@ -8,9 +8,9 @@
 #include <memory>
 
 #include "gaia/common.hpp"
-#include "gaia/db/catalog.hpp"
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"

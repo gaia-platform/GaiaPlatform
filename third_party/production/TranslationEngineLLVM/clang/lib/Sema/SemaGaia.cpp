@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "gaia/db/catalog.hpp"
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 
 #include "clang/AST/PrettyDeclStackTrace.h"
