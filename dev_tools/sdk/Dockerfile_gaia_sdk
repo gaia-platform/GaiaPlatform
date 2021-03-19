@@ -6,8 +6,8 @@
 FROM gaia_ubuntu20
 ARG DEBIAN_FRONTEND=noninteractive
 
-COPY build.sh .
+COPY build_sdk_samples.sh .
 COPY gaia-0.1.0_amd64.deb .
-RUN apt install ./gaia-0.1.0_amd64.deb
 
-RUN sh ./build.sh
+RUN apt install ./gaia-0.1.0_amd64.deb
+RUN sh ./build_sdk_samples.sh
