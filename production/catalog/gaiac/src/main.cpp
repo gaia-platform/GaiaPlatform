@@ -14,7 +14,7 @@
 
 #include "gaia/db/db.hpp"
 
-#include "gaia_internal/catalog/catalog_internal.hpp"
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/logger_internal.hpp"

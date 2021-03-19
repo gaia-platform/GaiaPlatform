@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-#include "gaia_internal/catalog/catalog_internal.hpp"
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
 
