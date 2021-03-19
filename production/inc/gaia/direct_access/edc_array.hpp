@@ -11,6 +11,8 @@
 
 #include "gaia/direct_access/edc_object.hpp"
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 namespace gaia
 {
 
@@ -22,6 +24,8 @@ template <typename T_type>
 class edc_vector_t
 {
 public:
+    edc_vector_t() = delete;
+
     const T_type* data() const
     {
         return m_vector->data();
@@ -43,13 +47,14 @@ public:
 
 private:
     // Make the edc_object_t a friend so it can call the private vector constructor.
-    template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+    template <gaia::common::gaia_type_t gaia_type, typename T_gaia, typename T_fb, typename T_obj>
     friend struct edc_object_t;
 
     explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
         : m_vector(vector_ptr)
     {
-        static_assert(std::is_arithmetic<T_type>::value, "Only support arrays of basic types.");
+        static_assert(std::is_arithmetic<T_type>::value, "edc_vector_t only supports basic types!");
+        common::retail_assert(vector_ptr != nullptr, "edc_vector_t does not support null-valued array pointers!");
     };
 
     const flatbuffers::Vector<T_type>* m_vector;
