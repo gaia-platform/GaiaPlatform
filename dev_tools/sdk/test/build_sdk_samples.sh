@@ -5,6 +5,7 @@
 # All rights reserved.
 #############################################
 
+# Exit the script as soon as any line fails.
 set -e
 
 gaia_db_server &
@@ -13,10 +14,9 @@ gaia_db_server &
 cp -r /opt/gaia/examples/incubator .
 cd incubator
 mkdir build
-cd build 
+cd build
 cmake ..
-make 
-#./incubator sim 10
+make
 cd /
 
 # Make and execute Hello World example.

@@ -1,9 +1,9 @@
 # Minimal image onto which we can install and test our SDK.
 #
 # Build:
-#   docker build --no-cache -t gaia_sdk -f Dockerfile_gaia_sdk .
+#   docker build --no-cache -t gaia_sdk_18 -f Dockerfile_gaia_sdk_18 .
 
-FROM gaia_ubuntu20
+FROM gaia_ubuntu_18
 ARG DEBIAN_FRONTEND=noninteractive
 
 COPY build_sdk_samples.sh .
