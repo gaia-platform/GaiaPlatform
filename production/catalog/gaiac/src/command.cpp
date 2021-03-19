@@ -221,15 +221,6 @@ void describe_table(const string& name)
     cout << "Parent references:" << endl;
     output_parent_references.print(cout);
     cout << endl;
-#ifdef DEBUG
-    // Hide FlatBuffers related content in release build.
-    {
-        cout << endl;
-        cout << "Binary FlatBuffers Schema (in hex):" << endl;
-        auto_transaction_t tx;
-        cout << gaia_table_t::get(table_id).binary_schema().data() << endl;
-    }
-#endif
 }
 
 #ifdef DEBUG
@@ -239,7 +230,7 @@ void generate_table_fbs(const string& name)
     gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
-        for (auto table : gaia_table_t::list())
+        for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
             string qualified_name{table.gaia_database().name()};
