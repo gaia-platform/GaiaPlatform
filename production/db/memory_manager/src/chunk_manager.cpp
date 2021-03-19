@@ -137,7 +137,7 @@ void chunk_manager_t::rollback() const
 
 void chunk_manager_t::output_debugging_information(const string& context_description) const
 {
-    cout << endl
+    cout << "\n"
          << c_debug_output_separator_line_start << endl;
     cout << "  Chunk Manager information for context: " << context_description << ":" << endl;
 

@@ -21,20 +21,20 @@ class chunk_manager_t : public base_memory_manager_t
 public:
     chunk_manager_t() = default;
 
-    // Initialize the chunk_manager_t with a specific memory buffer from which to allocate memory.
+    // Initialize the chunk_manager_t with a specific memory chunk from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
     void initialize(
         uint8_t* base_memory_address,
         address_offset_t memory_offset);
 
-    // Load a specific memory buffer from which memory has already been allocated.
+    // Load a specific memory chunk from which memory has already been allocated.
     // This method can be used to read the allocations made by another chunk manager instance.
     // The start of the buffer is specified as an offset from a base address.
     void load(
         uint8_t* base_memory_address,
         address_offset_t memory_offset);
 
-    // Allocate a new memory block that will be designated by the provided slot id.
+    // Allocate a new memory block inside our managed chunk.
     address_offset_t allocate(
         size_t memory_size) const;
 
@@ -48,11 +48,11 @@ public:
     void output_debugging_information(const std::string& context_description) const;
 
 private:
-    // A pointer to our metadata information, stored at the end of the memory block that we manage.
+    // A pointer to our metadata information, stored inside the memory chunk that we manage.
     chunk_manager_metadata_t* m_metadata;
 
 private:
-    // Initialize the chunk_manager_t with a specific memory buffer from which to allocate memory.
+    // Initialize the chunk_manager_t with a specific memory chunk from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
     void initialize_internal(
         uint8_t* base_memory_address,

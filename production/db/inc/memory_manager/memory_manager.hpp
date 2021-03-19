@@ -34,7 +34,7 @@ public:
     // Allocates a new chunk of memory.
     address_offset_t allocate_chunk();
 
-    // TODO: Remove this method after client is updated to use allocate_chunk() and chunk managers.
+    // TODO: Remove this method after the client is updated to use allocate_chunk() and chunk managers.
     address_offset_t allocate(size_t size);
 
     void deallocate(address_offset_t memory_offset);
@@ -45,16 +45,10 @@ private:
     address_offset_t m_next_allocation_offset;
 
 private:
-    size_t get_main_memory_available_size() const;
+    size_t get_available_memory_size() const;
 
-    // Attempt to allocate a chunk from our main memory block.
-    address_offset_t allocate_chunk_from_main_memory();
-
-    // Attempt to allocate a chunk from one of the already allocated and freed chunks.
-    address_offset_t allocate_chunk_from_freed_memory();
-
-    // Internal method for allocating blocks of any size from main memory.
-    address_offset_t allocate_from_main_memory(size_t size);
+    // Internal method for allocating blocks of any size.
+    address_offset_t allocate_internal(size_t size);
 
     void output_debugging_information(const std::string& context_description) const;
 };

@@ -32,7 +32,9 @@ void memory_manager_t::manage(
     // Sanity checks.
     retail_assert(memory_address != nullptr, "memory_manager_t::manage() was called with a null memory address!");
     retail_assert(memory_size > 0, "memory_manager_t::manage() was called with a 0 memory size!");
-    retail_assert(memory_size % c_chunk_size == 0, "memory_manager_t::manage() was called with a memory size that is not a multiple of chunk size (4MB)!");
+    retail_assert(
+        memory_size % c_chunk_size == 0,
+        "memory_manager_t::manage() was called with a memory size that is not a multiple of chunk size (4MB)!");
     validate_address_alignment(memory_address);
     validate_size_alignment(memory_size);
 
@@ -49,7 +51,9 @@ void memory_manager_t::manage(
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << "  Configuration - enable_extra_validations = " << m_execution_flags.enable_extra_validations << endl;
+        cout
+            << "  Configuration - enable_extra_validations = "
+            << m_execution_flags.enable_extra_validations << endl;
 
         output_debugging_information("manage");
     }
@@ -57,18 +61,31 @@ void memory_manager_t::manage(
 
 address_offset_t memory_manager_t::allocate_chunk()
 {
-    // First, attempt to reuse freed chunks, if possible.
-    address_offset_t allocated_memory_offset = allocate_chunk_from_freed_memory();
-
-    // Otherwise, fall back to allocating from our main memory block.
-    if (allocated_memory_offset == c_invalid_address_offset)
-    {
-        allocated_memory_offset = allocate_chunk_from_main_memory();
-    }
+    address_offset_t allocated_memory_offset = allocate_internal(c_chunk_size);
 
     if (m_execution_flags.enable_console_output)
     {
         output_debugging_information("allocate_chunk");
+    }
+
+    if (allocated_memory_offset != c_invalid_address_offset)
+    {
+        // This check supersedes the validate_offset_alignment() check.
+        retail_assert(
+            allocated_memory_offset % c_chunk_size == 0,
+            "Chunk allocations should be made on chunk size boundaries!");
+    }
+
+    return allocated_memory_offset;
+}
+
+address_offset_t memory_manager_t::allocate(size_t size)
+{
+    address_offset_t allocated_memory_offset = allocate_internal(size);
+
+    if (m_execution_flags.enable_console_output)
+    {
+        output_debugging_information("allocate");
     }
 
     if (allocated_memory_offset != c_invalid_address_offset)
@@ -79,41 +96,24 @@ address_offset_t memory_manager_t::allocate_chunk()
     return allocated_memory_offset;
 }
 
-address_offset_t memory_manager_t::allocate(size_t size)
-{
-    address_offset_t allocated_memory_offset = allocate_from_main_memory(size);
-
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information("allocate");
-    }
-
-    return allocated_memory_offset;
-}
-
-void memory_manager_t::deallocate(address_offset_t memory_offset)
+void memory_manager_t::deallocate(address_offset_t)
 {
     // TODO: Implement memory deallocation (mark slots in corresponding chunk metadata as unused).
 }
 
-size_t memory_manager_t::get_main_memory_available_size() const
+size_t memory_manager_t::get_available_memory_size() const
 {
-    size_t available_size = m_start_memory_offset + m_total_memory_size - m_next_allocation_offset;
+    size_t available_size = m_total_memory_size - m_next_allocation_offset;
 
     return available_size;
 }
 
-address_offset_t memory_manager_t::allocate_chunk_from_main_memory()
-{
-    return allocate_from_main_memory(c_chunk_size);
-}
-
-address_offset_t memory_manager_t::allocate_from_main_memory(size_t size)
+address_offset_t memory_manager_t::allocate_internal(size_t size)
 {
     size = base_memory_manager_t::calculate_allocation_size(size);
 
     // If the allocation exhausts our memory, we cannot perform it.
-    if (get_main_memory_available_size() < size)
+    if (get_available_memory_size() < size)
     {
         return c_invalid_address_offset;
     }
@@ -128,7 +128,7 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size)
     // which can happen if someone else got the space before us.
     if (new_next_allocation_offset > m_total_memory_size)
     {
-        // We exhausted the main memory so we must undo our update.
+        // We exhausted the memory so we must undo our update.
         while (!__sync_bool_compare_and_swap(
             &m_next_allocation_offset,
             new_next_allocation_offset,
@@ -149,28 +149,18 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size)
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << endl
-             << "Allocated " << size << " bytes at offset " << allocation_offset;
-        cout << " from main memory." << endl;
+        cout << "\nAllocated " << size << " bytes at offset " << allocation_offset << " from main memory." << endl;
     }
 
     return allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_chunk_from_freed_memory()
-{
-    // TODO: implement freed memory lookup.
-    return c_invalid_address_offset;
-}
-
 void memory_manager_t::output_debugging_information(const string& context_description) const
 {
-    cout << endl
+    cout << "\n"
          << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << context_description << ":" << endl;
-
     cout << "  Next allocation offset = " << m_next_allocation_offset << endl;
-    cout << "  Available main memory = " << get_main_memory_available_size() << endl;
-
+    cout << "  Available memory = " << get_available_memory_size() << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
