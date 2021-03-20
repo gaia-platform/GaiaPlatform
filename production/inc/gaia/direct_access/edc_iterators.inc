@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "edc_iterators.hpp"
-
 namespace gaia
 {
 namespace direct_access
