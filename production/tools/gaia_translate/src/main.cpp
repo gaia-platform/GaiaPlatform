@@ -810,7 +810,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
     if (g_is_rule_context_rule_name_referenced)
     {
-        navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+        navigation_code.prefix.insert(0, "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
     if (rule_count == 1)
     {
