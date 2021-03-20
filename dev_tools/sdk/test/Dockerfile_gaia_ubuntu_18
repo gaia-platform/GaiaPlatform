@@ -1,12 +1,24 @@
 # Minimal image onto which we can install and test our SDK.
 #
 # Build:
-#   docker build -t gaia_ubuntu18 -f Dockerfile_gaia_ubuntu18 .
+#   docker build -t gaia_ubuntu_18 -f Dockerfile_gaia_ubuntu_18 .
 
 FROM ubuntu:18.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-  && apt-get install -y clang-10 \
-  cmake \
+  && apt-get install -y clang-10 wget make\
   && apt-get clean
+
+ENV CC=/usr/bin/clang-10
+ENV CXX=/usr/bin/clang++-10
+
+# Install newer version of cmake than is avaiable by default on Ubuntu 18.04
+RUN mkdir ~/temp \
+  && cd ~/temp \
+  && wget https://github.com/Kitware/CMake/releases/download/v3.18.6/cmake-3.18.6.tar.gz \
+  && tar -xzvf cmake-3.18.6.tar.gz > /dev/null \
+  && cd cmake-3.18.6/ \
+  && ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF \
+  && make -j4 \
+  && make install
