@@ -51,15 +51,10 @@ public:
     edc_iterator_t() = default;
 
     edc_iterator_t<T_class>& operator++();
-
     edc_iterator_t<T_class> operator++(int);
-
     bool operator==(const edc_iterator_t& rhs) const;
-
     bool operator!=(const edc_iterator_t& rhs) const;
-
     reference operator*();
-
     pointer operator->();
 };
 
@@ -77,8 +72,11 @@ struct edc_container_t : edc_db_t
     edc_container_t() = default;
 
     edc_iterator_t<T_class> begin() const;
-    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
     edc_iterator_t<T_class> end() const;
+
+    size_t size() const;
+
+    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
@@ -109,15 +107,10 @@ public:
     edc_set_iterator_t() = default;
 
     reference operator*();
-
     pointer operator->();
-
     edc_set_iterator_t<T_child>& operator++();
-
     edc_set_iterator_t<T_child> operator++(int);
-
     bool operator==(const edc_set_iterator_t& rhs) const;
-
     bool operator!=(const edc_set_iterator_t& rhs) const;
 };
 
@@ -161,22 +154,19 @@ public:
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
     edc_set_iterator_t<T_child> begin() const;
-
-    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
-
     edc_set_iterator_t<T_child> end() const;
 
-    void insert(gaia::common::gaia_id_t child_id);
+    size_t size() const;
 
+    void insert(gaia::common::gaia_id_t child_id);
     void insert(T_child& child_edc);
 
     edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
-
     void remove(gaia::common::gaia_id_t child_id);
-
     void remove(T_child& child_edc);
-
     void clear();
+
+    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 };
 
 /*@}*/
