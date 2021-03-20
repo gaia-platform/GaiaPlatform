@@ -1,4 +1,4 @@
-# Minimal image onto which we can install and test our SDK.
+# Install the SDK built for Ubuntu 20.04, build, and execute the samples.
 #
 # Build:
 #   docker build --no-cache -t gaia_sdk_20 -f Dockerfile_gaia_sdk_20 .
