@@ -9519,5 +9519,5 @@ def err_invalid_rule_context_internal_error : Error<
 def err_invalid_rule_attribute : Error<
     "Invalid Gaia rule attribute.">;
 def err_ambiguous_field_name : Error<
-    "'%0' is ambiguous as both a table and a field with this name exist in the catalog.">;
+    "'%0' is ambiguous because both a table and a field with this name exist in the catalog.">;
 } // end of sema component.
