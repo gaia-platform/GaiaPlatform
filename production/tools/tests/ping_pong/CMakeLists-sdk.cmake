@@ -3,22 +3,19 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.16)
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
-# Set the project name.
-project(ping_pong)
-
-set(CMAKE_CXX_STANDARD 17)
-
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O3")
+# Enable AddressSanitizer in debug mode.
+if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+endif()
 
 set(GAIA "/opt/gaia")
 
 include(${GAIA}/cmake/gaia.cmake)
 set(GAIA_INC "${GAIA}/include")
-
-set(PING_PONG_DDL ${PROJECT_SOURCE_DIR}/ping_pong.ddl)
-set(PING_PONG_RULESET ${PROJECT_SOURCE_DIR}/ping_pong.ruleset)
 
 # --- Generate EDC from DDL---
 process_schema(
@@ -45,4 +42,4 @@ target_include_directories(ping_pong PRIVATE
   ${PROJECT_BINARY_DIR}
   ${PROJECT_SOURCE_DIR}
 )
-target_link_libraries(ping_pong PRIVATE rt pthread gaia)
+target_link_libraries(ping_pong PRIVATE gaia rt pthread)

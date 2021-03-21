@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     if (argc == 2)
     {
-        num_workers = stoi(argv[0]);
+        num_workers = stoi(argv[1]);
         assert(num_workers > 0);
     }
     else if (argc > 2)
