@@ -9,13 +9,31 @@ using namespace gaia::barn_storage;
 
 int g_text_mixed_called = 0;
 
+void f (gaia::barn_storage::incubator_t i)
+{
+    i.sensor_list().insert(sensor_t::insert_row("TestSensor1", 0, 0.0));
+    i.actuator_list().insert(actuator_t::insert_row("TestActuator1", 0, 0.0));
+}
+
+void f1 (const gaia::barn_storage::incubator_t& i)
+{
+    i.sensor_list().insert(sensor_t::insert_row("TestSensor2", 0, 0.0));
+    i.actuator_list().insert(actuator_t::insert_row("TestActuator2", 0, 0.0));
+}
+
+void f2 (gaia::barn_storage::incubator_t& i)
+{
+    i.sensor_list().insert(sensor_t::insert_row("TestSensor3", 0, 0.0));
+    i.actuator_list().insert(actuator_t::insert_row("TestActuator3", 0, 0.0));
+}
+
 ruleset test_mixed
 {
     OnInsert(incubator)
     {
-        incubator_t incubator1 = incubator_t::get(incubator.gaia_id());
-        incubator1.sensor_list().insert(sensor_t::insert_row("TestSensor1", 0, 0.0));
-        incubator1.actuator_list().insert(actuator_t::insert_row("TestActuator1", 0, 0.0));
+        f(incubator);
+        f1(incubator);
+        f2(incubator);
         g_text_mixed_called++;
     }
 }

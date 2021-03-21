@@ -126,6 +126,12 @@ edc_iterator_t<T_class> edc_container_t<T_container, T_class>::end() const
     return edc_iterator_t<T_class>(0);
 }
 
+template <gaia::common::gaia_type_t T_container, typename T_class>
+size_t edc_container_t<T_container, T_class>::size() const
+{
+    return std::distance(begin(), end());
+}
+
 //
 // Implementation for edc_set_iterator_t.
 //
@@ -298,6 +304,12 @@ void reference_chain_container_t<T_child>::clear()
     {
         it = erase(it);
     }
+}
+
+template <typename T_child>
+size_t reference_chain_container_t<T_child>::size() const
+{
+    return std::distance(begin(), end());
 }
 
 } // namespace direct_access
