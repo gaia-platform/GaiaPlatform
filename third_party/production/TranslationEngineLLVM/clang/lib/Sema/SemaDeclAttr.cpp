@@ -2045,6 +2045,11 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     return false;
   }
+  size_t colonPosition = attribute.find(':');
+  if (colonPosition != StringRef::npos)
+  {
+    attribute = attribute.take_back(attribute.size() - colonPosition - 1);
+  }
   size_t dotPosition = attribute.find('.');
   // Handle fully qualified reference.
   if (dotPosition != StringRef::npos)

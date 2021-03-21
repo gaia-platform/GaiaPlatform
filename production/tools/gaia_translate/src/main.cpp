@@ -48,6 +48,7 @@ const int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
+std::string g_rule_attribute_tags;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -284,37 +285,47 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool parse_attribute(const string& attribute, string& table, string& field)
+bool parse_attribute(const string& attribute, string& table, string& field, string& tag)
 {
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
     }
-
-    size_t dot_position = attribute.find('.');
+    string tagless_attribute;
+    size_t tag_position = attribute.find(':');
+    if (tag_position != string::npos)
+    {
+        tag = attribute.substr(0, tag_position);
+        tagless_attribute = attribute.substr(tag_position + 1);
+    }
+    else
+    {
+        tagless_attribute = attribute;
+    }
+    size_t dot_position = tagless_attribute.find('.');
     // Handle fully qualified reference.
     if (dot_position != string::npos)
     {
-        table = attribute.substr(0, dot_position);
-        field = attribute.substr(dot_position + 1);
+        table = tagless_attribute.substr(0, dot_position);
+        field = tagless_attribute.substr(dot_position + 1);
         return true;
     }
 
-    if (g_field_data.find(attribute) == g_field_data.end())
+    if (g_field_data.find(tagless_attribute) == g_field_data.end())
     {
         // Might be a field.
         for (const auto& tbl : g_field_data)
         {
-            if (tbl.second.find(attribute) != tbl.second.end())
+            if (tbl.second.find(tagless_attribute) != tbl.second.end())
             {
                 table = tbl.first;
-                field = attribute;
+                field = tagless_attribute;
                 return true;
             }
         }
         return false;
     }
-    table = attribute;
+    table = tagless_attribute;
     field.clear();
     return true;
 }
@@ -812,6 +823,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
     {
         navigation_code.prefix.insert(0, "static const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
+    navigation_code.prefix += g_rule_attribute_tags;
     if (rule_count == 1)
     {
         if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
@@ -1438,6 +1450,7 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
+        g_rule_attribute_tags.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
@@ -1447,9 +1460,19 @@ public:
             g_is_rule_prolog_specified = true;
             for (const auto& table_iterator : update_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
+                    if (!tag.empty())
+                    {
+                        g_rule_attribute_tags
+                            .append("\nauto &")
+                            .append(tag)
+                            .append(" = ")
+                            .append(table)
+                            .append(";");
+                    }
+
                     if (field.empty())
                     {
                         g_update_tables.insert(table);
@@ -1471,9 +1494,19 @@ public:
             g_rule_attribute_source_range = insert_attribute->getRange();
             for (const auto& table_iterator : insert_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
+                    if (!tag.empty())
+                    {
+                        g_rule_attribute_tags
+                            .append("\nauto &")
+                            .append(tag)
+                            .append(" = ")
+                            .append(table)
+                            .append(";");
+                    }
+
                     g_insert_tables.insert(table);
                 }
             }
@@ -1485,9 +1518,18 @@ public:
             g_rule_attribute_source_range = change_attribute->getRange();
             for (const auto& table_iterator : change_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
+                    if (!tag.empty())
+                    {
+                        g_rule_attribute_tags
+                            .append("\nauto &")
+                            .append(tag)
+                            .append(" = ")
+                            .append(table)
+                            .append(";");
+                    }
                     g_insert_tables.insert(table);
                     if (field.empty())
                     {
@@ -1532,6 +1574,7 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
+        g_rule_attribute_tags.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
