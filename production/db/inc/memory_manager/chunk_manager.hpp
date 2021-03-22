@@ -16,6 +16,8 @@ namespace db
 namespace memory_manager
 {
 
+// A chunk manager is used to allocate memory from a 4MB memory "chunk".
+// Memory is allocated in increments of 64B allocation units.
 class chunk_manager_t : public base_memory_manager_t
 {
 public:

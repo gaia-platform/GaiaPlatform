@@ -18,6 +18,8 @@ namespace memory_manager
 constexpr char c_debug_output_separator_line_start[] = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 constexpr char c_debug_output_separator_line_end[] = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
+// This class provides operations relevant to the management of a memory range
+// defined by a base memory address, start offset, and total size.
 class base_memory_manager_t
 {
 public:

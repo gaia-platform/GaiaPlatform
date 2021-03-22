@@ -18,6 +18,9 @@ namespace db
 namespace memory_manager
 {
 
+// A memory manager is used to manage the memory range allocated for our process.
+// We allocate memory from this range in 4MB "chunks".
+// Chunks are then used via a chunk manager to allocate memory in multiples of 64B allocation units.
 class memory_manager_t : public base_memory_manager_t
 {
 public:
