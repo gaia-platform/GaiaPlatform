@@ -77,8 +77,8 @@ endfunction()
 #            schema headers.
 function(translate_ruleset)
   set(options "")
-  set(oneValueArgs RULESET_FILE OUTPUT_FOLDER TARGET_NAME GAIAT_CMD DEPENDS)
-  set(multiValueArgs CLANG_PARAMS)
+  set(oneValueArgs RULESET_FILE OUTPUT_FOLDER TARGET_NAME GAIAT_CMD)
+  set(multiValueArgs CLANG_PARAMS DEPENDS)
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   check_param(ARG_RULESET_FILE)

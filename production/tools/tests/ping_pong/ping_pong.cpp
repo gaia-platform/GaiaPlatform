@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     if (argc == 2)
     {
-        num_workers = stoi(argv[0]);
+        num_workers = stoi(argv[1]);
         assert(num_workers > 0);
     }
     else if (argc > 2)
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 
     // Users may want to tune the Gaia behavior by changing the default configuration.
     // Eg. change the number of the rule engine threads.
-    gaia::system::initialize("gaia.conf", "gaia_log.conf");
+    gaia::system::initialize();
     gaia_log::app().info("Starting Ping Pong example with {} workers.", num_workers);
 
     gaia::db::begin_transaction();
