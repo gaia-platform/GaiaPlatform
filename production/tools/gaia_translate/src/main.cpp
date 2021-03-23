@@ -48,7 +48,6 @@ const int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
-std::string g_rule_attribute_tags;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -285,7 +284,7 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
-bool parse_attribute(const string& attribute, string& table, string& field, string& tag)
+bool parse_attribute(const string& attribute, string& table, string& field)
 {
     if (g_field_data.empty())
     {
@@ -295,7 +294,6 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
     {
-        tag = attribute.substr(0, tag_position);
         tagless_attribute = attribute.substr(tag_position + 1);
     }
     else
@@ -494,12 +492,10 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return_value.prefix = "\nauto " + anchor_table
         + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
 
-    //single table used in the rule
     if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
     {
         return return_value;
     }
-
     if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
@@ -512,16 +508,17 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     unordered_set<string> processed_tables;
     for (const string& table : g_used_tables)
     {
+        if (table == anchor_table)
+        {
+            continue;
+        }
+
         if (processed_tables.find(table) != processed_tables.end())
         {
             continue;
         }
 
         bool is_1_relationship = false, is_n_relationship = false;
-        if (table == anchor_table)
-        {
-            continue;
-        }
 
         string linking_field;
         for (auto it = parent_itr.first; it != parent_itr.second; ++it)
@@ -577,14 +574,26 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                             if (p.linking_field.empty())
                             {
                                 return_value.prefix
-                                    += "auto " + p.name + " = "
-                                    + source_table + "." + p.name + "();\n";
+                                    .append("auto ")
+                                    .append(p.name)
+                                    .append(" = ")
+                                    .append(source_table)
+                                    .append(".")
+                                    .append(p.name)
+                                    .append("();\n");
                             }
                             else
                             {
                                 return_value.prefix
-                                    += "auto " + p.name + " = "
-                                    + source_table + "." + p.linking_field + "_" + p.name + "();\n";
+                                    .append("auto ")
+                                    .append(p.name)
+                                    .append(" = ")
+                                    .append(source_table)
+                                    .append(".")
+                                    .append(p.linking_field)
+                                    .append("_")
+                                    .append(p.name)
+                                    .append("();\n");
                             }
                         }
                         else
@@ -823,7 +832,6 @@ void generate_table_subscription(const string& table, const string& field_subscr
     {
         navigation_code.prefix.insert(0, "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
     }
-    navigation_code.prefix += g_rule_attribute_tags;
     if (rule_count == 1)
     {
         if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
@@ -1026,7 +1034,6 @@ public:
             {
                 return;
             }
-
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
             g_used_tables.insert(table_name);
@@ -1052,8 +1059,7 @@ public:
             if (declaration_expression != nullptr)
             {
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                table_name = declaration_expression->getDecl()->getName().str();
-
+                table_name = get_table_name(declaration_expression->getDecl());
                 g_used_tables.insert(table_name);
                 g_used_dbs.insert(g_table_db_data[table_name]);
 
@@ -1147,7 +1153,7 @@ public:
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = declaration_expression->getDecl()->getName().str();
+                        table_name = get_table_name(declaration_expression->getDecl());
                         set_start_location = member_expression->getBeginLoc();
                     }
                     g_used_tables.insert(table_name);
@@ -1347,7 +1353,7 @@ public:
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = declaration_expression->getDecl()->getName().str();
+                        table_name = get_table_name(declaration_expression->getDecl());
                     }
 
                     g_used_tables.insert(table_name);
@@ -1450,7 +1456,6 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
-        g_rule_attribute_tags.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
@@ -1460,19 +1465,9 @@ public:
             g_is_rule_prolog_specified = true;
             for (const auto& table_iterator : update_attribute->tables())
             {
-                string table, field, tag;
-                if (parse_attribute(table_iterator, table, field, tag))
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
                 {
-                    if (!tag.empty())
-                    {
-                        g_rule_attribute_tags
-                            .append("\nauto &")
-                            .append(tag)
-                            .append(" = ")
-                            .append(table)
-                            .append(";");
-                    }
-
                     if (field.empty())
                     {
                         g_update_tables.insert(table);
@@ -1494,19 +1489,9 @@ public:
             g_rule_attribute_source_range = insert_attribute->getRange();
             for (const auto& table_iterator : insert_attribute->tables())
             {
-                string table, field, tag;
-                if (parse_attribute(table_iterator, table, field, tag))
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
                 {
-                    if (!tag.empty())
-                    {
-                        g_rule_attribute_tags
-                            .append("\nauto &")
-                            .append(tag)
-                            .append(" = ")
-                            .append(table)
-                            .append(";");
-                    }
-
                     g_insert_tables.insert(table);
                 }
             }
@@ -1518,18 +1503,9 @@ public:
             g_rule_attribute_source_range = change_attribute->getRange();
             for (const auto& table_iterator : change_attribute->tables())
             {
-                string table, field, tag;
-                if (parse_attribute(table_iterator, table, field, tag))
+                string table, field;
+                if (parse_attribute(table_iterator, table, field))
                 {
-                    if (!tag.empty())
-                    {
-                        g_rule_attribute_tags
-                            .append("\nauto &")
-                            .append(tag)
-                            .append(" = ")
-                            .append(table)
-                            .append(";");
-                    }
                     g_insert_tables.insert(table);
                     if (field.empty())
                     {
@@ -1574,7 +1550,6 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
-        g_rule_attribute_tags.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
@@ -1718,6 +1693,60 @@ private:
     Rewriter& m_rewriter;
 };
 
+class table_call_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit table_call_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+        const auto* expression = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+
+        if (expression != nullptr)
+        {
+            string table_name;
+            SourceRange expression_source_range;
+            const ValueDecl* decl = expression->getDecl();
+            if (!decl->getType()->isStructureType())
+            {
+                return;
+            }
+            table_name = get_table_name(decl);
+
+            g_used_tables.insert(table_name);
+            g_used_dbs.insert(g_table_db_data[table_name]);
+
+            if (decl->hasAttr<GaiaFieldAttr>())
+            {
+                expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
+            }
+            else if (decl->hasAttr<GaiaFieldValueAttr>())
+            {
+                expression_source_range
+                    = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+            }
+
+            if (expression_source_range.isValid())
+            {
+                m_rewriter.ReplaceText(expression_source_range, table_name);
+            }
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1728,6 +1757,7 @@ public:
         , m_ruleset_match_handler(r)
         , m_field_unary_operator_match_handler(r)
         , m_rule_context_match_handler(r)
+        , m_table_call_match_handler(r)
     {
         StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
         StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
@@ -1746,9 +1776,21 @@ public:
             = declRefExpr(to(varDecl(
                               anyOf(
                                   hasAttr(attr::GaiaField),
+                                  hasAttr(attr::FieldTable),
                                   hasAttr(attr::GaiaFieldValue)),
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
+        StatementMatcher table_call_matcher
+            = declRefExpr(allOf(to(varDecl(
+                              anyOf(
+                                  hasAttr(attr::GaiaField),
+                                  hasAttr(attr::FieldTable),
+                                  hasAttr(attr::GaiaFieldValue)),
+                              unless(hasAttr(attr::GaiaFieldLValue)))),
+                              anyOf(
+                                  hasAncestor(callExpr()),
+                                  hasAncestor(cxxMemberCallExpr()))))
+                .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(
@@ -1805,6 +1847,7 @@ public:
         m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(event_type_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(gaia_type_matcher, &m_rule_context_match_handler);
+        m_matcher.addMatcher(table_call_matcher, &m_table_call_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -1821,6 +1864,7 @@ private:
     field_unary_operator_match_handler_t m_field_unary_operator_match_handler;
     variable_declaration_match_handler_t m_variable_declaration_match_handler;
     rule_context_rule_match_handler_t m_rule_context_match_handler;
+    table_call_match_handler_t m_table_call_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

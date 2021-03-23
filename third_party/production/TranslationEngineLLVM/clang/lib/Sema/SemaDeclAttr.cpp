@@ -2046,8 +2046,27 @@ static bool validateRuleAttribute(StringRef attribute,
     return false;
   }
   size_t colonPosition = attribute.find(':');
+  StringRef tag;
   if (colonPosition != StringRef::npos)
   {
+    tag = attribute.take_front(colonPosition);
+    if (tableData.find(tag) != tableData.end())
+    {
+      S.Diag(AL.getLoc(), diag::err_ambiguous_tag_defined)
+        << tag;
+      return false;
+    }
+
+    for (auto table : tableData)
+    {
+      if (table.second.find(tag) != table.second.end())
+      {
+        S.Diag(AL.getLoc(), diag::err_ambiguous_tag_defined)
+          << tag;
+        return false;
+      }
+    }
+
     attribute = attribute.take_back(attribute.size() - colonPosition - 1);
   }
   size_t dotPosition = attribute.find('.');
@@ -2056,6 +2075,7 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     StringRef table = attribute.take_front(dotPosition);
     StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
+
     auto tableDescription = tableData.find(table);
     if (tableDescription == tableData.end())
     {
@@ -2077,6 +2097,13 @@ static bool validateRuleAttribute(StringRef attribute,
   if (tableDescription == tableData.end())
   {
     // Might be a field.
+    if (colonPosition != StringRef::npos)
+    {
+      S.Diag(AL.getLoc(), diag::err_invalid_tag_defined)
+        << attribute;
+      return false;
+    }
+
     bool returnValue = false;
     for (auto table : tableData)
     {

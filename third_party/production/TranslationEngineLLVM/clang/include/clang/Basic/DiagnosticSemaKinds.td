@@ -9520,4 +9520,8 @@ def err_invalid_rule_attribute : Error<
     "Invalid Gaia rule attribute.">;
 def err_ambiguous_field_name : Error<
     "'%0' is ambiguous because both a table and a field with this name exist in the catalog.">;
+def err_invalid_tag_defined: Error<
+    "Tag refers to an invalid table %0.">;
+def err_ambiguous_tag_defined: Error<
+    "Tag %0 cannot have the same name as a table or a field.">;
 } // end of sema component.
