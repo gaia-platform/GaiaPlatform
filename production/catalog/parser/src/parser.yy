@@ -23,20 +23,25 @@
     #include <string>
     #include <memory>
     #include <vector>
-    namespace gaia {
-    namespace common {
+    namespace gaia
+    {
+    namespace common
+    {
     enum class data_type_t : uint8_t;
-    }
-    namespace catalog {
-    namespace ddl {
-        struct statement_t;
-        struct create_statement_t;
-        struct drop_statement_t;
-        enum class field_type_t : uint8_t;
-        struct base_field_def_t;
-        struct data_field_def_t;
-        struct ref_field_def_t;
-        class parser_t;
+    } // namespace common
+
+    namespace catalog
+    {
+    namespace ddl
+    {
+    struct statement_t;
+    struct create_statement_t;
+    struct drop_statement_t;
+    enum class field_type_t : uint8_t;
+    struct base_field_def_t;
+    struct data_field_def_t;
+    struct ref_field_def_t;
+    class parser_t;
     } // namespace ddl
     } // namespace catalog
     } // namespace gaia
@@ -99,7 +104,7 @@
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
 %printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
-%printer { yyo << "filed_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
+%printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
@@ -143,7 +148,8 @@ create_statement:
       $$ = std::make_unique<create_statement_t>(create_type_t::create_table, $4.second);
       $$->if_not_exists = $3;
       $$->database = std::move($4.first);
-      if ($6) {
+      if ($6)
+      {
         $$->fields = std::move(*$6);
       }
   }
@@ -195,7 +201,7 @@ data_field_def:
 ;
 
 ref_field_def:
- IDENTIFIER REFERENCES composite_name  {
+ IDENTIFIER REFERENCES composite_name {
       $$ = std::make_unique<ref_field_def_t>($1, $3);
   }
 | REFERENCES composite_name {
