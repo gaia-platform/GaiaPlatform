@@ -54,8 +54,6 @@ private:
     chunk_manager_metadata_t* m_metadata;
 
 private:
-    // Initialize the chunk_manager_t with a specific memory chunk from which to allocate memory.
-    // The start of the buffer is specified as an offset from a base address.
     void initialize_internal(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,

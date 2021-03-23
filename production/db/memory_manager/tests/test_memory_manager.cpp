@@ -34,7 +34,7 @@ TEST(memory_manager, basic_operation)
     execution_flags.enable_console_output = true;
 
     memory_manager.set_execution_flags(execution_flags);
-    memory_manager.manage(memory, c_memory_size);
+    memory_manager.initialize(memory, c_memory_size);
 
     address_offset_t first_allocation_offset = memory_manager.allocate_chunk();
     ASSERT_NE(first_allocation_offset, c_invalid_address_offset);
@@ -69,7 +69,7 @@ TEST(memory_manager, internal_allocate_operation)
 {
     // Allocate a bit more memory than necessary,
     // to allow bumping the starting pointer to the next aligned address.
-    constexpr size_t c_memory_size = 4 * 1024 * 1024;
+    constexpr size_t c_memory_size = 8 * 1024 * 1024;
     std::vector<uint8_t> memory_vector(c_memory_size + c_allocation_alignment);
     uint8_t* memory = memory_vector.data();
     memory += c_allocation_alignment - (((size_t)memory) % c_allocation_alignment);
@@ -82,7 +82,7 @@ TEST(memory_manager, internal_allocate_operation)
     execution_flags.enable_console_output = true;
 
     memory_manager.set_execution_flags(execution_flags);
-    memory_manager.manage(memory, c_memory_size);
+    memory_manager.initialize(memory, c_memory_size);
 
     constexpr size_t c_first_allocation_size = 64;
     constexpr size_t c_second_allocation_size = 250;

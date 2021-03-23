@@ -19,35 +19,60 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-memory_manager_t::memory_manager_t()
-    : base_memory_manager_t()
-{
-    m_next_allocation_offset = c_invalid_address_offset;
-}
-
-void memory_manager_t::manage(
+void memory_manager_t::initialize(
     uint8_t* memory_address,
     size_t memory_size)
 {
+    bool initialize_memory = true;
+    initialize_internal(memory_address, memory_size, initialize_memory);
+}
+
+void memory_manager_t::load(
+    uint8_t* memory_address,
+    size_t memory_size)
+{
+    bool initialize_memory = false;
+    initialize_internal(memory_address, memory_size, initialize_memory);
+}
+
+void memory_manager_t::initialize_internal(
+    uint8_t* memory_address,
+    size_t memory_size,
+    bool initialize_memory)
+{
     // Sanity checks.
-    retail_assert(memory_address != nullptr, "memory_manager_t::manage() was called with a null memory address!");
-    retail_assert(memory_size > 0, "memory_manager_t::manage() was called with a 0 memory size!");
+    retail_assert(
+        memory_address != nullptr,
+        "memory_manager_t::initialize_internal() was called with a null memory address!");
+    retail_assert(
+        memory_size > 0,
+        "memory_manager_t::initialize_internal() was called with a 0 memory size!");
     retail_assert(
         memory_size % c_chunk_size == 0,
-        "memory_manager_t::manage() was called with a memory size that is not a multiple of chunk size (4MB)!");
+        "memory_manager_t::initialize_internal() was called with a memory size that is not a multiple of chunk size (4MB)!");
     validate_address_alignment(memory_address);
     validate_size_alignment(memory_size);
 
     // Save our parameters.
     m_base_memory_address = memory_address;
-    m_total_memory_size = memory_size;
+    m_total_memory_size = memory_size - c_chunk_size;
 
     // Also initialize our offsets.
     m_start_memory_offset = 0;
-    m_next_allocation_offset = 0;
 
     // Now that we set our parameters, we can do one last sanity check.
     validate_managed_memory_range();
+
+    // Map the metadata information for quick reference.
+    uint8_t* metadata_address
+        = m_base_memory_address + m_total_memory_size;
+    m_metadata = reinterpret_cast<memory_manager_metadata_t*>(metadata_address);
+
+    if (initialize_memory)
+    {
+        m_metadata->clear();
+        m_metadata->next_allocation_offset = 0;
+    }
 
     if (m_execution_flags.enable_console_output)
     {
@@ -103,7 +128,7 @@ void memory_manager_t::deallocate(address_offset_t)
 
 size_t memory_manager_t::get_available_memory_size() const
 {
-    size_t available_size = m_total_memory_size - m_next_allocation_offset;
+    size_t available_size = m_total_memory_size - m_metadata->next_allocation_offset;
 
     return available_size;
 }
@@ -120,7 +145,7 @@ address_offset_t memory_manager_t::allocate_internal(size_t size)
 
     // Claim the space.
     address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
-        &m_next_allocation_offset,
+        &(m_metadata->next_allocation_offset),
         size);
     address_offset_t new_next_allocation_offset = old_next_allocation_offset + size;
 
@@ -130,7 +155,7 @@ address_offset_t memory_manager_t::allocate_internal(size_t size)
     {
         // We exhausted the memory so we must undo our update.
         while (!__sync_bool_compare_and_swap(
-            &m_next_allocation_offset,
+            &(m_metadata->next_allocation_offset),
             new_next_allocation_offset,
             old_next_allocation_offset))
         {
@@ -160,7 +185,7 @@ void memory_manager_t::output_debugging_information(const string& context_descri
     cout << "\n"
          << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << context_description << ":" << endl;
-    cout << "  Next allocation offset = " << m_next_allocation_offset << endl;
+    cout << "  Next allocation offset = " << m_metadata->next_allocation_offset << endl;
     cout << "  Available memory = " << get_available_memory_size() << endl;
     cout << c_debug_output_separator_line_end << endl;
 }

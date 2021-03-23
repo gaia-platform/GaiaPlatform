@@ -24,13 +24,20 @@ namespace memory_manager
 class memory_manager_t : public base_memory_manager_t
 {
 public:
-    memory_manager_t();
+    memory_manager_t() = default;
 
     // Tells the memory manager which memory area it should manage.
+    // Memory will be treated as a blank slate.
     //
     // All addresses will be offsets relative to the beginning of this block
     // and will be represented as address_offset_t.
-    void manage(
+    void initialize(
+        uint8_t* memory_address,
+        size_t memory_size);
+
+    // Tells the memory manager which memory area it should manage.
+    // Memory will be treated as having been initialized already.
+    void load(
         uint8_t* memory_address,
         size_t memory_size);
 
@@ -43,11 +50,15 @@ public:
     void deallocate(address_offset_t memory_offset);
 
 private:
-    // As we keep allocating memory, the remaining contiguous available memory block
-    // will keep shrinking. We'll use this offset to track the start of the block.
-    address_offset_t m_next_allocation_offset;
+    // A pointer to our metadata information, stored inside the memory range that we manage.
+    memory_manager_metadata_t* m_metadata;
 
 private:
+    void initialize_internal(
+        uint8_t* memory_address,
+        size_t memory_size,
+        bool initialize_memory);
+
     size_t get_available_memory_size() const;
 
     // Internal method for allocating blocks of any size.
