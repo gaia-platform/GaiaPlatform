@@ -131,7 +131,7 @@ string generate_general_subscription_code()
 
     return_value
         .append(c_ident)
-        .append("throw ruleset_not_found(ruleset_name);\n")
+        .append("throw gaia::rules::ruleset_not_found(ruleset_name);\n")
         .append("}\n")
         .append("extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n")
         .append("{\n");
@@ -685,8 +685,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return return_value;
 }
 
-void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count,
-    bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
     if (g_field_data.find(table) == g_field_data.end())
@@ -725,7 +724,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         .append(c_nolint_identifier_naming)
         .append("\n")
         .append(c_ident)
-        .append("rule_binding_t ")
+        .append("gaia::rules::rule_binding_t ")
         .append(rule_name)
         .append("binding(\"")
         .append(g_current_ruleset)
@@ -746,17 +745,17 @@ void generate_table_subscription(const string& table, const string& field_subscr
     {
         g_current_ruleset_subscription
             .append(c_ident)
-            .append("subscribe_rule(gaia::")
+            .append("gaia::rules::subscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table);
         if (subscribe_update)
         {
-            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
         }
         else
         {
-            g_current_ruleset_subscription.append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         }
         g_current_ruleset_subscription
             .append(rule_name)
@@ -764,11 +763,11 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
         g_current_ruleset_unsubscription
             .append(c_ident)
-            .append("unsubscribe_rule(gaia::")
+            .append("gaia::rules::unsubscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table)
-            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
             .append(rule_name)
             .append("binding);\n");
     }
@@ -777,11 +776,11 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_subscription
             .append(field_subscription_code)
             .append(c_ident)
-            .append("subscribe_rule(gaia::")
+            .append("gaia::rules::subscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table)
-            .append("_t::s_gaia_type, event_type_t::row_update, fields_")
+            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
             .append(rule_name)
             .append(",")
             .append(rule_name)
@@ -789,11 +788,11 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_unsubscription
             .append(field_subscription_code)
             .append(c_ident)
-            .append("unsubscribe_rule(gaia::")
+            .append("gaia::rules::unsubscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table)
-            .append("_t::s_gaia_type, event_type_t::row_update, fields_")
+            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
             .append(rule_name)
             .append(",")
             .append(rule_name)
@@ -806,7 +805,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         .append(c_nolint_identifier_naming)
         .append("\nvoid ")
         .append(rule_name)
-        .append("(const rule_context_t* context)\n");
+        .append("(const gaia::rules::rule_context_t* context)\n");
 
     if (g_is_rule_context_rule_name_referenced)
     {
@@ -853,28 +852,27 @@ void optimize_subscription(const string& table, int rule_count)
             = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         g_current_ruleset_subscription
             .append(c_ident)
-            .append("subscribe_rule(gaia::")
+            .append("gaia::rules::subscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table)
-            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
             .append(rule_name)
             .append("binding);\n");
 
         g_current_ruleset_unsubscription
             .append(c_ident)
-            .append("unsubscribe_rule(gaia::")
+            .append("gaia::rules::unsubscribe_rule(gaia::")
             .append(g_table_db_data[table])
             .append("::")
             .append(table)
-            .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
             .append(rule_name)
             .append("binding);\n");
 
         g_insert_tables.erase(table);
     }
 }
-
 
 void generate_rules(Rewriter& rewriter)
 {
@@ -932,7 +930,7 @@ void generate_rules(Rewriter& rewriter)
             .append(c_nolint_identifier_naming)
             .append("\n")
             .append(c_ident)
-            .append("field_position_list_t fields_")
+            .append("gaia::common::field_position_list_t fields_")
             .append(rule_name)
             .append(";\n");
 
@@ -955,8 +953,7 @@ void generate_rules(Rewriter& rewriter)
                 .append(");\n");
         }
 
-        generate_table_subscription(table, field_subscription_code, rule_code,
-            rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, field_subscription_code, rule_code, rule_count, true, rule_line_numbers, rewriter);
 
         optimize_subscription(table, rule_count);
 
@@ -1817,15 +1814,15 @@ public:
             if (!output_file.has_error())
             {
                 output_file << "#include <cstring>\n";
+                output_file << "\n";
+                output_file << "#include \"gaia/common.hpp\"\n";
+                output_file << "#include \"gaia/events.hpp\"\n";
+                output_file << "#include \"gaia/rules/rules.hpp\"\n";
+                output_file << "\n";
                 for (const string& db : g_used_dbs)
                 {
                     output_file << "#include \"gaia_" << db << ".h\"\n";
                 }
-
-                output_file << "#include \"gaia/rules/rules.hpp\"\n";
-                output_file << "using namespace gaia::common;\n";
-                output_file << "using namespace gaia::db::triggers;\n";
-                output_file << "using namespace gaia::rules;\n";
 
                 m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
                     .write(output_file);
