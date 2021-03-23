@@ -51,20 +51,19 @@ void chunk_manager_t::initialize_internal(
     // Save our parameters.
     m_base_memory_address = base_memory_address;
     m_start_memory_offset = memory_offset;
-    m_total_memory_size = c_chunk_size - sizeof(chunk_manager_metadata_t);
+    m_total_memory_size = c_chunk_size;
 
     // Now that we set our parameters, we can do one last sanity check.
     validate_managed_memory_range();
 
     // Map the metadata information for quick reference.
-    uint8_t* metadata_address
-        = m_base_memory_address + m_start_memory_offset + m_total_memory_size;
+    uint8_t* metadata_address = m_base_memory_address + m_start_memory_offset;
     m_metadata = reinterpret_cast<chunk_manager_metadata_t*>(metadata_address);
 
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->last_committed_slot_offset = 0;
+        m_metadata->last_committed_slot_offset = sizeof(chunk_manager_metadata_t) / c_allocation_slot_size;
         m_metadata->last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
     }
 

@@ -704,12 +704,6 @@ void server_t::init_memory_manager()
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
 
-    // TODO: Remove this dummy allocation after we start using chunk managers.
-    // The point of this is to ensure that future allocations cannot return a 0 offset,
-    // which is considered invalid elsewhere.
-    address_offset_t offset = s_memory_manager->allocate(1);
-    retail_assert(offset == 0, "First allocated offset was expected to be 0!");
-
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
         s_memory_manager->deallocate(get_address_offset(offset));
     };

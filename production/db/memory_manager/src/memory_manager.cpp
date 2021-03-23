@@ -55,7 +55,7 @@ void memory_manager_t::initialize_internal(
 
     // Save our parameters.
     m_base_memory_address = memory_address;
-    m_total_memory_size = memory_size - c_chunk_size;
+    m_total_memory_size = memory_size;
 
     // Also initialize our offsets.
     m_start_memory_offset = 0;
@@ -64,14 +64,13 @@ void memory_manager_t::initialize_internal(
     validate_managed_memory_range();
 
     // Map the metadata information for quick reference.
-    uint8_t* metadata_address
-        = m_base_memory_address + m_total_memory_size;
+    uint8_t* metadata_address = m_base_memory_address;
     m_metadata = reinterpret_cast<memory_manager_metadata_t*>(metadata_address);
 
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->next_allocation_offset = 0;
+        m_metadata->next_allocation_offset = c_chunk_size;
     }
 
     if (m_execution_flags.enable_console_output)

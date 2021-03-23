@@ -15,8 +15,9 @@ namespace memory_manager
 {
 
 // For representing offsets from a base memory address.
+// Because memory starts with a metadata block, we use 0 to represent an invalid address offset.
 typedef uint64_t address_offset_t;
-constexpr address_offset_t c_invalid_address_offset = -1;
+constexpr address_offset_t c_invalid_address_offset = 0;
 
 // This alignment applies to chunks and to individual object allocations within chunks.
 constexpr uint64_t c_allocation_alignment = 8 * sizeof(uint64_t);
