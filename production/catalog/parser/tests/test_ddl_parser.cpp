@@ -274,3 +274,19 @@ CREATE TABLE t -- create table t
 
     ASSERT_EQ(EXIT_FAILURE, parser.parse_line(incorrect_ddl_text));
 }
+
+TEST(catalog_ddl_parser_test, create_empty_table)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t ();"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+    EXPECT_EQ(create_stmt->name, "t");
+    EXPECT_FALSE(create_stmt->if_not_exists);
+    EXPECT_EQ(create_stmt->fields.size(), 0);
+}
