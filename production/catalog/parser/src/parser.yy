@@ -193,9 +193,6 @@ ref_field_def:
  IDENTIFIER REFERENCES composite_name  {
       $$ = std::make_unique<ref_field_def_t>($1, $3);
   }
-| REFERENCES composite_name {
-      $$ = std::make_unique<ref_field_def_t>("", $2);
-  }
 ;
 
 opt_array:

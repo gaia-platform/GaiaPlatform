@@ -82,7 +82,7 @@ TEST(catalog_ddl_parser_test, create_table_references)
     string ddl = string(
         "CREATE TABLE t "
         "(c1 REFERENCES t1,"
-        " REFERENCES d.t2);");
+        " c2 REFERENCES d.t2);");
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl));
 
     EXPECT_EQ(1, parser.statements.size());
@@ -105,9 +105,15 @@ TEST(catalog_ddl_parser_test, create_table_references)
     EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::reference);
     field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(1).get());
     // Anonymous references have the same binding for named references except the name string is empty.
-    EXPECT_EQ(field->name, "");
+    EXPECT_EQ(field->name, "c2");
     EXPECT_EQ(field->table_name(), "t2");
     EXPECT_EQ(field->db_name(), "d");
+}
+
+TEST(catalog_ddl_parser_test, fail_on_anonymous_reference)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (REFERENCES d.t2);"));
 }
 
 TEST(catalog_ddl_parser_test, drop_table)
