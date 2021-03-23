@@ -104,7 +104,6 @@ TEST(catalog_ddl_parser_test, create_table_references)
 
     EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::reference);
     field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(1).get());
-    // Anonymous references have the same binding for named references except the name string is empty.
     EXPECT_EQ(field->name, "c2");
     EXPECT_EQ(field->table_name(), "t2");
     EXPECT_EQ(field->db_name(), "d");

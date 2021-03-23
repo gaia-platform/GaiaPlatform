@@ -462,7 +462,7 @@ TEST_F(recovery_test, reference_update_test)
         auto_transaction_t txn;
         for (gaia_id_t phone_id : phone_ids)
         {
-            address_t::get(address_id).phone_list().insert(phone_id);
+            address_t::get(address_id).address_phone_list().insert(phone_id);
         }
         txn.commit();
     }
@@ -475,7 +475,7 @@ TEST_F(recovery_test, reference_update_test)
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
         ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
-        for (auto const& phone : address_t::get(address_id).phone_list())
+        for (auto const& phone : address_t::get(address_id).address_phone_list())
         {
             recovered_phone_ids.insert(phone.gaia_id());
         }
@@ -485,7 +485,7 @@ TEST_F(recovery_test, reference_update_test)
         // Delete links between the phone records and the address record.
         for (gaia_id_t phone_id : recovered_phone_ids)
         {
-            address_t::get(address_id).phone_list().remove(phone_id);
+            address_t::get(address_id).address_phone_list().remove(phone_id);
         }
         txn.commit();
     }
@@ -494,7 +494,7 @@ TEST_F(recovery_test, reference_update_test)
     s_server.start_and_retain_persistent_store();
     begin_session();
     begin_transaction();
-    auto phone_list = address_t::get(address_id).phone_list();
+    auto phone_list = address_t::get(address_id).address_phone_list();
     // Make sure the references are deleted on recovery.
     ASSERT_EQ(phone_list.begin(), phone_list.end());
     commit_transaction();

@@ -107,7 +107,7 @@ protected:
         writer.type = type;
         phone_t phone = phone_t::get(writer.insert_row());
 
-        address.phone_list().insert(phone);
+        address.address_phone_list().insert(phone);
 
         return phone;
     }
@@ -484,7 +484,7 @@ TEST_F(test_expressions, nested_container)
 
     assert_contains(
         employee_t::list().where(
-            addressee_address_list.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phone_list.contains(phone_expr::type == "landline"))),
+            addressee_address_list.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::address_phone_list.contains(phone_expr::type == "landline"))),
         {dax});
 }
 
@@ -495,7 +495,7 @@ TEST_F(test_expressions, container_empty)
     assert_contains(
         address_t::list()
             // phone_list is ambiguous, need full qualification.
-            .where(address_expr::phone_list.empty()),
+            .where(address_expr::address_phone_list.empty()),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_empty(
@@ -509,7 +509,7 @@ TEST_F(test_expressions, container_count)
 
     assert_contains(
         address_t::list()
-            .where(address_expr::phone_list.count() == 0),
+            .where(address_expr::address_phone_list.count() == 0),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_contains(

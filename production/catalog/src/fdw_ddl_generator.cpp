@@ -124,13 +124,6 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
         gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
         string relationship_name = relationship.name();
-        if (relationship_name.empty())
-        {
-            relationship_name = relationship.parent_gaia_table().name();
-        }
-        retail_assert(
-            !relationship_name.empty(),
-            "Unable to derive name of anonymous relationship!");
 
         ddl_string_stream
             << "," << endl

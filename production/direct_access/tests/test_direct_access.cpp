@@ -812,7 +812,7 @@ TEST_F(edc_object_test, default_construction)
     {
         EXPECT_THROW(e.name_first(), invalid_node_id);
         EXPECT_THROW(a.addressee_employee(), invalid_node_id);
-        EXPECT_THROW(e.manages_employee(), invalid_node_id);
+        EXPECT_THROW(e.manager_employee(), invalid_node_id);
         EXPECT_THROW(e.writer(), invalid_node_id);
         EXPECT_THROW(e.delete_row(), invalid_node_id);
         ASSERT_EQ(e.addressee_address_list().begin(), e.addressee_address_list().end());

@@ -25,8 +25,8 @@ link_directories(
 
 add_executable(gaiat ${GAIAT_SRCS})
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
-set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaiat PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -ftime-report")
+set_target_properties(gaiat PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS} -ftime-report")
 target_link_libraries(gaiat
   PRIVATE
   rt
@@ -50,15 +50,16 @@ set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.r
 add_custom_command(
   COMMENT "Compiling test.ruleset..."
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/test.cpp
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp --
+      -ftime-report
       -I ${GAIA_INC}
       -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
@@ -90,16 +91,17 @@ set(MIXED_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_mixed.cpp")
 add_custom_command(
   COMMENT "Compiling test_mixed.ruleset..."
   OUTPUT ${MIXED_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${MIXED_RULESET} -output ${MIXED_RULESET_OUT} --
+    -ftime-report
     -I ${GAIA_INC}
     -I ${GAIA_GENERATED_SCHEMAS}
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.

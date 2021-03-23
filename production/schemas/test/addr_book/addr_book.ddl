@@ -10,7 +10,7 @@ create table if not exists employee (
     hire_date int64,
     email string,
     web string,
-    manages references employee
+    manager references employee
 );
 
 create table if not exists address (
@@ -28,8 +28,8 @@ create table if not exists phone (
     phone_number string active,
     type string active,
     primary bool active,
-    references address,
-    references employee
+    address references address,
+    owner references employee
 );
 
 create table if not exists customer (

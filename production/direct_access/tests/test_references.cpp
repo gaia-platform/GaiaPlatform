@@ -166,7 +166,7 @@ employee_t create_hierarchy()
             char phone_string[phone_size];
             sprintf(phone_string, "%d", j);
             auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
-            address.phone_list().insert(phone);
+            address.address_phone_list().insert(phone);
         }
     }
     return employee;
@@ -178,7 +178,7 @@ int scan_hierarchy(employee_t& eptr)
     for (const auto& aptr : eptr.addressee_address_list())
     {
         ++count;
-        for (auto const& pptr : aptr.phone_list())
+        for (auto const& pptr : aptr.address_phone_list())
         {
             if (pptr)
             {
@@ -200,11 +200,11 @@ bool bounce_hierarchy(employee_t& eptr)
         if ((++count_addressee % c_count_subset) == 0)
         {
             int count_phones = 0;
-            for (const auto& pptr : aptr.phone_list())
+            for (const auto& pptr : aptr.address_phone_list())
             {
                 if ((++count_phones % 4) == 0)
                 {
-                    auto up_aptr = pptr.address();
+                    auto up_aptr = pptr.address_address();
                     EXPECT_EQ(up_aptr, aptr);
                     auto up_eptr = up_aptr.addressee_employee();
                     EXPECT_EQ(up_eptr, eptr);
@@ -234,7 +234,7 @@ bool delete_hierarchy(employee_t& employee_to_delete)
                 count_phones = 0;
 
                 phone_t phone_to_delete;
-                for (const auto& phone : address.phone_list())
+                for (const auto& phone : address.address_phone_list())
                 {
                     ++count_phones;
                     phone_to_delete = phone;
@@ -242,7 +242,7 @@ bool delete_hierarchy(employee_t& employee_to_delete)
 
                 if (count_phones)
                 {
-                    address.phone_list().remove(phone_to_delete);
+                    address.address_phone_list().remove(phone_to_delete);
                     phone_to_delete.delete_row();
                 }
             }
@@ -340,7 +340,7 @@ TEST_F(gaia_references_test, connect_scan)
 void scan_manages(std::vector<string>& employee_vector, employee_t& e)
 {
     employee_vector.emplace_back(e.name_first());
-    for (auto eptr : e.manages_employee_list())
+    for (auto eptr : e.manager_employee_list())
     {
         scan_manages(employee_vector, eptr);
     }
@@ -383,12 +383,12 @@ TEST_F(gaia_references_test, recursive_scan)
     auto e6 = insert_employee(writer, "Hector");
     auto e7 = insert_employee(writer, "Hank");
 
-    e1.manages_employee_list().insert(e2); // Horace to Henry
-    e2.manages_employee_list().insert(e3); //    Henry to Hal
-    e2.manages_employee_list().insert(e4); //    Henry to Hiram
-    e4.manages_employee_list().insert(e5); //       Hiram to Howard
-    e1.manages_employee_list().insert(e6); // Horace to Hector
-    e1.manages_employee_list().insert(e7); // Horace to Hank
+    e1.manager_employee_list().insert(e2); // Horace to Henry
+    e2.manager_employee_list().insert(e3); //    Henry to Hal
+    e2.manager_employee_list().insert(e4); //    Henry to Hiram
+    e4.manager_employee_list().insert(e5); //       Hiram to Howard
+    e1.manager_employee_list().insert(e6); // Horace to Hector
+    e1.manager_employee_list().insert(e7); // Horace to Hank
 
     // Recursive walk through hierarchy
     std::vector<string> employee_vector;
@@ -657,19 +657,19 @@ TEST_F(gaia_references_test, m_to_n_connections)
     auto p2 = phone_t::get(phone_t::insert_row("303", "M", false));
     auto p3 = phone_t::get(phone_t::insert_row("206", "H", false));
     auto p4 = phone_t::get(phone_t::insert_row("206", "M", false));
-    e1.phone_list().insert(p1);
-    e1.phone_list().insert(p2);
-    e2.phone_list().insert(p3);
-    e2.phone_list().insert(p4);
-    a1.phone_list().insert(p1);
-    a1.phone_list().insert(p3);
-    a2.phone_list().insert(p2);
-    a2.phone_list().insert(p4);
+    e1.owner_phone_list().insert(p1);
+    e1.owner_phone_list().insert(p2);
+    e2.owner_phone_list().insert(p3);
+    e2.owner_phone_list().insert(p4);
+    a1.address_phone_list().insert(p1);
+    a1.address_phone_list().insert(p3);
+    a2.address_phone_list().insert(p2);
+    a2.address_phone_list().insert(p4);
 
     // Scanning from e1 to (p1 to a1) to (p2 to a2).
-    for (auto& p : e1.phone_list())
+    for (auto& p : e1.owner_phone_list())
     {
-        auto a = p.address();
+        auto a = p.address_address();
         EXPECT_EQ(strcmp("303", p.phone_number()), 0);
         if (strcmp(p.type(), "H") == 0)
         {
@@ -682,9 +682,9 @@ TEST_F(gaia_references_test, m_to_n_connections)
     }
 
     // Scanning from e2 to (p3 to a1) to (p4 to a2).
-    for (auto& p : e2.phone_list())
+    for (auto& p : e2.owner_phone_list())
     {
-        auto a = p.address();
+        auto a = p.address_address();
         EXPECT_EQ(strcmp("206", p.phone_number()), 0);
         if (strcmp(p.type(), "H") == 0)
         {
@@ -697,9 +697,9 @@ TEST_F(gaia_references_test, m_to_n_connections)
     }
 
     // Scanning from a1 to (p1 to e1) to (p3 to e2).
-    for (auto& p : a1.phone_list())
+    for (auto& p : a1.address_phone_list())
     {
-        auto e = p.employee();
+        auto e = p.owner_employee();
         if (strcmp(p.phone_number(), "303") == 0)
         {
             EXPECT_EQ(strcmp("Hubert", e.name_first()), 0);
@@ -711,9 +711,9 @@ TEST_F(gaia_references_test, m_to_n_connections)
     }
 
     // Scanning from a2 to (p2 to e1) to (p4 to e2).
-    for (auto& p : a2.phone_list())
+    for (auto& p : a2.address_phone_list())
     {
-        auto e = p.employee();
+        auto e = p.owner_employee();
         if (strcmp(p.phone_number(), "206") == 0)
         {
             EXPECT_EQ(strcmp("Howard", e.name_first()), 0);
@@ -804,19 +804,19 @@ TEST_F(gaia_references_test, set_filter)
     employee_writer writer;
     auto e_mgr = insert_employee(writer, "Harold");
     auto e_emp = insert_employee(writer, "Hunter");
-    e_mgr.manages_employee_list().insert(e_emp);
+    e_mgr.manager_employee_list().insert(e_emp);
     e_emp = insert_employee(writer, "Howard");
-    e_mgr.manages_employee_list().insert(e_emp);
+    e_mgr.manager_employee_list().insert(e_emp);
     e_emp = insert_employee(writer, "Henry");
-    e_mgr.manages_employee_list().insert(e_emp);
+    e_mgr.manager_employee_list().insert(e_emp);
     e_emp = insert_employee(writer, "Harry");
-    e_mgr.manages_employee_list().insert(e_emp);
+    e_mgr.manager_employee_list().insert(e_emp);
     e_emp = insert_employee(writer, "Hoover");
-    e_mgr.manages_employee_list().insert(e_emp);
+    e_mgr.manager_employee_list().insert(e_emp);
 
     size_t name_length = 5;
     int count = 0;
-    auto name_length_list = e_mgr.manages_employee_list()
+    auto name_length_list = e_mgr.manager_employee_list()
                                 .where([&name_length](const employee_t& e) {
                                     return strlen(e.name_first()) == name_length;
                                 });
@@ -838,7 +838,7 @@ TEST_F(gaia_references_test, set_filter)
 
     count = 0;
     // Note that "Harold" is not counted because it is the owner.
-    for (const auto& e : e_mgr.manages_employee_list().where(filter_function))
+    for (const auto& e : e_mgr.manager_employee_list().where(filter_function))
     {
         EXPECT_NE(strchr(e.name_first(), 'o'), nullptr);
         count++;

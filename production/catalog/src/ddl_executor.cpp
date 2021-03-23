@@ -47,7 +47,6 @@ ddl_executor_t& ddl_executor_t::get()
 
 void ddl_executor_t::bootstrap_catalog()
 {
-    constexpr char c_anonymous_reference_field_name[] = "";
 
     create_database("catalog", false);
     {
@@ -75,7 +74,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
         fields.emplace_back(
             make_unique<ref_field_def_t>(
-                c_anonymous_reference_field_name, "catalog", "gaia_database"));
+                "database", "catalog", "gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
@@ -97,9 +96,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("position", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
-        // The anonymous reference to the gaia_table defines the ownership.
         fields.emplace_back(make_unique<ref_field_def_t>(
-            c_anonymous_reference_field_name, "catalog", "gaia_table"));
+            "table", "catalog", "gaia_table"));
         create_table_impl(
             "catalog", "gaia_field", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
@@ -161,7 +159,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(
             make_unique<ref_field_def_t>(
-                c_anonymous_reference_field_name, "catalog", "gaia_ruleset"));
+                "ruleset", "catalog", "gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
@@ -545,14 +543,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
     for (const auto& field : fields)
     {
         string field_name = field->name;
-
-        // Note: anonymous references are on path of deprecation
-        if (field_name.empty())
-        {
-            retail_assert(field->field_type == field_type_t::reference, "Only references can have an empty name!");
-            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
-            field_name = ref_field->parent_table.second;
-        }
 
         if (field_names.find(field_name) != field_names.end())
         {

@@ -231,41 +231,6 @@ TEST_F(ddl_executor_test, create_table_duplicate_field)
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
-TEST_F(ddl_executor_test, create_table_double_anonymous_reference)
-{
-    table_builder_t::new_table("table_1").create();
-    table_builder_t::new_table("table_2").create();
-
-    table_builder_t::new_table("test_double_anonymous_reference")
-        .anonymous_reference("table_1")
-        .anonymous_reference("table_2")
-        .create();
-}
-
-TEST_F(ddl_executor_test, create_table_duplicate_anonymous_reference)
-{
-    table_builder_t::new_table("table_1").create();
-
-    EXPECT_THROW(
-        table_builder_t::new_table("test_double_anonymous_reference")
-            .anonymous_reference("table_1")
-            .anonymous_reference("table_1")
-            .create(),
-        duplicate_field);
-}
-
-TEST_F(ddl_executor_test, create_table_duplicate_anonymous_reference_and_field)
-{
-    table_builder_t::new_table("table_1").create();
-
-    EXPECT_THROW(
-        table_builder_t::new_table("test_double_anonymous_reference")
-            .field("table_1", data_type_t::e_string)
-            .anonymous_reference("table_1")
-            .create(),
-        duplicate_field);
-}
-
 TEST_F(ddl_executor_test, drop_table)
 {
     string test_table_name{"drop_table_test"};
@@ -488,30 +453,6 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.parent_offset()); // patient
     ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.next_child_offset()); // patient
-    txn.commit();
-}
-
-TEST_F(ddl_executor_test, create_anonymous_relationships)
-{
-    // (clinic) 1 -[anonymous]-> N (doctor)
-
-    gaia_id_t clinic_table_id
-        = table_builder_t::new_table("clinic")
-              .database("hospital")
-              .create();
-
-    gaia_id_t doctor_table_id
-        = table_builder_t::new_table("doctor")
-              .database("hospital")
-              .anonymous_reference("clinic")
-              .create();
-
-    auto_transaction_t txn;
-    gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
-    gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
-
-    ASSERT_EQ(1, container_size(clinic_table.parent_gaia_relationship_list()));
-    ASSERT_EQ(1, container_size(doctor_table.child_gaia_relationship_list()));
     txn.commit();
 }
 

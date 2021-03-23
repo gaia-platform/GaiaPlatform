@@ -642,17 +642,6 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                 relationship_name = relationship.parent_gaia_table().name();
             }
 
-            if (relationship_name.empty())
-            {
-                ereport(
-                    ERROR,
-                    (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Unable to derive name of anonymous relationship!"),
-                     errhint(
-                         "Relationship id is '%ld' for table '%s'.",
-                         reference_id, get_table_name())));
-            }
-
             if (strcmp(field_name, relationship_name.c_str()) == 0)
             {
                 found_field = true;

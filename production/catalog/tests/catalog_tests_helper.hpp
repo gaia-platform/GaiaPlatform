@@ -64,19 +64,6 @@ public:
         return reference(field_name, "", referenced_table_name);
     }
 
-    table_builder_t& anonymous_reference(
-        const std::string& referenced_table_db_name,
-        const std::string& referenced_table_name)
-    {
-        m_references.emplace_back("", make_pair(referenced_table_db_name, referenced_table_name));
-        return *this;
-    }
-
-    table_builder_t& anonymous_reference(const std::string& referenced_table_name)
-    {
-        return anonymous_reference("", referenced_table_name);
-    }
-
     table_builder_t& fail_on_exists(bool fail_on_exists)
     {
         m_fail_on_exists = fail_on_exists;

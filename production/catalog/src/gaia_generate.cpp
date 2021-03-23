@@ -26,6 +26,110 @@ namespace catalog
 
 const string c_indent_string("    ");
 
+class relationship_strings_t
+{
+public:
+    relationship_strings_t(const gaia_relationship_t& relationship)
+        : relationship(relationship){};
+
+    std::string ref_name()
+    {
+        return relationship.name();
+    }
+
+    std::string parent_table()
+    {
+        return relationship.parent_gaia_table().name();
+    }
+
+    std::string child_table()
+    {
+        return relationship.child_gaia_table().name();
+    }
+
+    bool is_named_relationship()
+    {
+        return (0 < ref_name().size());
+    }
+
+private:
+    gaia_relationship_t relationship;
+};
+
+class child_relationship : public relationship_strings_t
+{
+public:
+    child_relationship(const gaia_relationship_t& relationship)
+        : relationship_strings_t(relationship){};
+
+    std::string field_name()
+    {
+        if (is_named_relationship())
+        {
+            return ref_name() + "_" + parent_table();
+        }
+        else
+        {
+            return parent_table();
+        }
+    }
+
+    std::string parent_offset()
+    {
+        if (is_named_relationship())
+        {
+            return "c_parent_" + ref_name() + "_" + child_table();
+        }
+        else
+        {
+            return "c_parent_" + parent_table() + "_" + child_table();
+        }
+    }
+};
+
+class parent_relationship : public relationship_strings_t
+{
+public:
+    parent_relationship(const gaia_relationship_t& relationship)
+        : relationship_strings_t(relationship){};
+
+    std::string field_name()
+    {
+        if (is_named_relationship())
+        {
+            return ref_name() + "_" + child_table();
+        }
+        else
+        {
+            return child_table();
+        }
+    }
+
+    std::string first_offset()
+    {
+        if (is_named_relationship())
+        {
+            return "c_first_" + ref_name() + "_" + child_table();
+        }
+        else
+        {
+            return "c_first_" + parent_table() + "_" + child_table();
+        }
+    }
+
+    std::string next_offset()
+    {
+        if (is_named_relationship())
+        {
+            return "c_next_" + ref_name() + "_" + child_table();
+        }
+        else
+        {
+            return "c_next_" + parent_table() + "_" + child_table();
+        }
+    }
+};
+
 typedef std::vector<gaia_field_t> field_vector_t;
 typedef std::vector<gaia_relationship_t> relationship_vector_t;
 
@@ -289,8 +393,8 @@ static string generate_edc_struct(
     gaia_type_t table_type_id,
     gaia_table_t table_record,
     field_vector_t& field_records,
-    relationship_vector_t parent_relationships,
-    relationship_vector_t child_relationships)
+    std::vector<parent_relationship> parent_relationships,
+    std::vector<child_relationship> child_relationships)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
@@ -308,25 +412,11 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
-        bool is_named_relationship = (0 < strlen(relationship.name()));
+        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("CHILD_TABLE", relationship.child_table());
 
-        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
-        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-
-        if (is_named_relationship)
-        {
-            code.SetValue("REF_NAME", relationship.name());
-
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
-                    "{{REF_NAME}}_{{CHILD_TABLE}}_list_t;";
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
-                    "{{CHILD_TABLE}}_list_t;";
-        }
+        code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
+                "{{FIELD_NAME}}_list_t;";
     }
 
     // Default public constructor.
@@ -408,25 +498,13 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table is the child
     for (auto& relationship : child_relationships)
     {
-        bool is_named_relationship = (0 < strlen(relationship.name()));
+        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("PARENT_TABLE", relationship.parent_table());
+        code.SetValue("PARENT_OFFSET", relationship.parent_offset());
 
-        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-
-        if (is_named_relationship)
-        {
-            code.SetValue("REF_NAME", relationship.name());
-            code += "{{PARENT_TABLE}}_t {{REF_NAME}}_{{PARENT_TABLE}}() const {";
-            code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{CHILD_TABLE}}]);";
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code += "{{PARENT_TABLE}}_t {{PARENT_TABLE}}() const {";
-            code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t::get(this->references()[c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}}]);";
-        }
+        code += "{{PARENT_TABLE}}_t {{FIELD_NAME}}() const {";
+        code.IncrementIdentLevel();
+        code += "return {{PARENT_TABLE}}_t::get(this->references()[{{PARENT_OFFSET}}]);";
         code.DecrementIdentLevel();
         code += "}";
     }
@@ -434,30 +512,13 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
-        bool is_named_relationship = (0 < strlen(relationship.name()));
+        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("FIRST_OFFSET", relationship.first_offset());
+        code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-
-        if (is_named_relationship)
-        {
-            code.SetValue("REF_NAME", relationship.name());
-
-            code += "{{REF_NAME}}_{{CHILD_TABLE}}_list_t {{REF_NAME}}_{{CHILD_TABLE}}_list() const {";
-
-            code.IncrementIdentLevel();
-            code += "return {{REF_NAME}}_{{CHILD_TABLE}}_list_t(gaia_id(), "
-                    "c_first_{{REF_NAME}}_{{CHILD_TABLE}}, c_next_{{REF_NAME}}_{{CHILD_TABLE}});";
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code += "{{CHILD_TABLE}}_list_t {{CHILD_TABLE}}_list() const {";
-
-            code.IncrementIdentLevel();
-            code += "return {{CHILD_TABLE}}_list_t(gaia_id(), "
-                    "c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}}, c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}});";
-        }
+        code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}_list() const {";
+        code.IncrementIdentLevel();
+        code += "return {{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
         code.DecrementIdentLevel();
         code += "}";
     }
@@ -482,45 +543,21 @@ static string generate_edc_struct(
 
     for (auto& relationship : child_relationships)
     {
-        bool is_named_relationship = (0 < strlen(relationship.name()));
+        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("PARENT_TABLE", relationship.parent_table());
 
-        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-
-        if (is_named_relationship)
-        {
-            code.SetValue("REF_NAME", relationship.name());
-            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{REF_NAME}}_{{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{PARENT_TABLE}}};";
-            field_names.push_back(code.GetValue("REF_NAME") + "_" + code.GetValue("PARENT_TABLE"));
-        }
-        else
-        {
-            code.SetValue("REF_NAME", relationship.name());
-            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
-            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{PARENT_TABLE}}{&{{TABLE_NAME}}_t::{{PARENT_TABLE}}};";
-            field_names.push_back(code.GetValue("PARENT_TABLE"));
-        }
+        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
+        field_names.push_back(code.GetValue("FIELD_NAME"));
     }
 
     for (auto& relationship : parent_relationships)
     {
-        bool is_named_relationship = (0 < strlen(relationship.name()));
+        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("FIRST_OFFSET", relationship.first_offset());
+        code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-        code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-
-        if (is_named_relationship)
-        {
-            code.SetValue("REF_NAME", relationship.name());
-            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{REF_NAME}}_{{CHILD_TABLE}}_list_t> {{REF_NAME}}_{{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{REF_NAME}}_{{CHILD_TABLE}}_list};";
-            field_names.push_back(code.GetValue("REF_NAME") + "_" + code.GetValue("CHILD_TABLE") + "_list");
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{CHILD_TABLE}}_list_t> {{CHILD_TABLE}}_list{&{{TABLE_NAME}}_t::{{CHILD_TABLE}}_list};";
-            field_names.push_back(code.GetValue("CHILD_TABLE") + "_list");
-        }
+        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{FIELD_NAME}}_list_t> {{FIELD_NAME}}_list{&{{TABLE_NAME}}_t::{{FIELD_NAME}}_list};";
+        field_names.push_back(code.GetValue("FIELD_NAME") + "_list");
     }
 
     code.DecrementIdentLevel();
@@ -592,15 +629,27 @@ string gaia_generate(const string& dbname)
             field_records.push_back(gaia_field_t::get(field_id));
         }
 
-        relationship_vector_t parent_relationships = list_parent_relationships(table_record);
-        relationship_vector_t child_relationships = list_child_relationships(table_record);
+        std::vector<parent_relationship> parent_relationships_names;
+        std::vector<child_relationship> child_relationships_names;
+
+        for (auto& relationship : list_parent_relationships(table_record))
+        {
+            parent_relationships_names.push_back(
+                parent_relationship{relationship});
+        }
+
+        for (auto& relationship : list_child_relationships(table_record))
+        {
+            child_relationships_names.push_back(
+                child_relationship{relationship});
+        }
 
         code_lines += generate_edc_struct(
             table_id,
             table_record,
             field_records,
-            parent_relationships,
-            child_relationships);
+            parent_relationships_names,
+            child_relationships_names);
     }
     commit_transaction();
 

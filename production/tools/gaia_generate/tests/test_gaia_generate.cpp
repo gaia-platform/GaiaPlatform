@@ -84,15 +84,15 @@ TEST_F(gaia_generate_test, airport_example)
     const int c_flight = 58;
     auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, 0));
     // Insert both segments to the flight's list of segments.
-    flight_1.segment_list().insert(segment_1);
-    flight_1.segment_list().insert(segment_2);
+    flight_1.flight_segment_list().insert(segment_1);
+    flight_1.flight_segment_list().insert(segment_2);
     commit_transaction();
 
     begin_transaction();
     stringstream ss;
     for (auto flight : flight_t::list())
     {
-        for (auto segment : flight.segment_list())
+        for (auto segment : flight.flight_segment_list())
         {
             ss << "Segment distance: " << segment.miles() << endl;
             auto src_airport = segment.src_airport();
