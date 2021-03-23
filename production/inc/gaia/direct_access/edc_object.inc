@@ -45,7 +45,7 @@ const T_flatbuffer* edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffe
 {
     if (!edc_base_t::exists())
     {
-        throw gaia::db::invalid_node_id(0);
+        throw gaia::db::invalid_node_id(gaia::common::c_invalid_gaia_id);
     }
     return flatbuffers::GetRoot<T_flatbuffer>(edc_base_t::data());
 }
@@ -75,7 +75,7 @@ gaia::common::gaia_id_t* edc_object_t<T_container, T_class, T_flatbuffer, T_flat
 {
     if (!edc_base_t::exists())
     {
-        throw gaia::db::invalid_node_id(0);
+        throw gaia::db::invalid_node_id(gaia::common::c_invalid_gaia_id);
     }
     return edc_base_t::references();
 }
@@ -86,7 +86,7 @@ edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::writer()
 {
     if (!edc_base_t::exists())
     {
-        throw gaia::db::invalid_node_id(0);
+        throw gaia::db::invalid_node_id(gaia::common::c_invalid_gaia_id);
     }
 
     auto writer = edc_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>();
@@ -107,7 +107,7 @@ T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::g
 {
     if (!edc_base_t::exists())
     {
-        throw gaia::db::invalid_node_id(0);
+        throw gaia::db::invalid_node_id(gaia::common::c_invalid_gaia_id);
     }
     gaia::common::gaia_id_t id = edc_base_t::find_next();
     return T_class(id);
@@ -131,7 +131,7 @@ gaia::common::gaia_id_t edc_object_t<T_container, T_class, T_flatbuffer, T_flatb
     // Make sure the types match.
     if (target_type != T_class::s_gaia_type)
     {
-        T_class expected = T_class::get(0);
+        T_class expected = T_class::get(gaia::common::c_invalid_gaia_id);
         throw edc_invalid_object_type(id, T_class::s_gaia_type, expected.gaia_typename(), target_type);
     }
 
@@ -150,7 +150,7 @@ void edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::dele
 {
     if (!edc_base_t::exists())
     {
-        throw gaia::db::invalid_node_id(0);
+        throw gaia::db::invalid_node_id(gaia::common::c_invalid_gaia_id);
     }
 
     delete_row(gaia_id());

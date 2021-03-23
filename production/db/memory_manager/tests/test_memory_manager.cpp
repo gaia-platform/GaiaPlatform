@@ -20,9 +20,12 @@ using namespace gaia::db::memory_manager;
 
 TEST(memory_manager, basic_operation)
 {
+    // Allocate a bit more memory than necessary,
+    // to allow bumping the starting pointer to the next aligned address.
     constexpr size_t c_memory_size = 16 * 1024 * 1024;
-    std::vector<uint8_t> memory_vector(c_memory_size);
+    std::vector<uint8_t> memory_vector(c_memory_size + c_allocation_alignment);
     uint8_t* memory = memory_vector.data();
+    memory += c_allocation_alignment - (((size_t)memory) % c_allocation_alignment);
 
     memory_manager_t memory_manager;
 
@@ -64,9 +67,12 @@ void output_allocation_information(size_t requested_size, size_t allocated_size,
 
 TEST(memory_manager, internal_allocate_operation)
 {
+    // Allocate a bit more memory than necessary,
+    // to allow bumping the starting pointer to the next aligned address.
     constexpr size_t c_memory_size = 4 * 1024 * 1024;
-    std::vector<uint8_t> memory_vector(c_memory_size);
+    std::vector<uint8_t> memory_vector(c_memory_size + c_allocation_alignment);
     uint8_t* memory = memory_vector.data();
+    memory += c_allocation_alignment - (((size_t)memory) % c_allocation_alignment);
 
     memory_manager_t memory_manager;
 

@@ -25,9 +25,13 @@ void output_allocation_information(size_t requested_size, size_t allocated_size,
 
 TEST(memory_manager, chunk_manager)
 {
+    // Allocate a bit more memory than necessary,
+    // to allow bumping the starting pointer to the next aligned address.
     constexpr size_t c_memory_size = 4 * 1024 * 1024;
-    std::vector<uint8_t> memory_vector(c_memory_size);
+    std::vector<uint8_t> memory_vector(c_memory_size + c_allocation_alignment);
     uint8_t* memory = memory_vector.data();
+    memory += c_allocation_alignment - (((size_t)memory) % c_allocation_alignment);
+
     address_offset_t memory_offset = c_invalid_address_offset;
 
     memory_manager_t memory_manager;

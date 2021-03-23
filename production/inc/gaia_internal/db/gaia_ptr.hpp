@@ -280,7 +280,7 @@ protected:
     void reset();
 
 private:
-    gaia_locator_t m_locator = {};
+    gaia_locator_t m_locator = {c_invalid_gaia_locator};
 
     void clone_no_txn();
 
