@@ -38,13 +38,13 @@ public:
 
     // Allocate a new memory block inside our managed chunk.
     address_offset_t allocate(
-        size_t memory_size) const;
+        size_t memory_size);
 
     // Mark all allocations as committed.
     void commit() const;
 
     // Rollback all allocations made since last commit.
-    void rollback() const;
+    void rollback();
 
     // Public, so it can get called by the memory manager.
     void output_debugging_information(const std::string& context_description) const;
@@ -52,6 +52,10 @@ public:
 private:
     // A pointer to our metadata information, stored inside the memory chunk that we manage.
     chunk_manager_metadata_t* m_metadata;
+
+    // An indicator of the last allocated slot offset.
+    // This is guaranteed to be >= than the metadata last_committed_slot_offset.
+    slot_offset_t m_last_allocated_slot_offset{c_invalid_slot_offset};
 
 private:
     void initialize_internal(

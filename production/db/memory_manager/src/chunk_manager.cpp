@@ -63,9 +63,10 @@ void chunk_manager_t::initialize_internal(
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->last_committed_slot_offset = sizeof(chunk_manager_metadata_t) / c_allocation_slot_size;
-        m_metadata->last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
+        m_metadata->last_committed_slot_offset = sizeof(chunk_manager_metadata_t) / c_allocation_slot_size - 1;
     }
+
+    m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
 
     if (m_execution_flags.enable_console_output)
     {
@@ -74,25 +75,31 @@ void chunk_manager_t::initialize_internal(
 }
 
 address_offset_t chunk_manager_t::allocate(
-    size_t memory_size) const
+    size_t memory_size)
 {
     retail_assert(m_metadata != nullptr, "Chunk manager was not initialized!");
-    retail_assert(memory_size > 0, "Chunk manager requested allocation size is 0!");
 
     // Adjust the requested memory size, to ensure proper alignment.
     memory_size = calculate_allocation_size(memory_size);
     validate_size(memory_size);
 
     // Quick exit for memory requests that are way too large.
-    if (memory_size > m_total_memory_size - m_metadata->last_allocated_slot_offset * c_allocation_slot_size)
+    size_t available_memory_size = (m_last_allocated_slot_offset == c_last_slot_offset)
+        ? 0
+        : m_total_memory_size - (m_last_allocated_slot_offset + 1) * c_allocation_slot_size;
+    if (memory_size > available_memory_size)
     {
         return c_invalid_address_offset;
     }
 
-    // Get number of slots required for this allocation and update last_allocated_slot_offset.
+    // Get the number of slots required for this allocation and update m_last_allocated_slot_offset.
     slot_offset_t slot_count = memory_size / c_allocation_slot_size;
-    slot_offset_t allocation_slot_offset = m_metadata->last_allocated_slot_offset;
-    m_metadata->last_allocated_slot_offset += slot_count;
+    retail_assert(slot_count >= 1, "An allocation should use at least one slot!");
+    slot_offset_t allocation_slot_offset = m_last_allocated_slot_offset + 1;
+    retail_assert(
+        m_last_allocated_slot_offset + slot_count > m_last_allocated_slot_offset,
+        "The update of m_last_allocated_slot_offset would cause an integer overflow!");
+    m_last_allocated_slot_offset += slot_count;
 
     // Convert the allocation_slot_offset into an allocation_address_offset.
     address_offset_t allocation_address_offset
@@ -108,11 +115,12 @@ address_offset_t chunk_manager_t::allocate(
 
 void chunk_manager_t::commit() const
 {
+    retail_assert(m_metadata != nullptr, "Chunk manager was not initialized!");
     retail_assert(
-        m_metadata->last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
-        "last_allocated_slot_offset is lesser than last_committed_slot_offset!");
+        m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
+        "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
 
-    m_metadata->last_committed_slot_offset = m_metadata->last_allocated_slot_offset;
+    m_metadata->last_committed_slot_offset = m_last_allocated_slot_offset;
 
     if (m_execution_flags.enable_console_output)
     {
@@ -120,13 +128,14 @@ void chunk_manager_t::commit() const
     }
 }
 
-void chunk_manager_t::rollback() const
+void chunk_manager_t::rollback()
 {
+    retail_assert(m_metadata != nullptr, "Chunk manager was not initialized!");
     retail_assert(
-        m_metadata->last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
-        "last_allocated_slot_offset is lesser than last_committed_slot_offset!");
+        m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
+        "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
 
-    m_metadata->last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
+    m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
 
     if (m_execution_flags.enable_console_output)
     {
@@ -147,7 +156,7 @@ void chunk_manager_t::output_debugging_information(const string& context_descrip
     else
     {
         cout << "    Last committed slot offset = " << m_metadata->last_committed_slot_offset << endl;
-        cout << "    Last allocated slot offset = " << m_metadata->last_allocated_slot_offset << endl;
+        cout << "    Last allocated slot offset = " << m_last_allocated_slot_offset << endl;
     }
 
     cout << c_debug_output_separator_line_end << endl;

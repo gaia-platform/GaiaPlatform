@@ -42,12 +42,12 @@ public:
         size_t memory_size);
 
     // Allocates a new chunk of memory.
-    address_offset_t allocate_chunk();
+    address_offset_t allocate_chunk() const;
 
     // TODO: Remove this method after the client is updated to use allocate_chunk() and chunk managers.
-    address_offset_t allocate(size_t size);
+    address_offset_t allocate(size_t size) const;
 
-    void deallocate(address_offset_t memory_offset);
+    void deallocate(address_offset_t memory_offset) const;
 
 private:
     // A pointer to our metadata information, stored inside the memory range that we manage.
@@ -62,7 +62,7 @@ private:
     size_t get_available_memory_size() const;
 
     // Internal method for allocating blocks of any size.
-    address_offset_t allocate_internal(size_t size);
+    address_offset_t allocate_internal(size_t size) const;
 
     void output_debugging_information(const std::string& context_description) const;
 };

@@ -57,14 +57,13 @@ struct chunk_manager_metadata_t
 
     uint64_t reserved1;
     uint32_t reserved2;
+    uint16_t reserved3;
     slot_offset_t last_committed_slot_offset;
-    slot_offset_t last_allocated_slot_offset;
     uint64_t slot_bitmap[c_slot_bitmap_size];
 
     inline void clear()
     {
         last_committed_slot_offset = c_invalid_slot_offset;
-        last_allocated_slot_offset = c_invalid_slot_offset;
         std::fill(slot_bitmap, slot_bitmap + c_slot_bitmap_size, 0);
     }
 };
@@ -72,6 +71,10 @@ struct chunk_manager_metadata_t
 static_assert(
     sizeof(chunk_manager_metadata_t) == sizeof(uint64_t) * 1024,
     "chunk_manager_metadata_t is expected to be 8kB!");
+
+// Constants for the range of available slots within a chunk.
+constexpr slot_offset_t c_first_slot_offset = sizeof(chunk_manager_metadata_t) / sizeof(c_allocation_slot_size);
+constexpr slot_offset_t c_last_slot_offset = -1;
 
 } // namespace memory_manager
 } // namespace db

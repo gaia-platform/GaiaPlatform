@@ -83,7 +83,7 @@ void memory_manager_t::initialize_internal(
     }
 }
 
-address_offset_t memory_manager_t::allocate_chunk()
+address_offset_t memory_manager_t::allocate_chunk() const
 {
     address_offset_t allocated_memory_offset = allocate_internal(c_chunk_size);
 
@@ -103,7 +103,7 @@ address_offset_t memory_manager_t::allocate_chunk()
     return allocated_memory_offset;
 }
 
-address_offset_t memory_manager_t::allocate(size_t size)
+address_offset_t memory_manager_t::allocate(size_t size) const
 {
     address_offset_t allocated_memory_offset = allocate_internal(size);
 
@@ -120,20 +120,24 @@ address_offset_t memory_manager_t::allocate(size_t size)
     return allocated_memory_offset;
 }
 
-void memory_manager_t::deallocate(address_offset_t)
+void memory_manager_t::deallocate(address_offset_t) const
 {
     // TODO: Implement memory deallocation (mark slots in corresponding chunk metadata as unused).
 }
 
 size_t memory_manager_t::get_available_memory_size() const
 {
+    retail_assert(m_metadata != nullptr, "Memory manager was not initialized!");
+
     size_t available_size = m_total_memory_size - m_metadata->next_allocation_offset;
 
     return available_size;
 }
 
-address_offset_t memory_manager_t::allocate_internal(size_t size)
+address_offset_t memory_manager_t::allocate_internal(size_t size) const
 {
+    retail_assert(m_metadata != nullptr, "Memory manager was not initialized!");
+
     size = base_memory_manager_t::calculate_allocation_size(size);
 
     // If the allocation exhausts our memory, we cannot perform it.
