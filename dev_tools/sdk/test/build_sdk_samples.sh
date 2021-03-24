@@ -12,15 +12,18 @@ gaia_db_server &
 
 # Make incubator example.
 cp -r /opt/gaia/examples/incubator .
-cd incubator
+pushd incubator
 mkdir build
-cd build
+pushd build
 cmake ..
 make
-cd /
+popd
+popd
+
 
 # Make and execute Hello World example.
 cp -r /opt/gaia/examples/hello .
-cd hello
+pushd hello
 ./build.sh
 ./run.sh
+popd

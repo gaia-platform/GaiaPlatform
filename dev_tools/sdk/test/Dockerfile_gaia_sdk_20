@@ -4,10 +4,10 @@
 #   docker build --no-cache -t gaia_sdk_20 -f Dockerfile_gaia_sdk_20 .
 
 FROM gaia_ubuntu_20
-ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY build_sdk_samples.sh .
 COPY gaia-0.1.0_amd64.deb .
 
 RUN apt install ./gaia-0.1.0_amd64.deb
-RUN sh ./build_sdk_samples.sh
+RUN /bin/bash ./build_sdk_samples.sh
