@@ -5,7 +5,7 @@
 
 #pragma once
 
-enum class test_error_result_t : int8_t
+enum class test_error_result_t
 {
     e_none = 0,
     e_tag_implicit_mismatch,
