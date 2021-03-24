@@ -549,11 +549,15 @@ address_offset_t client_t::request_memory(size_t object_size)
     const memory_allocation_info_t* allocation_info
         = client_messenger.server_reply()->data_as_memory_allocation_info();
 
+    retail_assert(
+        allocation_info,
+        "Failed to read memory allocation info from the server.");
+
     // Obtain allocated offset from the server.
     const address_offset_t object_address_offset = allocation_info->allocation_offset();
 
     retail_assert(
-        allocation_info && object_address_offset != c_invalid_offset,
+        object_address_offset != c_invalid_address_offset,
         "Failed to fetch memory from the server.");
 
     return object_address_offset;
@@ -564,11 +568,11 @@ address_offset_t client_t::allocate_object(
     size_t size)
 {
     retail_assert(size != 0, "The client should not deallocate objects directly.");
-    address_offset_t allocated_memory_offset = c_invalid_offset;
+    address_offset_t allocated_memory_offset = c_invalid_address_offset;
 
     allocated_memory_offset = client_t::request_memory(size);
 
-    retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Returned offset not initialized.");
+    retail_assert(allocated_memory_offset != c_invalid_address_offset, "Allocation failure! Returned offset not initialized.");
 
     // Update locator array to point to the new offset.
     update_locator(locator, allocated_memory_offset);

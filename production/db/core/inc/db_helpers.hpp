@@ -69,11 +69,21 @@ inline size_t get_gaia_alignment_unit()
 
 inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
 {
+    if (offset == gaia::db::memory_manager::c_invalid_address_offset)
+    {
+        return c_invalid_gaia_offset;
+    }
+
     return offset / get_gaia_alignment_unit();
 }
 
 inline gaia::db::memory_manager::address_offset_t get_address_offset(gaia_offset_t offset)
 {
+    if (offset == c_invalid_gaia_offset)
+    {
+        return gaia::db::memory_manager::c_invalid_address_offset;
+    }
+
     return offset * get_gaia_alignment_unit();
 }
 

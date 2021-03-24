@@ -166,7 +166,7 @@ address_offset_t server_t::allocate_from_memory_manager(
 
     // Offset gets assigned; no need to set it.
     address_offset_t object_address_offset = s_memory_manager->allocate(memory_request_size_bytes);
-    if (object_address_offset == c_invalid_offset)
+    if (object_address_offset == c_invalid_address_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during allocate() call!");
     }
@@ -632,7 +632,7 @@ void server_t::build_server_reply(
     address_offset_t object_address_offset)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    if (object_address_offset)
+    if (object_address_offset != c_invalid_address_offset)
     {
         const auto memory_allocation_reply = Creatememory_allocation_info_t(builder, object_address_offset);
         server_reply = Createserver_reply_t(
@@ -700,10 +700,12 @@ void server_t::init_memory_manager()
 {
     s_memory_manager.reset();
     s_memory_manager = make_unique<memory_manager_t>();
-    s_memory_manager->manage(reinterpret_cast<uint8_t*>(s_shared_data.data()->objects), sizeof(s_shared_data.data()->objects));
+    s_memory_manager->initialize(
+        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+        sizeof(s_shared_data.data()->objects));
 
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        s_memory_manager->free_old_offset(get_address_offset(offset));
+        s_memory_manager->deallocate(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }
@@ -713,7 +715,7 @@ address_offset_t server_t::allocate_object(
     size_t size)
 {
     address_offset_t offset = s_memory_manager->allocate(size + sizeof(db_object_t));
-    if (offset == c_invalid_offset)
+    if (offset == c_invalid_address_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
     }

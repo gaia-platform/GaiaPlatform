@@ -11,8 +11,6 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "stack_allocator.hpp"
-
 namespace gaia
 {
 namespace db
@@ -282,7 +280,7 @@ protected:
     void reset();
 
 private:
-    gaia_locator_t m_locator = {};
+    gaia_locator_t m_locator = {c_invalid_gaia_locator};
 
     void clone_no_txn();
 

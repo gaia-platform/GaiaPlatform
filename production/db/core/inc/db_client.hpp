@@ -12,11 +12,11 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "chunk_manager.hpp"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
-#include "stack_allocator.hpp"
 
 namespace gaia
 {
