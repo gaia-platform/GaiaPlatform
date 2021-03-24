@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "test_preview.hpp"
 
 #include <unistd.h>
