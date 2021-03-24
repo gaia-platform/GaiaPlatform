@@ -17,9 +17,7 @@ using namespace gaia::db::memory_manager;
 
 TEST(memory_manager, struct_sizes)
 {
-    cout << "sizeof(memory_allocation_metadata_t) = " << sizeof(memory_allocation_metadata_t) << endl;
-    cout << "sizeof(stack_allocator_metadata_t) = " << sizeof(stack_allocator_metadata_t) << endl;
-    cout << "sizeof(stack_allocator_allocation_t) = " << sizeof(stack_allocator_allocation_t) << endl;
+    cout << "sizeof(chunk_manager_metadata_t) = " << sizeof(chunk_manager_metadata_t) << endl;
 }
 
 TEST(system, pointer_arithmetic)

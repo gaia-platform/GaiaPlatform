@@ -16,7 +16,6 @@
 #include "db_helpers.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
-#include "stack_allocator.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -187,7 +186,7 @@ gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
 gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
 {
     m_locator = locator;
-    client_t::txn_log(m_locator, 0, get_gaia_offset(offset), gaia_operation_t::create);
+    client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
 }
 
 db_object_t* gaia_ptr_t::to_ptr() const
@@ -224,7 +223,7 @@ void gaia_ptr_t::find_next(gaia_type_t type)
 void gaia_ptr_t::reset()
 {
     gaia::db::locators_t* locators = gaia::db::get_locators();
-    client_t::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
+    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
 
     if (client_t::is_valid_event(to_ptr()->type))
     {

@@ -3,51 +3,44 @@ This is a folder for the database engine memory manager code.
 
 ## Design/implementation notes
 
+### Note on current implmentation
+
+The notes below cover the planned implementation. However, the current implementation is simpler. The Memory Manager exposes a simple interface for doing incremental allocations that is used directly by the client for each object allocation. The Chunk Manager is not used at all. After the client will be updated to use memory in chunk increments via a chunk manager, the incremental server allocation method will be dropped and the design will start aligning with the description below.
+
 ### Use cases
 
-The Memory Manager contains two main components: the memory manager itself and a stack allocator:
+The Memory Manager contains two main components: the memory manager itself and a chunk manager:
 
 * Memory manager (MM) component:
-  * This is used to initialize a memory range for use, as well as for the initial population of this region with data.
-  * After the data is loaded, during normal database operations, the memory manager is mainly used to allocate memory for stack allocators and to free their unused memory.
-  * During the freeing of the unused stack allocator memory, the memory manager will also collect all released memory (the old versions of updated entities) and will mark them as free.
-* Stack allocator (SA) component:
-  * This is used during normal database operation, to allocate memory within a transaction from a large block that is managed through the stack allocator. It is also used to deallocate older allocations.
-  * It supports rollback of the last allocations/deletions.
-  * Its metadata is public, to allow it to be processed by different components.
-  * Given that only a part of the memory managed by the stack allocator will be used by its corresponding transaction, the remainder will be freed by a call to the MM.
-  * A stack allocator is allocated on the heap and is meant to be used by a single thread at a time.
+  * This is used by the server to manage a large memory range by allocating memory from it and then ensuring that memory continues to be available by compacting allocations.
+  * All allocations are done as 4MB 'chunks'. The chunks can be further used through instances of the chunk manager class.
+* Chunk manager (CM) component:
+  * This is used by the client to allocate memory from a chunk. It can also be used by the server to process the allocations made by the client in a chunk.
+  * It is meant to be used by the client across multiple transactions. As such, it allows quickly reverting all allocations made since the last commit.
+  * The allocation unit inside a chunk is 64B. There is a chunk metadata block that uses a bitmap to indicate the status of all allocation units in the block.
+  * A chunk manager is allocated on the heap and is meant to be used by a single thread at a time.
 
-The MM is a server component. The SA can be initialized on either server or client. On client it can manage the memory assigned to the client session. On server it can be initialized to help read the memory written by a client.
+The MM is a server component. The CM can be initialized on either server or client. On client, it will manage the memory assigned to the client session. On server, it can be initialized to help read the memory written by a client.
 
 ### Operation details
 
 * MM:
-  * The MM keeps track of several important pieces of information. Its metadata is stored directly in the MM instance.
-  * Freed memory blocks are tracked through `memory_record_t` objects (the method of this tracking is under development and has not been finalized).
-  * Memory allocations are made from the start of the memory block, moving left->right if we imagine memory as increasing in address from left to right. Each allocated memory block has its size recorded right before the start of the block made available to users. This means that the size of a block is always available if we know its starting address. The exception to this rule are the "raw" allocations that are made for being used by SAs - those do not get prefixed with their size.
-* SA
-  * The SA uses a metadata block to track its important information. This block is allocated at the end of the memory block managed by the SA.
-  * SA allocations start from the beginning of the block and grow left->right.
-  * For each allocation or deallocation, the SA also writes a record after its metadata block, so these records get added right->left.
-  * The metadata block together with the allocation records form a complete allocation record. The SA interface provides access to this data.
-
-MM performs two types of allocations:
-* Regular allocations - these return an offset to the allocated memory block. This block is prefixed by a metadata block.
-* Raw allocations - these also return an offset to an allocated memory block, but this block is not prefixed by a metadata block. When using such allocations with a stack allocator, the stack allocator will then perform regular allocations that will get prefixed by metadata blocks.
+  * Memory allocations are made from the start of the memory range, moving left->right if we imagine memory as increasing in address from left to right. If the end of the range is reached, allocations will wrap around and restart from the beginning of the range. To permit this approach, a compaction process will ensure that allocated memory is always packed "behind" the next allocation offset.
+* CM
+  * The CM uses a metadata block to track the use of allocation units within the chunk it manages. This block is allocated at the beginning of the memory block managed by the CM.
+  * CM allocations start from the beginning of the block and grow left->right.
 
 ### Metadata
 
 * MM
-  * Currently, MM metadata tracks the following information:
-    * The start of the main memory block that is available for allocations. This will shrink as more allocations are being made
-    * List of freed memory blocks. The memory manager will attempt to allocate memory from these before using the main memory block.
-* SA
-  * The SA metadata tracks the following:
-    * The count of allocations made so far.
-    * The memory location where the next allocation can be made.
-* MM memory allocation
-  * Each block allocated by the MM using allocate() is prefixed by a small metadata block that records its size. This allows us to find the size of an allocation given its starting offset. This behavior differentiates allocate() from allocate_raw().
+  * Currently, MM doesn't track any metadata internally and only relies on the metadata stored in each chunk.
+* CM
+  * The CM metadata tracks the following:
+    * The last allocated 64B allocation unit index.
+    * The last committed 64B allocation unit index
+    * A bitmap indicating the use of each allocation unit.
+
+Determining the size of an allocation given just an address can be done by deserializing the database object at that address.
 
 ### Access synchronization
 
@@ -55,14 +48,3 @@ The MM expects to be executed in a single process with its methods getting calle
 
 Synchronization of MM operations is achieved via:
 * atomic operations.
-* mutexes.
-
-### Challenges and future work
-
-Here are some aspects that require future work:
-
-* The tracking of freed memory blocks needs to be further improved.
-  * We want to be able to detect adjacent freed blocks and combine them in larger blocks.
-  * We also want to track blocks depending on their size, so that we don't have to inspect all blocks to find one of sufficient size.
-  * The data structures used for this tracking need to permit efficient thread-safe operations (inserts, removes, lookups).
-* Given the current pattern of operation, it is unlikely that the MM will be able to make an allocation from freed memory (because stack allocators will always request the same memory from which they'll usually release smaller blocks). The proposed solution for compaction is to provide an interface that iterates over data whose move would result in the most beneficial coallescing of freed blocks of memory. The system can then use this interface to reallocate memory for these blocks and perform a "fake update" that does not change the value of the data, but gets it placed at a new location. These "fake updates" should be treated specially by the transaction coordinator, to ensure that they do not prevent other transactions to complete.
