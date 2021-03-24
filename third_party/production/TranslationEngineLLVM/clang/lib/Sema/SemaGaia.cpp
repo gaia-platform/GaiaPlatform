@@ -282,7 +282,7 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
             const auto *id = record->getIdentifier();
             if (id != nullptr)
             {
-                //check if EDC type is defined
+                // Check if EDC type is defined.
                 if (id->getName().equals(typeName + "_t"))
                 {
                     realType = type;
