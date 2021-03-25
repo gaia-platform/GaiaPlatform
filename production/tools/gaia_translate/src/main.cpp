@@ -193,7 +193,7 @@ public:
 
 void fill_table_db_data(catalog::gaia_table_t& table)
 {
-    auto db = table.gaia_database();
+    auto db = table.database_gaia_database();
     g_table_db_data[table.name()] = db.name();
 }
 
@@ -210,7 +210,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (const auto& field : catalog::gaia_field_t::list())
         {
-            catalog::gaia_table_t tbl = field.gaia_table();
+            catalog::gaia_table_t tbl = field.table_gaia_table();
             if (!tbl)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
@@ -685,8 +685,7 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return return_value;
 }
 
-void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count,
-    bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
     if (g_field_data.find(table) == g_field_data.end())
@@ -875,7 +874,6 @@ void optimize_subscription(const string& table, int rule_count)
     }
 }
 
-
 void generate_rules(Rewriter& rewriter)
 {
     if (g_field_data.empty())
@@ -955,8 +953,7 @@ void generate_rules(Rewriter& rewriter)
                 .append(");\n");
         }
 
-        generate_table_subscription(table, field_subscription_code, rule_code,
-            rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, field_subscription_code, rule_code, rule_count, true, rule_line_numbers, rewriter);
 
         optimize_subscription(table, rule_count);
 

@@ -115,7 +115,11 @@ void ddl_executor_t::bootstrap_catalog()
         //     parent_offset uint16,
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        //        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+
+        fields.emplace_back(make_unique<data_field_def_t>("to_parent_link_name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("to_child_link_name", data_type_t::e_string, 1));
+
         fields.emplace_back(make_unique<ref_field_def_t>("parent", "catalog", "gaia_table"));
         fields.emplace_back(make_unique<ref_field_def_t>("child", "catalog", "gaia_table"));
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
@@ -221,7 +225,7 @@ void ddl_executor_t::reload_cache()
 
     for (auto& table : gaia_table_t::list())
     {
-        m_table_names[get_full_table_name(table.gaia_database().name(), table.name())] = table.gaia_id();
+        m_table_names[get_full_table_name(table.database_gaia_database().name(), table.name())] = table.gaia_id();
     }
     gaia::db::commit_transaction();
 }
@@ -355,7 +359,7 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t field_id : list_fields(table_id))
     {
         // Unlink the field and the table.
-        table_record.gaia_field_list().remove(field_id);
+        table_record.table_gaia_field_list().remove(field_id);
         // Remove the field.
         gaia_field_t::get(field_id).delete_row();
     }
@@ -363,14 +367,14 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t reference_id : list_references(table_id))
     {
         // Unlink the reference and the owner table.
-        table_record.gaia_field_list().remove(reference_id);
+        table_record.table_gaia_field_list().remove(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
         // Remove the reference.
         reference_record.delete_row();
     }
 
     // Unlink the table from its database.
-    table_record.gaia_database().gaia_table_list().remove(table_record);
+    table_record.database_gaia_database().database_gaia_table_list().remove(table_record);
     // Remove the table.
     table_record.delete_row();
 }
@@ -387,7 +391,7 @@ void ddl_executor_t::drop_database(const string& name)
         auto_transaction_t txn;
         auto db_record = gaia_database_t::get(db_id);
         std::vector<gaia_id_t> table_ids;
-        for (auto& table : db_record.gaia_table_list())
+        for (auto& table : db_record.database_gaia_table_list())
         {
             table_ids.push_back(table.gaia_id());
         }
@@ -540,6 +544,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     // also does not allow duplicate field names and we may generate
     // invalid fbs without checking duplication first.
     std::set<string> field_names;
+    std::map<string, int> num_of_relationships;
     for (const auto& field : fields)
     {
         string field_name = field->name;
@@ -549,6 +554,14 @@ gaia_id_t ddl_executor_t::create_table_impl(
             throw duplicate_field(field_name);
         }
         field_names.insert(field_name);
+
+        if (field->field_type == field_type_t::reference)
+        {
+            // The (table) record id that defines the parent table type.
+            gaia_id_t parent_type_record_id = c_invalid_gaia_id;
+
+            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
+        }
     }
 
     string fbs{generate_fbs(db_name, table_name, fields)};
@@ -568,7 +581,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 
     // Connect the table to the database.
-    gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
+    gaia_database_t::get(db_id).database_gaia_table_list().insert(table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
@@ -656,7 +669,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 false,
                 data_field->active);
             // Connect the field to the table it belongs to.
-            gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
+            gaia_table_t::get(table_id).table_gaia_field_list().insert(field_id);
             data_field_position++;
         }
     }

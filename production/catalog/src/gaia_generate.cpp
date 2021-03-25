@@ -313,7 +313,7 @@ static string generate_constant_list(const gaia_id_t db_id)
     code += "// The initial size of the flatbuffer builder buffer.";
     code += "constexpr int c_flatbuffer_builder_size = 128;";
     code += "";
-    for (auto& table_record : gaia_database_t::get(db_id).gaia_table_list())
+    for (auto& table_record : gaia_database_t::get(db_id).database_gaia_table_list())
     {
         relationship_vector_t relationships = list_relationships(table_record);
 
@@ -379,7 +379,7 @@ static string generate_declarations(const gaia_id_t db_id)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
-    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).database_gaia_table_list())
     {
         code.SetValue("TABLE_NAME", table.name());
         code += "struct {{TABLE_NAME}}_t;";
@@ -615,7 +615,7 @@ string gaia_generate(const string& dbname)
     // This is to workaround the issue of incomplete forward declaration of structs that refer to each other.
     // By collecting the IDs in the sorted set, the structs are generated in the ascending order of their IDs.
     set<gaia_id_t> table_ids;
-    for (const auto& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).database_gaia_table_list())
     {
         table_ids.insert(table.gaia_id());
     }

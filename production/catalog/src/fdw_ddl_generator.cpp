@@ -123,7 +123,9 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     {
         gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
-        string relationship_name = relationship.name();
+        // Only the to_parent link is relevant because that's how SQL works:
+        // you have a foreign key pointing to the parent in the child table.
+        string relationship_name = relationship.to_parent_link_name();
 
         ddl_string_stream
             << "," << endl

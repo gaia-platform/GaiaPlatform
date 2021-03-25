@@ -636,11 +636,9 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         {
             gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
-            string relationship_name = relationship.name();
-            if (relationship_name.empty())
-            {
-                relationship_name = relationship.parent_gaia_table().name();
-            }
+            // Only the to_parent link is relevant because that's how SQL works:
+            // you have a foreign key pointing to the parent in the child table.
+            string relationship_name = relationship.to_parent_link_name();
 
             if (strcmp(field_name, relationship_name.c_str()) == 0)
             {
