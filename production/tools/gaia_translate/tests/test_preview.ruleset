@@ -1,0 +1,64 @@
+#include "gaia_prerequisites.h"
+#include "test_preview.hpp"
+
+using namespace gaia::prerequisites;
+
+bool g_oninsert_called;
+bool g_onchange_called;
+bool g_onchange2_called;
+bool g_onupdate_called;
+bool g_onupdate2_called;
+bool g_onupdate3_called;
+bool g_onupdate4_called;
+test_error_result_t g_oninsert_result;
+test_error_result_t g_onchange_result;
+test_error_result_t g_onchange2_result;
+test_error_result_t g_onupdate_result;
+test_error_result_t g_onupdate2_result;
+test_error_result_t g_onupdate3_result;
+test_error_result_t g_onupdate4_result;
+
+ruleset test_preview
+{
+    OnInsert(Student)
+    {
+        g_oninsert_called = true;
+        g_oninsert_result = test_error_result_t::e_none;
+    }
+
+    OnChange(Student)
+    {
+        g_onchange_called = true;
+        g_onchange_result = test_error_result_t::e_none;
+    }
+
+    OnChange(Student.Age)
+    {
+        g_onchange2_called = true;
+        g_onchange2_result = test_error_result_t::e_none;
+    }
+
+    OnUpdate(Student)
+    {
+        g_onupdate_called = true;
+        g_onupdate_result = test_error_result_t::e_none;
+    }
+
+    OnUpdate(Student.Surname)
+    {
+        g_onupdate2_called = true;
+        g_onupdate2_result = test_error_result_t::e_none;
+    }
+
+    OnUpdate(Student.Age)
+    {
+        g_onupdate3_called = true;
+        g_onupdate3_result = test_error_result_t::e_none;
+    }
+
+    OnUpdate(Student.Age, Student.Surname)
+    {
+        g_onupdate4_called = true;
+        g_onupdate4_result = test_error_result_t::e_none;
+    }
+}
