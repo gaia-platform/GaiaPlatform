@@ -561,6 +561,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             gaia_id_t parent_type_record_id = c_invalid_gaia_id;
 
             const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
+            num_of_relationships[ref_field->full_table_name()]++;
         }
     }
 
