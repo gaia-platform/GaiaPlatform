@@ -4,7 +4,7 @@
 #############################################
 
 # Set the project name.
-project(airport_Schema)
+project(airport_schema)
 
 set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
 

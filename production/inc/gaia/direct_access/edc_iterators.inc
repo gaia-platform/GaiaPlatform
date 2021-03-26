@@ -123,7 +123,7 @@ edc_container_t<T_container, T_class> edc_container_t<T_container, T_class>::whe
 template <gaia::common::gaia_type_t T_container, typename T_class>
 edc_iterator_t<T_class> edc_container_t<T_container, T_class>::end() const
 {
-    return edc_iterator_t<T_class>(0);
+    return edc_iterator_t<T_class>(gaia::common::c_invalid_gaia_id);
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class>
@@ -219,12 +219,12 @@ bool edc_set_iterator_t<T_child>::operator!=(const edc_set_iterator_t& rhs) cons
 template <typename T_child>
 edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
 {
-    gaia::common::gaia_id_t id = 0;
+    gaia::common::gaia_id_t id = gaia::common::c_invalid_gaia_id;
 
-    if (m_parent_id)
+    if (m_parent_id != gaia::common::c_invalid_gaia_id)
     {
         id = edc_base_t::get_reference(m_parent_id, m_child_offset);
-        while (id)
+        while (id != gaia::common::c_invalid_gaia_id)
         {
             if (m_filter_fn)
             {
@@ -254,16 +254,17 @@ reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> 
 template <typename T_child>
 edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::end() const
 {
-    return edc_set_iterator_t<T_child>(0, 0);
+    // REVIEW: replace the second argument with a constant.
+    return edc_set_iterator_t<T_child>(gaia::common::c_invalid_gaia_id, 0);
 }
 
 template <typename T_child>
 void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_id)
 {
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
-    if (child_id == 0 || m_parent_id == 0)
+    if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
     {
-        T_child received = T_child::get(0);
+        T_child received = T_child::get(gaia::common::c_invalid_gaia_id);
         throw edc_invalid_state(m_parent_id, child_id, received.gaia_typename());
     }
 

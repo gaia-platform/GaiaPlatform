@@ -29,7 +29,8 @@ public:
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
-        if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
+        if (node->id == gaia::common::c_invalid_gaia_id
+            && __sync_bool_compare_and_swap(&node->id, gaia::common::c_invalid_gaia_id, id))
         {
             return node;
         }
@@ -112,13 +113,13 @@ public:
         id_index_t* id_index = gaia::db::get_id_index();
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
 
-        while (node->id)
+        while (node->id != gaia::common::c_invalid_gaia_id)
         {
             if (node->id == id)
             {
-                if (node->locator)
+                if (node->locator != c_invalid_gaia_locator)
                 {
-                    node->locator = 0;
+                    node->locator = c_invalid_gaia_locator;
                 }
                 return;
             }
