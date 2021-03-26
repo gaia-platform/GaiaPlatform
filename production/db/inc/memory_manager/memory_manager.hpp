@@ -47,8 +47,11 @@ public:
     // TODO: Remove this method after the client is updated to use allocate_chunk() and chunk managers.
     address_offset_t allocate(size_t size) const;
 
+    // Chunk deallocation method.
+    // Does not perform any validation to ensure that the chunk is unused.
     void deallocate_chunk(chunk_offset_t chunk_offset) const;
 
+    // Object deallocation method.
     void deallocate(address_offset_t object_offset) const;
 
     // Checks whether a chunk is marked as used in the chunk bitmap.
