@@ -26,17 +26,17 @@ struct memory_manager_metadata_t
     // A bitmap for 2^16 slots takes 8kB, or 1024 64bit values.
     static constexpr address_offset_t c_chunk_bitmap_size = 1024;
 
-    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 1];
+    uint64_t chunk_bitmap[c_chunk_bitmap_size];
 
     // As we keep allocating memory, the remaining contiguous available memory block
     // will keep shrinking. We'll use this offset to track the start of the block.
-    address_offset_t next_allocation_offset;
+    address_offset_t start_unused_memory_offset;
 
-    uint64_t chunk_bitmap[c_chunk_bitmap_size];
+    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 1];
 
     inline void clear()
     {
-        next_allocation_offset = c_invalid_slot_offset;
+        start_unused_memory_offset = c_invalid_slot_offset;
         std::fill(chunk_bitmap, chunk_bitmap + c_chunk_bitmap_size, 0);
     }
 };
@@ -44,6 +44,10 @@ struct memory_manager_metadata_t
 static_assert(
     sizeof(memory_manager_metadata_t) == c_chunk_size,
     "memory_manager_metadata_t is expected to be 4MB!");
+
+// Constants for the range of available chunks within our memory.
+constexpr slot_offset_t c_first_chunk_offset = sizeof(memory_manager_metadata_t) / c_chunk_size;
+constexpr slot_offset_t c_last_chunk_offset = -1;
 
 // A chunk manager's metadata information.
 struct chunk_manager_metadata_t
@@ -55,11 +59,13 @@ struct chunk_manager_metadata_t
     // The 2 words can be used to store additional metadata.
     static constexpr address_offset_t c_slot_bitmap_size = 1024 - 2;
 
-    uint64_t reserved1;
-    uint32_t reserved2;
-    uint16_t reserved3;
-    slot_offset_t last_committed_slot_offset;
     uint64_t slot_bitmap[c_slot_bitmap_size];
+
+    slot_offset_t last_committed_slot_offset;
+
+    uint16_t reserved1;
+    uint32_t reserved2;
+    uint64_t reserved3;
 
     inline void clear()
     {
@@ -73,7 +79,7 @@ static_assert(
     "chunk_manager_metadata_t is expected to be 8kB!");
 
 // Constants for the range of available slots within a chunk.
-constexpr slot_offset_t c_first_slot_offset = sizeof(chunk_manager_metadata_t) / sizeof(c_allocation_slot_size);
+constexpr slot_offset_t c_first_slot_offset = sizeof(chunk_manager_metadata_t) / c_slot_size;
 constexpr slot_offset_t c_last_slot_offset = -1;
 
 } // namespace memory_manager

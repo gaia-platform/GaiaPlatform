@@ -8,7 +8,13 @@
 #include "gaia_internal/common/retail_assert.hpp"
 
 using namespace gaia::common;
-using namespace gaia::db::memory_manager;
+
+namespace gaia
+{
+namespace db
+{
+namespace memory_manager
+{
 
 access_control_t::access_control_t()
 {
@@ -141,3 +147,7 @@ void auto_access_control_t::release_access_lock()
 
     m_locked_access = access_lock_type_t::none;
 }
+
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia
