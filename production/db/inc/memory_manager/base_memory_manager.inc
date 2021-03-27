@@ -25,22 +25,11 @@ void base_memory_manager_t::set_execution_flags(const execution_flags_t& executi
     m_execution_flags = execution_flags;
 }
 
-// Allocation sizes need to be multiples of 64B.
 size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 {
     common::retail_assert(requested_size > 0, "Requested allocation size is 0!");
 
-    if (requested_size < c_slot_size)
-    {
-        return c_slot_size;
-    }
-
-    size_t allocation_slot_count = requested_size / c_slot_size;
-    size_t extra_allocation_size = requested_size % c_slot_size;
-
-    size_t allocation_size = (extra_allocation_size == 0)
-        ? requested_size
-        : (allocation_slot_count + 1) * c_slot_size;
+    size_t allocation_size = ((requested_size + c_slot_size - 1) / c_slot_size) * c_slot_size;
 
     return allocation_size;
 }

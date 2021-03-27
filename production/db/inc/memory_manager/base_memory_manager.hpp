@@ -40,6 +40,7 @@ public:
     inline void set_execution_flags(const execution_flags_t& execution_flags);
 
     // Helper function for allocation alignment.
+    // Allocation sizes need to be rounded up to the closest 64B multiple.
     inline static size_t calculate_allocation_size(size_t requested_size);
 
     // Sanity checks.
