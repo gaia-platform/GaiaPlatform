@@ -115,7 +115,7 @@ Oid convert_to_pg_type(data_type_t type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in %s!", __func__),
+             errmsg("An FDW internal error was detected in '%s'!", __func__),
              errhint("Unhandled data type '%d'.", type)));
     }
 }
@@ -150,7 +150,7 @@ Datum convert_to_datum(const data_holder_t& value)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in %s!", __func__),
+             errmsg("An FDW internal error was detected in '%s'!", __func__),
              errhint("Unhandled data_holder_t type '%d'.", value.type)));
     }
 }
@@ -222,7 +222,7 @@ reflection::BaseType convert_to_reflection_type(data_type_t type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_reflection_type()!"),
+             errmsg("An FDW internal error was detected in '%s'!", __func__),
              errhint("Unhandled data_type_t '%d'.", type)));
     }
 }
@@ -270,7 +270,7 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_data_holder()!"),
+             errmsg("An FDW internal error was detected in '%s'!", __func__),
              errhint("Unhandled data_type_t '%d'.", value_type)));
     }
 
@@ -732,7 +732,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unexpected field index received in extract_field_value()!"),
+             errmsg("Unexpected field index received in %s!", __func__),
              errhint(
                  "Field index is '%ld' and field count is '%ld' for table '%s'.",
                  field_index, m_field_count, get_table_name())));
@@ -903,7 +903,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unexpected field index received in set_field_value()!"),
+             errmsg("Unexpected field index received in '%s'!", __func__),
              errhint(
                  "Field index is '%ld' and field count is '%ld' for table '%s'.",
                  field_index, m_field_count, get_table_name())));
@@ -1082,8 +1082,8 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg(
-                     "modify_record() was called with an invalid operation type '%d'!",
-                     static_cast<int>(modify_operation_type))));
+                     "'%s' was called with an invalid operation type '%d'!",
+                     __func__, static_cast<int>(modify_operation_type))));
         }
 
         // Now that we have access to the database record, we can also perform the reference updates.
