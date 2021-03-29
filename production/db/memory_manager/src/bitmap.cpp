@@ -24,14 +24,8 @@ namespace memory_manager
 inline void apply_mask_to_word(
     uint64_t& word, uint64_t mask, bool set)
 {
-    if (set)
-    {
-        word |= mask;
-    }
-    else
-    {
-        word &= ~mask;
-    }
+    // See: https://graphics.stanford.edu/~seander/bithacks.html#ConditionalSetOrClearBitsWithoutBranching
+    word ^= (-set ^ word) & mask;
 }
 
 inline bool try_apply_mask_to_word(
@@ -41,14 +35,7 @@ inline bool try_apply_mask_to_word(
     uint64_t old_word = word;
     uint64_t new_word = old_word;
 
-    if (set)
-    {
-        new_word |= mask;
-    }
-    else
-    {
-        new_word &= ~mask;
-    }
+    apply_mask_to_word(new_word, mask, set);
 
     return __sync_bool_compare_and_swap(&word, old_word, new_word);
 }
