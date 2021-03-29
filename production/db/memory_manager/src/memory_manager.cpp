@@ -152,6 +152,11 @@ void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset) const
         // Only the compaction thread should be calling this method,
         // so any failures are due to bitmap updates made for different chunks.
     }
+
+    if (m_execution_flags.enable_console_output)
+    {
+        output_debugging_information(__func__);
+    }
 }
 
 void memory_manager_t::deallocate(address_offset_t object_offset) const
@@ -177,6 +182,11 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
     //         break;
     //     }
     // }
+
+    if (m_execution_flags.enable_console_output)
+    {
+        output_debugging_information(__func__);
+    }
 }
 
 size_t memory_manager_t::get_unused_memory_size() const
@@ -204,7 +214,7 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
                 end_limit_bit_index))
            != c_max_bit_index)
     {
-        auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index);
+        auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index + c_first_chunk_offset);
 
         while ((has_claimed_chunk = try_mark_chunk_use(chunk_offset, true)) == false)
         {
