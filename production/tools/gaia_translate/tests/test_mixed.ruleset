@@ -31,6 +31,9 @@ ruleset test_mixed
 {
     OnInsert(i:incubator)
     {
+        f(incubator);
+        f1(incubator);
+        f2(incubator);
         f(i);
         f1(i);
         f2(i);

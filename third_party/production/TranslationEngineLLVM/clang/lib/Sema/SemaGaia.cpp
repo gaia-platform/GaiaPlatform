@@ -469,28 +469,26 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 }
 
 
-static bool parse_attribute(const string& attribute, string& table, string& tag)
+static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
 {
-    string tagless_attribute;
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
     {
         tag = attribute.substr(0, tag_position);
-        tagless_attribute = attribute.substr(tag_position + 1);
     }
     else
     {
         return false;
     }
-    size_t dot_position = tagless_attribute.find('.');
+    size_t dot_position = attribute.find('.', tag_position + 1);
     // Handle fully qualified reference.
     if (dot_position != string::npos)
     {
-        table = tagless_attribute.substr(0, dot_position);
+        table = attribute.substr(tag_position + 1, dot_position - tag_position - 1);
         return true;
     }
 
-    table = tagless_attribute;
+    table = attribute.substr(tag_position + 1);
     return true;
 }
 
@@ -512,7 +510,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         for (const auto& table_iterator : update_attribute->tables())
         {
             string table, tag;
-            if (parse_attribute(table_iterator, table, tag))
+            if (parse_tagged_attribute(table_iterator, table, tag))
             {
                 retVal[tag] = table;
             }
@@ -524,7 +522,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         for (const auto& table_iterator : insert_attribute->tables())
         {
             string table, tag;
-            if (parse_attribute(table_iterator, table, tag))
+            if (parse_tagged_attribute(table_iterator, table, tag))
             {
                 retVal[tag] = table;
             }
@@ -536,7 +534,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         for (const auto& table_iterator : change_attribute->tables())
         {
             string table, tag;
-            if (parse_attribute(table_iterator, table, tag))
+            if (parse_tagged_attribute(table_iterator, table, tag))
             {
                 retVal[tag] = table;
             }

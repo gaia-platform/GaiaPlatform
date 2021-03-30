@@ -284,6 +284,11 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
+// The function parses a rule  attribute e.g.
+// Employee
+// Employee.name_last
+// E:Employee
+// E:Employee.name_last
 bool parse_attribute(const string& attribute, string& table, string& field)
 {
     if (g_field_data.empty())
@@ -1693,6 +1698,7 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that called when a table or a tag is an argument for a function call.
 class table_call_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
