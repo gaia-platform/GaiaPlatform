@@ -308,7 +308,8 @@ static pair<string, string> generate_expr_variable(const string& table, const st
     expr_decl.append(field);
     expr_decl.append(";");
 
-    // Example:  gaia::direct_access::expression_t<employee_t, int64_t> employee_t::expr::hire_date{&employee_t::hire_date};
+    // Example:  template<class unused_t>
+    // gaia::direct_access::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
