@@ -41,10 +41,26 @@ public:
         size_t memory_size);
 
     // Mark all allocations as committed.
-    void commit() const;
+    // An argument is only needed when calling this method on the server;
+    // On the client, the value is tracked in m_last_allocated_offset already.
+    void commit(slot_offset_t last_allocated_offset = c_invalid_slot_offset);
 
     // Rollback all allocations made since last commit.
     void rollback();
+
+    // Checks whether a slot is marked as used in the slot bitmap.
+    bool is_slot_marked_as_used(slot_offset_t slot_offset) const;
+
+    // Mark the use of a single slot in the slot bitmap.
+    void mark_slot_use(slot_offset_t slot_offset, bool used) const;
+
+    // Try to mark the use of a single slot in the slot bitmap.
+    // This will prevent loss of updates in the case of concurrent bitmap updates,
+    // but means that the call could fail if a conflict with another update is detected.
+    bool try_mark_slot_use(slot_offset_t slot_offset, bool used) const;
+
+    // Mark the use of a range of slots in the slot bitmap.
+    void mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool used) const;
 
     // Public, so it can get called by the memory manager.
     void output_debugging_information(const std::string& context_description) const;
@@ -61,7 +77,8 @@ private:
     void initialize_internal(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,
-        bool initialize_memory);
+        bool initialize_memory,
+        const std::string& caller_name);
 };
 
 } // namespace memory_manager
