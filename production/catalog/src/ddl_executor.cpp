@@ -65,7 +65,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     is_system bool,
         //     binary_schema uint8[],
         //     serialization_template uint8[],
-        //     references gaia_database,
+        //     database references gaia_database,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -88,7 +88,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     position uint16,
         //     deprecated bool,
         //     active bool,
-        //     references gaia_table,
+        //     table references gaia_table,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -105,7 +105,8 @@ void ddl_executor_t::bootstrap_catalog()
     }
     {
         // create table gaia_relationship (
-        //     name string,
+        //     to_parent_link_name string,
+        //     to_child_link_name string,
         //     parent references gaia_table,
         //     child references gaia_table,
         //     cardinality uint8,
@@ -116,11 +117,8 @@ void ddl_executor_t::bootstrap_catalog()
         //     parent_offset uint16,
         // );
         field_def_list_t fields;
-        //        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-
         fields.emplace_back(make_unique<data_field_def_t>("to_parent_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("to_child_link_name", data_type_t::e_string, 1));
-
         fields.emplace_back(make_unique<ref_field_def_t>("parent", "catalog", "gaia_table"));
         fields.emplace_back(make_unique<ref_field_def_t>("child", "catalog", "gaia_table"));
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
@@ -158,7 +156,7 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_rule (
         //     name string,
-        //     references gaia_ruleset,
+        //     ruleset references gaia_ruleset,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -496,28 +494,34 @@ reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t
         find_parent_available_offset(table.gaia_relationships_parent()));
 }
 
-void analyze_parent_table(gaia_table_t& parent_table)
+void ddl_executor_t::disambiguate_child_link_names(gaia_table_t& parent_table)
 {
-    std::map<gaia_id_t, std::list<gaia_relationship_t>> relationships;
+    std::map<gaia_id_t, std::list<gaia_relationship_t>> child_relationships;
 
     for (auto& rel : parent_table.gaia_relationships_parent())
     {
-        relationships[rel.child().gaia_id()].push_back(rel);
+        child_relationships[rel.child().gaia_id()].push_back(rel);
     }
 
-    for (auto& pair : relationships)
+    for (auto& pair : child_relationships)
     {
+        // If there is more than one relationship from the parent_table
+        // and a child table, we need to update the to_child_link_name.
         if (pair.second.size() > 1)
         {
             for (auto& rel : pair.second)
             {
                 std::string new_to_child_name = to_plural(rel.child().name()) + "_" + rel.to_parent_link_name();
+
+                if (rel.to_child_link_name() == new_to_child_name)
+                {
+                    continue;
+                }
+
                 gaia_log::catalog().trace(" Changing '{}.{}' to '{}.{}'", parent_table.name(), rel.to_child_link_name(), parent_table.name(), new_to_child_name);
-                gaia_log::catalog().trace(" ---1 first:{} next:{} parent:{}", rel.first_child_offset(), rel.next_child_offset(), rel.parent_offset());
                 auto writer = rel.writer();
                 writer.to_child_link_name = new_to_child_name;
                 writer.update_row();
-                gaia_log::catalog().trace(" ---2 first:{} next:{} parent:{}", rel.first_child_offset(), rel.next_child_offset(), rel.parent_offset());
             }
         }
     }
@@ -678,7 +682,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             gaia_log::catalog().trace("  first_offset:{} next_offset:{} parent_offset:{}", rel.first_child_offset(), rel.next_child_offset(), rel.parent_offset());
             gaia_table_t::get(table_id).gaia_relationships_child().insert(relationship_id);
             parent_table.gaia_relationships_parent().insert(relationship_id);
-            analyze_parent_table(parent_table);
+            disambiguate_child_link_names(parent_table);
         }
         else
         {
