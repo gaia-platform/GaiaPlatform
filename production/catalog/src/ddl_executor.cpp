@@ -498,9 +498,9 @@ void ddl_executor_t::disambiguate_child_link_names(gaia_table_t& parent_table)
 {
     std::map<gaia_id_t, std::list<gaia_relationship_t>> child_relationships;
 
-    for (auto& rel : parent_table.gaia_relationships_parent())
+    for (auto& r : parent_table.gaia_relationships_parent())
     {
-        child_relationships[rel.child().gaia_id()].push_back(rel);
+        child_relationships[r.child().gaia_id()].push_back(r);
     }
 
     for (auto& pair : child_relationships)
@@ -509,17 +509,20 @@ void ddl_executor_t::disambiguate_child_link_names(gaia_table_t& parent_table)
         // and a child table, we need to update the to_child_link_name.
         if (pair.second.size() > 1)
         {
-            for (auto& rel : pair.second)
+            for (auto& r : pair.second)
             {
-                std::string new_to_child_name = to_plural(rel.child().name()) + "_" + rel.to_parent_link_name();
+                std::string new_to_child_name = to_plural(r.child().name()) + "_" + r.to_parent_link_name();
 
-                if (rel.to_child_link_name() == new_to_child_name)
+                if (r.to_child_link_name() == new_to_child_name)
                 {
                     continue;
                 }
 
-                gaia_log::catalog().trace(" Changing '{}.{}' to '{}.{}'", parent_table.name(), rel.to_child_link_name(), parent_table.name(), new_to_child_name);
-                auto writer = rel.writer();
+                gaia_log::catalog().trace(
+                    " Changing '{}.{}' to '{}.{}'",
+                    parent_table.name(), r.to_child_link_name(), parent_table.name(), new_to_child_name);
+
+                auto writer = r.writer();
                 writer.to_child_link_name = new_to_child_name;
                 writer.update_row();
             }
