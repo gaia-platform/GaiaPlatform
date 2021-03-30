@@ -32,27 +32,17 @@ public:
     relationship_strings_t(const gaia_relationship_t& relationship)
         : relationship(relationship){};
 
-    std::string ref_name()
-    {
-        return relationship.name();
-    }
-
     std::string parent_table()
     {
-        return relationship.parent_gaia_table().name();
+        return relationship.parent().name();
     }
 
     std::string child_table()
     {
-        return relationship.child_gaia_table().name();
+        return relationship.child().name();
     }
 
-    bool is_named_relationship()
-    {
-        return (0 < ref_name().size());
-    }
-
-private:
+protected:
     gaia_relationship_t relationship;
 };
 
@@ -64,26 +54,29 @@ public:
 
     std::string field_name()
     {
-        if (is_named_relationship())
-        {
-            return ref_name() + "_" + parent_table();
-        }
-        else
-        {
-            return parent_table();
-        }
+        return relationship.to_parent_link_name();
     }
 
     std::string parent_offset()
     {
-        if (is_named_relationship())
-        {
-            return "c_parent_" + ref_name() + "_" + child_table();
-        }
-        else
-        {
-            return "c_parent_" + parent_table() + "_" + child_table();
-        }
+        return "c_" + child_table() + "_parent_" + field_name();
+    }
+
+    std::string parent_offset_value()
+    {
+        return to_string(relationship.parent_offset());
+    }
+
+    std::string next_offset()
+    {
+
+        return "c_" + child_table() + "_next_" + field_name();
+    }
+
+    std::string next_offset_value()
+    {
+
+        return to_string(relationship.next_child_offset());
     }
 };
 
@@ -95,38 +88,23 @@ public:
 
     std::string field_name()
     {
-        if (is_named_relationship())
-        {
-            return ref_name() + "_" + child_table();
-        }
-        else
-        {
-            return child_table();
-        }
+        return relationship.to_child_link_name();
     }
 
     std::string first_offset()
     {
-        if (is_named_relationship())
-        {
-            return "c_first_" + ref_name() + "_" + child_table();
-        }
-        else
-        {
-            return "c_first_" + parent_table() + "_" + child_table();
-        }
+        return "c_" + parent_table() + "_first_" + field_name();
+    }
+
+    std::string first_offset_value()
+    {
+        return to_string(relationship.first_child_offset());
     }
 
     std::string next_offset()
     {
-        if (is_named_relationship())
-        {
-            return "c_next_" + ref_name() + "_" + child_table();
-        }
-        else
-        {
-            return "c_next_" + parent_table() + "_" + child_table();
-        }
+
+        return "c_" + child_table() + "_next_" + relationship.to_parent_link_name();
     }
 };
 
@@ -206,7 +184,7 @@ static relationship_vector_t list_parent_relationships(gaia_table_t table)
 {
     relationship_vector_t relationships;
 
-    for (const auto& relationship : table.parent_gaia_relationship_list())
+    for (const auto& relationship : table.gaia_relationships_parent())
     {
         relationships.push_back(relationship);
     }
@@ -223,7 +201,7 @@ static relationship_vector_t list_child_relationships(gaia_table_t table)
 {
     relationship_vector_t relationships;
 
-    for (const auto& relationship : table.child_gaia_relationship_list())
+    for (const auto& relationship : table.gaia_relationships_child())
     {
         relationships.push_back(relationship);
     }
@@ -231,30 +209,6 @@ static relationship_vector_t list_child_relationships(gaia_table_t table)
     std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool {
         return r1.parent_offset() < r2.parent_offset();
     });
-
-    return relationships;
-}
-
-// List all the table relationships sorted by offset.
-static relationship_vector_t list_relationships(gaia_table_t table)
-{
-    std::map<uint8_t, gaia_relationship_t> relationships_map{};
-
-    for (const gaia_relationship_t& relationship : table.parent_gaia_relationship_list())
-    {
-        relationships_map.insert({relationship.first_child_offset(), relationship});
-    }
-
-    for (const gaia_relationship_t& relationship : table.child_gaia_relationship_list())
-    {
-        relationships_map.insert({relationship.parent_offset(), relationship});
-    }
-
-    relationship_vector_t relationships;
-    transform(relationships_map.begin(), relationships_map.end(), back_inserter(relationships), [](const auto& val) { return val.second; });
-
-    // Removes duplicates from the vector. Not using a set because we need custom sorting (which differs in parent/child relationships).
-    relationships.erase(std::unique(relationships.begin(), relationships.end()), relationships.end());
 
     return relationships;
 }
@@ -313,62 +267,47 @@ static string generate_constant_list(const gaia_id_t db_id)
     code += "// The initial size of the flatbuffer builder buffer.";
     code += "constexpr int c_flatbuffer_builder_size = 128;";
     code += "";
-    for (auto& table_record : gaia_database_t::get(db_id).database_gaia_table_list())
-    {
-        relationship_vector_t relationships = list_relationships(table_record);
 
-        auto const_count = 0;
+    for (auto& table_record : gaia_database_t::get(db_id).gaia_tables())
+    {
+        std::vector<parent_relationship> parent_relationships;
+        std::vector<child_relationship> child_relationships;
+
+        for (auto& relationship : list_parent_relationships(table_record))
+        {
+            parent_relationships.push_back(
+                parent_relationship{relationship});
+        }
+
+        for (auto& relationship : list_child_relationships(table_record))
+        {
+            child_relationships.push_back(
+                child_relationship{relationship});
+        }
+
         code.SetValue("TABLE_NAME", table_record.name());
         code.SetValue("TABLE_TYPE", to_string(table_record.type()));
         code += "// Constants contained in the {{TABLE_NAME}} object.";
         code += "constexpr uint32_t c_gaia_type_{{TABLE_NAME}} = {{TABLE_TYPE}}u;";
 
-        for (auto& relationship : relationships)
+        for (auto& relationship : child_relationships)
         {
-            bool is_named_relationship = (0 < strlen(relationship.name()));
+            code.SetValue("PARENT_OFFSET", relationship.parent_offset());
+            code.SetValue("PARENT_OFFSET_VALUE", relationship.parent_offset_value());
+            code += "constexpr int {{PARENT_OFFSET}} = {{PARENT_OFFSET_VALUE}};";
 
-            code.SetValue("REF_NAME", relationship.name());
-            code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-
-            if (table_record == relationship.parent_gaia_table())
-            {
-                // relationship where table_record appears as parent
-                code.SetValue("FIRST_CHILD_OFFSET", to_string(relationship.first_child_offset()));
-                code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-                if (is_named_relationship)
-                {
-                    code += "constexpr int c_first_{{REF_NAME}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
-                }
-                else
-                {
-                    code += "constexpr int c_first_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{FIRST_CHILD_OFFSET}};";
-                }
-                const_count++;
-            }
-
-            // Can't use 'else if' because self-relationships appear both as parent and child.
-            if (table_record == relationship.child_gaia_table())
-            {
-                // relationship where table_record appears as child
-                code.SetValue("NEXT_CHILD_OFFSET", to_string(relationship.next_child_offset()));
-                code.SetValue("PARENT_OFFSET", to_string(relationship.parent_offset()));
-                code.SetValue("CHILD_TABLE", relationship.child_gaia_table().name());
-                code.SetValue("PARENT_TABLE", relationship.parent_gaia_table().name());
-                if (is_named_relationship)
-                {
-                    code += "constexpr int c_parent_{{REF_NAME}}_{{CHILD_TABLE}} = {{PARENT_OFFSET}};";
-                    code += "constexpr int c_next_{{REF_NAME}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
-                }
-                else
-                {
-                    code += "constexpr int c_parent_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{PARENT_OFFSET}};";
-                    code += "constexpr int c_next_{{PARENT_TABLE}}_{{CHILD_TABLE}} = {{NEXT_CHILD_OFFSET}};";
-                }
-                const_count += 2;
-            }
+            code.SetValue("NEXT_OFFSET", relationship.next_offset());
+            code.SetValue("NEXT_OFFSET_VALUE", relationship.next_offset_value());
+            code += "constexpr int {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};";
         }
-        code.SetValue("CONST_VALUE", to_string(const_count));
-        code += "constexpr int c_num_{{TABLE_NAME}}_ptrs = {{CONST_VALUE}};";
+
+        for (auto& relationship : parent_relationships)
+        {
+            code.SetValue("FIRST_OFFSET", relationship.first_offset());
+            code.SetValue("FIRST_OFFSET_VALUE", relationship.first_offset_value());
+            code += "constexpr int {{FIRST_OFFSET}} = {{FIRST_OFFSET_VALUE}};";
+        }
+
         code += "";
     }
     string str = code.ToString();
@@ -379,7 +318,7 @@ static string generate_declarations(const gaia_id_t db_id)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
-    for (const auto& table : gaia_database_t::get(db_id).database_gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_tables())
     {
         code.SetValue("TABLE_NAME", table.name());
         code += "struct {{TABLE_NAME}}_t;";
@@ -516,7 +455,7 @@ static string generate_edc_struct(
         code.SetValue("FIRST_OFFSET", relationship.first_offset());
         code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}_list() const {";
+        code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const {";
         code.IncrementIdentLevel();
         code += "return {{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
         code.DecrementIdentLevel();
@@ -556,8 +495,8 @@ static string generate_edc_struct(
         code.SetValue("FIRST_OFFSET", relationship.first_offset());
         code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{FIELD_NAME}}_list_t> {{FIELD_NAME}}_list{&{{TABLE_NAME}}_t::{{FIELD_NAME}}_list};";
-        field_names.push_back(code.GetValue("FIELD_NAME") + "_list");
+        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{FIELD_NAME}}_list_t> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
+        field_names.push_back(code.GetValue("FIELD_NAME"));
     }
 
     code.DecrementIdentLevel();
@@ -615,17 +554,17 @@ string gaia_generate(const string& dbname)
     // This is to workaround the issue of incomplete forward declaration of structs that refer to each other.
     // By collecting the IDs in the sorted set, the structs are generated in the ascending order of their IDs.
     set<gaia_id_t> table_ids;
-    for (const auto& table : gaia_database_t::get(db_id).database_gaia_table_list())
+    for (const auto& table : gaia_database_t::get(db_id).gaia_tables())
     {
         table_ids.insert(table.gaia_id());
     }
+
     for (auto table_id : table_ids)
     {
         field_vector_t field_records;
         auto table_record = gaia_table_t::get(table_id);
         for (auto field_id : list_fields(table_id))
         {
-            gaia_field_t field_record(gaia_field_t::get(field_id));
             field_records.push_back(gaia_field_t::get(field_id));
         }
 

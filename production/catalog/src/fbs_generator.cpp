@@ -110,7 +110,7 @@ string generate_fbs(gaia_id_t table_id)
     string fbs;
     gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
-    fbs += generate_fbs_namespace(table.database_gaia_database().name());
+    fbs += generate_fbs_namespace(table.database().name());
     string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id))
@@ -133,7 +133,7 @@ string generate_fbs(const string& dbname)
     }
     string fbs = generate_fbs_namespace(dbname);
     gaia::db::begin_transaction();
-    for (auto const& table : gaia_database_t::get(db_id).database_gaia_table_list())
+    for (auto const& table : gaia_database_t::get(db_id).gaia_tables())
     {
         fbs += "table " + string(table.name()) + "{\n";
         for (gaia_id_t field_id : list_fields(table.gaia_id()))

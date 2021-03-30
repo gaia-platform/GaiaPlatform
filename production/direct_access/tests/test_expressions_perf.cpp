@@ -129,7 +129,7 @@ public:
                 auto address_w = address_writer();
                 address_w.city = "city_" + to_string(index_address);
                 address_w.state = "state_" + to_string(index_address);
-                employee.addressee_address_list().insert(address_w.insert_row());
+                employee.addresses().insert(address_w.insert_row());
             }
 
             if (index_employee % 10000 == 0)
@@ -405,7 +405,7 @@ TEST_F(test_expressions_perf, object_eq)
     auto expr_fn = [&dude]() {
         vector<address_t> addresses;
         for (auto& a : address_t::list()
-                           .where(addressee_employee == dude))
+                           .where(addressee == dude))
         {
             addresses.push_back(a);
         }
@@ -416,7 +416,7 @@ TEST_F(test_expressions_perf, object_eq)
         vector<address_t> addresses;
         for (auto& a : address_t::list())
         {
-            if (a.addressee_employee() == dude)
+            if (a.addressee() == dude)
             {
                 addresses.push_back(a);
             }
@@ -467,7 +467,7 @@ TEST_F(test_expressions_perf, test_container_contains)
 
     auto expr_fn = []() {
         auto container = employee_t::list()
-                             .where(addressee_address_list.contains(city == "city_0"));
+                             .where(addresses.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
@@ -477,7 +477,7 @@ TEST_F(test_expressions_perf, test_container_contains)
         int num_employee = 0;
         for (auto& e : employee_t::list())
         {
-            for (auto& a : e.addressee_address_list())
+            for (auto& a : e.addresses())
             {
                 if (string("city_0") == a.city())
                 {
@@ -499,7 +499,7 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
 
     auto expr_fn = []() {
         auto container = employee_t::list()
-                             .where(addressee_address_list.contains(city == "city_0"));
+                             .where(addresses.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
@@ -508,7 +508,7 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
     auto plain_fn = []() {
         auto container = employee_t::list().where(
             [](const employee_t& emp) {
-                auto addresses = emp.addressee_address_list().where(
+                auto addresses = emp.addresses().where(
                     [](const address_t addr) {
                         return addr.city() == string("city_0");
                     });
@@ -530,7 +530,7 @@ TEST_F(test_expressions_perf, test_container_count)
 
     auto expr_fn = []() {
         auto container = employee_t::list()
-                             .where(addressee_address_list.count() == c_num_employee_addresses);
+                             .where(addresses.count() == c_num_employee_addresses);
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
@@ -540,7 +540,7 @@ TEST_F(test_expressions_perf, test_container_count)
         int num_employee = 0;
         for (auto& e : employee_t::list())
         {
-            auto addresses = e.addressee_address_list();
+            auto addresses = e.addresses();
             if (std::distance(addresses.begin(), addresses.end()) == c_num_employee_addresses)
             {
                 num_employee++;
@@ -560,7 +560,7 @@ TEST_F(test_expressions_perf, test_container_empty)
 
     auto expr_fn = []() {
         auto container = employee_t::list()
-                             .where(addressee_address_list.empty());
+                             .where(addresses.empty());
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, 0);
@@ -570,7 +570,7 @@ TEST_F(test_expressions_perf, test_container_empty)
         int num_employee = 0;
         for (auto& e : employee_t::list())
         {
-            auto addresses = e.addressee_address_list();
+            auto addresses = e.addresses();
             if (addresses.begin() == addresses.end())
             {
                 num_employee++;

@@ -49,7 +49,7 @@ public:
         {
             address_writer.street = to_string(i);
             address_t address = address_t::get(address_writer.insert_row());
-            m_employee.addressee_address_list().insert(address);
+            m_employee.addresses().insert(address);
         }
     }
 
@@ -62,7 +62,7 @@ public:
 
     T_iterator get_begin(edc_set_iterator_t<address_t>&)
     {
-        return m_employee.addressee_address_list().begin();
+        return m_employee.addresses().begin();
     }
 
     T_iterator get_end(edc_iterator_t<address_t>&)
@@ -72,7 +72,7 @@ public:
 
     T_iterator get_end(edc_set_iterator_t<address_t>&)
     {
-        return m_employee.addressee_address_list().end();
+        return m_employee.addresses().end();
     }
 
 private:

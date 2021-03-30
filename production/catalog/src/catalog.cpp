@@ -67,7 +67,7 @@ vector<gaia_id_t> list_fields(gaia_id_t table_id)
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (const auto& field : gaia_table_t::get(table_id).table_gaia_field_list())
+    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
     {
         fields.insert(fields.begin(), field.gaia_id());
     }
@@ -84,7 +84,7 @@ vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& child_relationship :
-         gaia_table_t::get(table_id).child_gaia_relationship_list())
+         gaia_table_t::get(table_id).gaia_relationships_child())
     {
         relationships.push_back(child_relationship.gaia_id());
     }
@@ -97,7 +97,7 @@ vector<gaia_id_t> list_parent_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& parent_relationship :
-         gaia_table_t::get(table_id).parent_gaia_relationship_list())
+         gaia_table_t::get(table_id).gaia_relationships_parent())
     {
         relationships.push_back(parent_relationship.gaia_id());
     }

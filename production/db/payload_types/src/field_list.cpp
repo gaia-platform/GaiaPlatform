@@ -60,7 +60,7 @@ void field_list_t::initialize()
 
     for (auto field : gaia::catalog::gaia_field_t::list())
     {
-        if (field.table_gaia_table().gaia_id() == m_type_id)
+        if (field.table().gaia_id() == m_type_id)
         {
             num_fields++;
         }

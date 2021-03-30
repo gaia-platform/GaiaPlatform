@@ -193,7 +193,7 @@ public:
 
 void fill_table_db_data(catalog::gaia_table_t& table)
 {
-    auto db = table.database_gaia_database();
+    auto db = table.database();
     g_table_db_data[table.name()] = db.name();
 }
 
@@ -210,7 +210,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (const auto& field : catalog::gaia_field_t::list())
         {
-            catalog::gaia_table_t tbl = field.table_gaia_table();
+            catalog::gaia_table_t tbl = field.table();
             if (!tbl)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
@@ -236,7 +236,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            catalog::gaia_table_t child_table = relationship.child();
             if (!child_table)
             {
                 cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
@@ -244,7 +244,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
 
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
                 cerr << "Incorrect parent table in the relationship " << relationship.name() << "." << endl;

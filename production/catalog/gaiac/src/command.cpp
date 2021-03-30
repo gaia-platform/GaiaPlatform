@@ -88,7 +88,7 @@ void list_tables(const regex& re)
         {c_database_title, c_name_title, c_id_title, c_type_title},
         [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
         [](gaia_table_t& t) -> row_t {
-            return {t.database_gaia_database().name(), t.name(), to_string(t.gaia_id()), to_string(t.type())};
+            return {t.database().name(), t.name(), to_string(t.gaia_id()), to_string(t.type())};
         });
 }
 
@@ -110,7 +110,7 @@ void list_fields(const regex& re)
         },
         [](gaia_field_t& f) -> row_t {
             return {
-                f.table_gaia_table().name(),
+                f.table().name(),
                 f.name(),
                 get_data_type_name(static_cast<data_type_t>(f.type())),
                 to_string(f.repeated_count()),
@@ -129,8 +129,8 @@ void list_relationships(const regex& re)
         [](gaia_relationship_t& r) -> row_t {
             return {
                 r.to_parent_link_name(),
-                r.parent_gaia_table().name(),
-                r.child_gaia_table().name(),
+                r.parent().name(),
+                r.child().name(),
                 to_string(r.gaia_id())};
         });
 }
@@ -146,7 +146,7 @@ void describe_database(const string& name)
     }
     {
         auto_transaction_t txn;
-        for (auto const& table : gaia_database_t::get(db_id).database_gaia_table_list())
+        for (auto const& table : gaia_database_t::get(db_id).gaia_tables())
         {
             output_table.add_row({table.name()});
         }
@@ -171,7 +171,7 @@ void describe_table(const string& name)
         for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
-            string qualified_name{table.database_gaia_database().name()};
+            string qualified_name{table.database().name()};
             qualified_name += c_db_table_name_connector;
             qualified_name += table_name;
             if (name == table_name || name == qualified_name)
@@ -184,7 +184,7 @@ void describe_table(const string& name)
         {
             throw table_not_exists(name);
         }
-        for (auto& field : gaia_table_t::get(table_id).table_gaia_field_list())
+        for (auto& field : gaia_table_t::get(table_id).gaia_fields())
         {
             output_fields.add_row(
                 {field.name(),
@@ -193,18 +193,18 @@ void describe_table(const string& name)
                  to_string(field.position()),
                  to_string(field.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).child_gaia_relationship_list())
+        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_child())
         {
             output_child_references.add_row(
                 {relationship.to_parent_link_name(),
-                 relationship.parent_gaia_table().name(),
+                 relationship.parent().name(),
                  to_string(relationship.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).parent_gaia_relationship_list())
+        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_parent())
         {
             output_parent_references.add_row(
                 {relationship.to_parent_link_name(),
-                 relationship.child_gaia_table().name(),
+                 relationship.child().name(),
                  to_string(relationship.gaia_id())});
         }
     }
@@ -233,7 +233,7 @@ void generate_table_fbs(const string& name)
         for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
-            string qualified_name{table.database_gaia_database().name()};
+            string qualified_name{table.database().name()};
             qualified_name += c_db_table_name_connector;
             qualified_name += table_name;
             if (name == table_name || name == qualified_name)
