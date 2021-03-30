@@ -237,26 +237,14 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
             catalog::gaia_table_t child_table = relationship.child();
-            if (!child_table)
-            {
-                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
-
             catalog::gaia_table_t parent_table = relationship.parent();
-            if (!parent_table)
-            {
-                cerr << "Incorrect parent table in the relationship " << relationship.name() << "." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
+
             table_link_data_t link_data_1;
             link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.name();
+            link_data_1.field = relationship.to_parent_link_name();
             table_link_data_t link_data_n;
             link_data_n.table = child_table.name();
-            link_data_n.field = relationship.name();
+            link_data_n.field = relationship.to_child_link_name();
 
             g_table_relationship_1.emplace(child_table.name(), link_data_1);
             g_table_relationship_n.emplace(parent_table.name(), link_data_n);
@@ -563,47 +551,21 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                         processed_tables.insert(p.name);
                         if (p.is_parent)
                         {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    += "auto " + p.name + " = "
-                                    + source_table + "." + p.name + "();\n";
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    += "auto " + p.name + " = "
-                                    + source_table + "." + p.linking_field + "_" + p.name + "();\n";
-                            }
+                            return_value.prefix
+                                += "auto " + p.name + " = "
+                                + source_table + "." + p.linking_field + "();\n";
                         }
                         else
                         {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
+                            return_value.prefix
+                                .append(c_nolint_range_copy)
+                                .append("\nfor (auto ")
+                                .append(p.name)
+                                .append(" : ")
+                                .append(source_table)
+                                .append(".")
+                                .append(p.linking_field)
+                                .append("())\n{\n");
 
                             return_value.postfix += "}\n";
                         }
@@ -622,59 +584,27 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         {
             if (is_1_relationship)
             {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("();\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("();\n");
-                }
+                return_value.prefix
+                    .append("auto ")
+                    .append(table)
+                    .append(" = ")
+                    .append(anchor_table)
+                    .append(".")
+                    .append(linking_field)
+                    .append("();\n");
             }
             else
             {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
+
+                return_value.prefix
+                    .append(c_nolint_range_copy)
+                    .append("\nfor (auto ")
+                    .append(table)
+                    .append(" : ")
+                    .append(anchor_table)
+                    .append(".")
+                    .append(linking_field)
+                    .append("())\n{\n");
 
                 return_value.postfix += "}\n";
             }
