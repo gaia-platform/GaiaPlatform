@@ -247,7 +247,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
             catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
             if (!parent_table)
             {
-                cerr << "Incorrect parent table in the relationship " << relationship.name() << "." << endl;
+                cerr << "Incorrect parent table in the relationship '" << relationship.name() << "'." << endl;
                 g_is_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
