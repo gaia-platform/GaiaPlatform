@@ -2049,6 +2049,13 @@ static bool validateRuleAttribute(StringRef attribute,
   StringRef tag;
   if (colonPosition != StringRef::npos)
   {
+    if (colonPosition == 0)
+    {
+      S.Diag(AL.getLoc(), diag::err_invalid_tag_defined)
+        << "";
+      return false;
+    }
+
     tag = attribute.take_front(colonPosition);
     if (tableData.find(tag) != tableData.end())
     {
@@ -2073,6 +2080,12 @@ static bool validateRuleAttribute(StringRef attribute,
   // Handle fully qualified reference.
   if (dotPosition != StringRef::npos)
   {
+    if (dotPosition == 0)
+    {
+      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+        << "";
+      return false;
+    }
     StringRef table = attribute.take_front(dotPosition);
     StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
 
