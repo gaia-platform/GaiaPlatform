@@ -29,11 +29,14 @@ void f2 (gaia::barn_storage::incubator_t& i)
 
 ruleset test_mixed
 {
-    OnInsert(incubator)
+    OnInsert(i:incubator)
     {
         f(incubator);
         f1(incubator);
         f2(incubator);
+        f(i);
+        f1(i);
+        f2(i);
         g_text_mixed_called++;
     }
 }
