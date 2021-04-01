@@ -110,3 +110,11 @@ ruleset test4
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 g 'unsigned int':'unsigned int' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .gaia_type 0x{{[^ ]*}}
 // CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+
+ruleset test2
+{
+  OnChange(actuator)
+  {
+	  /incubator->actuator.value=0;
+  }
+}

@@ -108,6 +108,225 @@ class DBMonitor
         }
 };
 
+bool Sema::validateRuleAttribute(StringRef attribute, SourceLocation loc)
+{
+  auto tableData = getTableData(loc);
+  if (tableData.empty())
+  {
+    return false;
+  }
+  size_t dotPosition = attribute.find('.');
+  // Handle fully qualified reference.
+  if (dotPosition != StringRef::npos)
+  {
+    StringRef table = attribute.take_front(dotPosition);
+    StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
+    auto tableDescription = tableData.find(table);
+    if (tableDescription == tableData.end())
+    {
+      Diag(loc, diag::err_invalid_table_name) << table;
+      return false;
+    }
+    auto fieldDescription = tableDescription->second.find(field);
+    if(fieldDescription == tableDescription->second.end())
+    {
+      Diag(loc, diag::err_unknown_field) << field;
+      return false;
+    }
+    return true;
+  }
+
+  auto tableDescription = tableData.find(attribute);
+  if (tableDescription == tableData.end())
+  {
+    // Might be a field.
+    bool returnValue = false;
+    for (auto table : tableData)
+    {
+      if (table.second.find(attribute) != table.second.end())
+      {
+        if (returnValue)
+        {
+          Diag(loc, diag::err_duplicate_field) << attribute;
+          return false;
+        }
+        returnValue = true;
+      }
+    }
+    if (!returnValue)
+    {
+      Diag(loc, diag::err_unknown_field) << attribute;
+    }
+    return returnValue;
+  }
+  // Could be a table or a field. Should check if there is a field with the same name.
+  for (auto table : tableData)
+  {
+    if (table.second.find(attribute) != table.second.end())
+    {
+      Diag(loc, diag::err_duplicate_field) << attribute;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
+{
+    size_t searchStartPosition = 0;
+    unordered_map<string, string> tagMap;
+    vector<string> path;
+    if (pathString.front() == '/')
+    {
+        searchStartPosition = 1;
+    }
+    string tag;
+    size_t tagPosition = 0, arrowPosition = 0;
+
+    while (tagPosition != string::npos || arrowPosition != string::npos)
+    {
+        if (tagPosition < arrowPosition)
+        {
+            if (tagPosition == searchStartPosition)
+            {
+                Diag(loc, diag::err_invalid_explicit_path);
+                return;
+            }
+            tag = pathString.substr(searchStartPosition, tagPosition - searchStartPosition);
+            searchStartPosition = tagPosition + 1;
+        }
+
+        if (arrowPosition < tagPosition)
+        {
+            if (arrowPosition == searchStartPosition)
+            {
+                Diag(loc, diag::err_invalid_explicit_path);
+                return;
+            }
+            string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            if (!tag.empty())
+            {
+                if (tagMap.find(tag) != tagMap.end())
+                {
+                    Diag(loc, diag::err_invalid_explicit_path);
+                    return;
+                }
+                tagMap[tag] = table;
+                tag.clear;
+            }
+            path.push_back(table);
+            searchStartPosition = arrowPosition + 2;
+        }
+
+        tagPosition = pathString.find(':', searchStartPosition);
+        arrowPosition = pathString.find("->", searchStartPosition);
+    }
+    string table = pathString.substr(searchStartPosition);
+    if (table.empty())
+    {
+        Diag(loc, diag::err_invalid_explicit_path);
+        return;
+    }
+    path.push_back(table);
+
+    unordered_set<string> tableData = getCatalogTableList(loc);
+    unordered_multimap<string, table_link_data_t> relationData = getCatalogTableRelations(loc);
+
+    for (auto tagEntry: tagMap)
+    {
+        string tableName;
+        size_t dotPosition = tagEntry.second.find('.');
+        if (dotPosition != string::npos)
+        {
+            tableName = tagEntry.second.substr(0, dotPosition);
+        }
+        else
+        {
+            tableName = tagEntry.second;
+        }
+        auto tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
+        {
+            Diag(loc, diag::err_invalid_table_name) << tableName;
+            return;
+        }
+    }
+
+    string previousTable, previousField;
+    for (string pathComponent : path)
+    {
+        string tableName, fieldName;
+        size_t dotPosition = pathComponent.second.find('.');
+        if (dotPosition != string::npos)
+        {
+            tableName = pathComponent.substr(0, dotPosition);
+            fieldName = pathComponent.substr(dot_position + 1);
+        }
+        else
+        {
+            tableName = pathComponent.second;
+        }
+        auto tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
+        {
+            Diag(loc,diag::err_invalid_table_name) << tableName;
+            return;
+        }
+        if (pathComponent != path.back())
+        {
+            if (!previousTable.empty())
+            {
+                auto relatedTablesIterator = relationData.equal_range(previousTable);
+
+                if (relatedTablesIterator.first == relatedTablesIterator.second)
+                {
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return;
+                }
+
+                bool isMatchFound = false;
+                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                {
+                    if (tableIterator != relationData.end())
+                    {
+                        string tbl = tableIterator->second.table;
+                        string fld = tableIterator->second.field;
+                        if (previousTable == tbl)
+                        {
+                            if (!previousField.empty())
+                            {
+                                if (previousField == fld)
+                                {
+                                    isMatchFound = true;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                isMatchFound = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!isMatchFound)
+                {
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return;
+                }
+            }
+        }
+
+        previousField = fieldName;
+        previousTable = tableName
+    }
+
+    path.back();
+
+}
+
 unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
@@ -157,6 +376,54 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
                 return unordered_set<string>();
             }
             retVal.emplace(tbl.name());
+        }
+    }
+    catch (const exception &e)
+    {
+        Diag(loc, diag::err_catalog_exception) << e.what();
+        return unordered_set<string>();
+    }
+
+    return retVal;
+}
+struct table_link_data_t
+{
+    string table;
+    string field;
+};
+
+unordered_multimap<string, table_link_data_t> Sema::getCatalogTableRelations(SourceLocation loc)
+{
+    unordered_map<string, table_link_data_t>  retVal;
+    try
+    {
+        DBMonitor monitor;
+
+        for (const auto& relationship : catalog::gaia_relationship_t::list())
+        {
+            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            if (!child_table)
+            {
+                Diag(loc, diag::err_invalid_child_table) << relationship.name();
+                return unordered_map<string, table_link_data_t>();
+            }
+
+            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            if (!parent_table)
+            {
+                Diag(loc, diag::err_invalid_parent_table) << relationship.name();
+                return unordered_map<string, table_link_data_t>();
+            }
+
+            table_link_data_t link_data_1;
+            link_data_1.table = parent_table.name();
+            link_data_1.field = relationship.name();
+            table_link_data_t link_data_n;
+            link_data_n.table = child_table.name();
+            link_data_n.field = relationship.name();
+
+            retVal.emplace(child_table.name(), link_data_1);
+            retVal.emplace(parent_table.name(), link_data_n);
         }
     }
     catch (const exception &e)
@@ -478,7 +745,8 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, bool isGaiaFieldTable)
+NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,
+    bool isGaiaFieldTable, const string& explicitPath)
 {
     QualType qualType = isGaiaFieldTable ? getTableType(II, loc) : getFieldType(II, loc);
     if (qualType->isVoidType())

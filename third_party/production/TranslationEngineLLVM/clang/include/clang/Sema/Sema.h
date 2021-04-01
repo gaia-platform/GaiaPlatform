@@ -4158,7 +4158,7 @@ public:
       UnqualifiedId &Id, bool HasTrailingLParen, bool IsAddressOfOperand,
       std::unique_ptr<CorrectionCandidateCallback> CCC = nullptr,
       bool IsInlineAsmIdentifier = false, Token *KeywordReplacement = nullptr,
-      bool isGaiaFieldTable = false);
+      bool isGaiaFieldTable = false, std::string explicitPath = "");
 
   void DecomposeUnqualifiedId(const UnqualifiedId &Id,
                               TemplateArgumentListInfo &Buffer,
@@ -4600,7 +4600,7 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
-  NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,  bool isGaiaFieldTable);
+  NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,  bool isGaiaFieldTable, const std::string &explicitPath);
   std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
   std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
 

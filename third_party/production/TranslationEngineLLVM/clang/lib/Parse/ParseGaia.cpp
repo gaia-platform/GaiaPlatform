@@ -53,6 +53,60 @@ static std::string RandomString(std::string::size_type length)
     return s;
 }
 
+struct ExplicitPath
+{
+    SourceLocation startLocation;
+    SourceLocation endLocation;
+    std::string path;
+};
+
+
+std::string Parser::GetExplicitNavigationPath()
+{
+    ExplicitPath path;
+    std::string returnValue;
+    if (Tok.isNot(tok::identifier))
+    {
+        return returnValue;
+    }
+
+    if (getPreviousToken(Tok).is(tok::slash))
+    {
+        returnValue = "/";
+        path.startLocation = getPreviousToken(Tok).getLocation();
+    }
+    else
+    {
+        path.startLocation = Tok.getLocation();
+    }
+    returnValue.append(Tok.getIdentifierInfo()->getName().str());
+    unsigned tokenIterator = 1;
+
+    while (GetLookAheadToken(tokenIterator).isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
+    {
+        switch (GetLookAheadToken(tokenIterator).getKind())
+        {
+            case tok::arrow:
+                returnValue.append("->");
+                break;
+            case tok::colon:
+                returnValue.append(":");
+                break;
+            case tok::period:
+                returnValue.append(".");
+                break;
+            case tok::identifier:
+                returnValue.append(GetLookAheadToken(tokenIterator).getIdentifierInfo()->getName().str());
+                break;
+            default:
+                break;
+        }
+        ++tokenIterator;
+    }
+    path.endLocation = GetLookAheadToken(tokenIterator - 1).getEndLocation();
+    return returnValue;
+}
+
 // Insert a dummy function declaration to turn rule definition
 // to function with special attribute
 void Parser::InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs)
@@ -421,7 +475,7 @@ ExprResult Parser::ParseGaiaRuleContext()
     return Actions.ActOnGaiaRuleContext(ruleContextLocation);
 }
 
-Token Parser::getPreviousToken(Token token)
+Token Parser::getPreviousToken(Token token) const
 {
     Token returnToken;
     returnToken.setKind(tok::unknown);

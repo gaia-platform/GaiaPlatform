@@ -778,6 +778,25 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   // by postfix exprs should return without invoking
   // ParsePostfixExpressionSuffix.
   switch (SavedKind) {
+  case tok::slash:
+    if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
+    {
+      if (NextToken().is(tok::identifier) &&
+        getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::semi, tok::at))
+        {
+          ConsumeToken();
+          return ParseCastExpression(
+            isUnaryExpression, isAddressOfOperand, NotCastExpr,
+            isTypeCast, isVectorLiteral);
+        }
+    }
+    else
+    {
+      NotCastExpr = true;
+      return ExprError();
+    }
+    break;
+
   case tok::l_paren: {
     // If this expression is limited to being a unary-expression, the parent can
     // not start a cast expression.
@@ -1061,7 +1080,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
         getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && (
             (Tok.isOneOf(tok::period, tok::coloncolon) &&
-            NextToken().is(tok::identifier))));
+            NextToken().is(tok::identifier))),
+        GetExplicitNavigationPath());
 
 
     if (!Res.isInvalid() && Res.isUnset()) {
