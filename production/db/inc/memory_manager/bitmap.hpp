@@ -38,9 +38,8 @@ bool try_set_bit_value(
     std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t bit_index, bool value);
 
 // Sets the value of a range of bits.
-// This method should only be used if we're the only ones updating a bitmap,
-// otherwise it will lead to missing updates.
-void set_bit_range_value(
+// This method is safe in the sense that it will not cause a loss of updates to other bits than the ones we set.
+void safe_set_bit_range_value(
     std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t start_bit_index, uint64_t bit_count, bool value);
 
 // Count the number of set bits within a bitmap.

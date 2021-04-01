@@ -47,8 +47,8 @@ static_assert(
     "memory_manager_metadata_t is expected to be 4MB!");
 
 // Constants for the range of available chunks within our memory.
-constexpr slot_offset_t c_first_chunk_offset = sizeof(memory_manager_metadata_t) / c_chunk_size;
-constexpr slot_offset_t c_last_chunk_offset = -1;
+constexpr chunk_offset_t c_first_chunk_offset = sizeof(memory_manager_metadata_t) / c_chunk_size;
+constexpr chunk_offset_t c_last_chunk_offset = -1;
 
 // A chunk manager's metadata information.
 struct chunk_manager_metadata_t

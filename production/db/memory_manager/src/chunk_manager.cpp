@@ -76,7 +76,7 @@ void chunk_manager_t::initialize_internal(
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->last_committed_slot_offset = sizeof(chunk_manager_metadata_t) / c_slot_size - 1;
+        m_metadata->last_committed_slot_offset = get_slot_offset(sizeof(chunk_manager_metadata_t)) - 1;
     }
 
     m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
@@ -204,7 +204,7 @@ bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
         bit_index);
 }
 
-bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool used) const
+bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
@@ -217,10 +217,10 @@ bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool used) co
         m_metadata->slot_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size,
         bit_index,
-        used);
+        is_used);
 }
 
-void chunk_manager_t::mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool used) const
+void chunk_manager_t::mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
@@ -229,12 +229,12 @@ void chunk_manager_t::mark_slot_range_use(slot_offset_t start_slot_offset, slot_
 
     uint64_t start_bit_index = start_slot_offset - c_first_slot_offset;
 
-    set_bit_range_value(
+    safe_set_bit_range_value(
         m_metadata->slot_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size,
         start_bit_index,
         slot_count,
-        used);
+        is_used);
 }
 
 void chunk_manager_t::output_debugging_information(const string& context_description) const

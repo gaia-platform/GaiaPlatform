@@ -101,16 +101,16 @@ bool try_set_bit_value(
     return try_apply_mask_to_word(*word, mask, value);
 }
 
-void set_bit_range_value(
+void safe_set_bit_range_value(
     std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t start_bit_index, uint64_t bit_count, bool value)
 {
     validate_bitmap_parameters(bitmap, bitmap_size);
     validate_bit_index(bitmap_size, start_bit_index);
 
-    retail_assert(bit_count > 0, "set_bit_range_value() was called with a 0 bit count!");
+    retail_assert(bit_count > 0, "safe_set_bit_range_value() was called with a 0 bit count!");
     retail_assert(
         start_bit_index + bit_count - 1 >= start_bit_index,
-        "set_bit_range_value() was called with arguments that cause an integer overflow!");
+        "safe_set_bit_range_value() was called with arguments that cause an integer overflow!");
 
     validate_bit_index(bitmap_size, start_bit_index + bit_count - 1);
 
@@ -127,7 +127,10 @@ void set_bit_range_value(
         uint64_t mask = (bit_count == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << bit_count) - 1) << start_bit_index_within_word;
-        apply_mask_to_word(bitmap[start_word_index], mask, value);
+        while (!try_apply_mask_to_word(bitmap[start_word_index], mask, value))
+        {
+            // Someone else made an update; retry after reading updated word value.
+        }
     }
     else
     {
@@ -136,7 +139,10 @@ void set_bit_range_value(
         uint64_t start_word_mask = (count_bits_in_first_word == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
-        apply_mask_to_word(bitmap[start_word_index], start_word_mask, value);
+        while (!try_apply_mask_to_word(bitmap[start_word_index], start_word_mask, value))
+        {
+            // Someone else made an update; retry after reading updated word value.
+        }
 
         // Handle any words for which we have to set all bits.
         if (end_word_index - start_word_index > 1)
@@ -152,7 +158,10 @@ void set_bit_range_value(
         uint64_t end_word_mask = (count_bits_in_last_word == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << count_bits_in_last_word) - 1);
-        apply_mask_to_word(bitmap[end_word_index], end_word_mask, value);
+        while (!try_apply_mask_to_word(bitmap[end_word_index], end_word_mask, value))
+        {
+            // Someone else made an update; retry after reading updated word value.
+        }
     }
 }
 

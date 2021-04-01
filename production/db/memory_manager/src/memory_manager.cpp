@@ -123,7 +123,7 @@ address_offset_t memory_manager_t::allocate_chunk() const
 
 void memory_manager_t::deallocate_chunk(address_offset_t chunk_address_offset) const
 {
-    auto chunk_offset = static_cast<chunk_offset_t>(chunk_address_offset / c_chunk_size);
+    auto chunk_offset = get_chunk_offset(chunk_address_offset);
 
     validate_metadata(m_metadata);
     retail_assert(
@@ -133,7 +133,7 @@ void memory_manager_t::deallocate_chunk(address_offset_t chunk_address_offset) c
     while (!try_mark_chunk_use(chunk_offset, false))
     {
         // Keep trying!
-        // Only the compaction thread should be calling this method,
+        // Only one thread (client session or compaction) should be calling this method,
         // so any failures are due to bitmap updates made for different chunks.
         retail_assert(is_chunk_marked_as_used(chunk_offset), "Another thread has marked chunk as unused!");
     }
@@ -149,21 +149,20 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
     validate_metadata(m_metadata);
     validate_offset(object_offset);
 
-    address_offset_t offset_within_chunk = object_offset % c_chunk_size;
-    address_offset_t chunk_address_offset = object_offset - offset_within_chunk;
-    auto slot_offset = static_cast<slot_offset_t>(offset_within_chunk / c_slot_size);
+    address_offset_t chunk_address_offset = get_chunk_address_offset(object_offset);
+    slot_offset_t slot_offset = get_slot_offset(object_offset);
 
     chunk_manager_t chunk_manager;
     chunk_manager.load(m_base_memory_address, chunk_address_offset);
 
     while (!chunk_manager.try_mark_slot_use(slot_offset, false))
     {
-        if (!chunk_manager.is_slot_marked_as_used(slot_offset))
-        {
-            // Someone else has already marked the slot as not being used,
-            // so we can quit trying to do it ourselveds.
-            break;
-        }
+        // Keep trying!
+        // An object should be deallocated by a single thread - the one
+        // corresponding to the session that updated this copy of the object.
+        retail_assert(
+            chunk_manager.is_slot_marked_as_used(slot_offset),
+            "Another thread has already deallocated this object!");
     }
 
     if (m_execution_flags.enable_console_output)
@@ -189,7 +188,7 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
 
     uint64_t first_unset_bit_index = c_max_bit_index;
     bool has_claimed_chunk = false;
-    uint64_t allocation_offset = c_invalid_address_offset;
+    address_offset_t allocation_offset = c_invalid_address_offset;
 
     while ((first_unset_bit_index = find_first_unset_bit(
                 m_metadata->chunk_bitmap,
@@ -238,6 +237,9 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
     }
 
     // Claim the space.
+    // We use this approach instead of CAS to prevent the need for retrying
+    // in case of concurrent updates. We'll use CAS to revert our update
+    // if we run out of memory, at which point we might as well waste time too.
     address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
         &(m_metadata->start_unused_memory_offset),
         size);
@@ -255,8 +257,8 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
         {
             // A failure indicates that another thread has done the same.
             // Sleep to allow it to undo its change, so we can do the same.
-            // This is safe because metadata allocations are never reverted
-            // so all other subsequent memory allocations will also attempt to revert back.
+            // This is safe because all other subsequent memory allocations
+            // will also attempt to revert back.
             usleep(1);
         }
 
@@ -265,12 +267,13 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
 
     // Our allocation has succeeded.
     address_offset_t allocation_offset = old_next_allocation_offset;
-    chunk_offset_t chunk_offset = allocation_offset / c_chunk_size;
+    chunk_offset_t chunk_offset = get_chunk_offset(allocation_offset);
 
     while (!try_mark_chunk_use(chunk_offset, true))
     {
         // Just retry until we succeed.
-        // We already claimed the chunk, so all failures must be due to concurrent updates of the bitmap word,
+        // We already claimed the chunk when we bumped start_unused_memory_offset,
+        // so all failures must be due to concurrent updates of the bitmap word,
         // not because of a conflict on this particular chunk's bit.
         retail_assert(!is_chunk_marked_as_used(chunk_offset), "Another thread has marked chunk as used!");
     }
@@ -298,7 +301,7 @@ bool memory_manager_t::is_chunk_marked_as_used(chunk_offset_t chunk_offset) cons
         bit_index);
 }
 
-bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool used) const
+bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
@@ -311,7 +314,7 @@ bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool used
         m_metadata->chunk_bitmap,
         memory_manager_metadata_t::c_chunk_bitmap_size,
         bit_index,
-        used);
+        is_used);
 }
 
 void memory_manager_t::output_debugging_information(const string& context_description) const

@@ -43,6 +43,7 @@ public:
     // Allocation sizes need to be rounded up to the closest 64B multiple.
     inline static size_t calculate_allocation_size(size_t requested_size);
 
+protected:
     // Sanity checks.
     static inline void validate_address_alignment(const uint8_t* const memory_address);
     static inline void validate_offset_alignment(address_offset_t memory_offset);
@@ -59,6 +60,15 @@ public:
 
     // Gets the memory address corresponding to an offset.
     inline uint8_t* get_address(address_offset_t memory_offset) const;
+
+    // Gets the chunk address offset corresponding to an offset.
+    inline address_offset_t get_chunk_address_offset(address_offset_t memory_offset) const;
+
+    // Gets the chunk offset corresponding to an offset.
+    inline chunk_offset_t get_chunk_offset(address_offset_t memory_offset) const;
+
+    // Gets the slot offset within a chunk corresponding to an offset.
+    inline slot_offset_t get_slot_offset(address_offset_t memory_offset) const;
 
 protected:
     // The base memory address relative to which we compute our offsets.
