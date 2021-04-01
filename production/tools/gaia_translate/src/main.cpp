@@ -1793,9 +1793,17 @@ public:
                                   hasAttr(attr::FieldTable),
                                   hasAttr(attr::GaiaFieldValue)),
                               unless(hasAttr(attr::GaiaFieldLValue)))),
-                              anyOf(
-                                  hasAncestor(callExpr()),
-                                  hasAncestor(cxxMemberCallExpr()))))
+                              allOf(
+                                    unless(
+                                      hasAncestor(
+                                          memberExpr(
+                                            member(
+                                                allOf(
+                                                    hasAttr(attr::GaiaField),
+                                                    unless(hasAttr(attr::GaiaFieldLValue))))))),
+                                    anyOf(
+                                        hasAncestor(callExpr()),
+                                        hasAncestor(cxxMemberCallExpr())))))
                 .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
