@@ -9520,4 +9520,12 @@ def err_invalid_rule_attribute : Error<
     "Invalid Gaia rule attribute.">;
 def err_ambiguous_field_name : Error<
     "'%0' is ambiguous because both a table and a field with this name exist in the catalog.">;
+def err_invalid_explicit_path : Error<
+    "Invalid explicit path.">;
+def err_invalid_child_table : Error<
+    "Incorrect child table in the relationship '%0'.">;
+def err_invalid_parent_table : Error<
+    "Incorrect parent table in the relationship '%0'.">;
+def err_no_relations_table_in_path : Error<
+  "'%0' table in the explicit path has no relationship to '%1'">;
 } // end of sema component.
