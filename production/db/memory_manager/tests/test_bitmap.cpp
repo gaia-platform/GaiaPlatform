@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <atomic>
 #include <iostream>
 
 #include "gtest/gtest.h"
@@ -15,7 +16,7 @@ using namespace gaia::db::memory_manager;
 
 TEST(bitmap, bit_setting)
 {
-    uint64_t bitmap = 0;
+    std::atomic<uint64_t> bitmap = 0;
 
     set_bit_value(&bitmap, 1, 2, true);
     print_bitmap(&bitmap, 1);
@@ -60,7 +61,7 @@ TEST(bitmap, bit_setting)
 TEST(bitmap, bit_range_setting)
 {
     constexpr uint64_t c_bitmap_size = 5;
-    uint64_t bitmap[c_bitmap_size] = {0};
+    std::atomic<uint64_t> bitmap[c_bitmap_size] = {0};
 
     set_bit_range_value(bitmap, c_bitmap_size, 3, 3, true);
     print_bitmap(bitmap, 1);
@@ -114,4 +115,34 @@ TEST(bitmap, bit_range_setting)
 
     bit_count = count_set_bits(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_count, 4);
+}
+
+TEST(bitmap, find_first_unset_bit)
+{
+    std::atomic<uint64_t> bitmap = 0;
+    ASSERT_EQ(0, find_first_unset_bit(&bitmap, 1));
+
+    for (uint64_t i = 1; i < c_uint64_bit_count - 1; ++i)
+    {
+        bitmap = (1ULL << i) - 1;
+        ASSERT_EQ(i, find_first_unset_bit(&bitmap, 1));
+    }
+
+    bitmap = -1;
+    ASSERT_EQ(c_max_bit_index, find_first_unset_bit(&bitmap, 1));
+}
+
+TEST(bitmap, count_set_bits)
+{
+    std::atomic<uint64_t> bitmap = 0;
+    ASSERT_EQ(0, count_set_bits(&bitmap, 1));
+
+    for (uint64_t i = 1; i < c_uint64_bit_count - 1; ++i)
+    {
+        bitmap = (1ULL << i) - 1;
+        ASSERT_EQ(i, count_set_bits(&bitmap, 1));
+    }
+
+    bitmap = -1;
+    ASSERT_EQ(c_uint64_bit_count, count_set_bits(&bitmap, 1));
 }

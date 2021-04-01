@@ -157,23 +157,6 @@ int server_t::safe_fd_from_ts_t::get_fd() const
     return m_local_log_fd;
 }
 
-address_offset_t server_t::allocate_from_memory_manager(
-    size_t memory_request_size_bytes)
-{
-    retail_assert(
-        memory_request_size_bytes > 0,
-        "Requested allocation size for the allocate API should be greater than 0!");
-
-    // Offset gets assigned; no need to set it.
-    address_offset_t object_address_offset = s_memory_manager->allocate(memory_request_size_bytes);
-    if (object_address_offset == c_invalid_address_offset)
-    {
-        throw memory_allocation_error("Memory manager ran out of memory during allocate() call!");
-    }
-
-    return object_address_offset;
-}
-
 // This assignment is non-atomic because there seems to be no reason to expect concurrent invocations.
 void server_t::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
 {
@@ -207,11 +190,6 @@ void server_t::handle_begin_txn(
     retail_assert(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
-
-    auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(
-        request->data_type() == request_data_t::memory_info,
-        "A call to begin_transaction() must provide memory allocation information.");
 
     retail_assert(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
 
@@ -387,36 +365,6 @@ void server_t::handle_commit_txn(
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
-}
-
-void server_t::handle_request_memory(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
-{
-    retail_assert(
-        event == session_event_t::REQUEST_MEMORY,
-        "Incorrect event type for requesting more memory.");
-
-    // This event never changes session state.
-    retail_assert(
-        old_state == new_state,
-        "Requesting more memory shouldn't cause session state to change.");
-
-    // This API is only invoked mid transaction.
-    retail_assert(
-        old_state == session_state_t::TXN_IN_PROGRESS,
-        "Old state when requesting more memory from server should be TXN_IN_PROGRESS.");
-
-    auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(
-        request->data_type() == request_data_t::memory_info,
-        c_message_unexpected_request_data_type);
-
-    auto memory_request_size_bytes = static_cast<size_t>(request->data_as_memory_info()->memory_request_size());
-    auto object_address_offset = allocate_from_memory_manager(memory_request_size_bytes);
-
-    FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, 0, object_address_offset);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::handle_decide_txn(
@@ -628,22 +576,12 @@ void server_t::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    size_t log_fd_count,
-    address_offset_t object_address_offset)
+    size_t log_fd_count)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    if (object_address_offset != c_invalid_address_offset)
-    {
-        const auto memory_allocation_reply = Creatememory_allocation_info_t(builder, object_address_offset);
-        server_reply = Createserver_reply_t(
-            builder, event, old_state, new_state, reply_data_t::memory_allocation_info, memory_allocation_reply.Union());
-    }
-    else
-    {
-        const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fd_count);
-        server_reply = Createserver_reply_t(
-            builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
-    }
+    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fd_count);
+    server_reply = Createserver_reply_t(
+        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -698,14 +636,21 @@ void server_t::init_shared_memory()
 
 void server_t::init_memory_manager()
 {
-    s_memory_manager.reset();
-    s_memory_manager = make_unique<memory_manager_t>();
-    s_memory_manager->initialize(
+    s_memory_manager.initialize(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
 
+    address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
+    if (chunk_address_offset == c_invalid_address_offset)
+    {
+        throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+    }
+    s_chunk_manager.initialize(
+        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+        chunk_address_offset);
+
     auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        s_memory_manager->deallocate(get_address_offset(offset));
+        s_memory_manager.deallocate(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
 }
@@ -714,13 +659,32 @@ address_offset_t server_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    address_offset_t offset = s_memory_manager->allocate(size + sizeof(db_object_t));
-    if (offset == c_invalid_address_offset)
+    retail_assert(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
+
+    address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+    if (object_offset == c_invalid_address_offset)
     {
-        throw memory_allocation_error("Memory manager ran out of memory during call to allocate().");
+        // We ran out of memory in the current chunk.
+        // Mark allocations made so far as committed and allocate a new chunk!
+        s_chunk_manager.commit();
+        address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
+        if (chunk_address_offset == c_invalid_address_offset)
+        {
+            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+        }
+
+        s_chunk_manager.initialize(
+            reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+            chunk_address_offset);
+
+        // Allocate from new chunk.
+        object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+        retail_assert(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
     }
-    update_locator(locator, offset);
-    return offset;
+
+    update_locator(locator, object_offset);
+
+    return object_offset;
 }
 
 void server_t::recover_db()

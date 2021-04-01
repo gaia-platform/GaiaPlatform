@@ -16,7 +16,6 @@ message(VERBOSE "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 add_library(gaia_memory_manager STATIC
   src/access_control.cpp
   src/bitmap.cpp
-  src/base_memory_manager.cpp
   src/memory_manager.cpp
   src/chunk_manager.cpp)
 target_include_directories(gaia_memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})

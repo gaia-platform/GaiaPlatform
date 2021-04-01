@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
 
 #include "access_control.hpp"
 #include "memory_types.hpp"
@@ -26,7 +27,7 @@ struct memory_manager_metadata_t
     // A bitmap for 2^16 slots takes 8kB, or 1024 64bit values.
     static constexpr address_offset_t c_chunk_bitmap_size = 1024;
 
-    uint64_t chunk_bitmap[c_chunk_bitmap_size];
+    std::atomic<uint64_t> chunk_bitmap[c_chunk_bitmap_size];
 
     // As we keep allocating memory, the remaining contiguous available memory block
     // will keep shrinking. We'll use this offset to track the start of the block.
@@ -59,7 +60,7 @@ struct chunk_manager_metadata_t
     // The 2 words can be used to store additional metadata.
     static constexpr address_offset_t c_slot_bitmap_size = 1024 - 2;
 
-    uint64_t slot_bitmap[c_slot_bitmap_size];
+    std::atomic<uint64_t> slot_bitmap[c_slot_bitmap_size];
 
     slot_offset_t last_committed_slot_offset;
 

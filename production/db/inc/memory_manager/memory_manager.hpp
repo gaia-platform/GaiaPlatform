@@ -44,21 +44,12 @@ public:
     // Allocates a new chunk of memory.
     address_offset_t allocate_chunk() const;
 
-    // TODO: Remove this method after the client is updated to use allocate_chunk() and chunk managers.
-    address_offset_t allocate(size_t size) const;
-
     // Chunk deallocation method.
     // Does not perform any validation to ensure that the chunk is unused.
-    void deallocate_chunk(chunk_offset_t chunk_offset) const;
+    void deallocate_chunk(address_offset_t chunk_address_offset) const;
 
     // Object deallocation method.
     void deallocate(address_offset_t object_offset) const;
-
-    // Checks whether a chunk is marked as used in the chunk bitmap.
-    bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;
-
-    // Try to mark the use of a single chunk in the chunk bitmap.
-    bool try_mark_chunk_use(chunk_offset_t chunk_offset, bool used) const;
 
 private:
     // A pointer to our metadata information, stored inside the memory range that we manage.
@@ -68,8 +59,7 @@ private:
     void initialize_internal(
         uint8_t* memory_address,
         size_t memory_size,
-        bool initialize_memory,
-        const std::string& caller_name);
+        bool initialize_memory);
 
     // Get the amount of memory that has never been used yet.
     size_t get_unused_memory_size() const;
@@ -79,6 +69,12 @@ private:
 
     // Internal method for making allocations from the unused portion of memory.
     address_offset_t allocate_from_unused_memory(size_t size = c_chunk_size) const;
+
+    // Checks whether a chunk is marked as used in the chunk bitmap.
+    bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;
+
+    // Try to mark the use of a single chunk in the chunk bitmap.
+    bool try_mark_chunk_use(chunk_offset_t chunk_offset, bool used) const;
 
     void output_debugging_information(const std::string& context_description) const;
 };

@@ -28,8 +28,16 @@ inline void apply_mask_to_word(
     word ^= (-set ^ word) & mask;
 }
 
+inline void apply_mask_to_word(
+    std::atomic<uint64_t>& word, uint64_t mask, bool set)
+{
+    uint64_t word_copy = word;
+    apply_mask_to_word(word_copy, mask, set);
+    word = word_copy;
+}
+
 inline bool try_apply_mask_to_word(
-    uint64_t& word, uint64_t mask, bool set)
+    std::atomic<uint64_t>& word, uint64_t mask, bool set)
 {
     // We read the word once, because other threads may be updating it.
     uint64_t old_word = word;
@@ -37,90 +45,74 @@ inline bool try_apply_mask_to_word(
 
     apply_mask_to_word(new_word, mask, set);
 
-    return __sync_bool_compare_and_swap(&word, old_word, new_word);
+    return word.compare_exchange_strong(old_word, new_word);
 }
 
 inline void validate_bitmap_parameters(
-    uint64_t* bitmap, uint64_t bitmap_size, const string& caller_name)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size)
 {
-    if (bitmap == nullptr)
-    {
-        std::stringstream message_stream;
-        message_stream << caller_name << "() was called with a null bitmap!";
-        retail_assert(false, message_stream.str());
-    }
-
-    if (bitmap_size == 0)
-    {
-        std::stringstream message_stream;
-        message_stream << caller_name << "() was called with an empty bitmap!";
-        retail_assert(false, message_stream.str());
-    }
+    retail_assert(bitmap != nullptr, "validate_bitmap_parameters() was called with a null bitmap!");
+    retail_assert(bitmap_size > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
 }
 
 inline void validate_bit_index(
-    uint64_t bitmap_size, uint64_t bit_index, const string& caller_name)
+    uint64_t bitmap_size, uint64_t bit_index)
 {
-    if (bit_index >= bitmap_size * c_uint64_bit_count)
-    {
-        std::stringstream message_stream;
-        message_stream << caller_name << "() was called with arguments that exceed the range of the input bitmap!";
-        retail_assert(false, message_stream.str());
-    }
+    retail_assert(bit_index < bitmap_size * c_uint64_bit_count, "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
 }
 
 inline void find_bit_word_and_mask(
-    uint64_t* bitmap, uint64_t bitmap_size, uint64_t bit_index, uint64_t*& word, uint64_t& mask)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t bit_index, std::atomic<uint64_t>*& word, uint64_t& mask)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size, __func__);
-    validate_bit_index(bitmap_size, bit_index, __func__);
+    validate_bitmap_parameters(bitmap, bitmap_size);
+    validate_bit_index(bitmap_size, bit_index);
 
     uint64_t word_index = bit_index / c_uint64_bit_count;
     uint64_t bit_index_within_word = bit_index % c_uint64_bit_count;
 
     word = &bitmap[word_index];
-    mask = 1 << bit_index_within_word;
+    mask = 1ULL << bit_index_within_word;
 }
 
 bool is_bit_set(
-    uint64_t* bitmap, uint64_t bitmap_size, uint64_t bit_index)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t bit_index)
 {
-    uint64_t* word = nullptr;
+    std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
     find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
     return (!(*word & mask));
 }
 
 void set_bit_value(
-    uint64_t* bitmap, uint64_t bitmap_size, uint64_t bit_index, bool value)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t bit_index, bool value)
 {
-    uint64_t* word = nullptr;
+    std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
     find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
     apply_mask_to_word(*word, mask, value);
 }
 
 bool try_set_bit_value(
-    uint64_t* bitmap, uint64_t bitmap_size, uint64_t bit_index, bool value)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t bit_index, bool value)
 {
-    uint64_t* word = nullptr;
+    std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
     find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
     return try_apply_mask_to_word(*word, mask, value);
 }
 
 void set_bit_range_value(
-    uint64_t* bitmap, uint64_t bitmap_size, uint64_t start_bit_index, uint64_t bit_count, bool value)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t start_bit_index, uint64_t bit_count, bool value)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size, __func__);
-    validate_bit_index(bitmap_size, start_bit_index, __func__);
+    validate_bitmap_parameters(bitmap, bitmap_size);
+    validate_bit_index(bitmap_size, start_bit_index);
 
-    retail_assert(bit_count > 0, string(__func__) + "() was called with a 0 bit count!");
+    retail_assert(bit_count > 0, "set_bit_range_value() was called with a 0 bit count!");
     retail_assert(
         start_bit_index + bit_count - 1 >= start_bit_index,
-        string(__func__) + "() was called with arguments that cause an integer overflow!");
+        "set_bit_range_value() was called with arguments that cause an integer overflow!");
 
-    validate_bit_index(bitmap_size, start_bit_index + bit_count - 1, __func__);
+    validate_bit_index(bitmap_size, start_bit_index + bit_count - 1);
 
     uint64_t start_word_index = start_bit_index / c_uint64_bit_count;
     uint64_t start_bit_index_within_word = start_bit_index % c_uint64_bit_count;
@@ -134,7 +126,7 @@ void set_bit_range_value(
     {
         uint64_t mask = (bit_count == c_uint64_bit_count)
             ? c_all_set_word
-            : ((1 << bit_count) - 1) << start_bit_index_within_word;
+            : ((1ULL << bit_count) - 1) << start_bit_index_within_word;
         apply_mask_to_word(bitmap[start_word_index], mask, value);
     }
     else
@@ -143,7 +135,7 @@ void set_bit_range_value(
         uint64_t count_bits_in_first_word = c_uint64_bit_count - start_bit_index_within_word;
         uint64_t start_word_mask = (count_bits_in_first_word == c_uint64_bit_count)
             ? c_all_set_word
-            : ((1 << count_bits_in_first_word) - 1) << start_bit_index_within_word;
+            : ((1ULL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
         apply_mask_to_word(bitmap[start_word_index], start_word_mask, value);
 
         // Handle any words for which we have to set all bits.
@@ -159,14 +151,15 @@ void set_bit_range_value(
         uint64_t count_bits_in_last_word = end_bit_index_within_word + 1;
         uint64_t end_word_mask = (count_bits_in_last_word == c_uint64_bit_count)
             ? c_all_set_word
-            : ((1 << count_bits_in_last_word) - 1);
+            : ((1ULL << count_bits_in_last_word) - 1);
         apply_mask_to_word(bitmap[end_word_index], end_word_mask, value);
     }
 }
 
-uint64_t count_set_bits(uint64_t* bitmap, uint64_t bitmap_size, uint64_t end_limit_bit_index)
+uint64_t count_set_bits(
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t end_limit_bit_index)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size, __func__);
+    validate_bitmap_parameters(bitmap, bitmap_size);
 
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
@@ -175,7 +168,7 @@ uint64_t count_set_bits(uint64_t* bitmap, uint64_t bitmap_size, uint64_t end_lim
     }
     else
     {
-        validate_bit_index(bitmap_size, end_limit_bit_index, __func__);
+        validate_bit_index(bitmap_size, end_limit_bit_index);
     }
 
     uint64_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
@@ -191,25 +184,21 @@ uint64_t count_set_bits(uint64_t* bitmap, uint64_t bitmap_size, uint64_t end_lim
         // then first mask out the bits that we are supposed to ignore before doing the counting.
         if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
         {
-            uint64_t mask = (1 << end_bit_index_within_word) - 1;
+            uint64_t mask = (1ULL << end_bit_index_within_word) - 1;
             word &= mask;
         }
 
-        // Simple counting algorithm - based on the fact that ANDing a number and its immediate predecessor
-        // will erase the least significant bit set in the number.
-        while (word)
-        {
-            ++bit_count;
-            word &= (word - 1);
-        }
+        // __builtin_popcountll counts the set bits.
+        bit_count += __builtin_popcountll(word);
     }
 
     return bit_count;
 }
 
-uint64_t find_first_unset_bit(uint64_t* bitmap, uint64_t bitmap_size, uint64_t end_limit_bit_index)
+uint64_t find_first_unset_bit(
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size, uint64_t end_limit_bit_index)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size, __func__);
+    validate_bitmap_parameters(bitmap, bitmap_size);
 
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
@@ -218,7 +207,7 @@ uint64_t find_first_unset_bit(uint64_t* bitmap, uint64_t bitmap_size, uint64_t e
     }
     else
     {
-        validate_bit_index(bitmap_size, end_limit_bit_index, __func__);
+        validate_bit_index(bitmap_size, end_limit_bit_index);
     }
 
     uint64_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
@@ -232,36 +221,31 @@ uint64_t find_first_unset_bit(uint64_t* bitmap, uint64_t bitmap_size, uint64_t e
         // then first mask out the bits that we are supposed to ignore before doing any check.
         if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
         {
-            uint64_t mask = (1 << end_bit_index_within_word) - 1;
+            uint64_t mask = (1ULL << end_bit_index_within_word) - 1;
             // Because we're looking out for unset bits,
             // the masking is done by setting the irrelevant bits to 1.
             word |= ~mask;
         }
 
-        if (word == c_all_set_word)
+        // __builtin_ffsll finds the first set bit and returns its (index + 1),
+        // or returns 0 if no bits are set.
+        // Because we look for the first unset bit, we'll negate our word before passing it to the builtin
+        // and we'll subtract 1 from the result, which works great given that our c_max_bit_index value
+        // is set to -1.
+        uint64_t unset_bit_index = __builtin_ffsll(~word) - 1;
+        if (unset_bit_index != c_max_bit_index)
         {
-            continue;
+            return (word_index * c_uint64_bit_count) + unset_bit_index;
         }
-
-        // Turn the first 0 bit into 1 and all preceding bits into 0.
-        word += 1;
-
-        uint64_t unset_bit_index = 0;
-        while (!(word & 1))
-        {
-            ++unset_bit_index;
-            word >>= 1;
-        }
-        return (word_index * c_uint64_bit_count) + unset_bit_index;
     }
 
     return c_max_bit_index;
 }
 
 void print_bitmap(
-    uint64_t* bitmap, uint64_t bitmap_size)
+    std::atomic<uint64_t>* bitmap, uint64_t bitmap_size)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size, __func__);
+    validate_bitmap_parameters(bitmap, bitmap_size);
 
     cout << "\nBitmap value:" << endl;
 

@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <thread>
@@ -178,16 +179,7 @@ static void build_client_request(
     size_t memory_request_size_hint = 0)
 {
     flatbuffers::Offset<client_request_t> client_request;
-    if (event == session_event_t::REQUEST_MEMORY || event == session_event_t::BEGIN_TXN)
-    {
-        // Request more memory from the server in case session thread is running low.
-        auto alloc_info = Creatememory_allocation_info_t(builder, 0, memory_request_size_hint);
-        client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
-    }
-    else
-    {
-        client_request = Createclient_request_t(builder, event);
-    }
+    client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 }
@@ -356,6 +348,8 @@ void client_t::begin_session()
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
 
+    init_memory_manager();
+
     cleanup_fd_locators.dismiss();
     cleanup_session_socket.dismiss();
 }
@@ -466,6 +460,8 @@ void client_t::rollback_transaction()
         fd_count = 1;
     }
 
+    rollback_chunk_manager_allocations();
+
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, fds, fd_count, builder.GetBufferPointer(), builder.GetSize());
@@ -532,50 +528,103 @@ void client_t::commit_transaction()
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
+        rollback_chunk_manager_allocations();
+
         throw transaction_update_conflict();
     }
+
+    commit_chunk_manager_allocations();
 }
 
-address_offset_t client_t::request_memory(size_t object_size)
+void client_t::init_memory_manager()
 {
-    verify_txn_active();
+    s_memory_manager.load(
+        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+        sizeof(s_shared_data.data()->objects));
 
-    FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::REQUEST_MEMORY, object_size);
-
-    client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
-
-    const memory_allocation_info_t* allocation_info
-        = client_messenger.server_reply()->data_as_memory_allocation_info();
-
-    retail_assert(
-        allocation_info,
-        "Failed to read memory allocation info from the server.");
-
-    // Obtain allocated offset from the server.
-    const address_offset_t object_address_offset = allocation_info->allocation_offset();
-
-    retail_assert(
-        object_address_offset != c_invalid_address_offset,
-        "Failed to fetch memory from the server.");
-
-    return object_address_offset;
+    address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
+    if (chunk_address_offset == c_invalid_address_offset)
+    {
+        throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+    }
+    s_chunk_manager.initialize(
+        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+        chunk_address_offset);
 }
 
 address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    retail_assert(size != 0, "The client should not deallocate objects directly.");
-    address_offset_t allocated_memory_offset = c_invalid_address_offset;
+    retail_assert(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
 
-    allocated_memory_offset = client_t::request_memory(size);
+    address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+    if (object_offset == c_invalid_address_offset)
+    {
+        // We ran out of memory in the current chunk. Allocate a new one!
+        address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
+        if (chunk_address_offset == c_invalid_address_offset)
+        {
+            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+        }
 
-    retail_assert(allocated_memory_offset != c_invalid_address_offset, "Allocation failure! Returned offset not initialized.");
+        // Keep track of the exhausted chunk manager.
+        s_previous_chunk_managers.push_back(s_chunk_manager);
+
+        s_chunk_manager.initialize(
+            reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
+            chunk_address_offset);
+
+        // Allocate from new chunk.
+        object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+        retail_assert(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
+    }
 
     // Update locator array to point to the new offset.
-    update_locator(locator, allocated_memory_offset);
+    update_locator(locator, object_offset);
 
-    return allocated_memory_offset;
+    return object_offset;
+}
+
+void client_t::commit_chunk_manager_allocations()
+{
+    // We commit the chunk managers in the order in which they were allocated.
+    //
+    // NOTE: when the server will do this work, we will no longer need to make these calls in the client,
+    // but this is required until that point, to enable rollback to work properly.
+    for (auto& current_chunk_manager : s_previous_chunk_managers)
+    {
+        current_chunk_manager.commit();
+    }
+
+    // We're done with the previous chunk managers.
+    s_previous_chunk_managers.clear();
+
+    s_chunk_manager.commit();
+
+    retail_assert(
+        s_previous_chunk_managers.empty(),
+        "List of previous chunk managers was not emptied by the end of commit!");
+}
+
+void client_t::rollback_chunk_manager_allocations()
+{
+    // We rollback the chunk managers starting with the last one used.
+    // At the end of this method, we should be left with one chunk manager
+    // and an empty list of previous chunk managers.
+    s_chunk_manager.rollback();
+
+    while (!s_previous_chunk_managers.empty())
+    {
+        s_memory_manager.deallocate_chunk(s_chunk_manager.get_start_memory_offset());
+
+        s_chunk_manager = s_previous_chunk_managers[s_previous_chunk_managers.size() - 1];
+        s_previous_chunk_managers.pop_back();
+
+        s_chunk_manager.rollback();
+    }
+
+    retail_assert(
+        s_previous_chunk_managers.empty(),
+        "List of previous chunk managers was not emptied by the end of rollback!");
 }
