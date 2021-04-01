@@ -10,19 +10,19 @@ namespace gaia
 namespace common
 {
 
+// TODO: Chuan will remove this.
 std::string to_plural(std::string singular_string)
 {
-    int n;
-    n = singular_string.size();
+    int n = singular_string.size();
     singular_string.reserve(n + 2);
     char* string_content = singular_string.data();
 
     if (string_content[n - 1] == 'y') //ends with y
     {
-        string_content[n + 2] = '\0';
         string_content[n - 1] = 'i';
         string_content[n] = 'e';
         string_content[n + 1] = 's';
+        string_content[n + 2] = '\0';
     }
     if (string_content[n - 1] == 's' || ((string_content[n - 2] == 's') && (string_content[n - 1] == 'h'))) // ends with s or sh
     {

@@ -30,20 +30,20 @@ class relationship_strings_t
 {
 public:
     relationship_strings_t(const gaia_relationship_t& relationship)
-        : relationship(relationship){};
+        : m_relationship(relationship){};
 
     std::string parent_table()
     {
-        return relationship.parent().name();
+        return m_relationship.parent().name();
     }
 
     std::string child_table()
     {
-        return relationship.child().name();
+        return m_relationship.child().name();
     }
 
 protected:
-    gaia_relationship_t relationship;
+    gaia_relationship_t m_relationship;
 };
 
 class child_relationship : public relationship_strings_t
@@ -54,7 +54,7 @@ public:
 
     std::string field_name()
     {
-        return relationship.to_parent_link_name();
+        return m_relationship.to_parent_link_name();
     }
 
     std::string parent_offset()
@@ -64,7 +64,7 @@ public:
 
     std::string parent_offset_value()
     {
-        return to_string(relationship.parent_offset());
+        return to_string(m_relationship.parent_offset());
     }
 
     std::string next_offset()
@@ -76,7 +76,7 @@ public:
     std::string next_offset_value()
     {
 
-        return to_string(relationship.next_child_offset());
+        return to_string(m_relationship.next_child_offset());
     }
 };
 
@@ -88,7 +88,7 @@ public:
 
     std::string field_name()
     {
-        return relationship.to_child_link_name();
+        return m_relationship.to_child_link_name();
     }
 
     std::string first_offset()
@@ -98,13 +98,13 @@ public:
 
     std::string first_offset_value()
     {
-        return to_string(relationship.first_child_offset());
+        return to_string(m_relationship.first_child_offset());
     }
 
     std::string next_offset()
     {
 
-        return "c_" + child_table() + "_next_" + relationship.to_parent_link_name();
+        return "c_" + child_table() + "_next_" + m_relationship.to_parent_link_name();
     }
 };
 

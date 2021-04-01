@@ -503,13 +503,13 @@ void ddl_executor_t::disambiguate_child_link_names(gaia_table_t& parent_table)
         child_relationships[r.child().gaia_id()].push_back(r);
     }
 
-    for (auto& pair : child_relationships)
+    for (auto& cildren_rel : child_relationships)
     {
         // If there is more than one relationship from the parent_table
         // and a child table, we need to update the to_child_link_name.
-        if (pair.second.size() > 1)
+        if (cildren_rel.second.size() > 1)
         {
-            for (auto& r : pair.second)
+            for (auto& r : cildren_rel.second)
             {
                 std::string new_to_child_name = to_plural(r.child().name()) + "_" + r.to_parent_link_name();
 

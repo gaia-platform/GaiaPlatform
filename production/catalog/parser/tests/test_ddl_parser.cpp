@@ -109,7 +109,7 @@ TEST(catalog_ddl_parser_test, create_table_references)
     EXPECT_EQ(field->db_name(), "d");
 }
 
-TEST(catalog_ddl_parser_test, fail_on_anonymous_reference)
+TEST(catalog_ddl_parser_test, fail_on_unnamed_reference)
 {
     parser_t parser;
     ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (REFERENCES d.t2);"));
