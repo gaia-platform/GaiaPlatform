@@ -545,7 +545,7 @@ void client_t::commit_transaction()
     // This requires the client to communicate the offsets of the chunks
     // to the server at the time it requests the commit of the transaction.
     // The call here is just a reminder that this work needs to be done somewhere.
-    commit_chunk_manager_allocations();
+    // commit_chunk_manager_allocations();
 }
 
 void client_t::init_memory_manager()
