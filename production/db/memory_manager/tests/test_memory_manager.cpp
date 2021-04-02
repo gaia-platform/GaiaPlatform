@@ -55,6 +55,17 @@ TEST(memory_manager, basic_operation)
     ASSERT_EQ(
         second_allocation_offset + c_chunk_size,
         third_allocation_offset);
+
+    memory_manager.deallocate_chunk(static_cast<chunk_offset_t>(second_allocation_offset / c_chunk_size));
+    cout << "Chunk was deallocated at offset " << second_allocation_offset << "." << endl;
+
+    address_offset_t fourth_allocation_offset = memory_manager.allocate_chunk();
+    ASSERT_NE(fourth_allocation_offset, c_invalid_address_offset);
+    cout << "Chunk was allocated at offset " << fourth_allocation_offset << "." << endl;
+
+    ASSERT_EQ(
+        second_allocation_offset,
+        fourth_allocation_offset);
 }
 
 void output_allocation_information(size_t requested_size, size_t allocated_size, address_offset_t offset)

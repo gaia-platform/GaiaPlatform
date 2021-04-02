@@ -1079,7 +1079,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
         getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && (
-            (Tok.isOneOf(tok::period, tok::coloncolon) &&
+            (Tok.is(tok::period) &&
             NextToken().is(tok::identifier))),
         GetExplicitNavigationPath());
 

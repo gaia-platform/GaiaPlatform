@@ -25,7 +25,7 @@ void data_holder_t::clear()
 
 int data_holder_t::compare(const data_holder_t& other) const
 {
-    retail_assert(type == other.type, "type_holder_t::compare() was called for different types.");
+    retail_assert(type == other.type, "data_holder_t::compare() was called for different types.");
 
     if (type == reflection::String)
     {

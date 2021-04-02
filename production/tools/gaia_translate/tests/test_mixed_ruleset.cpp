@@ -71,13 +71,13 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
         return strcmp(s.name(), "TestSensor1") == 0;
     });
 
-    ASSERT_EQ(1, std::distance(sensors.begin(), sensors.end()));
+    ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
     const auto actuators = actuator_t::list().where([](const actuator_t& s) {
         return strcmp(s.name(), "TestActuator1") == 0;
     });
 
-    ASSERT_EQ(1, std::distance(sensors.begin(), sensors.end()));
+    ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
     gaia::db::commit_transaction();
 }

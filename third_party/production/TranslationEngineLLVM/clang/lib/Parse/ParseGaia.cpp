@@ -205,12 +205,38 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
         return false;
     }
 
+    std::unordered_set<std::string> tags;
     do
     {
         SourceLocation tokenLocation = Tok.getLocation();
         if (Tok.is(tok::identifier))
         {
-            std::string table = std::string("\"") + Tok.getIdentifierInfo()->getName().str() ;
+            std::string table = Tok.getIdentifierInfo()->getName().str();
+            if (NextToken().is(tok::colon))
+            {
+                if (tags.find(table) != tags.end())
+                {
+                    Diag(Tok, diag::err_duplicate_tag_defined) << table;
+                    return false;
+                }
+                else
+                {
+                    tags.emplace(Tok.getIdentifierInfo()->getName().str());
+                }
+                table += std::string(":");
+                ConsumeToken();
+                if (NextToken().is(tok::identifier))
+                {
+                    ConsumeToken();
+                    table += Tok.getIdentifierInfo()->getName().str();
+                }
+                else
+                {
+                    Diag(Tok, diag::err_expected) << tok::identifier;
+                    return false;
+                }
+            }
+
             if (NextToken().is(tok::period))
             {
                 ConsumeToken();
@@ -225,7 +251,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                     return false;
                 }
             }
-            table += std::string("\"");
+            table = std::string("\"") + table + std::string("\"");
             Token Toks[1];
             Toks[0].startToken();
             Toks[0].setKind(tok::string_literal);

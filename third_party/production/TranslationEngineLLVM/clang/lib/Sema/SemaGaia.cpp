@@ -488,25 +488,6 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    // Check if the type has been already created and return the created file
-    auto &types = Context.getTypes();
-    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
-    {
-        const auto *type = types[typeIdx];
-        const RecordDecl *record = type->getAsRecordDecl();
-        if (record != nullptr)
-        {
-            const auto *id = record->getIdentifier();
-            if (id != nullptr)
-            {
-                if (id->getName().equals(ruleContextTypeName))
-                {
-                    return QualType(type, 0);
-                }
-            }
-        }
-    }
-
     RecordDecl *RD = Context.buildImplicitRecord(ruleContextTypeName);
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
@@ -532,25 +513,30 @@ QualType Sema::getRuleContextType(SourceLocation loc)
 }
 
 
-QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
+QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
 {
-    std::string tableName = table->getName().str();
-    DeclContext *c = getCurFunctionDecl();
-    while (c)
+    DeclContext *context = getCurFunctionDecl();
+    while (context)
     {
-        if (isa<RulesetDecl>(c))
+        if (isa<RulesetDecl>(context))
         {
             break;
         }
-        c = c->getParent();
+        context = context->getParent();
     }
 
-    if (c == nullptr || !isa<RulesetDecl>(c))
+    if (context == nullptr || !isa<RulesetDecl>(context))
     {
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
-
+    std::string typeName = tableName;
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
+    if (tagMapping.find(tableName) != tagMapping.end())
+    {
+        typeName = tagMapping[tableName];
+    }
+    fieldTableName = typeName;
     const Type *realType = nullptr;
 
     auto &types = Context.getTypes();
@@ -563,7 +549,8 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
             const auto *id = record->getIdentifier();
             if (id != nullptr)
             {
-                if (id->getName().equals(tableName + "_t"))
+                // Check if EDC type is defined.
+                if (id->getName().equals(typeName + "_t"))
                 {
                     realType = type;
                     break;
@@ -572,7 +559,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
         }
     }
 
-    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
+    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTableAttr *attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
     if (attr != nullptr)
@@ -580,29 +567,28 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
         bool table_found = false;
         for (const IdentifierInfo *id : attr->tables())
         {
-            if (id->getName().str() == tableName)
+            if (id->getName().str() == typeName)
             {
                 table_found = true;
                 break;
             }
-
         }
 
         if (!table_found)
         {
-            Diag(loc, diag::warn_table_referenced_not_in_table_attribute) << tableName;
+            Diag(loc, diag::warn_table_referenced_not_in_table_attribute) << typeName;
         }
     }
 
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    auto tableDescription = tableData.find(tableName);
+    auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
-        Diag(loc,diag::err_invalid_table_name) << tableName;
+        Diag(loc,diag::err_invalid_table_name) << typeName;
         return Context.VoidTy;
     }
 
-    RecordDecl *RD = Context.buildImplicitRecord(tableName + "__type");
+    RecordDecl *RD = Context.buildImplicitRecord(typeName + "__type");
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
@@ -653,15 +639,13 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
+QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
-    StringRef fieldNameStrRef = id->getName();
-
-    std::string fieldName = fieldNameStrRef.str();
-
+    DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
 
-    if (tableData.find(fieldName) != tableData.end())
+    if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
     {
         for (auto iterator : tableData)
         {
@@ -672,26 +656,32 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
             }
         }
 
-        return getTableType(id, loc);
+        if (tableData.find(fieldName) != tableData.end())
+        {
+            return getTableType(fieldName, loc);
+        }
+        else
+        {
+            return getTableType(tagMapping[fieldName], loc);
+        }
     }
 
-    DeclContext *c = getCurFunctionDecl();
-    while (c)
+    while (context)
     {
-        if (isa<RulesetDecl>(c))
+        if (isa<RulesetDecl>(context))
         {
             break;
         }
-        c = c->getParent();
+        context = context->getParent();
     }
 
-    if (c == nullptr || !isa<RulesetDecl>(c))
+    if (context == nullptr || !isa<RulesetDecl>(context))
     {
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
     vector<string> tables;
-    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(c);
+    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
     if (attr != nullptr)
@@ -723,12 +713,12 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
         {
             if (fieldDescription->second->isVoidType())
             {
-                Diag(loc, diag::err_invalid_field_type) << fieldNameStrRef;
+                Diag(loc, diag::err_invalid_field_type) << fieldName;
                 return Context.VoidTy;
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldNameStrRef;
+                Diag(loc, diag::err_duplicate_field) << fieldName;
                 return Context.VoidTy;
             }
 
@@ -739,21 +729,95 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 
     if (retVal == Context.VoidTy)
     {
-        Diag(loc, diag::err_unknown_field) << fieldNameStrRef;
+        Diag(loc, diag::err_unknown_field) << fieldName;
     }
 
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,
-    bool isGaiaFieldTable, const string& explicitPath)
+static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
 {
-    QualType qualType = isGaiaFieldTable ? getTableType(II, loc) : getFieldType(II, loc);
+    size_t tag_position = attribute.find(':');
+    if (tag_position != string::npos)
+    {
+        tag = attribute.substr(0, tag_position);
+    }
+    else
+    {
+        return false;
+    }
+    size_t dot_position = attribute.find('.', tag_position + 1);
+    // Handle fully qualified reference.
+    if (dot_position != string::npos)
+    {
+        table = attribute.substr(tag_position + 1, dot_position - tag_position - 1);
+        return true;
+    }
+
+    table = attribute.substr(tag_position + 1);
+    return true;
+}
+
+std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context) const
+{
+    std::unordered_map<std::string, std::string> retVal;
+    const FunctionDecl *ruleContext = dyn_cast<FunctionDecl>(context);
+    if (ruleContext == nullptr)
+    {
+         return retVal;
+    }
+
+    const GaiaOnUpdateAttr* update_attribute = ruleContext->getAttr<GaiaOnUpdateAttr>();
+    const GaiaOnInsertAttr* insert_attribute = ruleContext->getAttr<GaiaOnInsertAttr>();
+    const GaiaOnChangeAttr* change_attribute = ruleContext->getAttr<GaiaOnChangeAttr>();
+
+    if (update_attribute != nullptr)
+    {
+        for (const auto& table_iterator : update_attribute->tables())
+        {
+            string table, tag;
+            if (parse_tagged_attribute(table_iterator, table, tag))
+            {
+                retVal[tag] = table;
+            }
+        }
+    }
+
+    if (insert_attribute != nullptr)
+    {
+        for (const auto& table_iterator : insert_attribute->tables())
+        {
+            string table, tag;
+            if (parse_tagged_attribute(table_iterator, table, tag))
+            {
+                retVal[tag] = table;
+            }
+        }
+    }
+
+    if (change_attribute != nullptr)
+    {
+        for (const auto& table_iterator : change_attribute->tables())
+        {
+            string table, tag;
+            if (parse_tagged_attribute(table_iterator, table, tag))
+            {
+                retVal[tag] = table;
+            }
+        }
+    }
+    return retVal;
+}
+
+NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, bool isGaiaFieldTable,
+    const string& explicitPath)
+{
+    QualType qualType = isGaiaFieldTable ? getTableType(II->getName().str(), loc) :
+        getFieldType(II->getName().str(), loc);
     if (qualType->isVoidType())
     {
         return nullptr;
     }
-
     DeclContext *context  = getCurFunctionDecl();
 
     VarDecl *varDecl = VarDecl::Create(Context, context, loc, loc,

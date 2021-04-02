@@ -27,12 +27,12 @@ ruleset test
         g_rule_called++;
     }
 
-    OnChange(sensor.value)
+    OnChange(s:sensor.value)
     {
         gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
 
-        max_temp = sensor.value + min_temp;
-        max_temp = sensor.value + 4;
+        max_temp = s.value + min_temp;
+        max_temp = s.value + 4;
         if (actuator.value > 0)
         {
             g_actuator_rule_called++;
@@ -45,13 +45,29 @@ ruleset test
 
         if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
         {
-            if (sensor.value > 5)
+            if (s.value > 5)
             {
                 actuator.value = 1000;
             }
             g_update_called++;
         }
         g_rule_called++;
+    }
+}
+
+void use_string(const char* name)
+{
+
+}
+
+ruleset test3
+{
+    OnUpdate(S:sensor, T:sensor)
+    {
+        auto x = S.name;
+        use_string(S.name);
+        use_string(T.name);
+        use_string(x);
     }
 }
 

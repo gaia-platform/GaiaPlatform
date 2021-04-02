@@ -5,6 +5,12 @@
 
 #pragma once
 
+#include <unistd.h>
+
+#include <sstream>
+
+#include "gaia_internal/common/retail_assert.hpp"
+
 #include "memory_types.hpp"
 #include "structures.hpp"
 
@@ -26,32 +32,33 @@ public:
     base_memory_manager_t();
 
     // Basic accessors.
-    uint8_t* get_base_memory_address() const;
-    address_offset_t get_start_memory_offset() const;
-    size_t get_total_memory_size() const;
+    inline uint8_t* get_base_memory_address() const;
+    inline address_offset_t get_start_memory_offset() const;
+    inline size_t get_total_memory_size() const;
 
     // Sets stack_allocator_t execution flags.
-    void set_execution_flags(const execution_flags_t& execution_flags);
+    inline void set_execution_flags(const execution_flags_t& execution_flags);
 
     // Helper function for allocation alignment.
-    static size_t calculate_allocation_size(size_t requested_size);
+    // Allocation sizes need to be rounded up to the closest 64B multiple.
+    inline static size_t calculate_allocation_size(size_t requested_size);
 
     // Sanity checks.
-    static void validate_address_alignment(const uint8_t* const memory_address);
-    static void validate_offset_alignment(address_offset_t memory_offset);
-    static void validate_size_alignment(size_t memory_size);
+    static inline void validate_address_alignment(const uint8_t* const memory_address);
+    static inline void validate_offset_alignment(address_offset_t memory_offset);
+    static inline void validate_size_alignment(size_t memory_size);
 
-    void validate_managed_memory_range() const;
+    inline void validate_managed_memory_range() const;
 
-    void validate_address(const uint8_t* const memory_address) const;
-    void validate_offset(address_offset_t memory_offset) const;
-    void validate_size(size_t memory_size) const;
+    inline void validate_address(const uint8_t* const memory_address) const;
+    inline void validate_offset(address_offset_t memory_offset) const;
+    inline void validate_size(size_t memory_size) const;
 
     // Gets the offset corresponding to a memory address.
-    address_offset_t get_offset(const uint8_t* const memory_address) const;
+    inline address_offset_t get_offset(const uint8_t* const memory_address) const;
 
     // Gets the memory address corresponding to an offset.
-    uint8_t* get_address(address_offset_t memory_offset) const;
+    inline uint8_t* get_address(address_offset_t memory_offset) const;
 
 protected:
     // The base memory address relative to which we compute our offsets.
@@ -66,6 +73,8 @@ protected:
     // Our execution flags.
     execution_flags_t m_execution_flags;
 };
+
+#include "base_memory_manager.inc"
 
 } // namespace memory_manager
 } // namespace db

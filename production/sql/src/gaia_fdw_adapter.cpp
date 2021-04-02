@@ -41,7 +41,12 @@ namespace gaia
 namespace fdw
 {
 
-constexpr size_t c_invalid_field_index = std::numeric_limits<size_t>::max();
+static constexpr size_t c_invalid_field_index = std::numeric_limits<size_t>::max();
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static constexpr char c_message_fdw_internal_error[] = "An FDW internal error was detected in '%s'!";
+// NOLINTNEXTLINE(readability-identifier-naming)
+static constexpr char c_message_exception[] = "Exception: '%s'.";
 
 unordered_map<string, pair<gaia_id_t, gaia_type_t>> adapter_t::s_map_table_name_to_ids;
 
@@ -115,7 +120,7 @@ Oid convert_to_pg_type(data_type_t type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in %s!", __func__),
+             errmsg(c_message_fdw_internal_error, __func__),
              errhint("Unhandled data type '%d'.", type)));
     }
 }
@@ -150,7 +155,7 @@ Datum convert_to_datum(const data_holder_t& value)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in %s!", __func__),
+             errmsg(c_message_fdw_internal_error, __func__),
              errhint("Unhandled data_holder_t type '%d'.", value.type)));
     }
 }
@@ -222,7 +227,7 @@ reflection::BaseType convert_to_reflection_type(data_type_t type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_reflection_type()!"),
+             errmsg(c_message_fdw_internal_error, __func__),
              errhint("Unhandled data_type_t '%d'.", type)));
     }
 }
@@ -270,7 +275,7 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("An FDW internal error was detected in convert_to_data_holder()!"),
+             errmsg(c_message_fdw_internal_error, __func__),
              errhint("Unhandled data_type_t '%d'.", value_type)));
     }
 
@@ -364,7 +369,7 @@ void adapter_t::begin_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error opening COW-SE session."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -382,7 +387,7 @@ void adapter_t::end_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error closing COW-SE session."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -414,7 +419,7 @@ bool adapter_t::begin_transaction()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error beginning transaction."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -446,7 +451,7 @@ bool adapter_t::commit_transaction()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error committing transaction."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -469,7 +474,7 @@ uint64_t adapter_t::get_new_gaia_id()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error generating gaia_id."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -504,7 +509,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed generating foreign table DDL strings."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(c_message_exception, e.what())));
     }
 }
 
@@ -732,7 +737,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unexpected field index received in extract_field_value()!"),
+             errmsg("Unexpected field index received in %s!", __func__),
              errhint(
                  "Field index is '%ld' and field count is '%ld' for table '%s'.",
                  field_index, m_field_count, get_table_name())));
@@ -903,7 +908,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unexpected field index received in set_field_value()!"),
+             errmsg("Unexpected field index received in '%s'!", __func__),
              errhint(
                  "Field index is '%ld' and field count is '%ld' for table '%s'.",
                  field_index, m_field_count, get_table_name())));
@@ -1082,8 +1087,8 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg(
-                     "modify_record() was called with an invalid operation type '%d'!",
-                     static_cast<int>(modify_operation_type))));
+                     "'%s' was called with an invalid operation type '%d'!",
+                     __func__, static_cast<int>(modify_operation_type))));
         }
 
         // Now that we have access to the database record, we can also perform the reference updates.

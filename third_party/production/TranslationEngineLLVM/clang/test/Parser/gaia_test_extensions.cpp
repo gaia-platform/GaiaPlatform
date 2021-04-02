@@ -54,10 +54,10 @@ ruleset test2
 {
   OnChange(actuator)
   {
-	  if (actuator.value < 5)
-	  {
-		  actuator.value = 5;
-	  }
+   if (actuator.value < 5)
+    {
+      actuator.value = 5;
+    }
   }
 }
 
@@ -65,8 +65,8 @@ ruleset test2
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:8, col:17> 'float' lvalue .value 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
-// CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:14> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:16> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:56:3>
 
 
@@ -80,10 +80,10 @@ typedef enum
 ruleset test3 : Table (sensor)
 {
   {
-	  if (@value < 5)
-	  {
-		  value = 5;
-	  }
+    if (@value < 5)
+    {
+      value = 5;
+    }
   }
 }
 
@@ -111,10 +111,21 @@ ruleset test4
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .gaia_type 0x{{[^ ]*}}
 // CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
 
-ruleset test2
+ruleset test5
 {
-  OnChange(actuator)
+  OnChange(a:actuator)
   {
-	  /incubator->actuator.value=0;
+    if (actuator.value < 5)
+    {
+      actuator.value = 5;
+    }
   }
 }
+
+// CHECK:      RulesetDecl{{.*}} test5
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:9, col:18> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:16> 'float' lvalue .value 0x{{[^ ]*}}
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:117:3>
