@@ -14,12 +14,12 @@ create table if not exists sensor (
       name string,
       timestamp uint64,
       value float,
-      references incubator
+      incubator references incubator
 );
 
 create table if not exists actuator (
       name string,
       timestamp uint64,
       value float,
-      references incubator
+      incubator references incubator
 );
