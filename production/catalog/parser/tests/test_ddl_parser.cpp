@@ -299,7 +299,6 @@ TEST(catalog_ddl_parser_test, create_empty_table)
 TEST(catalog_ddl_parser_test, create_relationship)
 {
     parser_t parser;
-    parser.trace_parsing = true;
 
     const string ddl_text_full_db = R"(
 CREATE RELATIONSHIP r (
