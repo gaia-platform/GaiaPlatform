@@ -25,7 +25,7 @@ struct memory_manager_metadata_t
     // We'll reserve a full chunk for metadata,
     // because chunks are the smallest allocation units at memory manager level.
     // A bitmap for 2^16 slots takes 8kB, or 1024 64bit values.
-    static constexpr address_offset_t c_chunk_bitmap_size = 1024;
+    static constexpr size_t c_chunk_bitmap_size = 1024;
 
     std::atomic<uint64_t> chunk_bitmap[c_chunk_bitmap_size];
 
@@ -67,7 +67,7 @@ struct chunk_manager_metadata_t
     // Because the bitmap does not need to track those 128 slots, that frees 16B.
     // In terms of 64b words, the bitmap only needs 1024 - 2 such words for its tracking.
     // The 2 words can be used to store additional metadata.
-    static constexpr address_offset_t c_slot_bitmap_size = 1024 - 2;
+    static constexpr size_t c_slot_bitmap_size = 1024 - 2;
 
     std::atomic<uint64_t> slot_bitmap[c_slot_bitmap_size];
 

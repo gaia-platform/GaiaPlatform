@@ -12,12 +12,12 @@ The notes below cover the planned implementation. However, the current implement
 The Memory Manager contains two main components: the memory manager itself and a chunk manager:
 
 * Memory manager (MM) component:
-  * This is used by both the server and the client to allocate 4MB chunks of memory from which memory is allocated by the client using a chunk manager.
+  * This is used by both the server and the client to allocate 4MB chunks of memory from which memory is allocated by the client using a chunk manager. The server initializes the memory range with an init() call; the clients load that memory range with a load() call.
   * There is a metadata block that will hold a bitmap tracking the use of each chunk.
   * The server will ensure that memory continues to be available by compacting allocations within and across chunks.
-  * A memory manager is expected to be used for chunk allocation by multiple threads/processes at a time. However, its compaction operation is expected to occur on a single thread.
+  * Multiple instances of a memory manager are expected to be used for chunk allocation by multiple threads/processes at a time. Only the server should be using its memory manager instance for compaction.
 * Chunk manager (CM) component:
-  * This is used by the client to allocate memory from a chunk and for garbage collection. It can also be used by the server to process the allocations made by the client in a chunk or for garbasge collection (GC) and compaction purposes.
+  * This is used by the client to allocate memory from a chunk and for garbage collection. It can also be used by the server to process the allocations made by the client in a chunk or for garbage collection (GC) and compaction purposes.
   * It is meant to be used by the client across multiple transactions. As such, it allows quickly reverting all allocations made since the last commit.
   * The allocation unit inside a chunk is 64B. There is a chunk metadata block that uses a bitmap to indicate the allocation units on which object allocations start inside the chunk.
   * A chunk manager is expected to be used by a single thread at a time for allocations or compaction, but can be used by multiple threads for garbage collection (marking slots as unused in the slot bitmap).
@@ -47,4 +47,4 @@ Determining the size of an allocation given just an address can be done by deser
 
 The MM chunk allocations can be done from multiple processes that synchronize through atomic operations over the next available chunk offset. The MM compaction operations would only be executed by the server.
 
-CM allocation operations can be done by a single thread; however, garbage collection operations can be done by multiple threads and they can conflict with themselves or with the allocation operations when updating the slot bitmap. The server needs to track the ownership of each chunk and take over if a client dies.
+CM allocation operations can be done by a single thread; however, garbage collection operations can be done by multiple threads and they can conflict with themselves or with the allocation operations when updating the slot bitmap. The server needs to track the ownership of each chunk and take over the management of a chunk if the client that owned it dies.
