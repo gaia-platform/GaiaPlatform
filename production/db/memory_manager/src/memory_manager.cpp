@@ -130,7 +130,7 @@ void memory_manager_t::deallocate_chunk(address_offset_t chunk_address_offset) c
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
         "Chunk offset passed to deallocate_chunk() is out of bounds");
 
-    while (!try_mark_chunk_use(chunk_offset, false))
+    while (!try_mark_chunk_used_status(chunk_offset, false))
     {
         // Retry until we succeed.
         // Only one thread (client session or compaction) should be calling this method,
@@ -155,7 +155,7 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
     chunk_manager_t chunk_manager;
     chunk_manager.load(m_base_memory_address, chunk_address_offset);
 
-    while (!chunk_manager.try_mark_slot_use(slot_offset, false))
+    while (!chunk_manager.try_mark_slot_used_status(slot_offset, false))
     {
         // Retry until we succeed.
         // An object should be deallocated by a single thread - the one
@@ -200,7 +200,7 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
 
         auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index + c_first_chunk_offset);
 
-        while ((has_claimed_chunk = try_mark_chunk_use(chunk_offset, true)) == false)
+        while ((has_claimed_chunk = try_mark_chunk_used_status(chunk_offset, true)) == false)
         {
             // If someone else claimed the chunk, look for another one;
             // otherwise, keep trying to claim the current one.
@@ -254,9 +254,7 @@ address_offset_t memory_manager_t::allocate_from_unused_memory() const
     // We use this approach instead of CAS to prevent the need for retrying
     // in case of concurrent updates. We'll use CAS to revert our update
     // if we run out of memory, at which point we might as well waste time too.
-    address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
-        &(m_metadata->start_unused_memory_offset),
-        c_chunk_size);
+    address_offset_t old_next_allocation_offset = m_metadata->start_unused_memory_offset.fetch_add(c_chunk_size);
     address_offset_t new_next_allocation_offset = old_next_allocation_offset + c_chunk_size;
 
     // Check again if our memory got exhausted by this allocation,
@@ -277,7 +275,7 @@ address_offset_t memory_manager_t::allocate_from_unused_memory() const
     address_offset_t allocation_offset = old_next_allocation_offset;
     chunk_offset_t chunk_offset = get_chunk_offset(allocation_offset);
 
-    while (!try_mark_chunk_use(chunk_offset, true))
+    while (!try_mark_chunk_used_status(chunk_offset, true))
     {
         // Retry until we succeed.
         // We already claimed the chunk when we bumped start_unused_memory_offset,
@@ -309,12 +307,12 @@ bool memory_manager_t::is_chunk_marked_as_used(chunk_offset_t chunk_offset) cons
         bit_index);
 }
 
-bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool is_used) const
+bool memory_manager_t::try_mark_chunk_used_status(chunk_offset_t chunk_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
-        "Chunk offset passed to try_mark_chunk_use() is out of bounds");
+        "Chunk offset passed to try_mark_chunk_used_status() is out of bounds");
 
     uint64_t bit_index = chunk_offset - c_first_chunk_offset;
 

@@ -117,7 +117,7 @@ address_offset_t chunk_manager_t::allocate(
     // This marking is done immediately, before we get a decision for our transaction.
     // If our process dies, the server will ignore this portion of the bitmap
     // based on the value of the metadata's last_committed_slot_offset.
-    while (!try_mark_slot_use(allocation_slot_offset, true))
+    while (!try_mark_slot_used_status(allocation_slot_offset, true))
     {
         // Retry until we succeed.
         // Failure can be due to another thread attempting to do GC.
@@ -179,7 +179,7 @@ void chunk_manager_t::rollback()
     {
         // We don't know how many allocations were actually made,
         // so we'll just reset all the bits for the uncommitted slots.
-        mark_slot_range_use(first_uncommitted_allocation_slot_offset, slot_count, false);
+        mark_slot_range_used_status(first_uncommitted_allocation_slot_offset, slot_count, false);
 
         m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
     }
@@ -205,12 +205,12 @@ bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
         bit_index);
 }
 
-bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool is_used) const
+bool chunk_manager_t::try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to try_mark_slot_use() is out of bounds");
+        "Slot offset passed to try_mark_slot_used_status() is out of bounds");
 
     uint64_t bit_index = slot_offset - c_first_slot_offset;
 
@@ -221,12 +221,12 @@ bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool is_used)
         is_used);
 }
 
-void chunk_manager_t::mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
+void chunk_manager_t::mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         start_slot_offset >= c_first_slot_offset && start_slot_offset <= c_last_slot_offset,
-        "Slot offset passed to mark_slot_range_use() is out of bounds");
+        "Slot offset passed to mark_slot_range_used_status() is out of bounds");
 
     uint64_t start_bit_index = start_slot_offset - c_first_slot_offset;
 

@@ -70,10 +70,10 @@ private:
     // Try to mark the use of a single slot in the slot bitmap.
     // This will prevent loss of updates in the case of concurrent bitmap updates,
     // but means that the call could fail if a conflict with another update is detected.
-    bool try_mark_slot_use(slot_offset_t slot_offset, bool is_used) const;
+    bool try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const;
 
     // Mark the use of a range of slots in the slot bitmap.
-    void mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const;
+    void mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const;
 
     void output_debugging_information(const std::string& context_description) const;
 };

@@ -74,7 +74,7 @@ private:
     bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;
 
     // Try to mark the use of a single chunk in the chunk bitmap.
-    bool try_mark_chunk_use(chunk_offset_t chunk_offset, bool is_used) const;
+    bool try_mark_chunk_used_status(chunk_offset_t chunk_offset, bool is_used) const;
 
     void output_debugging_information(const std::string& context_description) const;
 };
