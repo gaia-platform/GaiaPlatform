@@ -253,7 +253,7 @@ struct create_statement_t : statement_t
 
     bool if_not_exists;
 
-    // A relationship is defined by a pair of links since we only allow
+    // A relationship is defined by a pair of links because we only allow
     // bi-directional relationships.
     std::pair<link_def_t, link_def_t> relationship;
 };

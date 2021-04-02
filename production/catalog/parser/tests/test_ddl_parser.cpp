@@ -336,4 +336,19 @@ CREATE RELATIONSHIP r (
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
     create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_negative_case_no_name = R"(
+CREATE RELATIONSHIP (
+  t1.link1 -> t2,
+  t2.link2 -> t1
+);
+)";
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_no_name));
+
+    const string ddl_text_negative_case_single_link = R"(
+CREATE RELATIONSHIP r (
+  t1.link -> t2,
+);
+)";
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_single_link));
 }
