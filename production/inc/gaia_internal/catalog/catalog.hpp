@@ -82,7 +82,7 @@ enum class trim_action_type_t : uint8_t
 /*
  * Value index types.
  */
-enum value_index_type_t : uint8_t
+enum class value_index_type_t : uint8_t
 {
     hash,
     range
@@ -91,7 +91,7 @@ enum value_index_type_t : uint8_t
 /*
  * Cardinality of a relationship
  */
-enum relationship_cardinality_t : uint8_t
+enum class relationship_cardinality_t : uint8_t
 {
     one,
     many
@@ -210,12 +210,27 @@ struct ref_field_def_t : base_field_def_t
 
 using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
 
+struct link_def_t
+{
+    std::string from_database;
+    std::string from_table;
+
+    std::string name;
+
+    std::string to_database;
+    std::string to_table;
+
+    relationship_cardinality_t cardinality;
+};
+
 enum class create_type_t : uint8_t
 {
     create_database,
     create_table,
+    create_relationship,
 };
 
+// TODO: refactoring create statements into sub types, pending index changes (create_index).
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
@@ -237,6 +252,10 @@ struct create_statement_t : statement_t
     field_def_list_t fields;
 
     bool if_not_exists;
+
+    // A relationship is defined by a pair of links because we only allow
+    // bi-directional relationships.
+    std::pair<link_def_t, link_def_t> relationship;
 };
 
 enum class drop_type_t : uint8_t
