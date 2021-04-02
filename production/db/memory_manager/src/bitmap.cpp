@@ -80,7 +80,7 @@ bool is_bit_set(
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
     find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
-    return (!(*word & mask));
+    return ((word->load() & mask) != 0);
 }
 
 void set_bit_value(

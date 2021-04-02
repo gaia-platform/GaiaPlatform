@@ -119,6 +119,7 @@ address_offset_t chunk_manager_t::allocate(
     // based on the value of the metadata's last_committed_slot_offset.
     while (!try_mark_slot_use(allocation_slot_offset, true))
     {
+        // Retry until we succeed.
         // Failure can be due to another thread attempting to do GC.
         // Allocations should only be performed on one thread,
         // so we just need to retry until we succeed.

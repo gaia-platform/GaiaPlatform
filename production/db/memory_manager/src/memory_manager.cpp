@@ -132,7 +132,7 @@ void memory_manager_t::deallocate_chunk(address_offset_t chunk_address_offset) c
 
     while (!try_mark_chunk_use(chunk_offset, false))
     {
-        // Keep trying!
+        // Retry until we succeed.
         // Only one thread (client session or compaction) should be calling this method,
         // so any failures are due to bitmap updates made for different chunks.
         retail_assert(is_chunk_marked_as_used(chunk_offset), "Another thread has marked chunk as unused!");
@@ -157,7 +157,7 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
 
     while (!chunk_manager.try_mark_slot_use(slot_offset, false))
     {
-        // Keep trying!
+        // Retry until we succeed.
         // An object should be deallocated by a single thread - the one
         // corresponding to the session that updated this copy of the object.
         retail_assert(
@@ -184,7 +184,16 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
 {
     validate_metadata(m_metadata);
 
-    uint64_t end_limit_bit_index = (m_metadata->start_unused_memory_offset / c_chunk_size) - 1;
+    // We want to prevent the search from finding unset bits for chunks that were never allocated,
+    // so we need to calculate the bit index of the last allocated chunk, which is 1 less the offset
+    // of the next available chunk, and then we need to subtract c_first_chunk_offset,
+    // because bitmap indexes of a chunk offset are relative to c_first_chunk_offset.
+    chunk_offset_t last_allocated_chunk_offset = get_chunk_offset(m_metadata->start_unused_memory_offset) - 1;
+    uint64_t end_limit_bit_index = static_cast<uint64_t>(last_allocated_chunk_offset) - c_first_chunk_offset;
+    if (end_limit_bit_index == c_max_bit_index)
+    {
+        return c_invalid_address_offset;
+    }
 
     uint64_t first_unset_bit_index = c_max_bit_index;
     bool has_claimed_chunk = false;
@@ -196,6 +205,8 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
                 end_limit_bit_index))
            != c_max_bit_index)
     {
+        retail_assert(first_unset_bit_index <= end_limit_bit_index, "First unset bit index is outside the searched range!");
+
         auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index + c_first_chunk_offset);
 
         while ((has_claimed_chunk = try_mark_chunk_use(chunk_offset, true)) == false)
@@ -271,7 +282,7 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
 
     while (!try_mark_chunk_use(chunk_offset, true))
     {
-        // Just retry until we succeed.
+        // Retry until we succeed.
         // We already claimed the chunk when we bumped start_unused_memory_offset,
         // so all failures must be due to concurrent updates of the bitmap word,
         // not because of a conflict on this particular chunk's bit.
