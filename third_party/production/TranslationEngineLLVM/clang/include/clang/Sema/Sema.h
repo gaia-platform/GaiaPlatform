@@ -4605,8 +4605,9 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
 
 private:
-  QualType getFieldType (IdentifierInfo *id, SourceLocation loc) ;
-  QualType getTableType (IdentifierInfo *id, SourceLocation loc) ;
+  QualType getFieldType (const std::string &fieldName, SourceLocation loc);
+  QualType getTableType (const std::string &tableName, SourceLocation loc);
+  std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context) const;
   QualType getRuleContextType(SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;

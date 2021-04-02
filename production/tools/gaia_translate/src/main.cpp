@@ -272,37 +272,51 @@ string get_table_name(const Decl* decl)
     return "";
 }
 
+// The function parses a rule  attribute e.g.
+// Employee
+// Employee.name_last
+// E:Employee
+// E:Employee.name_last
 bool parse_attribute(const string& attribute, string& table, string& field)
 {
     if (g_field_data.empty())
     {
         g_field_data = get_table_data();
     }
-
-    size_t dot_position = attribute.find('.');
+    string tagless_attribute;
+    size_t tag_position = attribute.find(':');
+    if (tag_position != string::npos)
+    {
+        tagless_attribute = attribute.substr(tag_position + 1);
+    }
+    else
+    {
+        tagless_attribute = attribute;
+    }
+    size_t dot_position = tagless_attribute.find('.');
     // Handle fully qualified reference.
     if (dot_position != string::npos)
     {
-        table = attribute.substr(0, dot_position);
-        field = attribute.substr(dot_position + 1);
+        table = tagless_attribute.substr(0, dot_position);
+        field = tagless_attribute.substr(dot_position + 1);
         return true;
     }
 
-    if (g_field_data.find(attribute) == g_field_data.end())
+    if (g_field_data.find(tagless_attribute) == g_field_data.end())
     {
         // Might be a field.
         for (const auto& tbl : g_field_data)
         {
-            if (tbl.second.find(attribute) != tbl.second.end())
+            if (tbl.second.find(tagless_attribute) != tbl.second.end())
             {
                 table = tbl.first;
-                field = attribute;
+                field = tagless_attribute;
                 return true;
             }
         }
         return false;
     }
-    table = attribute;
+    table = tagless_attribute;
     field.clear();
     return true;
 }
@@ -471,12 +485,10 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     return_value.prefix = "\nauto " + anchor_table
         + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
 
-    //single table used in the rule
     if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
     {
         return return_value;
     }
-
     if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
         && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
@@ -489,16 +501,17 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
     unordered_set<string> processed_tables;
     for (const string& table : g_used_tables)
     {
+        if (table == anchor_table)
+        {
+            continue;
+        }
+
         if (processed_tables.find(table) != processed_tables.end())
         {
             continue;
         }
 
         bool is_1_relationship = false, is_n_relationship = false;
-        if (table == anchor_table)
-        {
-            continue;
-        }
 
         string linking_field;
         for (auto it = parent_itr.first; it != parent_itr.second; ++it)
@@ -941,7 +954,6 @@ public:
             {
                 return;
             }
-
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
             g_used_tables.insert(table_name);
@@ -967,8 +979,7 @@ public:
             if (declaration_expression != nullptr)
             {
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                table_name = declaration_expression->getDecl()->getName().str();
-
+                table_name = get_table_name(declaration_expression->getDecl());
                 g_used_tables.insert(table_name);
                 g_used_dbs.insert(g_table_db_data[table_name]);
 
@@ -1062,7 +1073,7 @@ public:
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = declaration_expression->getDecl()->getName().str();
+                        table_name = get_table_name(declaration_expression->getDecl());
                         set_start_location = member_expression->getBeginLoc();
                     }
                     g_used_tables.insert(table_name);
@@ -1262,7 +1273,7 @@ public:
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = declaration_expression->getDecl()->getName().str();
+                        table_name = get_table_name(declaration_expression->getDecl());
                     }
 
                     g_used_tables.insert(table_name);
@@ -1602,6 +1613,62 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that called when a table or a tag is an argument for a function call.
+class table_call_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit table_call_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+        const auto* expression = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+
+        if (expression != nullptr)
+        {
+            string table_name;
+            SourceRange expression_source_range;
+            const ValueDecl* decl = expression->getDecl();
+            if (!decl->getType()->isStructureType())
+            {
+                return;
+            }
+            table_name = get_table_name(decl);
+
+            g_used_tables.insert(table_name);
+            g_used_dbs.insert(g_table_db_data[table_name]);
+
+            if (decl->hasAttr<GaiaFieldAttr>())
+            {
+                expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
+            }
+            else if (decl->hasAttr<GaiaFieldValueAttr>())
+            {
+                expression_source_range
+                    = SourceRange(expression->getLocation().getLocWithOffset(-1), expression->getEndLoc());
+            }
+
+            if (expression_source_range.isValid())
+            {
+                m_rewriter.ReplaceText(expression_source_range, table_name);
+            }
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1612,6 +1679,7 @@ public:
         , m_ruleset_match_handler(r)
         , m_field_unary_operator_match_handler(r)
         , m_rule_context_match_handler(r)
+        , m_table_call_match_handler(r)
     {
         StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
         StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
@@ -1630,9 +1698,13 @@ public:
             = declRefExpr(to(varDecl(
                               anyOf(
                                   hasAttr(attr::GaiaField),
+                                  hasAttr(attr::FieldTable),
                                   hasAttr(attr::GaiaFieldValue)),
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
+        StatementMatcher table_call_matcher
+            = declRefExpr(allOf(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::FieldTable), hasAttr(attr::GaiaFieldValue)), unless(hasAttr(attr::GaiaFieldLValue)))), allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+                  .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(
@@ -1689,6 +1761,7 @@ public:
         m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(event_type_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(gaia_type_matcher, &m_rule_context_match_handler);
+        m_matcher.addMatcher(table_call_matcher, &m_table_call_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -1705,6 +1778,7 @@ private:
     field_unary_operator_match_handler_t m_field_unary_operator_match_handler;
     variable_declaration_match_handler_t m_variable_declaration_match_handler;
     rule_context_rule_match_handler_t m_rule_context_match_handler;
+    table_call_match_handler_t m_table_call_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

@@ -328,6 +328,46 @@ static string generate_declarations(const gaia_id_t db_id)
     return str;
 }
 
+// Generates code for static initialization of EDC expr variables for C++11 compliance.
+// pair.first = declaration
+// pair.second = initialization
+static pair<string, string> generate_expr_variable(const string& table, const string& type, const string& field)
+{
+    string expr_decl;
+    string expr_init;
+    string type_decl;
+
+    // Example:  gaia::direct_access::expression_t<employee_t, int64_t>
+    type_decl.append("gaia::direct_access::expression_t<");
+    type_decl.append(table);
+    type_decl.append("_t, ");
+    type_decl.append(type);
+    type_decl.append(">");
+
+    // Example:  static gaia::direct_access::expression_t<employee_t, int64_t> hire_date;
+    expr_decl.append("static ");
+    expr_decl.append(type_decl);
+    expr_decl.append(" ");
+    expr_decl.append(field);
+    expr_decl.append(";");
+
+    // Example:  template<class unused_t>
+    // gaia::direct_access::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
+    expr_init.append("template<class unused_t> ");
+    expr_init.append(type_decl);
+    expr_init.append(" ");
+    expr_init.append(table);
+    expr_init.append("_t::expr_<unused_t>::");
+    expr_init.append(field);
+    expr_init.append("{&");
+    expr_init.append(table);
+    expr_init.append("_t::");
+    expr_init.append(field);
+    expr_init.append("};");
+
+    return make_pair(expr_decl, expr_init);
+}
+
 static string generate_edc_struct(
     gaia_type_t table_type_id,
     gaia_table_t table_record,
@@ -336,6 +376,7 @@ static string generate_edc_struct(
     std::vector<child_relationship> child_relationships)
 {
     flatbuffers::CodeWriter code(c_indent_string);
+    vector<string> expr_init_list;
 
     // Struct statement.
     code.SetValue("TABLE_NAME", table_record.name());
@@ -466,41 +507,58 @@ static string generate_edc_struct(
     // to allow unqualified access to the expressions.
     vector<string> field_names;
 
-    // Add EDC expressions
-    code += "struct expr {";
+    // Add EDC expressions and use a dummy template to emulate C++17 inline variable
+    // declarations with C++11 legal syntax.
+    code += "template<class unused_t>";
+    code += "struct expr_ {";
     code.IncrementIdentLevel();
 
-    code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, gaia::common::gaia_id_t> gaia_id{&{{TABLE_NAME}}_t::gaia_id};";
+    pair<string, string> expr_variable;
+
+    expr_variable = generate_expr_variable(code.GetValue("TABLE_NAME"), "gaia::common::gaia_id_t", "gaia_id");
+    code += expr_variable.first;
+    expr_init_list.emplace_back(expr_variable.second);
 
     for (const auto& f : field_records)
     {
         code.SetValue("TYPE", field_cpp_type_string(f));
         code.SetValue("FIELD_NAME", f.name());
-        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{TYPE}}> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
+        expr_variable = generate_expr_variable(code.GetValue("TABLE_NAME"), code.GetValue("TYPE"), code.GetValue("FIELD_NAME"));
+        code += expr_variable.first;
+        expr_init_list.emplace_back(expr_variable.second);
         field_names.push_back(code.GetValue("FIELD_NAME"));
     }
 
     for (auto& relationship : child_relationships)
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("PARENT_TABLE", relationship.parent_table());
+        string type;
+        type.append(relationship.parent_table());
+        type.append("_t");
 
-        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{PARENT_TABLE}}_t> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
-        field_names.push_back(code.GetValue("FIELD_NAME"));
+        expr_variable = generate_expr_variable(table_record.name(), type, relationship.field_name());
+        code += expr_variable.first;
+        expr_init_list.emplace_back(expr_variable.second);
+
+        field_names.push_back(relationship.field_name());
     }
 
     for (auto& relationship : parent_relationships)
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("FIRST_OFFSET", relationship.first_offset());
-        code.SetValue("NEXT_OFFSET", relationship.next_offset());
+        string type;
+        type.append(code.GetValue("TABLE_NAME"));
+        type.append("_t::");
+        type.append(relationship.field_name());
+        type.append("_list_t");
 
-        code += "static inline gaia::direct_access::expression_t<{{TABLE_NAME}}_t, {{FIELD_NAME}}_list_t> {{FIELD_NAME}}{&{{TABLE_NAME}}_t::{{FIELD_NAME}}};";
-        field_names.push_back(code.GetValue("FIELD_NAME"));
+        expr_variable = generate_expr_variable(code.GetValue("TABLE_NAME"), type, relationship.field_name());
+        code += expr_variable.first;
+        expr_init_list.emplace_back(expr_variable.second);
+        field_names.push_back(relationship.field_name());
     }
 
     code.DecrementIdentLevel();
-    code += "};\n";
+    code += "};";
+    code += "using expr = expr_<void>;\n";
 
     // The private area.
     code.DecrementIdentLevel();
@@ -515,6 +573,14 @@ static string generate_edc_struct(
     // Finishing brace.
     code.DecrementIdentLevel();
     code += "};";
+    code += "";
+
+    // Initialization of static EDC expressions.  For C++11 compliance we are not using
+    // inline variables which are available in C++17.
+    for (const string& expr_init : expr_init_list)
+    {
+        code += expr_init;
+    }
     code += "";
 
     code += "namespace {{TABLE_NAME}}_expr {";
