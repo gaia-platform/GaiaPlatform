@@ -460,7 +460,11 @@ void client_t::rollback_transaction()
         fd_count = 1;
     }
 
-    rollback_chunk_manager_allocations();
+    // TODO: For now, we do no rollback because the current logic will attempt to
+    // deallocate the memory of the new objects manually in deallocate_txn_log().
+    // This just means that for now the memory used by rolled back transactions
+    // will take longer to be marked as freed.
+    // rollback_chunk_manager_allocations();
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
@@ -528,11 +532,19 @@ void client_t::commit_transaction()
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
-        rollback_chunk_manager_allocations();
+        // TODO: For now, we do no rollback because the current logic will attempt to
+        // deallocate the memory of the new objects manually in deallocate_txn_log().
+        // This just means that for now the memory used by rolled back transactions
+        // will take longer to be marked as freed.
+        // rollback_chunk_manager_allocations();
 
         throw transaction_update_conflict();
     }
 
+    // TODO: The commit of chunk managers should be done by the server.
+    // This requires the client to communicate the offsets of the chunks
+    // to the server at the time it requests the commit of the transaction.
+    // The call here is just a reminder that this work needs to be done somewhere.
     commit_chunk_manager_allocations();
 }
 

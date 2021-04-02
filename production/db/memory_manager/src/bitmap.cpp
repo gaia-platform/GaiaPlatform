@@ -48,6 +48,15 @@ inline bool try_apply_mask_to_word(
     return word.compare_exchange_strong(old_word, new_word);
 }
 
+inline void safe_apply_mask_to_word(
+    std::atomic<uint64_t>& word, uint64_t mask, bool set)
+{
+    while (!try_apply_mask_to_word(word, mask, set))
+    {
+        // Someone else made an update; retry after reading updated word value.
+    }
+}
+
 inline void validate_bitmap_parameters(
     std::atomic<uint64_t>* bitmap, uint64_t bitmap_size)
 {
@@ -127,10 +136,7 @@ void safe_set_bit_range_value(
         uint64_t mask = (bit_count == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << bit_count) - 1) << start_bit_index_within_word;
-        while (!try_apply_mask_to_word(bitmap[start_word_index], mask, value))
-        {
-            // Someone else made an update; retry after reading updated word value.
-        }
+        safe_apply_mask_to_word(bitmap[start_word_index], mask, value);
     }
     else
     {
@@ -139,10 +145,7 @@ void safe_set_bit_range_value(
         uint64_t start_word_mask = (count_bits_in_first_word == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
-        while (!try_apply_mask_to_word(bitmap[start_word_index], start_word_mask, value))
-        {
-            // Someone else made an update; retry after reading updated word value.
-        }
+        safe_apply_mask_to_word(bitmap[start_word_index], start_word_mask, value);
 
         // Handle any words for which we have to set all bits.
         if (end_word_index - start_word_index > 1)
@@ -158,10 +161,7 @@ void safe_set_bit_range_value(
         uint64_t end_word_mask = (count_bits_in_last_word == c_uint64_bit_count)
             ? c_all_set_word
             : ((1ULL << count_bits_in_last_word) - 1);
-        while (!try_apply_mask_to_word(bitmap[end_word_index], end_word_mask, value))
-        {
-            // Someone else made an update; retry after reading updated word value.
-        }
+        safe_apply_mask_to_word(bitmap[end_word_index], end_word_mask, value);
     }
 }
 

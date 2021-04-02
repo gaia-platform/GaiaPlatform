@@ -1862,6 +1862,11 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 
         if (offset_to_free && s_object_deallocator_fn)
         {
+            // TODO: If a chunk gets freed as a result of this deallocation,
+            // we should mark the chunk as freed as well.
+            // Also, depending on whether we rollback the memory allocations
+            // there may be no need to make deallocations here for new offsets;
+            // we would only need to do deallocations for old offsets in commit scenarios.
             s_object_deallocator_fn(offset_to_free);
         }
     }
