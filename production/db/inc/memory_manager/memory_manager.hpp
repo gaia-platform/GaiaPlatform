@@ -68,7 +68,7 @@ private:
     address_offset_t allocate_from_freed_memory() const;
 
     // Internal method for making allocations from the unused portion of memory.
-    address_offset_t allocate_from_unused_memory(size_t size = c_chunk_size) const;
+    address_offset_t allocate_from_unused_memory() const;
 
     // Checks whether a chunk is marked as used in the chunk bitmap.
     bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;

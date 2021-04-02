@@ -171,15 +171,6 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
     }
 }
 
-size_t memory_manager_t::get_unused_memory_size() const
-{
-    validate_metadata(m_metadata);
-
-    size_t available_size = m_total_memory_size - m_metadata->start_unused_memory_offset;
-
-    return available_size;
-}
-
 address_offset_t memory_manager_t::allocate_from_freed_memory() const
 {
     validate_metadata(m_metadata);
@@ -235,14 +226,26 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
     return allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) const
+size_t memory_manager_t::get_unused_memory_size() const
 {
     validate_metadata(m_metadata);
 
-    size = base_memory_manager_t::calculate_allocation_size(size);
+    if (m_metadata->start_unused_memory_offset > m_total_memory_size)
+    {
+        return 0;
+    }
 
-    // If the allocation exhausts our memory, we cannot perform it.
-    if (get_unused_memory_size() < size)
+    size_t available_size = m_total_memory_size - m_metadata->start_unused_memory_offset;
+
+    return available_size;
+}
+
+address_offset_t memory_manager_t::allocate_from_unused_memory() const
+{
+    validate_metadata(m_metadata);
+
+    // We allocate memory in chunk increments, so if any is left, it's large enough for a chunk.
+    if (get_unused_memory_size() == 0)
     {
         return c_invalid_address_offset;
     }
@@ -253,25 +256,19 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
     // if we run out of memory, at which point we might as well waste time too.
     address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
         &(m_metadata->start_unused_memory_offset),
-        size);
-    address_offset_t new_next_allocation_offset = old_next_allocation_offset + size;
+        c_chunk_size);
+    address_offset_t new_next_allocation_offset = old_next_allocation_offset + c_chunk_size;
 
     // Check again if our memory got exhausted by this allocation,
     // which can happen if someone else got the space before us.
     if (new_next_allocation_offset > m_total_memory_size)
     {
-        // We exhausted the memory so we must undo our update.
-        while (!__sync_bool_compare_and_swap(
-            &(m_metadata->start_unused_memory_offset),
-            new_next_allocation_offset,
-            old_next_allocation_offset))
-        {
-            // A failure indicates that another thread has done the same.
-            // Sleep to allow it to undo its change, so we can do the same.
-            // This is safe because all other subsequent memory allocations
-            // will also attempt to revert back.
-            usleep(1);
-        }
+        // We're going to leave the metadata offset indicating past the end of our memory block.
+        // It doesn't matter because its use has ended with the exhaustion of unused memory.
+        // From this point on, we can only perform allocations from freed chunks.
+        retail_assert(
+            m_metadata->start_unused_memory_offset > m_total_memory_size,
+            "Metadata offset should now point past the end of our memory range!");
 
         return c_invalid_address_offset;
     }
@@ -291,7 +288,7 @@ address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) cons
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << "\nAllocated " << size << " bytes at offset " << allocation_offset << " from unused memory." << endl;
+        cout << "\nAllocated chunk at offset " << allocation_offset << " from unused memory." << endl;
     }
 
     return allocation_offset;
