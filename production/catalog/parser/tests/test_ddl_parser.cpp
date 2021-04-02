@@ -295,3 +295,45 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     EXPECT_FALSE(create_stmt->if_not_exists);
     EXPECT_EQ(create_stmt->fields.size(), 0);
 }
+
+TEST(catalog_ddl_parser_test, create_relationship)
+{
+    parser_t parser;
+    parser.trace_parsing = true;
+
+    const string ddl_text_full_db = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2,
+  d2.t2.link2 -> d1.t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_full_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_no_db = R"(
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2,
+  t2.link2 -> t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_no_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_partial_db = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> t2,
+  t2.link2 -> d1.t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_partial_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+}
