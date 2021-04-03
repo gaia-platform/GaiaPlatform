@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <atomic>
 #include <iostream>
 
 #include "gtest/gtest.h"
@@ -13,9 +14,95 @@ using namespace std;
 
 using namespace gaia::db::memory_manager;
 
+TEST(bitmap, set_bit_value_and_is_bit_set)
+{
+    constexpr uint64_t c_bitmap_size = 3;
+    std::atomic<uint64_t> bitmap[c_bitmap_size];
+
+    // Start with an empty bitmap.
+    // Set each bit of the bitmap and verify that it was set and that only one bit was set.
+    bitmap[0] = bitmap[1] = bitmap[2] = 0;
+    for (uint64_t i = 0; i < c_bitmap_size * c_uint64_bit_count; ++i)
+    {
+        set_bit_value(bitmap, c_bitmap_size, i, true);
+        ASSERT_EQ(true, is_bit_set(bitmap, c_bitmap_size, i));
+        ASSERT_EQ(1, count_set_bits(bitmap, c_bitmap_size));
+        bitmap[i / c_uint64_bit_count] = 0;
+    }
+
+    // Start with a full bitmap.
+    // Unset each bit of the bitmap and verify that it was unset and that only one bit was unset.
+    bitmap[0] = bitmap[1] = bitmap[2] = -1;
+    for (uint64_t i = 0; i < c_bitmap_size * c_uint64_bit_count; ++i)
+    {
+        set_bit_value(bitmap, c_bitmap_size, i, false);
+        ASSERT_EQ(false, is_bit_set(bitmap, c_bitmap_size, i));
+        ASSERT_EQ(c_bitmap_size * c_uint64_bit_count - 1, count_set_bits(bitmap, c_bitmap_size));
+        bitmap[i / c_uint64_bit_count] = -1;
+    }
+}
+
+TEST(bitmap, find_first_unset_bit)
+{
+    constexpr uint64_t c_bitmap_size = 3;
+    std::atomic<uint64_t> bitmap[c_bitmap_size];
+
+    // Start with an empty bitmap.
+    // Keep setting bits in the first two words of the bitmap
+    // and verify that find_first_unset_bit finds the next unset bit.
+    bitmap[0] = bitmap[1] = bitmap[2] = 0;
+    for (uint64_t i = 0; i < (c_bitmap_size - 1) * c_uint64_bit_count; ++i)
+    {
+        if (i % c_uint64_bit_count != 0)
+        {
+            bitmap[i / c_uint64_bit_count] = (1ULL << i) - 1;
+        }
+
+        ASSERT_EQ(i, find_first_unset_bit(bitmap, c_bitmap_size));
+
+        // After we're done with a word, leave all bits set,
+        // so the search will go into the next word.
+        if (i % c_uint64_bit_count == c_uint64_bit_count - 1)
+        {
+            bitmap[i / c_uint64_bit_count] = -1;
+        }
+    }
+
+    // Check that we have set the bits of the first 2 words of the bitmap.
+    ASSERT_EQ((c_bitmap_size - 1) * c_uint64_bit_count, count_set_bits(bitmap, c_bitmap_size));
+}
+
+TEST(bitmap, count_set_bits)
+{
+    constexpr uint64_t c_bitmap_size = 3;
+    std::atomic<uint64_t> bitmap[c_bitmap_size];
+
+    // Start with an empty bitmap.
+    // Keep setting bits in the first two words of the bitmap
+    // and verify that count_set_bits counts them properly.
+    bitmap[0] = bitmap[1] = bitmap[2] = 0;
+    for (uint64_t i = 0; i < (c_bitmap_size - 1) * c_uint64_bit_count; ++i)
+    {
+        if (i % c_uint64_bit_count != 0)
+        {
+            bitmap[i / c_uint64_bit_count] = (1ULL << i) - 1;
+        }
+
+        ASSERT_EQ(i, count_set_bits(bitmap, c_bitmap_size));
+
+        if (i % c_uint64_bit_count == c_uint64_bit_count - 1)
+        {
+            bitmap[i / c_uint64_bit_count] = -1;
+        }
+    }
+
+    // Check that we have set the bits of the first 2 words of the bitmap.
+    ASSERT_EQ((c_bitmap_size - 1) * c_uint64_bit_count, count_set_bits(bitmap, c_bitmap_size));
+}
+
 TEST(bitmap, bit_setting)
 {
-    uint64_t bitmap = 0;
+    std::atomic<uint64_t> bitmap = 0;
 
     set_bit_value(&bitmap, 1, 2, true);
     print_bitmap(&bitmap, 1);
@@ -60,9 +147,9 @@ TEST(bitmap, bit_setting)
 TEST(bitmap, bit_range_setting)
 {
     constexpr uint64_t c_bitmap_size = 5;
-    uint64_t bitmap[c_bitmap_size] = {0};
+    std::atomic<uint64_t> bitmap[c_bitmap_size] = {0};
 
-    set_bit_range_value(bitmap, c_bitmap_size, 3, 3, true);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 3, 3, true);
     print_bitmap(bitmap, 1);
     ASSERT_EQ(bitmap[0], 56);
 
@@ -72,14 +159,14 @@ TEST(bitmap, bit_range_setting)
     uint64_t bit_index = find_first_unset_bit(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_index, 0);
 
-    set_bit_range_value(bitmap, c_bitmap_size, 2, 5, false);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 2, 5, false);
     print_bitmap(bitmap, 1);
     ASSERT_EQ(bitmap[0], 0);
 
     bit_count = count_set_bits(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_count, 0);
 
-    set_bit_range_value(bitmap, c_bitmap_size, 10, 65, true);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 10, 65, true);
     print_bitmap(bitmap, c_bitmap_size);
 
     bit_count = count_set_bits(bitmap, c_bitmap_size);
@@ -88,7 +175,7 @@ TEST(bitmap, bit_range_setting)
     bit_index = find_first_unset_bit(&bitmap[1], 1);
     ASSERT_EQ(bit_index, 11);
 
-    set_bit_range_value(bitmap, c_bitmap_size, 11, 63, false);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 11, 63, false);
     print_bitmap(bitmap, c_bitmap_size);
     ASSERT_EQ(bitmap[0], 1024);
     ASSERT_EQ(bitmap[1], 1024);
@@ -96,7 +183,7 @@ TEST(bitmap, bit_range_setting)
     bit_count = count_set_bits(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_count, 2);
 
-    set_bit_range_value(bitmap, c_bitmap_size, 138, 129, true);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 138, 129, true);
     print_bitmap(bitmap, c_bitmap_size);
     ASSERT_EQ(bitmap[3], -1);
 
@@ -106,7 +193,7 @@ TEST(bitmap, bit_range_setting)
     bit_index = find_first_unset_bit(&bitmap[3], 2);
     ASSERT_EQ(bit_index, 75);
 
-    set_bit_range_value(bitmap, c_bitmap_size, 139, 127, false);
+    safe_set_bit_range_value(bitmap, c_bitmap_size, 139, 127, false);
     print_bitmap(bitmap, c_bitmap_size);
     ASSERT_EQ(bitmap[2], 1024);
     ASSERT_EQ(bitmap[3], 0);

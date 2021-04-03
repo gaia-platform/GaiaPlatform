@@ -17,7 +17,6 @@
 
 #include "gaia/exception.hpp"
 
-#include "chunk_manager.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
@@ -102,7 +101,8 @@ private:
 
     static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
 
-    static inline std::unique_ptr<gaia::db::memory_manager::memory_manager_t> s_memory_manager{};
+    static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -139,6 +139,7 @@ private:
     // visible to any present or future txns).
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
+private:
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
@@ -157,7 +158,6 @@ private:
     static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_request_memory(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
@@ -184,7 +184,6 @@ private:
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ABORT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::ANY, messages::session_event_t::SERVER_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_server_shutdown}},
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
-        {messages::session_state_t::ANY, messages::session_event_t::REQUEST_MEMORY, {messages::session_state_t::ANY, handle_request_memory}},
     };
 
     static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
@@ -195,21 +194,15 @@ private:
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
-        size_t log_fd_count = 0,
-        gaia::db::memory_manager::address_offset_t object_address_offset = memory_manager::c_invalid_address_offset);
+        size_t log_fd_count = 0);
 
     static void clear_shared_memory();
-
-    static gaia::db::memory_manager::address_offset_t allocate_from_memory_manager(
-        size_t memory_request_size_bytes);
 
     static void init_memory_manager();
 
     static void free_uncommitted_allocations(messages::session_event_t txn_status);
 
     static void init_shared_memory();
-
-    static void request_memory();
 
     static void recover_db();
 

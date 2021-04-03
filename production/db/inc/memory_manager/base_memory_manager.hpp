@@ -29,7 +29,7 @@ constexpr char c_debug_output_separator_line_end[] = "<<<<<<<<<<<<<<<<<<<<<<<<<<
 class base_memory_manager_t
 {
 public:
-    base_memory_manager_t();
+    base_memory_manager_t() = default;
 
     // Basic accessors.
     inline uint8_t* get_base_memory_address() const;
@@ -43,6 +43,7 @@ public:
     // Allocation sizes need to be rounded up to the closest 64B multiple.
     inline static size_t calculate_allocation_size(size_t requested_size);
 
+protected:
     // Sanity checks.
     static inline void validate_address_alignment(const uint8_t* const memory_address);
     static inline void validate_offset_alignment(address_offset_t memory_offset);
@@ -60,18 +61,27 @@ public:
     // Gets the memory address corresponding to an offset.
     inline uint8_t* get_address(address_offset_t memory_offset) const;
 
+    // Gets the chunk address offset corresponding to an offset.
+    inline address_offset_t get_chunk_address_offset(address_offset_t memory_offset) const;
+
+    // Gets the chunk offset corresponding to an offset.
+    inline chunk_offset_t get_chunk_offset(address_offset_t memory_offset) const;
+
+    // Gets the slot offset within a chunk corresponding to an offset.
+    inline slot_offset_t get_slot_offset(address_offset_t memory_offset) const;
+
 protected:
     // The base memory address relative to which we compute our offsets.
-    uint8_t* m_base_memory_address;
+    uint8_t* m_base_memory_address{nullptr};
 
     // The memory offset at which our buffer starts (in case we only own a window into a larger memory block).
-    address_offset_t m_start_memory_offset;
+    address_offset_t m_start_memory_offset{c_invalid_address_offset};
 
     // The total size of the memory segment in which we operate.
-    size_t m_total_memory_size;
+    size_t m_total_memory_size{0};
 
     // Our execution flags.
-    execution_flags_t m_execution_flags;
+    execution_flags_t m_execution_flags{};
 };
 
 #include "base_memory_manager.inc"
