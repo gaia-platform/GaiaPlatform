@@ -138,3 +138,24 @@ uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) cons
 
     return memory_address;
 }
+
+address_offset_t base_memory_manager_t::get_chunk_address_offset(address_offset_t memory_offset) const
+{
+    validate_offset_alignment(memory_offset);
+
+    return memory_offset - (memory_offset % c_chunk_size);
+}
+
+chunk_offset_t base_memory_manager_t::get_chunk_offset(address_offset_t memory_offset) const
+{
+    validate_offset_alignment(memory_offset);
+
+    return static_cast<chunk_offset_t>(memory_offset / c_chunk_size);
+}
+
+slot_offset_t base_memory_manager_t::get_slot_offset(address_offset_t memory_offset) const
+{
+    validate_offset_alignment(memory_offset);
+
+    return static_cast<slot_offset_t>((memory_offset % c_chunk_size) / c_slot_size);
+}

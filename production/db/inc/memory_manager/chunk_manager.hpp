@@ -20,6 +20,8 @@ namespace memory_manager
 // Memory is allocated in increments of 64B allocation units.
 class chunk_manager_t : public base_memory_manager_t
 {
+    friend class memory_manager_t;
+
 public:
     chunk_manager_t() = default;
 
@@ -48,23 +50,6 @@ public:
     // Rollback all allocations made since last commit.
     void rollback();
 
-    // Checks whether a slot is marked as used in the slot bitmap.
-    bool is_slot_marked_as_used(slot_offset_t slot_offset) const;
-
-    // Mark the use of a single slot in the slot bitmap.
-    void mark_slot_use(slot_offset_t slot_offset, bool used) const;
-
-    // Try to mark the use of a single slot in the slot bitmap.
-    // This will prevent loss of updates in the case of concurrent bitmap updates,
-    // but means that the call could fail if a conflict with another update is detected.
-    bool try_mark_slot_use(slot_offset_t slot_offset, bool used) const;
-
-    // Mark the use of a range of slots in the slot bitmap.
-    void mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool used) const;
-
-    // Public, so it can get called by the memory manager.
-    void output_debugging_information(const std::string& context_description) const;
-
 private:
     // A pointer to our metadata information, stored inside the memory chunk that we manage.
     chunk_manager_metadata_t* m_metadata;
@@ -77,8 +62,20 @@ private:
     void initialize_internal(
         uint8_t* base_memory_address,
         address_offset_t memory_offset,
-        bool initialize_memory,
-        const std::string& caller_name);
+        bool initialize_memory);
+
+    // Checks whether a slot is marked as used in the slot bitmap.
+    bool is_slot_marked_as_used(slot_offset_t slot_offset) const;
+
+    // Try to mark the use of a single slot in the slot bitmap.
+    // This will prevent loss of updates in the case of concurrent bitmap updates,
+    // but means that the call could fail if a conflict with another update is detected.
+    bool try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const;
+
+    // Mark the use of a range of slots in the slot bitmap.
+    void mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const;
+
+    void output_debugging_information(const std::string& context_description) const;
 };
 
 } // namespace memory_manager
