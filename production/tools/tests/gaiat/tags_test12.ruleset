@@ -1,0 +1,14 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test12
+{
+    OnChange(A:actuator, actuator.name)
+    {
+        use_float(A.value);
+    }
+}
+
+// GAIAPLAT-797
+// CHECK: (expect an error when 2 or more attributes)

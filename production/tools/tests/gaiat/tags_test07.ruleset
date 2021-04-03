@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test07 : Table (S:sensor)
+{
+  {
+	  if (@value < 5)
+	  {
+		  value = 5;
+	  }
+  }
+}
+
+// CHECK: expected ')'

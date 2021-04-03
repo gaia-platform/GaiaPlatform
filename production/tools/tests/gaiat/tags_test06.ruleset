@@ -1,0 +1,11 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test06
+{
+    OnUpdate(S:sensor)
+    {
+        float v = S.notavalue;
+    }
+}
+
+// CHECK: no member named 'notavalue' in 'sensor__type'

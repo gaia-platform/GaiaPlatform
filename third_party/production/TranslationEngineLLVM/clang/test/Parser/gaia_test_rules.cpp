@@ -542,3 +542,95 @@ ruleset test78
 
   }
 }
+
+ruleset test79
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += value/2;// expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
+    }
+}
+
+// Qualified 'value' should be accepted?
+ruleset test79 : Table(sensor)
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += value/2;
+    }
+}
+
+ruleset test80
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += S.value/2;
+    }
+}
+
+ruleset test81
+{
+    OnUpdate(S:sensor)
+    {
+        float v = S.value;
+    }
+}
+
+ruleset test82
+{
+    OnUpdate(S:sensor, V:sensor.value)
+    {
+        float v = S.value + V.value;
+    }
+}
+
+// The 'value' is not duplicated, but qualified by 'sensor'.
+ruleset test83 : Table(sensor)
+{
+    OnUpdate(value)
+    {
+        float v = value * 2.0;
+    }
+}
+
+ruleset test84
+{
+    OnInsert(I::incubator) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    {
+    }
+}
+
+ruleset test85
+{
+    OnInsert(I:incubator:sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    {
+    }
+}
+
+ruleset test86
+{
+    OnInsert(incubator:) // expected-error {{expected identifier}}
+    {
+    }
+}
+
+ruleset test87
+{
+    OnInsert(incubator:I) // expected-error {{Tag incubator cannot have the same name as a table or a field.}}
+    {
+    }
+}
+
+ruleset test88
+{
+    OnUpdate(nonsense, no-sense, not-sensible) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    {
+    }
+}
+
+ruleset test89 : Table(actuator)
+{
+    OnUpdate(A:actuator)
+    {
+    }
+}

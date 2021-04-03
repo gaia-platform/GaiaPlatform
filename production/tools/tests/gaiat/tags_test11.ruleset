@@ -1,0 +1,18 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test11
+{
+    OnChange(a:actuator)
+    {
+        if (a.value > 0.0)
+        {
+            float a;
+            use_float(a);
+        }
+    }
+}
+
+// GAIAPLAT-794
+// CHECK: (warn/error? This should give a warning.)

@@ -1,0 +1,15 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test03
+{
+    OnInsert(M:min_temp)
+    {
+        use_float(M.min_temp);
+    }
+}
+
+// CHECK: Tag refers to an invalid table min_temp.
+// CHECK: Table 'M' was not found in the catalog.
+// CHECK: use of undeclared identifier 'M'

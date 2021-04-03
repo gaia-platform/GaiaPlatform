@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test15
+{
+    OnUpdate(A:actuator, A:actuator)
+    {
+        use_float(A.value);
+    }
+}
+
+// CHECK: Duplicate tag A is defined.

@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test01
+{
+    OnChange(value:sensor.value)
+    {
+        use_float(sensor.value);
+    }
+}
+
+// CHECK: Tag value cannot have the same name as a table or a field.
