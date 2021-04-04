@@ -53,38 +53,38 @@ static std::string RandomString(std::string::size_type length)
     return s;
 }
 
-struct ExplicitPath
-{
-    SourceLocation startLocation;
-    SourceLocation endLocation;
-    std::string path;
-};
-
-
 std::string Parser::GetExplicitNavigationPath()
 {
-    ExplicitPath path;
     std::string returnValue;
-    if (Tok.isNot(tok::identifier))
+    if (!getLangOpts().Gaia || !Actions.getCurScope()->isInRulesetScope())
+    {
+        return returnValue;
+    }
+    Token previousToken = getPreviousToken(Tok);
+    Token previousPreviousToken = getPreviousToken(previousToken);
+    if (previousToken.isNot(tok::identifier))
     {
         return returnValue;
     }
 
-    if (getPreviousToken(Tok).is(tok::slash))
+    SourceLocation startLocation, endLocation;
+    if (previousPreviousToken.is(tok::slash))
     {
         returnValue = "/";
-        path.startLocation = getPreviousToken(Tok).getLocation();
+        startLocation = previousPreviousToken.getLocation();
     }
     else
     {
-        path.startLocation = Tok.getLocation();
+        startLocation = previousToken.getLocation();
     }
-    returnValue.append(Tok.getIdentifierInfo()->getName().str());
-    unsigned tokenIterator = 1;
 
-    while (GetLookAheadToken(tokenIterator).isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
+    returnValue.append(previousToken.getIdentifierInfo()->getName().str());
+    unsigned tokenIterator = 0;
+    Token currentToken = GetLookAheadToken(tokenIterator);
+
+    while (currentToken.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
     {
-        switch (GetLookAheadToken(tokenIterator).getKind())
+        switch (currentToken.getKind())
         {
             case tok::arrow:
                 returnValue.append("->");
@@ -96,14 +96,25 @@ std::string Parser::GetExplicitNavigationPath()
                 returnValue.append(".");
                 break;
             case tok::identifier:
-                returnValue.append(GetLookAheadToken(tokenIterator).getIdentifierInfo()->getName().str());
+                returnValue.append(currentToken.getIdentifierInfo()->getName().str());
                 break;
             default:
                 break;
         }
-        ++tokenIterator;
+        previousPreviousToken = previousToken;
+        previousToken = currentToken;
+        currentToken = GetLookAheadToken(++tokenIterator);
     }
-    path.endLocation = GetLookAheadToken(tokenIterator - 1).getEndLocation();
+
+    if (previousToken.is(tok::identifier) && previousPreviousToken.is(tok::period))
+    {
+        endLocation = getPreviousToken(previousPreviousToken).getEndLoc();
+    }
+    else
+    {
+        endLocation = previousToken.getEndLoc();
+    }
+    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue);
     return returnValue;
 }
 
@@ -518,6 +529,10 @@ Token Parser::getPreviousToken(Token token) const
             break;
         }
         location = location.getLocWithOffset(-1);
+    }
+    if (returnToken.is(tok::raw_identifier))
+    {
+        PP.LookUpIdentifierInfo(returnToken);
     }
     return returnToken;
 }

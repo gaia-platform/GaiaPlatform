@@ -1078,10 +1078,20 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         isAddressOfOperand, std::move(Validator),
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
-        getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && (
-            (Tok.is(tok::period) &&
-            NextToken().is(tok::identifier))),
         GetExplicitNavigationPath());
+    SourceLocation startLocation,endLocation;
+    std::string explicitPath;
+    if (Actions.GetExplicitPathData(ILoc, startLocation, endLocation, explicitPath))
+    {
+      if (endLocation.isValid())
+      {
+        while (Tok.getEndLoc()  != endLocation)
+        {
+          ConsumeToken();
+        }
+        ConsumeToken();
+      }
+    }
 
 
     if (!Res.isInvalid() && Res.isUnset()) {

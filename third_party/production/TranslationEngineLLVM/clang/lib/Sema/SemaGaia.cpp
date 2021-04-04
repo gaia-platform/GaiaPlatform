@@ -108,72 +108,7 @@ class DBMonitor
         }
 };
 
-bool Sema::validateRuleAttribute(StringRef attribute, SourceLocation loc)
-{
-  auto tableData = getTableData(loc);
-  if (tableData.empty())
-  {
-    return false;
-  }
-  size_t dotPosition = attribute.find('.');
-  // Handle fully qualified reference.
-  if (dotPosition != StringRef::npos)
-  {
-    StringRef table = attribute.take_front(dotPosition);
-    StringRef field = attribute.take_back(attribute.size() - dotPosition - 1);
-    auto tableDescription = tableData.find(table);
-    if (tableDescription == tableData.end())
-    {
-      Diag(loc, diag::err_invalid_table_name) << table;
-      return false;
-    }
-    auto fieldDescription = tableDescription->second.find(field);
-    if(fieldDescription == tableDescription->second.end())
-    {
-      Diag(loc, diag::err_unknown_field) << field;
-      return false;
-    }
-    return true;
-  }
-
-  auto tableDescription = tableData.find(attribute);
-  if (tableDescription == tableData.end())
-  {
-    // Might be a field.
-    bool returnValue = false;
-    for (auto table : tableData)
-    {
-      if (table.second.find(attribute) != table.second.end())
-      {
-        if (returnValue)
-        {
-          Diag(loc, diag::err_duplicate_field) << attribute;
-          return false;
-        }
-        returnValue = true;
-      }
-    }
-    if (!returnValue)
-    {
-      Diag(loc, diag::err_unknown_field) << attribute;
-    }
-    return returnValue;
-  }
-  // Could be a table or a field. Should check if there is a field with the same name.
-  for (auto table : tableData)
-  {
-    if (table.second.find(attribute) != table.second.end())
-    {
-      Diag(loc, diag::err_duplicate_field) << attribute;
-      return false;
-    }
-  }
-
-  return true;
-}
-
-
-void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
+std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
 {
     size_t searchStartPosition = 0;
     unordered_map<string, string> tagMap;
@@ -192,7 +127,7 @@ void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
             if (tagPosition == searchStartPosition)
             {
                 Diag(loc, diag::err_invalid_explicit_path);
-                return;
+                return "";
             }
             tag = pathString.substr(searchStartPosition, tagPosition - searchStartPosition);
             searchStartPosition = tagPosition + 1;
@@ -203,7 +138,7 @@ void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
             if (arrowPosition == searchStartPosition)
             {
                 Diag(loc, diag::err_invalid_explicit_path);
-                return;
+                return "";
             }
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
             if (!tag.empty())
@@ -211,10 +146,10 @@ void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
                 if (tagMap.find(tag) != tagMap.end())
                 {
                     Diag(loc, diag::err_invalid_explicit_path);
-                    return;
+                    return "";
                 }
                 tagMap[tag] = table;
-                tag.clear;
+                tag.clear();
             }
             path.push_back(table);
             searchStartPosition = arrowPosition + 2;
@@ -227,103 +162,112 @@ void Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
     if (table.empty())
     {
         Diag(loc, diag::err_invalid_explicit_path);
-        return;
+        return "";
     }
     path.push_back(table);
 
-    unordered_set<string> tableData = getCatalogTableList(loc);
-    unordered_multimap<string, table_link_data_t> relationData = getCatalogTableRelations(loc);
-
-    for (auto tagEntry: tagMap)
+    // If explicit path has one component only, this component will be checked at later stage
+    // Therefore there is no need to perform more checks here.
+    if (path.size() > 1)
     {
-        string tableName;
-        size_t dotPosition = tagEntry.second.find('.');
-        if (dotPosition != string::npos)
-        {
-            tableName = tagEntry.second.substr(0, dotPosition);
-        }
-        else
-        {
-            tableName = tagEntry.second;
-        }
-        auto tableDescription = tableData.find(tableName);
-        if (tableDescription == tableData.end())
-        {
-            Diag(loc, diag::err_invalid_table_name) << tableName;
-            return;
-        }
-    }
+        unordered_set<string> tableData = getCatalogTableList(loc);
+        unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
-    string previousTable, previousField;
-    for (string pathComponent : path)
-    {
-        string tableName, fieldName;
-        size_t dotPosition = pathComponent.second.find('.');
-        if (dotPosition != string::npos)
+        for (auto tagEntry: tagMap)
         {
-            tableName = pathComponent.substr(0, dotPosition);
-            fieldName = pathComponent.substr(dot_position + 1);
-        }
-        else
-        {
-            tableName = pathComponent.second;
-        }
-        auto tableDescription = tableData.find(tableName);
-        if (tableDescription == tableData.end())
-        {
-            Diag(loc,diag::err_invalid_table_name) << tableName;
-            return;
-        }
-        if (pathComponent != path.back())
-        {
-            if (!previousTable.empty())
+            string tableName;
+            size_t dotPosition = tagEntry.second.find('.');
+            if (dotPosition != string::npos)
             {
-                auto relatedTablesIterator = relationData.equal_range(previousTable);
+                tableName = tagEntry.second.substr(0, dotPosition);
+            }
+            else
+            {
+                tableName = tagEntry.second;
+            }
+            auto tableDescription = tableData.find(tableName);
+            if (tableDescription == tableData.end())
+            {
+                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                return "";
+            }
+        }
 
-                if (relatedTablesIterator.first == relatedTablesIterator.second)
+        string previousTable, previousField;
+        for (string pathComponent : path)
+        {
+            string tableName, fieldName;
+            size_t dotPosition = pathComponent.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = pathComponent.substr(0, dotPosition);
+                fieldName = pathComponent.substr(dotPosition + 1);
+            }
+            else
+            {
+                tableName = pathComponent;
+            }
+            auto tableDescription = tableData.find(tableName);
+            if (tableDescription == tableData.end())
+            {
+                Diag(loc,diag::err_invalid_tag_defined) << tableName;
+                return "";
+            }
+            if (pathComponent != path.back())
+            {
+                if (!previousTable.empty())
                 {
-                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
-                    return;
-                }
+                    auto relatedTablesIterator = relationData.equal_range(previousTable);
 
-                bool isMatchFound = false;
-                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
-                {
-                    if (tableIterator != relationData.end())
+                    if (relatedTablesIterator.first == relatedTablesIterator.second)
                     {
-                        string tbl = tableIterator->second.table;
-                        string fld = tableIterator->second.field;
-                        if (previousTable == tbl)
+                        Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                        return "";
+                    }
+
+                    bool isMatchFound = false;
+                    for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                    {
+                        if (tableIterator != relationData.end())
                         {
-                            if (!previousField.empty())
+                            string tbl = tableIterator->second.table;
+                            string fld = tableIterator->second.field;
+                            if (previousTable == tbl)
                             {
-                                if (previousField == fld)
+                                if (!previousField.empty())
+                                {
+                                    if (previousField == fld)
+                                    {
+                                        isMatchFound = true;
+                                        break;
+                                    }
+                                }
+                                else
                                 {
                                     isMatchFound = true;
                                     break;
                                 }
                             }
-                            else
-                            {
-                                isMatchFound = true;
-                                break;
-                            }
                         }
                     }
-                }
-                if (!isMatchFound)
-                {
-                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
-                    return;
+                    if (!isMatchFound)
+                    {
+                        Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                        return "";
+                    }
                 }
             }
-        }
 
-        previousField = fieldName;
-        previousTable = tableName
+            previousField = fieldName;
+            previousTable = tableName;
+        }
+    }
+    else
+    {
+        RemoveExplicitPathData(loc);
     }
 
-    path.back();
+    return path.back();
 
 }
 
@@ -386,15 +330,10 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
 
     return retVal;
 }
-struct table_link_data_t
-{
-    string table;
-    string field;
-};
 
-unordered_multimap<string, table_link_data_t> Sema::getCatalogTableRelations(SourceLocation loc)
+unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations(SourceLocation loc)
 {
-    unordered_map<string, table_link_data_t>  retVal;
+    unordered_multimap<string, Sema::TableLinkData_t>  retVal;
     try
     {
         DBMonitor monitor;
@@ -405,20 +344,20 @@ unordered_multimap<string, table_link_data_t> Sema::getCatalogTableRelations(Sou
             if (!child_table)
             {
                 Diag(loc, diag::err_invalid_child_table) << relationship.name();
-                return unordered_map<string, table_link_data_t>();
+                return unordered_multimap<string, Sema::TableLinkData_t>();
             }
 
             catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
             if (!parent_table)
             {
                 Diag(loc, diag::err_invalid_parent_table) << relationship.name();
-                return unordered_map<string, table_link_data_t>();
+                return unordered_multimap<string, Sema::TableLinkData_t>();
             }
 
-            table_link_data_t link_data_1;
+            TableLinkData_t link_data_1;
             link_data_1.table = parent_table.name();
             link_data_1.field = relationship.name();
-            table_link_data_t link_data_n;
+            TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
             link_data_n.field = relationship.name();
 
@@ -429,7 +368,7 @@ unordered_multimap<string, table_link_data_t> Sema::getCatalogTableRelations(Sou
     catch (const exception &e)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_set<string>();
+        return unordered_multimap<string, Sema::TableLinkData_t>();
     }
 
     return retVal;
@@ -809,11 +748,25 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, bool isGaiaFieldTable,
-    const string& explicitPath)
+NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const string& explicitPath)
 {
-    QualType qualType = isGaiaFieldTable ? getTableType(II->getName().str(), loc) :
-        getFieldType(II->getName().str(), loc);
+    QualType qualType = Context.VoidTy;
+
+    string table = ParseExplicitPath(explicitPath, loc);
+    if (!table.empty())
+    {
+        size_t dot_position = table.find('.');
+
+        if (dot_position != string::npos)
+        {
+            qualType = getTableType(table.substr(0, dot_position), loc);
+        }
+        else
+        {
+            qualType = getFieldType(table, loc);
+        }
+    }
+
     if (qualType->isVoidType())
     {
         return nullptr;
@@ -866,4 +819,31 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
   }
 
   return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
+}
+
+void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
+{
+    ExplicitPathData_t data;
+    data.startLocation = startLocation;
+    data.endLocation = endLocation;
+    data.explicitPath = explicitPath;
+    explicitPathData.emplace(location.getRawEncoding(), data);
+}
+
+void Sema::RemoveExplicitPathData(SourceLocation location)
+{
+    explicitPathData.erase(location.getRawEncoding());
+}
+
+bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
+{
+    auto data = explicitPathData.find(location.getRawEncoding());
+    if (data == explicitPathData.end())
+    {
+        return false;
+    }
+    startLocation = data->second.startLocation;
+    endLocation = data->second.endLocation;
+    explicitPath = data->second.explicitPath;
+    return true;
 }

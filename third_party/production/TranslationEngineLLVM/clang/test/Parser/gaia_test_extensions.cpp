@@ -129,3 +129,11 @@ ruleset test5
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:16> 'float' lvalue .value 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:117:3>
+
+ruleset test4
+{
+    OnUpdate(incubator)
+    {
+        /i:incubator->sensor.value ++;
+    }
+}
