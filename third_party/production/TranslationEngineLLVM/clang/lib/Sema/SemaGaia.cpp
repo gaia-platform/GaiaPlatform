@@ -781,6 +781,14 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
     varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
 
+    SourceLocation startLocation,endLocation;
+    std::string path;
+    if (GetExplicitPathData(loc, startLocation, endLocation, path))
+    {
+        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
+            startLocation.getRawEncoding(), endLocation.getRawEncoding()));
+    }
+
     context->addDecl(varDecl);
 
     return varDecl;
