@@ -134,6 +134,6 @@ ruleset test4
 {
     OnUpdate(incubator)
     {
-        /i:incubator->sensor.value ++;
+        /i:incubator->sensor.value  = i.min_temp;
     }
 }

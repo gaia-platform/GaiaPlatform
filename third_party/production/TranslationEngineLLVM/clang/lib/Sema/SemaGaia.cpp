@@ -267,6 +267,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         RemoveExplicitPathData(loc);
     }
 
+    explicitPathTagMapping[loc.getRawEncoding()] = tagMap;
+
     return path.back();
 
 }
@@ -470,7 +472,7 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         return Context.VoidTy;
     }
     std::string typeName = tableName;
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     if (tagMapping.find(tableName) != tagMapping.end())
     {
         typeName = tagMapping[tableName];
@@ -582,7 +584,7 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
     DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
     {
@@ -697,7 +699,7 @@ static bool parse_tagged_attribute(const string& attribute, string& table, strin
     return true;
 }
 
-std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context) const
+std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context, SourceLocation loc)
 {
     std::unordered_map<std::string, std::string> retVal;
     const FunctionDecl *ruleContext = dyn_cast<FunctionDecl>(context);
@@ -742,6 +744,23 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
                 retVal[tag] = table;
+            }
+        }
+    }
+
+    for (const auto& explicitPathTagMapIterator : explicitPathTagMapping)
+    {
+        const auto &tagMap = explicitPathTagMapIterator.second;
+        for (const auto& tagMapIterator : tagMap)
+        {
+            if (retVal.find(tagMapIterator.first) != retVal.end())
+            {
+                Diag(loc, diag::err_ambiguous_tag_defined) << tagMapIterator.first;
+                return std::unordered_map<std::string, std::string>();
+            }
+            else
+            {
+                retVal[tagMapIterator.first] = tagMapIterator.second;
             }
         }
     }

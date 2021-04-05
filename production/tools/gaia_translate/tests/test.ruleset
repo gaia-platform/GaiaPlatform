@@ -74,3 +74,14 @@ ruleset test3
 ruleset test2
 {
 }
+
+ruleset test3
+{
+    OnUpdate(S:sensor, T:sensor)
+    {
+        auto x = S.name;
+        use_string(S.name);
+        use_string(T.name);
+        use_string(x);
+    }
+}

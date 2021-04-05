@@ -4603,7 +4603,6 @@ public:
   std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
   std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
-  void RemoveExplicitPathData(SourceLocation location);
   bool GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath);
 private:
 
@@ -4611,11 +4610,12 @@ private:
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
   QualType getFieldType (const std::string &fieldName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
-  std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context) const;
+  std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
+  void RemoveExplicitPathData(SourceLocation location);
 
   struct ExplicitPathData_t
   {
@@ -4633,6 +4633,8 @@ private:
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 
   std::unordered_map<unsigned, ExplicitPathData_t>  explicitPathData;
+
+  std::unordered_map<unsigned, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value

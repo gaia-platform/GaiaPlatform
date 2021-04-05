@@ -7792,6 +7792,26 @@ ExprResult Sema::ActOnFinishFullExpr(Expr *FE, SourceLocation CC,
                                      bool DiscardedValue,
                                      bool IsConstexpr) {
   ExprResult FullExpr = FE;
+  if (getLangOpts().Gaia)
+  {
+    if (FE != nullptr)
+    {
+      SourceLocation startLocation = FE->getBeginLoc();
+      SourceLocation endLocation = FE->getEndLoc();
+      if (startLocation.isValid() && endLocation.isValid())
+      {
+        for (unsigned expressionLocationIdx = startLocation.getRawEncoding();
+          expressionLocationIdx <= endLocation.getRawEncoding(); ++expressionLocationIdx)
+        {
+          auto explicitPathTagMappingIterator = explicitPathTagMapping.find(expressionLocationIdx);
+          if (explicitPathTagMappingIterator != explicitPathTagMapping.end())
+          {
+            explicitPathTagMapping.erase(explicitPathTagMappingIterator);
+          }
+        }
+      }
+    }
+  }
 
   if (!FullExpr.get())
     return ExprError();
