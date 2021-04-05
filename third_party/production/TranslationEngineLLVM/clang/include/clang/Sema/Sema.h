@@ -4634,7 +4634,7 @@ private:
 
   std::unordered_map<unsigned, ExplicitPathData_t>  explicitPathData;
 
-  std::unordered_map<unsigned, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
+  std::map<unsigned, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value
