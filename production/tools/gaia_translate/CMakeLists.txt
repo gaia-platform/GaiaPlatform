@@ -132,17 +132,17 @@ add_gtest(test_mixed_ruleset
 # Test Preview extensions to Declarative Language
 
 set(PREREQUISITE_DDL "${GAIA_REPO}/production/schemas/test/prerequisites/prerequisites.ddl")
-set(PREVIEW_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test_preview.ruleset")
-set(PREVIEW_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_preview.cpp")
+set(RULESETS "${GAIA_REPO}/production/tools/gaia_translate/tests/test_rulesets.ruleset")
+set(RULESETS_OUT "${GAIA_GENERATED_SCHEMAS}/test_rulesets.cpp")
 
 add_custom_command(
-  COMMENT "Compiling test_preview.ruleset..."
-  OUTPUT ${PREVIEW_RULESET_OUT}
+  COMMENT "Compiling test_rulesets.ruleset..."
+  OUTPUT ${RULESETS_OUT}
   COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   # message(WARNING, "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}")
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}
-  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${PREVIEW_RULESET} -output ${PREVIEW_RULESET_OUT} --
+  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${RULESETS} -output ${RULESETS_OUT} --
     -I ${GAIA_INC}
     -I ${GAIA_GENERATED_SCHEMAS}
     -I ${FLATBUFFERS_INC}
@@ -156,18 +156,25 @@ add_custom_command(
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS ${PREREQUISITE_DDL}
-  DEPENDS ${PREVIEW_RULESET}
+  DEPENDS ${RULESETS}
 )
 
-add_custom_target(generate_preview_rules ALL
-  DEPENDS ${PREVIEW_RULESET_OUT}
+add_custom_target(generate_rulesets_rules ALL
+  DEPENDS ${RULESETS_OUT}
   DEPENDS generate_prerequisites_headers
   DEPENDS test_mixed_ruleset
 )
 
-add_gtest(test_preview_ruleset
-  "tests/test_preview.cpp;${PREVIEW_RULESET_OUT}"
+add_gtest(test_tags_ruleset
+  "tests/test_tags.cpp;${RULESETS_OUT}"
   "${TEST_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
   "rt;gaia_system;gaia_db_catalog_test"
-  "generate_preview_rules" ""
+  "generate_rulesets_rules" ""
+)
+
+add_gtest(test_queries_ruleset
+  "tests/test_queries.cpp;${RULESETS_OUT}"
+  "${TEST_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
+  "rt;gaia_system;gaia_db_catalog_test"
+  "generate_rulesets_rules" ""
 )

@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "gaia_prerequisites.h"
-#include "test_preview.hpp"
+#include "test_rulesets.hpp"
 
 using namespace gaia::prerequisites;
 
@@ -32,7 +32,7 @@ int32_t g_oninsert3_value;
 int32_t g_onupdate_value;
 int32_t g_onupdate3_value;
 
-ruleset test_preview
+ruleset test_tags
 {
     OnInsert(Student)
     {
@@ -102,7 +102,7 @@ ruleset test_preview
     }
 }
 
-ruleset test_preview2
+ruleset test_queries
 {
     OnInsert(R:Registration)
     {
