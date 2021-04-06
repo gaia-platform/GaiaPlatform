@@ -12,4 +12,4 @@ ruleset test09
 }
 
 // GAIAPLAT-794
-// CHECK: (warn/error the variable 'a' hides tag)
+// CHECK: WARNING: Variable declaration hides a tag.

@@ -15,4 +15,4 @@ ruleset test11
 }
 
 // GAIAPLAT-794
-// CHECK: (warn/error? This should give a warning.)
+// CHECK: WARNING: Variable declaration hides a tag.

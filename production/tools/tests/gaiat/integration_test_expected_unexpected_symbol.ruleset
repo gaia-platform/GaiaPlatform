@@ -1,0 +1,9 @@
+// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    actuator.value += @sensor.value;
+}
+
+// recommended message:
+// CHECK: illegal rule syntax - must be inside a code block

@@ -122,92 +122,11 @@ ruleset test9
   }
 }
 
-// TAG TESTS
-
-#include "tags_test.h"
-
-ruleset test10
-{
-    OnInsert(I:incubator)
-    {
-        use_float(I.min_temp);
-    }
-}
-
-ruleset test11
-{
-    OnInsert(I:incubator)
-    {
-        I.min_temp += sensor.value;
-        actuator.value = I.max_temp;
-    }
-}
-
-ruleset test12
-{
-    OnChange(A:actuator)
-    {
-        use_float(A.value);
-    }
-}
-
-ruleset test13
-{
-    OnChange(A:actuator.value)
-    {
-        use_float(A.value);
-    }
-}
-
-ruleset test14
-{
-    OnUpdate(S:sensor)
-    {
-        float v = S.value;
-    }
-}
-
-ruleset test15
-{
-    OnUpdate(S:sensor, V:sensor.value, sensor.name, sensor.timestamp)
-    {
-        float v = S.value + V.value;
-        sensor.name = "perimeter";
-    }
-}
-
-ruleset test16 : Table(sensor)
-{
-    OnUpdate(S:sensor)
-    {
-        use_string(name);
-    }
-}
-
-ruleset test17
-{
-    OnUpdate(S:sensor, T:sensor)
-    {
-        use_string(S.name);
-        use_string(T.name);
-    }
-}
-
 // This is legal? But has error.
-ruleset test18 : Table(sensor)
+ruleset test10 : Table(sensor)
 {
     OnUpdate(name)
     {
         use_string(name);
     }
 }
-
-// ruleset test19
-// {
-//     OnInsert(I:incubator)
-//     {
-//         I.min_temp += incubator->sensor.value;
-//         I.min_temp += I->sensor.value;
-//     }
-// }
-

@@ -1,0 +1,18 @@
+// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        actuator.value += @incubator.min_temp/2;
+    }
+}
+
+ruleset test
+{
+    {
+        sensor.value += @incubator.max_temp/2;
+    }
+}
+
+// GAIAPLAT-802
+// CHECK: Rulesets must have unique names.

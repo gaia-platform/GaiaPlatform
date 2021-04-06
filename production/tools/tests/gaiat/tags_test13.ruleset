@@ -9,4 +9,4 @@ ruleset test13
 }
 
 // GAIAPLAT-799
-// CHECK: (expect an error with 2nd attribute from a different table)
+// CHECK: OnUpdate attributes must refer to the same table.

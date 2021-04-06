@@ -1,0 +1,53 @@
+// RUN: %gaiat %s --
+
+#include "tags_test.h"
+
+ruleset test1
+{
+    OnChange(actuator.value)
+    {
+        actuator.value += sensor.value;
+    }
+}
+
+ruleset test2
+{
+    OnChange(sensor.value)
+    {
+        actuator.value = sensor.value;
+    }
+}
+
+ruleset test3
+{
+    {
+        actuator.value = @sensor.value;
+    }
+}
+
+ruleset test4
+{
+    {
+        actuator.value = @sensor.value + (incubator.min_temp + incubator.max_temp) / 2;
+    }
+}
+        
+// GAIAPLAT-803
+// This should be identical to test1 above.
+// ruleset test4
+// {
+//     {
+//         @actuator.value += sensor.value;
+//     }
+// }
+
+// ruleset test5
+// {
+//     {
+//         // Explicit query.
+//         min_temp += incubator->sensor.value;
+//         // Implicit query.
+//         min_temp += sensor.value;
+//     }
+// }
+

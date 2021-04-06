@@ -11,4 +11,4 @@ ruleset test08
 }
 
 // GAIAPLAT-795
-// CHECK: (should complain about field reference)
+// CHECK: OnInsert attribute must be a table.

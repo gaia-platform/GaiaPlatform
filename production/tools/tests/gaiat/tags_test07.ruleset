@@ -10,4 +10,4 @@ ruleset test07 : Table (S:sensor)
   }
 }
 
-// CHECK: expected ')'
+// CHECK: Tags not allowed in Table attribute.
