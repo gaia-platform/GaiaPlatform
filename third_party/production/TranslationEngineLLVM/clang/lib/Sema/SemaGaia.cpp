@@ -119,6 +119,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     }
     string tag;
     size_t tagPosition = 0, arrowPosition = 0;
+    unordered_set<string> tableData = getCatalogTableList(loc);
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     while (tagPosition != string::npos || arrowPosition != string::npos)
     {
@@ -131,6 +133,11 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             }
             tag = pathString.substr(searchStartPosition, tagPosition - searchStartPosition);
             searchStartPosition = tagPosition + 1;
+            if (tableData.find(tag) != tableData.end())
+            {
+                Diag(loc, diag::err_ambiguous_tag_defined) << tag;
+                return "";
+            }
         }
 
         if (arrowPosition < tagPosition)
@@ -170,7 +177,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     // Therefore there is no need to perform more checks here.
     if (path.size() > 1)
     {
-        unordered_set<string> tableData = getCatalogTableList(loc);
         unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
         for (auto tagEntry: tagMap)
@@ -188,7 +194,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                Diag(loc, diag::err_invalid_table_name) << tableName;
                 return "";
             }
         }
@@ -207,6 +213,10 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 tableName = pathComponent;
             }
+            if (tagMapping.find(tableName) != tagMapping.end())
+            {
+                tableName = tagMapping[tableName];
+            }
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
@@ -219,7 +229,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 {
                     auto relatedTablesIterator = relationData.equal_range(previousTable);
 
-                    if (relatedTablesIterator.first == relatedTablesIterator.second)
+                    if (relatedTablesIterator.first == relationData.end() &&
+                        relatedTablesIterator.second == relationData.end())
                     {
                         Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
                         return "";
@@ -232,7 +243,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                         {
                             string tbl = tableIterator->second.table;
                             string fld = tableIterator->second.field;
-                            if (previousTable == tbl)
+                            if (tableName == tbl)
                             {
                                 if (!previousField.empty())
                                 {
@@ -719,7 +730,15 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
             }
         }
     }
@@ -731,7 +750,15 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
             }
         }
     }
@@ -743,7 +770,15 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
             }
         }
     }
@@ -755,7 +790,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         {
             if (retVal.find(tagMapIterator.first) != retVal.end())
             {
-                Diag(loc, diag::err_ambiguous_tag_defined) << tagMapIterator.first;
+                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
                 return std::unordered_map<std::string, std::string>();
             }
             else

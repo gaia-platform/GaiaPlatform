@@ -9529,7 +9529,9 @@ def err_invalid_parent_table : Error<
 def err_no_relations_table_in_path : Error<
   "'%0' table in the explicit path has no relationship to '%1'">;
 def err_invalid_tag_defined: Error<
-    "Tag refers to an invalid table %0.">;
+    "Tag refers to an invalid table '%0'.">;
 def err_ambiguous_tag_defined: Error<
-    "Tag %0 cannot have the same name as a table or a field.">;
+    "Tag '%0' cannot have the same name as a table or a field.">;
+def err_tag_redefined : Error<
+    "Tag '%0' is already defined.">;
 } // end of sema component.

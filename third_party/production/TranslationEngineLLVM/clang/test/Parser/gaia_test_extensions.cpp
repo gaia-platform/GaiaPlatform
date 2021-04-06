@@ -132,8 +132,11 @@ ruleset test5
 
 ruleset test4
 {
-    OnUpdate(incubator)
+    OnUpdate(S:sensor)
     {
         /i:incubator->sensor.value  = i.min_temp;
+        sensor->incubator->actuator.value  = 5;
+        S->incubator->actuator.value  = 5;
+        /i:incubator->S.value  = i.min_temp;
     }
 }
