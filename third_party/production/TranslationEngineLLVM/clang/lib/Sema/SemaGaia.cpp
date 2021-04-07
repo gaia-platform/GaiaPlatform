@@ -223,49 +223,47 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc,diag::err_invalid_tag_defined) << tableName;
                 return "";
             }
-            if (pathComponent != path.back())
+
+            if (!previousTable.empty())
             {
-                if (!previousTable.empty())
+                auto relatedTablesIterator = relationData.equal_range(previousTable);
+
+                if (relatedTablesIterator.first == relationData.end() &&
+                    relatedTablesIterator.second == relationData.end())
                 {
-                    auto relatedTablesIterator = relationData.equal_range(previousTable);
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return "";
+                }
 
-                    if (relatedTablesIterator.first == relationData.end() &&
-                        relatedTablesIterator.second == relationData.end())
+                bool isMatchFound = false;
+                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                {
+                    if (tableIterator != relationData.end())
                     {
-                        Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
-                        return "";
-                    }
-
-                    bool isMatchFound = false;
-                    for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
-                    {
-                        if (tableIterator != relationData.end())
+                        string table = tableIterator->second.table;
+                        string field = tableIterator->second.field;
+                        if (tableName == table)
                         {
-                            string tbl = tableIterator->second.table;
-                            string fld = tableIterator->second.field;
-                            if (tableName == tbl)
+                            if (!previousField.empty())
                             {
-                                if (!previousField.empty())
-                                {
-                                    if (previousField == fld)
-                                    {
-                                        isMatchFound = true;
-                                        break;
-                                    }
-                                }
-                                else
+                                if (previousField == field)
                                 {
                                     isMatchFound = true;
                                     break;
                                 }
                             }
+                            else
+                            {
+                                isMatchFound = true;
+                                break;
+                            }
                         }
                     }
-                    if (!isMatchFound)
-                    {
-                        Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
-                        return "";
-                    }
+                }
+                if (!isMatchFound)
+                {
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return "";
                 }
             }
 
