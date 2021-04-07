@@ -1267,7 +1267,7 @@ def err_invalid_Gaia_rule_attribute : Error<
 def err_invalid_rule_context_use : Error<
   "Invalid use of 'rule_context'.">;
 def err_duplicate_tag_defined: Error<
-  "Duplicate tag %0 is defined.">;
+  "Duplicate tag '%0' is defined.">;
 }
 
 } // end of Parser diagnostics
