@@ -81,6 +81,22 @@ void wait_for_rule(std::atomic<uint32_t>& rule_guard)
     }
 }
 
+template <typename T_ex, typename... T_args>
+void test_exception(T_args... args)
+{
+    bool thrown = false;
+    try
+    {
+        throw T_ex(args...);
+    }
+    catch (const T_ex& ex)
+    {
+        thrown = true;
+    }
+
+    ASSERT_TRUE(thrown) << "An exception should have ben thrown";
+}
+
 TEST_F(sdk_test, auto_txn)
 {
     auto_transaction_t tx;
@@ -140,22 +156,6 @@ TEST_F(sdk_test, rule_list)
     ASSERT_STREQ("rulename", rule_subscription->rule_name);
     ASSERT_EQ(employee_t::s_gaia_type, rule_subscription->gaia_type);
     ASSERT_EQ(event_type_t::row_insert, rule_subscription->event_type);
-}
-
-template <typename T_ex, typename... T_args>
-void test_exception(T_args... args)
-{
-    bool thrown = false;
-    try
-    {
-        throw T_ex(args...);
-    }
-    catch (T_ex& ex)
-    {
-        thrown = true;
-    }
-
-    ASSERT_TRUE(thrown) << "AN exception should have ben thrown";
 }
 
 TEST_F(sdk_test, rule_exceptions)
