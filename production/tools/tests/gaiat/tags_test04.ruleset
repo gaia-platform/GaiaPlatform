@@ -10,7 +10,7 @@ ruleset test04
     }
 }
 
-// CHECK: Tag refers to an invalid table name.
+// CHECK: Tag refers to an invalid table 'name'.
 // CHECK: Table 'T' was not found in the catalog.
 // CHECK: use of undeclared identifier 'T'
 // CHECK: Table 'N' was not found in the catalog.

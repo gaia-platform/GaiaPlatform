@@ -10,4 +10,4 @@ ruleset test00
     }
 }
 
-// CHECK: Tag sensor cannot have the same name as a table or a field.
+// CHECK: Tag 'sensor' cannot have the same name as a table or a field.

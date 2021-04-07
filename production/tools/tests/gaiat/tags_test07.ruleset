@@ -2,12 +2,12 @@
 
 ruleset test07 : Table (S:sensor)
 {
-  {
-	  if (@value < 5)
-	  {
-		  value = 5;
-	  }
-  }
+    {
+        if (@value < 5)
+        {
+            value = 5;
+        }
+    }
 }
 
 // CHECK: Tags not allowed in Table attribute.

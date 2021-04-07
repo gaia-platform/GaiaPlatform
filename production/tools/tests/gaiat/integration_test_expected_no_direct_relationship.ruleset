@@ -1,0 +1,15 @@
+// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+
+// GAIAPLAT-811
+ruleset test1
+{
+    {
+        if (sensor->actuator.value > 95.0)
+        {
+            actuator.value = @min_temp;
+        }
+    }
+}
+
+// recommended message:
+// CHECK: adjacent tables in a path are not directly related.

@@ -130,24 +130,41 @@ ruleset test5
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:117:3>
 
-ruleset test81
+ruleset test6
 {
-    OnUpdate(S:sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    OnUpdate(S:sensor)
+    {
+        /i:incubator->sensor.value  = i.min_temp;
+        sensor->incubator->actuator.value  = 5;
+        S->incubator->actuator.value  = 5;
+        /i:incubator->S.value  = i.min_temp;
+    }
+}
+
+// CHECK:      RulesetDecl{{.*}} test6
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:136:5>
+
+ruleset test7
+{
+    OnUpdate(S:sensor)
     {
         float v = S.value;
     }
 }
 
-// CHECK:      RulesetDecl{{.*}} test81
+// CHECK:      RulesetDecl{{.*}} test7
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
-// CHECK:      MemberExpr 0x{{[^ ]*}} <col:9, col:18> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
-// CHECK:     RuleAttr 0x{{[^ ]*}} <line:136:5>
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:151:5>
 
-ruleset test82
+ruleset test8
 {
-    OnUpdate(S:sensor, V:sensor.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    OnUpdate(S:sensor, V:sensor.value)
     {
         float v = S.value + V.value;
     }
 }
+
+// CHECK:      RulesetDecl{{.*}} test8
+// CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
+// CHECK:     RuleAttr 0x{{[^ ]*}} <line:163:5>

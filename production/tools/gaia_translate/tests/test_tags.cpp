@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "test_rulesets.hpp"
-
 #include <unistd.h>
 
 #include "gtest/gtest.h"
@@ -14,6 +12,7 @@
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_prerequisites.h"
+#include "test_rulesets.hpp"
 
 using namespace std;
 using namespace gaia::prerequisites;

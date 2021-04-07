@@ -10,4 +10,4 @@ ruleset test01
     }
 }
 
-// CHECK: Tag value cannot have the same name as a table or a field.
+// CHECK: Tag 'value' cannot have the same name as a table or a field.

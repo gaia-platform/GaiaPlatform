@@ -1,5 +1,7 @@
 // RUN: %gaiat %s --
 
+#include "tags_test.h"
+
 ruleset test
 {
 }
@@ -122,8 +124,9 @@ ruleset test9
   }
 }
 
-// This is legal? But has error.
-ruleset test10 : Table(sensor)
+// This is legal? But has error (duplicate 'name' fields).
+// GAIAPLAT-796
+ruleset testE1 : Table(sensor)
 {
     OnUpdate(name)
     {

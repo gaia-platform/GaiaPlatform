@@ -551,12 +551,11 @@ ruleset test79
     }
 }
 
-// Qualified 'value' should be accepted?
-ruleset test79 : Table(sensor)
+ruleset test79 : Table(sensor, actuator)
 {
     OnInsert(S:sensor)
     {
-        actuator.value += value/2;
+        actuator.value += sensor.value/2;
     }
 }
 
@@ -585,6 +584,7 @@ ruleset test82
 }
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
+// GAIALAT-796
 ruleset test83 : Table(sensor)
 {
     OnUpdate(value)
@@ -616,7 +616,7 @@ ruleset test86
 
 ruleset test87
 {
-    OnInsert(incubator:I) // expected-error {{Tag incubator cannot have the same name as a table or a field.}}
+    OnInsert(incubator:I) // expected-error {{Tag 'incubator' cannot have the same name as a table or a field.}}
     {
     }
 }

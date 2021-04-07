@@ -10,6 +10,6 @@ ruleset test03
     }
 }
 
-// CHECK: Tag refers to an invalid table min_temp.
+// CHECK: Tag refers to an invalid table 'min_temp'.
 // CHECK: Table 'M' was not found in the catalog.
 // CHECK: use of undeclared identifier 'M'
