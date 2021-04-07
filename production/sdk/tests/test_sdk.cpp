@@ -41,8 +41,8 @@ protected:
         gaia::system::initialize("./gaia.conf", "./gaia_log.conf");
 
         // Force a s_gaia_type creation in the Catalog (assumes that the Catalog is empty and the
-        // first created table will get ID 1). ATM we do not expose an API to load DDL data into the
-        // Catalog.
+        // first created table will get ID 1 which is the ID of employee_t table).
+        // ATM we do not expose an API to load DDL data into the Catalog.
         gaia::catalog::create_table("", "test_table", gaia::catalog::ddl::field_def_list_t(), false);
     }
 
