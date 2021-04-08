@@ -21,6 +21,7 @@ namespace catalog
 
 using db_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
 using table_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
+using relationship_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
 
 class ddl_executor_t
 {
@@ -44,7 +45,8 @@ public:
     gaia::common::gaia_id_t create_relationship(
         const std::string& name,
         const ddl::link_def_t& link1,
-        const ddl::link_def_t& link2);
+        const ddl::link_def_t& link2,
+        bool thrown_on_exists = true);
 
     void drop_table(const std::string& db_name, const std::string& name);
     void drop_database(const std::string& name);
@@ -139,6 +141,7 @@ private:
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;
+    relationship_names_t m_relationship_names;
 
     gaia::common::gaia_id_t m_empty_db_id;
 

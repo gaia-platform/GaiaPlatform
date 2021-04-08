@@ -389,6 +389,20 @@ public:
 };
 
 /**
+ * Thrown when creating a relationship that already exists.
+ */
+class relationship_already_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit relationship_already_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The relationship '" << name << "' already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when the tables specified in the relationship definition do not match.
  */
 class tables_not_match : public gaia::common::gaia_exception
@@ -402,6 +416,20 @@ public:
         std::stringstream message;
         message << "The table '" << name1 << "' does not match tht table '" << name2 << "' "
                 << "in the relationship '" << relationship << "' definition.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when trying to create a many-to-many relationship.
+ */
+class many_to_many_not_supported : public gaia::common::gaia_exception
+{
+public:
+    explicit many_to_many_not_supported(const std::string& relationship)
+    {
+        std::stringstream message;
+        message << "The many to many relationship defined in '" << relationship << "' is not supported.";
         m_message = message.str();
     }
 };

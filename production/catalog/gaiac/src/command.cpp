@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <queue>
+#include <string>
 
 #include "tabulate/table.hpp"
 
@@ -58,8 +59,8 @@ constexpr char c_table_title[] = "Table";
 constexpr char c_type_title[] = "Type";
 constexpr char c_position_title[] = "Position";
 constexpr char c_repeated_count_title[] = "Repeated Count";
-constexpr char c_parent_title[] = "Parent";
-constexpr char c_child_title[] = "Child";
+constexpr char c_parent_title[] = "Parent (link)";
+constexpr char c_child_title[] = "Child (link)";
 
 template <typename T_obj>
 void list_catalog_obj(const row_t& header, function<bool(T_obj&)> is_match, function<row_t(T_obj&)> get_row)
@@ -124,13 +125,16 @@ void list_relationships(const regex& re)
     list_catalog_obj<gaia_relationship_t>(
         {c_name_title, c_parent_title, c_child_title, c_id_title},
         [&re](gaia_relationship_t& r) -> bool {
-            return regex_match(r.to_parent_link_name(), re);
+            return regex_match(r.name(), re);
         },
         [](gaia_relationship_t& r) -> row_t {
+            stringstream parent, child;
+            parent << r.parent().name() << " (" << r.to_parent_link_name() << ")";
+            child << r.child().name() << " (" << r.to_child_link_name() << ")";
             return {
-                r.to_parent_link_name(),
-                r.parent().name(),
-                r.child().name(),
+                r.name(),
+                parent.str(),
+                child.str(),
                 to_string(r.gaia_id())};
         });
 }
