@@ -236,6 +236,7 @@ namespace gaia_field_expr {
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> gaia_relationship_writer;
 struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> {
     gaia_relationship_t() : edc_object_t("gaia_relationship_t") {}
+    const char* name() const {return GET_STR(name);}
     const char* to_parent_link_name() const {return GET_STR(to_parent_link_name);}
     const char* to_child_link_name() const {return GET_STR(to_child_link_name);}
     uint8_t cardinality() const {return GET(cardinality);}
@@ -244,9 +245,9 @@ struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_typ
     uint16_t first_child_offset() const {return GET(first_child_offset);}
     uint16_t next_child_offset() const {return GET(next_child_offset);}
     uint16_t parent_offset() const {return GET(parent_offset);}
-    static gaia::common::gaia_id_t insert_row(const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset) {
+    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(internal::Creategaia_relationshipDirect(b, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
+        b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
         return edc_object_t::insert_row(b);
     }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t>& list() {
@@ -262,6 +263,7 @@ struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_typ
     template<class unused_t>
     struct expr_ {
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::direct_access::expression_t<gaia_relationship_t, const char*> name;
         static gaia::direct_access::expression_t<gaia_relationship_t, const char*> to_parent_link_name;
         static gaia::direct_access::expression_t<gaia_relationship_t, const char*> to_child_link_name;
         static gaia::direct_access::expression_t<gaia_relationship_t, uint8_t> cardinality;
@@ -281,6 +283,7 @@ private:
 };
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_relationship_t::expr_<unused_t>::gaia_id{&gaia_relationship_t::gaia_id};
+template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::name{&gaia_relationship_t::name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_parent_link_name{&gaia_relationship_t::to_parent_link_name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_child_link_name{&gaia_relationship_t::to_child_link_name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint8_t> gaia_relationship_t::expr_<unused_t>::cardinality{&gaia_relationship_t::cardinality};
@@ -293,6 +296,7 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, 
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::child{&gaia_relationship_t::child};
 
 namespace gaia_relationship_expr {
+    static auto& name = gaia_relationship_t::expr::name;
     static auto& to_parent_link_name = gaia_relationship_t::expr::to_parent_link_name;
     static auto& to_child_link_name = gaia_relationship_t::expr::to_child_link_name;
     static auto& cardinality = gaia_relationship_t::expr::cardinality;

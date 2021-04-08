@@ -118,6 +118,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     parent_offset uint16,
         // );
         field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("to_parent_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("to_child_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<ref_field_def_t>("parent", "catalog", "gaia_table"));
@@ -331,6 +332,7 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     gaia_id_t relationship_id = c_invalid_gaia_id;
     relationship_id = gaia_relationship_t::insert_row(
+        name.c_str(),
         to_parent_link_name,
         to_child_link_name,
         static_cast<uint8_t>(link1.cardinality),
@@ -762,6 +764,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             bool is_deprecated = false;
 
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
+                "",
                 ref_field->name.c_str(),
                 to_child_link_name.c_str(),
                 static_cast<uint8_t>(relationship_cardinality_t::many),
