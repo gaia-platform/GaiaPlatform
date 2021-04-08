@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -257,6 +258,94 @@ gaia_id_t ddl_executor_t::create_table(
     bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
+}
+
+gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
+{
+    shared_lock lock(m_lock);
+    string full_table_name = get_full_table_name(db, table);
+    if (m_table_names.find(full_table_name) == m_table_names.end())
+    {
+        throw table_not_exists(full_table_name);
+    }
+    return m_table_names[full_table_name];
+}
+
+gaia_id_t ddl_executor_t::create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2)
+{
+    shared_lock lock(m_lock);
+
+    gaia_id_t link1_src_table_id = get_table_id(link1.from_database, link1.from_table);
+    gaia_id_t link1_dest_table_id = get_table_id(link1.to_database, link1.to_table);
+
+    gaia_id_t link2_src_table_id = get_table_id(link2.from_database, link2.from_table);
+    gaia_id_t link2_dest_table_id = get_table_id(link2.to_database, link2.to_table);
+
+    if (link1_src_table_id != link2_dest_table_id)
+    {
+        throw tables_not_match(name, link1.from_table, link2.to_table);
+    }
+
+    if (link1_dest_table_id != link2_src_table_id)
+    {
+        throw tables_not_match(name, link1.to_table, link2.from_table);
+    }
+
+    // The first link defines the parent and child in the relationship.
+    gaia_id_t parent_table_id = link1_src_table_id;
+    gaia_id_t child_table_id = link1_dest_table_id;
+
+    retail_assert(
+        link2.cardinality != relationship_cardinality_t::many,
+        "Many to many relatinships are not supported right now!");
+
+    auto_transaction_t txn(false);
+
+    uint8_t parent_available_offset = find_available_offset(parent_table_id);
+    uint8_t child_available_offset;
+    if (parent_table_id == child_table_id)
+    {
+        // This is a self-relationship, both parent and child pointers are in the same table.
+        child_available_offset = parent_available_offset + 1;
+        validate_new_reference_offset(child_available_offset);
+    }
+    else
+    {
+        child_available_offset = find_available_offset(child_table_id);
+    }
+
+    const char* to_parent_link_name = link2.name.c_str();
+    const char* to_child_link_name = link1.name.c_str();
+
+    reference_offset_t first_child_offset = parent_available_offset;
+
+    reference_offset_t parent_offset = child_available_offset;
+    reference_offset_t next_child_offset = child_available_offset + 1;
+    validate_new_reference_offset(next_child_offset);
+
+    bool is_parent_required = false;
+    bool is_deprecated = false;
+
+    gaia_id_t relationship_id = c_invalid_gaia_id;
+    relationship_id = gaia_relationship_t::insert_row(
+        to_parent_link_name,
+        to_child_link_name,
+        static_cast<uint8_t>(link1.cardinality),
+        is_parent_required,
+        is_deprecated,
+        first_child_offset,
+        next_child_offset,
+        parent_offset);
+
+    gaia_table_t::get(parent_table_id).gaia_relationships_child().insert(relationship_id);
+    gaia_table_t::get(child_table_id).gaia_relationships_parent().insert(relationship_id);
+
+    txn.commit();
+
+    return relationship_id;
 }
 
 void drop_relationship_no_ri(gaia_relationship_t relationship)

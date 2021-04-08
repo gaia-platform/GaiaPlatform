@@ -389,6 +389,24 @@ public:
 };
 
 /**
+ * Thrown when the tables specified in the relationship definition do not match.
+ */
+class tables_not_match : public gaia::common::gaia_exception
+{
+public:
+    explicit tables_not_match(
+        const std::string& relationship,
+        const std::string& name1,
+        const std::string& name2)
+    {
+        std::stringstream message;
+        message << "The table '" << name1 << "' does not match tht table '" << name2 << "' "
+                << "in the relationship '" << relationship << "' definition.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Initialize the catalog.
 */
 void initialize_catalog();
@@ -505,6 +523,18 @@ std::vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gai
  * @return a list of ids of the tables that have a parent relationship with this table.
  */
 std::vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
+
+/**
+ * Create a relationship between tables given the link definitions.
+ *
+ * @param name of the relationship
+ * @param link1, link2 link definitions of the relationship
+ * @return gaia id of the created relationship
+ */
+gaia::common::gaia_id_t create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2);
 
 /**
  * Generate the Extended Data Classes header file.

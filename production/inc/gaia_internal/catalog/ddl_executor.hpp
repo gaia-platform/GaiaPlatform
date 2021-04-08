@@ -41,6 +41,11 @@ public:
         const std::string& name,
         const ddl::field_def_list_t& fields,
         bool throw_on_exist = true);
+    gaia::common::gaia_id_t create_relationship(
+        const std::string& name,
+        const ddl::link_def_t& link1,
+        const ddl::link_def_t& link2);
+
     void drop_table(const std::string& db_name, const std::string& name);
     void drop_database(const std::string& name);
 
@@ -94,6 +99,9 @@ private:
 
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
+
+    // Get the table id given the db and table names.
+    inline common::gaia_id_t get_table_id(const std::string& db, const std::string& table);
 
     // Verifies that a newly generated reference offset is valid.
     // Throws an exception if the new offset was found to be invalid,
