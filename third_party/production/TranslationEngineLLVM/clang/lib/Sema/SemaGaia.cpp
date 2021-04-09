@@ -214,12 +214,17 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             }
             if (tagMapping.find(tableName) != tagMapping.end())
             {
+                if (pathComponent != path.front())
+                {
+                    Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
+                    return "";
+                }
                 tableName = tagMapping[tableName];
             }
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc,diag::err_invalid_tag_defined) << tableName;
+                Diag(loc, diag::err_invalid_tag_defined) << tableName;
                 return "";
             }
 

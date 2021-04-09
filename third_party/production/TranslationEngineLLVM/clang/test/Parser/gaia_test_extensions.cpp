@@ -137,6 +137,6 @@ ruleset test4
         /i:incubator->sensor.value  = i.min_temp;
         sensor->incubator->actuator.value  = 5;
         S->incubator->actuator.value  = 5;
-        /i:incubator->S.value  = i.min_temp;
+        min_temp += @/incubator->sensor.value;
     }
 }

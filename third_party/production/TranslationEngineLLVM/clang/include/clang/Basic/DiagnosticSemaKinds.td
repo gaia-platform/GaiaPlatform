@@ -9534,4 +9534,6 @@ def err_ambiguous_tag_defined: Error<
     "Tag '%0' cannot have the same name as a table or a field.">;
 def err_tag_redefined : Error<
     "Tag '%0' is already defined.">;
+def err_incorrect_tag_use_in_path : Error<
+    "Tag '%0' cannot be used in this context.">;
 } // end of sema component.
