@@ -138,9 +138,13 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_ambiguous_tag_defined) << tag;
                 return "";
             }
+            if (tagMap.find(tag) != tagMap.end())
+            {
+                Diag(loc, diag::err_tag_redefined) << tag;
+                return "";
+            }
         }
-
-        if (arrowPosition < tagPosition)
+        else if (arrowPosition < tagPosition)
         {
             if (arrowPosition == searchStartPosition)
             {
@@ -150,11 +154,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
             if (!tag.empty())
             {
-                if (tagMap.find(tag) != tagMap.end())
-                {
-                    Diag(loc, diag::err_invalid_explicit_path);
-                    return "";
-                }
                 tagMap[tag] = table;
                 tag.clear();
             }
