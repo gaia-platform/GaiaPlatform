@@ -29,7 +29,7 @@ protected:
         test_table_fields.emplace_back(make_unique<data_field_def_t>("age", data_type_t::e_int8, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("value", data_type_t::e_float, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("larger_value", data_type_t::e_double, 1));
-        test_table_fields.emplace_back(make_unique<ref_field_def_t>("parent", "", c_table_name));
+        //test_table_fields.emplace_back(make_unique<ref_field_def_t>("parent", "", c_table_name));
     }
 
     static field_def_list_t test_table_fields;
@@ -51,6 +51,11 @@ constexpr char c_expected_fdw_ddl[]
 TEST_F(fdw_ddl_generation_test, generate_fdw_ddl_from_catalog)
 {
     gaia_id_t table_id = create_table(c_table_name, test_table_fields);
+    create_relationship(
+        "parent",
+        {"", c_table_name, "children", "", c_table_name, relationship_cardinality_t::many},
+        {"", c_table_name, "parent", "", c_table_name, relationship_cardinality_t::one},
+        false);
 
     string fdw_ddl = generate_fdw_ddl(table_id, c_server_name);
 

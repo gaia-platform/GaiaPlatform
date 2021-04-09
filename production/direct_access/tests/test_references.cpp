@@ -206,7 +206,7 @@ bool bounce_hierarchy(employee_t& eptr)
                 {
                     auto up_aptr = pptr.address();
                     EXPECT_EQ(up_aptr, aptr);
-                    auto up_eptr = up_aptr.addressee();
+                    auto up_eptr = up_aptr.owner();
                     EXPECT_EQ(up_eptr, eptr);
                 }
             }
@@ -340,7 +340,7 @@ TEST_F(gaia_references_test, connect_scan)
 void scan_manages(std::vector<string>& employee_vector, employee_t& e)
 {
     employee_vector.emplace_back(e.name_first());
-    for (auto eptr : e.employees())
+    for (auto eptr : e.reportees())
     {
         scan_manages(employee_vector, eptr);
     }
@@ -383,12 +383,12 @@ TEST_F(gaia_references_test, recursive_scan)
     auto e6 = insert_employee(writer, "Hector");
     auto e7 = insert_employee(writer, "Hank");
 
-    e1.employees().insert(e2); // Horace to Henry
-    e2.employees().insert(e3); //    Henry to Hal
-    e2.employees().insert(e4); //    Henry to Hiram
-    e4.employees().insert(e5); //       Hiram to Howard
-    e1.employees().insert(e6); // Horace to Hector
-    e1.employees().insert(e7); // Horace to Hank
+    e1.reportees().insert(e2); // Horace to Henry
+    e2.reportees().insert(e3); //    Henry to Hal
+    e2.reportees().insert(e4); //    Henry to Hiram
+    e4.reportees().insert(e5); //       Hiram to Howard
+    e1.reportees().insert(e6); // Horace to Hector
+    e1.reportees().insert(e7); // Horace to Hank
 
     // Recursive walk through hierarchy
     std::vector<string> employee_vector;
@@ -804,19 +804,19 @@ TEST_F(gaia_references_test, set_filter)
     employee_writer writer;
     auto e_mgr = insert_employee(writer, "Harold");
     auto e_emp = insert_employee(writer, "Hunter");
-    e_mgr.employees().insert(e_emp);
+    e_mgr.reportees().insert(e_emp);
     e_emp = insert_employee(writer, "Howard");
-    e_mgr.employees().insert(e_emp);
+    e_mgr.reportees().insert(e_emp);
     e_emp = insert_employee(writer, "Henry");
-    e_mgr.employees().insert(e_emp);
+    e_mgr.reportees().insert(e_emp);
     e_emp = insert_employee(writer, "Harry");
-    e_mgr.employees().insert(e_emp);
+    e_mgr.reportees().insert(e_emp);
     e_emp = insert_employee(writer, "Hoover");
-    e_mgr.employees().insert(e_emp);
+    e_mgr.reportees().insert(e_emp);
 
     size_t name_length = 5;
     int count = 0;
-    auto name_length_list = e_mgr.employees()
+    auto name_length_list = e_mgr.reportees()
                                 .where([&name_length](const employee_t& e) {
                                     return strlen(e.name_first()) == name_length;
                                 });
@@ -838,7 +838,7 @@ TEST_F(gaia_references_test, set_filter)
 
     count = 0;
     // Note that "Harold" is not counted because it is the owner.
-    for (const auto& e : e_mgr.employees().where(filter_function))
+    for (const auto& e : e_mgr.reportees().where(filter_function))
     {
         EXPECT_NE(strchr(e.name_first(), 'o'), nullptr);
         count++;

@@ -43,9 +43,10 @@ gaia_id_t create_table(
 gaia_id_t create_relationship(
     const string& name,
     const ddl::link_def_t& link1,
-    const ddl::link_def_t& link2)
+    const ddl::link_def_t& link2,
+    bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_relationship(name, link1, link2);
+    return ddl_executor_t::get().create_relationship(name, link1, link2, throw_on_exists);
 }
 
 void drop_database(const string& name)

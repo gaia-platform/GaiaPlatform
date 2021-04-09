@@ -169,45 +169,6 @@ struct data_field_def_t : base_field_def_t
 
 using composite_name_t = std::pair<std::string, std::string>;
 
-// This represents reference fields in parsing results.
-// The references are defined as relationships in catalog tables.
-struct ref_field_def_t : base_field_def_t
-{
-    ref_field_def_t(std::string name, composite_name_t full_table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
-    {
-    }
-
-    ref_field_def_t(std::string name, std::string db_name, std::string table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
-    {
-    }
-
-    composite_name_t parent_table;
-
-    [[nodiscard]] std::string db_name() const
-    {
-        return parent_table.first;
-    }
-
-    [[nodiscard]] std::string table_name() const
-    {
-        return parent_table.second;
-    }
-
-    [[nodiscard]] std::string full_table_name() const
-    {
-        if (db_name().empty())
-        {
-            return table_name();
-        }
-        else
-        {
-            return db_name() + c_db_table_name_connector + table_name();
-        }
-    }
-};
-
 using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
 
 struct link_def_t
@@ -562,7 +523,8 @@ std::vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia
 gaia::common::gaia_id_t create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
-    const ddl::link_def_t& link2);
+    const ddl::link_def_t& link2,
+    bool throw_on_exist = true);
 
 /**
  * Generate the Extended Data Classes header file.

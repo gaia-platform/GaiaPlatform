@@ -88,16 +88,33 @@ TEST_F(catalog_core_test, list_fields)
 
 TEST_F(catalog_core_test, list_relationship_from)
 {
-    // CREATE TABLE star(name STRING, orbit REFERENCES star);
-    // CREATE TABLE planet(name STRING, orbit REFERENCES star);
-    // CREATE TABLE comet(name STRING, orbit REFERENCES star);
+    // CREATE TABLE star(name STRING);
+    // CREATE TABLE planet(name STRING);
+    // CREATE TABLE comet(name STRING);
     gaia::catalog::ddl::field_def_list_t fields;
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("name", data_type_t::e_string, 1));
-    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("orbit", "", "star"));
-
     auto star_table_id = gaia::catalog::create_table("star", fields);
     auto planet_table_id = gaia::catalog::create_table("planet", fields);
     auto comet_table_id = gaia::catalog::create_table("comet", fields);
+
+    // CREATE RELATIONSHIP star_star(star.one -> star, star.another -> star);
+    // CREATE RELATIONSHIP star_planet(star.planets -> planet[], planet.star -> star);
+    // CREATE RELATIONSHIP star_comet(star.comets -> comets[], comet.star -> star);
+    gaia::catalog::create_relationship(
+        "star_star",
+        {"", "star", "self", "", "star", gaia::catalog::relationship_cardinality_t::one},
+        {"", "star", "other", "", "star", gaia::catalog::relationship_cardinality_t::one},
+        false);
+    gaia::catalog::create_relationship(
+        "star_planet",
+        {"", "star", "planets", "", "planet", gaia::catalog::relationship_cardinality_t::many},
+        {"", "planet", "star", "", "star", gaia::catalog::relationship_cardinality_t::one},
+        false);
+    gaia::catalog::create_relationship(
+        "star_comet",
+        {"", "star", "comets", "", "comet", gaia::catalog::relationship_cardinality_t::many},
+        {"", "comet", "star", "", "star", gaia::catalog::relationship_cardinality_t::one},
+        false);
 
     std::set<gaia_id_t> tables_with_relationship_from_star;
     begin_transaction();
@@ -113,16 +130,25 @@ TEST_F(catalog_core_test, list_relationship_to)
 {
     // CREATE TABLE color(name STRING);
     // CREATE TABLE shape(name STRING);
-    // CREATE TABLE object(name STRING, color REFERENCES color, shape REFERENCES shape);
+    // CREATE TABLE object(name STRING);
     gaia::catalog::ddl::field_def_list_t fields;
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("name", data_type_t::e_string, 1));
-
     auto color_table_id = gaia::catalog::create_table("color", fields);
     auto shape_table_id = gaia::catalog::create_table("shape", fields);
-
-    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("color", "", "color"));
-    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("shape", "", "shape"));
     auto object_table_id = gaia::catalog::create_table("object", fields);
+
+    // CREATE RELATIONSHIP object_color(color.object -> object, object.color -> color);
+    // CREATE RELATIONSHIP object_color(shape.object -> object, object.shape -> shape);
+    gaia::catalog::create_relationship(
+        "object_color",
+        {"", "color", "object", "", "object", gaia::catalog::relationship_cardinality_t::one},
+        {"", "object", "color", "", "color", gaia::catalog::relationship_cardinality_t::one},
+        false);
+    gaia::catalog::create_relationship(
+        "object_shape",
+        {"", "shape", "object", "", "object", gaia::catalog::relationship_cardinality_t::one},
+        {"", "object", "shape", "", "shape", gaia::catalog::relationship_cardinality_t::one},
+        false);
 
     begin_transaction();
     std::set<gaia_id_t> tables_with_relationship_to_object;

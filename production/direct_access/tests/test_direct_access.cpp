@@ -811,7 +811,7 @@ TEST_F(edc_object_test, default_construction)
     begin_transaction();
     {
         EXPECT_THROW(e.name_first(), invalid_node_id);
-        EXPECT_THROW(a.addressee(), invalid_node_id);
+        EXPECT_THROW(a.owner(), invalid_node_id);
         EXPECT_THROW(e.manager(), invalid_node_id);
         EXPECT_THROW(e.writer(), invalid_node_id);
         EXPECT_THROW(e.delete_row(), invalid_node_id);

@@ -16,18 +16,38 @@ create table if not exists flight
     miles_flown int32
 );
 
+create table if not exists trip_segment
+(
+    who string
+);
+
 create table if not exists segment
 (
     miles int32,
     status int8,
-    luggage_weight int32,
-    flight references flight,
-    src references airport,
-    dst references airport
+    luggage_weight int32
 );
 
-create table if not exists trip_segment
+create relationship if not exists segments_from
 (
-    who string,
-    segment references segment
+    airport.segments_from -> segment[],
+    segment.src -> airport
+);
+
+create relationship if not exists segments_to
+(
+    airport.segments_to -> segment[],
+    segment.dst -> airport
+);
+
+create relationship if not exists segment_flight
+(
+    flight.segments -> segment[],
+    segment.flight -> flight
+);
+
+create relationship if not exists trip_segments
+(
+    trip_segment.segments -> segment[],
+    segment.trip -> trip_segment
 );

@@ -76,45 +76,6 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     EXPECT_EQ(field->active, false);
 }
 
-TEST(catalog_ddl_parser_test, create_table_references)
-{
-    parser_t parser;
-    string ddl = string(
-        "CREATE TABLE t "
-        "(c1 REFERENCES t1,"
-        " c2 REFERENCES d.t2);");
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl));
-
-    EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
-
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
-
-    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_EQ(create_stmt->fields.size(), 2);
-
-    const ref_field_def_t* field;
-
-    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::reference);
-    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(0).get());
-    EXPECT_EQ(field->name, "c1");
-    EXPECT_EQ(field->table_name(), "t1");
-    EXPECT_EQ(field->db_name(), "");
-
-    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::reference);
-    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(1).get());
-    EXPECT_EQ(field->name, "c2");
-    EXPECT_EQ(field->table_name(), "t2");
-    EXPECT_EQ(field->db_name(), "d");
-}
-
-TEST(catalog_ddl_parser_test, fail_on_unnamed_reference)
-{
-    parser_t parser;
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (REFERENCES d.t2);"));
-}
-
 TEST(catalog_ddl_parser_test, drop_table)
 {
     parser_t parser;

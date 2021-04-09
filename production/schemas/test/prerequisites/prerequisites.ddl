@@ -15,15 +15,30 @@ create table Course (
 create table Registration (
     RegId string,
     Status string,
-    Grade string,
-    registered_student references Student,
-    registered_course references Course
+    Grade string
+);
+
+create relationship if not exists StudentReg (
+    Student.registrations -> Registration[],
+    Registration.registered_student -> Student
+);
+
+create relationship if not exists CourseReg (
+    Course.registrations -> Registration[],
+    Registration.registered_course -> Course
 );
 
 create table PreReq (
     PreReqId string,
-    MinGrade string,
-    prereq references Course,
-    course references Course
+    MinGrade string
 );
 
+create relationship if not exists PreReqCourses (
+    PreReq.prereq -> Course,
+    Course.required_by -> PreReq
+);
+
+create relationship if not exists PreReqRef (
+    PreReq.course -> Course,
+    Course.requires -> PreReq
+);

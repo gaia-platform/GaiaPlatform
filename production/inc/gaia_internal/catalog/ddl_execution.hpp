@@ -45,7 +45,31 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             }
             else if (create_stmt->type == ddl::create_type_t::create_relationship)
             {
-                create_relationship(create_stmt->name, create_stmt->relationship.first, create_stmt->relationship.second);
+                if (!db_name.empty())
+                {
+                    if (create_stmt->relationship.first.from_database.empty())
+                    {
+                        create_stmt->relationship.first.from_database = db_name;
+                    }
+                    if (create_stmt->relationship.first.to_database.empty())
+                    {
+                        create_stmt->relationship.first.to_database = db_name;
+                    }
+                    if (create_stmt->relationship.second.from_database.empty())
+                    {
+                        create_stmt->relationship.second.from_database = db_name;
+                    }
+                    if (create_stmt->relationship.second.to_database.empty())
+                    {
+                        create_stmt->relationship.second.to_database = db_name;
+                    }
+                }
+
+                create_relationship(
+                    create_stmt->name,
+                    create_stmt->relationship.first,
+                    create_stmt->relationship.second,
+                    throw_on_exist);
             }
         }
         else if (stmt->is_type(ddl::statement_type_t::drop))

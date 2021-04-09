@@ -68,7 +68,6 @@ comment ("--".*)
 "NOT"          return yy::parser::make_NOT(loc);
 "EXISTS"       return yy::parser::make_EXISTS(loc);
 "RELATIONSHIP" return yy::parser::make_RELATIONSHIP(loc);
-"REFERENCES"   return yy::parser::make_REFERENCES(loc);
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
 
 "BOOL"       return yy::parser::make_BOOL(loc);

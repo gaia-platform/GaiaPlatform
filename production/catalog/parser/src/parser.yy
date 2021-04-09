@@ -61,7 +61,7 @@
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT DOUBLE STRING
 
 // Word tokens
-%token CREATE DROP DATABASE TABLE IF NOT EXISTS REFERENCES ACTIVE RELATIONSHIP
+%token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP
 
 // Symbols
 %token LPAREN "("
@@ -88,7 +88,6 @@
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
-%type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
@@ -99,7 +98,6 @@
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
-%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
@@ -150,9 +148,10 @@ create_statement:
           $$->fields = std::move(*$6);
       }
   }
-| CREATE RELATIONSHIP IDENTIFIER "(" link_def "," link_def ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $3);
-      $$->relationship = std::make_pair($5, $7);
+| CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $4);
+      $$->relationship = std::make_pair($6, $8);
+      $$->if_not_exists = $3;
   }
 ;
 
@@ -181,7 +180,6 @@ field_def_commalist:
 
 field_def:
   data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
-| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:
@@ -198,12 +196,6 @@ data_field_def:
 | IDENTIFIER STRING ACTIVE {
       $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
       $$->active = true;
-  }
-;
-
-ref_field_def:
-  IDENTIFIER REFERENCES composite_name {
-      $$ = std::make_unique<ref_field_def_t>($1, $3);
   }
 ;
 
