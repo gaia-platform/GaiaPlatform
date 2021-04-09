@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test17
+{
+    OnUpdate(actuator)
+    {
+        /I:incubator->I:sensor.value = 0;
+    }
+}
+
+// GAIAPLAT-820
+// CHECK: Duplicate tag 'I' is defined.

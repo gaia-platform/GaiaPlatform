@@ -79,6 +79,23 @@ ruleset test9
     }
 }
 
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+        actuator.value += feeding.portion;
+        sensor.value += acres;
+    }
+}
+
+ruleset test11
+{
+    OnUpdate(crop)
+    {
+        use_float(crop->yield->feeding->animal->raised->farmer->incubator.min_temp);
+    }
+}
+
 // GAIAPLAT-803
 // This should be identical to test1 above.
 // ruleset testE1

@@ -10,7 +10,8 @@ CREATE TABLE if not exists farmer (
 );
 
 CREATE TABLE if not exists crop (
-    name STRING
+    name STRING,
+    acres UINT32
 );
 
 CREATE TABLE if not exists incubator (

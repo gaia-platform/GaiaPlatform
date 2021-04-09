@@ -9,4 +9,4 @@ ruleset test14
 }
 
 // GAIAPLAT-799
-// CHECK: Cannot identify more than one table in OnInsert.
+// CHECK: Cannot specify more than one table in OnInsert.

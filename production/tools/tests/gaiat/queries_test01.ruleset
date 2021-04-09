@@ -1,0 +1,11 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test00
+{
+    OnChange(actuator.value)
+    {
+        use_float(actuator.value += sensor.value);
+    }
+}

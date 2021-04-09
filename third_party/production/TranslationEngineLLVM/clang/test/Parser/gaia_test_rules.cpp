@@ -634,3 +634,127 @@ ruleset test89 : Table(actuator)
     {
     }
 }
+
+ruleset test90
+{
+    OnUpdate(incubator)
+    {
+        long i = actuator.timestamp;
+        long j = /incubator->actuator.timestamp;
+    }
+}
+
+ruleset test91
+{
+    OnUpdate(incubator)
+    {
+        long i = actuator->timestamp; // expected-error {{Tag refers to an invalid table 'timestamp'.}}
+                   // expected-error@-1 {{use of undeclared identifier 'actuator'}}
+    }
+}
+
+ruleset test92
+{
+    OnUpdate(incubator)
+    {
+        int i = 0;
+        if (/incubator->raised->animal->feeding.portion > 10)
+        {
+            i += portion;
+        }
+    }
+}
+
+ruleset test93
+{
+    OnUpdate(incubator[i]) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    {
+        int i = 0;
+    }
+}
+
+ruleset test94
+{
+    Onward(incubator) // expected-error {{unknown type name 'Onward'}}
+    {
+        incubator.min_temp = 0.0;
+    } // expected-error {{expected ';' after top level declarator}}
+}
+
+ruleset test95
+{
+    {
+        \incubator.min_temp = 0.0; // expected-error {{expected expression}}
+    }
+}
+
+ruleset test96
+{
+    {
+        if (farmer-->raised) // expected-error {{cannot decrement value of type 'farmer__type'}}
+        {}
+    }
+}
+
+ruleset test97
+{
+    {
+        if (farmer>-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        {}
+    }
+}
+
+ruleset test98
+{
+    {
+        if (farmer<-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        {}
+    }
+}
+
+ruleset test99
+{
+    {
+        if (farmer->yield.bushels)
+        {}
+    }
+}
+
+// GAIAPLAT-821
+// ruleset testE1
+// {
+//     OnUpdate(incubator)
+//     {
+//         if (/@incubator) {
+//             int i = 0;
+//         }
+//     }
+// }
+// GAIAPLAT-821
+// ruleset testE1
+// {
+//     OnUpdate(incubator)
+//     {
+//         if (/@incubator) {
+//             int i = 0;
+//         }
+//     }
+// }
+
+// GAIAPLAT-821
+// ruleset testE2
+// {
+//     {
+//         min_temp += @incubator->sensor.value;
+//     }
+// }
+
+// GAIAPLAT-822
+// ruleset testE3
+// {
+//     {
+//         if (farmer->yield)
+//         {}
+//     }
+// }
+

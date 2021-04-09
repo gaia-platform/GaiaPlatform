@@ -1,6 +1,5 @@
-// RUN: %gaiat %s  -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s  -- 2>&1| FileCheck  %s
 
-// GAIAPLAT-811
 ruleset test1
 {
     {
@@ -11,5 +10,5 @@ ruleset test1
     }
 }
 
-// recommended message:
-// CHECK: adjacent tables in a path are not directly related.
+// CHECK: 'sensor' table in the explicit path has no relationship to 'actuator.value'
+// CHECK: use of undeclared identifier 'sensor'

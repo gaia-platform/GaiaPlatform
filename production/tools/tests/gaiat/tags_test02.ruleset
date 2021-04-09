@@ -10,4 +10,4 @@ ruleset test02
     }
 }
 
-// CHECK: Duplicate tag A is defined.
+// CHECK: Tag 'A' is already defined
