@@ -6,7 +6,6 @@
 
 #include <functional>
 #include <queue>
-#include <string>
 
 #include "tabulate/table.hpp"
 

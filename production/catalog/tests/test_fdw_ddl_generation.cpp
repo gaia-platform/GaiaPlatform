@@ -29,7 +29,6 @@ protected:
         test_table_fields.emplace_back(make_unique<data_field_def_t>("age", data_type_t::e_int8, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("value", data_type_t::e_float, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("larger_value", data_type_t::e_double, 1));
-        //test_table_fields.emplace_back(make_unique<ref_field_def_t>("parent", "", c_table_name));
     }
 
     static field_def_list_t test_table_fields;

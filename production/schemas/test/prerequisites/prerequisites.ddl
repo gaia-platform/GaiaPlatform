@@ -33,12 +33,12 @@ create table PreReq (
     MinGrade string
 );
 
-create relationship if not exists PreReqCourses (
-    PreReq.prereq -> Course,
-    Course.required_by -> PreReq
+create relationship if not exists PreReqCourse (
+    Course.required_by -> PreReq,
+    PreReq.prereq -> Course
 );
 
-create relationship if not exists PreReqRef (
-    PreReq.course -> Course,
-    Course.requires -> PreReq
+create relationship if not exists CoursePreReq (
+    Course.requires -> PreReq,
+    PreReq.course -> Course
 );
