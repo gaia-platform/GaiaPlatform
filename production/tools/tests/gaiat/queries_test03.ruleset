@@ -5,7 +5,7 @@
 ruleset test01
 {
     {
-        I:incubator->I.value += I.min_temp;
+        /I:incubator->I.value += I.min_temp;
     }
 }
 

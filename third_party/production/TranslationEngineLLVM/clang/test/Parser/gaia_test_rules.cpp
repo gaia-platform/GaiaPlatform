@@ -720,6 +720,7 @@ ruleset test99
     }
 }
 
+
 // GAIAPLAT-821
 // ruleset testE1
 // {
@@ -730,6 +731,7 @@ ruleset test99
 //         }
 //     }
 // }
+
 // GAIAPLAT-821
 // ruleset testE1
 // {
@@ -758,3 +760,14 @@ ruleset test99
 //     }
 // }
 
+// GAIAPLAT-827
+// ruleset test14
+// {
+//     OnChange(sensor.value)
+//     {
+//         if (S:sensor.value > 100.0)
+//         {
+//             actuator.value = 101.0;
+//         }
+//     }
+// }

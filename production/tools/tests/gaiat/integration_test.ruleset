@@ -133,3 +133,19 @@ ruleset testE1 : Table(sensor)
         use_string(name);
     }
 }
+
+// GAIAPLAT-711
+// ruleset testE2
+// {
+//     {
+//         int i = 0;
+//         if (incubator.max_temp > 99.0)
+//         {
+//             i = 1;
+//         }
+//         nomatch
+//         {
+//             i = 2;
+//         }
+//     }
+// }

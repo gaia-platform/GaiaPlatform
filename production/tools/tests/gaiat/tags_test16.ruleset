@@ -9,4 +9,4 @@ ruleset test16
 }
 
 // GAIAPLAT-816
-// CHECK: Duplicate tag 'A' is defined.
+// CHECK: Tag 'A' is already defined.

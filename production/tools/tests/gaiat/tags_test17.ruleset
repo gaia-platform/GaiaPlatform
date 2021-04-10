@@ -9,4 +9,4 @@ ruleset test17
 }
 
 // GAIAPLAT-820
-// CHECK: Duplicate tag 'I' is defined.
+// CHECK: Tag 'I' is already defined.

@@ -103,3 +103,64 @@ ruleset test11
         use_string(T.name);
     }
 }
+
+ruleset test20
+{
+    OnUpdate(incubator)
+    {
+        farmer->Y:yield.bushels = 0;
+
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            Y:yield.bushels += 1;
+        }
+    }
+}
+
+// GAIAPLAT-829
+// ruleset testE1
+// {
+//     OnUpdate(incubator)
+//     {
+//         int unsigned i = 0;
+//         if (i == 0)
+//         {
+//             F:farmer.acreage += 1;
+//         }
+//         else
+//         {
+//             F:farmer.acreage -= 1;
+//         }
+//     }
+// }
+
+// GAIAPLAT-829
+// ruleset testE2
+// {
+//     OnUpdate(incubator)
+//     {
+//         int unsigned i = 0;
+//         if (i == 0)
+//         {
+//             F:farmer.acreage += 1;
+//         }
+//         F:farmer.acreage -= 1;
+//     }
+// }
+
+// GAIAPLAT-829
+// ruleset testE3
+// {
+//     OnUpdate(incubator)
+//     {
+//         int unsigned i = 0;
+//         if (i == 0)
+//         {}
+//         else
+//         {
+//             F:farmer.acreage += 1;
+//         }
+//         F:farmer.acreage -= 1;
+//     }
+// }

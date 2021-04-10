@@ -96,6 +96,42 @@ ruleset test11
     }
 }
 
+ruleset test12
+{
+    OnChange(actuator.value)
+    {
+        use_float(actuator.value += sensor.value);
+    }
+}
+
+ruleset test13
+{
+    {
+        use_float(I:incubator->actuator.value + I.min_temp);
+        use_float(@I:incubator->actuator.value + I.max_temp);
+    }
+}
+
+ruleset test14
+{
+    OnChange(yield.bushels)
+    {
+        farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
+        /farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
+    }
+}
+
+ruleset test15
+{
+    OnInsert(farmer)
+    {
+        I:incubator->A:actuator.value = I.min_temp;
+        /I:incubator->A:actuator.value = I.min_temp;
+    }
+}
+
+        // F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+        //     = A.age + F.acreage + Y.bushels + D.portion + C.acres;
 // GAIAPLAT-803
 // This should be identical to test1 above.
 // ruleset testE1
@@ -171,5 +207,40 @@ ruleset test11
 //         {
 //             use_float(I.min_temp);
 //         }
+//     }
+// }
+
+// GAIAPLAT-825
+// ruleset testE8
+// {
+//     {
+//         use_float(/I:incubator->actuator.value + I.min_temp);
+//         use_float(I:incubator->actuator.value + I.max_temp);
+//     }
+// }
+
+// GAIAPLAT-827
+// ruleset testE9
+// {
+//     OnChange(sensor.value)
+//     {
+//         if (S:sensor.value > 100.0)
+//         {
+//             if (S:actuator.value < 102)
+//             {
+//                 S.value = 101.0;
+//             }
+//         }
+//     }
+// }
+
+// GAIAPLAT-828
+// ruleset testE10
+// {
+//     OnChange(incubator)
+//     {
+//         float v = incubator->A:actuator.value;
+//         A.value = v + 1;
+//         S:sensor.value = S.value * 1.01;
 //     }
 // }
