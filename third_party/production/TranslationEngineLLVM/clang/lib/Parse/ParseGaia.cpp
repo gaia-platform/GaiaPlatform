@@ -241,7 +241,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 }
                 else
                 {
-                    tags.emplace(Tok.getIdentifierInfo()->getName().str());
+                    tags.emplace(table);
                 }
                 table += std::string(":");
                 ConsumeToken();

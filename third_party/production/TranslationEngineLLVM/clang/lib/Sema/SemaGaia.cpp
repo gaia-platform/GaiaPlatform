@@ -138,7 +138,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_ambiguous_tag_defined) << tag;
                 return "";
             }
-            if (tagMap.find(tag) != tagMap.end())
+            if (tagMap.find(tag) != tagMap.end() || tagMapping.find(tag) != tagMapping.end())
             {
                 Diag(loc, diag::err_tag_redefined) << tag;
                 return "";
@@ -212,14 +212,23 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 tableName = pathComponent;
             }
-            if (tagMapping.find(tableName) != tagMapping.end())
+            auto tagMappingIterator = tagMapping.find(tableName);
+            if (tagMappingIterator != tagMapping.end() ||
+                tagMap.find(tableName) != tagMap.end())
             {
                 if (pathComponent != path.front())
                 {
                     Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
                     return "";
                 }
-                tableName = tagMapping[tableName];
+                if (tagMappingIterator != tagMapping.end())
+                {
+                    tableName = tagMapping[tableName];
+                }
+                else
+                {
+                    tableName = tagMap[tableName];
+                }
             }
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
