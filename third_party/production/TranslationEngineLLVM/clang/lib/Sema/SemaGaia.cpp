@@ -108,6 +108,193 @@ class DBMonitor
         }
 };
 
+std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
+{
+    size_t searchStartPosition = 0;
+    unordered_map<string, string> tagMap;
+    vector<string> path;
+    if (pathString.front() == '/')
+    {
+        searchStartPosition = 1;
+    }
+    string tag;
+    size_t tagPosition = 0, arrowPosition = 0;
+    unordered_set<string> tableData = getCatalogTableList(loc);
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+
+    while (tagPosition != string::npos || arrowPosition != string::npos)
+    {
+        if (tagPosition < arrowPosition)
+        {
+            if (tagPosition == searchStartPosition)
+            {
+                Diag(loc, diag::err_invalid_explicit_path);
+                return "";
+            }
+            tag = pathString.substr(searchStartPosition, tagPosition - searchStartPosition);
+            searchStartPosition = tagPosition + 1;
+            if (tableData.find(tag) != tableData.end())
+            {
+                Diag(loc, diag::err_ambiguous_tag_defined) << tag;
+                return "";
+            }
+            if (tagMap.find(tag) != tagMap.end() || tagMapping.find(tag) != tagMapping.end())
+            {
+                Diag(loc, diag::err_tag_redefined) << tag;
+                return "";
+            }
+        }
+        else if (arrowPosition < tagPosition)
+        {
+            if (arrowPosition == searchStartPosition)
+            {
+                Diag(loc, diag::err_invalid_explicit_path);
+                return "";
+            }
+            string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            if (!tag.empty())
+            {
+                tagMap[tag] = table;
+                tag.clear();
+            }
+            path.push_back(table);
+            searchStartPosition = arrowPosition + 2;
+        }
+
+        tagPosition = pathString.find(':', searchStartPosition);
+        arrowPosition = pathString.find("->", searchStartPosition);
+    }
+    string table = pathString.substr(searchStartPosition);
+    if (table.empty())
+    {
+        Diag(loc, diag::err_invalid_explicit_path);
+        return "";
+    }
+    path.push_back(table);
+
+    // If explicit path has one component only, this component will be checked at later stage
+    // Therefore there is no need to perform more checks here.
+    if (path.size() > 1)
+    {
+        unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
+
+        for (auto tagEntry: tagMap)
+        {
+            string tableName;
+            size_t dotPosition = tagEntry.second.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = tagEntry.second.substr(0, dotPosition);
+            }
+            else
+            {
+                tableName = tagEntry.second;
+            }
+            auto tableDescription = tableData.find(tableName);
+            if (tableDescription == tableData.end())
+            {
+                Diag(loc, diag::err_invalid_table_name) << tableName;
+                return "";
+            }
+        }
+
+        string previousTable, previousField;
+        for (string pathComponent : path)
+        {
+            string tableName, fieldName;
+            size_t dotPosition = pathComponent.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = pathComponent.substr(0, dotPosition);
+                fieldName = pathComponent.substr(dotPosition + 1);
+            }
+            else
+            {
+                tableName = pathComponent;
+            }
+            auto tagMappingIterator = tagMapping.find(tableName);
+            if (tagMappingIterator != tagMapping.end() ||
+                tagMap.find(tableName) != tagMap.end())
+            {
+                if (pathComponent != path.front())
+                {
+                    Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
+                    return "";
+                }
+                if (tagMappingIterator != tagMapping.end())
+                {
+                    tableName = tagMapping[tableName];
+                }
+                else
+                {
+                    tableName = tagMap[tableName];
+                }
+            }
+            auto tableDescription = tableData.find(tableName);
+            if (tableDescription == tableData.end())
+            {
+                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                return "";
+            }
+
+            if (!previousTable.empty())
+            {
+                auto relatedTablesIterator = relationData.equal_range(previousTable);
+
+                if (relatedTablesIterator.first == relationData.end() &&
+                    relatedTablesIterator.second == relationData.end())
+                {
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return "";
+                }
+
+                bool isMatchFound = false;
+                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                {
+                    if (tableIterator != relationData.end())
+                    {
+                        string table = tableIterator->second.table;
+                        string field = tableIterator->second.field;
+                        if (tableName == table)
+                        {
+                            if (!previousField.empty())
+                            {
+                                if (previousField == field)
+                                {
+                                    isMatchFound = true;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                isMatchFound = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!isMatchFound)
+                {
+                    Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
+                    return "";
+                }
+            }
+
+            previousField = fieldName;
+            previousTable = tableName;
+        }
+    }
+    else
+    {
+        RemoveExplicitPathData(loc);
+    }
+
+    explicitPathTagMapping[loc.getRawEncoding()] = tagMap;
+
+    return path.back();
+
+}
+
 unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
@@ -163,6 +350,49 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_set<string>();
+    }
+
+    return retVal;
+}
+
+unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations(SourceLocation loc)
+{
+    unordered_multimap<string, Sema::TableLinkData_t>  retVal;
+    try
+    {
+        DBMonitor monitor;
+
+        for (const auto& relationship : catalog::gaia_relationship_t::list())
+        {
+            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            if (!child_table)
+            {
+                Diag(loc, diag::err_invalid_child_table) << relationship.name();
+                return unordered_multimap<string, Sema::TableLinkData_t>();
+            }
+
+            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            if (!parent_table)
+            {
+                Diag(loc, diag::err_invalid_parent_table) << relationship.name();
+                return unordered_multimap<string, Sema::TableLinkData_t>();
+            }
+
+            TableLinkData_t link_data_1;
+            link_data_1.table = parent_table.name();
+            link_data_1.field = relationship.name();
+            TableLinkData_t link_data_n;
+            link_data_n.table = child_table.name();
+            link_data_n.field = relationship.name();
+
+            retVal.emplace(child_table.name(), link_data_1);
+            retVal.emplace(parent_table.name(), link_data_n);
+        }
+    }
+    catch (const exception &e)
+    {
+        Diag(loc, diag::err_catalog_exception) << e.what();
+        return unordered_multimap<string, Sema::TableLinkData_t>();
     }
 
     return retVal;
@@ -264,7 +494,7 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         return Context.VoidTy;
     }
     std::string typeName = tableName;
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     if (tagMapping.find(tableName) != tagMapping.end())
     {
         typeName = tagMapping[tableName];
@@ -376,7 +606,7 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
     DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl());
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
     {
@@ -468,7 +698,6 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
     return retVal;
 }
 
-
 static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
 {
     size_t tag_position = attribute.find(':');
@@ -492,7 +721,7 @@ static bool parse_tagged_attribute(const string& attribute, string& table, strin
     return true;
 }
 
-std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context) const
+std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context, SourceLocation loc)
 {
     std::unordered_map<std::string, std::string> retVal;
     const FunctionDecl *ruleContext = dyn_cast<FunctionDecl>(context);
@@ -512,7 +741,15 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
             }
         }
     }
@@ -524,7 +761,15 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
             }
         }
     }
@@ -536,17 +781,57 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             string table, tag;
             if (parse_tagged_attribute(table_iterator, table, tag))
             {
-                retVal[tag] = table;
+                if (retVal.find(tag) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tag] = table;
+                }
+            }
+        }
+    }
+
+    for (const auto& explicitPathTagMapIterator : explicitPathTagMapping)
+    {
+        const auto &tagMap = explicitPathTagMapIterator.second;
+        for (const auto& tagMapIterator : tagMap)
+        {
+            if (retVal.find(tagMapIterator.first) != retVal.end())
+            {
+                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
+                return std::unordered_map<std::string, std::string>();
+            }
+            else
+            {
+                retVal[tagMapIterator.first] = tagMapIterator.second;
             }
         }
     }
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, bool isGaiaFieldTable)
+NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const string& explicitPath)
 {
-    QualType qualType = isGaiaFieldTable ? getTableType(II->getName().str(), loc) :
-        getFieldType(II->getName().str(), loc);
+    QualType qualType = Context.VoidTy;
+
+    string table = ParseExplicitPath(explicitPath, loc);
+    if (!table.empty())
+    {
+        size_t dot_position = table.find('.');
+
+        if (dot_position != string::npos)
+        {
+            qualType = getTableType(table.substr(0, dot_position), loc);
+        }
+        else
+        {
+            qualType = getFieldType(table, loc);
+        }
+    }
+
     if (qualType->isVoidType())
     {
         return nullptr;
@@ -560,6 +845,14 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
 
     varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
     varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
+
+    SourceLocation startLocation,endLocation;
+    std::string path;
+    if (GetExplicitPathData(loc, startLocation, endLocation, path))
+    {
+        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
+            startLocation.getRawEncoding(), endLocation.getRawEncoding()));
+    }
 
     context->addDecl(varDecl);
 
@@ -599,4 +892,31 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
   }
 
   return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
+}
+
+void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
+{
+    ExplicitPathData_t data;
+    data.startLocation = startLocation;
+    data.endLocation = endLocation;
+    data.explicitPath = explicitPath;
+    explicitPathData.emplace(location.getRawEncoding(), data);
+}
+
+void Sema::RemoveExplicitPathData(SourceLocation location)
+{
+    explicitPathData.erase(location.getRawEncoding());
+}
+
+bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
+{
+    auto data = explicitPathData.find(location.getRawEncoding());
+    if (data == explicitPathData.end())
+    {
+        return false;
+    }
+    startLocation = data->second.startLocation;
+    endLocation = data->second.endLocation;
+    explicitPath = data->second.explicitPath;
+    return true;
 }

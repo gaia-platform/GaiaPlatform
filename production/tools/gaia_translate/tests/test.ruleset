@@ -55,6 +55,10 @@ ruleset test
     }
 }
 
+ruleset test2
+{
+}
+
 void use_string(const char* name)
 {
 
@@ -69,8 +73,4 @@ ruleset test3
         use_string(T.name);
         use_string(x);
     }
-}
-
-ruleset test2
-{
 }

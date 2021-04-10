@@ -2069,11 +2069,9 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
                         bool HasTrailingLParen, bool IsAddressOfOperand,
                         std::unique_ptr<CorrectionCandidateCallback> CCC,
                         bool IsInlineAsmIdentifier, Token *KeywordReplacement,
-                        bool isGaiaFieldTable) {
+                        const std::string &explicitPath) {
   assert(!(IsAddressOfOperand && HasTrailingLParen) &&
          "cannot be direct & operand and have a trailing lparen");
-  if (SS.isInvalid())
-    return ExprError();
 
   TemplateArgumentListInfo TemplateArgsBuffer;
 
@@ -2086,9 +2084,16 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   IdentifierInfo *II = Name.getAsIdentifierInfo();
   SourceLocation NameLoc = NameInfo.getLoc();
 
+   if (SS.isInvalid())
+  {
+    RemoveExplicitPathData(NameLoc);
+    return ExprError();
+  }
+
   if (II && II->isEditorPlaceholder()) {
     // FIXME: When typed placeholders are supported we can create a typed
     // placeholder expression node.
+    RemoveExplicitPathData(NameLoc);
     return ExprError();
   }
 
@@ -2110,15 +2115,21 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   } else if (SS.isSet()) {
     if (DeclContext *DC = computeDeclContext(SS, false)) {
       if (RequireCompleteDeclContext(SS, DC))
+      {
+        RemoveExplicitPathData(NameLoc);
         return ExprError();
+      }
     } else {
       DependentID = true;
     }
   }
 
   if (DependentID)
+  {
+    RemoveExplicitPathData(NameLoc);
     return ActOnDependentIdExpression(SS, TemplateKWLoc, NameInfo,
                                       IsAddressOfOperand, TemplateArgs);
+  }
 
   // Perform the required lookup.
   LookupResult R(*this, NameInfo,
@@ -2134,12 +2145,18 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
     bool MemberOfUnknownSpecialization;
     if (LookupTemplateName(R, S, SS, QualType(), /*EnteringContext=*/false,
                            MemberOfUnknownSpecialization, TemplateKWLoc))
+    {
+      RemoveExplicitPathData(NameLoc);
       return ExprError();
+    }
 
     if (MemberOfUnknownSpecialization ||
         (R.getResultKind() == LookupResult::NotFoundInCurrentInstantiation))
+    {
+      RemoveExplicitPathData(NameLoc);
       return ActOnDependentIdExpression(SS, TemplateKWLoc, NameInfo,
                                         IsAddressOfOperand, TemplateArgs);
+    }
   } else {
     bool IvarLookupFollowUp = II && !SS.isSet() && getCurMethodDecl();
     LookupParsedName(R, S, &SS, !IvarLookupFollowUp);
@@ -2147,45 +2164,65 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
     // If the result might be in a dependent base class, this is a dependent
     // id-expression.
     if (R.getResultKind() == LookupResult::NotFoundInCurrentInstantiation)
+    {
+      RemoveExplicitPathData(NameLoc);
       return ActOnDependentIdExpression(SS, TemplateKWLoc, NameInfo,
                                         IsAddressOfOperand, TemplateArgs);
+    }
 
     // If this reference is in an Objective-C method, then we need to do
     // some special Objective-C lookup, too.
     if (IvarLookupFollowUp) {
       ExprResult E(LookupInObjCMethod(R, S, II, true));
       if (E.isInvalid())
+      {
+        RemoveExplicitPathData(NameLoc);
         return ExprError();
+      }
 
       if (Expr *Ex = E.getAs<Expr>())
+      {
+        RemoveExplicitPathData(NameLoc);
         return Ex;
+      }
     }
   }
 
   if (R.isAmbiguous())
+  {
+    RemoveExplicitPathData(NameLoc);
     return ExprError();
+  }
+
+  bool isVariableInjected = false;
 
   if (R.empty() && getCurScope()->isInRulesetScope())
   {
-      if (S->getFnParent() != nullptr)
-      {
-        DeclContext *DC = S->getFnParent()->getEntity();
+    if (S->getFnParent() != nullptr)
+    {
+      DeclContext *DC = S->getFnParent()->getEntity();
 
-        if (DC)
+      if (DC)
+      {
+        if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
         {
-            if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
+          if (FD->hasAttr<RuleAttr>())
+          {
+            NamedDecl *D = injectVariableDefinition(II, NameLoc,
+              explicitPath);
+            if (D)
             {
-                if (FD->hasAttr<RuleAttr>())
-                {
-                    NamedDecl *D = injectVariableDefinition(II, NameLoc, isGaiaFieldTable);
-                    if (D)
-                    {
-                        R.addDecl(D);
-                    }
-                }
+              R.addDecl(D);
+              isVariableInjected = true;
             }
+          }
         }
       }
+    }
+  }
+  if (!isVariableInjected)
+  {
+    RemoveExplicitPathData(NameLoc);
   }
 
   // This could be an implicitly declared function reference (legal in C90,
