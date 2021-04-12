@@ -375,7 +375,7 @@ public:
         const std::string& name2)
     {
         std::stringstream message;
-        message << "The table '" << name1 << "' does not match tht table '" << name2 << "' "
+        message << "The table '" << name1 << "' does not match the table '" << name2 << "' "
                 << "in the relationship '" << relationship << "' definition.";
         m_message = message.str();
     }

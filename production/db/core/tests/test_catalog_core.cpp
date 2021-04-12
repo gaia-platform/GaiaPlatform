@@ -97,13 +97,13 @@ TEST_F(catalog_core_test, list_relationship_from)
     auto planet_table_id = gaia::catalog::create_table("planet", fields);
     auto comet_table_id = gaia::catalog::create_table("comet", fields);
 
-    // CREATE RELATIONSHIP star_star(star.one -> star, star.another -> star);
+    // CREATE RELATIONSHIP star_star(star.stars -> star[], star.star -> star);
     // CREATE RELATIONSHIP star_planet(star.planets -> planet[], planet.star -> star);
     // CREATE RELATIONSHIP star_comet(star.comets -> comets[], comet.star -> star);
     gaia::catalog::create_relationship(
         "star_star",
-        {"", "star", "self", "", "star", gaia::catalog::relationship_cardinality_t::one},
-        {"", "star", "other", "", "star", gaia::catalog::relationship_cardinality_t::one},
+        {"", "star", "stars", "", "star", gaia::catalog::relationship_cardinality_t::many},
+        {"", "star", "star", "", "star", gaia::catalog::relationship_cardinality_t::one},
         false);
     gaia::catalog::create_relationship(
         "star_planet",

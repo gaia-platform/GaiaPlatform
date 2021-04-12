@@ -574,7 +574,6 @@ TEST_F(ddl_executor_test, metadata_init)
               // with the database created by other tests that do not properly clean up the data.
               // (same below)
               .database("company")
-              //.reference("manages", "employee")
               .create_type();
 
     gaia::catalog::create_relationship(
