@@ -27,6 +27,8 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
 
+#include "TableNavigation.h"
+
 using namespace std;
 using namespace clang;
 using namespace clang::driver;
@@ -35,6 +37,7 @@ using namespace llvm;
 using namespace clang::ast_matchers;
 using namespace gaia;
 using namespace gaia::common;
+using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 cl::opt<string> g_translation_engine_output_option(
@@ -48,6 +51,7 @@ const int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
+table_navigation_t g_table_navigation;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -56,49 +60,29 @@ unordered_set<string> g_update_tables;
 unordered_set<string> g_used_tables;
 
 unordered_set<string> g_used_dbs;
-unordered_map<string, string> g_table_db_data;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
 
-struct field_data_t
-{
-    bool is_deprecated;
-    bool is_active;
-    field_position_t position;
-};
-unordered_map<string, unordered_map<string, field_data_t>> g_field_data;
 string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
-struct table_link_data_t
-{
-    string table;
-    string field;
-};
-unordered_multimap<string, table_link_data_t> g_table_relationship_1;
-unordered_multimap<string, table_link_data_t> g_table_relationship_n;
-
-struct navigation_data_t
-{
-    string name;
-    string linking_field;
-    bool is_parent;
-};
-
-struct navigation_code_data_t
-{
-    string prefix;
-    string postfix;
-};
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
-static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 static const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+}
+
+void validate_table_data()
+{
+    if (g_table_navigation.get_table_data().empty())
+    {
+        g_is_generation_error = true;
+        return;
+    }
 }
 
 string generate_general_subscription_code()
@@ -175,105 +159,6 @@ string generate_general_subscription_code()
     return return_value;
 }
 
-class db_monitor
-{
-public:
-    db_monitor()
-    {
-        gaia::db::begin_session();
-        gaia::db::begin_transaction();
-    }
-
-    ~db_monitor()
-    {
-        gaia::db::commit_transaction();
-        gaia::db::end_session();
-    }
-};
-
-void fill_table_db_data(catalog::gaia_table_t& table)
-{
-    auto db = table.gaia_database();
-    g_table_db_data[table.name()] = db.name();
-}
-
-unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
-{
-    unordered_map<string, unordered_map<string, field_data_t>> return_value;
-    if (g_is_generation_error)
-    {
-        return return_value;
-    }
-    try
-    {
-        db_monitor monitor;
-
-        for (const auto& field : catalog::gaia_field_t::list())
-        {
-            catalog::gaia_table_t tbl = field.gaia_table();
-            if (!tbl)
-            {
-                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
-
-            unordered_map<string, field_data_t> fields = return_value[tbl.name()];
-            if (fields.find(field.name()) != fields.end())
-            {
-                cerr << "Duplicate field '" << field.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
-            field_data_t field_data;
-            field_data.is_active = field.active();
-            field_data.position = field.position();
-            field_data.is_deprecated = field.deprecated();
-            fields[field.name()] = field_data;
-            return_value[tbl.name()] = fields;
-            fill_table_db_data(tbl);
-        }
-
-        for (const auto& relationship : catalog::gaia_relationship_t::list())
-        {
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
-            if (!child_table)
-            {
-                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
-
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
-            if (!parent_table)
-            {
-                cerr << "Incorrect parent table in the relationship '" << relationship.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
-            table_link_data_t link_data_1;
-            link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.name();
-            table_link_data_t link_data_n;
-            link_data_n.table = child_table.name();
-            link_data_n.field = relationship.name();
-
-            g_table_relationship_1.emplace(child_table.name(), link_data_1);
-            g_table_relationship_n.emplace(parent_table.name(), link_data_n);
-
-            fill_table_db_data(child_table);
-            fill_table_db_data(parent_table);
-        }
-    }
-    catch (const exception& e)
-    {
-        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
-        g_is_generation_error = true;
-        return unordered_map<string, unordered_map<string, field_data_t>>();
-    }
-    return return_value;
-}
-
 string get_table_name(const Decl* decl)
 {
     const FieldTableAttr* table_attr = decl->getAttr<FieldTableAttr>();
@@ -291,10 +176,6 @@ string get_table_name(const Decl* decl)
 // E:Employee.name_last
 bool parse_attribute(const string& attribute, string& table, string& field)
 {
-    if (g_field_data.empty())
-    {
-        g_field_data = get_table_data();
-    }
     string tagless_attribute;
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
@@ -313,13 +194,14 @@ bool parse_attribute(const string& attribute, string& table, string& field)
         field = tagless_attribute.substr(dot_position + 1);
         return true;
     }
+    validate_table_data();
 
-    if (g_field_data.find(tagless_attribute) == g_field_data.end())
+    if (g_table_navigation.get_table_data().find(tagless_attribute) == g_table_navigation.get_table_data().end())
     {
         // Might be a field.
-        for (const auto& tbl : g_field_data)
+        for (const auto& tbl : g_table_navigation.get_table_data())
         {
-            if (tbl.second.find(tagless_attribute) != tbl.second.end())
+            if (tbl.second.field_data.find(tagless_attribute) != tbl.second.field_data.end())
             {
                 table = tbl.first;
                 field = tagless_attribute;
@@ -344,24 +226,21 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    if (g_field_data.empty())
-    {
-        g_field_data = get_table_data();
-    }
+    validate_table_data();
 
     if (g_is_generation_error)
     {
         return false;
     }
 
-    if (g_field_data.find(table_name) == g_field_data.end())
+    if (g_table_navigation.get_table_data().find(table_name) == g_table_navigation.get_table_data().end())
     {
         cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
         g_is_generation_error = true;
         return false;
     }
 
-    auto fields = g_field_data[table_name];
+    auto fields = g_table_navigation.get_table_data().find(table_name)->second.field_data;
 
     if (fields.find(field_name) == fields.end())
     {
@@ -390,330 +269,10 @@ string insert_rule_prologue(const string& rule, const string& prologue)
     return "{" + prologue + rule.substr(rule_code_start + 1);
 }
 
-string get_closest_table(const unordered_map<string, int>& table_distance)
-{
-    int min_distance = INT_MAX;
-    string return_value;
-    for (const auto& d : table_distance)
-    {
-        if (d.second < min_distance)
-        {
-            min_distance = d.second;
-            return_value = d.first;
-        }
-    }
-
-    return return_value;
-}
-
-bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path)
-{
-    if (src == dst)
-    {
-        return true;
-    }
-
-    unordered_map<string, int> table_distance;
-    unordered_map<string, string> table_prev;
-    unordered_map<string, navigation_data_t> table_navigation;
-
-    for (const auto& field_description : g_field_data)
-    {
-        table_distance[field_description.first] = INT_MAX;
-    }
-    table_distance[src] = 0;
-
-    string closest_table;
-
-    while (closest_table != dst)
-    {
-        closest_table = get_closest_table(table_distance);
-        if (closest_table == "")
-        {
-            return false;
-        }
-
-        if (closest_table == dst)
-        {
-            break;
-        }
-
-        int distance = table_distance[closest_table];
-
-        table_distance.erase(closest_table);
-
-        auto parent_itr = g_table_relationship_1.equal_range(closest_table);
-        for (auto it = parent_itr.first; it != parent_itr.second; ++it)
-        {
-            if (it != g_table_relationship_1.end())
-            {
-                string tbl = it->second.table;
-                if (table_distance.find(tbl) != table_distance.end())
-                {
-                    if (table_distance[tbl] > distance + 1)
-                    {
-                        table_distance[tbl] = distance + 1;
-                        table_prev[tbl] = closest_table;
-                        navigation_data_t data = {tbl, it->second.field, true};
-                        table_navigation[tbl] = data;
-                    }
-                }
-            }
-        }
-
-        auto child_itr = g_table_relationship_n.equal_range(closest_table);
-        for (auto it = child_itr.first; it != child_itr.second; ++it)
-        {
-            if (it != g_table_relationship_n.end())
-            {
-                string tbl = it->second.table;
-                if (table_distance.find(tbl) != table_distance.end())
-                {
-                    if (table_distance[tbl] > distance + 1)
-                    {
-                        table_distance[tbl] = distance + 1;
-                        table_prev[tbl] = closest_table;
-                        navigation_data_t data = {tbl, it->second.field, false};
-                        table_navigation[tbl] = data;
-                    }
-                }
-            }
-        }
-    }
-
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    string tbl = dst;
-    while (table_prev[tbl] != "")
-    {
-        current_path.insert(current_path.begin(), table_navigation[tbl]);
-        tbl = table_prev[tbl];
-    }
-    return true;
-}
-
-navigation_code_data_t generate_navigation_code(const string& anchor_table)
-{
-    navigation_code_data_t return_value;
-    return_value.prefix = "\nauto " + anchor_table
-        + " = " + "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
-
-    if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
-    {
-        return return_value;
-    }
-    if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end()
-        && g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
-    {
-        g_is_generation_error = true;
-        cerr << "No path between '" << anchor_table << "' and other tables." << endl;
-        return navigation_code_data_t();
-    }
-    auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
-    auto child_itr = g_table_relationship_n.equal_range(anchor_table);
-    unordered_set<string> processed_tables;
-    for (const string& table : g_used_tables)
-    {
-        if (table == anchor_table)
-        {
-            continue;
-        }
-
-        if (processed_tables.find(table) != processed_tables.end())
-        {
-            continue;
-        }
-
-        bool is_1_relationship = false, is_n_relationship = false;
-
-        string linking_field;
-        for (auto it = parent_itr.first; it != parent_itr.second; ++it)
-        {
-            if (it != g_table_relationship_1.end() && it->second.table == table)
-            {
-                if (is_1_relationship)
-                {
-                    g_is_generation_error = true;
-                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
-                    return navigation_code_data_t();
-                }
-                is_1_relationship = true;
-                linking_field = it->second.field;
-            }
-        }
-
-        for (auto it = child_itr.first; it != child_itr.second; ++it)
-        {
-            if (it != g_table_relationship_n.end() && it->second.table == table)
-            {
-                if (is_n_relationship)
-                {
-                    g_is_generation_error = true;
-                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
-                    return navigation_code_data_t();
-                }
-                is_n_relationship = true;
-                linking_field = it->second.field;
-            }
-        }
-
-        if (is_1_relationship && is_n_relationship)
-        {
-            g_is_generation_error = true;
-            cerr << "Both relationships exist between tables '" << anchor_table << "' and '" << table << "'." << endl;
-            return navigation_code_data_t();
-        }
-
-        if (!is_1_relationship && !is_n_relationship)
-        {
-            vector<navigation_data_t> path;
-            if (find_navigation_path(anchor_table, table, path))
-            {
-                string source_table = anchor_table;
-                for (const auto& p : path)
-                {
-                    if (processed_tables.find(p.name) == processed_tables.end())
-                    {
-                        processed_tables.insert(p.name);
-                        if (p.is_parent)
-                        {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(p.name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(p.name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
-                        }
-                        else
-                        {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-
-                            return_value.postfix += "}\n";
-                        }
-                    }
-                    source_table = p.name;
-                }
-            }
-            else
-            {
-                g_is_generation_error = true;
-                cerr << "No path between tables '" << anchor_table << "' and '" << table << "'." << endl;
-                return navigation_code_data_t();
-            }
-        }
-        else
-        {
-            if (is_1_relationship)
-            {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("();\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("();\n");
-                }
-            }
-            else
-            {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-
-                return_value.postfix += "}\n";
-            }
-        }
-        processed_tables.insert(table);
-    }
-
-    return return_value;
-}
-
 void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
-    if (g_field_data.find(table) == g_field_data.end())
+    if (g_table_navigation.get_table_data().find(table) == g_table_navigation.get_table_data().end())
     {
         cerr << "Table '" << table << "' was not found in the catalog." << endl;
         g_is_generation_error = true;
@@ -771,7 +330,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_subscription
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table);
         if (subscribe_update)
@@ -789,7 +348,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_unsubscription
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -802,7 +361,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append(field_subscription_code)
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
@@ -814,7 +373,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append(field_subscription_code)
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
@@ -824,7 +383,12 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append("binding);\n");
     }
 
-    navigation_code_data_t navigation_code = generate_navigation_code(table);
+    navigation_code_data_t navigation_code = g_table_navigation.generate_navigation_code(table, g_used_tables);
+    if (navigation_code.prefix.empty())
+    {
+        g_is_generation_error = true;
+        return;
+    }
     string function_prologue = "\n";
     function_prologue
         .append(c_nolint_identifier_naming)
@@ -878,7 +442,7 @@ void optimize_subscription(const string& table, int rule_count)
         g_current_ruleset_subscription
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -888,7 +452,7 @@ void optimize_subscription(const string& table, int rule_count)
         g_current_ruleset_unsubscription
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_db_data[table])
+            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -901,10 +465,7 @@ void optimize_subscription(const string& table, int rule_count)
 
 void generate_rules(Rewriter& rewriter)
 {
-    if (g_field_data.empty())
-    {
-        g_field_data = get_table_data();
-    }
+    validate_table_data();
     if (g_is_generation_error)
     {
         return;
@@ -959,7 +520,7 @@ void generate_rules(Rewriter& rewriter)
             .append(rule_name)
             .append(";\n");
 
-        auto fields = g_field_data[table];
+        auto fields = g_table_navigation.get_table_data().find(table)->second.field_data;
 
         for (const auto& field : field_description.second)
         {
@@ -1020,6 +581,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        validate_table_data();
         if (g_is_generation_error)
         {
             return;
@@ -1039,7 +601,7 @@ public:
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
             g_used_tables.insert(table_name);
-            g_used_dbs.insert(g_table_db_data[table_name]);
+            g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
             if (decl->hasAttr<GaiaFieldAttr>())
             {
@@ -1063,7 +625,7 @@ public:
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
                 table_name = get_table_name(declaration_expression->getDecl());
                 g_used_tables.insert(table_name);
-                g_used_dbs.insert(g_table_db_data[table_name]);
+                g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
                 if (declaration_expression->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -1115,6 +677,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        validate_table_data();
         if (g_is_generation_error)
         {
             return;
@@ -1159,7 +722,7 @@ public:
                         set_start_location = member_expression->getBeginLoc();
                     }
                     g_used_tables.insert(table_name);
-                    g_used_dbs.insert(g_table_db_data[table_name]);
+                    g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
                     tok::TokenKind token_kind;
                     std::string replacement_text
@@ -1315,6 +878,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        validate_table_data();
         if (g_is_generation_error)
         {
             return;
@@ -1359,7 +923,7 @@ public:
                     }
 
                     g_used_tables.insert(table_name);
-                    g_used_dbs.insert(g_table_db_data[table_name]);
+                    g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
                     if (op->isPostfix())
                     {
@@ -1605,32 +1169,28 @@ class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
 public:
     void run(const MatchFinder::MatchResult& result) override
     {
+        validate_table_data();
         const auto* variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
         if (variable_declaration != nullptr)
         {
             const auto variable_name = variable_declaration->getNameAsString();
             if (variable_name != "")
             {
-                if (g_field_data.empty())
-                {
-                    g_field_data = get_table_data();
-                }
-
                 if (g_is_generation_error)
                 {
                     return;
                 }
 
-                if (g_field_data.find(variable_name) != g_field_data.end())
+                if (g_table_navigation.get_table_data().find(variable_name) != g_table_navigation.get_table_data().end())
                 {
                     cerr << "Local variable declaration '" << variable_name
                          << "' hides database table of the same name." << endl;
                     return;
                 }
 
-                for (auto table_data : g_field_data)
+                for (auto table_data : g_table_navigation.get_table_data())
                 {
-                    if (table_data.second.find(variable_name) != table_data.second.end())
+                    if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                     {
                         cerr << "Local variable declaration '" << variable_name
                              << "' hides catalog field entity of the same name." << endl;
@@ -1705,6 +1265,7 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        validate_table_data();
         if (g_is_generation_error)
         {
             return;
@@ -1723,7 +1284,7 @@ public:
             table_name = get_table_name(decl);
 
             g_used_tables.insert(table_name);
-            g_used_dbs.insert(g_table_db_data[table_name]);
+            g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
             if (decl->hasAttr<GaiaFieldAttr>())
             {
