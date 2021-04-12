@@ -53,6 +53,80 @@ static std::string RandomString(std::string::size_type length)
     return s;
 }
 
+std::string Parser::GetExplicitNavigationPath()
+{
+    std::string returnValue;
+    if (!getLangOpts().Gaia || !Actions.getCurScope()->isInRulesetScope())
+    {
+        return returnValue;
+    }
+    Token previousToken = getPreviousToken(Tok);
+    Token previousPreviousToken = getPreviousToken(previousToken);
+    if (previousToken.isNot(tok::identifier))
+    {
+        return returnValue;
+    }
+
+    SourceLocation startLocation, endLocation;
+    if (previousPreviousToken.is(tok::slash))
+    {
+        returnValue = "/";
+        startLocation = previousPreviousToken.getLocation();
+    }
+    else if (previousPreviousToken.is(tok::colon))
+    {
+        Token tagToken = getPreviousToken(previousPreviousToken);
+        if (tagToken.is(tok::identifier))
+        {
+            returnValue = tagToken.getIdentifierInfo()->getName().str() + ":";
+            startLocation = tagToken.getLocation();
+        }
+    }
+    else
+    {
+        startLocation = previousToken.getLocation();
+    }
+
+    returnValue.append(previousToken.getIdentifierInfo()->getName().str());
+    unsigned tokenIterator = 0;
+    Token currentToken = GetLookAheadToken(tokenIterator);
+
+    while (currentToken.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
+    {
+        switch (currentToken.getKind())
+        {
+            case tok::arrow:
+                returnValue.append("->");
+                break;
+            case tok::colon:
+                returnValue.append(":");
+                break;
+            case tok::period:
+                returnValue.append(".");
+                break;
+            case tok::identifier:
+                returnValue.append(currentToken.getIdentifierInfo()->getName().str());
+                break;
+            default:
+                break;
+        }
+        previousPreviousToken = previousToken;
+        previousToken = currentToken;
+        currentToken = GetLookAheadToken(++tokenIterator);
+    }
+
+    if (previousToken.is(tok::identifier) && previousPreviousToken.is(tok::period))
+    {
+        endLocation = getPreviousToken(previousPreviousToken).getEndLoc();
+    }
+    else
+    {
+        endLocation = previousToken.getEndLoc();
+    }
+    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue);
+    return returnValue;
+}
+
 // Insert a dummy function declaration to turn rule definition
 // to function with special attribute
 void Parser::InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs)
@@ -167,7 +241,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 }
                 else
                 {
-                    tags.emplace(Tok.getIdentifierInfo()->getName().str());
+                    tags.emplace(table);
                 }
                 table += std::string(":");
                 ConsumeToken();
@@ -447,7 +521,7 @@ ExprResult Parser::ParseGaiaRuleContext()
     return Actions.ActOnGaiaRuleContext(ruleContextLocation);
 }
 
-Token Parser::getPreviousToken(Token token)
+Token Parser::getPreviousToken(Token token) const
 {
     Token returnToken;
     returnToken.setKind(tok::unknown);
@@ -464,6 +538,10 @@ Token Parser::getPreviousToken(Token token)
             break;
         }
         location = location.getLocWithOffset(-1);
+    }
+    if (returnToken.is(tok::raw_identifier))
+    {
+        PP.LookUpIdentifierInfo(returnToken);
     }
     return returnToken;
 }

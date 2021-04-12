@@ -2152,6 +2152,48 @@ static bool validateRuleAttribute(StringRef attribute,
   return true;
 }
 
+static void handleGaiaExplicitPathAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  if (!checkAttributeNumArgs(S, AL, 3))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+
+  StringRef path;
+  if (!S.checkStringLiteralArgumentAttr(AL, 0, path))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 0;
+    return;
+  }
+
+  uint32_t startLocation = 0;
+  Expr *startLocationExpr = AL.getArgAsExpr(1);
+  if (!checkUInt32Argument(S, AL, startLocationExpr, startLocation))
+    return;
+
+  uint32_t endLocation = 0;
+  Expr *endLocationExpr = AL.getArgAsExpr(2);
+  if (!checkUInt32Argument(S, AL, endLocationExpr, endLocation))
+    return;
+
+  if (startLocation == 0 && endLocation == 0)
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 1;
+    return;
+  }
+  if (startLocation > endLocation)
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 1;
+    return;
+  }
+
+  D->addAttr(::new (S.Context)
+             GaiaExplicitPathAttr(AL.getLoc(), S.Context, path,  startLocation, endLocation,
+                                         AL.getAttributeSpellingListIndex()));
+}
+
 static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
   if (!checkAttributeAtLeastNumArgs(S, AL, 1))
@@ -7298,6 +7340,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_GaiaOnInsert:
   case ParsedAttr::AT_GaiaOnChange:
     handleGaiaRuleAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaExplicitPath:
+    handleGaiaExplicitPathAttr(S, D, AL);
     break;
   }
 }
