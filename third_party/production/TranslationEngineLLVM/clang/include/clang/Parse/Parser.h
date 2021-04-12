@@ -2481,8 +2481,9 @@ private:
                             SourceLocation *endLoc);
   void ParseRule(Declarator &D);
   void ConsumeInvalidRuleset();
-  Token getPreviousToken(Token token);
+  Token getPreviousToken(Token token) const;
   void InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs);
+  std::string GetExplicitNavigationPath();
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
                                      SourceLocation *endLoc = nullptr) {

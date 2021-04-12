@@ -12,10 +12,9 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
-#include "chunk_manager.hpp"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"
-#include "memory_types.hpp"
+#include "memory_manager.hpp"
 #include "messages_generated.h"
 
 namespace gaia
@@ -68,10 +67,6 @@ public:
     // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
 
-    // Make IPC call to the server requesting more memory for the current transaction
-    // in case the client runs out of memory mid transaction.
-    static gaia::db::memory_manager::address_offset_t request_memory(size_t object_size);
-
 private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
@@ -93,6 +88,10 @@ private:
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
 
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    thread_local static inline std::vector<gaia::db::memory_manager::chunk_manager_t> s_previous_chunk_managers{};
+
     // Maintain a static filter in the client to disable generating events
     // for system types.
     static constexpr common::gaia_type_t c_trigger_excluded_types[] = {
@@ -103,11 +102,17 @@ private:
         static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_rule),
         static_cast<common::gaia_type_t>(common::system_table_type_t::event_log)};
 
+private:
+    static void init_memory_manager();
+
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
         size_t size);
 
     static void txn_cleanup();
+
+    static void commit_chunk_manager_allocations();
+    static void rollback_chunk_manager_allocations();
 
     static void sort_log();
 

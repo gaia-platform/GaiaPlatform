@@ -37,7 +37,7 @@ void memory_manager_t::initialize(
     size_t memory_size)
 {
     bool initialize_memory = true;
-    initialize_internal(memory_address, memory_size, initialize_memory, __func__);
+    initialize_internal(memory_address, memory_size, initialize_memory);
 }
 
 void memory_manager_t::load(
@@ -45,25 +45,24 @@ void memory_manager_t::load(
     size_t memory_size)
 {
     bool initialize_memory = false;
-    initialize_internal(memory_address, memory_size, initialize_memory, __func__);
+    initialize_internal(memory_address, memory_size, initialize_memory);
 }
 
 void memory_manager_t::initialize_internal(
     uint8_t* memory_address,
     size_t memory_size,
-    bool initialize_memory,
-    const string& caller_name)
+    bool initialize_memory)
 {
     // Sanity checks.
     retail_assert(
         memory_address != nullptr,
-        string("memory_manager_t::") + caller_name + "() was called with a null memory address!");
+        "memory_manager_t::initialize_internal() was called with a null memory address!");
     retail_assert(
         memory_size > 0,
-        string("memory_manager_t::") + caller_name + "() was called with a 0 memory size!");
+        "memory_manager_t::initialize_internal() was called with a 0 memory size!");
     retail_assert(
         memory_size % c_chunk_size == 0,
-        string("memory_manager_t::") + caller_name + "() was called with a memory size that is not a multiple of chunk size (4MB)!");
+        "memory_manager_t::initialize_internal() was called with a memory size that is not a multiple of chunk size (4MB)!");
     validate_address_alignment(memory_address);
     validate_size_alignment(memory_size);
 
@@ -93,7 +92,7 @@ void memory_manager_t::initialize_internal(
             << "  Configuration - enable_extra_validations = "
             << m_execution_flags.enable_extra_validations << endl;
 
-        output_debugging_information(caller_name);
+        output_debugging_information(initialize_memory ? "initialize" : "load");
     }
 }
 
@@ -122,35 +121,21 @@ address_offset_t memory_manager_t::allocate_chunk() const
     return allocated_memory_offset;
 }
 
-address_offset_t memory_manager_t::allocate(size_t size) const
+void memory_manager_t::deallocate_chunk(address_offset_t chunk_address_offset) const
 {
-    address_offset_t allocated_memory_offset = allocate_from_unused_memory(size);
+    auto chunk_offset = get_chunk_offset(chunk_address_offset);
 
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information(__func__);
-    }
-
-    if (allocated_memory_offset != c_invalid_address_offset)
-    {
-        validate_offset_alignment(allocated_memory_offset);
-    }
-
-    return allocated_memory_offset;
-}
-
-void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset) const
-{
     validate_metadata(m_metadata);
     retail_assert(
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
-        string("Chunk offset passed to  ") + __func__ + "() is out of bounds");
+        "Chunk offset passed to deallocate_chunk() is out of bounds");
 
-    while (!try_mark_chunk_use(chunk_offset, false))
+    while (!try_mark_chunk_used_status(chunk_offset, false))
     {
-        // Keep trying!
-        // Only the compaction thread should be calling this method,
+        // Retry until we succeed.
+        // Only one thread (client session or compaction) should be calling this method,
         // so any failures are due to bitmap updates made for different chunks.
+        retail_assert(is_chunk_marked_as_used(chunk_offset), "Another thread has marked chunk as unused!");
     }
 
     if (m_execution_flags.enable_console_output)
@@ -161,27 +146,24 @@ void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset) const
 
 void memory_manager_t::deallocate(address_offset_t object_offset) const
 {
-    // TODO: Uncomment this code once client/server code is updated to use chunk managers.
-    //
-    // validate_metadata(m_metadata);
-    // validate_offset(object_offset);
+    validate_metadata(m_metadata);
+    validate_offset(object_offset);
 
-    // address_offset_t offset_within_chunk = object_offset % c_chunk_size;
-    // address_offset_t chunk_address_offset = object_offset - offset_within_chunk;
-    // auto slot_offset = static_cast<slot_offset_t>(offset_within_chunk / c_slot_size);
+    address_offset_t chunk_address_offset = get_chunk_address_offset(object_offset);
+    slot_offset_t slot_offset = get_slot_offset(object_offset);
 
-    // chunk_manager_t chunk_manager;
-    // chunk_manager.load(m_base_memory_address, chunk_address_offset);
+    chunk_manager_t chunk_manager;
+    chunk_manager.load(m_base_memory_address, chunk_address_offset);
 
-    // while (!chunk_manager.try_mark_slot_use(slot_offset, false))
-    // {
-    //     if (!chunk_manager.is_slot_marked_as_used(slot_offset))
-    //     {
-    //         // Someone else has already marked the slot as not being used,
-    //         // so we can quit trying to do it ourselveds.
-    //         break;
-    //     }
-    // }
+    while (!chunk_manager.try_mark_slot_used_status(slot_offset, false))
+    {
+        // Retry until we succeed.
+        // An object should be deallocated by a single thread - the one
+        // corresponding to the session that updated this copy of the object.
+        retail_assert(
+            chunk_manager.is_slot_marked_as_used(slot_offset),
+            "Another thread has already deallocated this object!");
+    }
 
     if (m_execution_flags.enable_console_output)
     {
@@ -189,24 +171,24 @@ void memory_manager_t::deallocate(address_offset_t object_offset) const
     }
 }
 
-size_t memory_manager_t::get_unused_memory_size() const
-{
-    validate_metadata(m_metadata);
-
-    size_t available_size = m_total_memory_size - m_metadata->start_unused_memory_offset;
-
-    return available_size;
-}
-
 address_offset_t memory_manager_t::allocate_from_freed_memory() const
 {
     validate_metadata(m_metadata);
 
-    uint64_t end_limit_bit_index = (m_metadata->start_unused_memory_offset / c_chunk_size) - 1;
+    // We want to prevent the search from finding unset bits for chunks that were never allocated,
+    // so we need to calculate the bit index of the last allocated chunk, which is 1 less the offset
+    // of the next available chunk, and then we need to subtract c_first_chunk_offset,
+    // because bitmap indexes of a chunk offset are relative to c_first_chunk_offset.
+    chunk_offset_t last_allocated_chunk_offset = get_chunk_offset(m_metadata->start_unused_memory_offset) - 1;
+    uint64_t end_limit_bit_index = static_cast<uint64_t>(last_allocated_chunk_offset) - c_first_chunk_offset;
+    if (end_limit_bit_index == c_max_bit_index)
+    {
+        return c_invalid_address_offset;
+    }
 
     uint64_t first_unset_bit_index = c_max_bit_index;
     bool has_claimed_chunk = false;
-    uint64_t allocation_offset = c_invalid_address_offset;
+    address_offset_t allocation_offset = c_invalid_address_offset;
 
     while ((first_unset_bit_index = find_first_unset_bit(
                 m_metadata->chunk_bitmap,
@@ -214,9 +196,11 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
                 end_limit_bit_index))
            != c_max_bit_index)
     {
+        retail_assert(first_unset_bit_index <= end_limit_bit_index, "First unset bit index is outside the searched range!");
+
         auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index + c_first_chunk_offset);
 
-        while ((has_claimed_chunk = try_mark_chunk_use(chunk_offset, true)) == false)
+        while ((has_claimed_chunk = try_mark_chunk_used_status(chunk_offset, true)) == false)
         {
             // If someone else claimed the chunk, look for another one;
             // otherwise, keep trying to claim the current one.
@@ -242,58 +226,67 @@ address_offset_t memory_manager_t::allocate_from_freed_memory() const
     return allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_unused_memory(size_t size) const
+size_t memory_manager_t::get_unused_memory_size() const
 {
     validate_metadata(m_metadata);
 
-    size = base_memory_manager_t::calculate_allocation_size(size);
+    if (m_metadata->start_unused_memory_offset > m_total_memory_size)
+    {
+        return 0;
+    }
 
-    // If the allocation exhausts our memory, we cannot perform it.
-    if (get_unused_memory_size() < size)
+    size_t available_size = m_total_memory_size - m_metadata->start_unused_memory_offset;
+
+    return available_size;
+}
+
+address_offset_t memory_manager_t::allocate_from_unused_memory() const
+{
+    validate_metadata(m_metadata);
+
+    // We allocate memory in chunk increments, so if any is left, it's large enough for a chunk.
+    if (get_unused_memory_size() == 0)
     {
         return c_invalid_address_offset;
     }
 
     // Claim the space.
-    address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
-        &(m_metadata->start_unused_memory_offset),
-        size);
-    address_offset_t new_next_allocation_offset = old_next_allocation_offset + size;
+    // We use this approach instead of CAS to prevent the need for retrying
+    // in case of concurrent updates. We'll use CAS to revert our update
+    // if we run out of memory, at which point we might as well waste time too.
+    address_offset_t old_next_allocation_offset = m_metadata->start_unused_memory_offset.fetch_add(c_chunk_size);
+    address_offset_t new_next_allocation_offset = old_next_allocation_offset + c_chunk_size;
 
     // Check again if our memory got exhausted by this allocation,
     // which can happen if someone else got the space before us.
     if (new_next_allocation_offset > m_total_memory_size)
     {
-        // We exhausted the memory so we must undo our update.
-        while (!__sync_bool_compare_and_swap(
-            &(m_metadata->start_unused_memory_offset),
-            new_next_allocation_offset,
-            old_next_allocation_offset))
-        {
-            // A failure indicates that another thread has done the same.
-            // Sleep to allow it to undo its change, so we can do the same.
-            // This is safe because metadata allocations are never reverted
-            // so all other subsequent memory allocations will also attempt to revert back.
-            usleep(1);
-        }
+        // We're going to leave the metadata offset indicating past the end of our memory block.
+        // It doesn't matter because its use has ended with the exhaustion of unused memory.
+        // From this point on, we can only perform allocations from freed chunks.
+        retail_assert(
+            m_metadata->start_unused_memory_offset > m_total_memory_size,
+            "Metadata offset should now point past the end of our memory range!");
 
         return c_invalid_address_offset;
     }
 
     // Our allocation has succeeded.
     address_offset_t allocation_offset = old_next_allocation_offset;
-    chunk_offset_t chunk_offset = allocation_offset / c_chunk_size;
+    chunk_offset_t chunk_offset = get_chunk_offset(allocation_offset);
 
-    while (!try_mark_chunk_use(chunk_offset, true))
+    while (!try_mark_chunk_used_status(chunk_offset, true))
     {
-        // Just retry until we succeed.
-        // We already claimed the chunk, so all failures must be due to concurrent updates of the bitmap word,
+        // Retry until we succeed.
+        // We already claimed the chunk when we bumped start_unused_memory_offset,
+        // so all failures must be due to concurrent updates of the bitmap word,
         // not because of a conflict on this particular chunk's bit.
+        retail_assert(!is_chunk_marked_as_used(chunk_offset), "Another thread has marked chunk as used!");
     }
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << "\nAllocated " << size << " bytes at offset " << allocation_offset << " from unused memory." << endl;
+        cout << "\nAllocated chunk at offset " << allocation_offset << " from unused memory." << endl;
     }
 
     return allocation_offset;
@@ -304,7 +297,7 @@ bool memory_manager_t::is_chunk_marked_as_used(chunk_offset_t chunk_offset) cons
     validate_metadata(m_metadata);
     retail_assert(
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
-        string("Chunk offset passed to  ") + __func__ + "() is out of bounds");
+        "Chunk offset passed to is_chunk_marked_as_used() is out of bounds");
 
     uint64_t bit_index = chunk_offset - c_first_chunk_offset;
 
@@ -314,12 +307,12 @@ bool memory_manager_t::is_chunk_marked_as_used(chunk_offset_t chunk_offset) cons
         bit_index);
 }
 
-bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool used) const
+bool memory_manager_t::try_mark_chunk_used_status(chunk_offset_t chunk_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
-        string("Chunk offset passed to ") + __func__ + "() is out of bounds");
+        "Chunk offset passed to try_mark_chunk_used_status() is out of bounds");
 
     uint64_t bit_index = chunk_offset - c_first_chunk_offset;
 
@@ -327,7 +320,7 @@ bool memory_manager_t::try_mark_chunk_use(chunk_offset_t chunk_offset, bool used
         m_metadata->chunk_bitmap,
         memory_manager_metadata_t::c_chunk_bitmap_size,
         bit_index,
-        used);
+        is_used);
 }
 
 void memory_manager_t::output_debugging_information(const string& context_description) const

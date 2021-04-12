@@ -3237,3 +3237,10 @@ def GaiaOnChange : Attr {
     let Documentation = [Undocumented];
     let Args = [VariadicStringArgument<"tables">];
 }
+
+def GaiaExplicitPath : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPath">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [StringArgument<"path">, UnsignedArgument<"pathStart">, UnsignedArgument<"pathEnd">];
+}

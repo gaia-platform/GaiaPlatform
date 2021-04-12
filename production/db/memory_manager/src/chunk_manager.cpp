@@ -32,7 +32,7 @@ void chunk_manager_t::initialize(
     address_offset_t memory_offset)
 {
     bool initialize_memory = true;
-    initialize_internal(base_memory_address, memory_offset, initialize_memory, __func__);
+    initialize_internal(base_memory_address, memory_offset, initialize_memory);
 }
 
 void chunk_manager_t::load(
@@ -40,24 +40,23 @@ void chunk_manager_t::load(
     address_offset_t memory_offset)
 {
     bool initialize_memory = false;
-    initialize_internal(base_memory_address, memory_offset, initialize_memory, __func__);
+    initialize_internal(base_memory_address, memory_offset, initialize_memory);
 }
 
 void chunk_manager_t::initialize_internal(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
-    bool initialize_memory,
-    const string& caller_name)
+    bool initialize_memory)
 {
     retail_assert(
         base_memory_address != nullptr,
-        string("chunk_manager_t::") + caller_name + "() was called with a null memory address!");
+        "chunk_manager_t::initialize_internal() was called with a null memory address!");
     retail_assert(
         memory_offset != c_invalid_address_offset,
-        string("chunk_manager_t::") + caller_name + "() was called with an invalid memory offset!");
+        "chunk_manager_t::initialize_internal() was called with an invalid memory offset!");
     retail_assert(
         memory_offset % c_chunk_size == 0,
-        string("chunk_manager_t::") + caller_name + "() was called with a memory offset that is not a multiple of the chunk size (4MB)!");
+        "chunk_manager_t::initialize_internal() was called with a memory offset that is not a multiple of the chunk size (4MB)!");
 
     validate_address_alignment(base_memory_address);
     validate_offset_alignment(memory_offset);
@@ -77,14 +76,14 @@ void chunk_manager_t::initialize_internal(
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->last_committed_slot_offset = sizeof(chunk_manager_metadata_t) / c_slot_size - 1;
+        m_metadata->last_committed_slot_offset = get_slot_offset(sizeof(chunk_manager_metadata_t)) - 1;
     }
 
     m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
 
     if (m_execution_flags.enable_console_output)
     {
-        output_debugging_information(caller_name);
+        output_debugging_information(initialize_memory ? "initialize" : "load");
     }
 }
 
@@ -118,7 +117,14 @@ address_offset_t chunk_manager_t::allocate(
     // This marking is done immediately, before we get a decision for our transaction.
     // If our process dies, the server will ignore this portion of the bitmap
     // based on the value of the metadata's last_committed_slot_offset.
-    mark_slot_use(allocation_slot_offset, true);
+    while (!try_mark_slot_used_status(allocation_slot_offset, true))
+    {
+        // Retry until we succeed.
+        // Failure can be due to another thread attempting to do GC.
+        // Allocations should only be performed on one thread,
+        // so we just need to retry until we succeed.
+        retail_assert(!is_slot_marked_as_used(allocation_slot_offset), "Another thread has marked slot as used!");
+    };
 
     m_last_allocated_slot_offset += slot_count;
 
@@ -145,7 +151,7 @@ void chunk_manager_t::commit(slot_offset_t last_allocated_offset)
     {
         retail_assert(
             m_last_allocated_slot_offset == m_metadata->last_committed_slot_offset,
-            string(__func__) + "() should only be called with a valid offset if m_last_allocated_slot_offset has not been changed!");
+            "commit() should only be called with a valid offset if m_last_allocated_slot_offset has not been changed!");
 
         m_last_allocated_slot_offset = last_allocated_offset;
     }
@@ -168,11 +174,15 @@ void chunk_manager_t::rollback()
     slot_offset_t first_uncommitted_allocation_slot_offset = m_metadata->last_committed_slot_offset + 1;
     size_t slot_count = m_last_allocated_slot_offset - m_metadata->last_committed_slot_offset;
 
-    // We don't know how many allocations were actually made,
-    // so we'll just reset all the bits for the uncommitted slots.
-    mark_slot_range_use(first_uncommitted_allocation_slot_offset, slot_count, false);
+    // There may be no work to do if no allocations were actually made.
+    if (slot_count)
+    {
+        // We don't know how many allocations were actually made,
+        // so we'll just reset all the bits for the uncommitted slots.
+        mark_slot_range_used_status(first_uncommitted_allocation_slot_offset, slot_count, false);
 
-    m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
+        m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
+    }
 
     if (m_execution_flags.enable_console_output)
     {
@@ -185,7 +195,7 @@ bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
     validate_metadata(m_metadata);
     retail_assert(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        string("Slot offset passed to ") + __func__ + "() is out of bounds");
+        "Slot offset passed to is_slot_marked_as_used() is out of bounds");
 
     uint64_t bit_index = slot_offset - c_first_slot_offset;
 
@@ -195,28 +205,12 @@ bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
         bit_index);
 }
 
-void chunk_manager_t::mark_slot_use(slot_offset_t slot_offset, bool used) const
+bool chunk_manager_t::try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        string("Slot offset passed to ") + __func__ + "() is out of bounds");
-
-    uint64_t bit_index = slot_offset - c_first_slot_offset;
-
-    set_bit_value(
-        m_metadata->slot_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size,
-        bit_index,
-        used);
-}
-
-bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool used) const
-{
-    validate_metadata(m_metadata);
-    retail_assert(
-        slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        string("Slot offset passed to ") + __func__ + "() is out of bounds");
+        "Slot offset passed to try_mark_slot_used_status() is out of bounds");
 
     uint64_t bit_index = slot_offset - c_first_slot_offset;
 
@@ -224,24 +218,24 @@ bool chunk_manager_t::try_mark_slot_use(slot_offset_t slot_offset, bool used) co
         m_metadata->slot_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size,
         bit_index,
-        used);
+        is_used);
 }
 
-void chunk_manager_t::mark_slot_range_use(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool used) const
+void chunk_manager_t::mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
 {
     validate_metadata(m_metadata);
     retail_assert(
         start_slot_offset >= c_first_slot_offset && start_slot_offset <= c_last_slot_offset,
-        string("Slot offset passed to ") + __func__ + "() is out of bounds");
+        "Slot offset passed to mark_slot_range_used_status() is out of bounds");
 
     uint64_t start_bit_index = start_slot_offset - c_first_slot_offset;
 
-    set_bit_range_value(
+    safe_set_bit_range_value(
         m_metadata->slot_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size,
         start_bit_index,
         slot_count,
-        used);
+        is_used);
 }
 
 void chunk_manager_t::output_debugging_information(const string& context_description) const
