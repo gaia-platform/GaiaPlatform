@@ -15,7 +15,6 @@ using gaia::catalog::ddl::base_field_def_t;
 using gaia::catalog::ddl::composite_name_t;
 using gaia::catalog::ddl::data_field_def_t;
 using gaia::catalog::ddl::field_def_list_t;
-using gaia::catalog::ddl::ref_field_def_t;
 
 /**
  * Facilitate the creation of tables.
@@ -48,22 +47,6 @@ public:
         return *this;
     }
 
-    table_builder_t& reference(
-        const std::string& field_name,
-        const std::string& referenced_table_db_name,
-        const std::string& referenced_table_name)
-    {
-        m_references.emplace_back(field_name, make_pair(referenced_table_db_name, referenced_table_name));
-        return *this;
-    }
-
-    table_builder_t& reference(
-        const std::string& field_name,
-        const std::string& referenced_table_name)
-    {
-        return reference(field_name, "", referenced_table_name);
-    }
-
     table_builder_t& fail_on_exists(bool fail_on_exists)
     {
         m_fail_on_exists = fail_on_exists;
@@ -82,11 +65,6 @@ public:
         for (const auto& field : m_fields)
         {
             fields.emplace_back(std::make_unique<data_field_def_t>(field.first, field.second, 1));
-        }
-
-        for (const auto& reference : m_references)
-        {
-            fields.emplace_back(std::make_unique<ref_field_def_t>(reference.first, reference.second));
         }
 
         if (!m_db_name.empty())
@@ -111,6 +89,5 @@ private:
     std::string m_table_name{};
     std::string m_db_name{};
     std::vector<std::pair<std::string, data_type_t>> m_fields{};
-    std::vector<std::pair<std::string, composite_name_t>> m_references{};
     bool m_fail_on_exists = false;
 };

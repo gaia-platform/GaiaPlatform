@@ -67,6 +67,7 @@ struct relationship_view_t : catalog_db_object_view_t
     static constexpr common::reference_offset_t c_child_gaia_table_ref_offset = 2;
 
     using catalog_db_object_view_t::catalog_db_object_view_t;
+    [[nodiscard]] const char* name() const;
     [[nodiscard]] const char* to_parent_name() const;
     [[nodiscard]] const char* to_child_name() const;
     [[nodiscard]] common::gaia_id_t parent_table_id() const;

@@ -169,45 +169,6 @@ struct data_field_def_t : base_field_def_t
 
 using composite_name_t = std::pair<std::string, std::string>;
 
-// This represents reference fields in parsing results.
-// The references are defined as relationships in catalog tables.
-struct ref_field_def_t : base_field_def_t
-{
-    ref_field_def_t(std::string name, composite_name_t full_table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
-    {
-    }
-
-    ref_field_def_t(std::string name, std::string db_name, std::string table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
-    {
-    }
-
-    composite_name_t parent_table;
-
-    [[nodiscard]] std::string db_name() const
-    {
-        return parent_table.first;
-    }
-
-    [[nodiscard]] std::string table_name() const
-    {
-        return parent_table.second;
-    }
-
-    [[nodiscard]] std::string full_table_name() const
-    {
-        if (db_name().empty())
-        {
-            return table_name();
-        }
-        else
-        {
-            return db_name() + c_db_table_name_connector + table_name();
-        }
-    }
-};
-
 using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
 
 struct link_def_t
@@ -389,6 +350,52 @@ public:
 };
 
 /**
+ * Thrown when creating a relationship that already exists.
+ */
+class relationship_already_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit relationship_already_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The relationship '" << name << "' already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the tables specified in the relationship definition do not match.
+ */
+class tables_not_match : public gaia::common::gaia_exception
+{
+public:
+    explicit tables_not_match(
+        const std::string& relationship,
+        const std::string& name1,
+        const std::string& name2)
+    {
+        std::stringstream message;
+        message << "The table '" << name1 << "' does not match the table '" << name2 << "' "
+                << "in the relationship '" << relationship << "' definition.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when trying to create a many-to-many relationship.
+ */
+class many_to_many_not_supported : public gaia::common::gaia_exception
+{
+public:
+    explicit many_to_many_not_supported(const std::string& relationship)
+    {
+        std::stringstream message;
+        message << "The many to many relationship defined in '" << relationship << "' is not supported.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Initialize the catalog.
 */
 void initialize_catalog();
@@ -505,6 +512,19 @@ std::vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gai
  * @return a list of ids of the tables that have a parent relationship with this table.
  */
 std::vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
+
+/**
+ * Create a relationship between tables given the link definitions.
+ *
+ * @param name of the relationship
+ * @param link1, link2 link definitions of the relationship
+ * @return gaia id of the created relationship
+ */
+gaia::common::gaia_id_t create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    bool throw_on_exist = true);
 
 /**
  * Generate the Extended Data Classes header file.

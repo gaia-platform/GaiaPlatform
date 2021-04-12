@@ -323,7 +323,7 @@ TEST_F(test_expressions, object_eq)
 
     assert_contains(
         address_t::list()
-            .where(addressee == yiwen),
+            .where(owner == yiwen),
         seattle);
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -333,11 +333,11 @@ TEST_F(test_expressions, object_eq)
 
     assert_empty(
         address_t::list()
-            .where(addressee == zack));
+            .where(owner == zack));
 
     assert_empty(
         address_t::list()
-            .where(addressee == employee_t()));
+            .where(owner == employee_t()));
 }
 
 TEST_F(test_expressions, object_ne)
@@ -346,7 +346,7 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(addressee != yiwen),
+            .where(owner != yiwen),
         {aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -356,12 +356,12 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(addressee != zack),
+            .where(owner != zack),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
         address_t::list()
-            .where(addressee != employee_t()),
+            .where(owner != employee_t()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 

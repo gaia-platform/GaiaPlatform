@@ -262,12 +262,12 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (relationship->parent_type != parent_type)
     {
-        throw invalid_relationship_type(first_child_offset, parent_type, relationship->parent_type);
+        throw invalid_relationship_type(first_child_offset, relationship->parent_type, parent_type);
     }
 
     if (relationship->child_type != child_ptr.type())
     {
-        throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+        throw invalid_relationship_type(first_child_offset, relationship->child_type, child_ptr.type());
     }
 
     // Check cardinality.

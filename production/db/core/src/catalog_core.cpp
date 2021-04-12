@@ -62,6 +62,11 @@ namespace db
     return catalog::Getgaia_table(m_obj_ptr->data())->serialization_template();
 }
 
+[[nodiscard]] const char* relationship_view_t::name() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
+}
+
 [[nodiscard]] const char* relationship_view_t::to_child_name() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_name()->c_str();

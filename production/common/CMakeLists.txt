@@ -27,8 +27,7 @@ add_library(gaia_common STATIC
   src/file.cpp
   src/timer.cpp
   src/logger.cpp
-  src/logger_manager.cpp
-  src/pluralize.cpp)
+  src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
 # The following are INTERFACE libraries for including headers.
@@ -57,4 +56,3 @@ add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDE
 add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_addr_book_headers")
 add_gtest(test_logging tests/test_logging.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
-add_gtest(test_pluralize tests/test_pluralize.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")

@@ -43,7 +43,17 @@ create table if not exists routes
     dst_ap_id int32,
     codeshare string,
     stops int16,
-    equipment string,
-    gaia_src_id references airports,
-    gaia_dst_id references airports
+    equipment string
+);
+
+create relationship if not exists routes_src
+(
+    airports.routes_from -> routes[],
+    routes.gaia_src_id -> airports
+);
+
+create relationship if not exists routes_dst
+(
+    airports.routes_to -> routes[],
+    routes.gaia_dst_id -> airports
 );

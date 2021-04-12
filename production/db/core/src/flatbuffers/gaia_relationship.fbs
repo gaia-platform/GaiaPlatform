@@ -1,5 +1,6 @@
 namespace gaia.db.catalog;
 table gaia_relationship {
+    name:string;
     to_parent_name:string;
     to_child_name:string;
     cardinality:uint8;
