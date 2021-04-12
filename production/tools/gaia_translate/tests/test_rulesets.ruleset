@@ -106,7 +106,6 @@ ruleset test_queries
 {
     OnInsert(R:Registration)
     {
-
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -117,7 +116,7 @@ ruleset test_queries
         // +++ Explicit navigation expression.
         // age_sum += /Student.age;
         // --- Current equivalent.
-        for (auto& s : Student_t::list())
+        for (const auto& s : Student_t::list())
         {
             age_sum += s.Age();
         }

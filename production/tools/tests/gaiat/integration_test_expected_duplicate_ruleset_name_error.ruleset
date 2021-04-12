@@ -3,14 +3,14 @@
 ruleset test
 {
     {
-        actuator.value += @incubator.min_temp/2;
+        actuator.value += @incubator.min_temp / 2;
     }
 }
 
 ruleset test
 {
     {
-        sensor.value += @incubator.max_temp/2;
+        sensor.value += @incubator.max_temp / 2;
     }
 }
 

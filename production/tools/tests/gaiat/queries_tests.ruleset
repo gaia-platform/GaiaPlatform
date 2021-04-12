@@ -130,8 +130,24 @@ ruleset test15
     }
 }
 
-        // F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
-        //     = A.age + F.acreage + Y.bushels + D.portion + C.acres;
+ruleset test16
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+    }
+}
+
+ruleset test16
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+    }
+}
+
 // GAIAPLAT-803
 // This should be identical to test1 above.
 // ruleset testE1
@@ -242,5 +258,15 @@ ruleset test15
 //         float v = incubator->A:actuator.value;
 //         A.value = v + 1;
 //         S:sensor.value = S.value * 1.01;
+//     }
+// }
+
+// GAIAPLAT-839
+// ruleset testE11
+// {
+//     OnChange(yield.bushels)
+//     {
+//         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+//             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
 //     }
 // }
