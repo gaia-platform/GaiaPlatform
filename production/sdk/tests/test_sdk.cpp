@@ -28,8 +28,8 @@ using namespace gaia::rules;
 using namespace gaia::addr_book;
 using namespace gaia::db::triggers;
 
-uint32_t g_initialize_rules_called = 0;
-std::atomic<uint32_t> g_rule_1_called = 0;
+bool g_initialize_rules_called = false;
+std::atomic_bool g_rule_1_called = false;
 
 // Smoke tests public APIs, to ensure they work as expected and the symbols
 // are exported (https://github.com/gaia-platform/GaiaPlatform/pull/397);
@@ -55,7 +55,7 @@ protected:
 extern "C" void initialize_rules()
 {
     // Verify this initialize_rules() is called
-    g_initialize_rules_called = 1;
+    g_initialize_rules_called = true;
 }
 
 void rule_1(const rule_context_t* ctx)
@@ -64,16 +64,16 @@ void rule_1(const rule_context_t* ctx)
     if (ctx->last_operation(gaia::addr_book::employee_t::s_gaia_type) == last_operation_t::row_insert)
     {
         ASSERT_EQ(ctx->gaia_type, gaia::addr_book::employee_t::s_gaia_type);
-        g_rule_1_called = 1;
+        g_rule_1_called = true;
     }
 }
 
 // Wait for a rule to be executed for up to 1 second.
-void wait_for_rule(std::atomic<uint32_t>& rule_guard)
+void wait_for_rule(std::atomic_bool& rule_guard)
 {
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 1000; ++i)
     {
-        if (rule_guard.load() != 0)
+        if (rule_guard.load())
         {
             return;
         }
@@ -113,7 +113,7 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
 {
     rule_binding_t binding("ruleset", "rulename", rule_1);
 
-    EXPECT_EQ(g_initialize_rules_called, 1);
+    EXPECT_TRUE(g_initialize_rules_called);
 
     subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, binding);
     {
