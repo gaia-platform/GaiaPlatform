@@ -1,0 +1,18 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test19
+{
+    OnUpdate(incubator)
+    {
+        F:farmer->yield.bushels = 0;
+
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+    }
+}
+
+// GAIAPLAT-831
+// CHECK: Tag 'F' is already defined.

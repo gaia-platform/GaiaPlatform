@@ -1,5 +1,7 @@
 // RUN: %gaiat %s --
 
+#include "tags_test.h"
+
 ruleset test
 {
 }
@@ -8,21 +10,21 @@ ruleset test1
 {
     OnUpdate(min_temp)
     {
-        min_temp+=1;
+        min_temp += 1;
     }
 }
 
 ruleset test2
 {   OnUpdate(max_temp)
     {
-        max_temp++;
+        max_temp ++;
     }
 }
 
 ruleset test3
 {   OnUpdate(animal.age)
     {
-      animal.age++;
+      animal.age ++;
     }
 }
 
@@ -74,7 +76,6 @@ class test
 public:
      void delete_row()
      {
-
      }
 };
 
@@ -121,3 +122,29 @@ ruleset test9
       OnUpdate();
   }
 }
+
+// This is legal? But has error (duplicate 'name' fields).
+// GAIAPLAT-796
+ruleset testE1 : Table(sensor)
+{
+    OnUpdate(name)
+    {
+        use_string(name);
+    }
+}
+
+// GAIAPLAT-711
+// ruleset testE2
+// {
+//     {
+//         int i = 0;
+//         if (incubator.max_temp > 99.0)
+//         {
+//             i = 1;
+//         }
+//         nomatch
+//         {
+//             i = 2;
+//         }
+//     }
+// }

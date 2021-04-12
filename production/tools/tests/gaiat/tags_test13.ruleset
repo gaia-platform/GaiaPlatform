@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test13
+{
+    OnUpdate(S:sensor, A:actuator)
+    {
+        float v = S.value + A.value;
+    }
+}
+
+// GAIAPLAT-799
+// CHECK: OnUpdate attributes must refer to the same table.

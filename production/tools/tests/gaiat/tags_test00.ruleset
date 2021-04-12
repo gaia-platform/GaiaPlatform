@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test00
+{
+    OnInsert(sensor:sensor)
+    {
+        use_float(sensor.value);
+    }
+}
+
+// CHECK: Tag 'sensor' cannot have the same name as a table or a field.

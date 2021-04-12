@@ -1,0 +1,14 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test02
+{
+    OnInsert(S:sensor)
+    {
+        /i:incubator->S.value  = i.min_temp;
+    }
+}
+
+// GAIAPLAT-823 (fixed)
+// CHECK: Tag 'S' cannot be used in this context.

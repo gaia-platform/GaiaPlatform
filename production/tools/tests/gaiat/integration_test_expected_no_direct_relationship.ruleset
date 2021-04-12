@@ -1,0 +1,14 @@
+// RUN: not %gaiat %s  -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    {
+        if (sensor->actuator.value > 95.0)
+        {
+            actuator.value = @min_temp;
+        }
+    }
+}
+
+// CHECK: 'sensor' table in the explicit path has no relationship to 'actuator.value'
+// CHECK: use of undeclared identifier 'sensor'

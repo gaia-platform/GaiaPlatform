@@ -1,0 +1,11 @@
+// RUN: not %gaiat %s -output x.cpp -output y.cpp -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    OnInsert(sensor)
+    {
+        actuator.value ++;
+    }
+}
+
+// CHECK: for the -output option: may only occur zero or one times!

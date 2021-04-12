@@ -3,10 +3,10 @@
 ruleset test
 {
     {
-	if (@animal.age < 5)
-	{
-		actuator.value = 5;
-	}
+        if (@isolated.age < 5)
+        {
+            actuator.value = 5;
+        }
     }
 }
-// CHECK: No path between 'animal' and other tables.
+// CHECK: No path between 'isolated' and other tables.

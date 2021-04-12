@@ -1,26 +1,59 @@
+CREATE TABLE if not exists animal (
+    name STRING,
+    breed STRING,
+    age UINT64
+);
+
+CREATE TABLE if not exists farmer (
+    name STRING,
+    acreage UINT32
+);
+
+CREATE TABLE if not exists crop (
+    name STRING,
+    acres UINT32
+);
 
 CREATE TABLE if not exists incubator (
-      name STRING active,
-      min_temp FLOAT active,
-      max_temp FLOAT active
+    name STRING,
+    min_temp FLOAT,
+    max_temp FLOAT,
+    REFERENCES farmer
 );
 
 CREATE TABLE if not exists  sensor (
-      name STRING active,
-      timestamp UINT64 ,
-      value FLOAT active,
-      i_ REFERENCES incubator
+    name STRING,
+    timestamp UINT64,
+    value FLOAT,
+    i_ REFERENCES incubator
 );
 
 CREATE TABLE if not exists  actuator (
-      name STRING active,
-      timestamp UINT64 ,
-      value FLOAT active,
-      i_ REFERENCES incubator
+    name STRING,
+    timestamp UINT64,
+    value FLOAT,
+    i_ REFERENCES incubator
 );
 
+CREATE TABLE if not exists raised (
+    birthdate STRING,
+    REFERENCES animal,
+    REFERENCES farmer,
+    REFERENCES incubator
+);
 
-CREATE TABLE if not exists animal (
-   name string active,
-   age UINT64 active
+CREATE TABLE if not exists yield (
+    bushels UINT32,
+    REFERENCES farmer,
+    REFERENCES crop
+);
+
+CREATE TABLE if not exists feeding (
+    portion UINT32,
+    REFERENCES yield,
+    REFERENCES animal
+);
+
+CREATE TABLE if not exists isolated (
+    age UINT32
 );
