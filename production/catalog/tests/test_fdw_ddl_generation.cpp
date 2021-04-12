@@ -37,14 +37,14 @@ protected:
 field_def_list_t fdw_ddl_generation_test::test_table_fields;
 
 constexpr char c_expected_fdw_ddl[]
-    = "CREATE FOREIGN TABLE test_table(\n"
+    = "CREATE FOREIGN TABLE \"test_table\"(\n"
       "gaia_id BIGINT,\n"
-      "id BIGINT,\n"
-      "name TEXT,\n"
-      "age SMALLINT,\n"
-      "value REAL,\n"
-      "larger_value DOUBLE PRECISION,\n"
-      "parent BIGINT\n"
+      "\"id\" BIGINT,\n"
+      "\"name\" TEXT,\n"
+      "\"age\" SMALLINT,\n"
+      "\"value\" REAL,\n"
+      "\"larger_value\" DOUBLE PRECISION,\n"
+      "\"parent\" BIGINT\n"
       ") SERVER test_server;\n";
 
 TEST_F(fdw_ddl_generation_test, generate_fdw_ddl_from_catalog)
