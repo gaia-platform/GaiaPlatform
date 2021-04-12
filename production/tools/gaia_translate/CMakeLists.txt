@@ -65,7 +65,7 @@ add_custom_command(
       -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
-   COMMAND pkill -f -KILL gaia_db_server &
+  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
@@ -105,7 +105,7 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
-   COMMAND pkill -f -KILL gaia_db_server &
+  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
@@ -148,7 +148,7 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
-   COMMAND pkill -f -KILL gaia_db_server &
+  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.

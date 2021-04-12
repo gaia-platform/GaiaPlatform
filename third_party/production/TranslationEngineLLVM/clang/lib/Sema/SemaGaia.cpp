@@ -364,14 +364,14 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
 
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            catalog::gaia_table_t child_table = relationship.child();
             if (!child_table)
             {
                 Diag(loc, diag::err_invalid_child_table) << relationship.name();
                 return unordered_multimap<string, Sema::TableLinkData_t>();
             }
 
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
                 Diag(loc, diag::err_invalid_parent_table) << relationship.name();
