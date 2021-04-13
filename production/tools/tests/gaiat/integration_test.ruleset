@@ -15,16 +15,18 @@ ruleset test1
 }
 
 ruleset test2
-{   OnUpdate(max_temp)
+{
+    OnUpdate(max_temp)
     {
-        max_temp ++;
+        max_temp++;
     }
 }
 
 ruleset test3
-{   OnUpdate(animal.age)
+{
+    OnUpdate(animal.age)
     {
-      animal.age ++;
+        animal.age++;
     }
 }
 
@@ -47,10 +49,10 @@ typedef enum
 ruleset test5
 {
     {
-	    if (@actuator.value < 5)
-	    {
-		    actuator.value = 5;
-	    }
+        if (@actuator.value < 5)
+        {
+            actuator.value = 5;
+        }
     }
 }
 
@@ -61,22 +63,22 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test6 : Table (sensor)
+ruleset test6 : Table(sensor)
 {
-  {
-	  if (@value < 5)
-	  {
-		  value = 5;
-	  }
-  }
+    {
+        if (@value < 5)
+        {
+            value = 5;
+        }
+    }
 }
 
 class test
 {
 public:
-     void delete_row()
-     {
-     }
+    void delete_row()
+    {
+    }
 };
 
 void testFunction()
@@ -86,15 +88,15 @@ void testFunction()
 
 ruleset test7
 {
-  OnChange(sensor)
-  {
-      auto t = sensor.gaia_id();
-	  if (sensor.value == 5)
-      {
-          test t;
-          t.delete_row();
-      }
-  }
+    OnChange(sensor)
+    {
+        auto t = sensor.gaia_id();
+        if (sensor.value == 5)
+        {
+            test t;
+            t.delete_row();
+        }
+    }
 }
 
 ruleset test8
@@ -105,10 +107,10 @@ ruleset test8
         auto event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
-	    if (@actuator.value < 5 && @sensor.value > 10)
-	    {
-		    actuator.value = 5;
-	    }
+        if (@actuator.value < 5 && @sensor.value > 10)
+        {
+            actuator.value = 5;
+        }
     }
 }
 
@@ -117,10 +119,10 @@ void OnUpdate()
 
 ruleset test9
 {
-  OnUpdate(sensor)
-  {
-      OnUpdate();
-  }
+    OnUpdate(sensor)
+    {
+        OnUpdate();
+    }
 }
 
 // This is legal? But has error (duplicate 'name' fields).
