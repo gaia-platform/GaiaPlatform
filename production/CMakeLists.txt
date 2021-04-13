@@ -160,7 +160,7 @@ endif()
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Fmt.
 # Note: ATM we are using the fmt version embedded with spdlog.
-# We will evaluate to remove the fmt dependency in a second momnet.
+# We will evaluate the removal of the fmt dependency in a second moment.
 add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
 set(FMT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
 set(FMT_INC ${DEPENDENCIES_INSTALL_PREFIX}/fmt/include)
