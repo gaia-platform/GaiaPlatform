@@ -57,7 +57,7 @@ set(TRANSLATION_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_translation.cpp")
 add_custom_command(
   COMMENT "Compiling test.ruleset..."
   OUTPUT ${TRANSLATION_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TRANSLATION_RULESET} -output ${TRANSLATION_RULESET_OUT} --
@@ -65,7 +65,7 @@ add_custom_command(
       -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
@@ -96,7 +96,7 @@ set(MIXED_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_mixed.cpp")
 add_custom_command(
   COMMENT "Compiling test_mixed.ruleset..."
   OUTPUT ${MIXED_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${MIXED_RULESET} -output ${MIXED_RULESET_OUT} --
@@ -105,7 +105,7 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
@@ -138,7 +138,7 @@ set(RULESETS_OUT "${GAIA_GENERATED_SCHEMAS}/test_rulesets.cpp")
 add_custom_command(
   COMMENT "Compiling test_rulesets.ruleset..."
   OUTPUT ${RULESETS_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+#  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
   COMMAND sleep 1
   # message(WARNING, "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}")
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}
@@ -148,7 +148,7 @@ add_custom_command(
     -I ${FLATBUFFERS_INC}
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
-  COMMAND pkill -f -KILL gaia_db_server &
+#  COMMAND pkill -f -KILL gaia_db_server &
   # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
   # to a build failure. A short sleep is currently fixing that, but may not be the
   # correct long-term solution.
