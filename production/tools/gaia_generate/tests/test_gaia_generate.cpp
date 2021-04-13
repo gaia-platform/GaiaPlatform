@@ -82,7 +82,7 @@ TEST_F(gaia_generate_test, airport_example)
 
     // Create the flight #58 that spans two segments.
     const int c_flight = 58;
-    auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, 0));
+    auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, {0}));
     // Insert both segments to the flight's list of segments.
     flight_1.segments().insert(segment_1);
     flight_1.segments().insert(segment_2);

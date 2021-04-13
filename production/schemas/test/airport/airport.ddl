@@ -13,7 +13,7 @@ create table if not exists airport
 create table if not exists flight
 (
     number int32,
-    miles_flown int32
+    miles_flown_by_quarter int32[]
 );
 
 create table if not exists segment

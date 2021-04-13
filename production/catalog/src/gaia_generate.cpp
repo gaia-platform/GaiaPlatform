@@ -402,13 +402,11 @@ static string generate_edc_struct(
     // Default public constructor.
     code += "{{TABLE_NAME}}_t() : edc_object_t(\"{{TABLE_NAME}}_t\") {}";
 
-    // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or
-    // as Create{{TABLE_NAME}}Direct. The choice is determined by whether any of the
-    // fields are strings. If at least one is a string, than the Direct variation
-    // is used.
-    // NOTE: There may be a third variation of this if any of the fields are vectors
-    // or possibly arrays.
-    bool has_string = false;
+    // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or as
+    // Create{{TABLE_NAME}}Direct. The choice is determined by whether any of
+    // the fields are strings or vectors. If at least one is a string or a
+    // vector, than the Direct variation is used.
+    bool has_string_or_vector = false;
     // Accessors.
     for (const auto& f : field_records)
     {
@@ -416,11 +414,12 @@ static string generate_edc_struct(
         code.SetValue("FIELD_NAME", f.name());
         if (f.type() == static_cast<uint8_t>(data_type_t::e_string))
         {
-            has_string = true;
+            has_string_or_vector = true;
             code.SetValue("FCN_NAME", "GET_STR");
         }
         else if (f.repeated_count() != 1)
         {
+            has_string_or_vector = true;
             code.SetValue("FCN_NAME", "GET_ARRAY");
         }
         else
@@ -450,7 +449,7 @@ static string generate_edc_struct(
     code += param_list + ") {";
     code.IncrementIdentLevel();
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
-    code.SetValue("DIRECT", has_string ? "Direct" : "");
+    code.SetValue("DIRECT", has_string_or_vector ? "Direct" : "");
     param_list = "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b";
     for (const auto& f : field_records)
     {
