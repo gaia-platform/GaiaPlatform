@@ -376,9 +376,6 @@ static string generate_edc_struct(
     // Create{{TABLE_NAME}}Direct. The choice is determined by whether any of
     // the fields are strings or vectors. If at least one is a string or a
     // vector, than the Direct variation is used.
-    //
-    // NOTE: There may be a third variation of this if any of the fields are
-    // vectors or possibly arrays.
     bool has_string_or_vector = false;
     // Accessors.
     for (const auto& f : field_records)
