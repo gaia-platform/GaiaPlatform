@@ -542,3 +542,232 @@ ruleset test78
 
   }
 }
+
+ruleset test79
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += value/2;// expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
+    }
+}
+
+ruleset test79 : Table(sensor, actuator)
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += sensor.value/2;
+    }
+}
+
+ruleset test80
+{
+    OnInsert(S:sensor)
+    {
+        actuator.value += S.value/2;
+    }
+}
+
+ruleset test81
+{
+    OnUpdate(S:sensor)
+    {
+        float v = S.value;
+    }
+}
+
+ruleset test82
+{
+    OnUpdate(S:sensor, V:sensor.value)
+    {
+        float v = S.value + V.value;
+    }
+}
+
+// The 'value' is not duplicated, but qualified by 'sensor'.
+// GAIALAT-796
+ruleset test83 : Table(sensor)
+{
+    OnUpdate(value)
+    {
+        float v = value * 2.0;
+    }
+}
+
+ruleset test84
+{
+    OnInsert(I::incubator) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    {
+    }
+}
+
+ruleset test85
+{
+    OnInsert(I:incubator:sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    {
+    }
+}
+
+ruleset test86
+{
+    OnInsert(incubator:) // expected-error {{expected identifier}}
+    {
+    }
+}
+
+ruleset test87
+{
+    OnInsert(incubator:I) // expected-error {{Tag 'incubator' cannot have the same name as a table or a field.}}
+    {
+    }
+}
+
+ruleset test88
+{
+    OnUpdate(nonsense, no-sense, not-sensible) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    {
+    }
+}
+
+ruleset test89 : Table(actuator)
+{
+    OnUpdate(A:actuator)
+    {
+    }
+}
+
+ruleset test90
+{
+    OnUpdate(incubator)
+    {
+        long i = actuator.timestamp;
+        long j = /incubator->actuator.timestamp;
+    }
+}
+
+ruleset test91
+{
+    OnUpdate(incubator)
+    {
+        long i = actuator->timestamp; // expected-error {{Tag refers to an invalid table 'timestamp'.}}
+                   // expected-error@-1 {{use of undeclared identifier 'actuator'}}
+    }
+}
+
+ruleset test92
+{
+    OnUpdate(incubator)
+    {
+        int i = 0;
+        if (/incubator->raised->animal->feeding.portion > 10)
+        {
+            i += portion;
+        }
+    }
+}
+
+ruleset test93
+{
+    OnUpdate(incubator[i]) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    {
+        int i = 0;
+    }
+}
+
+ruleset test94
+{
+    Onward(incubator) // expected-error {{unknown type name 'Onward'}}
+    {
+        incubator.min_temp = 0.0;
+    } // expected-error {{expected ';' after top level declarator}}
+}
+
+ruleset test95
+{
+    {
+        \incubator.min_temp = 0.0; // expected-error {{expected expression}}
+    }
+}
+
+ruleset test96
+{
+    {
+        if (farmer-->raised) // expected-error {{cannot decrement value of type 'farmer__type'}}
+        {}
+    }
+}
+
+ruleset test97
+{
+    {
+        if (farmer>-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        {}
+    }
+}
+
+ruleset test98
+{
+    {
+        if (farmer<-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        {}
+    }
+}
+
+ruleset test99
+{
+    {
+        if (farmer->yield.bushels)
+        {}
+    }
+}
+
+
+// GAIAPLAT-821
+// ruleset testE1
+// {
+//     OnUpdate(incubator)
+//     {
+//         if (/@incubator) {
+//             int i = 0;
+//         }
+//     }
+// }
+
+// GAIAPLAT-821
+// ruleset testE1
+// {
+//     OnUpdate(incubator)
+//     {
+//         if (/@incubator) {
+//             int i = 0;
+//         }
+//     }
+// }
+
+// GAIAPLAT-821
+// ruleset testE2
+// {
+//     {
+//         min_temp += @incubator->sensor.value;
+//     }
+// }
+
+// GAIAPLAT-822
+// ruleset testE3
+// {
+//     {
+//         if (farmer->yield)
+//         {}
+//     }
+// }
+
+// GAIAPLAT-827
+// ruleset test14
+// {
+//     OnChange(sensor.value)
+//     {
+//         if (S:sensor.value > 100.0)
+//         {
+//             actuator.value = 101.0;
+//         }
+//     }
+// }

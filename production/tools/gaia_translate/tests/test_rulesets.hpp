@@ -8,6 +8,7 @@
 enum class test_error_result_t
 {
     e_none = 0,
+    e_tag_field_mismatch,
     e_tag_implicit_mismatch,
     e_tag_anchor_mismatch
 };

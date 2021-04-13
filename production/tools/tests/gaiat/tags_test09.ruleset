@@ -1,0 +1,15 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test09
+{
+    OnChange(a:actuator)
+    {
+        float a;
+        use_float(a.value);
+    }
+}
+
+// GAIAPLAT-794
+// CHECK: WARNING: Variable declaration hides a tag.

@@ -1,0 +1,15 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test18
+{
+    OnUpdate(F:farmer)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+    }
+}
+
+// CHECK: Tag 'F' is already defined.

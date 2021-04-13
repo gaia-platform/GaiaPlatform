@@ -1,0 +1,272 @@
+// RUN: %gaiat %s --
+
+#include "tags_test.h"
+
+ruleset test1
+{
+    OnChange(actuator.value)
+    {
+        actuator.value += sensor.value;
+    }
+}
+
+ruleset test2
+{
+    OnChange(sensor.value)
+    {
+        actuator.value = sensor.value;
+    }
+}
+
+ruleset test3
+{
+    {
+        actuator.value = @sensor.value;
+    }
+}
+
+ruleset test4
+{
+    {
+        actuator.value = @sensor.value + (incubator.min_temp + incubator.max_temp) / 2;
+    }
+}
+
+ruleset test5
+{
+    {
+        // Explicit query.
+        min_temp += @incubator->sensor.value;
+        // Implicit query.
+        min_temp += sensor.value;
+    }
+}
+
+ruleset test6
+{
+    OnInsert(sensor)
+    {
+        // Implicit query.
+        if (incubator->actuator.value > 95.0)
+        {
+            actuator.value = actuator.value * 0.99;
+        }
+    }
+}
+
+ruleset test7
+{
+    OnChange(min_temp)
+    {
+        min_temp += incubator->sensor.value;
+        max_temp -= incubator->actuator.value;
+    }
+}
+
+ruleset test8
+{
+    {
+        min_temp += @incubator->sensor.value;
+        max_temp -= incubator->actuator.value;
+    }
+}
+
+ruleset test9
+{
+    {
+        min_temp += @I:incubator->S:sensor.value;
+        max_temp -= incubator->A:actuator.value;
+    }
+}
+
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+        actuator.value += feeding.portion;
+        sensor.value += acres;
+    }
+}
+
+ruleset test11
+{
+    OnUpdate(crop)
+    {
+        use_float(crop->yield->feeding->animal->raised->farmer->incubator.min_temp);
+    }
+}
+
+ruleset test12
+{
+    OnChange(actuator.value)
+    {
+        use_float(actuator.value += sensor.value);
+    }
+}
+
+ruleset test13
+{
+    {
+        use_float(I:incubator->actuator.value + I.min_temp);
+        use_float(@I:incubator->actuator.value + I.max_temp);
+    }
+}
+
+ruleset test14
+{
+    OnChange(yield.bushels)
+    {
+        farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
+        /farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
+    }
+}
+
+ruleset test15
+{
+    OnInsert(farmer)
+    {
+        I:incubator->A:actuator.value = I.min_temp;
+        /I:incubator->A:actuator.value = I.min_temp;
+    }
+}
+
+ruleset test16
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+    }
+}
+
+ruleset test16
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+    }
+}
+
+// GAIAPLAT-803
+// This should be identical to test1 above.
+// ruleset testE1
+// {
+//     {
+//         @actuator.value += sensor.value;
+//     }
+// }
+
+// GAIAPLAT-806
+// fails to find path from sensor to incubator.
+// ruleset testE2
+// {
+//     {
+//         if (sensor->incubator->actuator.value > 95.0)
+//         {
+//             actuator.value = @min_temp;
+//         }
+//     }
+// }
+
+// GAIAPLAT-806
+// ruleset testE3
+// {
+//     OnInsert(yield)
+//     {
+//         int daily = 0;
+//         daily += /farmer->yield->feeding.portion;
+//     }
+// }
+
+// GAIAPLAT-806
+// In this test, the navigation is in the M:1 direction.
+// ruleset testE4
+// {
+//     OnInsert(farmer)
+//     {
+//         use_string(/feeding->yield->farmer.name);
+//     }
+// }
+
+// GAIAPLAT-807
+// "Tag refers to an invalid table S."
+// ruleset testE5
+// {
+//     OnInsert(S:sensor)
+//     {
+//         S->incubator.min_temp += S.value;
+//     }
+// }
+
+
+// GAIAPLAT-808
+// The I.min_temp doesn't use the tag from the 'if'.
+// ruleset testE6
+// {
+//     OnChange(actuator)
+//     {
+//         if (/I:incubator.max_temp == 100.0)
+//         {
+//             use_float(I.min_temp);
+//         }
+//     }
+// }
+
+// GAIAPLAT-809
+// the query in the 'for' isn't recognized
+// ruleset testE7
+// {
+//     OnChange(actuator)
+//     {
+//         for (/I:incubator)
+//         {
+//             use_float(I.min_temp);
+//         }
+//     }
+// }
+
+// GAIAPLAT-825
+// ruleset testE8
+// {
+//     {
+//         use_float(/I:incubator->actuator.value + I.min_temp);
+//         use_float(I:incubator->actuator.value + I.max_temp);
+//     }
+// }
+
+// GAIAPLAT-827
+// ruleset testE9
+// {
+//     OnChange(sensor.value)
+//     {
+//         if (S:sensor.value > 100.0)
+//         {
+//             if (S:actuator.value < 102)
+//             {
+//                 S.value = 101.0;
+//             }
+//         }
+//     }
+// }
+
+// GAIAPLAT-828
+// ruleset testE10
+// {
+//     OnChange(incubator)
+//     {
+//         float v = incubator->A:actuator.value;
+//         A.value = v + 1;
+//         S:sensor.value = S.value * 1.01;
+//     }
+// }
+
+// GAIAPLAT-839
+// ruleset testE11
+// {
+//     OnChange(yield.bushels)
+//     {
+//         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+//             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
+//     }
+// }
