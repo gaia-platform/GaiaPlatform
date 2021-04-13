@@ -4,9 +4,9 @@ ruleset test
 {
     {
         if (actuator.timestamp < 5 )
-	    {
-		    actuator.value = 5;
-	    }
+        {
+            actuator.value = 5;
+        }
     }
 }
 // CHECK: No active fields for the rule.

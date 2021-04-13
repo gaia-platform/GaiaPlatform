@@ -21,6 +21,7 @@ namespace catalog
 
 using db_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
 using table_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
+using relationship_names_t = std::unordered_map<std::string, gaia::common::gaia_id_t>;
 
 class ddl_executor_t
 {
@@ -41,6 +42,12 @@ public:
         const std::string& name,
         const ddl::field_def_list_t& fields,
         bool throw_on_exist = true);
+    gaia::common::gaia_id_t create_relationship(
+        const std::string& name,
+        const ddl::link_def_t& link1,
+        const ddl::link_def_t& link2,
+        bool thrown_on_exists = true);
+
     void drop_table(const std::string& db_name, const std::string& name);
     void drop_database(const std::string& name);
 
@@ -95,6 +102,9 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
 
+    // Get the table id given the db and table names.
+    inline common::gaia_id_t get_table_id(const std::string& db, const std::string& table);
+
     // Verifies that a newly generated reference offset is valid.
     // Throws an exception if the new offset was found to be invalid,
     // which would happen if we ran out of reference offsets.
@@ -104,9 +114,9 @@ private:
     // We use them to compute offset field values of the "gaia_relationship" table .
     //
     // Find the next available offset in a container's parent relationships.
-    static common::reference_offset_t find_parent_available_offset(const gaia_table_t::parent_gaia_relationship_list_t& relationships);
+    static common::reference_offset_t find_parent_available_offset(const gaia_table_t::gaia_relationships_parent_list_t& relationships);
     // Find the next available offset in a container's child relationships.
-    static common::reference_offset_t find_child_available_offset(const gaia_table_t::child_gaia_relationship_list_t& relationships);
+    static common::reference_offset_t find_child_available_offset(const gaia_table_t::gaia_relationships_child_list_t& relationships);
     // Find the next available offset in the relationships of the given table.
     static common::reference_offset_t find_available_offset(gaia::common::gaia_id_t table);
 
@@ -116,6 +126,7 @@ private:
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;
+    relationship_names_t m_relationship_names;
 
     gaia::common::gaia_id_t m_empty_db_id;
 

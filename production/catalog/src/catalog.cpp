@@ -40,6 +40,15 @@ gaia_id_t create_table(
     return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
+gaia_id_t create_relationship(
+    const string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    bool throw_on_exists)
+{
+    return ddl_executor_t::get().create_relationship(name, link1, link2, throw_on_exists);
+}
+
 void drop_database(const string& name)
 {
     return ddl_executor_t::get().drop_database(name);
@@ -67,7 +76,7 @@ vector<gaia_id_t> list_fields(gaia_id_t table_id)
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
     {
         fields.insert(fields.begin(), field.gaia_id());
     }
@@ -84,7 +93,7 @@ vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& child_relationship :
-         gaia_table_t::get(table_id).child_gaia_relationship_list())
+         gaia_table_t::get(table_id).gaia_relationships_child())
     {
         relationships.push_back(child_relationship.gaia_id());
     }
@@ -97,7 +106,7 @@ vector<gaia_id_t> list_parent_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& parent_relationship :
-         gaia_table_t::get(table_id).parent_gaia_relationship_list())
+         gaia_table_t::get(table_id).gaia_relationships_parent())
     {
         relationships.push_back(parent_relationship.gaia_id());
     }

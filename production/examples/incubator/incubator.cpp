@@ -82,12 +82,12 @@ void restore_incubator(incubator_t& incubator, float min_temp, float max_temp)
     w.max_temp = max_temp;
     w.update_row();
 
-    for (auto& sensor : incubator.sensor_list())
+    for (auto& sensor : incubator.sensors())
     {
         restore_sensor(sensor, min_temp);
     }
 
-    for (auto& actuator : incubator.actuator_list())
+    for (auto& actuator : incubator.actuators())
     {
         restore_actuator(actuator);
     }
@@ -127,15 +127,15 @@ void init_storage()
 
     // Chicken Incubator: 2 sensors, 1 fan
     auto incubator = incubator_t::get(insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
-    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
-    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
-    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
+    incubator.sensors().insert(sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
+    incubator.sensors().insert(sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
+    incubator.actuators().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
 
     // Puppy Incubator: 1 sensor, 2 fans
     incubator = incubator_t::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
-    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_b, 0, c_puppy_min));
-    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_b, 0, 0.0));
-    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_c, 0, 0.0));
+    incubator.sensors().insert(sensor_t::insert_row(c_sensor_b, 0, c_puppy_min));
+    incubator.actuators().insert(actuator_t::insert_row(c_actuator_b, 0, 0.0));
+    incubator.actuators().insert(actuator_t::insert_row(c_actuator_c, 0, 0.0));
 
     tx.commit();
 }
@@ -149,12 +149,12 @@ void dump_db()
         printf("-----------------------------------------\n");
         printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
         printf("-----------------------------------------\n");
-        for (const auto& s : i.sensor_list())
+        for (const auto& s : i.sensors())
         {
             printf("\t|%-10s|%10ld|%10.2lf\n", s.name(), s.timestamp(), s.value());
         }
         printf("\t---------------------------------\n");
-        for (const auto& a : i.actuator_list())
+        for (const auto& a : i.actuators())
         {
             printf("\t|%-10s|%10ld|%10.1lf\n", a.name(), a.timestamp(), a.value());
         }

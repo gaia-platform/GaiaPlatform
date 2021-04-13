@@ -142,55 +142,55 @@ protected:
         auto prereq_3 = PreReq_t::insert_row("pre003", "C");
         auto prereq_4 = PreReq_t::insert_row("pre004", "C");
 
-        student_1.registered_student_Registration_list().insert(reg_1);
-        student_1.registered_student_Registration_list().insert(reg_2);
-        student_2.registered_student_Registration_list().insert(reg_3);
-        student_2.registered_student_Registration_list().insert(reg_4);
-        student_2.registered_student_Registration_list().insert(reg_5);
-        student_3.registered_student_Registration_list().insert(reg_6);
-        student_3.registered_student_Registration_list().insert(reg_7);
-        student_3.registered_student_Registration_list().insert(reg_8);
-        student_3.registered_student_Registration_list().insert(reg_9);
-        student_3.registered_student_Registration_list().insert(reg_A);
-        student_4.registered_student_Registration_list().insert(reg_B);
-        student_4.registered_student_Registration_list().insert(reg_C);
-        student_5.registered_student_Registration_list().insert(reg_D);
-        student_5.registered_student_Registration_list().insert(reg_E);
-        student_5.registered_student_Registration_list().insert(reg_F);
-        student_5.registered_student_Registration_list().insert(reg_G);
+        student_1.registrations().insert(reg_1);
+        student_1.registrations().insert(reg_2);
+        student_2.registrations().insert(reg_3);
+        student_2.registrations().insert(reg_4);
+        student_2.registrations().insert(reg_5);
+        student_3.registrations().insert(reg_6);
+        student_3.registrations().insert(reg_7);
+        student_3.registrations().insert(reg_8);
+        student_3.registrations().insert(reg_9);
+        student_3.registrations().insert(reg_A);
+        student_4.registrations().insert(reg_B);
+        student_4.registrations().insert(reg_C);
+        student_5.registrations().insert(reg_D);
+        student_5.registrations().insert(reg_E);
+        student_5.registrations().insert(reg_F);
+        student_5.registrations().insert(reg_G);
 
-        course_1.registered_course_Registration_list().insert(reg_3);
-        course_1.registered_course_Registration_list().insert(reg_8);
-        course_1.registered_course_Registration_list().insert(reg_C);
-        course_1.registered_course_Registration_list().insert(reg_G);
+        course_1.registrations().insert(reg_3);
+        course_1.registrations().insert(reg_8);
+        course_1.registrations().insert(reg_C);
+        course_1.registrations().insert(reg_G);
 
-        course_2.registered_course_Registration_list().insert(reg_1);
-        course_2.registered_course_Registration_list().insert(reg_7);
-        course_2.registered_course_Registration_list().insert(reg_D);
+        course_2.registrations().insert(reg_1);
+        course_2.registrations().insert(reg_7);
+        course_2.registrations().insert(reg_D);
 
-        course_3.registered_course_Registration_list().insert(reg_4);
-        course_3.registered_course_Registration_list().insert(reg_9);
-        course_3.registered_course_Registration_list().insert(reg_E);
+        course_3.registrations().insert(reg_4);
+        course_3.registrations().insert(reg_9);
+        course_3.registrations().insert(reg_E);
 
-        course_4.registered_course_Registration_list().insert(reg_2);
-        course_4.registered_course_Registration_list().insert(reg_5);
-        course_4.registered_course_Registration_list().insert(reg_A);
-        course_4.registered_course_Registration_list().insert(reg_B);
-        course_4.registered_course_Registration_list().insert(reg_F);
+        course_4.registrations().insert(reg_2);
+        course_4.registrations().insert(reg_5);
+        course_4.registrations().insert(reg_A);
+        course_4.registrations().insert(reg_B);
+        course_4.registrations().insert(reg_F);
 
-        course_5.registered_course_Registration_list().insert(reg_6);
+        course_5.registrations().insert(reg_6);
 
-        course_2.prereq_PreReq_list().insert(prereq_1);
-        course_1.course_PreReq_list().insert(prereq_1);
+        course_2.requires().insert(prereq_1);
+        course_1.requires().insert(prereq_1);
 
-        course_2.prereq_PreReq_list().insert(prereq_2);
-        course_3.course_PreReq_list().insert(prereq_2);
+        course_2.requires().insert(prereq_2);
+        course_3.requires().insert(prereq_2);
 
-        course_2.prereq_PreReq_list().insert(prereq_3);
-        course_4.course_PreReq_list().insert(prereq_3);
+        course_2.requires().insert(prereq_3);
+        course_4.requires().insert(prereq_3);
 
-        course_5.prereq_PreReq_list().insert(prereq_4);
-        course_2.course_PreReq_list().insert(prereq_4);
+        course_5.requires().insert(prereq_4);
+        course_2.requires().insert(prereq_4);
     }
 };
 
