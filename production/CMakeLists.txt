@@ -159,6 +159,8 @@ endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Fmt.
+# Note: ATM we are using the fmt version embedded with spdlog.
+# We will evaluate the removal of the fmt dependency in a second moment.
 add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
 set(FMT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
 set(FMT_INC ${DEPENDENCIES_INSTALL_PREFIX}/fmt/include)
@@ -172,15 +174,6 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest
 add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
-
-# Force spdlog to use an external version of fmt.
-# TODO this flag should only be set in common/CMakeLists.txt. The flag is
-#  necessary here too, otherwise the compilation fail. The reason could
-#  be that logger.hpp imports the spdlog headers, therefore, every file
-#  that imports logger.hpp, also imports spdlog.h, which imports fmt.h.
-#  Each time spdlog need to evaluate the flag SPDLOG_FMT_EXTERNAL to
-#  decide whether to use the external version of fmt.
-set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
