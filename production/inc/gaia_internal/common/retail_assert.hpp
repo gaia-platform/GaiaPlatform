@@ -67,7 +67,7 @@ inline void retail_assert_do_not_call_directly(
     if (!condition)
     {
         std::stringstream message_stream;
-        message_stream << file << "::" << function << "():" << line << ": " << message;
+        message_stream << "Assertion failed in " << file << "::" << function << "(): line " << line << ": " << message;
         throw retail_assertion_failure(message_stream.str());
     }
 }
