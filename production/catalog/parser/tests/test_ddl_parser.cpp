@@ -88,6 +88,18 @@ TEST(catalog_ddl_parser_test, drop_table)
 
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
     EXPECT_EQ(drop_stmt->name, "t");
+    EXPECT_FALSE(drop_stmt->if_exists);
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE IF EXISTS t;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
+    EXPECT_EQ(drop_stmt->name, "t");
+    EXPECT_TRUE(drop_stmt->if_exists);
 }
 
 TEST(catalog_ddl_parser_test, case_sensitivity)
@@ -191,6 +203,18 @@ TEST(catalog_ddl_parser_test, drop_database)
 
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
     EXPECT_EQ(drop_stmt->name, "d");
+    EXPECT_FALSE(drop_stmt->if_exists);
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE IF EXISTS d;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
+    EXPECT_EQ(drop_stmt->name, "d");
+    EXPECT_TRUE(drop_stmt->if_exists);
 }
 
 TEST(catalog_ddl_parser_test, illegal_characters)

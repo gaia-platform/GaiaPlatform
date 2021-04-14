@@ -211,6 +211,9 @@ TEST_F(ddl_executor_test, drop_table)
 TEST_F(ddl_executor_test, drop_table_not_exist)
 {
     string test_table_name{"a_not_existed_table"};
+
+    EXPECT_NO_THROW(drop_table(test_table_name, false));
+
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
 }
 
