@@ -13,10 +13,8 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
-#include "gaia_internal/db/type_metadata.hpp"
 
 #include "catalog_tests_helper.hpp"
-#include "type_id_mapping.hpp"
 
 using namespace std;
 
@@ -563,96 +561,6 @@ TEST_F(ddl_executor_test, multiple_relationship_same_table)
     ASSERT_EQ(uint8_t{1}, past_doctor_relationship.first_child_offset());
     ASSERT_EQ(uint8_t{2}, past_doctor_relationship.parent_offset());
     ASSERT_EQ(uint8_t{3}, past_doctor_relationship.next_child_offset());
-
-    txn.commit();
-}
-
-TEST_F(ddl_executor_test, metadata_init)
-{
-    // TODO this test should be in the SE, but since it depends on the Catalog we need to keep it here.
-
-    gaia_type_t employee_type
-        = table_builder_t::new_table("employee")
-              // Can't use `addr_book` database name (as in other tests) because it will to conflict
-              // with the database created by other tests that do not properly clean up the data.
-              // (same below)
-              .database("company")
-              .create_type();
-
-    gaia::catalog::create_relationship(
-        "company_manages",
-        {"company", "employee", "reportees", "company", "employee", gaia::catalog::relationship_cardinality_t::many},
-        {"company", "employee", "manager", "company", "employee", gaia::catalog::relationship_cardinality_t::one},
-        false);
-
-    // Expected pointers layout for employee type.
-    const reference_offset_t c_employee_first_employee = 0;
-    const reference_offset_t c_employee_parent_employee = 1;
-    const reference_offset_t c_employee_child_employee = 2;
-    const reference_offset_t c_employee_first_address = 3;
-
-    gaia_type_t address_type
-        = table_builder_t::new_table("address")
-              .database("company")
-              .create_type();
-
-    gaia::catalog::create_relationship(
-        "company_address",
-        {"company", "employee", "address", "company", "address", gaia::catalog::relationship_cardinality_t::one},
-        {"company", "address", "owner", "company", "employee", gaia::catalog::relationship_cardinality_t::one},
-        false);
-
-    // Expected pointers layout for address type.
-    const reference_offset_t c_address_parent_employee = 0;
-    const reference_offset_t c_address_next_address = 1;
-
-    begin_transaction();
-
-    // type_registry_t::get() lazily initialize the metadata. It is important to NOT
-    // call get() on address_type immediately to ensure that type_registry_t can
-    // fetch both parent and child relationships without "touching" both types.
-    const type_metadata_t& employee_meta = type_registry_t::instance().get(employee_type);
-
-    // employee -[manages] -> employee
-    optional<relationship_t> employee_employee_relationship1 = employee_meta.find_child_relationship(c_employee_parent_employee);
-    ASSERT_TRUE(employee_employee_relationship1.has_value());
-    ASSERT_EQ(c_employee_first_employee, employee_employee_relationship1->first_child_offset);
-    ASSERT_EQ(c_employee_parent_employee, employee_employee_relationship1->parent_offset);
-    ASSERT_EQ(c_employee_child_employee, employee_employee_relationship1->next_child_offset);
-
-    optional<relationship_t> employee_employee_relationship2 = employee_meta.find_parent_relationship(c_employee_first_employee);
-    ASSERT_TRUE(employee_employee_relationship2.has_value());
-    ASSERT_EQ(c_employee_first_employee, employee_employee_relationship2->first_child_offset);
-    ASSERT_EQ(c_employee_parent_employee, employee_employee_relationship2->parent_offset);
-    ASSERT_EQ(c_employee_child_employee, employee_employee_relationship2->next_child_offset);
-
-    // employee -[address]-> address
-    optional<relationship_t> employee_address_relationship1 = employee_meta.find_parent_relationship(c_employee_first_address);
-    ASSERT_TRUE(employee_address_relationship1.has_value());
-    ASSERT_EQ(c_employee_first_address, employee_address_relationship1->first_child_offset);
-    ASSERT_EQ(c_address_parent_employee, employee_address_relationship1->parent_offset);
-    ASSERT_EQ(c_address_next_address, employee_address_relationship1->next_child_offset);
-
-    const type_metadata_t& address_meta = type_registry_t::instance().get(address_type);
-
-    // employee -[address]-> address
-    optional<relationship_t> employee_address_relationship2 = address_meta.find_child_relationship(c_address_parent_employee);
-    ASSERT_TRUE(employee_address_relationship2.has_value());
-    ASSERT_EQ(c_employee_first_address, employee_address_relationship2->first_child_offset);
-    ASSERT_EQ(c_address_parent_employee, employee_address_relationship2->parent_offset);
-    ASSERT_EQ(c_address_next_address, employee_address_relationship2->next_child_offset);
-
-    commit_transaction();
-}
-
-TEST_F(ddl_executor_test, metadata_not_exists)
-{
-    auto_transaction_t txn;
-
-    const int c_non_existent_type = 1001;
-    EXPECT_THROW(
-        type_registry_t::instance().get(c_non_existent_type),
-        invalid_type);
 
     txn.commit();
 }
