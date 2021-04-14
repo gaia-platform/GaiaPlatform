@@ -59,14 +59,14 @@ void client_messenger_t::receive_server_reply(
         sizeof(m_message_buffer));
 
     // Sanity checks.
-    retail_assert(bytes_read > 0, "Failed to read message!");
+    ASSERT_INVARIANT(bytes_read > 0, "Failed to read message!");
 
     if (is_in_bulk_fd_retrieval_mode)
     {
         // In this mode, the fds are attached to a dummy 1-byte datagram.
-        retail_assert(bytes_read == 1, "Unexpected message size!");
+        ASSERT_INVARIANT(bytes_read == 1, "Unexpected message size!");
 
-        retail_assert(m_count_received_fds > 0, "No fds were received!");
+        ASSERT_INVARIANT(m_count_received_fds > 0, "No fds were received!");
     }
     else if (m_count_received_fds != expected_count_received_fds)
     {
@@ -74,7 +74,7 @@ void client_messenger_t::receive_server_reply(
         message_stream
             << "Expected " << expected_count_received_fds
             << " fds, but received " << m_count_received_fds << " fds!";
-        retail_assert(m_count_received_fds == expected_count_received_fds, message_stream.str());
+        ASSERT_INVARIANT(m_count_received_fds == expected_count_received_fds, message_stream.str());
     }
 
     for (size_t index_fd = 0; index_fd < m_count_received_fds; index_fd++)
@@ -84,7 +84,7 @@ void client_messenger_t::receive_server_reply(
         {
             std::stringstream message_stream;
             message_stream << "The fd received at index " << index_fd << " is invalid!";
-            retail_assert(current_fd != -1, message_stream.str());
+            ASSERT_INVARIANT(current_fd != -1, message_stream.str());
         }
     }
 }
@@ -103,7 +103,7 @@ void client_messenger_t::clear()
 
 int client_messenger_t::received_fd(size_t index_fd)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         index_fd < m_count_received_fds,
         "Attempt to access fd is outside the bounds of the fd array!");
 

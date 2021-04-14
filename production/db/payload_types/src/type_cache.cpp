@@ -29,7 +29,7 @@ void type_information_t::set_serialization_template(
 
 void type_information_t::set_field(field_position_t field_position, const reflection::Field* field)
 {
-    retail_assert(field != nullptr, "type_information_t::set_field() should not be called with a null field value!");
+    ASSERT_PRECONDITION(field != nullptr, "type_information_t::set_field() should not be called with a null field value!");
 
     m_field_map.insert(make_pair(field_position, field));
 }
@@ -116,7 +116,7 @@ bool type_cache_t::remove_type_information(gaia_type_t type_id)
 
 bool type_cache_t::set_type_information(gaia_type_t type_id, unique_ptr<type_information_t>& type_information)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         !!type_information,
         "type_cache_t::set_type_information() should not be called with a null cache!");
 
@@ -158,7 +158,7 @@ const type_information_t* auto_type_information_t::get()
 
 void auto_type_information_t::set(const shared_ptr<const type_information_t>& type_information)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         !m_type_information,
         "auto_type_information_t::set() was called on an already set instance!");
 

@@ -126,7 +126,7 @@ bool queue_t<T>::dequeue_internal(T& value)
         std::shared_lock<std::shared_mutex> shared_lock_new_last(new_last_element->lock, std::defer_lock);
         if (shared_lock_new_last.try_lock() == false)
         {
-            retail_assert(
+            ASSERT_INVARIANT(
                 new_last_element == &m_head,
                 "We should only fail acquiring a shared lock if we were asking for it for the head element.");
 

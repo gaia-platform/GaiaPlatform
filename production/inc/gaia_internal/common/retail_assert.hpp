@@ -23,24 +23,23 @@ namespace common
  * @{
  */
 
-#ifdef DISABLE_RETAIL_ASSERTS
-#define retail_assert(c, m) no_op()
+#ifdef DISABLE_ASSERT_PRECONDITION
+#define ASSERT_PRECONDITION(c, m)
 #else
-#define retail_assert(c, m) retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#define ASSERT_PRECONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
 #endif
 
-/**
- * A no-operation function.
- *
- * When we want to disable retail_assert calls, we'll call this function instead,
- * so that these calls will be optimized out by the compiler.
- *
- * We need a function because retail_assert calls can be prefixed with a namespace
- * qualifier and those qualifiers have to precede a function call.
- */
-inline void no_op()
-{
-}
+#ifdef DISABLE_ASSERT_INVARIANT
+#define ASSERT_INVARIANT(c, m)
+#else
+#define ASSERT_INVARIANT(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#endif
+
+#ifdef DISABLE_ASSERT_POSTCONDITION
+#define ASSERT_POSTCONDITION(c, m)
+#else
+#define ASSERT_POSTCONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#endif
 
 /**
  * Thrown when a retail assert check has failed.
@@ -58,7 +57,7 @@ public:
  * Retail asserts are meant for important conditions that indicate internal errors.
  * They help us surface issues early, at the source.
  *
- * This function should only be called through the retail_assert macro,
+ * This function should only be called through the various assert macros,
  * so that it gets passed the correct information about the point of call.
  */
 inline void retail_assert_do_not_call_directly(

@@ -14,7 +14,7 @@ TEST(common, retail_assert)
 {
     try
     {
-        retail_assert(true, "Unexpected triggering of retail assert!");
+        ASSERT_INVARIANT(true, "Unexpected triggering of retail assert!");
         EXPECT_EQ(true, true);
     }
     catch (const std::exception& e)
@@ -24,7 +24,7 @@ TEST(common, retail_assert)
 
     try
     {
-        retail_assert(false, "Expected triggering of retail assert.");
+        ASSERT_INVARIANT(false, "Expected triggering of retail assert.");
         EXPECT_EQ(true, false);
     }
     catch (const std::exception& e)

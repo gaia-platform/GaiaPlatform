@@ -61,7 +61,7 @@ public:
 
             if (!new_node_idx)
             {
-                gaia::common::retail_assert(
+                ASSERT_INVARIANT(
                     id_index->hash_node_count + c_hash_buckets < c_max_locators,
                     "hash_node_count exceeds expected limits!");
                 new_node_idx = c_hash_buckets + __sync_fetch_and_add(&id_index->hash_node_count, 1);

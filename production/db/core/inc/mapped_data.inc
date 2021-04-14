@@ -29,10 +29,10 @@ void base_mapped_data_t<T>::clear()
 template <typename T>
 void base_mapped_data_t<T>::reset(base_mapped_data_t<T>& other)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !m_is_set,
         "A set base_mapped_data_t instance should not take ownership of another instance!");
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         other.m_is_set,
         "An unset base_mapped_data_t instance should not take ownership of another unset instance!");
 
@@ -76,7 +76,7 @@ bool base_mapped_data_t<T>::is_set()
 template <typename T>
 void mapped_data_t<T>::create(const char* name)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling create() on an already set mapped_data_t instance!");
 
@@ -116,11 +116,11 @@ void mapped_data_t<T>::create(const char* name)
 template <typename T>
 void mapped_data_t<T>::open(int fd, bool manage_fd)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling open() on an already set mapped_data_t instance!");
 
-    common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
+    ASSERT_PRECONDITION(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
 
     this->m_mapped_data_size = sizeof(T);
 

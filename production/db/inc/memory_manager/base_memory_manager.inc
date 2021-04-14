@@ -27,7 +27,7 @@ void base_memory_manager_t::set_execution_flags(const execution_flags_t& executi
 
 size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 {
-    common::retail_assert(requested_size > 0, "Requested allocation size is 0!");
+    ASSERT_PRECONDITION(requested_size > 0, "Requested allocation size is 0!");
 
     size_t allocation_size = ((requested_size + c_slot_size - 1) / c_slot_size) * c_slot_size;
 
@@ -37,21 +37,21 @@ size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 void base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)
 {
     auto memory_address_as_integer = reinterpret_cast<size_t>(memory_address);
-    common::retail_assert(
+    ASSERT_INVARIANT(
         memory_address_as_integer % c_allocation_alignment == 0,
         "Misaligned memory address!");
 }
 
 void base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset)
 {
-    common::retail_assert(
+    ASSERT_INVARIANT(
         memory_offset % c_slot_size == 0,
         "Misaligned memory offset!");
 }
 
 void base_memory_manager_t::validate_size_alignment(size_t memory_size)
 {
-    common::retail_assert(
+    ASSERT_INVARIANT(
         memory_size % c_slot_size == 0,
         "Misaligned memory size!");
 }
@@ -63,7 +63,7 @@ void base_memory_manager_t::validate_managed_memory_range() const
         << "Total memory size (" << m_total_memory_size
         << ") is too large for start memory offset (" << m_start_memory_offset
         << ")!";
-    common::retail_assert(
+    ASSERT_INVARIANT(
         m_start_memory_offset + m_total_memory_size > m_start_memory_offset,
         message1.str());
 
@@ -73,7 +73,7 @@ void base_memory_manager_t::validate_managed_memory_range() const
         << "Start memory offset (" << m_start_memory_offset
         << ") is too large for base memory address (" << base_memory_address_as_integer
         << ")!";
-    common::retail_assert(
+    ASSERT_INVARIANT(
         base_memory_address_as_integer + m_start_memory_offset >= base_memory_address_as_integer,
         message2.str());
 
@@ -83,7 +83,7 @@ void base_memory_manager_t::validate_managed_memory_range() const
         << "Total memory size (" << m_total_memory_size
         << ") is too large for start memory address (" << start_memory_address_as_integer
         << ")!";
-    common::retail_assert(
+    ASSERT_INVARIANT(
         start_memory_address_as_integer + m_total_memory_size > start_memory_address_as_integer,
         message3.str());
 }
@@ -92,7 +92,7 @@ void base_memory_manager_t::validate_address(const uint8_t* const memory_address
 {
     validate_address_alignment(memory_address);
 
-    common::retail_assert(
+    ASSERT_INVARIANT(
         memory_address >= m_base_memory_address + m_start_memory_offset
             && memory_address <= m_base_memory_address + m_start_memory_offset + m_total_memory_size,
         "Memory address is outside managed memory range!");
@@ -100,13 +100,13 @@ void base_memory_manager_t::validate_address(const uint8_t* const memory_address
 
 void base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         memory_offset != c_invalid_address_offset,
         "Memory offset is invalid!");
 
     validate_offset_alignment(memory_offset);
 
-    common::retail_assert(
+    ASSERT_INVARIANT(
         memory_offset >= m_start_memory_offset
             && memory_offset <= m_start_memory_offset + m_total_memory_size,
         "Memory offset is outside managed memory range!");
@@ -116,7 +116,7 @@ void base_memory_manager_t::validate_size(size_t memory_size) const
 {
     validate_size_alignment(memory_size);
 
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         memory_size > 0,
         "Memory size should not be 0!");
 }

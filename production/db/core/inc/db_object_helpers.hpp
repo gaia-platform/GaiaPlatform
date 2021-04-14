@@ -66,7 +66,7 @@ inline db_object_t* create_object(
 inline db_object_t* id_to_ptr(common::gaia_id_t id)
 {
     gaia_locator_t locator = gaia::db::db_hash_map::find(id);
-    common::retail_assert(
+    ASSERT_INVARIANT(
         locator_exists(locator),
         "An invalid locator was returned by db_hash_map::find()!");
     return locator_to_ptr(locator);

@@ -171,7 +171,7 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
-    retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
     return std::vector<uint8_t>(
         fbs_parser.builder_.GetBufferPointer(),

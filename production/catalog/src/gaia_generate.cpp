@@ -155,7 +155,7 @@ static string field_cpp_type_string(
         type_str = "const char*";
         break;
     default:
-        retail_assert(false, "Unknown type!");
+        ASSERT_INVARIANT(false, "Unknown type!");
     };
 
     if (field.repeated_count() == 0)
@@ -174,7 +174,7 @@ static string field_cpp_type_string(
         // We should report the input error to the user at data definition time.
         // If we find a fixed size array definition here, it will be either data
         // corruption or bugs in catching user input errors.
-        retail_assert(false, "Fixed size array is not supported");
+        ASSERT_INVARIANT(false, "Fixed size array is not supported");
     }
     return type_str;
 }
