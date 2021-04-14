@@ -158,12 +158,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
-# Fmt.
-# Note: ATM we are using the fmt version embedded with spdlog.
-# We will evaluate the removal of the fmt dependency in a second moment.
-add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
-set(FMT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
-set(FMT_INC ${DEPENDENCIES_INSTALL_PREFIX}/fmt/include)
 # Spdlog.
 add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
 set(SPDLOG ${DEPENDENCIES_INSTALL_PREFIX}/spdlog)
