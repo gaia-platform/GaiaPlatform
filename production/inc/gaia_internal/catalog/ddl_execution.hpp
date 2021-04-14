@@ -79,16 +79,16 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             {
                 if (!drop_stmt->database.empty())
                 {
-                    drop_table(drop_stmt->database, drop_stmt->name);
+                    drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
                 }
                 else
                 {
-                    drop_table(db_name, drop_stmt->name);
+                    drop_table(db_name, drop_stmt->name, !drop_stmt->if_exists);
                 }
             }
             else if (drop_stmt->type == ddl::drop_type_t::drop_database)
             {
-                drop_database(drop_stmt->name);
+                drop_database(drop_stmt->name, !drop_stmt->if_exists);
             }
         }
     }

@@ -84,6 +84,7 @@
 %type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
 
 %type <int> opt_array
+%type <bool> opt_if_exists
 %type <bool> opt_if_not_exists
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
@@ -127,6 +128,8 @@ statement_list:
   }
 ;
 
+opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
+
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
@@ -156,12 +159,14 @@ create_statement:
 ;
 
 drop_statement:
-  DROP TABLE composite_name {
-      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_table, $3.second);
-      $$->database = std::move($3.first);
+  DROP TABLE opt_if_exists composite_name {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_table, $4.second);
+      $$->database = std::move($4.first);
+      $$->if_exists = $3;
   }
-| DROP DATABASE IDENTIFIER {
-      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $3);
+| DROP DATABASE opt_if_exists IDENTIFIER {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $4);
+      $$->if_exists = $3;
   }
 ;
 

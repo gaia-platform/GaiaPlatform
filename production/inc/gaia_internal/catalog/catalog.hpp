@@ -242,6 +242,8 @@ struct drop_statement_t : statement_t
     std::string name;
 
     std::string database;
+
+    bool if_exists;
 };
 
 /*@}*/
@@ -440,9 +442,10 @@ gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_d
  *
  * @param name database name
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_database(const std::string& name);
+void drop_database(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Delete a table in a given database.
@@ -453,9 +456,10 @@ void drop_database(const std::string& name);
  *
  * @param db_name database name
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_table(const std::string& db_name, const std::string& name);
+void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Delete a table from the catalog's global database.
@@ -465,9 +469,10 @@ void drop_table(const std::string& db_name, const std::string& name);
  * which is not available to the catalog implementation.
  *
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_table(const std::string& name);
+void drop_table(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * List all data payload fields for a given table defined in the catalog.

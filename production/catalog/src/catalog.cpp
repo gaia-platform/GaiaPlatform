@@ -49,19 +49,19 @@ gaia_id_t create_relationship(
     return ddl_executor_t::get().create_relationship(name, link1, link2, throw_on_exists);
 }
 
-void drop_database(const string& name)
+void drop_database(const string& name, bool throw_unless_exists)
 {
-    return ddl_executor_t::get().drop_database(name);
+    return ddl_executor_t::get().drop_database(name, throw_unless_exists);
 }
 
-void drop_table(const string& name)
+void drop_table(const string& name, bool throw_unless_exists)
 {
-    return ddl_executor_t::get().drop_table("", name);
+    return ddl_executor_t::get().drop_table("", name, throw_unless_exists);
 }
 
-void drop_table(const string& dbname, const string& name)
+void drop_table(const string& dbname, const string& name, bool throw_unless_exists)
 {
-    return ddl_executor_t::get().drop_table(dbname, name);
+    return ddl_executor_t::get().drop_table(dbname, name, throw_unless_exists);
 }
 
 gaia_id_t find_db_id(const string& dbname)

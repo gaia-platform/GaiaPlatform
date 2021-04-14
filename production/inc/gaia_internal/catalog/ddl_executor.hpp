@@ -48,8 +48,8 @@ public:
         const ddl::link_def_t& link2,
         bool thrown_on_exists = true);
 
-    void drop_table(const std::string& db_name, const std::string& name);
-    void drop_database(const std::string& name);
+    void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
+    void drop_database(const std::string& name, bool throw_unless_exists);
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 

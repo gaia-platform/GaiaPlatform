@@ -515,13 +515,17 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     table_record.delete_row();
 }
 
-void ddl_executor_t::drop_database(const string& name)
+void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 {
     unique_lock lock(m_lock);
     gaia_id_t db_id = find_db_id_no_lock(name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(name);
+        if (throw_unless_exists)
+        {
+            throw db_not_exists(name);
+        }
+        return;
     }
     {
         auto_transaction_t txn;
@@ -541,24 +545,30 @@ void ddl_executor_t::drop_database(const string& name)
     m_db_names.erase(name);
 }
 
-void ddl_executor_t::drop_table(const string& db_name, const string& name)
+void ddl_executor_t::drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
-
     unique_lock lock(m_lock);
 
     if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end())
     {
-        throw db_not_exists(db_name);
+        if (throw_unless_exists)
+        {
+            throw db_not_exists(db_name);
+        }
+        return;
     }
 
     string full_table_name = get_full_table_name(db_name, name);
-    gaia_id_t db_id = find_db_id_no_lock(db_name);
-    retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
-        throw table_not_exists(name);
+        if (throw_unless_exists)
+        {
+            throw table_not_exists(name);
+        }
+        return;
     }
+
     gaia_id_t table_id = m_table_names[full_table_name];
 
     {
