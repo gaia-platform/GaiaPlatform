@@ -31,7 +31,7 @@ int index_record_t::compare(const index_record_t& other) const
         }
     }
 
-    ASSERT_POSTCONDITION(comparison_result == 0, "Internal error: code should have returned already!");
+    ASSERT_INVARIANT(comparison_result == 0, "Internal error: code should have returned already!");
 
     return comparison_result;
 }

@@ -98,10 +98,7 @@ string get_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_data_type_name()!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_PRECONDITION(false, message.str());
     }
 }
 
@@ -171,7 +168,7 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
-    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
     return std::vector<uint8_t>(
         fbs_parser.builder_.GetBufferPointer(),

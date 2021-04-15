@@ -152,7 +152,7 @@ public:
 
     inline const char* read(const size_t size)
     {
-        ASSERT_INVARIANT(get_remaining_len_in_bytes() >= size, "Not enough bytes remaining to read!");
+        ASSERT_PRECONDITION(get_remaining_len_in_bytes() >= size, "Not enough bytes remaining to read!");
 
         // We shouldn't return an out-of-bounds pointer even for zero-length reads.
         if (get_remaining_len_in_bytes() == 0)

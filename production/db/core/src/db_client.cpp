@@ -175,8 +175,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 
 static void build_client_request(
     FlatBufferBuilder& builder,
-    session_event_t event,
-    size_t memory_request_size_hint = 0)
+    session_event_t event)
 {
     flatbuffers::Offset<client_request_t> client_request;
     client_request = Createclient_request_t(builder, event);
@@ -589,8 +588,9 @@ address_offset_t client_t::allocate_object(
 
         // Allocate from new chunk.
         object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
-        ASSERT_INVARIANT(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
     }
+
+    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
 
     // Update locator array to point to the new offset.
     update_locator(locator, object_offset);

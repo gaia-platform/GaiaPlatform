@@ -325,7 +325,7 @@ void server_t::handle_commit_txn(
     // Get the log fd and mmap it.
     ASSERT_PRECONDITION(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
-    ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
+    ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // We need to keep the log fd around until it's applied to the shared
     // locator view, so we only close the log fd if an exception is thrown.
@@ -342,7 +342,7 @@ void server_t::handle_commit_txn(
     {
         throw_system_error("fcntl(F_GET_SEALS) failed!");
     }
-    ASSERT_INVARIANT(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
+    ASSERT_PRECONDITION(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
 
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
@@ -679,8 +679,9 @@ address_offset_t server_t::allocate_object(
 
         // Allocate from new chunk.
         object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
-        ASSERT_INVARIANT(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
     }
+
+    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
 
     update_locator(locator, object_offset);
 
