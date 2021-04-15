@@ -52,14 +52,14 @@ void chunk_manager_t::initialize_internal(
         base_memory_address != nullptr,
         "chunk_manager_t::initialize_internal() was called with a null memory address!");
     ASSERT_PRECONDITION(
+        (reinterpret_cast<size_t>(base_memory_address)) % c_allocation_alignment == 0,
+        "chunk_manager_t::initialize_internal() was called with a misaligned memory address!");
+    ASSERT_PRECONDITION(
         memory_offset != c_invalid_address_offset,
         "chunk_manager_t::initialize_internal() was called with an invalid memory offset!");
     ASSERT_PRECONDITION(
         memory_offset % c_chunk_size == 0,
         "chunk_manager_t::initialize_internal() was called with a memory offset that is not a multiple of the chunk size (4MB)!");
-
-    validate_address_alignment(base_memory_address);
-    validate_offset_alignment(memory_offset);
 
     // Save our parameters.
     m_base_memory_address = base_memory_address;
@@ -94,7 +94,6 @@ address_offset_t chunk_manager_t::allocate(
 
     // Adjust the requested memory size, to ensure proper alignment.
     memory_size = calculate_allocation_size(memory_size);
-    validate_size(memory_size);
 
     // Quick exit for memory requests that are way too large.
     size_t available_memory_size = (m_last_allocated_slot_offset == c_last_slot_offset)

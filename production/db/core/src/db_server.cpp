@@ -182,7 +182,7 @@ void server_t::handle_connect(
 }
 
 void server_t::handle_begin_txn(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
 

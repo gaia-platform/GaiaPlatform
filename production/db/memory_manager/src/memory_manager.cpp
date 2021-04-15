@@ -58,13 +58,14 @@ void memory_manager_t::initialize_internal(
         memory_address != nullptr,
         "memory_manager_t::initialize_internal() was called with a null memory address!");
     ASSERT_PRECONDITION(
+        (reinterpret_cast<size_t>(memory_address)) % c_allocation_alignment == 0,
+        "memory_manager_t::initialize_internal() was called with a misaligned memory address!");
+    ASSERT_PRECONDITION(
         memory_size > 0,
         "memory_manager_t::initialize_internal() was called with a 0 memory size!");
     ASSERT_PRECONDITION(
         memory_size % c_chunk_size == 0,
         "memory_manager_t::initialize_internal() was called with a memory size that is not a multiple of chunk size (4MB)!");
-    validate_address_alignment(memory_address);
-    validate_size_alignment(memory_size);
 
     // Save our parameters.
     m_base_memory_address = memory_address;
@@ -112,7 +113,6 @@ address_offset_t memory_manager_t::allocate_chunk() const
 
     if (allocated_memory_offset != c_invalid_address_offset)
     {
-        // This check supersedes the validate_offset_alignment() check.
         ASSERT_POSTCONDITION(
             allocated_memory_offset % c_chunk_size == 0,
             "Chunk allocations should be made on chunk size boundaries!");
