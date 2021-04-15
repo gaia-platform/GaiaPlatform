@@ -76,40 +76,6 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     EXPECT_EQ(field->active, false);
 }
 
-TEST(catalog_ddl_parser_test, create_table_references)
-{
-    parser_t parser;
-    string ddl = string(
-        "CREATE TABLE t "
-        "(c1 REFERENCES t1,"
-        " REFERENCES d.t2);");
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl));
-
-    EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
-
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
-
-    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_EQ(create_stmt->fields.size(), 2);
-
-    const ref_field_def_t* field;
-
-    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::reference);
-    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(0).get());
-    EXPECT_EQ(field->name, "c1");
-    EXPECT_EQ(field->table_name(), "t1");
-    EXPECT_EQ(field->db_name(), "");
-
-    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::reference);
-    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(1).get());
-    // Anonymous references have the same binding for named references except the name string is empty.
-    EXPECT_EQ(field->name, "");
-    EXPECT_EQ(field->table_name(), "t2");
-    EXPECT_EQ(field->db_name(), "d");
-}
-
 TEST(catalog_ddl_parser_test, drop_table)
 {
     parser_t parser;
@@ -122,6 +88,18 @@ TEST(catalog_ddl_parser_test, drop_table)
 
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
     EXPECT_EQ(drop_stmt->name, "t");
+    EXPECT_FALSE(drop_stmt->if_exists);
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE IF EXISTS t;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
+    EXPECT_EQ(drop_stmt->name, "t");
+    EXPECT_TRUE(drop_stmt->if_exists);
 }
 
 TEST(catalog_ddl_parser_test, case_sensitivity)
@@ -225,6 +203,18 @@ TEST(catalog_ddl_parser_test, drop_database)
 
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
     EXPECT_EQ(drop_stmt->name, "d");
+    EXPECT_FALSE(drop_stmt->if_exists);
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE IF EXISTS d;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
+    EXPECT_EQ(drop_stmt->name, "d");
+    EXPECT_TRUE(drop_stmt->if_exists);
 }
 
 TEST(catalog_ddl_parser_test, illegal_characters)
@@ -289,4 +279,60 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_FALSE(create_stmt->if_not_exists);
     EXPECT_EQ(create_stmt->fields.size(), 0);
+}
+
+TEST(catalog_ddl_parser_test, create_relationship)
+{
+    parser_t parser;
+
+    const string ddl_text_full_db = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2,
+  d2.t2.link2 -> d1.t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_full_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_no_db = R"(
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2,
+  t2.link2 -> t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_no_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_partial_db = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> t2,
+  t2.link2 -> d1.t1
+);
+)";
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_partial_db));
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    const string ddl_text_negative_case_no_name = R"(
+CREATE RELATIONSHIP (
+  t1.link1 -> t2,
+  t2.link2 -> t1
+);
+)";
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_no_name));
+
+    const string ddl_text_negative_case_single_link = R"(
+CREATE RELATIONSHIP r (
+  t1.link -> t2,
+);
+)";
+    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_single_link));
 }

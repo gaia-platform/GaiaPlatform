@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gaia/common.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -47,7 +48,6 @@ ddl_executor_t& ddl_executor_t::get()
 
 void ddl_executor_t::bootstrap_catalog()
 {
-    constexpr char c_anonymous_reference_field_name[] = "";
 
     create_database("catalog", false);
     {
@@ -65,7 +65,6 @@ void ddl_executor_t::bootstrap_catalog()
         //     is_system bool,
         //     binary_schema uint8[],
         //     serialization_template uint8[],
-        //     references gaia_database,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -73,12 +72,18 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_uint8, 0));
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
-        fields.emplace_back(
-            make_unique<ref_field_def_t>(
-                c_anonymous_reference_field_name, "catalog", "gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
+        // create relationship gaia_catalog_database_table (
+        //     catalog.gaia_database.gaia_tables -> catalog.gaia_table[],
+        //     catalog.gaia_table.database -> catalog.gaia_database
+        // );
+        create_relationship(
+            "gaia_catalog_database_table",
+            {"catalog", "gaia_database", "gaia_tables", "catalog", "gaia_table", relationship_cardinality_t::many},
+            {"catalog", "gaia_table", "database", "catalog", "gaia_database", relationship_cardinality_t::one},
+            false);
     }
     {
         // create table gaia_field (
@@ -88,7 +93,6 @@ void ddl_executor_t::bootstrap_catalog()
         //     position uint16,
         //     deprecated bool,
         //     active bool,
-        //     references gaia_table,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -97,18 +101,23 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("position", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
-        // The anonymous reference to the gaia_table defines the ownership.
-        fields.emplace_back(make_unique<ref_field_def_t>(
-            c_anonymous_reference_field_name, "catalog", "gaia_table"));
         create_table_impl(
             "catalog", "gaia_field", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
+        // create relationship gaia_catalog_table_field (
+        //     catalog.gaia_table.gaia_fields -> catalog.gaia_field[],
+        //     catalog.gaia_field.table -> catalog.gaia_table
+        // );
+        create_relationship(
+            "gaia_catalog_table_field",
+            {"catalog", "gaia_table", "gaia_fields", "catalog", "gaia_field", relationship_cardinality_t::many},
+            {"catalog", "gaia_field", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            false);
     }
     {
         // create table gaia_relationship (
-        //     name string,
-        //     parent references gaia_table,
-        //     child references gaia_table,
+        //     to_parent_link_name string,
+        //     to_child_link_name string,
         //     cardinality uint8,
         //     parent_required bool,
         //     deprecated bool,
@@ -118,8 +127,8 @@ void ddl_executor_t::bootstrap_catalog()
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<ref_field_def_t>("parent", "catalog", "gaia_table"));
-        fields.emplace_back(make_unique<ref_field_def_t>("child", "catalog", "gaia_table"));
+        fields.emplace_back(make_unique<data_field_def_t>("to_parent_link_name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("to_child_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_required", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
@@ -133,6 +142,24 @@ void ddl_executor_t::bootstrap_catalog()
         create_table_impl(
             "catalog", "gaia_relationship",
             fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
+        // create relationship gaia_catalog_relationship_parent (
+        //     catalog.gaia_table.gaia_relatinships_parent -> catalog.gaia_relationship,
+        //     catalog.gaia_relationship.parent -> catalog.gaia_table
+        // );
+        create_relationship(
+            "gaia_catalog_relationship_parent",
+            {"catalog", "gaia_table", "gaia_relationships_parent", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {"catalog", "gaia_relationship", "parent", "catalog", "gaia_table", relationship_cardinality_t::one},
+            false);
+        // create relationship gaia_catalog_relationship_child (
+        //     catalog.gaia_table.gaia_relatinships_child -> catalog.gaia_relationship,
+        //     catalog.gaia_relationship.child -> catalog.gaia_table
+        // );
+        create_relationship(
+            "gaia_catalog_relationship_child",
+            {"catalog", "gaia_table", "gaia_relationships_child", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {"catalog", "gaia_relationship", "child", "catalog", "gaia_table", relationship_cardinality_t::one},
+            false);
     }
     {
         // create table gaia_ruleset (
@@ -155,16 +182,21 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_rule (
         //     name string,
-        //     references gaia_ruleset,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(
-            make_unique<ref_field_def_t>(
-                c_anonymous_reference_field_name, "catalog", "gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
+        // create relationship gaia_catalog_ruleset_rule (
+        //     catalog.gaia_ruleset.rules -> catalog.gaia_rule[],
+        //     catalog.gaia_rule.ruleset -> catalog.gaia_ruleset
+        // );
+        create_relationship(
+            "gaia_catalog_ruleset_rule",
+            {"catalog", "gaia_ruleset", "gaia_rules", "catalog", "gaia_rule", relationship_cardinality_t::many},
+            {"catalog", "gaia_rule", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
+            false);
     }
 }
 
@@ -221,9 +253,14 @@ void ddl_executor_t::reload_cache()
         m_db_names[db.name()] = db.gaia_id();
     }
 
-    for (auto& table : gaia_table_t::list())
+    for (const auto& table : gaia_table_t::list())
     {
-        m_table_names[get_full_table_name(table.gaia_database().name(), table.name())] = table.gaia_id();
+        m_table_names[get_full_table_name(table.database().name(), table.name())] = table.gaia_id();
+    }
+
+    for (const auto& relationship : gaia_relationship_t::list())
+    {
+        m_relationship_names[relationship.name()] = relationship.gaia_id();
     }
     gaia::db::commit_transaction();
 }
@@ -258,21 +295,122 @@ gaia_id_t ddl_executor_t::create_table(
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
 
+gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
+{
+    shared_lock lock(m_lock);
+    string full_table_name = get_full_table_name(db, table);
+    if (m_table_names.find(full_table_name) == m_table_names.end())
+    {
+        throw table_not_exists(full_table_name);
+    }
+    return m_table_names[full_table_name];
+}
+
+gaia_id_t ddl_executor_t::create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    bool thrown_on_exists)
+{
+    shared_lock lock(m_lock);
+
+    if (m_relationship_names.find(name) != m_relationship_names.end())
+    {
+        if (thrown_on_exists)
+        {
+            throw relationship_already_exists(name);
+        }
+        return m_relationship_names.at(name);
+    }
+
+    gaia_id_t link1_src_table_id = get_table_id(link1.from_database, link1.from_table);
+    gaia_id_t link1_dest_table_id = get_table_id(link1.to_database, link1.to_table);
+
+    gaia_id_t link2_src_table_id = get_table_id(link2.from_database, link2.from_table);
+    gaia_id_t link2_dest_table_id = get_table_id(link2.to_database, link2.to_table);
+
+    if (link1_src_table_id != link2_dest_table_id)
+    {
+        throw tables_not_match(name, link1.from_table, link2.to_table);
+    }
+
+    if (link1_dest_table_id != link2_src_table_id)
+    {
+        throw tables_not_match(name, link1.to_table, link2.from_table);
+    }
+
+    if (link1.cardinality == relationship_cardinality_t::many
+        && link2.cardinality == relationship_cardinality_t::many)
+    {
+        throw many_to_many_not_supported(name);
+    }
+
+    // The first link defines the parent and child in the relationship.
+    gaia_id_t parent_table_id = link1_src_table_id;
+    gaia_id_t child_table_id = link1_dest_table_id;
+
+    auto_transaction_t txn(false);
+
+    uint8_t parent_available_offset = find_available_offset(parent_table_id);
+    uint8_t child_available_offset;
+    if (parent_table_id == child_table_id)
+    {
+        // This is a self-relationship, both parent and child pointers are in the same table.
+        child_available_offset = parent_available_offset + 1;
+        validate_new_reference_offset(child_available_offset);
+    }
+    else
+    {
+        child_available_offset = find_available_offset(child_table_id);
+    }
+
+    const char* to_parent_link_name = link2.name.c_str();
+    const char* to_child_link_name = link1.name.c_str();
+
+    reference_offset_t first_child_offset = parent_available_offset;
+
+    reference_offset_t parent_offset = child_available_offset;
+    reference_offset_t next_child_offset = child_available_offset + 1;
+    validate_new_reference_offset(next_child_offset);
+
+    bool is_parent_required = false;
+    bool is_deprecated = false;
+
+    gaia_id_t relationship_id = c_invalid_gaia_id;
+    relationship_id = gaia_relationship_t::insert_row(
+        name.c_str(),
+        to_parent_link_name,
+        to_child_link_name,
+        static_cast<uint8_t>(link1.cardinality),
+        is_parent_required,
+        is_deprecated,
+        first_child_offset,
+        next_child_offset,
+        parent_offset);
+
+    gaia_table_t::get(parent_table_id).gaia_relationships_parent().insert(relationship_id);
+    gaia_table_t::get(child_table_id).gaia_relationships_child().insert(relationship_id);
+
+    txn.commit();
+
+    return relationship_id;
+}
+
 void drop_relationship_no_ri(gaia_relationship_t relationship)
 {
     // Unlink parent.
-    if (relationship.parent_gaia_table())
+    if (relationship.parent())
     {
-        relationship.parent_gaia_table()
-            .parent_gaia_relationship_list()
+        relationship.parent()
+            .gaia_relationships_parent()
             .remove(relationship);
     }
 
     // Unlink child.
-    if (relationship.child_gaia_table())
+    if (relationship.child())
     {
-        relationship.child_gaia_table()
-            .child_gaia_relationship_list()
+        relationship.child()
+            .gaia_relationships_child()
             .remove(relationship);
     }
 
@@ -296,12 +434,12 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
         // Cannot drop a parent relationship the link with the children still exists,
         // and it is not a self-reference. In a self-reference relationship the same table
         // is both parent and child, thus you can delete it.
-        if (relationship.child_gaia_table()
-            && (relationship.child_gaia_table().gaia_id() != table_id))
+        if (relationship.child()
+            && (relationship.child().gaia_id() != table_id))
         {
             throw referential_integrity_violation::drop_parent_table(
                 table_record.name(),
-                relationship.child_gaia_table().name());
+                relationship.child().name());
         }
 
         // There are 2 options here:
@@ -328,7 +466,7 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
         // delete the relationship object. The parent table need to keep
         // track of the total amount of relationships to correctly
         // maintain the references array.
-        if (relationship.parent_gaia_table())
+        if (relationship.parent())
         {
             // Mark the relationship as deprecated.
             auto writer = relationship.writer();
@@ -336,8 +474,8 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
             writer.update_row();
 
             // Unlink the child side of the relationship.
-            relationship.child_gaia_table()
-                .child_gaia_relationship_list()
+            relationship.child()
+                .gaia_relationships_child()
                 .remove(relationship);
         }
         else
@@ -357,7 +495,7 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t field_id : list_fields(table_id))
     {
         // Unlink the field and the table.
-        table_record.gaia_field_list().remove(field_id);
+        table_record.gaia_fields().remove(field_id);
         // Remove the field.
         gaia_field_t::get(field_id).delete_row();
     }
@@ -365,31 +503,35 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
     for (gaia_id_t reference_id : list_references(table_id))
     {
         // Unlink the reference and the owner table.
-        table_record.gaia_field_list().remove(reference_id);
+        table_record.gaia_fields().remove(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
         // Remove the reference.
         reference_record.delete_row();
     }
 
     // Unlink the table from its database.
-    table_record.gaia_database().gaia_table_list().remove(table_record);
+    table_record.database().gaia_tables().remove(table_record);
     // Remove the table.
     table_record.delete_row();
 }
 
-void ddl_executor_t::drop_database(const string& name)
+void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 {
     unique_lock lock(m_lock);
     gaia_id_t db_id = find_db_id_no_lock(name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(name);
+        if (throw_unless_exists)
+        {
+            throw db_not_exists(name);
+        }
+        return;
     }
     {
         auto_transaction_t txn;
         auto db_record = gaia_database_t::get(db_id);
         std::vector<gaia_id_t> table_ids;
-        for (auto& table : db_record.gaia_table_list())
+        for (auto& table : db_record.gaia_tables())
         {
             table_ids.push_back(table.gaia_id());
         }
@@ -403,24 +545,30 @@ void ddl_executor_t::drop_database(const string& name)
     m_db_names.erase(name);
 }
 
-void ddl_executor_t::drop_table(const string& db_name, const string& name)
+void ddl_executor_t::drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
-
     unique_lock lock(m_lock);
 
     if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end())
     {
-        throw db_not_exists(db_name);
+        if (throw_unless_exists)
+        {
+            throw db_not_exists(db_name);
+        }
+        return;
     }
 
     string full_table_name = get_full_table_name(db_name, name);
-    gaia_id_t db_id = find_db_id_no_lock(db_name);
-    retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
-        throw table_not_exists(name);
+        if (throw_unless_exists)
+        {
+            throw table_not_exists(name);
+        }
+        return;
     }
+
     gaia_id_t table_id = m_table_names[full_table_name];
 
     {
@@ -441,7 +589,7 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
     }
 }
 
-reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::parent_gaia_relationship_list_t& relationships)
+reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::gaia_relationships_parent_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -463,7 +611,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     return next_available_offset;
 }
 
-reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::child_gaia_relationship_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::gaia_relationships_child_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -489,8 +637,8 @@ reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t
 {
     gaia_table_t table = gaia_table_t::get(table_id);
     return std::max(
-        find_child_available_offset(table.child_gaia_relationship_list()),
-        find_parent_available_offset(table.parent_gaia_relationship_list()));
+        find_child_available_offset(table.gaia_relationships_child()),
+        find_parent_available_offset(table.gaia_relationships_parent()));
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(
@@ -546,14 +694,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
     {
         string field_name = field->name;
 
-        // Note: anonymous references are on path of deprecation
-        if (field_name.empty())
-        {
-            retail_assert(field->field_type == field_type_t::reference, "Only references can have an empty name!");
-            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
-            field_name = ref_field->parent_table.second;
-        }
-
         if (field_names.find(field_name) != field_names.end())
         {
             throw duplicate_field(field_name);
@@ -578,97 +718,22 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 
     // Connect the table to the database.
-    gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
+    gaia_database_t::get(db_id).gaia_tables().insert(table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
     {
-        if (field->field_type == field_type_t::reference)
-        {
-            // The (table) record id that defines the parent table type.
-            gaia_id_t parent_type_record_id = c_invalid_gaia_id;
-
-            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
-
-            if (ref_field->full_table_name() == full_table_name
-                || (ref_field->db_name().empty() && ref_field->table_name() == table_name))
-            {
-                // We allow a table definition to reference itself (self-referencing).
-                parent_type_record_id = table_id;
-            }
-            else if (m_table_names.find(ref_field->full_table_name()) != m_table_names.end())
-            {
-                // A table definition can reference any of existing tables.
-                parent_type_record_id = m_table_names[ref_field->full_table_name()];
-            }
-            else if (!db_name.empty() && m_table_names.count(db_name + c_db_table_name_connector + ref_field->table_name()))
-            {
-                // A table definition can reference existing tables in its own database
-                // without specifying the database name.
-                parent_type_record_id = m_table_names[db_name + c_db_table_name_connector + ref_field->table_name()];
-            }
-            else
-            {
-                // We cannot find the referenced table.
-                // Forward declaration is not supported.
-                throw table_not_exists(ref_field->full_table_name());
-            }
-
-            gaia_table_t parent_table = gaia_table_t::get(parent_type_record_id);
-            uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
-            uint8_t child_available_offset;
-
-            gaia_log::catalog().trace(" relationship parent:'{}', child:'{}', name:'{}'", parent_table.name(), table_name, ref_field->name.c_str());
-
-            if (parent_type_record_id == table_id)
-            {
-                // This is a self-relationship, both parent and child pointers are in the same table.
-                child_available_offset = parent_available_offset + 1;
-
-                validate_new_reference_offset(child_available_offset);
-            }
-            else
-            {
-                child_available_offset = find_available_offset(table_id);
-            }
-
-            reference_offset_t first_child_offset = parent_available_offset;
-
-            reference_offset_t parent_offset = child_available_offset;
-            reference_offset_t next_child_offset = child_available_offset + 1;
-            validate_new_reference_offset(next_child_offset);
-
-            bool is_parent_required = false;
-            bool is_deprecated = false;
-
-            gaia_id_t relationship_id = gaia_relationship_t::insert_row(
-                ref_field->name.c_str(),
-                static_cast<uint8_t>(relationship_cardinality_t::many),
-                is_parent_required,
-                is_deprecated,
-                first_child_offset,
-                next_child_offset,
-                parent_offset);
-            auto rel = gaia_relationship_t::get(relationship_id);
-            gaia_table_t::get(table_id).child_gaia_relationship_list().insert(relationship_id);
-            parent_table.parent_gaia_relationship_list().insert(relationship_id);
-        }
-        else
-        {
-            gaia_log::catalog().trace(" field:'{}', type:'{}'", field->name.c_str(), field->field_type);
-
-            const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
-            gaia_id_t field_id = gaia_field_t::insert_row(
-                field->name.c_str(),
-                static_cast<uint8_t>(data_field->data_type),
-                data_field->length,
-                data_field_position,
-                false,
-                data_field->active);
-            // Connect the field to the table it belongs to.
-            gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
-            data_field_position++;
-        }
+        const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
+        gaia_id_t field_id = gaia_field_t::insert_row(
+            field->name.c_str(),
+            static_cast<uint8_t>(data_field->data_type),
+            data_field->length,
+            data_field_position,
+            false,
+            data_field->active);
+        // Connect the field to the table it belongs to.
+        gaia_table_t::get(table_id).gaia_fields().insert(field_id);
+        data_field_position++;
     }
     gaia::db::commit_transaction();
 

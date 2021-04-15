@@ -20,27 +20,14 @@
 %define parse.assert
 
 %code requires {
-    #include <string>
-    #include <memory>
-    #include <vector>
+    #include "gaia_internal/catalog/catalog.hpp"
+
     namespace gaia
     {
-    namespace common
-    {
-    enum class data_type_t : uint8_t;
-    } // namespace common
-
     namespace catalog
     {
     namespace ddl
     {
-    struct statement_t;
-    struct create_statement_t;
-    struct drop_statement_t;
-    enum class field_type_t : uint8_t;
-    struct base_field_def_t;
-    struct data_field_def_t;
-    struct ref_field_def_t;
     class parser_t;
     } // namespace ddl
     } // namespace catalog
@@ -49,6 +36,7 @@
     using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::base_field_def_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
+    using cardinality_t = gaia::catalog::relationship_cardinality_t;
     using composite_name_t = std::pair<std::string, std::string>;
 }
 
@@ -61,7 +49,6 @@
 %define parse.error verbose
 
 %code {
-    #include "gaia_internal/catalog/catalog.hpp"
     #include "gaia_parser.hpp"
 
     using namespace gaia::catalog::ddl;
@@ -70,9 +57,13 @@
 
 %define api.token.prefix {TOK_}
 
+// Type tokens
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT DOUBLE STRING
-%token CREATE DROP DATABASE TABLE IF NOT EXISTS REFERENCES ACTIVE
-%token END 0
+
+// Word tokens
+%token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP
+
+// Symbols
 %token LPAREN "("
 %token RPAREN ")"
 %token LBRACKET "["
@@ -81,29 +72,34 @@
 %token DOT "."
 %token SEMICOLON ";"
 
+%token RARROW "->"
+
 %token <std::string> IDENTIFIER "identifier"
 %token <int> NUMBER "number"
+
+%token END 0
 
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
 %type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
 
 %type <int> opt_array
+%type <bool> opt_if_exists
 %type <bool> opt_if_not_exists
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
-%type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
+%type <gaia::catalog::ddl::link_def_t> link_def
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
-%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
+%printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
@@ -132,6 +128,8 @@ statement_list:
   }
 ;
 
+opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
+
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
@@ -150,18 +148,25 @@ create_statement:
       $$->database = std::move($4.first);
       if ($6)
       {
-        $$->fields = std::move(*$6);
+          $$->fields = std::move(*$6);
       }
+  }
+| CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $4);
+      $$->relationship = std::make_pair($6, $8);
+      $$->if_not_exists = $3;
   }
 ;
 
 drop_statement:
-  DROP TABLE composite_name {
-      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_table, $3.second);
-      $$->database = std::move($3.first);
+  DROP TABLE opt_if_exists composite_name {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_table, $4.second);
+      $$->database = std::move($4.first);
+      $$->if_exists = $3;
   }
-| DROP DATABASE IDENTIFIER {
-      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $3);
+| DROP DATABASE opt_if_exists IDENTIFIER {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $4);
+      $$->if_exists = $3;
   }
 ;
 
@@ -180,7 +185,6 @@ field_def_commalist:
 
 field_def:
   data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
-| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:
@@ -200,12 +204,21 @@ data_field_def:
   }
 ;
 
-ref_field_def:
- IDENTIFIER REFERENCES composite_name {
-      $$ = std::make_unique<ref_field_def_t>($1, $3);
+link_def:
+  IDENTIFIER "." IDENTIFIER "->" composite_name opt_array {
+      $$.from_table = $1;
+      $$.name = $3;
+      $$.to_database = $5.first;
+      $$.to_table = $5.second;
+      $$.cardinality = $6 ? cardinality_t::one : cardinality_t::many;
   }
-| REFERENCES composite_name {
-      $$ = std::make_unique<ref_field_def_t>("", $2);
+| IDENTIFIER "." IDENTIFIER "." IDENTIFIER "->" composite_name opt_array {
+      $$.from_database = $1;
+      $$.from_table = $3;
+      $$.name = $5;
+      $$.to_database = $7.first;
+      $$.to_table = $7.second;
+      $$.cardinality = $8 ? cardinality_t::one : cardinality_t::many;
   }
 ;
 

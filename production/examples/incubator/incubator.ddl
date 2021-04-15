@@ -13,13 +13,21 @@ create table if not exists incubator (
 create table if not exists sensor (
       name string,
       timestamp uint64,
-      value float,
-      references incubator
+      value float
 );
 
 create table if not exists actuator (
       name string,
       timestamp uint64,
-      value float,
-      references incubator
+      value float
+);
+
+create relationship if not exists incubator_sensors (
+    incubator.sensors -> sensor[],
+    sensor.incubator -> incubator
+);
+
+create relationship if not exists incubator_actuators (
+    incubator.actuators -> actuator[],
+    actuator.incubator -> incubator
 );

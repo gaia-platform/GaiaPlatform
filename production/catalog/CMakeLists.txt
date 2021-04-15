@@ -40,7 +40,7 @@ set_property (TARGET gaia_catalog PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia_system;gaia_catalog"
+  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test"
   gaia_catalog)
 
 add_gtest(test_fbs_generation

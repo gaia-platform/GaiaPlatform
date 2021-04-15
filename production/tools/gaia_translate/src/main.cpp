@@ -193,7 +193,7 @@ public:
 
 void fill_table_db_data(catalog::gaia_table_t& table)
 {
-    auto db = table.gaia_database();
+    auto db = table.database();
     g_table_db_data[table.name()] = db.name();
 }
 
@@ -210,7 +210,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (const auto& field : catalog::gaia_field_t::list())
         {
-            catalog::gaia_table_t tbl = field.gaia_table();
+            catalog::gaia_table_t tbl = field.table();
             if (!tbl)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
@@ -236,27 +236,15 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
-            if (!child_table)
-            {
-                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
+            catalog::gaia_table_t child_table = relationship.child();
+            catalog::gaia_table_t parent_table = relationship.parent();
 
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
-            if (!parent_table)
-            {
-                cerr << "Incorrect parent table in the relationship '" << relationship.name() << "'." << endl;
-                g_is_generation_error = true;
-                return unordered_map<string, unordered_map<string, field_data_t>>();
-            }
             table_link_data_t link_data_1;
             link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.name();
+            link_data_1.field = relationship.to_parent_link_name();
             table_link_data_t link_data_n;
             link_data_n.table = child_table.name();
-            link_data_n.field = relationship.name();
+            link_data_n.field = relationship.to_child_link_name();
 
             g_table_relationship_1.emplace(child_table.name(), link_data_1);
             g_table_relationship_n.emplace(parent_table.name(), link_data_n);
@@ -576,59 +564,21 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
                         processed_tables.insert(p.name);
                         if (p.is_parent)
                         {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(p.name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(p.name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
+                            return_value.prefix
+                                += "auto " + p.name + " = "
+                                + source_table + "." + p.linking_field + "();\n";
                         }
                         else
                         {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(p.name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
+                            return_value.prefix
+                                .append(c_nolint_range_copy)
+                                .append("\nfor (auto ")
+                                .append(p.name)
+                                .append(" : ")
+                                .append(source_table)
+                                .append(".")
+                                .append(p.linking_field)
+                                .append("())\n{\n");
 
                             return_value.postfix += "}\n";
                         }
@@ -647,59 +597,27 @@ navigation_code_data_t generate_navigation_code(const string& anchor_table)
         {
             if (is_1_relationship)
             {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("();\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(table)
-                        .append(" = ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("();\n");
-                }
+                return_value.prefix
+                    .append("auto ")
+                    .append(table)
+                    .append(" = ")
+                    .append(anchor_table)
+                    .append(".")
+                    .append(linking_field)
+                    .append("();\n");
             }
             else
             {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(table)
-                        .append(" : ")
-                        .append(anchor_table)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
+
+                return_value.prefix
+                    .append(c_nolint_range_copy)
+                    .append("\nfor (auto ")
+                    .append(table)
+                    .append(" : ")
+                    .append(anchor_table)
+                    .append(".")
+                    .append(linking_field)
+                    .append("())\n{\n");
 
                 return_value.postfix += "}\n";
             }
@@ -1746,6 +1664,7 @@ public:
             g_is_generation_error = true;
         }
     }
+
 private:
     Rewriter& m_rewriter;
 };
@@ -1784,24 +1703,8 @@ public:
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
         StatementMatcher table_call_matcher
-            = declRefExpr(allOf(to(varDecl(
-                              anyOf(
-                                  hasAttr(attr::GaiaField),
-                                  hasAttr(attr::FieldTable),
-                                  hasAttr(attr::GaiaFieldValue)),
-                              unless(hasAttr(attr::GaiaFieldLValue)))),
-                              allOf(
-                                    unless(
-                                      hasAncestor(
-                                          memberExpr(
-                                            member(
-                                                allOf(
-                                                    hasAttr(attr::GaiaField),
-                                                    unless(hasAttr(attr::GaiaFieldLValue))))))),
-                                    anyOf(
-                                        hasAncestor(callExpr()),
-                                        hasAncestor(cxxMemberCallExpr())))))
-                .bind("tableCall");
+            = declRefExpr(allOf(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::FieldTable), hasAttr(attr::GaiaFieldValue)), unless(hasAttr(attr::GaiaFieldLValue)))), allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+                  .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(

@@ -87,7 +87,7 @@ protected:
         gaia_id_t id = employee_w.insert_row();
         employee_t employee = employee_t::get(id);
 
-        employee.addressee_address_list().insert(address);
+        employee.addresses().insert(address);
 
         return employee;
     }
@@ -107,7 +107,7 @@ protected:
         writer.type = type;
         phone_t phone = phone_t::get(writer.insert_row());
 
-        address.phone_list().insert(phone);
+        address.phones().insert(phone);
 
         return phone;
     }
@@ -323,7 +323,7 @@ TEST_F(test_expressions, object_eq)
 
     assert_contains(
         address_t::list()
-            .where(addressee_employee == yiwen),
+            .where(owner == yiwen),
         seattle);
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -333,11 +333,11 @@ TEST_F(test_expressions, object_eq)
 
     assert_empty(
         address_t::list()
-            .where(addressee_employee == zack));
+            .where(owner == zack));
 
     assert_empty(
         address_t::list()
-            .where(addressee_employee == employee_t()));
+            .where(owner == employee_t()));
 }
 
 TEST_F(test_expressions, object_ne)
@@ -346,7 +346,7 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(addressee_employee != yiwen),
+            .where(owner != yiwen),
         {aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     auto employee_writer = gaia::addr_book::employee_writer();
@@ -356,12 +356,12 @@ TEST_F(test_expressions, object_ne)
 
     assert_contains(
         address_t::list()
-            .where(addressee_employee != zack),
+            .where(owner != zack),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
         address_t::list()
-            .where(addressee_employee != employee_t()),
+            .where(owner != employee_t()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
@@ -453,13 +453,13 @@ TEST_F(test_expressions, container_contains_predicate)
 
     assert_contains(
         employee_t::list()
-            .where(addressee_address_list
+            .where(addresses
                        .contains(address_expr::state == "WA")),
         {dax, wayne, tobin, laurentiu, yiwen, mihir});
 
     assert_empty(
         employee_t::list()
-            .where(addressee_address_list
+            .where(addresses
                        .contains(address_expr::state == "CA")));
 }
 
@@ -469,13 +469,13 @@ TEST_F(test_expressions, container_contains_object)
 
     assert_contains(
         employee_t::list()
-            .where(addressee_address_list
+            .where(addresses
                        .contains(bellevue)),
         {laurentiu});
 
     auto marzabotto = create_address("Marzabotto", "IT");
 
-    assert_empty(employee_t::list().where(addressee_address_list.contains(marzabotto)));
+    assert_empty(employee_t::list().where(addresses.contains(marzabotto)));
 }
 
 TEST_F(test_expressions, nested_container)
@@ -484,7 +484,7 @@ TEST_F(test_expressions, nested_container)
 
     assert_contains(
         employee_t::list().where(
-            addressee_address_list.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phone_list.contains(phone_expr::type == "landline"))),
+            addresses.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phones.contains(phone_expr::type == "landline"))),
         {dax});
 }
 
@@ -495,12 +495,12 @@ TEST_F(test_expressions, container_empty)
     assert_contains(
         address_t::list()
             // phone_list is ambiguous, need full qualification.
-            .where(address_expr::phone_list.empty()),
+            .where(address_expr::phones.empty()),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_empty(
         employee_t::list()
-            .where(addressee_address_list.empty()));
+            .where(addresses.empty()));
 }
 
 TEST_F(test_expressions, container_count)
@@ -509,17 +509,17 @@ TEST_F(test_expressions, container_count)
 
     assert_contains(
         address_t::list()
-            .where(address_expr::phone_list.count() == 0),
+            .where(address_expr::phones.count() == 0),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_contains(
         employee_t::list()
-            .where(addressee_address_list.count() >= 1),
+            .where(addresses.count() >= 1),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_empty(
         employee_t::list()
-            .where(addressee_address_list.count() > 10));
+            .where(addresses.count() > 10));
 }
 
 TEST_F(test_expressions, array)

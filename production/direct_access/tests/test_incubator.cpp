@@ -49,7 +49,7 @@ TEST_F(gaia_incubator_test, schema_read_write_test)
         ASSERT_TRUE(incubator_id != c_invalid_gaia_id);
         auto incubator = incubator_t::get(incubator_id);
         auto sensor = sensor_t::insert_row(c_sensor_a, 0, c_chicken_min);
-        incubator.sensor_list().insert(sensor);
+        incubator.sensors().insert(sensor);
         txn.commit();
     }
 
@@ -59,7 +59,7 @@ TEST_F(gaia_incubator_test, schema_read_write_test)
         ASSERT_STREQ(incubator.name(), c_chicken);
         ASSERT_FLOAT_EQ(incubator.max_temp(), c_chicken_max);
         ASSERT_FLOAT_EQ(incubator.min_temp(), c_chicken_min);
-        auto sensor_list = incubator.sensor_list();
+        auto sensor_list = incubator.sensors();
         ASSERT_EQ(1, std::distance(sensor_list.begin(), sensor_list.end()));
         ASSERT_STREQ(sensor_list.begin()->name(), c_sensor_a);
         ASSERT_FLOAT_EQ(sensor_list.begin()->value(), c_chicken_min);

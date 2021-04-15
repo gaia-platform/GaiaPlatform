@@ -27,11 +27,11 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
 {
     if (count == 1)
     {
-        return name + " " + type;
+        return "\"" + name + "\" " + type;
     }
     else if (count == 0)
     {
-        return name + " " + type + "[]";
+        return "\"" + name + "\" " + type + "[]";
     }
     else
     {
@@ -107,7 +107,7 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     ddl_string_stream << "CREATE FOREIGN TABLE ";
 
     gaia_table_t table = gaia_table_t::get(table_id);
-    ddl_string_stream << table.name() << "(" << endl;
+    ddl_string_stream << '"' << table.name() << '"' << "(" << endl;
     ddl_string_stream << "gaia_id BIGINT";
 
     for (gaia_id_t field_id : list_fields(table_id))
@@ -123,18 +123,13 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     {
         gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
-        string relationship_name = relationship.name();
-        if (relationship_name.empty())
-        {
-            relationship_name = relationship.parent_gaia_table().name();
-        }
-        retail_assert(
-            !relationship_name.empty(),
-            "Unable to derive name of anonymous relationship!");
+        // Only the to_parent link is relevant because that's how SQL works:
+        // you have a foreign key pointing to the parent in the child table.
+        string relationship_name = relationship.to_parent_link_name();
 
         ddl_string_stream
             << "," << endl
-            << relationship_name << " BIGINT";
+            << '"' << relationship_name << '"' << " BIGINT";
     }
 
     ddl_string_stream
