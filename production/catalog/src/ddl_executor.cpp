@@ -601,7 +601,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     {
         max_offset = std::max(max_offset, relationship.first_child_offset());
 
-        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
+        ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
 
     reference_offset_t next_available_offset = max_offset + 1;
@@ -623,7 +623,7 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
     {
         max_offset = std::max({max_offset, relationship.next_child_offset(), relationship.parent_offset()});
 
-        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
+        ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
 
     reference_offset_t next_available_offset = max_offset + 1;
@@ -658,7 +658,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string full_table_name = get_full_table_name(db_name, table_name);
     gaia_id_t db_id = find_db_id_no_lock(db_name);
-    retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
+    ASSERT_INVARIANT(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) != m_table_names.end())
     {

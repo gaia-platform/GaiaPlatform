@@ -304,9 +304,9 @@ string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true)
 
 void handle_describe_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_describe_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_describe_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -327,9 +327,9 @@ void handle_describe_command(const string& cmd)
 
 void handle_list_command(const string& cmd)
 {
-    retail_assert(cmd.length() > 1, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > 1, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_list_command, "Unexpected command!");
 
     if (cmd.length() == c_cmd_minimum_length)
     {
@@ -362,9 +362,9 @@ void handle_list_command(const string& cmd)
 // Hide FlatBuffers related commands in release build.
 void handle_generate_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_generate_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_generate_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -448,8 +448,8 @@ string command_usage()
 
 bool handle_meta_command(const string& cmd)
 {
-    retail_assert(!cmd.empty(), "Meta command should not be empty.");
-    retail_assert(
+    ASSERT_PRECONDITION(!cmd.empty(), "Meta command should not be empty.");
+    ASSERT_PRECONDITION(
         cmd[c_cmd_prefix_index] == c_command_prefix,
         "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 

@@ -60,14 +60,14 @@ inline void safe_apply_mask_to_word(
 inline void validate_bitmap_parameters(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size)
 {
-    retail_assert(bitmap != nullptr, "validate_bitmap_parameters() was called with a null bitmap!");
-    retail_assert(bitmap_size > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
+    ASSERT_PRECONDITION(bitmap != nullptr, "validate_bitmap_parameters() was called with a null bitmap!");
+    ASSERT_PRECONDITION(bitmap_size > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
 }
 
 inline void validate_bit_index(
     size_t bitmap_size, size_t bit_index)
 {
-    retail_assert(bit_index < bitmap_size * c_uint64_bit_count, "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
+    ASSERT_PRECONDITION(bit_index < bitmap_size * c_uint64_bit_count, "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
 }
 
 inline void find_bit_word_and_mask(
@@ -116,8 +116,8 @@ void safe_set_bit_range_value(
     validate_bitmap_parameters(bitmap, bitmap_size);
     validate_bit_index(bitmap_size, start_bit_index);
 
-    retail_assert(bit_count > 0, "safe_set_bit_range_value() was called with a 0 bit count!");
-    retail_assert(
+    ASSERT_PRECONDITION(bit_count > 0, "safe_set_bit_range_value() was called with a 0 bit count!");
+    ASSERT_PRECONDITION(
         start_bit_index + bit_count - 1 >= start_bit_index,
         "safe_set_bit_range_value() was called with arguments that cause an integer overflow!");
 

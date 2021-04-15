@@ -286,10 +286,10 @@ void adapter_t::initialize_caches()
 {
     gaia::db::begin_transaction();
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         type_cache_t::get()->size() == 0,
         "type_cache_t has been initialized already!");
-    retail_assert(
+    ASSERT_PRECONDITION(
         s_map_table_name_to_ids.size() == 0,
         "s_map_table_name_to_ids has been initialized already!");
 
@@ -397,7 +397,7 @@ bool adapter_t::begin_transaction()
 
     try
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             s_txn_reference_count >= 0,
             "A negative transaction count was detected in begin_transaction())!");
 
@@ -429,7 +429,7 @@ bool adapter_t::commit_transaction()
 
     try
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             s_txn_reference_count > 0,
             "A non-positive transaction count was detected in commit_transaction())!");
 
@@ -824,7 +824,7 @@ bool scan_state_t::scan_forward()
 {
     try
     {
-        retail_assert(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
+        ASSERT_PRECONDITION(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
 
         m_current_record = m_current_record.find_next();
 

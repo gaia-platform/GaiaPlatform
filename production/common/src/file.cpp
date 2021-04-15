@@ -49,7 +49,7 @@ void file_loader_t::clear()
 
 size_t file_loader_t::load_file_data(const string& filename, bool enable_text_mode)
 {
-    retail_assert(!filename.empty(), "load_file_data() was called with an invalid filename argument.");
+    ASSERT_PRECONDITION(!filename.empty(), "load_file_data() was called with an invalid filename argument.");
 
     // If we had already loaded data from another file,
     // clear our state first.

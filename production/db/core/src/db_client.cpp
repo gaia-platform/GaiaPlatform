@@ -69,10 +69,10 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     });
 
     const session_event_t event = client_messenger.server_reply()->event();
-    retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
+    ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
 
     // Check that our stream socket is blocking (because we need to perform blocking reads).
-    retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
+    ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
     cleanup_stream_socket.dismiss();
     return stream_socket;
@@ -96,10 +96,10 @@ client_t::get_stream_generator_for_socket(int stream_socket)
     // The definition of the generator we return.
     return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket != -1, c_message_stream_socket_is_invalid);
+        ASSERT_INVARIANT(stream_socket != -1, c_message_stream_socket_is_invalid);
 
         // The cursor should only be called from within the scope of its owning transaction.
-        retail_assert(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
+        ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
 
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
@@ -126,7 +126,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
             }
 
             // The datagram size must be an integer multiple of our datum size.
-            retail_assert(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
+            ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
 
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
@@ -139,17 +139,17 @@ client_t::get_stream_generator_for_socket(int stream_socket)
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
-                retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
+                ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
                 throw_system_error("recv() failed!");
             }
 
             // Because our buffer is exactly the same size as the datagram,
             // we should read exactly the number of bytes in the datagram.
-            retail_assert(bytes_read == datagram_size, "Bytes read differ from datagram size!");
+            ASSERT_INVARIANT(bytes_read == datagram_size, "Bytes read differ from datagram size!");
         }
 
         // At this point we know our buffer is non-empty.
-        retail_assert(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
+        ASSERT_INVARIANT(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
 
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
@@ -175,8 +175,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 
 static void build_client_request(
     FlatBufferBuilder& builder,
-    session_event_t event,
-    size_t memory_request_size_hint = 0)
+    session_event_t event)
 {
     flatbuffers::Offset<client_request_t> client_request;
     client_request = Createclient_request_t(builder, event);
@@ -189,7 +188,7 @@ static void build_client_request(
 // algorithms for conflict detection.
 void client_t::sort_log()
 {
-    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
+    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
     // We use stable_sort() to preserve the order of multiple updates to the
     // same locator.
@@ -253,7 +252,7 @@ int client_t::get_session_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
+    ASSERT_INVARIANT(strlen(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -293,12 +292,12 @@ void client_t::begin_session()
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
-    retail_assert(!s_shared_counters.is_set(), "Counters segment is already mapped!");
-    retail_assert(!s_shared_data.is_set(), "Data segment is already mapped!");
-    retail_assert(!s_shared_id_index.is_set(), "ID index segment is already mapped!");
+    ASSERT_INVARIANT(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    ASSERT_INVARIANT(!s_shared_counters.is_set(), "Counters segment is already mapped!");
+    ASSERT_INVARIANT(!s_shared_data.is_set(), "Data segment is already mapped!");
+    ASSERT_INVARIANT(!s_shared_id_index.is_set(), "ID index segment is already mapped!");
 
-    retail_assert(!s_log.is_set(), "Log segment is already mapped!");
+    ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -334,7 +333,7 @@ void client_t::begin_session()
     });
 
     session_event_t event = client_messenger.server_reply()->event();
-    retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
+    ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
     // The mapper objects will take ownership of the fds so we dismiss the guards first.
@@ -367,7 +366,7 @@ void client_t::begin_transaction()
     verify_no_txn();
 
     // Map a private COW view of the locator shared memory segment.
-    retail_assert(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
     auto cleanup_private_locators = make_scope_guard([&]() {
         s_private_locators.close();
     });
@@ -383,7 +382,7 @@ void client_t::begin_transaction()
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
-    retail_assert(
+    ASSERT_INVARIANT(
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
 
@@ -422,7 +421,7 @@ void client_t::begin_transaction()
 
 void client_t::apply_txn_log(int log_fd)
 {
-    retail_assert(s_private_locators.is_set(), "Locators segment must be mapped!");
+    ASSERT_PRECONDITION(s_private_locators.is_set(), "Locators segment must be mapped!");
 
     mapped_log_t txn_log;
     txn_log.open(log_fd);
@@ -477,7 +476,7 @@ void client_t::rollback_transaction()
 void client_t::commit_transaction()
 {
     verify_txn_active();
-    retail_assert(s_log.is_set(), "Transaction log must be mapped!");
+    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
@@ -511,12 +510,12 @@ void client_t::commit_transaction()
 
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();
-    retail_assert(
+    ASSERT_INVARIANT(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
@@ -568,7 +567,7 @@ address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    retail_assert(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
+    ASSERT_PRECONDITION(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
 
     address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
     if (object_offset == c_invalid_address_offset)
@@ -589,8 +588,9 @@ address_offset_t client_t::allocate_object(
 
         // Allocate from new chunk.
         object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
-        retail_assert(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
     }
+
+    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
 
     // Update locator array to point to the new offset.
     update_locator(locator, object_offset);
@@ -614,7 +614,7 @@ void client_t::commit_chunk_manager_allocations()
 
     s_chunk_manager.commit();
 
-    retail_assert(
+    ASSERT_POSTCONDITION(
         s_previous_chunk_managers.empty(),
         "List of previous chunk managers was not emptied by the end of commit!");
 }
@@ -636,7 +636,7 @@ void client_t::rollback_chunk_manager_allocations()
         s_chunk_manager.rollback();
     }
 
-    retail_assert(
+    ASSERT_POSTCONDITION(
         s_previous_chunk_managers.empty(),
         "List of previous chunk managers was not emptied by the end of rollback!");
 }
