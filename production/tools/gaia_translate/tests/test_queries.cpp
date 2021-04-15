@@ -47,6 +47,40 @@ extern int32_t g_onupdate3_value;
 const int c_rule_execution_step_delay = 5000;
 const int c_rule_execution_total_delay = 25000;
 
+Student_t student_1;
+Student_t student_2;
+Student_t student_3;
+Student_t student_4;
+Student_t student_5;
+
+Course_t course_1;
+Course_t course_2;
+Course_t course_3;
+Course_t course_4;
+Course_t course_5;
+
+Registration_t reg_1;
+Registration_t reg_2;
+Registration_t reg_3;
+Registration_t reg_4;
+Registration_t reg_5;
+Registration_t reg_6;
+Registration_t reg_7;
+Registration_t reg_8;
+Registration_t reg_9;
+Registration_t reg_A;
+Registration_t reg_B;
+Registration_t reg_C;
+Registration_t reg_D;
+Registration_t reg_E;
+Registration_t reg_F;
+Registration_t reg_G;
+
+PreReq_t prereq_1;
+PreReq_t prereq_2;
+PreReq_t prereq_3;
+PreReq_t prereq_4;
+
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
  */
@@ -105,18 +139,18 @@ protected:
     void populate_db()
     {
         // These must be EDC objects. They have insert() methods.
-        auto student_1 = Student_t::get(Student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-        auto student_2 = Student_t::get(Student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-        auto student_3 = Student_t::get(Student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-        auto student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-        auto student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+        student_1 = Student_t::get(Student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+        student_2 = Student_t::get(Student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
+        student_3 = Student_t::get(Student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
+        student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+        student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
 
         // These must be EDC objects. They have insert() methods.
-        auto course_1 = Course_t::get(Course_t::insert_row("cou001", "math101", 3));
-        auto course_2 = Course_t::get(Course_t::insert_row("cou002", "math201", 4));
-        auto course_3 = Course_t::get(Course_t::insert_row("cou003", "eng101", 3));
-        auto course_4 = Course_t::get(Course_t::insert_row("cou004", "sci101", 3));
-        auto course_5 = Course_t::get(Course_t::insert_row("cou005", "math301", 5));
+        course_1 = Course_t::get(Course_t::insert_row("cou001", "math101", 3));
+        course_2 = Course_t::get(Course_t::insert_row("cou002", "math201", 4));
+        course_3 = Course_t::get(Course_t::insert_row("cou003", "eng101", 3));
+        course_4 = Course_t::get(Course_t::insert_row("cou004", "sci101", 3));
+        course_5 = Course_t::get(Course_t::insert_row("cou005", "math301", 5));
 
         // These are gaia_id_t.
         auto reg_1 = Registration_t::insert_row("reg001", "pending", "");
@@ -137,10 +171,10 @@ protected:
         auto reg_G = Registration_t::insert_row("reg00G", "eligible", "B");
 
         // These are gaia_id_t.
-        auto prereq_1 = PreReq_t::insert_row("pre001", "C");
-        auto prereq_2 = PreReq_t::insert_row("pre002", "D");
-        auto prereq_3 = PreReq_t::insert_row("pre003", "C");
-        auto prereq_4 = PreReq_t::insert_row("pre004", "C");
+        prereq_1 = PreReq_t::get(PreReq_t::insert_row("pre001", "C"));
+        prereq_2 = PreReq_t::get(PreReq_t::insert_row("pre002", "D"));
+        prereq_3 = PreReq_t::get(PreReq_t::insert_row("pre003", "C"));
+        prereq_4 = PreReq_t::get(PreReq_t::insert_row("pre004", "C"));
 
         student_1.registered_student_Registration_list().insert(reg_1);
         student_1.registered_student_Registration_list().insert(reg_2);
@@ -218,7 +252,58 @@ TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
     gaia::db::commit_transaction();
 
     // GAIAPLAT-801
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(Student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
-    EXPECT_EQ(g_onupdate_value, 7) << "Rule did not set correct value from implicit query";
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(Registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 }
+
+TEST_F(test_queries_code, new_registration)
+{
+    gaia::db::begin_transaction();
+    populate_db();
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_ruleset("test_tags");
+
+    // The students will register for a class. The rule, OnInsert(Registration)
+    // will decide the status of each registration.
+    gaia::db::begin_transaction();
+
+    // Richard registers for math301
+    auto reg = Registration_t::insert_row("reg00H", "pending", "");
+    student_1.registered_student_Registration_list().insert(reg);
+    course_5.registered_course_Registration_list().insert(reg);
+
+    // Russell registers for math201.
+    reg = Registration_t::insert_row("reg00I", "pending", "");
+    student_2.registered_student_Registration_list().insert(reg);
+    course_2.registered_course_Registration_list().insert(reg);
+
+    // Rachael register for eng101.
+    reg = Registration_t::insert_row("reg00K", "pending", "");
+    // auto student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+    student_4.registered_student_Registration_list().insert(reg);
+    course_3.registered_course_Registration_list().insert(reg);
+
+    // Renee registers for math301
+    reg = Registration_t::insert_row("reg00L", "pending", "");
+    // auto student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+    student_5.registered_student_Registration_list().insert(reg);
+    course_5.registered_course_Registration_list().insert(reg);
+
+    gaia::db::commit_transaction();
+
+    // GAIAPLAT-801
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(Registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+}
+
+// Query tests:
+//  - single-statement loop over records owned by anchor.
+//  - for loop over records owned by anchor.
+//  - if loop over records owned by anchor.
+//  - loop over records owned by records owned by anchor.
+
+//  - implicit query in function call.
+//  - explicit query in function call.

@@ -104,7 +104,7 @@ ruleset test11
     }
 }
 
-ruleset test20
+ruleset test12
 {
     OnUpdate(incubator)
     {
@@ -114,6 +114,18 @@ ruleset test20
         if (i == 0)
         {
             Y:yield.bushels += 1;
+        }
+    }
+}
+
+ruleset test13
+{
+    OnInsert(incubator)
+    {
+        LABEL:I:incubator->sensor.value = I.max_temp - 1.0;
+        if (actuator.value > 3.0)
+        {
+            goto LABEL;
         }
     }
 }

@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test22
+{
+    OnInsert(incubator)
+    {
+        A:animal->feeding.portion = A.age + 1;
+        if (actuator.value > 3.0)
+        {
+            goto A;
+        }
+    }
+}
+
+// GAIAPLAT-851
+// CHECK: Cannot use tag 'A' as a goto label.

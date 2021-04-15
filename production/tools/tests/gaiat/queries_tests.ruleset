@@ -139,12 +139,63 @@ ruleset test16
     }
 }
 
-ruleset test16
+ruleset test17
 {
     OnChange(yield.bushels)
     {
         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
         /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+    }
+}
+
+ruleset test18
+{
+    OnChange(yield.bushels)
+    {
+        F : farmer -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield -> C : crop . acres ++;
+        / F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+    }
+}
+
+// GAIAPLAT-806 (fixed)
+// fails to find path from sensor to incubator.
+ruleset test19
+{
+    {
+        if (sensor->incubator->actuator.value > 95.0)
+        {
+            actuator.value = @min_temp;
+        }
+    }
+}
+
+// GAIAPLAT-806 (fixed)
+ruleset test20
+{
+    OnInsert(yield)
+    {
+        int daily = 0;
+        daily += /farmer->yield->feeding.portion;
+    }
+}
+
+// GAIAPLAT-806 (fixed)
+// In this test, the navigation is in the M:1 direction.
+ruleset test21
+{
+    OnInsert(farmer)
+    {
+        use_string(/feeding->yield->farmer.name);
+    }
+}
+
+// GAIAPLAT-807 (fixed)
+// "Tag refers to an invalid table S."
+ruleset test22
+{
+    OnInsert(S:sensor)
+    {
+        S->incubator.min_temp += S.value;
     }
 }
 
@@ -156,49 +207,6 @@ ruleset test16
 //         @actuator.value += sensor.value;
 //     }
 // }
-
-// GAIAPLAT-806
-// fails to find path from sensor to incubator.
-// ruleset testE2
-// {
-//     {
-//         if (sensor->incubator->actuator.value > 95.0)
-//         {
-//             actuator.value = @min_temp;
-//         }
-//     }
-// }
-
-// GAIAPLAT-806
-// ruleset testE3
-// {
-//     OnInsert(yield)
-//     {
-//         int daily = 0;
-//         daily += /farmer->yield->feeding.portion;
-//     }
-// }
-
-// GAIAPLAT-806
-// In this test, the navigation is in the M:1 direction.
-// ruleset testE4
-// {
-//     OnInsert(farmer)
-//     {
-//         use_string(/feeding->yield->farmer.name);
-//     }
-// }
-
-// GAIAPLAT-807
-// "Tag refers to an invalid table S."
-// ruleset testE5
-// {
-//     OnInsert(S:sensor)
-//     {
-//         S->incubator.min_temp += S.value;
-//     }
-// }
-
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
@@ -242,10 +250,7 @@ ruleset test16
 //     {
 //         if (S:sensor.value > 100.0)
 //         {
-//             if (S:actuator.value < 102)
-//             {
-//                 S.value = 101.0;
-//             }
+//             actuator.value = 101.0;
 //         }
 //     }
 // }
@@ -255,8 +260,6 @@ ruleset test16
 // {
 //     OnChange(incubator)
 //     {
-//         float v = incubator->A:actuator.value;
-//         A.value = v + 1;
 //         S:sensor.value = S.value * 1.01;
 //     }
 // }
@@ -268,5 +271,15 @@ ruleset test16
 //     {
 //         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
 //             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
+//     }
+// }
+
+// GAIAPLAT-832
+// ruleset testE12
+// {
+//     OnUpdate(incubator)
+//     {
+//         float v = 0;
+//         v += sensor.value > 99.0 ? actuator.value : 99.0;
 //     }
 // }

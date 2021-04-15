@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <atomic>
+
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
@@ -32,10 +34,13 @@ int32_t g_oninsert3_value;
 int32_t g_onupdate_value;
 int32_t g_onupdate3_value;
 
+std::atomic<int32_t> g_insert_count;
+
 ruleset test_tags
 {
     OnInsert(Student)
     {
+        g_insert_count++;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -106,6 +111,7 @@ ruleset test_queries
 {
     OnInsert(R:Registration)
     {
+        printf("OnInsert(Registration) = %s\n", R.RegId);
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }

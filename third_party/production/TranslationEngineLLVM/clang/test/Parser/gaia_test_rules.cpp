@@ -720,6 +720,12 @@ ruleset test99
     }
 }
 
+ruleset test100
+{
+    {
+        float m = / f : farmer -> incubator . min_temp ;
+    }
+}
 
 // GAIAPLAT-821
 // ruleset testE1
