@@ -281,8 +281,6 @@ void event_manager_t::subscribe_rule(
             auto field_it = fields_map.find(field);
             if (field_it == fields_map.end())
             {
-                // TODO[GAIAPLAT-183]: Verify the field is in the catalog and
-                // marked as an active field.
                 auto inserted_field = fields_map.insert(make_pair(field, rule_list_t()));
                 field_it = inserted_field.first;
             }

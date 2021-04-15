@@ -415,11 +415,11 @@ static const rule_decl_t c_rule_decl[] = {
 /**
  * Applications must provide an implementation for initialize_rules().
  * This function is called on initialization of the singleton event
- * manager instance and is used to regisgter rules with the system.
+ * manager instance and is used to register rules with the system.
  * If this function is not called then every test will fail below
  * because the condition is checked on TearDown() of
  * ever test case in the test fixture.  In addition, verify that we
- * actually can subscribe a rule in this intialize_rules function.
+ * actually can subscribe a rule in this initialize_rules function.
  */
 uint32_t g_initialize_rules_called = 0;
 
