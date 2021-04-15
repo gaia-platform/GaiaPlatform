@@ -434,7 +434,7 @@ const char* txn_metadata_t::status_to_str() const
     case c_txn_status_aborted:
         return "ABORTED";
     default:
-        ASSERT_PRECONDITION(false, "Unexpected txn_metadata_t status flags!");
+        ASSERT_UNREACHABLE("Unexpected txn_metadata_t status flags!");
     }
 
     return nullptr;

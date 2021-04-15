@@ -82,7 +82,7 @@ string get_data_type_default_value(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_data_type_default_value()!";
-        ASSERT_PRECONDITION(false, message.str());
+        ASSERT_UNREACHABLE(message.str());
     }
 }
 
