@@ -39,7 +39,7 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
         message << "Unexpected fixed size array definition in " << __func__ << "!";
         ASSERT_UNREACHABLE(message.str());
         // The compiler thinks we can still get here despite the fact that
-        // ASSERT_UNREACHABLE will unconditionally throw an exception.
+        // ASSERT_UNREACHABLE will unconditionally interrupt execution.
         // So we'll use a builtin function to tell the compiler that we know better.
         __builtin_unreachable();
     }
