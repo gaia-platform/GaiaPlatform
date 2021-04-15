@@ -120,7 +120,7 @@ void persistent_store_manager::append_wal_rollback_marker(const std::string& txn
 
 void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name)
 {
-    retail_assert(log, "Transaction log is null!");
+    ASSERT_PRECONDITION(log, "Transaction log is null!");
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
@@ -148,7 +148,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
             }
             encode_object(obj, key, value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
-            retail_assert(
+            ASSERT_INVARIANT(
                 key.get_current_position() != 0 && value.get_current_position() != 0,
                 "Failed to encode object.");
             txn->Put(key.to_slice(), value.to_slice());
@@ -156,7 +156,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
         }
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
-    retail_assert(key_count == log->record_count, "Count of inserted objects differs from log count!");
+    ASSERT_POSTCONDITION(key_count == log->record_count, "Count of inserted objects differs from log count!");
     m_rdb_internal->prepare_wal_for_write(txn);
 }
 

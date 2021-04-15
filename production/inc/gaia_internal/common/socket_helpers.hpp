@@ -52,8 +52,8 @@ inline void check_socket_type(int socket, int expected_socket_type)
         throw_system_error("getsockopt(SO_TYPE) failed!");
     }
     // type_len is an inout parameter which can indicate truncation.
-    retail_assert(type_len == sizeof(real_socket_type), "Invalid socket type size!");
-    retail_assert(real_socket_type == expected_socket_type, "Unexpected socket type!");
+    ASSERT_POSTCONDITION(type_len == sizeof(real_socket_type), "Invalid socket type size!");
+    ASSERT_POSTCONDITION(real_socket_type == expected_socket_type, "Unexpected socket type!");
 }
 
 inline bool is_non_blocking(int socket)
@@ -83,12 +83,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
 {
     // We should never send 0 bytes of data (because that would make it impossible
     // to determine if a 0-byte read meant EOF).
-    retail_assert(data_size > 0, "Invalid data size!");
+    ASSERT_PRECONDITION(data_size > 0, "Invalid data size!");
     // fd_count has value equal to length of fds array,
     // and all fds we send must fit in control.buf below.
     if (fds)
     {
-        retail_assert(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
+        ASSERT_PRECONDITION(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
     }
 
     struct msghdr msg = {0};
@@ -131,10 +131,10 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // https://github.com/kroki/XProbes/blob/1447f3d93b6dbf273919af15e59f35cca58fcc23/src/libxprobes.c#L156).
     ssize_t bytes_written_or_error = ::sendmsg(sock, &msg, MSG_NOSIGNAL);
     // Since we assert that we never send 0 bytes, we should never return 0 bytes written.
-    retail_assert(
+    ASSERT_INVARIANT(
         bytes_written_or_error != 0,
         "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
-    retail_assert(
+    ASSERT_INVARIANT(
         bytes_written_or_error >= -1,
         "sendmsg() should never return a negative value except for -1.");
     if (bytes_written_or_error == -1)
@@ -149,7 +149,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         }
     }
     auto bytes_written = static_cast<size_t>(bytes_written_or_error);
-    retail_assert(
+    ASSERT_POSTCONDITION(
         bytes_written == data_size,
         "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
 
@@ -164,7 +164,7 @@ inline size_t recv_msg_with_fds(
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
     }
@@ -193,7 +193,7 @@ inline size_t recv_msg_with_fds(
         msg.msg_controllen = CMSG_SPACE(sizeof(int) * *pfd_count);
     }
     ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
-    retail_assert(
+    ASSERT_INVARIANT(
         bytes_read >= -1,
         "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1)
@@ -236,18 +236,18 @@ inline size_t recv_msg_with_fds(
             // to a zero-length datagram. All our existing protocols assume that
             // an empty datagram signifies EOF and the client should expect no
             // ancillary data to be attached.
-            retail_assert(
+            ASSERT_INVARIANT(
                 bytes_read > 0,
                 "Ancillary data was attached to a zero-length datagram!");
             // message contains some fds, extract them
-            retail_assert(cmsg->cmsg_level == SOL_SOCKET, "Invalid message header level!");
-            retail_assert(cmsg->cmsg_type == SCM_RIGHTS, "Invalid message header type!");
+            ASSERT_INVARIANT(cmsg->cmsg_level == SOL_SOCKET, "Invalid message header level!");
+            ASSERT_INVARIANT(cmsg->cmsg_type == SCM_RIGHTS, "Invalid message header type!");
             // This potentially fails to account for padding after cmsghdr,
             // but seems to work in practice, and there's no supported way
             // to directly get this information.
             size_t fd_count = (cmsg->cmsg_len - sizeof(struct cmsghdr)) / sizeof(int);
             // *pfd_count has initial value equal to length of fds array
-            retail_assert(fd_count <= *pfd_count, "Mismatched fd count!");
+            ASSERT_INVARIANT(fd_count <= *pfd_count, "Mismatched fd count!");
             for (size_t i = 0; i < fd_count; i++)
             {
                 fds[i] = (reinterpret_cast<int*>(CMSG_DATA(cmsg)))[i];

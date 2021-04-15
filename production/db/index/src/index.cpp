@@ -15,7 +15,7 @@ using namespace gaia::db::index;
 
 int index_record_t::compare(const index_record_t& other) const
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         key_values.size() == other.key_values.size(),
         "An attempt was made to compare index records of different value.");
 
@@ -31,7 +31,7 @@ int index_record_t::compare(const index_record_t& other) const
         }
     }
 
-    retail_assert(comparison_result == 0, "Internal error: code should have returned already!");
+    ASSERT_INVARIANT(comparison_result == 0, "Internal error: code should have returned already!");
 
     return comparison_result;
 }

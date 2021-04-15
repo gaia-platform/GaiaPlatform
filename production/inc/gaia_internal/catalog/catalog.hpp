@@ -145,7 +145,7 @@ struct base_field_def_t
     base_field_def_t(std::string name, field_type_t field_type)
         : name(move(name)), field_type(field_type)
     {
-        gaia::common::retail_assert(!(this->name.empty()), "base_field_def_t::name must not be empty.");
+        ASSERT_PRECONDITION(!(this->name.empty()), "base_field_def_t::name must not be empty.");
     }
 
     std::string name;

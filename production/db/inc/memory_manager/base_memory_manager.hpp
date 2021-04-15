@@ -45,9 +45,7 @@ public:
 
 protected:
     // Sanity checks.
-    static inline void validate_address_alignment(const uint8_t* const memory_address);
     static inline void validate_offset_alignment(address_offset_t memory_offset);
-    static inline void validate_size_alignment(size_t memory_size);
 
     inline void validate_managed_memory_range() const;
 

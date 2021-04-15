@@ -66,8 +66,8 @@ void initialize_type_information_from_binary_schema(
     const uint8_t* binary_schema,
     size_t binary_schema_size)
 {
-    retail_assert(type_information != nullptr, "'type_information' argument should not be null.");
-    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    ASSERT_PRECONDITION(type_information != nullptr, "'type_information' argument should not be null.");
+    ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
     // Save the pointer to the binary schema into the type information.
     type_information->set_binary_schema(binary_schema, binary_schema_size);
@@ -102,8 +102,8 @@ bool verify_data_schema(
     size_t serialized_data_size,
     const uint8_t* binary_schema)
 {
-    retail_assert(serialized_data != nullptr, "'serialized_data argument' should not be null.");
-    retail_assert(binary_schema != nullptr, "'binary_schema argument' should not be null.");
+    ASSERT_PRECONDITION(serialized_data != nullptr, "'serialized_data argument' should not be null.");
+    ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema argument' should not be null.");
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -138,7 +138,7 @@ void get_table_field_information(
     type_information_t& local_type_information,
     const reflection::Field*& field)
 {
-    retail_assert(serialized_data != nullptr, "'serialized_data' argument should not be null.");
+    ASSERT_PRECONDITION(serialized_data != nullptr, "'serialized_data' argument should not be null.");
 
     // First, we parse the serialized data to get its root object.
     root_table = flatbuffers::GetAnyRoot(serialized_data);
@@ -335,7 +335,7 @@ bool set_field_value(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         const_root_table, auto_type_information, local_type_information, field);
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.type))
             || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
         c_message_attempt_to_set_value_of_incorrect_type);
@@ -366,8 +366,8 @@ void set_field_value(
     field_position_t field_position,
     const data_holder_t& value)
 {
-    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
-    retail_assert(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    ASSERT_PRECONDITION(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     if (value.hold.string_value == nullptr)
     {
@@ -383,7 +383,7 @@ void set_field_value(
         type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field);
 
-    retail_assert(field->type()->base_type() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(field->type()->base_type() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
@@ -456,7 +456,7 @@ void set_field_array_size(
     field_position_t field_position,
     size_t new_size)
 {
-    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
 
     const flatbuffers::Table* root_table = nullptr;
     auto_type_information_t auto_type_information;
@@ -537,7 +537,7 @@ data_holder_t get_field_array_element(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
-    retail_assert(array_index < field_value->size(), c_message_array_index_out_of_bounds);
+    ASSERT_PRECONDITION(array_index < field_value->size(), c_message_array_index_out_of_bounds);
 
     // Read element value according to its type.
     data_holder_t result;
@@ -592,8 +592,8 @@ void set_field_array_element(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         const_root_table, auto_type_information, local_type_information, field, const_field_value);
 
-    retail_assert(array_index < const_field_value->size(), c_message_array_index_out_of_bounds);
-    retail_assert(
+    ASSERT_PRECONDITION(array_index < const_field_value->size(), c_message_array_index_out_of_bounds);
+    ASSERT_PRECONDITION(
         (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.type))
             || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
         c_message_attempt_to_set_value_of_incorrect_type);
@@ -627,8 +627,8 @@ void set_field_array_element(
     size_t array_index,
     const data_holder_t& value)
 {
-    retail_assert(binary_schema != nullptr, "'binary_schema' argument should not be null.");
-    retail_assert(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
+    ASSERT_PRECONDITION(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     if (value.hold.string_value == nullptr)
     {
@@ -645,8 +645,8 @@ void set_field_array_element(
         type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
-    retail_assert(array_index < field_value->size(), c_message_array_index_out_of_bounds);
-    retail_assert(field->type()->element() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(array_index < field_value->size(), c_message_array_index_out_of_bounds);
+    ASSERT_PRECONDITION(field->type()->element() == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)

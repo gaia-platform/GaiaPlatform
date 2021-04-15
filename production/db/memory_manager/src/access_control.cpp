@@ -47,8 +47,8 @@ void auto_access_control_t::clear()
 
 void auto_access_control_t::mark_access(access_control_t* access_control)
 {
-    retail_assert(access_control != nullptr, "No access control was provided!");
-    retail_assert(access_control->readers_count != UINT32_MAX, "Readers count has maxed up and will overflow!");
+    ASSERT_PRECONDITION(access_control != nullptr, "No access control was provided!");
+    ASSERT_PRECONDITION(access_control->readers_count != UINT32_MAX, "Readers count has maxed up and will overflow!");
 
     release_access();
 
@@ -79,8 +79,8 @@ bool auto_access_control_t::try_to_lock_access(
     access_lock_type_t wanted_access,
     access_lock_type_t& existing_access)
 {
-    retail_assert(m_access_control != nullptr, "Invalid call, no access control available!");
-    retail_assert(wanted_access != access_lock_type_t::none, "Invalid wanted access!");
+    ASSERT_PRECONDITION(m_access_control != nullptr, "Invalid call, no access control available!");
+    ASSERT_PRECONDITION(wanted_access != access_lock_type_t::none, "Invalid wanted access!");
 
     existing_access = m_access_control->access_lock;
 
@@ -136,7 +136,7 @@ void auto_access_control_t::release_access_lock()
 
     if (m_has_locked_access)
     {
-        retail_assert(
+        ASSERT_INVARIANT(
             __sync_bool_compare_and_swap(
                 reinterpret_cast<int8_t*>(&m_access_control->access_lock),
                 static_cast<int8_t>(m_locked_access),
