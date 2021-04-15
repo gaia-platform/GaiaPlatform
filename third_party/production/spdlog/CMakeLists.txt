@@ -22,7 +22,7 @@ else ()
       -DSPDLOG_BUILD_BENCH:BOOL=OFF
       -DSPDLOG_BUILD_TESTS:BOOL=OFF
       -DSPDLOG_BUILD_EXAMPLE:BOOL=OFF
-      # Building shared to facilitate interaction with other systems that use  spdlog such as ROS2.
+      # Building shared to facilitate interaction with other systems that use spdlog such as ROS2.
       # ROS2 uses this flag as well: https://github.com/ros2/spdlog_vendor/blob/master/CMakeLists.txt#L52
       -DSPDLOG_BUILD_SHARED:BOOL=ON
       -DSPDLOG_INSTALL:BOOL=ON
