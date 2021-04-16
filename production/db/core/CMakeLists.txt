@@ -224,7 +224,7 @@ add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_I
 
 add_gtest(test_relationships
   tests/test_relationships.cpp
-  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
+  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC};${FLATBUFFERS_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")
 
 add_gtest(test_catalog_core
