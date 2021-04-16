@@ -16,7 +16,6 @@
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
-#include "gaia/system.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
@@ -265,7 +264,7 @@ protected:
         // NOTE: to run this test manually, you need to set the env variable DDL_FILE
         // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
         reset_server();
-        const char* ddl_file = "/home/simone/repos/GaiaPlatform/production/schemas/test/addr_book/addr_book.ddl"; //getenv("DDL_FILE");
+        const char* ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr) << "The DDL file must be specified via the env DDL_FILE";
         begin_session();
 
