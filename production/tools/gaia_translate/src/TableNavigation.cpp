@@ -15,7 +15,7 @@ table_navigation_t::table_navigation_t()
 
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables) const
 {
-    navigation_code_data_t return_value;
+     navigation_code_data_t return_value;
     if (m_table_data.empty())
     {
         return navigation_code_data_t();
@@ -25,8 +25,15 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     {
         return navigation_code_data_t();
     }
-    return_value.prefix = "\nauto " + anchor_table
-        + " = " + "gaia::" + anchor_table_data_itr->second.db_name + "::" + anchor_table + "_t::get(context->record);\n";
+    return_value.prefix
+        .append("\n{\nauto ")
+        .append(anchor_table)
+        .append(" = gaia::")
+        .append(anchor_table_data_itr->second.db_name)
+        .append("::")
+        .append(anchor_table)
+        .append("_t::get(context->record);\n");
+    return_value.postfix = "\n}\n";
 
     if (tables.size() == 1 && tables.find(anchor_table) != tables.end())
     {
@@ -157,7 +164,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                                     .append("_list())\n{\n");
                             }
 
-                            return_value.postfix += "}\n";
+                            return_value.postfix.append("}\n");
                         }
                     }
                     source_table = p.name;
@@ -227,7 +234,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                         .append("_list())\n{\n");
                 }
 
-                return_value.postfix += "}\n";
+                return_value.postfix.append("}\n");
             }
         }
         processed_tables.insert(table);
