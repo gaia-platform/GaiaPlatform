@@ -29,8 +29,10 @@ const string c_indent_string("    ");
 class relationship_strings_t
 {
 public:
-    relationship_strings_t(const gaia_relationship_t& relationship)
-        : m_relationship(relationship){};
+    explicit relationship_strings_t(gaia_relationship_t relationship)
+        : m_relationship(std::move(relationship))
+    {
+    }
 
     std::string parent_table()
     {
@@ -49,8 +51,10 @@ protected:
 class child_relationship : public relationship_strings_t
 {
 public:
-    child_relationship(const gaia_relationship_t& relationship)
-        : relationship_strings_t(relationship){};
+    explicit child_relationship(const gaia_relationship_t& relationship)
+        : relationship_strings_t(relationship)
+    {
+    }
 
     std::string field_name()
     {
@@ -83,8 +87,10 @@ public:
 class parent_relationship : public relationship_strings_t
 {
 public:
-    parent_relationship(const gaia_relationship_t& relationship)
-        : relationship_strings_t(relationship){};
+    explicit parent_relationship(const gaia_relationship_t& relationship)
+        : relationship_strings_t(relationship)
+    {
+    }
 
     std::string field_name()
     {
@@ -155,7 +161,7 @@ static string field_cpp_type_string(
         type_str = "const char*";
         break;
     default:
-        retail_assert(false, "Unknown type!");
+        ASSERT_UNREACHABLE("Unknown type!");
     };
 
     if (field.repeated_count() == 0)
@@ -174,7 +180,7 @@ static string field_cpp_type_string(
         // We should report the input error to the user at data definition time.
         // If we find a fixed size array definition here, it will be either data
         // corruption or bugs in catching user input errors.
-        retail_assert(false, "Fixed size array is not supported");
+        ASSERT_UNREACHABLE("Fixed size array is not supported");
     }
     return type_str;
 }
@@ -275,14 +281,12 @@ static string generate_constant_list(const gaia_id_t db_id)
 
         for (auto& relationship : list_parent_relationships(table_record))
         {
-            parent_relationships.push_back(
-                parent_relationship{relationship});
+            parent_relationships.emplace_back(relationship);
         }
 
         for (auto& relationship : list_child_relationships(table_record))
         {
-            child_relationships.push_back(
-                child_relationship{relationship});
+            child_relationships.emplace_back(relationship);
         }
 
         code.SetValue("TABLE_NAME", table_record.name());
@@ -638,14 +642,12 @@ string gaia_generate(const string& dbname)
 
         for (auto& relationship : list_parent_relationships(table_record))
         {
-            parent_relationships_names.push_back(
-                parent_relationship{relationship});
+            parent_relationships_names.emplace_back(relationship);
         }
 
         for (auto& relationship : list_child_relationships(table_record))
         {
-            child_relationships_names.push_back(
-                child_relationship{relationship});
+            child_relationships_names.emplace_back(relationship);
         }
 
         code_lines += generate_edc_struct(

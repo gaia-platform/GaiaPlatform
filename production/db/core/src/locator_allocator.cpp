@@ -39,15 +39,15 @@ gaia_locator_t locator_allocator_t::allocate_locator()
     // then we'll need to allocate a new locator.
     locator = __sync_fetch_and_add(&m_next_locator, 1);
 
-    retail_assert(locator != c_invalid_locator, "Invalid locator value!");
+    ASSERT_POSTCONDITION(locator != c_invalid_locator, "Invalid locator value!");
 
     return locator;
 }
 
 void locator_allocator_t::release_locator(gaia_locator_t locator)
 {
-    retail_assert(locator != c_invalid_locator, "Invalid locator value!");
-    retail_assert(locator < m_next_locator, "Attempt to release an unallocated locator value!");
+    ASSERT_PRECONDITION(locator != c_invalid_locator, "Invalid locator value!");
+    ASSERT_PRECONDITION(locator < m_next_locator, "Attempt to release an unallocated locator value!");
 
     m_available_locators.enqueue(locator);
 }
