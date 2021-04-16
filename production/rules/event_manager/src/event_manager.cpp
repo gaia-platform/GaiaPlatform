@@ -73,7 +73,7 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         shutdown();
     }
 
-    gaia_log::rules().debug("Initializing rule engine...");
+    gaia_log::rules().debug("Initializing rules engine...");
 
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
@@ -111,7 +111,7 @@ void event_manager_t::shutdown()
         return;
     }
 
-    gaia_log::rules().debug("Shutting down rule engine...");
+    gaia_log::rules().debug("Shutting down rules engine...");
 
     // Destroy the thread pool first to ensure that any scheduled rules get a chance to execute.
     // Do not reset the m_invocations pointer yet because executing rules may cause other rules to
@@ -284,7 +284,7 @@ void event_manager_t::subscribe_rule(
     // We found or created an event entry. Now see if we have bound
     // any events already.
     event_binding_t& event_binding = event_it->second;
-    bool subscribed_rule = false;
+    bool is_rule_subscribed = false;
     if (fields.size() > 0)
     {
         for (uint16_t field : fields)
@@ -298,7 +298,7 @@ void event_manager_t::subscribe_rule(
             }
 
             rule_list_t& rules = field_it->second;
-            subscribed_rule = add_rule(rules, rule_binding);
+            is_rule_subscribed = add_rule(rules, rule_binding);
         }
     }
     else
@@ -306,10 +306,10 @@ void event_manager_t::subscribe_rule(
         // We are binding a table event to the LastOperation system field
         // because no field reference fields were provided.
         rule_list_t& rules = event_binding.last_operation_rules;
-        subscribed_rule = add_rule(rules, rule_binding);
+        is_rule_subscribed = add_rule(rules, rule_binding);
     }
 
-    if (subscribed_rule)
+    if (is_rule_subscribed)
     {
         gaia_log::rules().debug("Rule '{}:{}:{}' successfully subscribed.", rule_binding.ruleset_name, rule_binding.rule_name, rule_binding.line_number);
     }
@@ -338,7 +338,7 @@ bool event_manager_t::unsubscribe_rule(
         return false;
     }
 
-    bool removed_rule = false;
+    bool is_rule_removed = false;
     event_binding_t& event_binding = event_it->second;
     if (fields.size() > 0)
     {
@@ -354,7 +354,7 @@ bool event_manager_t::unsubscribe_rule(
                 // value to true.
                 if (remove_rule(rules, rule_binding))
                 {
-                    removed_rule = true;
+                    is_rule_removed = true;
                 }
             }
         }
@@ -362,10 +362,10 @@ bool event_manager_t::unsubscribe_rule(
     else
     {
         rule_list_t& rules = event_binding.last_operation_rules;
-        removed_rule = remove_rule(rules, rule_binding);
+        is_rule_removed = remove_rule(rules, rule_binding);
     }
 
-    if (removed_rule)
+    if (is_rule_removed)
     {
         gaia_log::rules().debug("Rule '{}:{}:{}' successfully unsubscribed.", rule_binding.ruleset_name, rule_binding.rule_name, rule_binding.line_number);
     }
