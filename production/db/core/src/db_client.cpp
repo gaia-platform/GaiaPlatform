@@ -7,23 +7,16 @@
 
 #include <unistd.h>
 
-#include <csignal>
-
-#include <atomic>
 #include <functional>
 #include <iostream>
 #include <optional>
-#include <string>
 #include <thread>
-#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
 #include <sys/epoll.h>
-#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -35,7 +28,6 @@
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "messages_generated.h"
 
 using namespace gaia::common;
@@ -50,6 +42,11 @@ static const std::string c_message_unexpected_event_received = "Unexpected event
 static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
 static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
 static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
+
+static constexpr char c_event_type_not_set[] = "not_set";
+static constexpr char c_event_type_row_update[] = "row_update";
+static constexpr char c_event_type_row_insert[] = "row_insert";
+static constexpr char c_event_type_row_delete[] = "row_delete";
 
 int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
@@ -522,7 +519,7 @@ void client_t::commit_transaction()
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0)
     {
-        s_txn_commit_trigger(s_txn_id, s_events);
+        s_txn_commit_trigger(s_events);
     }
 
     // Throw an exception on server-side abort.
@@ -639,4 +636,19 @@ void client_t::rollback_chunk_manager_allocations()
     ASSERT_POSTCONDITION(
         s_previous_chunk_managers.empty(),
         "List of previous chunk managers was not emptied by the end of rollback!");
+}
+
+const char* gaia::db::triggers::describe_event_type(event_type_t event_type)
+{
+    switch (event_type)
+    {
+    case event_type_t::row_update:
+        return c_event_type_row_update;
+    case event_type_t::row_insert:
+        return c_event_type_row_insert;
+    case event_type_t::row_delete:
+        return c_event_type_row_delete;
+    case event_type_t::not_set:
+        return c_event_type_not_set;
+    }
 }

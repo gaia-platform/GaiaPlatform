@@ -23,6 +23,11 @@ enum class event_type_t : uint32_t
     row_delete = 1 << 2,
 };
 
+/**
+ * Returns a string representation of the event type.
+ */
+const char* describe_event_type(event_type_t event_type);
+
 } // namespace triggers
 } // namespace db
 } // namespace gaia

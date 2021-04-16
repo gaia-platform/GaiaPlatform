@@ -9,6 +9,7 @@
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace std;
 
@@ -192,7 +193,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 
             // Invoke the rule.
             auto fn_start = gaia::common::timer_t::get_time_point();
-            gaia_log::rules().trace("call: {}", rule_id);
+            gaia_log::rules().trace("call: {}, src_txn:{}, new_txn:{}", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());
             rule_invocation.rule_fn(&context);
             gaia_log::rules().trace("return: {}", rule_id);
             m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
