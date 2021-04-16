@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test22
+{
+    OnInsert(incubator)
+    {
+        // Ensure the label is a goto target using empty statement.
+        LABEL:raised->animal.name = "bison";
+        if (actuator.value > 3.0)
+        {
+            goto LABEL;
+        }
+    }
+}
+
+// CHECK: Label

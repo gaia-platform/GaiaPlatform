@@ -215,16 +215,16 @@ protected:
         course_5.registrations().insert(reg_6);
 
         course_2.requires().insert(prereq_1);
-        course_1.requires().insert(prereq_1);
+        course_1.required_by().insert(prereq_1);
 
         course_2.requires().insert(prereq_2);
-        course_3.requires().insert(prereq_2);
+        course_3.required_by().insert(prereq_2);
 
         course_2.requires().insert(prereq_3);
-        course_4.requires().insert(prereq_3);
+        course_4.required_by().insert(prereq_3);
 
         course_5.requires().insert(prereq_4);
-        course_2.requires().insert(prereq_4);
+        course_2.required_by().insert(prereq_4);
     }
 };
 
@@ -272,25 +272,25 @@ TEST_F(test_queries_code, new_registration)
 
     // Richard registers for math301
     auto reg = Registration_t::insert_row("reg00H", "pending", "");
-    student_1.registered_student_Registration_list().insert(reg);
-    course_5.registered_course_Registration_list().insert(reg);
+    student_1.registrations().insert(reg);
+    course_5.registrations().insert(reg);
 
     // Russell registers for math201.
     reg = Registration_t::insert_row("reg00I", "pending", "");
-    student_2.registered_student_Registration_list().insert(reg);
-    course_2.registered_course_Registration_list().insert(reg);
+    student_2.registrations().insert(reg);
+    course_2.registrations().insert(reg);
 
     // Rachael register for eng101.
     reg = Registration_t::insert_row("reg00K", "pending", "");
     // auto student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-    student_4.registered_student_Registration_list().insert(reg);
-    course_3.registered_course_Registration_list().insert(reg);
+    student_4.registrations().insert(reg);
+    course_3.registrations().insert(reg);
 
     // Renee registers for math301
     reg = Registration_t::insert_row("reg00L", "pending", "");
     // auto student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
-    student_5.registered_student_Registration_list().insert(reg);
-    course_5.registered_course_Registration_list().insert(reg);
+    student_5.registrations().insert(reg);
+    course_5.registrations().insert(reg);
 
     gaia::db::commit_transaction();
 

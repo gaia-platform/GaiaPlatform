@@ -107,11 +107,49 @@ ruleset test_tags
     }
 }
 
+Course_t loop_over_prereq(Registration_t R)
+{
+    printf("  %s\n", R.RegId());
+    const auto& c = R.registered_course();
+}
+
 ruleset test_queries
 {
+    // This rule is patterned after an example in the document "Paths and
+    // Tags in Declarative Rules". Pseudo-code will be used until the
+    // translator is done.
+
     OnInsert(R:Registration)
     {
-        printf("OnInsert(Registration) = %s\n", R.RegId);
+        printf("OnInsert(Registration) = %s\n", Registration.RegId);
+        printf("Course name=%s\n", Course.Name);
+        Status = "Ineligible";
+        loop_over_prereq(R);
+        // Has this Student taken all prerequisites?
+        //>for (Course.requires->PreReq.required_by->PC:Course) {
+        // for (const auto& p : Course.requires) {
+        //>    bool taken = false;
+        //>    for (Student->Registration->TC:Course) {
+        //>        if (TC.CourseId == PC.CourseId) {
+        //>            taken = true;
+        //>            break;
+        //>        }
+        //>    }
+        //>    if (!taken) {
+        //>        printf("Student has not taken course %s\n", PC.CourseId);
+        //>        return;
+        //>    }
+        //>}
+        //
+        // Has this Student passed all prerequisites with minimum grades?
+        //>for (Course.requires->P:PreReq.required_by->Course->R:Registration->S:Student) {
+        //>    if (StudentId == S.StudentId) {
+        //>    if (R:Grade < P.MinGrade) {
+        //>        return;
+        //>    }
+        //>}
+        Status = "Eligible";
+
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }

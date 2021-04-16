@@ -1,6 +1,8 @@
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
+// #define DO_NOT_TEST_YET 
+// #define DO_NOT_TEST_829
 
 ruleset test1
 {
@@ -27,6 +29,8 @@ ruleset test3
     }
 }
 
+#ifdef DO_NOT_TEST_YET
+// GAIAPLAT-855
 ruleset test4 : Table(actuator, incubator)
 {
     OnInsert(I:incubator)
@@ -39,6 +43,7 @@ ruleset test4 : Table(actuator, incubator)
         value += min_temp;
     }
 }
+#endif
 
 ruleset test5
 {
@@ -49,6 +54,8 @@ ruleset test5
     }
 }
 
+#ifdef DO_NOT_TEST_YET
+// GAIAPLAT-855
 ruleset test6 : Table(actuator)
 {
     // One field.
@@ -57,6 +64,7 @@ ruleset test6 : Table(actuator)
         use_float(A.value);
     }
 }
+#endif
 
 ruleset test7
 {
@@ -87,6 +95,8 @@ ruleset test9
     }
 }
 
+#ifdef DO_NOT_TEST_YET
+// GAIAPLAT-855
 ruleset test10 : Table(sensor)
 {
     OnUpdate(S:sensor)
@@ -94,6 +104,7 @@ ruleset test10 : Table(sensor)
         use_string(name);
     }
 }
+#endif
 
 ruleset test11
 {
@@ -122,6 +133,7 @@ ruleset test13
 {
     OnInsert(incubator)
     {
+        // lable:tag:table works for both label and tag.
         LABEL:I:incubator->sensor.value = I.max_temp - 1.0;
         if (actuator.value > 3.0)
         {
@@ -130,49 +142,68 @@ ruleset test13
     }
 }
 
-// GAIAPLAT-829
-// ruleset testE1
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         else
-//         {
-//             F:farmer.acreage -= 1;
-//         }
-//     }
-// }
+ruleset test14
+{
+    OnInsert(incubator)
+    {
+        // Ensure the label is a goto target using empty statement.
+        LABEL:; sensor.value = max_temp - 1.0;
+        if (actuator.value > 3.0)
+        {
+            goto LABEL;
+        }
+    }
+}
 
+#ifdef DO_NOT_TEST_829
 // GAIAPLAT-829
-// ruleset testE2
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         F:farmer.acreage -= 1;
-//     }
-// }
+ruleset testE1
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+        else
+        {
+            F:farmer.acreage -= 1;
+        }
+    }
+}
+#endif
 
+#ifdef DO_NOT_TEST_829
 // GAIAPLAT-829
-// ruleset testE3
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {}
-//         else
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         F:farmer.acreage -= 1;
-//     }
-// }
+ruleset testE2
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+        F:farmer.acreage -= 1;
+    }
+}
+#endif
+
+#ifdef DO_NOT_TEST_829
+// GAIAPLAT-829
+ruleset testE3
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {}
+        else
+        {
+            F:farmer.acreage += 1;
+        }
+        F:farmer.acreage -= 1;
+    }
+}
+#endif
