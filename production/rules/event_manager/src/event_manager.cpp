@@ -370,7 +370,7 @@ bool event_manager_t::unsubscribe_rule(
         gaia_log::rules().debug("Rule '{}:{}:{}' successfully unsubscribed.", rule_binding.ruleset_name, rule_binding.rule_name, rule_binding.line_number);
     }
 
-    return removed_rule;
+    return is_rule_removed;
 }
 
 void event_manager_t::unsubscribe_rules()
@@ -488,17 +488,17 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
 
 bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& binding)
 {
-    bool removed_rule = false;
+    bool is_rule_removed = false;
     const _rule_binding_t* rule_ptr = find_rule(binding);
 
     if (rule_ptr)
     {
         auto size = rules.size();
         rules.remove_if([&](const _rule_binding_t* ptr) { return (ptr == rule_ptr); });
-        removed_rule = (size != rules.size());
+        is_rule_removed = (size != rules.size());
     }
 
-    return removed_rule;
+    return is_rule_removed;
 }
 
 const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)
