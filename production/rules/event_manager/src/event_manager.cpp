@@ -140,6 +140,7 @@ void event_manager_t::process_last_operation_events(
 
     for (auto const& binding : rules)
     {
+        gaia_log::rules().trace("Enqueue table event:{}, txn_id:{}, gaia_type:{}, gaia_id:{}", describe_event_type(event.event_type), event.txn_id, event.gaia_type, event.record);
         enqueue_invocation(event, binding, start_time);
     }
 }
@@ -167,6 +168,10 @@ void event_manager_t::process_field_events(
             rule_list_t& rules = field_it->second;
             for (auto const& binding : rules)
             {
+                gaia_log::rules().trace(
+                    "Enqueue field event:{}, txn_id:{}, gaia_type:{}, field_id:{}, gaia_id:{}",
+                    describe_event_type(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
+
                 enqueue_invocation(event, binding, start_time);
             }
         }
@@ -192,7 +197,9 @@ void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_l
         // TODO logging this as db() and not as rules() for 2 reasons:
         //   1. This should be logged in the DB but we have no logging there yet.
         //   2. I don't want to pollute the rules() output too much.
-        gaia_log::db().trace("commit_trigger:{} txn_id:{}, gaia_type:{}", describe_event_type(event.event_type), event.txn_id, event.gaia_type);
+        gaia_log::db().trace(
+            "commit_trigger:{} txn_id:{}, gaia_type:{}, gaia_id:{}",
+            describe_event_type(event.event_type), event.txn_id, event.gaia_type, event.record);
 
         auto type_it = m_subscriptions.find(event.gaia_type);
         if (type_it != m_subscriptions.end())
