@@ -67,6 +67,7 @@ set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPAC
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libspdlog-dev")
 
 # RPM specific section.
 #
@@ -135,9 +136,6 @@ include(CPack)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
-
-# Place spdlog headers.
-install(DIRECTORY ${SPDLOG_INC}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Place gaia headers.
 install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
