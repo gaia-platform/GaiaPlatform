@@ -158,9 +158,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
-# Spdlog.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
-set(SPDLOG_INC ${DEPENDENCIES_INSTALL_PREFIX}/spdlog/include)
 # Spdlog_setup.
 add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
 # Tabulate.

@@ -1,4 +1,5 @@
 message(CHECK_START "Looking for spdlog_setup")
+find_package(spdlog 1.5.0 REQUIRED CONFIG)
 find_package(spdlog_setup QUIET CONFIG)
 if (spdlog_setup_FOUND)
   message(CHECK_PASS "found")
@@ -10,7 +11,6 @@ else ()
   add_library(spdlog_setup INTERFACE)
   add_dependencies(spdlog_setup spdlog_setup_dependency)
   add_dependencies(spdlog_setup cpptoml)
-  add_dependencies(spdlog_setup spdlog)
   target_include_directories(spdlog_setup INTERFACE ${SPDLOG_SETUP_ROOT}/include)
   ExternalProject_Add(spdlog_setup_dependency
     URL
@@ -18,7 +18,7 @@ else ()
     URL_HASH
       SHA256=08229cd17178f939d37de1f6d93d8983b6d1696e57c1359a967dddc65bc16a1e
     DEPENDS
-      spdlog cpptoml
+      spdlog::spdlog cpptoml
     CMAKE_ARGS
       -DCMAKE_BUILD_TYPE=Release
       -DCMAKE_THREAD_LIBS_INIT="-lpthread"
