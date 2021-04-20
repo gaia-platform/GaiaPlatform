@@ -13,7 +13,7 @@ namespace db
 {
 
 // Base class abstracting common functionality for mapped_data_t and mapped_log_t classes.
-template <typename T>
+template <typename T_data>
 class base_mapped_data_t
 {
 public:
@@ -31,7 +31,7 @@ public:
     void clear();
 
     // Transfers data tracked by another instance into this instance.
-    void reset(base_mapped_data_t<T>& other);
+    void reset(base_mapped_data_t<T_data>& other);
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // Reverts back to uninitialized state.
@@ -39,14 +39,14 @@ public:
     // Can be called repeatedly.
     void close();
 
-    inline T* data();
+    inline T_data* data();
     inline int fd();
     inline bool is_set();
 
 protected:
     bool m_is_set;
     int m_fd;
-    T* m_data;
+    T_data* m_data;
 
     // This is used to track the mapped data size, so we can call unmap_fd_data()/munmap() with the same value.
     size_t m_mapped_data_size;
@@ -54,8 +54,8 @@ protected:
 
 // This class abstracts the server and client operations with memory-mapped data.
 // T indicates the type of data structure that is managed by an instance of this class.
-template <typename T>
-class mapped_data_t : public base_mapped_data_t<T>
+template <typename T_data>
+class mapped_data_t : public base_mapped_data_t<T_data>
 {
 public:
     mapped_data_t() = default;
