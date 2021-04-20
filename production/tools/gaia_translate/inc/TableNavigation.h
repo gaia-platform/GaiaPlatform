@@ -44,12 +44,17 @@ class table_navigation_t
 {
 public:
     table_navigation_t();
-    const unordered_map<string, table_data_t>& get_table_data() const
+    const unordered_map<string, table_data_t>& get_table_data()
     {
+        if (!m_is_initialized)
+        {
+            fill_table_data();
+            m_is_initialized = true;
+        }
         return m_table_data;
     }
 
-    navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables) const;
+    navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables);
 
 private:
     class db_monitor_t
@@ -85,6 +90,7 @@ private:
     string get_closest_table(const unordered_map<string, int>& table_distance) const;
     bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path) const;
     string generate_random_string(string::size_type length) const;
+    bool m_is_initialized;
     unordered_map<string, table_data_t> m_table_data;
     unordered_multimap<string, table_link_data_t> m_table_relationship_1;
     unordered_multimap<string, table_link_data_t> m_table_relationship_n;

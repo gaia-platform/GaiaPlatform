@@ -81,6 +81,22 @@ string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
 
+enum rewriter_operation_t
+{
+    ReplaceText,
+    InsertTextAfterToken,
+};
+
+struct rewriter_history_t
+{
+    SourceRange range;
+    string string_argument;
+    rewriter_operation_t operation;
+};
+
+vector<rewriter_history_t> g_rewriter_history;
+
+
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 static const char c_ident[] = "    ";
@@ -277,13 +293,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string insert_rule_prologue(const string& rule, const string& prologue)
-{
-    size_t rule_code_start = rule.find('{');
-    return "{" + prologue + rule.substr(rule_code_start + 1);
-}
-
-void generate_table_subscription(const string& table, const string& field_subscription_code, const string& rule_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+void generate_table_subscription(const string& table, const string& field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
     if (g_table_navigation.get_table_data().find(table) == g_table_navigation.get_table_data().end())
@@ -405,13 +415,14 @@ void generate_table_subscription(const string& table, const string& field_subscr
         .append(rule_name)
         .append("(const gaia::rules::rule_context_t* context)\n");
 
-    if (g_is_rule_context_rule_name_referenced)
-    {
-      //  navigation_code.prefix.insert(0, "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
-    }
     if (rule_count == 1)
     {
-        if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
+        if (g_is_rule_context_rule_name_referenced)
+        {
+            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(),
+                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+        }
+        if (g_rule_attribute_source_range.isValid())
         {
             rewriter.ReplaceText(g_rule_attribute_source_range, function_prologue);
         }
@@ -429,7 +440,6 @@ void generate_table_subscription(const string& table, const string& field_subscr
                 return;
             }
 
-
             rewriter.InsertTextBefore(
                 expression_used_iterator.first.getBegin(),
                 navigation_code.prefix);
@@ -437,24 +447,58 @@ void generate_table_subscription(const string& table, const string& field_subscr
                 expression_used_iterator.first.getEnd(),
                 navigation_code.postfix);
         }
-
-
-
-
     }
     else
     {
-        //TEMPORARY DISABLED
- /*
-        function_prologue.append(insert_rule_prologue(rule_code + navigation_code.postfix, navigation_code.prefix));
-        if (g_rule_attribute_source_range.getBegin().isValid() && g_rule_attribute_source_range.getEnd().isValid())
+        Rewriter copy_rewriter = Rewriter(rewriter.getSourceMgr(), rewriter.getLangOpts());
+
+        for (const auto& history_item : g_rewriter_history)
         {
-            rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue);
+            switch (history_item.operation)
+            {
+                case ReplaceText:
+                    copy_rewriter.ReplaceText(history_item.range, history_item.string_argument);
+                    break;
+                case InsertTextAfterToken:
+                    copy_rewriter.InsertTextAfterToken(history_item.range.getBegin(), history_item.string_argument);
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (g_is_rule_context_rule_name_referenced)
+        {
+            copy_rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(),
+                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+        }
+
+        for (const auto& expression_used_iterator : g_expression_used_tables)
+        {
+            navigation_code_data_t navigation_code = g_table_navigation.generate_navigation_code(table, expression_used_iterator.second);
+            if (navigation_code.prefix.empty())
+            {
+                g_is_generation_error = true;
+                return;
+            }
+
+            copy_rewriter.InsertTextBefore(
+                expression_used_iterator.first.getBegin(),
+                navigation_code.prefix);
+            copy_rewriter.InsertTextAfter(
+                expression_used_iterator.first.getEnd(),
+                navigation_code.postfix);
+        }
+
+
+        if (g_rule_attribute_source_range.isValid())
+        {
+            copy_rewriter.RemoveText(g_rule_attribute_source_range);
+            rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
         }
         else
         {
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue);
-        }*/
+            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
+        }
     }
 }
 
@@ -507,7 +551,6 @@ void generate_rules(Rewriter& rewriter)
         g_is_generation_error = true;
         return;
     }
-    string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
     unordered_map<uint32_t, string> rule_line_numbers;
 
@@ -566,7 +609,7 @@ void generate_rules(Rewriter& rewriter)
                 .append(");\n");
         }
 
-        generate_table_subscription(table, field_subscription_code, rule_code, rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
 
         optimize_subscription(table, rule_count);
 
@@ -580,7 +623,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_code, rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table, "", rule_count, true, rule_line_numbers, rewriter);
 
         optimize_subscription(table, rule_count);
 
@@ -594,7 +637,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_code, rule_count, false, rule_line_numbers, rewriter);
+        generate_table_subscription(table, "", rule_count, false, rule_line_numbers, rewriter);
         rule_count++;
     }
 }
@@ -607,9 +650,9 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         return return_value;
     }
     auto node_parents = context->getParents(node);
+
     for (const auto& node_parents_iterator : node_parents)
     {
-        cerr << node_parents_iterator.getNodeKind().asStringRef().str() << "\n";
         if (node_parents_iterator.get<CompoundStmt>())
         {
             return return_value;
@@ -648,16 +691,17 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             return_value.setEnd(expression->getEndLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<CallExpr>())
+        else if (const auto *expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
             auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
                                        rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+                                       rewriter.getLangOpts()) + 2;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
-            return return_value;
+
+            return get_expression_source_range(context, *expression, return_value, rewriter);;
         }
-        else if (const auto *expression = node_parents_iterator.get<CXXMemberCallExpr>())
+        else if (const auto *expression = node_parents_iterator.get<CallExpr>())
         {
             auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
                                        rewriter.getSourceMgr(),
@@ -726,13 +770,12 @@ void update_expression_used_tables(ASTContext* context, const Stmt* node, const 
     {
         return;
     }
-cerr << source_range.getBegin().getRawEncoding() << " " << source_range.getEnd().getRawEncoding()<<"\n";
+
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
     if (expression_source_range.isInvalid())
     {
         return;
     }
-    cerr << expression_source_range.getBegin().getRawEncoding() << " " << expression_source_range.getEnd().getRawEncoding()<<"\n";
 
     auto expression_tables_iterator = g_expression_used_tables.find(expression_source_range);
     if (expression_tables_iterator != g_expression_used_tables.end())
@@ -881,6 +924,7 @@ public:
         if (expression_source_range.isValid())
         {
             m_rewriter.ReplaceText(expression_source_range, table_name + "." + field_name + "()");
+            g_rewriter_history.push_back({expression_source_range, table_name + "." + field_name + "()", ReplaceText});
             auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
                                        m_rewriter.getSourceMgr(),
                                        m_rewriter.getLangOpts()) + 1;
@@ -1034,9 +1078,13 @@ public:
                     m_rewriter.ReplaceText(
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
+                    g_rewriter_history.push_back({SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
+                        replacement_text, ReplaceText});
 
                     m_rewriter.InsertTextAfterToken(
                         op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
+                    g_rewriter_history.push_back({SourceRange(op->getEndLoc()),
+                        "; w.update_row(); return w." + field_name + ";}()", InsertTextAfterToken});
 
                     auto offset = Lexer::MeasureTokenLength(op->getEndLoc(),
                                        m_rewriter.getSourceMgr(),
@@ -1189,6 +1237,8 @@ public:
                     m_rewriter.ReplaceText(
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
                         replace_string);
+                    g_rewriter_history.push_back({SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+                        replace_string, ReplaceText});
                     auto offset = Lexer::MeasureTokenLength(op->getEndLoc(),
                                        m_rewriter.getSourceMgr(),
                                        m_rewriter.getLangOpts()) + 1;
@@ -1256,6 +1306,7 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
+        g_rewriter_history.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
@@ -1350,6 +1401,7 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
+        g_rewriter_history.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
@@ -1378,6 +1430,8 @@ public:
                         ruleset_declaration->getBeginLoc(),
                         ruleset_declaration->getEndLoc()),
                     "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n");
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
+                        "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n", ReplaceText});
             }
             else
             {
@@ -1390,6 +1444,11 @@ public:
 
                 // Replace closing brace with namespace comment.
                 m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
+
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
+                         "namespace " + g_current_ruleset + "\n{\n", ReplaceText});
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getEndLoc()),
+                        "}// namespace " + g_current_ruleset, ReplaceText});
             }
         }
     }
@@ -1460,6 +1519,8 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
                 "\"" + g_current_ruleset + "\"");
+            g_rewriter_history.push_back({SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
+                        "\"" + g_current_ruleset + "\"", ReplaceText});
         }
 
         if (rule_expression != nullptr)
@@ -1468,6 +1529,8 @@ public:
                 SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
                 "gaia_rule_name");
             g_is_rule_context_rule_name_referenced = true;
+            g_rewriter_history.push_back({SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
+                        "gaia_rule_name", ReplaceText});
         }
 
         if (event_expression != nullptr)
@@ -1475,6 +1538,8 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
                 "context->event_type");
+            g_rewriter_history.push_back({SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
+                        "context->event_type", ReplaceText});
         }
 
         if (type_expression != nullptr)
@@ -1482,6 +1547,8 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
                 "context->gaia_type");
+            g_rewriter_history.push_back({SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
+                        "context->gaia_type", ReplaceText});
         }
     }
 
@@ -1532,6 +1599,7 @@ public:
             if (expression_source_range.isValid())
             {
                 m_rewriter.ReplaceText(expression_source_range, table_name);
+                g_rewriter_history.push_back({expression_source_range, table_name, ReplaceText});
                 auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
                                        m_rewriter.getSourceMgr(),
                                        m_rewriter.getLangOpts()) + 1;

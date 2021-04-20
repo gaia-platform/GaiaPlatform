@@ -8,14 +8,18 @@ using namespace gaia::translation;
 
 static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 
-table_navigation_t::table_navigation_t()
+table_navigation_t::table_navigation_t() : m_is_initialized(false)
 {
-    fill_table_data();
 }
 
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables) const
+navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
 {
-     navigation_code_data_t return_value;
+    if (!m_is_initialized)
+    {
+        fill_table_data();
+        m_is_initialized = true;
+    }
+    navigation_code_data_t return_value;
     if (m_table_data.empty())
     {
         return navigation_code_data_t();
@@ -35,7 +39,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         .append("_t::get(context->record);\n");
     return_value.postfix = "\n}\n";
 
-    if (tables.size() == 1 && tables.find(anchor_table) != tables.end())
+    if (tables.empty() || (tables.size() == 1 && tables.find(anchor_table) != tables.end()))
     {
         return return_value;
     }
