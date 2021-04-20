@@ -110,7 +110,8 @@ enum class statement_type_t : uint8_t
 {
     create,
     drop,
-    alter
+    alter,
+    use
 };
 
 struct statement_t
@@ -189,6 +190,16 @@ enum class create_type_t : uint8_t
     create_database,
     create_table,
     create_relationship,
+};
+
+struct use_statement_t : statement_t
+{
+    explicit use_statement_t(std::string db_name)
+        : statement_t(statement_type_t::use), database(std::move(db_name))
+    {
+    }
+
+    std::string database;
 };
 
 // TODO: refactoring create statements into sub types, pending index changes (create_index).
