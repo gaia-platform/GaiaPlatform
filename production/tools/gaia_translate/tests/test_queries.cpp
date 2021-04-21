@@ -5,6 +5,8 @@
 
 #include <unistd.h>
 
+#include <atomic>
+
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
@@ -43,6 +45,8 @@ extern int32_t g_oninsert2_value;
 extern int32_t g_oninsert3_value;
 extern int32_t g_onupdate_value;
 extern int32_t g_onupdate3_value;
+
+extern std::atomic<int32_t> g_insert_count;
 
 const int c_rule_execution_step_delay = 5000;
 const int c_rule_execution_total_delay = 25000;
@@ -112,6 +116,7 @@ protected:
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate3_result = test_error_result_t::e_none;
         g_onupdate4_result = test_error_result_t::e_none;
+        g_insert_count = 0;
     }
 
     void TearDown() override
@@ -236,7 +241,8 @@ TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
 
     gaia::rules::initialize_rules_engine();
     // Use the second set of rules.
-    gaia::rules::unsubscribe_ruleset("test_tags");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_queries");
 
     gaia::db::begin_transaction();
     for (auto& s : Student_t::list())
@@ -252,9 +258,13 @@ TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
     gaia::db::commit_transaction();
 
     // GAIAPLAT-801
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(Registration) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(Student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+    EXPECT_EQ(g_onupdate_value, 18) << "Error message here";
 }
+
+const int num_inserts = 4;
+const int sleep_max = 5;
 
 TEST_F(test_queries_code, new_registration)
 {
@@ -264,7 +274,8 @@ TEST_F(test_queries_code, new_registration)
 
     gaia::rules::initialize_rules_engine();
     // Use the second set of rules.
-    gaia::rules::unsubscribe_ruleset("test_tags");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_queries");
 
     // The students will register for a class. The rule, OnInsert(Registration)
     // will decide the status of each registration.
@@ -293,6 +304,12 @@ TEST_F(test_queries_code, new_registration)
     course_5.registrations().insert(reg);
 
     gaia::db::commit_transaction();
+
+    int32_t sleep_count = 0;
+    do
+    {
+        usleep(c_rule_execution_step_delay);
+    } while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
 
     // GAIAPLAT-801
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(Registration) not called";

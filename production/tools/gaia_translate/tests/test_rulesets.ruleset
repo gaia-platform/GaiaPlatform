@@ -107,12 +107,6 @@ ruleset test_tags
     }
 }
 
-Course_t loop_over_prereq(Registration_t R)
-{
-    printf("  %s\n", R.RegId());
-    const auto& c = R.registered_course();
-}
-
 ruleset test_queries
 {
     // This rule is patterned after an example in the document "Paths and
@@ -121,10 +115,9 @@ ruleset test_queries
 
     OnInsert(R:Registration)
     {
-        printf("OnInsert(Registration) = %s\n", Registration.RegId);
-        printf("Course name=%s\n", Course.Name);
+        // printf("OnInsert(Registration) = %s\n", Registration.RegId);
+        // printf("Course name=%s\n", Course.Name);
         Status = "Ineligible";
-        loop_over_prereq(R);
         // Has this Student taken all prerequisites?
         //>for (Course.requires->PreReq.required_by->PC:Course) {
         // for (const auto& p : Course.requires) {
@@ -150,6 +143,7 @@ ruleset test_queries
         //>}
         Status = "Eligible";
 
+        g_insert_count++;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }

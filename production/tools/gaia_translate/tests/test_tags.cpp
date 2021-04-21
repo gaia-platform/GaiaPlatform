@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <unistd.h>
+
 #include <atomic>
 
 #include "gtest/gtest.h"
@@ -111,7 +112,8 @@ TEST_F(test_tags_code, oninsert)
 {
     gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_ruleset("test_queries");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_tags");
 
     // Creating a record should fire OnInsert and OnChange, but not OnUpdate.
     gaia::db::begin_transaction();
@@ -148,7 +150,8 @@ TEST_F(test_tags_code, onchange)
 
     gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_ruleset("test_queries");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing a record should fire OnChange and OnUpdate, but not OnInsert.
     gaia::db::begin_transaction();
@@ -191,7 +194,8 @@ TEST_F(test_tags_code, onupdate)
 
     gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_ruleset("test_queries");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing the Age field should fire OnChange and OnUpdate, but not OnInsert.
     gaia::db::begin_transaction();
@@ -230,7 +234,8 @@ TEST_F(test_tags_code, multi_inserts)
 {
     gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_ruleset("test_queries");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
     Student_t::get(Student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
@@ -246,11 +251,10 @@ TEST_F(test_tags_code, multi_inserts)
     gaia::db::commit_transaction();
 
     int32_t sleep_count = 0;
-    do 
+    do
     {
         usleep(c_rule_execution_step_delay);
-    }
-    while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
+    } while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
 
     EXPECT_EQ(g_insert_count, num_inserts) << "OnInsert(Student) parallel execution failure";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert(Student) failure";
@@ -260,7 +264,8 @@ TEST_F(test_tags_code, basic_tags)
 {
     gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_ruleset("test_queries");
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
     Registration_t::insert_row("reg00H", "pending", "");
