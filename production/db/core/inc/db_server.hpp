@@ -12,6 +12,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <thread>
+#include <utility>
 
 #include "flatbuffers/flatbuffers.h"
 
@@ -36,6 +37,31 @@ public:
     }
 };
 
+class server_conf_t
+{
+public:
+    enum class persistence_mode_t : uint8_t
+    {
+        e_default,
+        e_disabled,
+        e_disabled_after_recovery,
+        e_reinitialized_on_startup,
+    };
+
+public:
+    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string data_dir)
+        : m_persistence_mode(persistence_mode), m_data_dir(std::move(data_dir))
+    {
+    }
+
+    persistence_mode_t persistence_mode();
+    std::string data_dir();
+
+private:
+    persistence_mode_t m_persistence_mode;
+    std::string m_data_dir;
+};
+
 class server_t
 {
     friend gaia::db::locators_t* gaia::db::get_locators();
@@ -48,21 +74,9 @@ class server_t
         size_t size);
 
 public:
-    enum class persistence_mode_t : uint8_t
-    {
-        e_default,
-        e_disabled,
-        e_disabled_after_recovery,
-        e_reinitialized_on_startup,
-    };
-
-    static void run(persistence_mode_t persistence_mode = persistence_mode_t::e_default);
+    static void run(server_conf_t server_conf);
 
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
-
-    static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
-    static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
-    static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
@@ -86,7 +100,7 @@ private:
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
-    static inline std::unique_ptr<persistent_store_manager> rdb{};
+    static inline std::unique_ptr<persistent_store_manager> rdb;
 
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
@@ -96,7 +110,8 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
-    static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
+    static inline server_conf_t::persistence_mode_t s_persistence_mode{server_conf_t::persistence_mode_t::e_default};
+    static inline std::string s_data_dir;
 
     static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};

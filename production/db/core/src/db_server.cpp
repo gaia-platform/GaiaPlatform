@@ -48,6 +48,8 @@ using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
+using persistence_mode_t = server_conf_t::persistence_mode_t;
+
 static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
 static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
 static constexpr char c_message_current_event_is_inconsistent_with_state_transition[]
@@ -691,13 +693,13 @@ address_offset_t server_t::allocate_object(
 void server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
-    if (!(s_persistence_mode == persistence_mode_t::e_disabled))
+    if (s_persistence_mode != persistence_mode_t::e_disabled)
     {
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>();
+            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_data_dir);
             if (s_persistence_mode == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
@@ -2328,10 +2330,11 @@ bool server_t::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server_t::run(persistence_mode_t persistence_mode)
+void server_t::run(server_conf_t server_conf)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_persistence_mode = persistence_mode;
+    s_persistence_mode = server_conf.persistence_mode();
+    s_data_dir = server_conf.data_dir();
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2399,4 +2402,13 @@ void server_t::run(persistence_mode_t persistence_mode)
             ::raise(caught_signal);
         }
     }
+}
+persistence_mode_t server_conf_t::persistence_mode()
+{
+    return m_persistence_mode;
+}
+
+std::string server_conf_t::data_dir()
+{
+    return m_data_dir;
 }
