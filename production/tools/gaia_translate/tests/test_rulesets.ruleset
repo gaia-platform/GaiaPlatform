@@ -166,13 +166,26 @@ ruleset test_queries
 
     OnUpdate(S:Student)
     {
-        int32_t hours = 0;
         // Implicit query from Student to Course.
         // Result should be the total of Hours for all Courses taken by Student.
-        hours += Hours;
+        // This code should eventually work
+        if (false)
+        {
+            int32_t hours = 0;
+            hours += Hours;
+            g_onupdate_value = hours;
+            g_onupdate_result = test_error_result_t::e_none;
+            g_onupdate_called = true;
+        }
+        else
+        {
+            // Temporary code:
+            g_onupdate_value += Hours;
+        }
+    }
 
-        g_onupdate_value = hours;
-        g_onupdate_result = test_error_result_t::e_none;
-        g_onupdate_called = true;
+    OnUpdate (Registration)
+    {
+        g_onupdate_value = TotalHours + Hours;
     }
 }

@@ -233,7 +233,7 @@ protected:
     }
 };
 
-TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
+TEST_F(test_queries_code, basic_implicit_navigation)
 {
     gaia::db::begin_transaction();
     populate_db();
@@ -258,9 +258,47 @@ TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
     gaia::db::commit_transaction();
 
     // GAIAPLAT-801
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(Student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
-    EXPECT_EQ(g_onupdate_value, 18) << "Error message here";
+    // The 801 issue is that the rule including an implicit query loops over the entire
+    // rule, not just the statement including the query. So the mechanisms to return
+    // results implemented within the rule do not work as expected here. Instead, sleep
+    // until the rule has had adequate time to execute.
+    usleep(c_rule_execution_step_delay);
+    // Expected value is hours of math201 (4) plus sci101 (3).
+    EXPECT_EQ(g_onupdate_value, 7) << "Error message here";
+}
+
+TEST_F(test_queries_code, implicit_navigation_fork)
+{
+    gaia::db::begin_transaction();
+    populate_db();
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_queries");
+
+    gaia::db::begin_transaction();
+    for (auto& r : Registration_t::list())
+    {
+        if (strcmp(r.RegId(), "reg003") == 0)
+        {
+            auto rw = r.writer();
+            rw.Grade = "C";
+            rw.update_row();
+            break;
+        }
+    }
+    gaia::db::commit_transaction();
+
+    // GAIAPLAT-801
+    // The 801 issue is that the rule including an implicit query loops over the entire
+    // rule, not just the statement including the query. So the mechanisms to return
+    // results implemented within the rule do not work as expected here. Instead, sleep
+    // until the rule has had adequate time to execute.
+    usleep(c_rule_execution_step_delay);
+    // Expected value is TotalHours of stu001 (4) plus Hours of math101 (3).
+    EXPECT_EQ(g_onupdate_value, 7) << "Error message here";
 }
 
 const int num_inserts = 4;
