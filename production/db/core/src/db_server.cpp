@@ -536,7 +536,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         return;
     }
 
-    for (auto t : s_valid_transitions)
+    for (auto t : c_valid_transitions)
     {
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
         {
@@ -1184,12 +1184,12 @@ void server_t::session_handler(int session_socket)
     }
 }
 
-template <typename T_element_type>
+template <typename T_element>
 void server_t::stream_producer_handler(
-    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element_type>()> generator_fn)
+    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn)
 {
     // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
+    static_assert(std::is_integral<T_element>::value, "Generator function must return an integer.");
 
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
@@ -1204,7 +1204,7 @@ void server_t::stream_producer_handler(
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
 
-    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
+    auto gen_iter = generator_iterator_t<T_element>(generator_fn);
 
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -1236,7 +1236,7 @@ void server_t::stream_producer_handler(
     bool producer_shutdown = false;
 
     // The userspace buffer that we use to construct a batch datagram message.
-    std::vector<T_element_type> batch_buffer;
+    std::vector<T_element> batch_buffer;
 
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
@@ -1296,7 +1296,7 @@ void server_t::stream_producer_handler(
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
                     while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
                     {
-                        T_element_type next_val = *gen_iter;
+                        T_element next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
                         ++gen_iter;
                     }
@@ -1317,7 +1317,7 @@ void server_t::stream_producer_handler(
                         // We don't want to handle signals, so set
                         // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
                         ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element_type),
+                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element),
                             MSG_NOSIGNAL);
 
                         if (bytes_written == -1)
@@ -1371,8 +1371,8 @@ void server_t::stream_producer_handler(
     }
 }
 
-template <typename T_element_type>
-void server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
+template <typename T_element>
+void server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element>()> generator_fn)
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
@@ -1380,7 +1380,7 @@ void server_t::start_stream_producer(int stream_socket, std::function<std::optio
 
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
+        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
 std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(gaia_type_t type)
