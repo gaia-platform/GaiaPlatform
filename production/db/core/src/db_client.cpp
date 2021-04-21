@@ -7,23 +7,16 @@
 
 #include <unistd.h>
 
-#include <csignal>
-
-#include <atomic>
 #include <functional>
 #include <iostream>
 #include <optional>
-#include <string>
 #include <thread>
-#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
 #include <sys/epoll.h>
-#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -35,7 +28,6 @@
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "messages_generated.h"
 
 using namespace gaia::common;
