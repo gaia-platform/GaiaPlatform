@@ -275,11 +275,22 @@ ruleset test22
 // }
 
 // GAIAPLAT-832
-// ruleset testE12
-// {
-//     OnUpdate(incubator)
-//     {
-//         float v = 0;
-//         v += sensor.value > 99.0 ? actuator.value : 99.0;
-//     }
-// }
+/*
+ruleset testE12
+{
+    OnUpdate(incubator)
+    {
+        float v = 0;
+        // The ternary expression below is equivalent to this 'if' statement.
+        // if (sensor.value > 99.0)
+        // {
+        //     v += actuator.value;
+        // }
+        // else
+        // {
+        //     v += 99.0;
+        // }
+        v += sensor.value > 99.0 ? actuator.value : 99.0;
+    }
+}
+*/
