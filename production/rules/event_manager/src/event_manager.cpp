@@ -111,8 +111,6 @@ void event_manager_t::shutdown()
         return;
     }
 
-    gaia_log::rules().debug("Shutting down rules engine...");
-
     // Destroy the thread pool first to ensure that any scheduled rules get a chance to execute.
     // Do not reset the m_invocations pointer yet because executing rules may cause other rules to
     // be scheduled.
