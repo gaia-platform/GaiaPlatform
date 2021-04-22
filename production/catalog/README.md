@@ -58,7 +58,7 @@ out the DDL. The DDL typed in will be executed, and fbs output if any will be
 printed out to the console output.
 
 Under generation mode (`-g`), the tool will generate the following two header
-files either from an DDL file or a specified database.
+files from specified database(s).
 
 - The FlatBuffers header for field access, `<dbname>_generated.h`
 - The EDC header file `gaia_<dbname>.h`
@@ -77,11 +77,11 @@ Enter interactive mode.
 
 ```
 
-Execute DDL statements in `airport.ddl` file using the `airport` database, and
-generate header files for tables in `airport` database.
+Execute DDL statements in `airport.ddl` file, generate header files to the
+`airport` directory for tables in the `airport` database.
 
 ```
-   gaiac -g airport.ddl
+   gaiac -g -d airport airport.ddl
 ```
 
 Generate catalog direct access APIs. This is the command used for bootstrapping.
@@ -92,18 +92,12 @@ Generate catalog direct access APIs. This is the command used for bootstrapping.
 
 ## Databases
 
-There are two ways to create a database and specifying a table in a database:
-first, using DDL; second, using `gaiac` command. When both are specified, the
-DDL definition will override the `gaiac` settings.
-
-### Use DDL
-
 The DDL to create database is `create database`.
 
 To specifying a table in a database, using the composite name of the format
 `[database].[table]`.
 
-#### Examples
+### Examples
 
 A database `addr_book` can be created using the following statement.
 
@@ -126,11 +120,14 @@ create table addr_book.employee (
 );
 ```
 
-As a syntactic sugar, the database name can be omitted when specifying a
-reference to a table in the same database.
+Switch to a database to make the DDL more succinct (by avoid the database name
+when referring to a table) with the `use database` statement. In the following
+example, the `address` table will be created in the `addr_book` database.
 
 ```
-    create table addr_book.address (
+    use addr_book;
+
+    create table address (
         street: string,
         apt_suite: string,
         city: string,
@@ -138,35 +135,7 @@ reference to a table in the same database.
         postal: string,
         country: string,
         current: bool,
-        addresses references employee
     );
-```
-
-### Use `gaiac`
-
-This is the way to create and specify a database before the introduction of the
-database to DDL. The `gaiac` command line usage already documented how to do
-this. See the following examples for more explanation.
-
-#### Examples
-
-In the following command line example, an `airport` database will be created
-automatically. When no database prefix is specified for table names, the tables
-will be created in the `airport` database. (The database prefix can still be
-used to override the database name derived from the DDL file name.)
-
-```
-   gaiac -g airport.ddl
-
-```
-
-The following command line will create all tables in `tmp_airport`. Because a
-database name is specified via `-d`, the command will not create the database
-`tmp_airport` automatically.
-
-```
-   gaiac -d tmp_airport -g airport.ddl
-
 ```
 
 ## Catalog bootstrapping
