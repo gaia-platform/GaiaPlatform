@@ -21,6 +21,11 @@ void initialize_catalog()
     ddl_executor_t::get();
 }
 
+void use_database(const string& name)
+{
+    ddl_executor_t::get().switch_db_context(name);
+}
+
 gaia_id_t create_database(const string& name, bool throw_on_exists)
 {
     return ddl_executor_t::get().create_database(name, throw_on_exists);
@@ -32,12 +37,12 @@ gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields)
 }
 
 gaia_id_t create_table(
-    const string& dbname,
+    const string& db_name,
     const string& name,
     const ddl::field_def_list_t& fields,
     bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
+    return ddl_executor_t::get().create_table(db_name, name, fields, throw_on_exists);
 }
 
 gaia_id_t create_relationship(
@@ -59,14 +64,14 @@ void drop_table(const string& name, bool throw_unless_exists)
     return ddl_executor_t::get().drop_table("", name, throw_unless_exists);
 }
 
-void drop_table(const string& dbname, const string& name, bool throw_unless_exists)
+void drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
-    return ddl_executor_t::get().drop_table(dbname, name, throw_unless_exists);
+    return ddl_executor_t::get().drop_table(db_name, name, throw_unless_exists);
 }
 
-gaia_id_t find_db_id(const string& dbname)
+gaia_id_t find_db_id(const string& db_name)
 {
-    return ddl_executor_t::get().find_db_id(dbname);
+    return ddl_executor_t::get().find_db_id(db_name);
 }
 
 vector<gaia_id_t> list_fields(gaia_id_t table_id)

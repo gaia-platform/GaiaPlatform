@@ -82,6 +82,7 @@
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
 %type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
+%type <std::unique_ptr<gaia::catalog::ddl::use_statement_t>> use_statement
 
 %type <int> opt_array
 %type <bool> opt_if_exists
@@ -97,6 +98,7 @@
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
+%printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
@@ -135,6 +137,7 @@ opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 statement:
   create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| use_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 ;
 
 create_statement:
@@ -167,6 +170,12 @@ drop_statement:
 | DROP DATABASE opt_if_exists IDENTIFIER {
       $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $4);
       $$->if_exists = $3;
+  }
+;
+
+use_statement:
+  USE IDENTIFIER {
+      $$ = std::make_unique<use_statement_t>($2);
   }
 ;
 

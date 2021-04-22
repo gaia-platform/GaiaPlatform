@@ -91,6 +91,11 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
                 drop_database(drop_stmt->name, !drop_stmt->if_exists);
             }
         }
+        else if (stmt->is_type(ddl::statement_type_t::use))
+        {
+            auto use_stmt = dynamic_cast<ddl::use_statement_t*>(stmt.get());
+            use_database(use_stmt->name);
+        }
     }
 }
 

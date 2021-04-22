@@ -194,12 +194,12 @@ enum class create_type_t : uint8_t
 
 struct use_statement_t : statement_t
 {
-    explicit use_statement_t(std::string db_name)
-        : statement_t(statement_type_t::use), database(std::move(db_name))
+    explicit use_statement_t(std::string name)
+        : statement_t(statement_type_t::use), name(std::move(name))
     {
     }
 
-    std::string database;
+    std::string name;
 };
 
 // TODO: refactoring create statements into sub types, pending index changes (create_index).
@@ -412,6 +412,14 @@ public:
  * Initialize the catalog.
 */
 void initialize_catalog();
+
+/**
+ * Switch to the database.
+ *
+ * @param name database name
+ * @throw db_not_exists
+ */
+void use_database(const std::string& name);
 
 /**
  * Create a database in the catalog.
