@@ -128,9 +128,6 @@ private:
     static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(int stream_socket);
 
-    static std::function<std::optional<int>()>
-    get_fd_stream_generator_for_socket(int stream_socket);
-
     /**
      *  Check if an event should be generated for a given type.
      */

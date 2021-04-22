@@ -48,17 +48,22 @@ public:
         e_reinitialized_on_startup,
     };
 
+    static constexpr char c_default_session_name[] = "gaia_default_session";
+    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
+
 public:
-    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string data_dir)
-        : m_persistence_mode(persistence_mode), m_data_dir(std::move(data_dir))
+    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string session_name, std::string data_dir)
+        : m_persistence_mode(persistence_mode), m_session_name(std::move(session_name)), m_data_dir(std::move(data_dir))
     {
     }
 
     persistence_mode_t persistence_mode();
-    std::string data_dir();
+    const std::string& session_name();
+    const std::string& data_dir();
 
 private:
     persistence_mode_t m_persistence_mode;
+    std::string m_session_name;
     std::string m_data_dir;
 };
 
@@ -212,8 +217,6 @@ private:
 
     static void init_memory_manager();
 
-    static void free_uncommitted_allocations(messages::session_event_t txn_status);
-
     static void init_shared_memory();
 
     static void recover_db();
@@ -269,8 +272,6 @@ private:
     static bool validate_txn(gaia_txn_id_t commit_ts);
 
     static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
-
-    static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 

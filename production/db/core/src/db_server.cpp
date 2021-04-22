@@ -2408,7 +2408,12 @@ persistence_mode_t server_conf_t::persistence_mode()
     return m_persistence_mode;
 }
 
-std::string server_conf_t::data_dir()
+const std::string& server_conf_t::data_dir()
 {
     return m_data_dir;
+}
+
+const std::string& server_conf_t::session_name()
+{
+    return m_session_name;
 }

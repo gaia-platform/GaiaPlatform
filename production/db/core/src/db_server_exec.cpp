@@ -7,8 +7,6 @@
 #include <iostream>
 #include <string>
 
-#include "gaia/system.hpp"
-
 #include "gaia_internal/common/config.hpp"
 
 #include "cpptoml.h"
@@ -18,9 +16,11 @@ using namespace gaia::common;
 using namespace gaia::db;
 
 static constexpr char c_data_dir_command_flag[] = "--data-dir";
+static constexpr char c_session_command_flag[] = "--session";
 static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
 static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
+static constexpr char c_conf_file_flag[] = "--configuration-file-path";
 
 static void usage()
 {
@@ -37,7 +37,7 @@ static void usage()
         << c_data_dir_command_flag
         << " <data dir>]\n"
         << "                      ["
-        << gaia::common::c_conf_file_flag
+        << c_conf_file_flag
         << " <config file path>]"
         << std::endl;
     std::exit(1);
@@ -67,12 +67,17 @@ static void expand_home_path(std::string& path)
     path = home + path.substr(1);
 }
 
+static std::string get_config_value()
+{
+}
+
 static server_conf_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_flags;
     const char* conf_file_path = nullptr;
 
-    server_conf_t::persistence_mode_t persistence_mode{server_conf_t::persistence_mode_t::e_default};
+    server_conf_t::persistence_mode_t persistence_mode{server_conf_t::c_default_persistence_mode};
+    std::string session_name{server_conf_t::c_default_session_name};
     std::string data_dir;
 
     for (int i = 1; i < argc; ++i)
@@ -92,12 +97,15 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
         else if ((strcmp(argv[i], c_data_dir_command_flag) == 0) && (i + 1 < argc))
         {
-            //            gaia::db::persistent_store_manager::s_data_dir_path = argv[++i];
             data_dir = argv[++i];
         }
-        else if ((strcmp(argv[i], gaia::common::c_conf_file_flag) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_conf_file_flag) == 0) && (i + 1 < argc))
         {
             conf_file_path = argv[++i];
+        }
+        else if ((strcmp(argv[i], c_session_command_flag) == 0) && (i + 1 < argc))
+        {
+            session_name = argv[++i];
         }
         else
         {
@@ -216,7 +224,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
     }
 
-    return server_conf_t{persistence_mode, data_dir};
+    return server_conf_t{persistence_mode, session_name, data_dir};
 }
 
 int main(int argc, char* argv[])
