@@ -638,7 +638,7 @@ void client_t::rollback_chunk_manager_allocations()
         "List of previous chunk managers was not emptied by the end of rollback!");
 }
 
-const char* gaia::db::triggers::describe_event_type(event_type_t event_type)
+const char* gaia::db::triggers::event_type_name(event_type_t event_type)
 {
     switch (event_type)
     {

@@ -26,7 +26,7 @@ enum class event_type_t : uint32_t
 /**
  * Returns a string representation of the event type.
  */
-const char* describe_event_type(event_type_t event_type);
+const char* event_type_name(event_type_t event_type);
 
 } // namespace triggers
 } // namespace db

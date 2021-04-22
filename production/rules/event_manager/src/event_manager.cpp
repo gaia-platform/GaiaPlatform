@@ -15,7 +15,6 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
-#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
@@ -138,7 +137,7 @@ void event_manager_t::process_last_operation_events(
 
     for (auto const& binding : rules)
     {
-        gaia_log::rules().trace("Enqueue table event:{}, txn_id:{}, gaia_type:{}, gaia_id:{}", describe_event_type(event.event_type), event.txn_id, event.gaia_type, event.record);
+        gaia_log::rules().trace("Enqueue table event:'{}', txn_id:'{}', gaia_type:'{}', gaia_id:'{}'", event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
         enqueue_invocation(event, binding, start_time);
     }
 }
@@ -167,8 +166,8 @@ void event_manager_t::process_field_events(
             for (auto const& binding : rules)
             {
                 gaia_log::rules().trace(
-                    "Enqueue field event:{}, txn_id:{}, gaia_type:{}, field_id:{}, gaia_id:{}",
-                    describe_event_type(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
+                    "Enqueue field event:'{}', txn_id:'{}', gaia_type:'{}', field_id:'{}', gaia_id:'{}'",
+                    event_type_name(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
 
                 enqueue_invocation(event, binding, start_time);
             }
@@ -195,9 +194,10 @@ void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_l
         // TODO logging this as db() and not as rules() for 2 reasons:
         //   1. This should be logged in the DB but we have no logging there yet.
         //   2. I don't want to pollute the rules() output too much.
+        // When DB logging is available move this statement there.
         gaia_log::db().trace(
-            "commit_trigger:{} txn_id:{}, gaia_type:{}, gaia_id:{}",
-            describe_event_type(event.event_type), event.txn_id, event.gaia_type, event.record);
+            "commit_trigger:'{}' txn_id:'{}', gaia_type:'{}', gaia_id:'{}'",
+            event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
 
         auto type_it = m_subscriptions.find(event.gaia_type);
         if (type_it != m_subscriptions.end())
@@ -380,6 +380,7 @@ bool event_manager_t::unsubscribe_rule(
 
 void event_manager_t::unsubscribe_rules()
 {
+    gaia_log::rules().debug("Unsubscribing all rules.");
     m_subscriptions.clear();
     m_rules.clear();
 }
