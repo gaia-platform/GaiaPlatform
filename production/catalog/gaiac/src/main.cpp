@@ -12,12 +12,14 @@
 
 #include "flatbuffers/idl.h"
 
+#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_test_helpers.hpp"
 
 #include "command.hpp"
@@ -42,9 +44,8 @@ enum class operate_mode_t
     loading,
 };
 
-void start_repl(parser_t& parser, const string& db_name)
+void start_repl(parser_t& parser)
 {
-    gaia::db::begin_session();
     initialize_catalog();
 
     const auto prompt = "gaiac> ";
@@ -78,7 +79,7 @@ void start_repl(parser_t& parser, const string& db_name)
             int parsing_result = parser.parse_line(line);
             if (parsing_result == EXIT_SUCCESS)
             {
-                execute(db_name, parser.statements);
+                execute(parser.statements);
             }
             else
             {
@@ -90,8 +91,6 @@ void start_repl(parser_t& parser, const string& db_name)
             cerr << c_error_prompt << e.what() << endl;
         }
     }
-
-    gaia::db::end_session();
 }
 
 // From the database name and catalog contents, generate the FlatBuffers C++ header file(s).
@@ -121,11 +120,10 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
 }
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
-void generate_edc_headers(const string& db_name, const string& output_path)
+void generate_edc_headers(const string& db_name, const filesystem::path& output_path)
 {
-    std::string header_path = output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
-
-    cout << "Generating EDC headers in: '" << std::filesystem::absolute(header_path).string() << "'." << endl;
+    filesystem::path header_path = output_path;
+    header_path /= "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
 
     ofstream edc(header_path);
     try
@@ -140,10 +138,25 @@ void generate_edc_headers(const string& db_name, const string& output_path)
     edc.close();
 }
 
-void generate_headers(const string& db_name, const string& output_path)
+void generate_headers(const string& db_name, const filesystem::path& output_path)
 {
-    generate_fbs_headers(db_name, output_path);
-    generate_edc_headers(db_name, output_path);
+    filesystem::path absolute_output_path = filesystem::absolute(output_path);
+    absolute_output_path += filesystem::path::preferred_separator;
+    absolute_output_path = absolute_output_path.lexically_normal();
+
+    if (!filesystem::exists(absolute_output_path))
+    {
+        filesystem::create_directory(output_path);
+    }
+    else if (!filesystem::is_directory(absolute_output_path))
+    {
+        throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
+    }
+
+    cout << "Generating headers in: '" << absolute_output_path << "'." << endl;
+
+    generate_fbs_headers(db_name, absolute_output_path);
+    generate_edc_headers(db_name, absolute_output_path);
 }
 
 // Check if a database name is valid.
@@ -170,15 +183,6 @@ bool valid_db_name(const string& db_name)
         }
     }
     return true;
-}
-
-// Add a trailing '/' if not provided.
-void terminate_path(string& path)
-{
-    if (path.back() != '/')
-    {
-        path.append("/");
-    }
 }
 
 string usage()
@@ -236,11 +240,12 @@ int main(int argc, char* argv[])
     int res = EXIT_SUCCESS;
     server_t server;
     string output_path;
-    string db_name;
+    vector<string> db_names;
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
     bool remove_persistent_store = false;
+    const char* path_to_db_server = nullptr;
 
     // If no arguments are specified print the help.
     if (argc == 1)
@@ -274,16 +279,7 @@ int main(int argc, char* argv[])
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
             }
-            const char* path_to_db_server = argv[i];
-            server.set_path(path_to_db_server);
-            if (remove_persistent_store)
-            {
-                server.start();
-            }
-            else
-            {
-                server.start_and_retain_persistent_store();
-            }
+            path_to_db_server = argv[i];
         }
         else if (argv[i] == string("-o") || argv[i] == string("--output"))
         {
@@ -293,7 +289,6 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
             output_path = argv[i];
-            terminate_path(output_path);
         }
         else if (argv[i] == string("-d") || argv[i] == string("--db-name"))
         {
@@ -302,7 +297,15 @@ int main(int argc, char* argv[])
                 cerr << c_error_prompt << "Missing database name." << endl;
                 exit(EXIT_FAILURE);
             }
-            db_name = argv[i];
+            string db_name = argv[i];
+            if (!valid_db_name(db_name))
+            {
+                cerr << c_error_prompt
+                     << "The database name '" + db_name + "' is invalid."
+                     << endl;
+                exit(EXIT_FAILURE);
+            }
+            db_names.push_back(db_name);
         }
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
@@ -324,55 +327,57 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (!valid_db_name(db_name))
+    if (path_to_db_server)
     {
-        cerr << c_error_prompt
-             << "The database name '" + db_name + "' supplied from the command line is incorrectly formatted."
-             << endl;
-        exit(EXIT_FAILURE);
+        server.set_path(path_to_db_server);
+        if (remove_persistent_store)
+        {
+            server.start();
+        }
+        else
+        {
+            server.start_and_retain_persistent_store();
+        }
     }
 
-    // This indicates if we should try to create the database automatically. If
-    // the database name is derived from the ddl file name, we will try to
-    // create the database for the user. This is to keep backward compatible
-    // with existing build scripts. Use '-d <db_name>' to avoid this behavior.
-    // GAIAPLAT-585 tracks the work to remove this behavior.
-    bool create_db = false;
-    if (!ddl_filename.empty() && db_name.empty())
-    {
-        db_name = get_db_name_from_filename(ddl_filename);
-        create_db = true;
-    }
-
-    if (!valid_db_name(db_name))
-    {
-        cerr << c_error_prompt
-             << "The database name '" + db_name + "' derived from the filename is incorrectly formatted."
-             << endl;
-        exit(EXIT_FAILURE);
-    }
+    gaia::db::begin_session();
+    auto close_db_session = scope_guard::make_scope_guard([&]() {
+        gaia::db::end_session();
+    });
 
     if (mode == operate_mode_t::interactive)
     {
-        start_repl(parser, db_name);
+        start_repl(parser);
     }
     else
     {
         try
         {
-            gaia::db::begin_session();
             initialize_catalog();
 
             if (!ddl_filename.empty())
             {
-                load_catalog(parser, ddl_filename, db_name, create_db);
+                load_catalog(parser, ddl_filename);
+
+                if (output_path.empty())
+                {
+                    output_path = filesystem::path(ddl_filename).stem();
+                }
             }
 
             if (mode == operate_mode_t::generation)
             {
-                generate_headers(db_name, output_path);
+                // Generate headers for the default global database if no database is given.
+                if (db_names.empty())
+                {
+                    db_names.emplace_back("");
+                }
+
+                for (const auto& db_name : db_names)
+                {
+                    generate_headers(db_name, output_path);
+                }
             }
-            gaia::db::end_session();
         }
         catch (gaia::common::system_error& e)
         {

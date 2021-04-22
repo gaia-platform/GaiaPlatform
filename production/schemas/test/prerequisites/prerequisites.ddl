@@ -1,3 +1,12 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
+
+create database if not exists prerequisites;
+
+use prerequisites;
+
 create table Student (
     StudentId string,
     Surname string,
