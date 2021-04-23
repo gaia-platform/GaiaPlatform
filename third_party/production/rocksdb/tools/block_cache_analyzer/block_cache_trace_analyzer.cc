@@ -2054,8 +2054,8 @@ void BlockCacheTraceAnalyzer::PrintStatsSummary() const {
 }
 
 std::vector<CacheConfiguration> parse_cache_config_file(
-    const std::string& config_path) {
-  std::ifstream file(config_path);
+    const std::string& m_config_path) {
+  std::ifstream file(m_config_path);
   if (!file.is_open()) {
     return {};
   }

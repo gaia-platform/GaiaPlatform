@@ -7,13 +7,20 @@
 #include <iostream>
 #include <string>
 
+#include "spdlog/fmt/fmt.h"
+
+#include "gaia/logger.hpp"
+
 #include "gaia_internal/common/config.hpp"
+#include "gaia_internal/common/timer.hpp"
 
 #include "cpptoml.h"
 #include "db_server.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+
+using gaia_timer_t = gaia::common::timer_t;
 
 static constexpr char c_data_dir_command_flag[] = "--data-dir";
 static constexpr char c_session_command_flag[] = "--session";
@@ -67,18 +74,87 @@ static void expand_home_path(std::string& path)
     path = home + path.substr(1);
 }
 
-static std::string get_config_value()
+class lazy_gaia_conf
 {
-}
+public:
+    explicit lazy_gaia_conf(std::string config_path)
+        : m_config_path(std::move(config_path))
+    {
+    }
+
+    template <class T_value>
+    std::optional<T_value> get_value(const char* key)
+    {
+        auto root_config = get_root_config();
+
+        if (!root_config)
+        {
+            return std::nullopt;
+        }
+
+        auto val = root_config->template get_qualified_as<T_value>(key);
+
+        if (val)
+        {
+            return {*val};
+        }
+
+        return std::nullopt;
+    }
+
+private:
+    std::string m_config_path;
+    std::shared_ptr<cpptoml::table> m_root_config = nullptr;
+    bool m_is_initialized = false;
+
+private:
+    std::shared_ptr<cpptoml::table> get_root_config()
+    {
+        if (m_is_initialized)
+        {
+            return m_root_config;
+        }
+
+        std::string gaia_configuration_file = gaia::common::get_conf_file_path(
+            m_config_path.c_str(), c_default_conf_file_name);
+
+        m_is_initialized = true;
+
+        if (gaia_configuration_file.empty())
+        {
+            std::cerr
+                << "No configuration file found." << std::endl;
+
+            return nullptr;
+        }
+        else
+        {
+            std::cerr
+                << "Configuration file found at '"
+                << gaia_configuration_file
+                << "'." << std::endl;
+        }
+
+        m_root_config = cpptoml::parse_file(gaia_configuration_file);
+        return m_root_config;
+    }
+};
 
 static server_conf_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_flags;
-    const char* conf_file_path = nullptr;
 
     server_conf_t::persistence_mode_t persistence_mode{server_conf_t::c_default_persistence_mode};
-    std::string session_name{server_conf_t::c_default_session_name};
+    std::string instance_name;
     std::string data_dir;
+    std::string conf_file_path;
+
+    // TODO argument parsing needs refactoring. ATM it is unclear:
+    //  - what arguments are optional/mandatory
+    //  - which ones can be read from a configuration file
+    //  - whether the config file is mandatory in the first place.
+    //  These things are eventually clear if you read the entire code, it should not be like that.
+    //  https://www.boost.org/doc/libs/1_36_0/doc/html/program_options/tutorial.html#id3451469
 
     for (int i = 1; i < argc; ++i)
     {
@@ -105,7 +181,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
         else if ((strcmp(argv[i], c_session_command_flag) == 0) && (i + 1 < argc))
         {
-            session_name = argv[++i];
+            instance_name = argv[++i];
         }
         else
         {
@@ -118,27 +194,37 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
     }
 
-    std::string gaia_configuration_file;
+    lazy_gaia_conf gaia_conf{conf_file_path};
+
     if (data_dir.empty() && (persistence_mode != server_conf_t::persistence_mode_t::e_disabled))
     {
-        // Since there is no --data-dir parameter, locate it from the configuration.
-        gaia_configuration_file = gaia::common::get_conf_file_path(conf_file_path, c_default_conf_file_name);
-        if (!gaia_configuration_file.empty())
+        auto data_dir_string = gaia_conf.get_value<std::string>(c_data_dir_string_key);
+        // There are two cases of s_data_dir "missing" from the configuration file. First, if the
+        // s_data_dir key doesn't exist. Second, if the s_data_dir key exists, but the value doesn't
+        // exist. Either way, we don't care, and the effect is that we obtain no data_dir_string
+        // from the configuration file.
+        if (data_dir_string)
         {
-            std::shared_ptr<cpptoml::table> root_config = cpptoml::parse_file(gaia_configuration_file);
-            auto data_dir_string = root_config->get_qualified_as<std::string>(c_data_dir_string_key);
-            // There are two cases of s_data_dir "missing" from the configuration file. First, if the
-            // s_data_dir key doesn't exist. Second, if the s_data_dir key exists, but the value doesn't
-            // exist. Either way, we don't care, and the effect is that we obtain no data_dir_string
-            // from the configuration file.
-            if (data_dir_string)
+            // The 's_data_dir' key exists. Make sure it is non-empty.
+            if (!data_dir_string->empty())
             {
-                // The 's_data_dir' key exists. Make sure it is non-empty.
-                if (!data_dir_string->empty())
-                {
-                    data_dir = *data_dir_string;
-                }
+                data_dir = *data_dir_string;
             }
+        }
+    }
+
+    if (instance_name.empty())
+    {
+        auto instance_name_string = gaia_conf.get_value<std::string>(c_data_dir_string_key);
+
+        if (instance_name_string)
+        {
+            instance_name = *instance_name_string;
+        }
+
+        if (instance_name.empty())
+        {
+            instance_name = gaia::db::c_default_instance_name;
         }
     }
 
@@ -161,24 +247,11 @@ static server_conf_t process_command_line(int argc, char* argv[])
             << "Persistence is reinitialized on startup." << std::endl;
     }
 
+    std::cerr
+        << "Database session name is '" << instance_name << "'." << std::endl;
+
     if (persistence_mode != server_conf_t::persistence_mode_t::e_disabled)
     {
-        if (data_dir.empty())
-        {
-            if (!gaia_configuration_file.empty())
-            {
-                std::cerr
-                    << "Configuration file found at '"
-                    << gaia_configuration_file
-                    << "'." << std::endl;
-            }
-            else
-            {
-                std::cerr
-                    << "No configuration file found." << std::endl;
-            }
-        }
-
         if (data_dir.empty())
         {
             std::cerr
@@ -224,12 +297,61 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
     }
 
-    return server_conf_t{persistence_mode, session_name, data_dir};
+    return server_conf_t{persistence_mode, instance_name, data_dir};
 }
+
+#include <strstream>
 
 int main(int argc, char* argv[])
 {
-    auto server_conf = process_command_line(argc, argv);
+    //    auto server_conf = process_command_line(argc, argv);
 
-    gaia::db::server_t::run(server_conf);
+    //    gaia::db::server_t::run(server_conf);
+
+    std::string str1 = "Hello World";
+    const char* str2 = "Ciao Mondo";
+
+    int num_iter = 10000;
+
+    int sizes[num_iter];
+
+    std::chrono::steady_clock::time_point start;
+
+    std::cout << "Num Iter: " << num_iter << std::endl;
+
+    start = gaia_timer_t::get_time_point();
+    for (int i = 0; i < num_iter; i++)
+    {
+        std::string final = fmt::format("{}_{}_{}", str1, str2, i);
+        sizes[i] = final.size();
+    }
+    gaia_timer_t::log_duration(start, "fmt");
+
+    start = gaia_timer_t::get_time_point();
+    for (int i = 0; i < num_iter; i++)
+    {
+        std::ostringstream ss;
+        ss << str1 << "_" << str2 << "_" << i;
+        std::string final = ss.str();
+        sizes[i] = final.size();
+    }
+    gaia_timer_t::log_duration(start, "ostringstream");
+
+    start = gaia_timer_t::get_time_point();
+    for (int i = 0; i < num_iter; i++)
+    {
+        std::stringstream ss;
+        ss << str1 << "_" << str2 << "_" << i;
+        std::string final = ss.str();
+        sizes[i] = final.size();
+    }
+    gaia_timer_t::log_duration(start, "stringstream");
+
+    start = gaia_timer_t::get_time_point();
+    for (int i = 0; i < num_iter; i++)
+    {
+        std::string final = str1 + "_" + str2 + "_" + std::to_string(i);
+        sizes[i] = final.size();
+    }
+    gaia_timer_t::log_duration(start, "string concat");
 }

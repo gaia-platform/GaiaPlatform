@@ -54,14 +54,5 @@ string get_conf_file_path(const char* user_file_path, const char* default_filena
     return str;
 }
 
-config_t::config_t(std::string config_path, bool search_default)
-{
-    auto real_config_path = gaia::common::get_conf_file_path(config_path.c_str(), c_default_conf_file_name);
-
-    if (real_config_path.empty())
-    {
-        throw configu
-    }
-}
 } // namespace common
 } // namespace gaia

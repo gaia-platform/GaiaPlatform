@@ -48,22 +48,21 @@ public:
         e_reinitialized_on_startup,
     };
 
-    static constexpr char c_default_session_name[] = "gaia_default_session";
     static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
 
 public:
-    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string session_name, std::string data_dir)
-        : m_persistence_mode(persistence_mode), m_session_name(std::move(session_name)), m_data_dir(std::move(data_dir))
+    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
+        : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir))
     {
     }
 
     persistence_mode_t persistence_mode();
-    const std::string& session_name();
+    const std::string& instance_name();
     const std::string& data_dir();
 
 private:
     persistence_mode_t m_persistence_mode;
-    std::string m_session_name;
+    std::string m_instance_name;
     std::string m_data_dir;
 };
 
@@ -117,6 +116,7 @@ private:
 
     static inline server_conf_t::persistence_mode_t s_persistence_mode{server_conf_t::persistence_mode_t::e_default};
     static inline std::string s_data_dir;
+    static inline std::string s_instance_name;
 
     static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
@@ -225,11 +225,11 @@ private:
 
     static void signal_handler(sigset_t sigset, int& signum);
 
-    static void init_listening_socket();
+    static void init_listening_socket(const std::string& socket_name);
 
     static bool authenticate_client_socket(int socket);
 
-    static void client_dispatch_handler();
+    static void client_dispatch_handler(const std::string& socket_name);
 
     static void session_handler(int session_socket);
 

@@ -48,7 +48,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
         root_config = cpptoml::parse_file(gaia_config_str);
     }
 
-    // This root_config can be in one of three states that must be handled by component initialization functions.
+    // This m_root_config can be in one of three states that must be handled by component initialization functions.
     // 1) Null:  No configuration file was passed in and no default could be found.
     // 2) Empty: There is an underlying table but there were no sections or keys in it.
     // 3) Populated:  Underlying table was parsed and there are sections and keys.

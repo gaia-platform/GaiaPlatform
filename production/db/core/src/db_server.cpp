@@ -623,10 +623,10 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(c_gaia_mem_locators);
-    s_shared_counters.create(c_gaia_mem_counters);
-    s_shared_data.create(c_gaia_mem_data);
-    s_shared_id_index.create(c_gaia_mem_id_index);
+    //    s_shared_locators.create(c_gaia_mem_locators);
+    //    s_shared_counters.create(c_gaia_mem_counters);
+    //    s_shared_data.create(c_gaia_mem_data);
+    //    s_shared_id_index.create(c_gaia_mem_id_index);
 
     init_memory_manager();
 
@@ -747,7 +747,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
     signal_eventfd(s_server_shutdown_eventfd);
 }
 
-void server_t::init_listening_socket()
+void server_t::init_listening_socket(const std::string& socket_name)
 {
     // Launch a connection-based listening Unix socket on a well-known address.
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
@@ -769,12 +769,12 @@ void server_t::init_listening_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    static_assert(sizeof(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
+    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], c_db_server_socket_name, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], socket_name.c_str(), sizeof(server_addr.sun_path) - 1);
 
     // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but
@@ -874,7 +874,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
     }
 }
 
-void server_t::client_dispatch_handler()
+void server_t::client_dispatch_handler(const std::string& socket_name)
 {
     // Register session cleanup handler first, so we can execute it last.
     auto session_cleanup = make_scope_guard([]() {
@@ -888,7 +888,7 @@ void server_t::client_dispatch_handler()
     });
 
     // Start listening for incoming client connections.
-    init_listening_socket();
+    init_listening_socket(socket_name);
     // We close the listening socket before waiting for session threads to exit,
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
@@ -2335,6 +2335,7 @@ void server_t::run(server_conf_t server_conf)
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_persistence_mode = server_conf.persistence_mode();
     s_data_dir = server_conf.data_dir();
+    s_instance_name = server_conf.instance_name();
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2366,7 +2367,7 @@ void server_t::run(server_conf_t server_conf)
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         // Launch thread to listen for client connections and create session threads.
-        std::thread client_dispatch_thread(client_dispatch_handler);
+        std::thread client_dispatch_thread(client_dispatch_handler, s_instance_name);
 
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
@@ -2413,7 +2414,7 @@ const std::string& server_conf_t::data_dir()
     return m_data_dir;
 }
 
-const std::string& server_conf_t::session_name()
+const std::string& server_conf_t::instance_name()
 {
-    return m_session_name;
+    return m_instance_name;
 }

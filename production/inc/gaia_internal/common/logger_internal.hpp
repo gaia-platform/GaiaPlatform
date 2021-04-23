@@ -33,7 +33,7 @@ namespace logging
 /**
  * Gaia Internal logging API. Please use the loggers defined in this file.
  *
- * The logging system MUST be initialized calling `initialize(const string& config_path)`.
+ * The logging system MUST be initialized calling `initialize(const string& m_config_path)`.
  *
  * The logging is performed via logger_t objects. Each instance of this class represent
  * a separated logger. Different submodules should use different loggers.

@@ -15,9 +15,9 @@ bool gaia::db::is_transaction_active()
     return gaia::db::client_t::is_transaction_active();
 }
 
-void gaia::db::begin_session()
+void gaia::db::begin_session(gaia::db::session_opts_t session_opts)
 {
-    gaia::db::client_t::begin_session();
+    gaia::db::client_t::begin_session(session_opts);
 }
 
 void gaia::db::end_session()
@@ -84,4 +84,10 @@ uint64_t gaia::db::transaction_id()
         (txn_id == 0) == (obfuscated_txn_id == 0),
         "An internal txn_id of 0 must be mapped to an external txn_id of 0!");
     return obfuscated_txn_id;
+}
+
+gaia::db::session_opts_t gaia::db::get_default_session_opts()
+{
+    return gaia::db::session_opts_t{
+        .instance_name = c_default_instance_name};
 }

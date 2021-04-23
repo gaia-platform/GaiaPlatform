@@ -156,9 +156,16 @@ public:
     }
 };
 
+struct session_opts_t
+{
+    std::string instance_name;
+};
+
+session_opts_t get_default_session_opts();
+
 bool is_transaction_active();
 uint64_t transaction_id();
-void begin_session();
+void begin_session(session_opts_t session_opts = get_default_session_opts());
 void end_session();
 void begin_transaction();
 void rollback_transaction();

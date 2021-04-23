@@ -56,7 +56,7 @@ public:
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.
-    static void begin_session();
+    static void begin_session(session_opts_t session_opts);
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
@@ -118,7 +118,7 @@ private:
 
     static void apply_txn_log(int log_fd);
 
-    static int get_session_socket();
+    static int get_session_socket(const std::string& socket_name);
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
 
