@@ -1476,7 +1476,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
           ValueDecl *decl = declExpr->getDecl();
           if (decl->hasAttr<GaiaFieldAttr>() ||
             decl->hasAttr<FieldTableAttr>()||
-            decl->hasAttr<GaiaExplicitPathAttr>)
+            decl->hasAttr<GaiaExplicitPathAttr>())
           {
             auto tableAttr = decl->getAttr<FieldTableAttr>();
             auto pathAttr = decl->getAttr<GaiaExplicitPathAttr>();
