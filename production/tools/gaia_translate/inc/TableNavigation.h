@@ -55,7 +55,8 @@ public:
     }
 
     navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables);
-
+    navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
+        unordered_map<string, string> tags, bool is_absolute);
 private:
     class db_monitor_t
     {
@@ -89,7 +90,11 @@ private:
     void fill_table_data();
     string get_closest_table(const unordered_map<string, int>& table_distance) const;
     bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path) const;
+    string get_variable_name(const string& table, const unordered_map<string, string>& tags) const;
     string generate_random_string(string::size_type length) const;
+    unordered_map<string, string> generate_dummy_tag_map (const unordered_set<string>& tables) const;
+    navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
+        unordered_map<string, string> tags,  string& last_table);
     bool m_is_initialized;
     unordered_map<string, table_data_t> m_table_data;
     unordered_multimap<string, table_link_data_t> m_table_relationship_1;

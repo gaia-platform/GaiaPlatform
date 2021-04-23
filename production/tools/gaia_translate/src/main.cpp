@@ -64,14 +64,24 @@ namespace std
     {
         std::size_t operator()(SourceRange const& range) const noexcept
         {
-            std::size_t h1 = std::hash<unsigned int>{}(range.getBegin().getRawEncoding());
-            std::size_t h2 = std::hash<unsigned int>{}(range.getEnd().getRawEncoding());
-            return h1 ^ (h2 << 1);
+            return std::hash<unsigned int>{}(
+                (range.getBegin().getRawEncoding() << 16) |
+                (range.getEnd().getRawEncoding() & 0xFFFF));
         }
     };
 } // namespace std
 
+struct explicit_path_data_t
+{
+    vector<string> path_components;
+    unordered_map<string,string> tag_map;
+    bool is_absolute_path;
+};
+
 unordered_map<SourceRange, unordered_set<string>> g_expression_used_tables;
+unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
+
+
 
 unordered_set<string> g_used_dbs;
 
@@ -407,7 +417,6 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append("binding);\n");
     }
 
-
     string function_prologue = "\n";
     function_prologue
         .append(c_nolint_identifier_naming)
@@ -693,12 +702,6 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto *expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 2;
-            return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
-            return_value.setBegin(expression->getBeginLoc());
-
             return get_expression_source_range(context, *expression, return_value, rewriter);;
         }
         else if (const auto *expression = node_parents_iterator.get<CallExpr>())
@@ -827,12 +830,79 @@ void update_expression_used_tables(ASTContext* context, const Stmt* node, const 
             tables.insert(expression_tables_iterator.second.begin(), expression_tables_iterator.second.end());
             g_expression_used_tables.erase(expression_tables_iterator.first);
         }
-
     }
 
     tables.insert(table);
     g_expression_used_tables[expression_source_range] = tables;
+}
 
+void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, const explicit_path_data_t& data, const SourceRange& source_range, Rewriter& rewriter)
+{
+    if (node == nullptr || data.path_components.empty())
+    {
+        return;
+    }
+
+    SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
+    if (expression_source_range.isInvalid())
+    {
+        return;
+    }
+
+    auto expression_explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
+    if (expression_explicit_path_data_iterator != g_expression_explicit_path_data.end())
+    {
+        expression_explicit_path_data_iterator->second.push_back(data);
+        return;
+    }
+
+    vector<explicit_path_data_t> path_data;
+
+    for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
+    {
+        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() &&
+             expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
+        {
+            expression_explicit_path_data_iterator.second.push_back(data);
+            return;
+        }
+        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() &&
+            expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
+        {
+            expression_explicit_path_data_iterator.second.push_back(data);
+            return;
+        }
+
+        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() &&
+            expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
+        {
+            expression_explicit_path_data_iterator.second.push_back(data);
+            return;
+        }
+
+        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() &&
+             expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd())
+        {
+            path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
+            g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
+        }
+        if ( expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
+            expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
+        {
+            path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
+            g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
+        }
+
+        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
+            expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd() )
+        {
+            path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
+            g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
+        }
+    }
+
+    path_data.push_back(data);
+    g_expression_explicit_path_data[expression_source_range] = path_data;
 }
 
 class field_get_match_handler_t : public MatchFinder::MatchCallback
@@ -854,6 +924,7 @@ public:
         string table_name;
         string field_name;
         SourceRange expression_source_range;
+        SourceRange explicit_path_range;
         if (expression != nullptr)
         {
             const ValueDecl* decl = expression->getDecl();
@@ -863,6 +934,44 @@ public:
             }
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
+
+            const GaiaExplicitPathAttr* explicit_path_attribute = decl->getAttr<GaiaExplicitPathAttr>();
+            if (explicit_path_attribute != nullptr)
+            {
+                string explicit_path = explicit_path_attribute->getPath().str();
+                explicit_path_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
+                explicit_path_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
+                vector<string> path_components;
+                unordered_map<string, string> tag_map;
+                for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
+                {
+                    path_components.push_back(path_component_iterator);
+                }
+                const GaiaExplicitPathTagKeysAttr* explicit_path_tag_key_attribute = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
+                const GaiaExplicitPathTagValuesAttr* explicit_path_tag_value_attribute = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
+                if (explicit_path_tag_key_attribute->tagMapKeys_size() != explicit_path_tag_value_attribute->tagMapValues_size())
+                {
+                    g_is_generation_error = true;
+                    return;
+                }
+                vector<string> tag_map_keys;
+                vector<string> tag_map_values;
+
+                for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
+                {
+                    tag_map_keys.push_back(tag_map_keys_iterator);
+                }
+
+                for (const auto& tag_map_values_iterator : explicit_path_tag_value_attribute->tagMapValues())
+                {
+                    tag_map_values.push_back(tag_map_values_iterator);
+                }
+
+                for (unsigned int tag_index = 0; tag_index < explicit_path_tag_key_attribute->tagMapKeys_size(); ++tag_index)
+                {
+                    tag_map[tag_map_keys[tag_index]] = tag_map_values[tag_index];
+                }
+            }
 
             g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
 
@@ -928,8 +1037,9 @@ public:
             auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
                                        m_rewriter.getSourceMgr(),
                                        m_rewriter.getLangOpts()) + 1;
-            update_expression_used_tables(result.Context,
-                expression ? (Stmt*)expression : (Stmt*)member_expression, table_name,
+            update_expression_used_tables(result.Context, expression, table_name,
+                SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+            update_expression_used_tables(result.Context, member_expression, table_name,
                 SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
         }
     }
@@ -1303,6 +1413,7 @@ public:
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
         g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
         g_expression_used_tables.clear();
+        g_expression_explicit_path_data.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
@@ -1398,6 +1509,7 @@ public:
         }
         g_current_rule_declaration = nullptr;
         g_expression_used_tables.clear();
+        g_expression_explicit_path_data.clear();
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();

@@ -7,12 +7,148 @@ using namespace std;
 using namespace gaia::translation;
 
 static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+static const int c_variable_length =15;
 
 table_navigation_t::table_navigation_t() : m_is_initialized(false)
 {
 }
 
+navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
+    unordered_map<string, string> tags, bool is_absolute)
+{
+    if (!m_is_initialized)
+    {
+        fill_table_data();
+        m_is_initialized = true;
+    }
+    navigation_code_data_t return_value;
+    if (m_table_data.empty() || path.empty())
+    {
+        return navigation_code_data_t();
+    }
+    bool first_component = true;
+    string variable_name;
+    string source_table;
+    string source_field;
+    for (const auto& path_component : path)
+    {
+        string table, field;
+        auto dot_position = path_component.find('.');
+        if (dot_position != string::npos)
+        {
+            table = path_component.substr(0, dot_position);
+            field = path_component.substr(dot_position + 1);
+        }
+        else
+        {
+            table = path_component;
+        }
+        if (first_component)
+        {
+            if (is_absolute)
+            {
+                variable_name = get_variable_name(table, tags);
+
+                return_value.prefix
+                    .append("\n{\n")
+                    .append(c_nolint_range_copy)
+                    .append("\nfor (auto ")
+                    .append(variable_name)
+                    .append(" : ")
+                    .append(table)
+                    .append("::")
+                    .append("list())\n{\n");
+
+                return_value.postfix = "\n}\n}\n";
+            }
+            else
+            {
+                unordered_map<string, string> tags;
+                if (tags.find(table) != tags.end())
+                {
+                    tags[table] = table;
+                }
+                return_value = generate_navigation_code(anchor_table, {table}, tags, variable_name);
+            }
+            first_component = false;
+            source_table = variable_name;
+            source_field = field;
+        }
+        else
+        {
+            variable_name = get_variable_name(table, tags);
+            if (m_table_relationship_1.find(table) != m_table_relationship_1.end())
+            {
+                if (source_field.empty())
+                {
+                    return_value.prefix
+                        .append("auto ")
+                        .append(variable_name)
+                        .append(" = ")
+                        .append(source_table)
+                        .append(".")
+                        .append(path_component)
+                        .append("();\n");
+                }
+                else
+                {
+                    return_value.prefix
+                        .append("auto ")
+                        .append(variable_name)
+                        .append(" = ")
+                        .append(source_table)
+                        .append(".")
+                        .append(source_field)
+                        .append("_")
+                        .append(path_component)
+                        .append("();\n");
+                }
+            }
+            else
+            {
+                if (source_field.empty())
+                {
+                    return_value.prefix
+                        .append(c_nolint_range_copy)
+                        .append("\nfor (auto ")
+                        .append(variable_name)
+                        .append(" : ")
+                        .append(source_table)
+                        .append(".")
+                        .append(path_component)
+                        .append("_list())\n{\n");
+                }
+                else
+                {
+                    return_value.prefix
+                        .append(c_nolint_range_copy)
+                        .append("\nfor (auto ")
+                        .append(variable_name)
+                        .append(" : ")
+                        .append(source_table)
+                        .append(".")
+                        .append(source_field)
+                        .append("_")
+                        .append(path_component)
+                        .append("_list())\n{\n");
+                }
+                return_value.postfix.append("}\n");
+            }
+            source_table = variable_name;
+            source_field = field;
+        }
+    }
+
+    return return_value;
+}
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
+{
+    string last_table;
+    return generate_navigation_code(anchor_table, tables, generate_dummy_tag_map(tables), last_table);
+}
+
+navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
+    unordered_map<string, string> tags, string& last_table)
 {
     if (!m_is_initialized)
     {
@@ -29,9 +165,13 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     {
         return navigation_code_data_t();
     }
+
+    string variable_name = get_variable_name(anchor_table, tags);
+    last_table = variable_name;
+
     return_value.prefix
         .append("\n{\nauto ")
-        .append(anchor_table)
+        .append(variable_name)
         .append(" = gaia::")
         .append(anchor_table_data_itr->second.db_name)
         .append("::")
@@ -59,7 +199,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
             continue;
         }
 
-        if (processed_tables.find(table) != processed_tables.end())
+        if (processed_tables.find(get_variable_name(table, tags)) != processed_tables.end())
         {
             continue;
         }
@@ -106,19 +246,21 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
             vector<navigation_data_t> path;
             if (find_navigation_path(anchor_table, table, path))
             {
-                string source_table = anchor_table;
+                string source_table = variable_name;
                 for (const auto& p : path)
                 {
-                    if (processed_tables.find(p.name) == processed_tables.end())
+                    variable_name = get_variable_name(p.name, tags);
+                    if (processed_tables.find(variable_name) == processed_tables.end())
                     {
-                        processed_tables.insert(p.name);
+                        processed_tables.insert(variable_name);
+
                         if (p.is_parent)
                         {
                             if (p.linking_field.empty())
                             {
                                 return_value.prefix
                                     .append("auto ")
-                                    .append(p.name)
+                                    .append(variable_name)
                                     .append(" = ")
                                     .append(source_table)
                                     .append(".")
@@ -129,7 +271,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                             {
                                 return_value.prefix
                                     .append("auto ")
-                                    .append(p.name)
+                                    .append(variable_name)
                                     .append(" = ")
                                     .append(source_table)
                                     .append(".")
@@ -146,7 +288,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                                 return_value.prefix
                                     .append(c_nolint_range_copy)
                                     .append("\nfor (auto ")
-                                    .append(p.name)
+                                    .append(variable_name)
                                     .append(" : ")
                                     .append(source_table)
                                     .append(".")
@@ -158,7 +300,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                                 return_value.prefix
                                     .append(c_nolint_range_copy)
                                     .append("\nfor (auto ")
-                                    .append(p.name)
+                                    .append(variable_name)
                                     .append(" : ")
                                     .append(source_table)
                                     .append(".")
@@ -167,12 +309,12 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                                     .append(p.name)
                                     .append("_list())\n{\n");
                             }
-
                             return_value.postfix.append("}\n");
                         }
+                        source_table = variable_name;
                     }
-                    source_table = p.name;
                 }
+                last_table = variable_name;
             }
             else
             {
@@ -182,15 +324,16 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         }
         else
         {
+            last_table = get_variable_name(table, tags);
             if (is_1_relationship)
             {
                 if (linking_field.empty())
                 {
                     return_value.prefix
                         .append("auto ")
-                        .append(table)
+                        .append(last_table)
                         .append(" = ")
-                        .append(anchor_table)
+                        .append(variable_name)
                         .append(".")
                         .append(table)
                         .append("();\n");
@@ -199,9 +342,9 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                 {
                     return_value.prefix
                         .append("auto ")
-                        .append(table)
+                        .append(last_table)
                         .append(" = ")
-                        .append(anchor_table)
+                        .append(variable_name)
                         .append(".")
                         .append(linking_field)
                         .append("_")
@@ -216,9 +359,9 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                     return_value.prefix
                         .append(c_nolint_range_copy)
                         .append("\nfor (auto ")
-                        .append(table)
+                        .append(last_table)
                         .append(" : ")
-                        .append(anchor_table)
+                        .append(variable_name)
                         .append(".")
                         .append(table)
                         .append("_list())\n{\n");
@@ -228,9 +371,9 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                     return_value.prefix
                         .append(c_nolint_range_copy)
                         .append("\nfor (auto ")
-                        .append(table)
+                        .append(last_table)
                         .append(" : ")
-                        .append(anchor_table)
+                        .append(variable_name)
                         .append(".")
                         .append(linking_field)
                         .append("_")
@@ -241,7 +384,8 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                 return_value.postfix.append("}\n");
             }
         }
-        processed_tables.insert(table);
+        processed_tables.insert(last_table);
+
     }
 
     return return_value;
@@ -379,8 +523,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
                     {
                         table_distance[tbl] = distance + 1;
                         table_prev[tbl] = closest_table;
-                        navigation_data_t data = {tbl, it->second.field, true};
-                        table_navigation[tbl] = data;
+                        table_navigation[tbl] = {tbl, it->second.field, true};
                     }
                 }
             }
@@ -398,8 +541,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
                     {
                         table_distance[tbl] = distance + 1;
                         table_prev[tbl] = closest_table;
-                        navigation_data_t data = {tbl, it->second.field, false};
-                        table_navigation[tbl] = data;
+                        table_navigation[tbl] = {tbl, it->second.field, false};
                     }
                 }
             }
@@ -414,6 +556,29 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         tbl = table_prev[tbl];
     }
     return true;
+}
+
+string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags) const
+{
+    auto tags_iterator = tags.find(table);
+    if (tags_iterator == tags.end())
+    {
+        return "_" + generate_random_string(c_variable_length);
+    }
+    else
+    {
+        return tags_iterator->second;
+    }
+}
+
+unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const unordered_set<string>& tables) const
+{
+    unordered_map<string, string> tags;
+    for (const auto& table : tables)
+    {
+        tags[table] = table;
+    }
+    return tags;
 }
 
 string table_navigation_t::generate_random_string(string::size_type length) const

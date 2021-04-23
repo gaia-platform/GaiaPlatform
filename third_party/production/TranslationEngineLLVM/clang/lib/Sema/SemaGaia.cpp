@@ -283,13 +283,15 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             previousField = fieldName;
             previousTable = tableName;
         }
+        explicitPathData[loc].path = path;
+        explicitPathData[loc].tagMap = tagMap;
     }
     else
     {
         RemoveExplicitPathData(loc);
     }
 
-    explicitPathTagMapping[loc.getRawEncoding()] = tagMap;
+    explicitPathTagMapping[loc] = tagMap;
 
     return path.back();
 
@@ -850,8 +852,27 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     std::string path;
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
     {
+        SmallVector<StringRef, 4> argPathComponents, argTagKeys, argTagTables;
+
+        for (auto pathComponentsIterator : explicitPathData[loc].path)
+        {
+            argPathComponents.push_back(pathComponentsIterator);
+        }
+
+        for (auto tagsIterator : explicitPathData[loc].tagMap)
+        {
+            argTagKeys.push_back(tagsIterator.first);
+            argTagTables.push_back(tagsIterator.second);
+
+        }
+
         varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
-            startLocation.getRawEncoding(), endLocation.getRawEncoding()));
+            startLocation.getRawEncoding(), endLocation.getRawEncoding(),
+            argPathComponents.data(), argPathComponents.size()));
+        varDecl->addAttr(GaiaExplicitPathTagKeysAttr::CreateImplicit(Context,
+            argTagKeys.data(), argTagKeys.size()));
+        varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context,
+            argTagTables.data(), argTagTables.size()));
     }
 
     context->addDecl(varDecl);
@@ -896,21 +917,18 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 
 void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
 {
-    ExplicitPathData_t data;
-    data.startLocation = startLocation;
-    data.endLocation = endLocation;
-    data.explicitPath = explicitPath;
-    explicitPathData.emplace(location.getRawEncoding(), data);
+    explicitPathData[location] = {startLocation, endLocation, explicitPath,
+        std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)
 {
-    explicitPathData.erase(location.getRawEncoding());
+    explicitPathData.erase(location);
 }
 
 bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
 {
-    auto data = explicitPathData.find(location.getRawEncoding());
+    auto data = explicitPathData.find(location);
     if (data == explicitPathData.end())
     {
         return false;

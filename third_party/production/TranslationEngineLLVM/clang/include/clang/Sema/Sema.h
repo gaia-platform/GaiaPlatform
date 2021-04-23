@@ -69,6 +69,18 @@ namespace llvm {
   struct InlineAsmIdentifierInfo;
 }
 
+namespace std
+{
+    template<> struct hash<clang::SourceLocation>
+    {
+        std::size_t operator()(clang::SourceLocation const& location) const noexcept
+        {
+            return std::hash<unsigned int>{}(location.getRawEncoding());
+        }
+    };
+} // namespace std
+
+
 namespace clang {
   class ADLResult;
   class ASTConsumer;
@@ -4622,6 +4634,8 @@ private:
     SourceLocation startLocation;
     SourceLocation endLocation;
     std::string explicitPath;
+    std::vector<std::string> path;
+    std::unordered_map<std::string, std::string> tagMap;
   };
 
   struct TableLinkData_t
@@ -4632,9 +4646,9 @@ private:
 
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 
-  std::unordered_map<unsigned, ExplicitPathData_t>  explicitPathData;
+  std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
-  std::map<unsigned, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
+  std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value
