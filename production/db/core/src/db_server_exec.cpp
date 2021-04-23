@@ -7,12 +7,7 @@
 #include <iostream>
 #include <string>
 
-#include "spdlog/fmt/fmt.h"
-
-#include "gaia/logger.hpp"
-
 #include "gaia_internal/common/config.hpp"
-#include "gaia_internal/common/timer.hpp"
 
 #include "cpptoml.h"
 #include "db_server.hpp"
@@ -20,10 +15,8 @@
 using namespace gaia::common;
 using namespace gaia::db;
 
-using gaia_timer_t = gaia::common::timer_t;
-
 static constexpr char c_data_dir_command_flag[] = "--data-dir";
-static constexpr char c_session_command_flag[] = "--session";
+static constexpr char c_instance_name_command_flag[] = "--instance-name";
 static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
 static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
@@ -179,7 +172,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
         {
             conf_file_path = argv[++i];
         }
-        else if ((strcmp(argv[i], c_session_command_flag) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_instance_name_command_flag) == 0) && (i + 1 < argc))
         {
             instance_name = argv[++i];
         }
@@ -248,7 +241,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
     }
 
     std::cerr
-        << "Database session name is '" << instance_name << "'." << std::endl;
+        << "Database instance name is '" << instance_name << "'." << std::endl;
 
     if (persistence_mode != server_conf_t::persistence_mode_t::e_disabled)
     {
@@ -300,58 +293,9 @@ static server_conf_t process_command_line(int argc, char* argv[])
     return server_conf_t{persistence_mode, instance_name, data_dir};
 }
 
-#include <strstream>
-
 int main(int argc, char* argv[])
 {
-    //    auto server_conf = process_command_line(argc, argv);
+    auto server_conf = process_command_line(argc, argv);
 
-    //    gaia::db::server_t::run(server_conf);
-
-    std::string str1 = "Hello World";
-    const char* str2 = "Ciao Mondo";
-
-    int num_iter = 10000;
-
-    int sizes[num_iter];
-
-    std::chrono::steady_clock::time_point start;
-
-    std::cout << "Num Iter: " << num_iter << std::endl;
-
-    start = gaia_timer_t::get_time_point();
-    for (int i = 0; i < num_iter; i++)
-    {
-        std::string final = fmt::format("{}_{}_{}", str1, str2, i);
-        sizes[i] = final.size();
-    }
-    gaia_timer_t::log_duration(start, "fmt");
-
-    start = gaia_timer_t::get_time_point();
-    for (int i = 0; i < num_iter; i++)
-    {
-        std::ostringstream ss;
-        ss << str1 << "_" << str2 << "_" << i;
-        std::string final = ss.str();
-        sizes[i] = final.size();
-    }
-    gaia_timer_t::log_duration(start, "ostringstream");
-
-    start = gaia_timer_t::get_time_point();
-    for (int i = 0; i < num_iter; i++)
-    {
-        std::stringstream ss;
-        ss << str1 << "_" << str2 << "_" << i;
-        std::string final = ss.str();
-        sizes[i] = final.size();
-    }
-    gaia_timer_t::log_duration(start, "stringstream");
-
-    start = gaia_timer_t::get_time_point();
-    for (int i = 0; i < num_iter; i++)
-    {
-        std::string final = str1 + "_" + str2 + "_" + std::to_string(i);
-        sizes[i] = final.size();
-    }
-    gaia_timer_t::log_duration(start, "string concat");
+    gaia::db::server_t::run(server_conf);
 }

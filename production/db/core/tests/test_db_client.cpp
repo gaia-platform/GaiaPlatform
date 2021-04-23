@@ -11,8 +11,6 @@
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "db_test_util.hpp"
-
 using namespace gaia::db;
 using namespace gaia::common;
 

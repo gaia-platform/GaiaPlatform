@@ -13,6 +13,7 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
+#include <spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -291,9 +292,11 @@ void client_t::begin_session(session_opts_t session_opts)
 
     ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
+    s_session_opts = session_opts;
+
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(session_opts.instance_name);
+    s_session_socket = get_session_socket(s_session_opts.instance_name);
 
     auto cleanup_session_socket = make_scope_guard([&]() {
         close_fd(s_session_socket);
@@ -378,12 +381,9 @@ void client_t::begin_transaction()
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
 
-    // Allocate a new log segment and map it in our own process.
-    std::stringstream mem_log_name;
-    mem_log_name << c_gaia_mem_txn_log << ':' << s_txn_id;
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
-    log.create(mem_log_name.str().c_str());
+    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_opts.instance_name, s_txn_id).c_str());
 
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;

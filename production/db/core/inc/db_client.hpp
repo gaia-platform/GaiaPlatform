@@ -75,6 +75,8 @@ private:
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
     // These fields have session lifetime.
+    thread_local static inline session_opts_t s_session_opts;
+
     thread_local static inline int s_fd_locators = -1;
 
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
