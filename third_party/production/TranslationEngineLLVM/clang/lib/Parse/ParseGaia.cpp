@@ -343,7 +343,7 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs, GaiaAttribute
 bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("SerialStream") && "Not a ruleset table!");
+    assert(Tok.getIdentifierInfo()->getName().equals("SerialStream") && "Not a SerialStream attribute!");
 
     ArgsVector argExprs;
 
@@ -389,7 +389,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(!Tok.getIdentifierInfo()->getName().equals("Table") && "Not a ruleset table!");
+    assert(Tok.getIdentifierInfo()->getName().equals("Table") && "Not a ruleset table!");
 
     ArgsVector argExprs;
 
