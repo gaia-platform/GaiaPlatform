@@ -1,7 +1,6 @@
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
-// #define DO_NOT_TEST_YET 
 // #define DO_NOT_TEST_829
 
 ruleset test1

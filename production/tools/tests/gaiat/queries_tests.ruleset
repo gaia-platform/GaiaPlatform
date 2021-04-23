@@ -169,25 +169,26 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-806 (fixed)
-ruleset test20
-{
-    OnInsert(yield)
-    {
-        int daily = 0;
-        daily += /farmer->yield->feeding.portion;
-    }
-}
+// GAIAPLAT-872
+// In this test, the navigation fans out in the 1:M direction.
+// ruleset test20
+// {
+//     OnInsert(yield)
+//     {
+//         int daily = 0;
+//         daily += /farmer->yield->feeding.portion;
+//     }
+// }
 
-// GAIAPLAT-806 (fixed)
+// GAIAPLAT-872
 // In this test, the navigation is in the M:1 direction.
-ruleset test21
-{
-    OnInsert(farmer)
-    {
-        use_string(/feeding->yield->farmer.name);
-    }
-}
+// ruleset test21
+// {
+//     OnInsert(farmer)
+//     {
+//         use_string(/feeding->yield->farmer.name);
+//     }
+// }
 
 // GAIAPLAT-807 (fixed)
 // "Tag refers to an invalid table S."
