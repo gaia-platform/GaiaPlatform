@@ -153,7 +153,7 @@ void generate_headers(const string& db_name, const filesystem::path& output_path
         throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
     }
 
-    cout << "Generating headers in: '" << absolute_output_path << "'." << endl;
+    cout << "Generating headers in: " << absolute_output_path << "." << endl;
 
     generate_fbs_headers(db_name, absolute_output_path);
     generate_edc_headers(db_name, absolute_output_path);

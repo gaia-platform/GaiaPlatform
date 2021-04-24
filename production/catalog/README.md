@@ -77,7 +77,7 @@ Enter interactive mode.
 
 ```
 
-Execute DDL statements in `airport.ddl` file, generate header files to the
+Execute DDL statements in `airport.ddl` file, generate header files in the
 `airport` directory for tables in the `airport` database.
 
 ```
@@ -92,7 +92,7 @@ Generate catalog direct access APIs. This is the command used for bootstrapping.
 
 ## Databases
 
-The DDL to create database is `create database`.
+The DDL to create database is `create <database_name>`.
 
 To specifying a table in a database, using the composite name of the format
 `[database].[table]`.
@@ -121,8 +121,9 @@ create table addr_book.employee (
 ```
 
 Switch to a database to make the DDL more succinct (by avoid the database name
-when referring to a table) with the `use database` statement. In the following
-example, the `address` table will be created in the `addr_book` database.
+when referring to a table) with the `use <database_name>` statement. In the
+following example, the `address` table will be created in the `addr_book`
+database.
 
 ```
     use addr_book;
