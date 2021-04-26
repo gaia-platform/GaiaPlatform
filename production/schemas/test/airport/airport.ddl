@@ -3,6 +3,10 @@
 -- All rights reserved.
 ---------------------------------------------
 
+create database if not exists airport;
+
+use airport;
+
 create table if not exists airport
 (
     name string,

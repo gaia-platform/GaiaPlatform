@@ -69,6 +69,7 @@ comment ("--".*)
 "EXISTS"       return yy::parser::make_EXISTS(loc);
 "RELATIONSHIP" return yy::parser::make_RELATIONSHIP(loc);
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
+"USE"          return yy::parser::make_USE(loc);
 
 "BOOL"       return yy::parser::make_BOOL(loc);
 "INT8"       return yy::parser::make_INT8(loc);

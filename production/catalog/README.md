@@ -53,12 +53,12 @@ By default without specifying any mode, `gaiac` will run under loading mode to
 execute the DDL statements--translating them into catalog records--without
 generating any output.
 
-The interactive mode (`-i`) provides a REPL style command line interface to try
-out the DDL. The DDL typed in will be executed, and fbs output if any will be
-printed out to the console output.
+The interactive mode (`--interactive` or `-i`) provides a REPL style command
+line interface to try out the DDL. The DDL typed in will be executed, and fbs
+output if any will be printed out to the console output.
 
-Under generation mode (`-g`), the tool will generate the following two header
-files either from an DDL file or a specified database.
+Under generation mode (`--generate` or `-g`), the tool will generate the following two header
+files from specified database(s) under the output path.
 
 - The FlatBuffers header for field access, `<dbname>_generated.h`
 - The EDC header file `gaia_<dbname>.h`
@@ -66,49 +66,51 @@ files either from an DDL file or a specified database.
 With the two headers, a direct access source file gains access to the database
 as defined by the catalog.
 
-Full command line usage can be shown with the `-h` option.
+Full command line usage can be shown with the `--help` or `-h` option.
 
 #### Examples
 
 Enter interactive mode.
 
 ```
-   gaiac -i
+   gaiac --interactive
 
 ```
 
-Execute DDL statements in `airport.ddl` file using the `airport` database, and
-generate header files for tables in `airport` database.
+Execute DDL statements in `airport.ddl` file, generate header files in the
+`airport` directory for tables in the `airport` database.
 
 ```
-   gaiac -g airport.ddl
+   gaiac --generate --db-name airport airport.ddl
 ```
 
-Generate catalog direct access APIs. This is the command used for bootstrapping.
+Execute DDL statements in `incubator.ddl` file. Generate the headers in the
+`incubator` directory for tables in the `barn_storage` and `lab`databases.
 
 ```
-   gaiac -d catalog -g
+   gaiac --db-name barn_storage --db-name lab --generate incubator.ddl
+```
+
+Generate catalog direct access APIs in the `catalog` directory. This is the
+command used for bootstrapping.
+
+```
+   gaiac --database catalog --generate --output catalog
 ```
 
 ## Databases
 
-There are two ways to create a database and specifying a table in a database:
-first, using DDL; second, using `gaiac` command. When both are specified, the
-DDL definition will override the `gaiac` settings.
-
-### Use DDL
-
-The DDL to create database is `create database`.
+The DDL to create database is `create <database_name>`.
 
 To specifying a table in a database, using the composite name of the format
 `[database].[table]`.
 
-#### Examples
+### Examples
 
 A database `addr_book` can be created using the following statement.
 
 ```
-    create database addr_book;
+create database addr_book;
 ```
 
 Use the following statement to create an `employee` table in `addr_book`
@@ -126,47 +128,23 @@ create table addr_book.employee (
 );
 ```
 
-As a syntactic sugar, the database name can be omitted when specifying a
-reference to a table in the same database.
+Switch to a database to make the DDL more succinct (by avoid the database name
+when referring to a table) with the `use <database_name>` statement. In the
+following example, the `address` table will be created in the `addr_book`
+database.
 
 ```
-    create table addr_book.address (
-        street: string,
-        apt_suite: string,
-        city: string,
-        state: string,
-        postal: string,
-        country: string,
-        current: bool,
-        addresses references employee
-    );
-```
+use addr_book;
 
-### Use `gaiac`
-
-This is the way to create and specify a database before the introduction of the
-database to DDL. The `gaiac` command line usage already documented how to do
-this. See the following examples for more explanation.
-
-#### Examples
-
-In the following command line example, an `airport` database will be created
-automatically. When no database prefix is specified for table names, the tables
-will be created in the `airport` database. (The database prefix can still be
-used to override the database name derived from the DDL file name.)
-
-```
-   gaiac -g airport.ddl
-
-```
-
-The following command line will create all tables in `tmp_airport`. Because a
-database name is specified via `-d`, the command will not create the database
-`tmp_airport` automatically.
-
-```
-   gaiac -d tmp_airport -g airport.ddl
-
+create table address (
+    street: string,
+    apt_suite: string,
+    city: string,
+    state: string,
+    postal: string,
+    country: string,
+    current: bool,
+);
 ```
 
 ## Catalog bootstrapping

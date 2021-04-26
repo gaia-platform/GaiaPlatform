@@ -14,7 +14,7 @@ set(ADDR_BOOK_DDL "${PROJECT_SOURCE_DIR}/addr_book.ddl")
 add_custom_command(
   COMMENT "Compiling addr_book.ddl..."
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_addr_book.h
-  COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/core -o ${GAIA_GENERATED_SCHEMAS} -g ${ADDR_BOOK_DDL}
+  COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/core -o ${GAIA_GENERATED_SCHEMAS} -d addr_book -g ${ADDR_BOOK_DDL}
   DEPENDS gaiac
   DEPENDS ${ADDR_BOOK_DDL}
 )

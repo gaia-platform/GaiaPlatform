@@ -45,7 +45,7 @@ TEST_F(gaia_generate_test, parse_ddl)
 
     EXPECT_EQ(EXIT_SUCCESS, parser.parse_line("create table tmp_airport ( name string );"));
     create_database("tmp_airport");
-    execute("tmp_airport", parser.statements);
+    execute(parser.statements);
 
     auto header_str = gaia_generate("tmp_airport");
     EXPECT_NE(0, header_str.find("struct tmp_airport_t"));

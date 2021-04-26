@@ -110,7 +110,8 @@ enum class statement_type_t : uint8_t
 {
     create,
     drop,
-    alter
+    alter,
+    use
 };
 
 struct statement_t
@@ -189,6 +190,16 @@ enum class create_type_t : uint8_t
     create_database,
     create_table,
     create_relationship,
+};
+
+struct use_statement_t : statement_t
+{
+    explicit use_statement_t(std::string name)
+        : statement_t(statement_type_t::use), name(std::move(name))
+    {
+    }
+
+    std::string name;
 };
 
 // TODO: refactoring create statements into sub types, pending index changes (create_index).
@@ -401,6 +412,14 @@ public:
  * Initialize the catalog.
 */
 void initialize_catalog();
+
+/**
+ * Switch to the database.
+ *
+ * @param name database name
+ * @throw db_not_exists
+ */
+void use_database(const std::string& name);
 
 /**
  * Create a database in the catalog.

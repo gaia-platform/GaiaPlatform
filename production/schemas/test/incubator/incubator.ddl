@@ -3,6 +3,10 @@
 -- All rights reserved.
 ---------------------------------------------
 
+CREATE DATABASE IF NOT EXISTS barn_storage;
+
+USE barn_storage;
+
 CREATE TABLE IF NOT EXISTS incubator (
       name	 STRING,
       min_temp FLOAT,
