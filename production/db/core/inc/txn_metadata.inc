@@ -25,7 +25,7 @@ bool txn_metadata_t::is_begin_ts(gaia_txn_id_t ts)
 {
     txn_metadata_t txn_metadata(ts);
 
-    common::retail_assert(!txn_metadata.is_uninitialized(), c_message_uninitialized_timestamp);
+    ASSERT_PRECONDITION(!txn_metadata.is_uninitialized(), c_message_uninitialized_timestamp);
 
     return txn_metadata.is_begin_ts();
 }
@@ -34,7 +34,7 @@ bool txn_metadata_t::is_commit_ts(gaia_txn_id_t ts)
 {
     txn_metadata_t txn_metadata(ts);
 
-    common::retail_assert(!txn_metadata.is_uninitialized(), c_message_uninitialized_timestamp);
+    ASSERT_PRECONDITION(!txn_metadata.is_uninitialized(), c_message_uninitialized_timestamp);
 
     return txn_metadata.is_commit_ts();
 }
@@ -43,7 +43,7 @@ bool txn_metadata_t::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     txn_metadata_t begin_ts_metadata(begin_ts);
 
-    common::retail_assert(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
+    ASSERT_PRECONDITION(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
 
     return begin_ts_metadata.is_submitted();
 }
@@ -52,7 +52,7 @@ bool txn_metadata_t::is_txn_validating(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_validating();
 }
@@ -61,7 +61,7 @@ bool txn_metadata_t::is_txn_decided(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_decided();
 }
@@ -70,7 +70,7 @@ bool txn_metadata_t::is_txn_committed(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_committed();
 }
@@ -79,7 +79,7 @@ bool txn_metadata_t::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_aborted();
 }
@@ -88,7 +88,7 @@ bool txn_metadata_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_gc_complete();
 }
@@ -97,7 +97,7 @@ bool txn_metadata_t::is_txn_durable(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.is_durable();
 }
@@ -106,7 +106,7 @@ bool txn_metadata_t::is_txn_active(gaia_txn_id_t begin_ts)
 {
     txn_metadata_t begin_ts_metadata(begin_ts);
 
-    common::retail_assert(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
+    ASSERT_PRECONDITION(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
 
     return begin_ts_metadata.is_active();
 }
@@ -115,7 +115,7 @@ bool txn_metadata_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
     txn_metadata_t begin_ts_metadata(begin_ts);
 
-    common::retail_assert(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
+    ASSERT_PRECONDITION(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
 
     return begin_ts_metadata.is_terminated();
 }
@@ -124,10 +124,10 @@ gaia_txn_id_t txn_metadata_t::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     gaia_txn_id_t begin_ts = commit_ts_metadata.get_timestamp();
-    common::retail_assert(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
+    ASSERT_INVARIANT(begin_ts != c_invalid_gaia_txn_id, "begin_ts must be valid!");
 
     return begin_ts;
 }
@@ -136,11 +136,11 @@ gaia_txn_id_t txn_metadata_t::get_commit_ts(gaia_txn_id_t begin_ts)
 {
     txn_metadata_t begin_ts_metadata(begin_ts);
 
-    common::retail_assert(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
-    common::retail_assert(begin_ts_metadata.is_submitted(), "begin_ts must be submitted!");
+    ASSERT_PRECONDITION(begin_ts_metadata.is_begin_ts(), c_message_not_a_begin_timestamp);
+    ASSERT_PRECONDITION(begin_ts_metadata.is_submitted(), "begin_ts must be submitted!");
 
     gaia_txn_id_t commit_ts = begin_ts_metadata.get_timestamp();
-    common::retail_assert(commit_ts != c_invalid_gaia_txn_id, "commit_ts must be valid for a submitted begin_ts!");
+    ASSERT_INVARIANT(commit_ts != c_invalid_gaia_txn_id, "commit_ts must be valid for a submitted begin_ts!");
 
     return commit_ts;
 }
@@ -149,7 +149,7 @@ uint64_t txn_metadata_t::get_status(gaia_txn_id_t ts)
 {
     txn_metadata_t txn_metadata(ts);
 
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !txn_metadata.is_uninitialized() && !txn_metadata.is_sealed(),
         "Invalid txn metadata!");
 
@@ -160,14 +160,14 @@ int txn_metadata_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
 
     return commit_ts_metadata.get_txn_log_fd();
 }
 
 bool txn_metadata_t::compare_exchange_weak(txn_metadata_t& expected_metadata, const txn_metadata_t& desired_metadata)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         expected_metadata.m_ts == desired_metadata.m_ts,
         "Metadata timestamps differ in call to compare_exchange_weak()!");
 
@@ -177,7 +177,7 @@ bool txn_metadata_t::compare_exchange_weak(txn_metadata_t& expected_metadata, co
 
 bool txn_metadata_t::compare_exchange_strong(txn_metadata_t& expected_metadata, const txn_metadata_t& desired_metadata)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         expected_metadata.m_ts == desired_metadata.m_ts,
         "Metadata timestamps differ in call to compare_exchange_strong()!");
 
@@ -187,7 +187,7 @@ bool txn_metadata_t::compare_exchange_strong(txn_metadata_t& expected_metadata, 
 
 void txn_metadata_t::check_ts_size(gaia_txn_id_t ts)
 {
-    common::retail_assert(ts < (1ULL << c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
+    ASSERT_PRECONDITION(ts < (1ULL << c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
 }
 
 bool txn_metadata_t::is_uninitialized() const

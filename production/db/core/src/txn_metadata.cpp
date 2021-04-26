@@ -133,7 +133,7 @@ bool txn_metadata_t::seal_uninitialized_ts(gaia_txn_id_t ts)
     if (!has_sealed_metadata)
     {
         // NB: expected_metadata is an inout argument holding the previous value on failure!
-        common::retail_assert(
+        ASSERT_INVARIANT(
             expected_metadata_entry != c_value_uninitialized,
             "An uninitialized txn metadata cannot fail to be sealed!");
     }
@@ -145,8 +145,8 @@ bool txn_metadata_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 {
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
-    common::retail_assert(commit_ts_metadata.is_decided(), "Cannot invalidate an undecided txn!");
+    ASSERT_PRECONDITION(commit_ts_metadata.is_commit_ts(), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(commit_ts_metadata.is_decided(), "Cannot invalidate an undecided txn!");
 
     // The txn log fd is the 16 bits of the ts metadata before the final
     // 42 bits of the linked timestamp. We
@@ -180,8 +180,8 @@ bool txn_metadata_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
 void txn_metadata_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
 {
     // Only an active txn can be submitted.
-    common::retail_assert(is_txn_active(begin_ts), "Not an active transaction!");
-    common::retail_assert(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
+    ASSERT_PRECONDITION(is_txn_active(begin_ts), "Not an active transaction!");
+    ASSERT_PRECONDITION(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
 
     // Transition the begin_ts metadata to the TXN_SUBMITTED state.
     constexpr uint64_t c_submitted_flags
@@ -200,7 +200,7 @@ void txn_metadata_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 {
     // Only an active txn can be terminated.
     txn_metadata_t begin_ts_metadata(begin_ts);
-    common::retail_assert(begin_ts_metadata.is_active(), "Not an active transaction!");
+    ASSERT_PRECONDITION(begin_ts_metadata.is_active(), "Not an active transaction!");
 
     constexpr uint64_t c_terminated_flags = c_txn_status_terminated << c_txn_status_flags_shift;
 
@@ -218,7 +218,7 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
     // We allow the latter to enable idempotent concurrent validation.
     txn_metadata_t commit_ts_metadata(commit_ts);
 
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         commit_ts_metadata.is_validating() || commit_ts_metadata.is_decided(),
         "commit_ts metadata must be in validating or decided state!");
 
@@ -240,12 +240,12 @@ void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_commit
     if (!has_set_metadata)
     {
         // The only state transition allowed from TXN_VALIDATING is to TXN_DECIDED.
-        common::retail_assert(
+        ASSERT_POSTCONDITION(
             commit_ts_metadata.is_decided(),
             "commit_ts metadata in validating state can only transition to a decided state!");
 
         // If another txn validated before us, they should have reached the same decision.
-        common::retail_assert(
+        ASSERT_POSTCONDITION(
             commit_ts_metadata.is_committed() == is_committed,
             "Inconsistent txn decision detected!");
     }
@@ -317,7 +317,7 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
 
 gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
 {
-    common::retail_assert(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
+    ASSERT_PRECONDITION(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
     // We construct the commit_ts metadata by concatenating required bits.
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
@@ -406,7 +406,7 @@ txn_metadata_t::txn_metadata_t() noexcept
 txn_metadata_t::txn_metadata_t(gaia_txn_id_t ts)
     : m_ts(ts)
 {
-    common::retail_assert(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
+    ASSERT_PRECONDITION(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
     check_ts_size(m_ts);
 
     m_value = s_txn_metadata_map[m_ts];
@@ -414,7 +414,7 @@ txn_metadata_t::txn_metadata_t(gaia_txn_id_t ts)
 
 const char* txn_metadata_t::status_to_str() const
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !is_uninitialized() && !is_sealed(),
         "Not a valid txn metadata!");
 
@@ -434,7 +434,7 @@ const char* txn_metadata_t::status_to_str() const
     case c_txn_status_aborted:
         return "ABORTED";
     default:
-        common::retail_assert(false, "Unexpected txn_metadata_t status flags!");
+        ASSERT_UNREACHABLE("Unexpected txn_metadata_t status flags!");
     }
 
     return nullptr;

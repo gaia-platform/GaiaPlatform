@@ -12,7 +12,7 @@ namespace db
 
 void mapped_log_t::create(const char* name)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling create() on an already set mapped_log_t instance!");
 
@@ -39,11 +39,11 @@ void mapped_log_t::create(const char* name)
 
 void mapped_log_t::open(int fd)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling open() on an already set mapped_log_t instance!");
 
-    common::retail_assert(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
+    ASSERT_PRECONDITION(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
     this->m_mapped_data_size = common::get_fd_size(fd);
 
@@ -60,11 +60,11 @@ void mapped_log_t::open(int fd)
 
 void mapped_log_t::truncate_seal_and_close(int& fd, size_t& log_size)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         this->m_is_set,
         "Calling truncate_seal_and_close() on an unset mapped_log_t instance!");
 
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         this->m_fd != -1,
         "truncate_seal_and_close() was called on a mapped_log_t instance that lacks a valid fd!");
 

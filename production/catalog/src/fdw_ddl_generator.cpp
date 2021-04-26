@@ -37,10 +37,11 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
     {
         stringstream message;
         message << "Unexpected fixed size array definition in " << __func__ << "!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_UNREACHABLE(message.str());
+        // The compiler thinks we can still get here despite the fact that
+        // ASSERT_UNREACHABLE will unconditionally interrupt execution.
+        // So we'll use a builtin function to tell the compiler that we know better.
+        __builtin_unreachable();
     }
 }
 
@@ -81,10 +82,7 @@ string get_fdw_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_fdw_data_type_name()!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_UNREACHABLE(message.str());
     }
 }
 

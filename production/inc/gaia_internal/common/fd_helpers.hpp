@@ -123,7 +123,7 @@ inline size_t read_fd_at_offset(
     int fd, size_t offset, void* buffer, size_t buffer_len, bool allow_partial_read = false)
 {
     ssize_t bytes_read_or_error = ::pread(fd, buffer, buffer_len, offset);
-    retail_assert(bytes_read_or_error >= -1, "Return value of pread() should be non-negative or -1!");
+    ASSERT_INVARIANT(bytes_read_or_error >= -1, "Return value of pread() should be non-negative or -1!");
     if (bytes_read_or_error == -1)
     {
         int err = errno;
@@ -184,7 +184,7 @@ inline void signal_eventfd(int eventfd)
         const char* reason = ::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
         throw system_error(reason, err);
     }
-    retail_assert(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
+    ASSERT_POSTCONDITION(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
 }
 
 inline void consume_eventfd(int eventfd)
@@ -198,8 +198,8 @@ inline void consume_eventfd(int eventfd)
         const char* reason = ::explain_read(eventfd, &val, sizeof(val));
         throw system_error(reason, err);
     }
-    retail_assert(bytes_read == sizeof(val), "Failed to fully read data!");
-    retail_assert(val == 1, "Unexpected value!");
+    ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");
+    ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
 }
 
 } // namespace common

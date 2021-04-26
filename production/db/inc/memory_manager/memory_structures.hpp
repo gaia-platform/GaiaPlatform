@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <atomic>
 
-#include "access_control.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
