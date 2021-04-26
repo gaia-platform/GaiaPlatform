@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstdlib>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <thread>
@@ -126,7 +127,7 @@ public:
         }
 
         // Launch SE server in background.
-        std::string cmd = c_daemonize_command + m_server_path;
+        std::string cmd = c_daemonize_command + m_server_path.string();
         if (m_disable_persistence)
         {
             cmd.append(" ");
@@ -159,7 +160,7 @@ public:
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         std::string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path);
+        cmd.append(m_server_path.string());
         std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
     }
@@ -178,8 +179,7 @@ public:
         else
         {
             m_server_path = db_server_path;
-            terminate_path(m_server_path);
-            m_server_path.append(gaia::db::c_db_server_exec_name);
+            m_server_path /= gaia::db::c_db_server_exec_name;
         }
     }
 
@@ -189,16 +189,7 @@ public:
     }
 
 private:
-    // Add a trailing '/' if not provided.
-    static void inline terminate_path(std::string& path)
-    {
-        if (path.back() != '/')
-        {
-            path.append("/");
-        }
-    }
-
-    std::string m_server_path;
+    std::filesystem::path m_server_path;
     bool m_disable_persistence = false;
     bool m_server_started = false;
 };
