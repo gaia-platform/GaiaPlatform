@@ -7,7 +7,7 @@ create database if not exists prerequisites;
 
 use prerequisites;
 
-create table Student (
+create table if not exists Student (
     StudentId string,
     Surname string,
     Age int32,
@@ -15,13 +15,13 @@ create table Student (
     GPA float
 );
 
-create table Course (
+create table if not exists Course (
     CourseId string,
     Name string,
     Hours int32
 );
 
-create table Registration (
+create table if not exists Registration (
     RegId string,
     Status string,
     Grade string
@@ -37,7 +37,7 @@ create relationship if not exists CourseReg (
     Registration.registered_course -> Course
 );
 
-create table PreReq (
+create table if not exists PreReq (
     PreReqId string,
     MinGrade string
 );
