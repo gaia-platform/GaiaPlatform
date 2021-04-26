@@ -1,7 +1,7 @@
 # production/schemas
-This folder is used to generate schemas from DDL files. The system schema ddl files should be stored together with the components to which they belong. The contents in the system directory should refer to these DDL file locations. Schemas used for tests should be placed under _schemas/test_.  This way, multiple tests that use the same schema don't have to duplicate the same boilerplace cmake instructions. In an ideal world, only one copy of any given .ddl file (sytem or test) should exist in our entire tree.
+This folder is used to generate schemas from DDL files. The system schema ddl files should be stored together with the components to which they belong. The contents in the system directory should refer to these DDL file locations. Schemas used for tests should be placed under _schemas/test_.  This way, multiple tests that use the same schema don't have to duplicate the same boilerplate cmake instructions. In an ideal world, only one copy of any given .ddl file (sytem or test) should exist in our entire tree.
 
-Note that all the schema builds are serialized right now so that they don't stomp on eachother's database instance if builds are run in parallel (make -jN). This serialization is accomplished simply by having the target of each directory depend on the target before it. Please keep this in mind when adding schema directories.
+Note that all the schema builds are serialized right now so that they don't stomp on each other's database instance if builds are run in parallel (make -jN). This serialization is accomplished simply by having the target of each directory depend on the target before it. Please keep this in mind when adding schema directories.
 
 All schemas are published to **\<build directory\>/schemas/generated**. You can use the variable **GAIA_GENERATED_SCHEMAS** to point to this directory. It is set in the top level production CMake file.
 

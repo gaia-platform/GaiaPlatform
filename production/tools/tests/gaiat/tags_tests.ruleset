@@ -126,7 +126,7 @@ ruleset test13
 {
     OnInsert(incubator)
     {
-        // lable:tag:table works for both label and tag.
+        // label:tag:table works for both label and tag.
         LABEL:I:incubator->sensor.value = I.max_temp - 1.0;
         if (actuator.value > 3.0)
         {

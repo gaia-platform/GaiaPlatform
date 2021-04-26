@@ -51,39 +51,39 @@ extern std::atomic<int32_t> g_insert_count;
 const int c_rule_execution_step_delay = 5000;
 const int c_rule_execution_total_delay = 25000;
 
-Student_t student_1;
-Student_t student_2;
-Student_t student_3;
-Student_t student_4;
-Student_t student_5;
+student_t student_1;
+student_t student_2;
+student_t student_3;
+student_t student_4;
+student_t student_5;
 
-Course_t course_1;
-Course_t course_2;
-Course_t course_3;
-Course_t course_4;
-Course_t course_5;
+course_t course_1;
+course_t course_2;
+course_t course_3;
+course_t course_4;
+course_t course_5;
 
-Registration_t reg_1;
-Registration_t reg_2;
-Registration_t reg_3;
-Registration_t reg_4;
-Registration_t reg_5;
-Registration_t reg_6;
-Registration_t reg_7;
-Registration_t reg_8;
-Registration_t reg_9;
-Registration_t reg_A;
-Registration_t reg_B;
-Registration_t reg_C;
-Registration_t reg_D;
-Registration_t reg_E;
-Registration_t reg_F;
-Registration_t reg_G;
+registration_t reg_1;
+registration_t reg_2;
+registration_t reg_3;
+registration_t reg_4;
+registration_t reg_5;
+registration_t reg_6;
+registration_t reg_7;
+registration_t reg_8;
+registration_t reg_9;
+registration_t reg_A;
+registration_t reg_B;
+registration_t reg_C;
+registration_t reg_D;
+registration_t reg_E;
+registration_t reg_F;
+registration_t reg_G;
 
-PreReq_t prereq_1;
-PreReq_t prereq_2;
-PreReq_t prereq_3;
-PreReq_t prereq_4;
+prereq_t prereq_1;
+prereq_t prereq_2;
+prereq_t prereq_3;
+prereq_t prereq_4;
 
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
@@ -144,42 +144,42 @@ protected:
     void populate_db()
     {
         // These must be EDC objects. They have insert() methods.
-        student_1 = Student_t::get(Student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-        student_2 = Student_t::get(Student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-        student_3 = Student_t::get(Student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-        student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-        student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+        student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+        student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
+        student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
+        student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+        student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
 
         // These must be EDC objects. They have insert() methods.
-        course_1 = Course_t::get(Course_t::insert_row("cou001", "math101", 3));
-        course_2 = Course_t::get(Course_t::insert_row("cou002", "math201", 4));
-        course_3 = Course_t::get(Course_t::insert_row("cou003", "eng101", 3));
-        course_4 = Course_t::get(Course_t::insert_row("cou004", "sci101", 3));
-        course_5 = Course_t::get(Course_t::insert_row("cou005", "math301", 5));
+        course_1 = course_t::get(course_t::insert_row("cou001", "math101", 3));
+        course_2 = course_t::get(course_t::insert_row("cou002", "math201", 4));
+        course_3 = course_t::get(course_t::insert_row("cou003", "eng101", 3));
+        course_4 = course_t::get(course_t::insert_row("cou004", "sci101", 3));
+        course_5 = course_t::get(course_t::insert_row("cou005", "math301", 5));
 
         // These are gaia_id_t.
-        auto reg_1 = Registration_t::insert_row("reg001", "pending", "");
-        auto reg_2 = Registration_t::insert_row("reg002", "eligible", "C");
-        auto reg_3 = Registration_t::insert_row("reg003", "eligible", "B");
-        auto reg_4 = Registration_t::insert_row("reg004", "eligible", "C");
-        auto reg_5 = Registration_t::insert_row("reg005", "eligible", "D");
-        auto reg_6 = Registration_t::insert_row("reg006", "pending", "");
-        auto reg_7 = Registration_t::insert_row("reg007", "eligible", "C");
-        auto reg_8 = Registration_t::insert_row("reg008", "eligible", "B");
-        auto reg_9 = Registration_t::insert_row("reg009", "eligible", "B");
-        auto reg_A = Registration_t::insert_row("reg00A", "eligible", "A");
-        auto reg_B = Registration_t::insert_row("reg00B", "eligible", "B");
-        auto reg_C = Registration_t::insert_row("reg00C", "eligible", "B");
-        auto reg_D = Registration_t::insert_row("reg00D", "pending", "");
-        auto reg_E = Registration_t::insert_row("reg00E", "eligible", "C");
-        auto reg_F = Registration_t::insert_row("reg00F", "eligible", "A");
-        auto reg_G = Registration_t::insert_row("reg00G", "eligible", "B");
+        auto reg_1 = registration_t::insert_row("reg001", c_status_pending, c_grade_none);
+        auto reg_2 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
+        auto reg_3 = registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
+        auto reg_4 = registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
+        auto reg_5 = registration_t::insert_row("reg005", c_status_eligible, c_grade_d);
+        auto reg_6 = registration_t::insert_row("reg006", c_status_pending, c_grade_none);
+        auto reg_7 = registration_t::insert_row("reg007", c_status_eligible, c_grade_c);
+        auto reg_8 = registration_t::insert_row("reg008", c_status_eligible, c_grade_b);
+        auto reg_9 = registration_t::insert_row("reg009", c_status_eligible, c_grade_b);
+        auto reg_A = registration_t::insert_row("reg00A", c_status_eligible, c_grade_a);
+        auto reg_B = registration_t::insert_row("reg00B", c_status_eligible, c_grade_b);
+        auto reg_C = registration_t::insert_row("reg00C", c_status_eligible, c_grade_b);
+        auto reg_D = registration_t::insert_row("reg00D", c_status_pending, c_grade_none);
+        auto reg_E = registration_t::insert_row("reg00E", c_status_eligible, c_grade_c);
+        auto reg_F = registration_t::insert_row("reg00F", c_status_eligible, c_grade_a);
+        auto reg_G = registration_t::insert_row("reg00G", c_status_eligible, c_grade_b);
 
         // These are gaia_id_t.
-        prereq_1 = PreReq_t::get(PreReq_t::insert_row("pre001", "C"));
-        prereq_2 = PreReq_t::get(PreReq_t::insert_row("pre002", "D"));
-        prereq_3 = PreReq_t::get(PreReq_t::insert_row("pre003", "C"));
-        prereq_4 = PreReq_t::get(PreReq_t::insert_row("pre004", "C"));
+        prereq_1 = prereq_t::get(prereq_t::insert_row("pre001", c_grade_c));
+        prereq_2 = prereq_t::get(prereq_t::insert_row("pre002", c_grade_d));
+        prereq_3 = prereq_t::get(prereq_t::insert_row("pre003", c_grade_c));
+        prereq_4 = prereq_t::get(prereq_t::insert_row("pre004", c_grade_c));
 
         student_1.registrations().insert(reg_1);
         student_1.registrations().insert(reg_2);
@@ -245,12 +245,12 @@ TEST_F(test_queries_code, basic_implicit_navigation)
     gaia::rules::subscribe_ruleset("test_queries");
 
     gaia::db::begin_transaction();
-    for (auto& s : Student_t::list())
+    for (auto& s : student_t::list())
     {
-        if (strcmp(s.Surname(), "Richard") == 0)
+        if (strcmp(s.surname(), "Richard") == 0)
         {
             auto sw = s.writer();
-            sw.Age = 46;
+            sw.age = 46;
             sw.update_row();
             break;
         }
@@ -279,12 +279,12 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     gaia::rules::subscribe_ruleset("test_queries");
 
     gaia::db::begin_transaction();
-    for (auto& r : Registration_t::list())
+    for (auto& r : registration_t::list())
     {
-        if (strcmp(r.RegId(), "reg003") == 0)
+        if (strcmp(r.reg_id(), "reg003") == 0)
         {
             auto rw = r.writer();
-            rw.Grade = "C";
+            rw.grade = c_grade_c;
             rw.update_row();
             break;
         }
@@ -315,29 +315,29 @@ TEST_F(test_queries_code, new_registration)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
-    // The students will register for a class. The rule, OnInsert(Registration)
+    // The students will register for a class. The rule, OnInsert(registration)
     // will decide the status of each registration.
     gaia::db::begin_transaction();
 
     // Richard registers for math301
-    auto reg = Registration_t::insert_row("reg00H", "pending", "");
+    auto reg = registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
     student_1.registrations().insert(reg);
     course_5.registrations().insert(reg);
 
     // Russell registers for math201.
-    reg = Registration_t::insert_row("reg00I", "pending", "");
+    reg = registration_t::insert_row("reg00I", c_status_pending, c_grade_none);
     student_2.registrations().insert(reg);
     course_2.registrations().insert(reg);
 
     // Rachael register for eng101.
-    reg = Registration_t::insert_row("reg00K", "pending", "");
-    // auto student_4 = Student_t::get(Student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+    reg = registration_t::insert_row("reg00K", c_status_pending, c_grade_none);
+    // auto student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
     student_4.registrations().insert(reg);
     course_3.registrations().insert(reg);
 
     // Renee registers for math301
-    reg = Registration_t::insert_row("reg00L", "pending", "");
-    // auto student_5 = Student_t::get(Student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+    reg = registration_t::insert_row("reg00L", c_status_pending, c_grade_none);
+    // auto student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
     student_5.registrations().insert(reg);
     course_5.registrations().insert(reg);
 
@@ -350,7 +350,7 @@ TEST_F(test_queries_code, new_registration)
     } while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
 
     // GAIAPLAT-801
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(Registration) not called";
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 }
 

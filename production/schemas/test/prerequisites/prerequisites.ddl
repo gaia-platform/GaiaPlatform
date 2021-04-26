@@ -7,47 +7,47 @@ create database if not exists prerequisites;
 
 use prerequisites;
 
-create table if not exists Student (
-    StudentId string,
-    Surname string,
-    Age int32,
-    TotalHours int32,
-    GPA float
+create table if not exists student (
+    student_id string,
+    surname string,
+    age int32,
+    total_hours int32,
+    gpa float
 );
 
-create table if not exists Course (
-    CourseId string,
-    Name string,
-    Hours int32
+create table if not exists course (
+    course_id string,
+    name string,
+    hours int32
 );
 
-create table if not exists Registration (
-    RegId string,
-    Status string,
-    Grade string
+create table if not exists registration (
+    reg_id string,
+    status string,
+    grade string
 );
 
-create relationship if not exists StudentReg (
-    Student.registrations -> Registration[],
-    Registration.registered_student -> Student
+create relationship if not exists student_reg (
+    student.registrations -> registration[],
+    registration.registered_student -> student
 );
 
-create relationship if not exists CourseReg (
-    Course.registrations -> Registration[],
-    Registration.registered_course -> Course
+create relationship if not exists course_reg (
+    course.registrations -> registration[],
+    registration.registered_course -> course
 );
 
-create table if not exists PreReq (
-    PreReqId string,
-    MinGrade string
+create table if not exists prereq (
+    prereq_id string,
+    min_grade string
 );
 
-create relationship if not exists PreReqCourse (
-    Course.required_by -> PreReq,
-    PreReq.prereq -> Course
+create relationship if not exists prereq_course (
+    course.required_by -> prereq,
+    prereq.prereq -> course
 );
 
-create relationship if not exists CoursePreReq (
-    Course.requires -> PreReq,
-    PreReq.course -> Course
+create relationship if not exists course_prereq (
+    course.requires -> prereq,
+    prereq.course -> course
 );
