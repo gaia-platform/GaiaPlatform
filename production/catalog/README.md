@@ -110,7 +110,7 @@ To specifying a table in a database, using the composite name of the format
 A database `addr_book` can be created using the following statement.
 
 ```
-    create database addr_book;
+create database addr_book;
 ```
 
 Use the following statement to create an `employee` table in `addr_book`
@@ -134,17 +134,17 @@ following example, the `address` table will be created in the `addr_book`
 database.
 
 ```
-    use addr_book;
+use addr_book;
 
-    create table address (
-        street: string,
-        apt_suite: string,
-        city: string,
-        state: string,
-        postal: string,
-        country: string,
-        current: bool,
-    );
+create table address (
+    street: string,
+    apt_suite: string,
+    city: string,
+    state: string,
+    postal: string,
+    country: string,
+    current: bool,
+);
 ```
 
 ## Catalog bootstrapping
