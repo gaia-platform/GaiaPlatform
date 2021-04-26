@@ -37,11 +37,13 @@ public:
      * APIs for accessing catalog records
      */
     gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_exist = true);
+
     gaia::common::gaia_id_t create_table(
         const std::string& db_name,
         const std::string& name,
         const ddl::field_def_list_t& fields,
         bool throw_on_exist = true);
+
     gaia::common::gaia_id_t create_relationship(
         const std::string& name,
         const ddl::link_def_t& link1,
@@ -49,7 +51,10 @@ public:
         bool thrown_on_exists = true);
 
     void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
+
     void drop_database(const std::string& name, bool throw_unless_exists);
+
+    void switch_db_context(const std::string& db_name);
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 
@@ -129,6 +134,14 @@ private:
     relationship_names_t m_relationship_names;
 
     gaia::common::gaia_id_t m_empty_db_id;
+
+    // The DB context defines the database in which an entity like a table, an
+    // index, or a relationship will be referred to without a database name.
+    std::string m_db_context;
+    inline std::string in_context(const std::string& db)
+    {
+        return db.empty() ? m_db_context : db;
+    }
 
     // Use the lock to ensure exclusive access to caches.
     mutable std::shared_mutex m_lock;

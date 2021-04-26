@@ -3,6 +3,10 @@
 -- All rights reserved.
 ---------------------------------------------
 
+create database if not exists addr_book;
+
+use addr_book;
+
 create table if not exists employee (
     name_first string active,
     name_last string,
