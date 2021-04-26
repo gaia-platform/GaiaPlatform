@@ -20,7 +20,6 @@ namespace test
 void initialize_rules_engine(const event_manager_settings_t& settings);
 
 void commit_trigger(
-    db::gaia_txn_id_t txn_id,
     const db::triggers::trigger_event_t* trigger_events,
     size_t count_events);
 
