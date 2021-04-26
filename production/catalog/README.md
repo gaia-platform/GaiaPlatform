@@ -53,12 +53,12 @@ By default without specifying any mode, `gaiac` will run under loading mode to
 execute the DDL statements--translating them into catalog records--without
 generating any output.
 
-The interactive mode (`-i`) provides a REPL style command line interface to try
-out the DDL. The DDL typed in will be executed, and fbs output if any will be
-printed out to the console output.
+The interactive mode (`--interactive` or `-i`) provides a REPL style command
+line interface to try out the DDL. The DDL typed in will be executed, and fbs
+output if any will be printed out to the console output.
 
-Under generation mode (`-g`), the tool will generate the following two header
-files from specified database(s).
+Under generation mode (`--generate` or `-g`), the tool will generate the following two header
+files from specified database(s) under the output path.
 
 - The FlatBuffers header for field access, `<dbname>_generated.h`
 - The EDC header file `gaia_<dbname>.h`
@@ -66,14 +66,14 @@ files from specified database(s).
 With the two headers, a direct access source file gains access to the database
 as defined by the catalog.
 
-Full command line usage can be shown with the `-h` option.
+Full command line usage can be shown with the `--help` or `-h` option.
 
 #### Examples
 
 Enter interactive mode.
 
 ```
-   gaiac -i
+   gaiac --interactive
 
 ```
 
@@ -81,13 +81,21 @@ Execute DDL statements in `airport.ddl` file, generate header files in the
 `airport` directory for tables in the `airport` database.
 
 ```
-   gaiac -g -d airport airport.ddl
+   gaiac --generate --db-name airport airport.ddl
 ```
 
-Generate catalog direct access APIs. This is the command used for bootstrapping.
+Execute DDL statements in `incubator.ddl` file. Generate the headers in the
+`incubator` directory for tables in the `barn_storage` and `lab`databases.
 
 ```
-   gaiac -d catalog -g
+   gaiac --db-name barn_storage --db-name lab --generate incubator.ddl
+```
+
+Generate catalog direct access APIs in the `catalog` directory. This is the
+command used for bootstrapping.
+
+```
+   gaiac --database catalog --generate --output catalog
 ```
 
 ## Databases

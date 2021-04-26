@@ -674,7 +674,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 // Log a warning message for skipping non-system table creation.
                 //
                 // The warning should not apply to system table creation
-                // because: 1) users cannot create system tables by desgin; 2)
+                // because: 1) users cannot create system tables by design; 2)
                 // current catalog implementation will try to re-create all
                 // system tables on every startup and expect the creation to be
                 // skipped normally if the tables already exist.
