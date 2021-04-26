@@ -4628,6 +4628,7 @@ private:
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
+  StringRef ConvertString(const std::string& str, SourceLocation loc);
 
   struct ExplicitPathData_t
   {

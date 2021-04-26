@@ -57,6 +57,7 @@ public:
     navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables);
     navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
         unordered_map<string, string> tags, bool is_absolute);
+    string get_variable_name(const string& table, const unordered_map<string, string>& tags) const;
 private:
     class db_monitor_t
     {
@@ -90,7 +91,6 @@ private:
     void fill_table_data();
     string get_closest_table(const unordered_map<string, int>& table_distance) const;
     bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path) const;
-    string get_variable_name(const string& table, const unordered_map<string, string>& tags) const;
     string generate_random_string(string::size_type length) const;
     unordered_map<string, string> generate_dummy_tag_map (const unordered_set<string>& tables) const;
     navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables,

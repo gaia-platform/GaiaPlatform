@@ -92,6 +92,21 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
     return returnType;
 }
 
+StringRef Sema::ConvertString(const string& str, SourceLocation loc)
+{
+    string literalString = string("\"") + str + string("\"");
+    Token Toks[1];
+    Toks[0].startToken();
+    Toks[0].setKind(tok::string_literal);
+    Toks[0].setLocation(loc);
+    Toks[0].setLiteralData(literalString.data());
+    Toks[0].setLength(literalString.size());
+
+    StringLiteral *literal =
+        cast<StringLiteral>(ActOnStringLiteral(Toks, nullptr).get());
+    return literal->getString();
+}
+
 class DBMonitor
 {
     public:
@@ -820,6 +835,7 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
+
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
@@ -856,14 +872,13 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
 
         for (auto pathComponentsIterator : explicitPathData[loc].path)
         {
-            argPathComponents.push_back(pathComponentsIterator);
+            argPathComponents.push_back(ConvertString(pathComponentsIterator, loc));
         }
 
         for (auto tagsIterator : explicitPathData[loc].tagMap)
         {
-            argTagKeys.push_back(tagsIterator.first);
-            argTagTables.push_back(tagsIterator.second);
-
+            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
 
         varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,

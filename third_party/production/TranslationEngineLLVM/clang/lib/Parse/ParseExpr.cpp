@@ -782,7 +782,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
       if (NextToken().is(tok::identifier) &&
-        getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::semi, tok::at))
+        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
         {
           ConsumeToken();
           return ParseCastExpression(
