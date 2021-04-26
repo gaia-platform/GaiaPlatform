@@ -335,9 +335,7 @@ void server_t::handle_commit_txn(
     // Aborted txns only have their log fds invalidated and closed after the
     // watermark advances, to preserve the invariant that invalidation can only
     // follow the watermark.
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(s_fd_log);
-    });
+    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(s_fd_log); });
 
     // Check that the log memfd was sealed for writes.
     int seals = ::fcntl(s_fd_log, F_GET_SEALS);
@@ -513,12 +511,8 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() {
-        close_fd(client_socket);
-    });
-    auto server_socket_cleanup = make_scope_guard([&]() {
-        close_fd(server_socket);
-    });
+    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
 
     start_stream_producer(server_socket, id_generator);
 
@@ -624,10 +618,10 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(fmt::format("{}{}", c_gaia_mem_locators_prefix, s_instance_name).c_str());
-    s_shared_counters.create(fmt::format("{}{}", c_gaia_mem_counters_prefix, s_instance_name).c_str());
-    s_shared_data.create(fmt::format("{}{}", c_gaia_mem_data_prefix, s_instance_name).c_str());
-    s_shared_id_index.create(fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_instance_name).c_str());
+    s_shared_locators.create(fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_counters.create(fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_data.create(fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_id_index.create(fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
 
     init_memory_manager();
 
@@ -694,14 +688,14 @@ address_offset_t server_t::allocate_object(
 void server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
-    if (s_persistence_mode != persistence_mode_t::e_disabled)
+    if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_data_dir);
-            if (s_persistence_mode == persistence_mode_t::e_reinitialized_on_startup)
+            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_server_conf.data_dir());
+            if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
             }
@@ -712,7 +706,7 @@ void server_t::recover_db()
 
     // If persistence is disabled after recovery, then destroy the RocksDB
     // instance.
-    if (s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)
+    if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
     {
         rdb.reset();
     }
@@ -894,9 +888,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() {
-        close_fd(s_listening_socket);
-    });
+    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -2140,8 +2132,8 @@ void server_t::gc_applied_txn_logs()
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
             // deallocated while they're being persisted).
-            bool is_persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
-                && (s_persistence_mode != persistence_mode_t::e_disabled_after_recovery);
+            bool is_persistence_enabled = (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
+                && (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled_after_recovery);
 
             if (is_persistence_enabled && !txn_metadata_t::is_txn_durable(ts))
             {
@@ -2252,9 +2244,7 @@ void server_t::txn_rollback()
         s_txn_id != c_invalid_gaia_txn_id,
         "txn_rollback() was called without an active transaction!");
 
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(s_fd_log);
-    });
+    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(s_fd_log); });
 
     // Set our txn status to TXN_TERMINATED.
     // NB: this must be done before calling perform_maintenance()!
@@ -2334,9 +2324,7 @@ bool server_t::txn_commit()
 void server_t::run(server_conf_t server_conf)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_persistence_mode = server_conf.persistence_mode();
-    s_data_dir = server_conf.data_dir();
-    s_instance_name = server_conf.instance_name();
+    s_server_conf = server_conf;
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2368,7 +2356,7 @@ void server_t::run(server_conf_t server_conf)
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         // Launch thread to listen for client connections and create session threads.
-        std::thread client_dispatch_thread(client_dispatch_handler, s_instance_name);
+        std::thread client_dispatch_thread(client_dispatch_handler, server_conf.instance_name());
 
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
@@ -2385,8 +2373,8 @@ void server_t::run(server_conf_t server_conf)
         // data would disappear on reset, only to reappear when the database is
         // restarted and recovers from the persistent store.
         if (!(caught_signal == SIGHUP
-              && (s_persistence_mode == persistence_mode_t::e_disabled
-                  || s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)))
+              && (server_conf.persistence_mode() == persistence_mode_t::e_disabled
+                  || server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)))
         {
             if (caught_signal == SIGHUP)
             {

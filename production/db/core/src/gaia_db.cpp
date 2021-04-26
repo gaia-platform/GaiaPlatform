@@ -5,6 +5,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
@@ -88,6 +89,5 @@ uint64_t gaia::db::transaction_id()
 
 gaia::db::session_opts_t gaia::db::get_default_session_opts()
 {
-    return gaia::db::session_opts_t{
-        .instance_name = c_default_instance_name};
+    return std::move(gaia::db::config::get_default_session_opts());
 }

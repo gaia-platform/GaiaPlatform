@@ -5,7 +5,6 @@
 
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include <mutex>
 #include <optional>
 #include <shared_mutex>
 

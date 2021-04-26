@@ -13,6 +13,7 @@
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
 
 #include "cpptoml.h"
@@ -66,7 +67,11 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
         gaia_log::shutdown();
     });
 
-    gaia::db::begin_session();
+    gaia::db::session_opts_t session_opts = gaia::db::config::create_session_opts(root_config);
+    gaia::db::config::set_default_session_opts(session_opts);
+
+    gaia::db::begin_session(session_opts);
+
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     db_initialized = true;
 

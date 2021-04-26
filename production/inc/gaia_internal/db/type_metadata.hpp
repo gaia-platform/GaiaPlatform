@@ -129,7 +129,7 @@ public:
 
     static type_registry_t& instance()
     {
-        static type_registry_t type_registry;
+        static thread_local type_registry_t type_registry;
         return type_registry;
     }
 

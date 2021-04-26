@@ -82,7 +82,8 @@ add_library(gaia_db_client STATIC
   src/db_client.cpp
   src/db_shared_data_client.cpp
   src/type_metadata.cpp
-  src/type_id_mapping.cpp)
+  src/type_id_mapping.cpp
+  src/db_client_config.cpp)
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
@@ -221,6 +222,11 @@ add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}
 add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
+
+add_gtest(test_multiple_server_instances
+    tests/test_multiple_server_instances.cpp
+    "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
+    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

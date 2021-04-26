@@ -12,6 +12,7 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "cpptoml.h"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"

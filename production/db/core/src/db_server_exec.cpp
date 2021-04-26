@@ -67,6 +67,10 @@ static void expand_home_path(std::string& path)
     path = home + path.substr(1);
 }
 
+/**
+ * Manage the gaia configuration by lazy loading the config file only
+ * if used.
+ */
 class lazy_gaia_conf
 {
 public:

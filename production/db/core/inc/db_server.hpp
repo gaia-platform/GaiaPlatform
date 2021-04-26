@@ -37,6 +37,9 @@ public:
     }
 };
 
+/**
+ * Encapsulates the server_t configuration.
+ */
 class server_conf_t
 {
 public:
@@ -53,6 +56,13 @@ public:
 public:
     server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
         : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir))
+    {
+    }
+
+    // Dummy constructor to allow server_t initialization.
+    // TODO this should be private but I just can make the "friend" thing working.
+    server_conf_t()
+        : m_persistence_mode(c_default_persistence_mode)
     {
     }
 
@@ -79,10 +89,11 @@ class server_t
 
 public:
     static void run(server_conf_t server_conf);
-
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
 
 private:
+    static inline server_conf_t s_server_conf{};
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
@@ -104,7 +115,7 @@ private:
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
-    static inline std::unique_ptr<persistent_store_manager> rdb;
+    static inline std::unique_ptr<persistent_store_manager> rdb = nullptr;
 
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
@@ -114,9 +125,9 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
-    static inline server_conf_t::persistence_mode_t s_persistence_mode{server_conf_t::persistence_mode_t::e_default};
-    static inline std::string s_data_dir;
-    static inline std::string s_instance_name;
+    //    static inline server_conf_t::persistence_mode_t s_server_conf.persistence_mode(){server_conf_t::persistence_mode_t::e_default};
+    //    static inline std::string s_data_dir;
+    //    static inline std::string s_instance_name;
 
     static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
