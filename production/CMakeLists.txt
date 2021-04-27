@@ -335,5 +335,3 @@ add_custom_target(gaia_dependency_graph
   COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/gaia_dependencies/*
   COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-
-#add_subdirectory(examples/hello)
