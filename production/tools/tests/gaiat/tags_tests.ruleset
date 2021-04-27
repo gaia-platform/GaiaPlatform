@@ -28,7 +28,7 @@ ruleset test3
     }
 }
 
-// GAIAPLAT-855
+// GAIAPLAT-855 (fixed)
 ruleset test4 : Table(actuator, incubator)
 {
     OnInsert(I:incubator)
@@ -51,7 +51,7 @@ ruleset test5
     }
 }
 
-// GAIAPLAT-855
+// GAIAPLAT-855 (fixed)
 ruleset test6 : Table(actuator)
 {
     // One field.
@@ -90,7 +90,7 @@ ruleset test9
     }
 }
 
-// GAIAPLAT-855
+// GAIAPLAT-855 (fixed)
 ruleset test10 : Table(sensor)
 {
     OnUpdate(S:sensor)

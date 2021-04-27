@@ -585,13 +585,13 @@ ruleset test82
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
 // GAIALAT-796
-ruleset test83 : Table(sensor)
-{
-    OnUpdate(value)
-    {
-        float v = value * 2.0;
-    }
-}
+// ruleset test83 : Table(sensor)
+// {
+    // OnUpdate(value)
+    // {
+        // float v = value * 2.0;
+    // }
+// }
 
 ruleset test84
 {
@@ -727,13 +727,14 @@ ruleset test100
     }
 }
 
-// GAIAPLAT-821
-// ruleset testE1
+// GAIAPLAT-827
+// ruleset test101
 // {
-//     OnUpdate(incubator)
+//     OnChange(sensor.value)
 //     {
-//         if (/@incubator) {
-//             int i = 0;
+//         if (S:sensor.value > 100.0)
+//         {
+//             actuator.value = 101.0;
 //         }
 //     }
 // }
@@ -766,14 +767,20 @@ ruleset test100
 //     }
 // }
 
-// GAIAPLAT-827
-// ruleset test14
+// GAIAPLAT-877
+// ruleset testE4
 // {
-//     OnChange(sensor.value)
+//     OnInsert(animal)
 //     {
-//         if (S:sensor.value > 100.0)
-//         {
-//             actuator.value = 101.0;
-//         }
+//         animal->feeding->portion = 5;
+//     }
+// }
+
+// GAIAPLAT-878
+// ruleset test105
+// {
+//     OnInsert(animal)
+//     {
+//         animal->feeding = 5;
 //     }
 // }
