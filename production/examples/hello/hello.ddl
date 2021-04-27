@@ -3,10 +3,6 @@
 -- All rights reserved.
 ---------------------------------------------
 
-CREATE DATABASE IF NOT EXISTS hello;
-
-USE hello;
-
 create table if not exists names
 (
     name string
