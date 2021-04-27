@@ -23,7 +23,7 @@ class gaia_incubator_test : public db_catalog_test_base_t
 {
 protected:
     gaia_incubator_test()
-        : db_catalog_test_base_t(std::string("barn_storage.ddl")){};
+        : db_catalog_test_base_t(std::string("incubator.ddl")){};
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {
