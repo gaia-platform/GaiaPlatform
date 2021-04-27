@@ -30,11 +30,9 @@ add_library(gaia_common STATIC
   src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
-find_package(spdlog 1.5.0 REQUIRED CONFIG)
-
 # The following are INTERFACE libraries for including headers.
 target_link_libraries(gaia_common cpptoml)
-target_link_libraries(gaia_common spdlog::spdlog)
+target_link_libraries(gaia_common spdlog)
 target_link_libraries(gaia_common spdlog_setup)
 target_link_libraries(gaia_common stdc++fs)
 

@@ -158,6 +158,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
+# Spdlog.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
 # Spdlog_setup.
 add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
 # Tabulate.
@@ -334,4 +336,4 @@ add_custom_target(gaia_dependency_graph
   COMMAND "${CMAKE_COMMAND}" "--graphviz=gaia_dependencies/gaia" .
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_subdirectory(examples/hello)
+#add_subdirectory(examples/hello)
