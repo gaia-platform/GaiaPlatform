@@ -1,0 +1,13 @@
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test01
+{
+    {
+        /I:incubator->I.value += I.min_temp;
+    }
+}
+
+// GAIAPLAT-826
+// CHECK: Tag 'I' cannot be used in this context.

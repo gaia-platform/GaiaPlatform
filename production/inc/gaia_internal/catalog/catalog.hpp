@@ -16,6 +16,8 @@
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 namespace gaia
 {
 /**
@@ -80,7 +82,7 @@ enum class trim_action_type_t : uint8_t
 /*
  * Value index types.
  */
-enum value_index_type_t : uint8_t
+enum class value_index_type_t : uint8_t
 {
     hash,
     range
@@ -89,7 +91,7 @@ enum value_index_type_t : uint8_t
 /*
  * Cardinality of a relationship
  */
-enum relationship_cardinality_t : uint8_t
+enum class relationship_cardinality_t : uint8_t
 {
     one,
     many
@@ -108,7 +110,8 @@ enum class statement_type_t : uint8_t
 {
     create,
     drop,
-    alter
+    alter,
+    use
 };
 
 struct statement_t
@@ -143,7 +146,9 @@ struct base_field_def_t
     base_field_def_t(std::string name, field_type_t field_type)
         : name(move(name)), field_type(field_type)
     {
+        ASSERT_PRECONDITION(!(this->name.empty()), "base_field_def_t::name must not be empty.");
     }
+
     std::string name;
     field_type_t field_type;
 
@@ -165,58 +170,39 @@ struct data_field_def_t : base_field_def_t
 
 using composite_name_t = std::pair<std::string, std::string>;
 
-// This represents reference fields in parsing results.
-// The references are defined as relationships in catalog tables.
-struct ref_field_def_t : base_field_def_t
-{
-    ref_field_def_t(std::string name, composite_name_t full_table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
-    {
-    }
-
-    ref_field_def_t(std::string name, std::string db_name, std::string table_name)
-        : base_field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
-    {
-    }
-
-    composite_name_t parent_table;
-
-    [[nodiscard]] std::string db_name() const
-    {
-        return parent_table.first;
-    }
-
-    [[nodiscard]] std::string table_name() const
-    {
-        return parent_table.second;
-    }
-
-    [[nodiscard]] std::string full_table_name() const
-    {
-        if (db_name().empty())
-        {
-            return table_name();
-        }
-        else
-        {
-            return db_name() + c_db_table_name_connector + table_name();
-        }
-    }
-
-    [[nodiscard]] bool is_anonymous() const
-    {
-        return name.empty();
-    }
-};
-
 using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
+
+struct link_def_t
+{
+    std::string from_database;
+    std::string from_table;
+
+    std::string name;
+
+    std::string to_database;
+    std::string to_table;
+
+    relationship_cardinality_t cardinality;
+};
 
 enum class create_type_t : uint8_t
 {
     create_database,
     create_table,
+    create_relationship,
 };
 
+struct use_statement_t : statement_t
+{
+    explicit use_statement_t(std::string name)
+        : statement_t(statement_type_t::use), name(std::move(name))
+    {
+    }
+
+    std::string name;
+};
+
+// TODO: refactoring create statements into sub types, pending index changes (create_index).
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
@@ -238,6 +224,10 @@ struct create_statement_t : statement_t
     field_def_list_t fields;
 
     bool if_not_exists;
+
+    // A relationship is defined by a pair of links because we only allow
+    // bi-directional relationships.
+    std::pair<link_def_t, link_def_t> relationship;
 };
 
 enum class drop_type_t : uint8_t
@@ -263,6 +253,8 @@ struct drop_statement_t : statement_t
     std::string name;
 
     std::string database;
+
+    bool if_exists;
 };
 
 /*@}*/
@@ -371,9 +363,63 @@ public:
 };
 
 /**
+ * Thrown when creating a relationship that already exists.
+ */
+class relationship_already_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit relationship_already_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The relationship '" << name << "' already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the tables specified in the relationship definition do not match.
+ */
+class tables_not_match : public gaia::common::gaia_exception
+{
+public:
+    explicit tables_not_match(
+        const std::string& relationship,
+        const std::string& name1,
+        const std::string& name2)
+    {
+        std::stringstream message;
+        message << "The table '" << name1 << "' does not match the table '" << name2 << "' "
+                << "in the relationship '" << relationship << "' definition.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when trying to create a many-to-many relationship.
+ */
+class many_to_many_not_supported : public gaia::common::gaia_exception
+{
+public:
+    explicit many_to_many_not_supported(const std::string& relationship)
+    {
+        std::stringstream message;
+        message << "The many to many relationship defined in '" << relationship << "' is not supported.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Initialize the catalog.
 */
 void initialize_catalog();
+
+/**
+ * Switch to the database.
+ *
+ * @param name database name
+ * @throw db_not_exists
+ */
+void use_database(const std::string& name);
 
 /**
  * Create a database in the catalog.
@@ -415,9 +461,10 @@ gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_d
  *
  * @param name database name
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_database(const std::string& name);
+void drop_database(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Delete a table in a given database.
@@ -428,9 +475,10 @@ void drop_database(const std::string& name);
  *
  * @param db_name database name
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_table(const std::string& db_name, const std::string& name);
+void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Delete a table from the catalog's global database.
@@ -440,9 +488,10 @@ void drop_table(const std::string& db_name, const std::string& name);
  * which is not available to the catalog implementation.
  *
  * @param name table name
+ * @param throw_unless_exists throw an execption unless the database exists
  * @throw table_not_exists
  */
-void drop_table(const std::string& name);
+void drop_table(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * List all data payload fields for a given table defined in the catalog.
@@ -487,6 +536,19 @@ std::vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gai
  * @return a list of ids of the tables that have a parent relationship with this table.
  */
 std::vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
+
+/**
+ * Create a relationship between tables given the link definitions.
+ *
+ * @param name of the relationship
+ * @param link1, link2 link definitions of the relationship
+ * @return gaia id of the created relationship
+ */
+gaia::common::gaia_id_t create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    bool throw_on_exist = true);
 
 /**
  * Generate the Extended Data Classes header file.

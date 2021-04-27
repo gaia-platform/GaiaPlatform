@@ -14,7 +14,7 @@ set(PREREQUISITES_DDL "${PROJECT_SOURCE_DIR}/prerequisites.ddl")
 add_custom_command(
   COMMENT "Compiling prerequisites.ddl..."
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_prerequisites.h
-  COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/core -o ${GAIA_GENERATED_SCHEMAS} -g ${PREREQUISITES_DDL}
+  COMMAND ${GAIA_GENERATE} --destroy-db -t ${GAIA_PROD_BUILD}/db/core -o ${GAIA_GENERATED_SCHEMAS} -d prerequisites -g ${PREREQUISITES_DDL}
   DEPENDS gaiac
   DEPENDS ${PREREQUISITES_DDL}
 )

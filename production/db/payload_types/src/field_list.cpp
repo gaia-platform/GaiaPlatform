@@ -54,13 +54,13 @@ field_position_t field_list_t::operator[](size_t idx) const
 // Initialize backing structure on this list.
 void field_list_t::initialize()
 {
-    retail_assert(m_data == nullptr, "field list already initialized");
+    ASSERT_PRECONDITION(m_data == nullptr, "field list already initialized");
     size_t num_fields = 0;
     auto_transaction_t txn;
 
     for (auto field : gaia::catalog::gaia_field_t::list())
     {
-        if (field.gaia_table().gaia_id() == m_type_id)
+        if (field.table().gaia_id() == m_type_id)
         {
             num_fields++;
         }
@@ -129,7 +129,7 @@ bool field_list_t::validate() const
 // Intersection. Returns fields on both lists if table_ids are the same.
 field_list_t field_list_t::intersect(const field_list_t& other) const
 {
-    retail_assert(m_type_id == other.m_type_id, "Incompatible field lists for intersect");
+    ASSERT_PRECONDITION(m_type_id == other.m_type_id, "Incompatible field lists for intersect");
     // TODO (yiwen): implement.
     return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }

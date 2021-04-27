@@ -1,0 +1,140 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include "gaia_prerequisites.h"
+#include "test_rulesets.hpp"
+
+using namespace gaia::prerequisites;
+
+bool g_oninsert_called;
+bool g_oninsert2_called;
+bool g_oninsert3_called;
+bool g_onchange_called;
+bool g_onchange2_called;
+bool g_onupdate_called;
+bool g_onupdate2_called;
+bool g_onupdate3_called;
+bool g_onupdate4_called;
+test_error_result_t g_oninsert_result;
+test_error_result_t g_oninsert2_result;
+test_error_result_t g_oninsert3_result;
+test_error_result_t g_onchange_result;
+test_error_result_t g_onchange2_result;
+test_error_result_t g_onupdate_result;
+test_error_result_t g_onupdate2_result;
+test_error_result_t g_onupdate3_result;
+test_error_result_t g_onupdate4_result;
+int32_t g_oninsert_value;
+int32_t g_oninsert2_value;
+int32_t g_oninsert3_value;
+int32_t g_onupdate_value;
+int32_t g_onupdate3_value;
+
+ruleset test_tags
+{
+    OnInsert(Student)
+    {
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+
+    OnInsert(S:Student)
+    {
+        g_oninsert2_value = S.Age;
+        g_oninsert2_result = test_error_result_t::e_none;
+        g_oninsert2_called = true;
+    }
+
+    OnInsert(R:Registration)
+    {
+        // Check common field references.
+        if (strcmp(R.RegId, RegId) != 0)
+        {
+            g_oninsert3_result = test_error_result_t::e_tag_field_mismatch;
+        }
+        else if (strcmp(RegId, Registration.RegId) != 0)
+        {
+            g_oninsert3_result = test_error_result_t::e_tag_field_mismatch;
+        }
+        else {
+            g_oninsert3_result = test_error_result_t::e_none;
+        }
+        g_oninsert3_called = true;
+    }
+
+    OnChange(Student)
+    {
+        g_onchange_result = test_error_result_t::e_none;
+        g_onchange_called = true;
+    }
+
+    OnChange(Student.Age)
+    {
+        g_onchange2_result = test_error_result_t::e_none;
+        g_onchange2_called = true;
+    }
+
+    OnUpdate(Student)
+    {
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+
+    OnUpdate(Student.Surname)
+    {
+        g_onupdate2_result = test_error_result_t::e_none;
+        g_onupdate2_called = true;
+    }
+
+    OnUpdate(Student.Age)
+    {
+        g_onupdate3_value = Age;
+        g_onupdate3_result = test_error_result_t::e_none;
+        g_onupdate3_called = true;
+    }
+
+    OnUpdate(Student.Age, Student.Surname)
+    {
+        g_onupdate4_result = test_error_result_t::e_none;
+        g_onupdate4_called = true;
+    }
+}
+
+ruleset test_queries
+{
+    OnInsert(R:Registration)
+    {
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+
+    OnInsert(S:Student)
+    {
+        int32_t age_sum = 0;
+        // +++ Explicit navigation expression.
+        // age_sum += /Student.age;
+        // --- Current equivalent.
+        for (const auto& s : Student_t::list())
+        {
+            age_sum += s.Age();
+        }
+        g_oninsert2_value = age_sum;
+
+        g_oninsert2_result = test_error_result_t::e_none;
+        g_oninsert2_called = true;
+    }
+
+    OnUpdate(S:Student)
+    {
+        int32_t hours = 0;
+        // Implicit query from Student to Course.
+        // Result should be the total of Hours for all Courses taken by Student.
+        hours += Hours;
+
+        g_onupdate_value = hours;
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+}

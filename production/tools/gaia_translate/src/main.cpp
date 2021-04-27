@@ -1935,6 +1935,7 @@ public:
             g_is_generation_error = true;
         }
     }
+
 private:
     Rewriter& m_rewriter;
 };
@@ -1973,24 +1974,8 @@ public:
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
         StatementMatcher table_call_matcher
-            = declRefExpr(allOf(to(varDecl(
-                              anyOf(
-                                  hasAttr(attr::GaiaField),
-                                  hasAttr(attr::FieldTable),
-                                  hasAttr(attr::GaiaFieldValue)),
-                              unless(hasAttr(attr::GaiaFieldLValue)))),
-                              allOf(
-                                    unless(
-                                      hasAncestor(
-                                          memberExpr(
-                                            member(
-                                                allOf(
-                                                    hasAttr(attr::GaiaField),
-                                                    unless(hasAttr(attr::GaiaFieldLValue))))))),
-                                    anyOf(
-                                        hasAncestor(callExpr()),
-                                        hasAncestor(cxxMemberCallExpr())))))
-                .bind("tableCall");
+            = declRefExpr(allOf(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::FieldTable), hasAttr(attr::GaiaFieldValue)), unless(hasAttr(attr::GaiaFieldLValue)))), allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+                  .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(

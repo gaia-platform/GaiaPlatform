@@ -27,20 +27,21 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
 {
     if (count == 1)
     {
-        return name + " " + type;
+        return "\"" + name + "\" " + type;
     }
     else if (count == 0)
     {
-        return name + " " + type + "[]";
+        return "\"" + name + "\" " + type + "[]";
     }
     else
     {
         stringstream message;
         message << "Unexpected fixed size array definition in " << __func__ << "!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_UNREACHABLE(message.str());
+        // The compiler thinks we can still get here despite the fact that
+        // ASSERT_UNREACHABLE will unconditionally interrupt execution.
+        // So we'll use a builtin function to tell the compiler that we know better.
+        __builtin_unreachable();
     }
 }
 
@@ -81,10 +82,7 @@ string get_fdw_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_fdw_data_type_name()!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_UNREACHABLE(message.str());
     }
 }
 
@@ -107,7 +105,7 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     ddl_string_stream << "CREATE FOREIGN TABLE ";
 
     gaia_table_t table = gaia_table_t::get(table_id);
-    ddl_string_stream << table.name() << "(" << endl;
+    ddl_string_stream << '"' << table.name() << '"' << "(" << endl;
     ddl_string_stream << "gaia_id BIGINT";
 
     for (gaia_id_t field_id : list_fields(table_id))
@@ -123,18 +121,13 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     {
         gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
-        string relationship_name = relationship.name();
-        if (relationship_name.empty())
-        {
-            relationship_name = relationship.parent_gaia_table().name();
-        }
-        retail_assert(
-            !relationship_name.empty(),
-            "Unable to derive name of anonymous relationship!");
+        // Only the to_parent link is relevant because that's how SQL works:
+        // you have a foreign key pointing to the parent in the child table.
+        string relationship_name = relationship.to_parent_link_name();
 
         ddl_string_stream
             << "," << endl
-            << relationship_name << " BIGINT";
+            << '"' << relationship_name << '"' << " BIGINT";
     }
 
     ddl_string_stream

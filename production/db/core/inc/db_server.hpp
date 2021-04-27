@@ -65,9 +65,6 @@ public:
     static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 
 private:
-    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-    static constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
-
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
@@ -174,7 +171,7 @@ private:
 
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
-    static inline constexpr valid_transition_t s_valid_transitions[] = {
+    static inline constexpr valid_transition_t c_valid_transitions[] = {
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
         {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
@@ -220,12 +217,12 @@ private:
 
     static std::pair<int, int> get_stream_socket_pair();
 
-    template <typename element_type>
+    template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
+        int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn);
 
-    template <typename element_type>
-    static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
+    template <typename T_element>
+    static void start_stream_producer(int stream_socket, std::function<std::optional<T_element>()> generator_fn);
 
     static std::function<std::optional<common::gaia_id_t>()>
     get_id_generator_for_type(common::gaia_type_t type);

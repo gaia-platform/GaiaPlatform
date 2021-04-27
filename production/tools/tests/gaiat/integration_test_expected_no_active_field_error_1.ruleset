@@ -3,7 +3,6 @@
 ruleset test
 {
     {
-
     }
 }
 // CHECK: No active fields for the rule.

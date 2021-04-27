@@ -5,20 +5,20 @@
 
 #pragma once
 
-template <typename T>
-base_mapped_data_t<T>::base_mapped_data_t()
+template <typename T_data>
+base_mapped_data_t<T_data>::base_mapped_data_t()
 {
     clear();
 }
 
-template <typename T>
-base_mapped_data_t<T>::~base_mapped_data_t()
+template <typename T_data>
+base_mapped_data_t<T_data>::~base_mapped_data_t()
 {
     close();
 }
 
-template <typename T>
-void base_mapped_data_t<T>::clear()
+template <typename T_data>
+void base_mapped_data_t<T_data>::clear()
 {
     m_is_set = false;
     m_fd = -1;
@@ -26,13 +26,13 @@ void base_mapped_data_t<T>::clear()
     m_mapped_data_size = 0;
 }
 
-template <typename T>
-void base_mapped_data_t<T>::reset(base_mapped_data_t<T>& other)
+template <typename T_data>
+void base_mapped_data_t<T_data>::reset(base_mapped_data_t<T_data>& other)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !m_is_set,
         "A set base_mapped_data_t instance should not take ownership of another instance!");
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         other.m_is_set,
         "An unset base_mapped_data_t instance should not take ownership of another unset instance!");
 
@@ -44,8 +44,8 @@ void base_mapped_data_t<T>::reset(base_mapped_data_t<T>& other)
     other.clear();
 }
 
-template <typename T>
-void base_mapped_data_t<T>::close()
+template <typename T_data>
+void base_mapped_data_t<T_data>::close()
 {
     common::unmap_fd_data(m_data, m_mapped_data_size);
     m_mapped_data_size = 0;
@@ -55,28 +55,28 @@ void base_mapped_data_t<T>::close()
     m_is_set = false;
 }
 
-template <typename T>
-T* base_mapped_data_t<T>::data()
+template <typename T_data>
+T_data* base_mapped_data_t<T_data>::data()
 {
     return m_data;
 }
 
-template <typename T>
-int base_mapped_data_t<T>::fd()
+template <typename T_data>
+int base_mapped_data_t<T_data>::fd()
 {
     return m_fd;
 }
 
-template <typename T>
-bool base_mapped_data_t<T>::is_set()
+template <typename T_data>
+bool base_mapped_data_t<T_data>::is_set()
 {
     return m_is_set;
 }
 
-template <typename T>
-void mapped_data_t<T>::create(const char* name)
+template <typename T_data>
+void mapped_data_t<T_data>::create(const char* name)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling create() on an already set mapped_data_t instance!");
 
@@ -86,7 +86,7 @@ void mapped_data_t<T>::create(const char* name)
         common::throw_system_error("memfd_create() failed in mapped_data_t::create()!");
     }
 
-    this->m_mapped_data_size = sizeof(T);
+    this->m_mapped_data_size = sizeof(T_data);
 
     common::truncate_fd(this->m_fd, this->m_mapped_data_size);
 
@@ -113,16 +113,16 @@ void mapped_data_t<T>::create(const char* name)
     this->m_is_set = true;
 }
 
-template <typename T>
-void mapped_data_t<T>::open(int fd, bool manage_fd)
+template <typename T_data>
+void mapped_data_t<T_data>::open(int fd, bool manage_fd)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         !this->m_is_set,
         "Calling open() on an already set mapped_data_t instance!");
 
-    common::retail_assert(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
+    ASSERT_PRECONDITION(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
 
-    this->m_mapped_data_size = sizeof(T);
+    this->m_mapped_data_size = sizeof(T_data);
 
     if (manage_fd)
     {

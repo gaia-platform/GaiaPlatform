@@ -1,0 +1,17 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+ruleset test04
+{
+    OnUpdate(N:name, T:timestamp)
+    {
+        T.timestamp += use_string(N.name);
+    }
+}
+
+// CHECK: Tag refers to an invalid table 'name'.
+// CHECK: Table 'T' was not found in the catalog.
+// CHECK: use of undeclared identifier 'T'
+// CHECK: Table 'N' was not found in the catalog.
+// CHECK: use of undeclared identifier 'N'

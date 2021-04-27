@@ -58,8 +58,8 @@ constexpr char c_table_title[] = "Table";
 constexpr char c_type_title[] = "Type";
 constexpr char c_position_title[] = "Position";
 constexpr char c_repeated_count_title[] = "Repeated Count";
-constexpr char c_parent_title[] = "Parent";
-constexpr char c_child_title[] = "Child";
+constexpr char c_parent_title[] = "Parent (link)";
+constexpr char c_child_title[] = "Child (link)";
 
 template <typename T_obj>
 void list_catalog_obj(const row_t& header, function<bool(T_obj&)> is_match, function<row_t(T_obj&)> get_row)
@@ -88,7 +88,7 @@ void list_tables(const regex& re)
         {c_database_title, c_name_title, c_id_title, c_type_title},
         [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
         [](gaia_table_t& t) -> row_t {
-            return {t.gaia_database().name(), t.name(), to_string(t.gaia_id()), to_string(t.type())};
+            return {t.database().name(), t.name(), to_string(t.gaia_id()), to_string(t.type())};
         });
 }
 
@@ -110,7 +110,7 @@ void list_fields(const regex& re)
         },
         [](gaia_field_t& f) -> row_t {
             return {
-                f.gaia_table().name(),
+                f.table().name(),
                 f.name(),
                 get_data_type_name(static_cast<data_type_t>(f.type())),
                 to_string(f.repeated_count()),
@@ -127,10 +127,13 @@ void list_relationships(const regex& re)
             return regex_match(r.name(), re);
         },
         [](gaia_relationship_t& r) -> row_t {
+            stringstream parent, child;
+            parent << r.parent().name() << " (" << r.to_parent_link_name() << ")";
+            child << r.child().name() << " (" << r.to_child_link_name() << ")";
             return {
                 r.name(),
-                r.parent_gaia_table().name(),
-                r.child_gaia_table().name(),
+                parent.str(),
+                child.str(),
                 to_string(r.gaia_id())};
         });
 }
@@ -146,7 +149,7 @@ void describe_database(const string& name)
     }
     {
         auto_transaction_t txn;
-        for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+        for (auto const& table : gaia_database_t::get(db_id).gaia_tables())
         {
             output_table.add_row({table.name()});
         }
@@ -171,7 +174,7 @@ void describe_table(const string& name)
         for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
-            string qualified_name{table.gaia_database().name()};
+            string qualified_name{table.database().name()};
             qualified_name += c_db_table_name_connector;
             qualified_name += table_name;
             if (name == table_name || name == qualified_name)
@@ -184,7 +187,7 @@ void describe_table(const string& name)
         {
             throw table_not_exists(name);
         }
-        for (auto& field : gaia_table_t::get(table_id).gaia_field_list())
+        for (auto& field : gaia_table_t::get(table_id).gaia_fields())
         {
             output_fields.add_row(
                 {field.name(),
@@ -193,18 +196,18 @@ void describe_table(const string& name)
                  to_string(field.position()),
                  to_string(field.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).child_gaia_relationship_list())
+        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_child())
         {
             output_child_references.add_row(
-                {relationship.name(),
-                 relationship.parent_gaia_table().name(),
+                {relationship.to_parent_link_name(),
+                 relationship.parent().name(),
                  to_string(relationship.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).parent_gaia_relationship_list())
+        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_parent())
         {
             output_parent_references.add_row(
-                {relationship.name(),
-                 relationship.child_gaia_table().name(),
+                {relationship.to_parent_link_name(),
+                 relationship.child().name(),
                  to_string(relationship.gaia_id())});
         }
     }
@@ -233,7 +236,7 @@ void generate_table_fbs(const string& name)
         for (auto& table : gaia_table_t::list())
         {
             string table_name{table.name()};
-            string qualified_name{table.gaia_database().name()};
+            string qualified_name{table.database().name()};
             qualified_name += c_db_table_name_connector;
             qualified_name += table_name;
             if (name == table_name || name == qualified_name)
@@ -301,9 +304,9 @@ string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true)
 
 void handle_describe_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_describe_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_describe_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -324,9 +327,9 @@ void handle_describe_command(const string& cmd)
 
 void handle_list_command(const string& cmd)
 {
-    retail_assert(cmd.length() > 1, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > 1, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_list_command, "Unexpected command!");
 
     if (cmd.length() == c_cmd_minimum_length)
     {
@@ -359,9 +362,9 @@ void handle_list_command(const string& cmd)
 // Hide FlatBuffers related commands in release build.
 void handle_generate_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
-    retail_assert(cmd[c_command_index] == c_generate_command, "Unexpected command!");
+    ASSERT_PRECONDITION(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    ASSERT_PRECONDITION(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    ASSERT_PRECONDITION(cmd[c_command_index] == c_generate_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -445,8 +448,8 @@ string command_usage()
 
 bool handle_meta_command(const string& cmd)
 {
-    retail_assert(!cmd.empty(), "Meta command should not be empty.");
-    retail_assert(
+    ASSERT_PRECONDITION(!cmd.empty(), "Meta command should not be empty.");
+    ASSERT_PRECONDITION(
         cmd[c_cmd_prefix_index] == c_command_prefix,
         "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 

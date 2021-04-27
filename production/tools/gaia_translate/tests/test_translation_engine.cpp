@@ -31,7 +31,7 @@ class translation_engine_test : public db_catalog_test_base_t
 {
 public:
     translation_engine_test()
-        : db_catalog_test_base_t("barn_storage.ddl"){};
+        : db_catalog_test_base_t("incubator.ddl"){};
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {
@@ -46,8 +46,8 @@ public:
     {
         gaia::db::begin_transaction();
         auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature));
-        incubator.sensor_list().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
-        incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
+        incubator.sensors().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
+        incubator.actuators().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
         gaia::db::commit_transaction();
     }
 

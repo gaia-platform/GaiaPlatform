@@ -12,9 +12,9 @@
 
 #include "gaia/events.hpp"
 
+#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
-#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
@@ -72,6 +72,8 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         shutdown();
     }
 
+    gaia_log::rules().debug("Initializing rules engine...");
+
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
     {
@@ -91,8 +93,8 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         m_rule_checker = make_unique<rule_checker_t>();
     }
 
-    auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
-        event_manager_t::get().commit_trigger(txn_id, event_list);
+    auto fn = [](const trigger_event_list_t& event_list) {
+        event_manager_t::get().commit_trigger(event_list);
     };
     set_commit_trigger(fn);
 
@@ -135,6 +137,7 @@ void event_manager_t::process_last_operation_events(
 
     for (auto const& binding : rules)
     {
+        gaia_log::rules().trace("Enqueue table event:'{}', txn_id:'{}', gaia_type:'{}', gaia_id:'{}'", event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
         enqueue_invocation(event, binding, start_time);
     }
 }
@@ -162,13 +165,17 @@ void event_manager_t::process_field_events(
             rule_list_t& rules = field_it->second;
             for (auto const& binding : rules)
             {
+                gaia_log::rules().trace(
+                    "Enqueue field event:'{}', txn_id:'{}', gaia_type:'{}', field_id:'{}', gaia_id:'{}'",
+                    event_type_name(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
+
                 enqueue_invocation(event, binding, start_time);
             }
         }
     }
 }
 
-void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
+void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_list)
 {
     if (trigger_event_list.size() == 0)
     {
@@ -184,6 +191,14 @@ void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& 
 
     for (const auto& event : trigger_event_list)
     {
+        // TODO logging this as db() and not as rules() for 2 reasons:
+        //   1. This should be logged in the DB but we have no logging there yet.
+        //   2. I don't want to pollute the rules() output too much.
+        // When DB logging is available move this statement there.
+        gaia_log::db().trace(
+            "commit_trigger:'{}' txn_id:'{}', gaia_type:'{}', gaia_id:'{}'",
+            event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
+
         auto type_it = m_subscriptions.find(event.gaia_type);
         if (type_it != m_subscriptions.end())
         {
@@ -215,7 +230,8 @@ void event_manager_t::enqueue_invocation(
         event.gaia_type,
         event.event_type,
         event.record,
-        event.columns};
+        event.columns,
+        event.txn_id};
     rule_thread_pool_t::invocation_t invocation{
         std::move(rule_invocation),
         rule_binding->log_rule_name.c_str(),
@@ -273,6 +289,7 @@ void event_manager_t::subscribe_rule(
     // We found or created an event entry. Now see if we have bound
     // any events already.
     event_binding_t& event_binding = event_it->second;
+    bool is_rule_subscribed = false;
     if (fields.size() > 0)
     {
         for (uint16_t field : fields)
@@ -281,14 +298,12 @@ void event_manager_t::subscribe_rule(
             auto field_it = fields_map.find(field);
             if (field_it == fields_map.end())
             {
-                // TODO[GAIAPLAT-183]: Verify the field is in the catalog and
-                // marked as an active field.
                 auto inserted_field = fields_map.insert(make_pair(field, rule_list_t()));
                 field_it = inserted_field.first;
             }
 
             rule_list_t& rules = field_it->second;
-            add_rule(rules, rule_binding);
+            is_rule_subscribed = add_rule(rules, rule_binding);
         }
     }
     else
@@ -296,7 +311,12 @@ void event_manager_t::subscribe_rule(
         // We are binding a table event to the LastOperation system field
         // because no field reference fields were provided.
         rule_list_t& rules = event_binding.last_operation_rules;
-        add_rule(rules, rule_binding);
+        is_rule_subscribed = add_rule(rules, rule_binding);
+    }
+
+    if (is_rule_subscribed)
+    {
+        gaia_log::rules().debug("Rule '{}:{}:{}' successfully subscribed.", rule_binding.ruleset_name, rule_binding.rule_name, rule_binding.line_number);
     }
 }
 
@@ -323,7 +343,7 @@ bool event_manager_t::unsubscribe_rule(
         return false;
     }
 
-    bool removed_rule = false;
+    bool is_rule_removed = false;
     event_binding_t& event_binding = event_it->second;
     if (fields.size() > 0)
     {
@@ -339,7 +359,7 @@ bool event_manager_t::unsubscribe_rule(
                 // value to true.
                 if (remove_rule(rules, rule_binding))
                 {
-                    removed_rule = true;
+                    is_rule_removed = true;
                 }
             }
         }
@@ -347,14 +367,20 @@ bool event_manager_t::unsubscribe_rule(
     else
     {
         rule_list_t& rules = event_binding.last_operation_rules;
-        removed_rule = remove_rule(rules, rule_binding);
+        is_rule_removed = remove_rule(rules, rule_binding);
     }
 
-    return removed_rule;
+    if (is_rule_removed)
+    {
+        gaia_log::rules().debug("Rule '{}:{}:{}' successfully unsubscribed.", rule_binding.ruleset_name, rule_binding.rule_name, rule_binding.line_number);
+    }
+
+    return is_rule_removed;
 }
 
 void event_manager_t::unsubscribe_rules()
 {
+    gaia_log::rules().debug("Unsubscribing all rules.");
     m_subscriptions.clear();
     m_rules.clear();
 }
@@ -427,7 +453,7 @@ void event_manager_t::add_subscriptions(
     }
 }
 
-void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding)
+bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding)
 {
     // Don't allow adding a rule that has the same
     // key as another rule but is bound to a different
@@ -462,21 +488,23 @@ void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     {
         rules.emplace_back(rule_ptr);
     }
+
+    return true;
 }
 
 bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& binding)
 {
-    bool removed_rule = false;
+    bool is_rule_removed = false;
     const _rule_binding_t* rule_ptr = find_rule(binding);
 
     if (rule_ptr)
     {
         auto size = rules.size();
         rules.remove_if([&](const _rule_binding_t* ptr) { return (ptr == rule_ptr); });
-        removed_rule = (size != rules.size());
+        is_rule_removed = (size != rules.size());
     }
 
-    return removed_rule;
+    return is_rule_removed;
 }
 
 const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)

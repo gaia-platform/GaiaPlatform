@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test05
+{
+    OnUpdate(S:sensor)
+    {
+        float v = P.value;
+    }
+}
+
+// CHECK: Table 'P' was not found in the catalog.
+// CHECK: use of undeclared identifier 'P'

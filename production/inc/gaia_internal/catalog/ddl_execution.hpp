@@ -16,7 +16,7 @@ namespace gaia
 namespace catalog
 {
 
-inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl::statement_t>>& statements)
+inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 {
     for (auto& stmt : statements)
     {
@@ -30,18 +30,19 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             }
             if (create_stmt->type == ddl::create_type_t::create_table)
             {
-                if (!create_stmt->database.empty())
-                {
-                    create_table(create_stmt->database, create_stmt->name, create_stmt->fields, throw_on_exist);
-                }
-                else
-                {
-                    create_table(db_name, create_stmt->name, create_stmt->fields, throw_on_exist);
-                }
+                create_table(create_stmt->database, create_stmt->name, create_stmt->fields, throw_on_exist);
             }
             else if (create_stmt->type == ddl::create_type_t::create_database)
             {
                 create_database(create_stmt->name, throw_on_exist);
+            }
+            else if (create_stmt->type == ddl::create_type_t::create_relationship)
+            {
+                create_relationship(
+                    create_stmt->name,
+                    create_stmt->relationship.first,
+                    create_stmt->relationship.second,
+                    throw_on_exist);
             }
         }
         else if (stmt->is_type(ddl::statement_type_t::drop))
@@ -49,43 +50,24 @@ inline void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl:
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                if (!drop_stmt->database.empty())
-                {
-                    drop_table(drop_stmt->database, drop_stmt->name);
-                }
-                else
-                {
-                    drop_table(db_name, drop_stmt->name);
-                }
+                drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
             }
             else if (drop_stmt->type == ddl::drop_type_t::drop_database)
             {
-                drop_database(drop_stmt->name);
+                drop_database(drop_stmt->name, !drop_stmt->if_exists);
             }
+        }
+        else if (stmt->is_type(ddl::statement_type_t::use))
+        {
+            auto use_stmt = dynamic_cast<ddl::use_statement_t*>(stmt.get());
+            use_database(use_stmt->name);
         }
     }
 }
 
-inline std::string get_db_name_from_filename(const std::string& ddl_filename)
+inline void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
 {
-    std::string db_name = ddl_filename;
-    if (db_name.find('/') != std::string::npos)
-    {
-        db_name = db_name.substr(db_name.find_last_of('/') + 1);
-    }
-    if (db_name.find('.') != std::string::npos)
-    {
-        db_name = db_name.substr(0, db_name.find_last_of('.'));
-    }
-    return db_name;
-}
-
-inline void load_catalog(
-    ddl::parser_t& parser, const std::string& ddl_filename,
-    const std::string& db_name, bool create_db = false)
-{
-    common::retail_assert(!ddl_filename.empty(), "No DDL file specified.");
-    common::retail_assert(!db_name.empty(), "No database specified.");
+    ASSERT_PRECONDITION(!ddl_filename.empty(), "No DDL file specified.");
 
     auto file_path = std::filesystem::path(ddl_filename);
 
@@ -95,22 +77,16 @@ inline void load_catalog(
     }
 
     int parsing_result = parser.parse(file_path.string());
-    common::retail_assert(parsing_result == EXIT_SUCCESS, "Failed to parse the DDL file '" + ddl_filename + "'.");
+    ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to parse the DDL file '" + ddl_filename + "'.");
 
-    if (create_db)
-    {
-        create_database(db_name, false);
-    }
-
-    execute(db_name, parser.statements);
+    execute(parser.statements);
 }
 
 inline void load_catalog(const char* ddl_filename)
 {
     ddl::parser_t parser;
     std::string filename(ddl_filename);
-    std::string db_name = get_db_name_from_filename(ddl_filename);
-    load_catalog(parser, filename, db_name, true);
+    load_catalog(parser, filename);
 }
 
 } // namespace catalog

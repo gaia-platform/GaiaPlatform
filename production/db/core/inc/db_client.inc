@@ -67,7 +67,7 @@ inline void client_t::txn_log(
 {
     if (operation == gaia_operation_t::remove)
     {
-        common::retail_assert(
+        ASSERT_PRECONDITION(
             deleted_id != common::c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
             "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
     }

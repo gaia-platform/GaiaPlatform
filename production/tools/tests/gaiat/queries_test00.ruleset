@@ -1,0 +1,11 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test00
+{
+    OnChange(actuator.value)
+    {
+        actuator.value += isolated.age;
+    }
+}
+
+// CHECK: No path between tables 'actuator' and 'isolated'

@@ -75,7 +75,7 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
 {
-    common::retail_assert(
+    ASSERT_PRECONDITION(
         txn_metadata_t::is_commit_ts(commit_ts),
         "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
 
@@ -107,7 +107,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
         if (e.get_errno() == EBADF)
         {
             // The log fd must have been invalidated before it was closed.
-            common::retail_assert(
+            ASSERT_INVARIANT(
                 txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
                 "log fd was closed without being invalidated!");
 
@@ -126,7 +126,7 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
     if (txn_metadata_t::get_txn_log_fd(commit_ts) == -1)
     {
         // If we got here, we must have a valid dup fd.
-        common::retail_assert(
+        ASSERT_INVARIANT(
             common::is_fd_valid(m_local_log_fd),
             "fd should be valid if dup() succeeded!");
 
@@ -166,10 +166,10 @@ void server_t::register_object_deallocator(std::function<void(gaia_offset_t)> de
 void server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::CONNECT, c_message_unexpected_event_received);
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // This message should only be received after the client thread was first initialized.
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
@@ -182,25 +182,25 @@ void server_t::handle_connect(
 }
 
 void server_t::handle_begin_txn(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
+    ASSERT_PRECONDITION(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    retail_assert(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
+    ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
 
-    retail_assert(s_fd_log == -1, "Transaction log fd should be uninitialized!");
+    ASSERT_PRECONDITION(s_fd_log == -1, "Transaction log fd should be uninitialized!");
 
     // Allocate a new begin_ts for this txn and initialize its metadata in the txn table.
     s_txn_id = txn_metadata_t::txn_begin();
 
     // The begin_ts returned by txn_begin() should always be valid because it
     // retries on concurrent invalidation.
-    retail_assert(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
+    ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
     validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
@@ -234,14 +234,14 @@ void server_t::handle_begin_txn(
     for (auto& fd : txn_log_fds)
     {
         // Each log fd should still be valid.
-        retail_assert(is_fd_valid(fd), "Invalid fd!");
+        ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
         close_fd(fd);
     }
 }
 
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
 {
-    retail_assert(txn_log_fds.empty(), "Vector passed in to get_txn_log_fds_for_snapshot() should be empty!");
+    ASSERT_PRECONDITION(txn_log_fds.empty(), "Vector passed in to get_txn_log_fds_for_snapshot() should be empty!");
 
     // Take a snapshot of the post-apply watermark and scan backward from
     // begin_ts, stopping either just before the saved watermark or at the first
@@ -252,7 +252,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     {
         if (txn_metadata_t::is_commit_ts(ts))
         {
-            retail_assert(
+            ASSERT_INVARIANT(
                 txn_metadata_t::is_txn_decided(ts),
                 "Undecided commit_ts found in snapshot window!");
             if (txn_metadata_t::is_txn_committed(ts))
@@ -291,21 +291,21 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 void server_t::handle_rollback_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
+    ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    retail_assert(s_fd_log == -1, "fd log should be uninitialized!");
+    ASSERT_PRECONDITION(s_fd_log == -1, "fd log should be uninitialized!");
 
     // Get the log fd and free it if the client sends it.
     // The client will not send the txn log to the server if a read-only txn was rolled back.
     if (fds && fd_count == 1)
     {
         s_fd_log = *fds;
-        retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
+        ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
     }
 
     // Release all txn resources and mark the txn's begin_ts metadata as terminated.
@@ -315,17 +315,17 @@ void server_t::handle_rollback_txn(
 void server_t::handle_commit_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
+    ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
     // This message should only be received while a transaction is in progress.
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
         c_message_current_event_is_inconsistent_with_state_transition);
 
     // Get the log fd and mmap it.
-    retail_assert(fds && fd_count == 1, "Invalid fd data!");
+    ASSERT_PRECONDITION(fds && fd_count == 1, "Invalid fd data!");
     s_fd_log = *fds;
-    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
+    ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // We need to keep the log fd around until it's applied to the shared
     // locator view, so we only close the log fd if an exception is thrown.
@@ -342,7 +342,7 @@ void server_t::handle_commit_txn(
     {
         throw_system_error("fcntl(F_GET_SEALS) failed!");
     }
-    retail_assert(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
+    ASSERT_PRECONDITION(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
 
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
@@ -370,11 +370,11 @@ void server_t::handle_commit_txn(
 void server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
         c_message_unexpected_event_received);
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
@@ -404,11 +404,11 @@ void server_t::handle_decide_txn(
 void server_t::handle_client_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         event == session_event_t::CLIENT_SHUTDOWN,
         c_message_unexpected_event_received);
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         new_state == session_state_t::DISCONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
@@ -431,11 +431,11 @@ void server_t::handle_client_shutdown(
 void server_t::handle_server_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         event == session_event_t::SERVER_SHUTDOWN,
         c_message_unexpected_event_received);
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         new_state == session_state_t::DISCONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
@@ -477,12 +477,12 @@ std::pair<int, int> server_t::get_stream_socket_pair()
 void server_t::handle_request_stream(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         event == session_event_t::REQUEST_STREAM,
         c_message_unexpected_event_received);
 
     // This event never changes session state.
-    retail_assert(
+    ASSERT_PRECONDITION(
         old_state == new_state,
         c_message_current_event_is_inconsistent_with_state_transition);
 
@@ -496,7 +496,7 @@ void server_t::handle_request_stream(
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(
+    ASSERT_INVARIANT(
         request->data_type() == request_data_t::table_scan,
         c_message_unexpected_request_data_type);
 
@@ -536,7 +536,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         return;
     }
 
-    for (auto t : s_valid_transitions)
+    for (auto t : c_valid_transitions)
     {
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
         {
@@ -599,7 +599,7 @@ void server_t::clear_shared_memory()
 void server_t::init_shared_memory()
 {
     // The listening socket must not be open.
-    retail_assert(s_listening_socket == -1, "Listening socket should not be open!");
+    ASSERT_PRECONDITION(s_listening_socket == -1, "Listening socket should not be open!");
 
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
@@ -607,10 +607,10 @@ void server_t::init_shared_memory()
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
-    retail_assert(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
-    retail_assert(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
-    retail_assert(!s_shared_data.is_set(), "Data memory should be unmapped!");
-    retail_assert(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
+    ASSERT_INVARIANT(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
+    ASSERT_INVARIANT(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
+    ASSERT_INVARIANT(!s_shared_data.is_set(), "Data memory should be unmapped!");
+    ASSERT_INVARIANT(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -659,7 +659,7 @@ address_offset_t server_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    retail_assert(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
+    ASSERT_PRECONDITION(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
 
     address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
     if (object_offset == c_invalid_address_offset)
@@ -679,8 +679,9 @@ address_offset_t server_t::allocate_object(
 
         // Allocate from new chunk.
         object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
-        retail_assert(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
     }
+
+    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
 
     update_locator(locator, object_offset);
 
@@ -855,7 +856,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
             // If this thread has already exited, then join it and deallocate
             // its object to release both memory and thread-related system
             // resources.
-            retail_assert(iter->joinable(), c_message_thread_must_be_joinable);
+            ASSERT_INVARIANT(iter->joinable(), c_message_thread_must_be_joinable);
             iter->join();
 
             // Move the last element into the current entry.
@@ -877,7 +878,7 @@ void server_t::client_dispatch_handler()
     auto session_cleanup = make_scope_guard([]() {
         for (auto& thread : s_session_threads)
         {
-            retail_assert(thread.joinable(), c_message_thread_must_be_joinable);
+            ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
         // All session threads have been joined, so they can be destroyed.
@@ -959,7 +960,7 @@ void server_t::client_dispatch_handler()
             }
 
             // At this point, we should only get EPOLLIN.
-            retail_assert(ev.events == EPOLLIN, c_message_unexpected_event_type);
+            ASSERT_INVARIANT(ev.events == EPOLLIN, c_message_unexpected_event_type);
 
             if (ev.data.fd == s_listening_socket)
             {
@@ -990,7 +991,7 @@ void server_t::client_dispatch_handler()
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, c_message_unexpected_fd);
+                ASSERT_INVARIANT(false, c_message_unexpected_fd);
             }
         }
     }
@@ -1043,7 +1044,7 @@ void server_t::session_handler(int session_socket)
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
         {
-            retail_assert(thread.joinable(), c_message_thread_must_be_joinable);
+            ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
 
@@ -1110,7 +1111,7 @@ void server_t::session_handler(int session_socket)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.
-                    retail_assert(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
+                    ASSERT_INVARIANT(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLRDHUP)
@@ -1119,12 +1120,12 @@ void server_t::session_handler(int session_socket)
                     // disconnect. We do the same by closing the session socket.
                     // REVIEW: Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
                     // the socket after we half-close it?
-                    retail_assert(!(ev.events & EPOLLHUP), "EPOLLHUP flag should not be set!");
+                    ASSERT_INVARIANT(!(ev.events & EPOLLHUP), "EPOLLHUP flag should not be set!");
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLIN)
                 {
-                    retail_assert(
+                    ASSERT_INVARIANT(
                         !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
 
@@ -1134,7 +1135,7 @@ void server_t::session_handler(int session_socket)
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
                     // legitimately read 0 bytes and this assert would be invalid.
-                    retail_assert(bytes_read > 0, "Failed to read message!");
+                    ASSERT_INVARIANT(bytes_read > 0, "Failed to read message!");
 
                     const message_t* msg = Getmessage_t(msg_buf);
                     const client_request_t* request = msg->msg_as_request();
@@ -1150,22 +1151,22 @@ void server_t::session_handler(int session_socket)
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false, c_message_unexpected_event_type);
+                    ASSERT_INVARIANT(false, c_message_unexpected_event_type);
                 }
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
+                ASSERT_INVARIANT(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
                 consume_eventfd(s_server_shutdown_eventfd);
                 event = session_event_t::SERVER_SHUTDOWN;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, c_message_unexpected_fd);
+                ASSERT_INVARIANT(false, c_message_unexpected_fd);
             }
 
-            retail_assert(event != session_event_t::NOP, c_message_unexpected_event_type);
+            ASSERT_INVARIANT(event != session_event_t::NOP, c_message_unexpected_event_type);
 
             // The transition handlers are the only places we currently call
             // send_msg_with_fds(). We need to handle a peer_disconnected
@@ -1183,12 +1184,12 @@ void server_t::session_handler(int session_socket)
     }
 }
 
-template <typename T_element_type>
+template <typename T_element>
 void server_t::stream_producer_handler(
-    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element_type>()> generator_fn)
+    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn)
 {
     // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
+    static_assert(std::is_integral<T_element>::value, "Generator function must return an integer.");
 
     // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
@@ -1201,9 +1202,9 @@ void server_t::stream_producer_handler(
     check_socket_type(stream_socket, SOCK_SEQPACKET);
 
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
-    retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
+    ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
 
-    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
+    auto gen_iter = generator_iterator_t<T_element>(generator_fn);
 
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -1235,7 +1236,7 @@ void server_t::stream_producer_handler(
     bool producer_shutdown = false;
 
     // The userspace buffer that we use to construct a batch datagram message.
-    std::vector<T_element_type> batch_buffer;
+    std::vector<T_element> batch_buffer;
 
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
@@ -1283,19 +1284,19 @@ void server_t::stream_producer_handler(
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // We shold get this when the client has closed its end of the socket.
-                    retail_assert(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
+                    ASSERT_INVARIANT(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLOUT)
                 {
-                    retail_assert(
+                    ASSERT_INVARIANT(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
 
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
                     while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
                     {
-                        T_element_type next_val = *gen_iter;
+                        T_element next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
                         ++gen_iter;
                     }
@@ -1316,7 +1317,7 @@ void server_t::stream_producer_handler(
                         // We don't want to handle signals, so set
                         // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
                         ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element_type),
+                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element),
                             MSG_NOSIGNAL);
 
                         if (bytes_written == -1)
@@ -1324,7 +1325,7 @@ void server_t::stream_producer_handler(
                             // It should never happen that the socket is no longer writable
                             // after we receive EPOLLOUT, because we are the only writer and
                             // the receive buffer is always large enough for a batch.
-                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
+                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
                             cerr << "Stream socket error: '" << ::strerror(errno) << "'." << endl;
                             producer_shutdown = true;
@@ -1352,26 +1353,26 @@ void server_t::stream_producer_handler(
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false, c_message_unexpected_event_type);
+                    ASSERT_INVARIANT(false, c_message_unexpected_event_type);
                 }
             }
             else if (ev.data.fd == cancel_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN, c_message_unexpected_event_type);
+                ASSERT_INVARIANT(ev.events == EPOLLIN, c_message_unexpected_event_type);
                 consume_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, c_message_unexpected_fd);
+                ASSERT_INVARIANT(false, c_message_unexpected_fd);
             }
         }
     }
 }
 
-template <typename T_element_type>
-void server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
+template <typename T_element>
+void server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element>()> generator_fn)
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
@@ -1379,7 +1380,7 @@ void server_t::start_stream_producer(int stream_socket, std::function<std::optio
 
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
+        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
 std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(gaia_type_t type)
@@ -1444,15 +1445,15 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
 
 gaia_txn_id_t server_t::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
-    retail_assert(txn_metadata_t::is_txn_active(begin_ts), "Not an active transaction!");
+    ASSERT_PRECONDITION(txn_metadata_t::is_txn_active(begin_ts), "Not an active transaction!");
 
     // We assume all our log fds are non-negative and fit into 16 bits. (The
     // highest possible value is reserved to indicate an invalid fd.)
-    retail_assert(
+    ASSERT_PRECONDITION(
         log_fd >= 0 && log_fd < std::numeric_limits<uint16_t>::max(),
         "Transaction log fd is not between 0 and (2^16 - 2)!");
 
-    retail_assert(is_fd_valid(log_fd), "Invalid log fd!");
+    ASSERT_PRECONDITION(is_fd_valid(log_fd), "Invalid log fd!");
 
     // Allocate a new commit_ts and initialize its metadata with our begin_ts and log fd.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(begin_ts, log_fd);
@@ -1634,13 +1635,13 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         // cannot be the case that this txn's log fd has not been
                         // invalidated while our txn's log fd has been invalidated.
                         gaia_txn_id_t sealed_commit_ts = e.get_ts();
-                        retail_assert(
+                        ASSERT_INVARIANT(
                             txn_metadata_t::is_txn_decided(sealed_commit_ts),
                             c_message_txn_log_fd_cannot_be_invalidated);
 
                         if (sealed_commit_ts == ts)
                         {
-                            retail_assert(
+                            ASSERT_INVARIANT(
                                 txn_metadata_t::is_txn_decided(commit_ts),
                                 c_message_validating_txn_should_have_been_validated);
                         }
@@ -1673,7 +1674,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
             {
                 // By hypothesis, there are no undecided txns with commit timestamps
                 // preceding the committing txn's begin timestamp.
-                retail_assert(
+                ASSERT_INVARIANT(
                     ts > s_txn_id,
                     c_message_preceding_txn_should_have_been_validated);
 
@@ -1717,22 +1718,22 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                     // that this txn's log fd has not been invalidated while our
                     // txn's log fd has been invalidated.
                     gaia_txn_id_t sealed_commit_ts = e.get_ts();
-                    retail_assert(
+                    ASSERT_INVARIANT(
                         txn_metadata_t::is_txn_decided(sealed_commit_ts),
                         c_message_txn_log_fd_cannot_be_invalidated);
 
                     if (sealed_commit_ts == commit_ts)
                     {
-                        retail_assert(
+                        ASSERT_INVARIANT(
                             txn_metadata_t::get_txn_log_fd(ts) == -1,
                             c_message_txn_log_fd_should_have_been_invalidated);
                     }
                     else
                     {
-                        retail_assert(
+                        ASSERT_INVARIANT(
                             sealed_commit_ts == ts,
                             c_message_unexpected_commit_ts_value);
-                        retail_assert(
+                        ASSERT_INVARIANT(
                             txn_metadata_t::is_txn_decided(commit_ts),
                             c_message_validating_txn_should_have_been_validated);
                     }
@@ -1783,7 +1784,7 @@ bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn
 
 void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         txn_metadata_t::is_commit_ts(commit_ts) && txn_metadata_t::is_txn_committed(commit_ts),
         "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
 
@@ -1793,7 +1794,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // A txn log fd should never be invalidated until it falls behind the
     // post-apply watermark.
-    retail_assert(
+    ASSERT_INVARIANT(
         log_fd != -1,
         "apply_txn_log_from_ts() must be called on a commit_ts with a valid log fd!");
 
@@ -1801,7 +1802,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     txn_log.open(log_fd);
 
     // Ensure that the begin_ts in this metadata matches the txn log header.
-    retail_assert(
+    ASSERT_INVARIANT(
         txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
@@ -1821,7 +1822,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     // We're using the otherwise-unused first entry of the "locators" array to
     // track the last-applied commit_ts (purely for diagnostic purposes).
     bool has_updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
-    retail_assert(
+    ASSERT_POSTCONDITION(
         has_updated_locators_view_version,
         "Committed txn applied to shared locators view out of order!");
 }
@@ -1831,7 +1832,7 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    retail_assert(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
+    ASSERT_INVARIANT(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
 
     bool deallocate_new_offsets = !committed;
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
@@ -1839,7 +1840,7 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
 
 void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
-    retail_assert(txn_log, "txn_log must be a valid mapped address!");
+    ASSERT_PRECONDITION(txn_log, "txn_log must be a valid mapped address!");
 
     for (size_t i = 0; i < txn_log->record_count; ++i)
     {
@@ -2071,7 +2072,7 @@ void server_t::apply_txn_logs_to_shared_view()
         {
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
-            retail_assert(
+            ASSERT_INVARIANT(
                 s_last_applied_commit_ts_upper_bound > last_applied_commit_ts_upper_bound,
                 "The watermark must have advanced if advance_watermark() failed!");
 
@@ -2080,7 +2081,7 @@ void server_t::apply_txn_logs_to_shared_view()
 
         if (txn_metadata_t::is_commit_ts(ts))
         {
-            retail_assert(
+            ASSERT_INVARIANT(
                 txn_metadata_t::is_txn_decided(ts),
                 "The watermark should not be advanced to an undecided commit_ts!");
 
@@ -2104,7 +2105,7 @@ void server_t::apply_txn_logs_to_shared_view()
         // No other thread should be able to advance the post-apply watermark,
         // because only one thread can advance the pre-apply watermark to this
         // timestamp.
-        retail_assert(has_advanced_watermark, "Couldn't advance the post-apply watermark!");
+        ASSERT_INVARIANT(has_advanced_watermark, "Couldn't advance the post-apply watermark!");
     }
 }
 
@@ -2123,11 +2124,11 @@ void server_t::gc_applied_txn_logs()
     // TXN_GC_COMPLETE flag on the txn metadata and continue.
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(
+        ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");
 
-        retail_assert(
+        ASSERT_INVARIANT(
             !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
             "The watermark should not be advanced to an active begin_ts!");
 
@@ -2161,7 +2162,7 @@ void server_t::gc_applied_txn_logs()
             }
 
             // The log fd can't be closed until after it has been invalidated.
-            retail_assert(is_fd_valid(log_fd), "The log fd cannot be closed if we successfully invalidated it!");
+            ASSERT_INVARIANT(is_fd_valid(log_fd), "The log fd cannot be closed if we successfully invalidated it!");
 
             // Because we invalidated the log fd, we now hold the only accessible
             // copy of the fd, so we need to ensure it is closed.
@@ -2184,7 +2185,7 @@ void server_t::gc_applied_txn_logs()
             // marked durable before we advanced the watermark, and no other
             // thread can set TXN_GC_COMPLETE after we invalidate the log fd, so
             // it should not be possible for this CAS to fail.
-            retail_assert(has_set_metadata, "This txn metadata cannot change after we invalidate the log fd!");
+            ASSERT_INVARIANT(has_set_metadata, "This txn metadata cannot change after we invalidate the log fd!");
         }
     }
 }
@@ -2203,17 +2204,17 @@ void server_t::update_txn_table_safe_truncation_point()
     // current commit_ts, abort the scan.
     for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
     {
-        retail_assert(
+        ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");
 
-        retail_assert(
+        ASSERT_INVARIANT(
             !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
             "The watermark should not be advanced to an active begin_ts!");
 
         if (txn_metadata_t::is_commit_ts(ts))
         {
-            retail_assert(
+            ASSERT_INVARIANT(
                 txn_metadata_t::is_txn_decided(ts),
                 "The watermark should not be advanced to an undecided commit_ts!");
 
@@ -2229,7 +2230,7 @@ void server_t::update_txn_table_safe_truncation_point()
         {
             // If another thread has already advanced the post-GC watermark
             // ahead of this ts, we abort advancing it further.
-            retail_assert(
+            ASSERT_INVARIANT(
                 s_last_freed_commit_ts_lower_bound > last_freed_commit_ts_lower_bound,
                 "The watermark must have advanced if advance_watermark() failed!");
 
@@ -2244,7 +2245,7 @@ void server_t::update_txn_table_safe_truncation_point()
 
 void server_t::txn_rollback()
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         s_txn_id != c_invalid_gaia_txn_id,
         "txn_rollback() was called without an active transaction!");
 
@@ -2274,7 +2275,7 @@ void server_t::txn_rollback()
 // This method returns true for a commit decision and false for an abort decision.
 bool server_t::txn_commit()
 {
-    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
+    ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
@@ -2292,7 +2293,7 @@ bool server_t::txn_commit()
         rdb->prepare_wal_for_write(s_log, txn_name);
     }
 
-    retail_assert(s_fd_log != -1, c_message_uninitialized_fd_log);
+    ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
@@ -2372,7 +2373,7 @@ void server_t::run(persistence_mode_t persistence_mode)
         signal_handler_thread.join();
 
         // We shouldn't get here unless the signal handler thread has caught a signal.
-        retail_assert(caught_signal != 0, "A signal should have been caught!");
+        ASSERT_INVARIANT(caught_signal != 0, "A signal should have been caught!");
 
         // We special-case SIGHUP to force reinitialization of the server.
         // This is only enabled if persistence is disabled, because otherwise

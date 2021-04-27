@@ -9,6 +9,7 @@
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace std;
 
@@ -61,7 +62,7 @@ void rule_thread_pool_t::shutdown()
     while (true)
     {
         lock.lock();
-        retail_assert(m_count_busy_workers >= 0, "Invalid state. Cannot have more busy workers than threads in the pool!");
+        ASSERT_INVARIANT(m_count_busy_workers >= 0, "Invalid state. Cannot have more busy workers than threads in the pool!");
         if (m_count_busy_workers == 0 && m_invocations.size() == 0)
         {
             break;
@@ -86,7 +87,7 @@ void rule_thread_pool_t::shutdown()
 
 void rule_thread_pool_t::execute_immediate()
 {
-    retail_assert(m_threads.size() == 0, "Thread pool should have 0 workers for executing immediate!");
+    ASSERT_PRECONDITION(m_threads.size() == 0, "Thread pool should have 0 workers for executing immediate!");
 
     // If s_tls_can_enqueue is false then this means that a rule
     // is in the middle of executing and issued a commit.  We have to wait
@@ -192,9 +193,9 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 
             // Invoke the rule.
             auto fn_start = gaia::common::timer_t::get_time_point();
-            gaia_log::rules().trace("call: {}", rule_id);
+            gaia_log::rules().trace("call:'{}', src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());
             rule_invocation.rule_fn(&context);
-            gaia_log::rules().trace("return: {}", rule_id);
+            gaia_log::rules().trace("return:'{}'", rule_id);
             m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
             should_schedule = true;

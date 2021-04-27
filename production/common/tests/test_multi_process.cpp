@@ -465,8 +465,8 @@ TEST_F(gaia_multi_process_test, multi_process_conflict)
         address_writer address_w;
         auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
         auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
-        e1.addressee_address_list().insert(a2);
-        e1.addressee_address_list().insert(a3);
+        e1.addresses().insert(a2);
+        e1.addresses().insert(a3);
 
         // Let the child process run and complete during this transaction.
         sem_post(m_sem_go_child);
@@ -484,7 +484,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict)
         // Count the members. Only one succeeded.
         begin_transaction();
         int count = 0;
-        for (auto a : e1.addressee_address_list())
+        for (auto a : e1.addresses())
         {
             count++;
         }
@@ -521,7 +521,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict)
             auto e1 = employee_t::get_first();
             address_writer address_w;
             auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-            e1.addressee_address_list().insert(a1);
+            e1.addresses().insert(a1);
             commit_transaction();
         }
         catch (gaia_exception& e)
@@ -564,8 +564,8 @@ TEST_F(gaia_multi_process_test, multi_process_commit)
         address_writer address_w;
         auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
         auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
-        e1.addressee_address_list().insert(a2);
-        e1.addressee_address_list().insert(a3);
+        e1.addresses().insert(a2);
+        e1.addresses().insert(a3);
         commit_transaction();
 
         // Let the child process run and complete during this transaction.
@@ -582,7 +582,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit)
         // Count the members. All should have succeeded.
         begin_transaction();
         int count = 0;
-        for (auto a : e1.addressee_address_list())
+        for (auto a : e1.addresses())
         {
             count++;
         }
@@ -619,7 +619,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit)
             auto e1 = employee_t::get_first();
             address_writer address_w;
             auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-            e1.addressee_address_list().insert(a1);
+            e1.addresses().insert(a1);
             commit_transaction();
         }
         catch (gaia_exception& e)

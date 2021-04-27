@@ -286,10 +286,10 @@ void adapter_t::initialize_caches()
 {
     gaia::db::begin_transaction();
 
-    retail_assert(
+    ASSERT_PRECONDITION(
         type_cache_t::get()->size() == 0,
         "type_cache_t has been initialized already!");
-    retail_assert(
+    ASSERT_PRECONDITION(
         s_map_table_name_to_ids.size() == 0,
         "s_map_table_name_to_ids has been initialized already!");
 
@@ -397,7 +397,7 @@ bool adapter_t::begin_transaction()
 
     try
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             s_txn_reference_count >= 0,
             "A negative transaction count was detected in begin_transaction())!");
 
@@ -429,7 +429,7 @@ bool adapter_t::commit_transaction()
 
     try
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             s_txn_reference_count > 0,
             "A non-positive transaction count was detected in commit_transaction())!");
 
@@ -641,22 +641,9 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         {
             gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
 
-            string relationship_name = relationship.name();
-            if (relationship_name.empty())
-            {
-                relationship_name = relationship.parent_gaia_table().name();
-            }
-
-            if (relationship_name.empty())
-            {
-                ereport(
-                    ERROR,
-                    (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Unable to derive name of anonymous relationship!"),
-                     errhint(
-                         "Relationship id is '%ld' for table '%s'.",
-                         reference_id, get_table_name())));
-            }
+            // Only the to_parent link is relevant because that's how SQL works:
+            // you have a foreign key pointing to the parent in the child table.
+            string relationship_name = relationship.to_parent_link_name();
 
             if (strcmp(field_name, relationship_name.c_str()) == 0)
             {
@@ -837,7 +824,7 @@ bool scan_state_t::scan_forward()
 {
     try
     {
-        retail_assert(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
+        ASSERT_PRECONDITION(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
 
         m_current_record = m_current_record.find_next();
 

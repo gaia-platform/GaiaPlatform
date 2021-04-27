@@ -98,10 +98,7 @@ string get_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_data_type_name()!";
-        // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn us about
-        // potentially exiting the method without returning a value.
-        throw retail_assertion_failure(message.str());
+        ASSERT_UNREACHABLE(message.str());
     }
 }
 
@@ -110,7 +107,7 @@ string generate_fbs(gaia_id_t table_id)
     string fbs;
     gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
-    fbs += generate_fbs_namespace(table.gaia_database().name());
+    fbs += generate_fbs_namespace(table.database().name());
     string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id))
@@ -124,16 +121,16 @@ string generate_fbs(gaia_id_t table_id)
     return fbs;
 }
 
-string generate_fbs(const string& dbname)
+string generate_fbs(const string& db_name)
 {
-    gaia_id_t db_id = find_db_id(dbname);
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(dbname);
+        throw db_not_exists(db_name);
     }
-    string fbs = generate_fbs_namespace(dbname);
+    string fbs = generate_fbs_namespace(db_name);
     gaia::db::begin_transaction();
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (auto const& table : gaia_database_t::get(db_id).gaia_tables())
     {
         fbs += "table " + string(table.name()) + "{\n";
         for (gaia_id_t field_id : list_fields(table.gaia_id()))
@@ -171,7 +168,7 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
-    retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
     return std::vector<uint8_t>(
         fbs_parser.builder_.GetBufferPointer(),

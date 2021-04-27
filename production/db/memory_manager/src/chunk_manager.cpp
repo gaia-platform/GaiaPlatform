@@ -24,7 +24,7 @@ namespace memory_manager
 
 inline void validate_metadata(chunk_manager_metadata_t* metadata)
 {
-    retail_assert(metadata != nullptr, "Chunk manager was not initialized!");
+    ASSERT_PRECONDITION(metadata != nullptr, "Chunk manager was not initialized!");
 }
 
 void chunk_manager_t::initialize(
@@ -48,18 +48,18 @@ void chunk_manager_t::initialize_internal(
     address_offset_t memory_offset,
     bool initialize_memory)
 {
-    retail_assert(
+    ASSERT_PRECONDITION(
         base_memory_address != nullptr,
         "chunk_manager_t::initialize_internal() was called with a null memory address!");
-    retail_assert(
+    ASSERT_PRECONDITION(
+        (reinterpret_cast<size_t>(base_memory_address)) % c_allocation_alignment == 0,
+        "chunk_manager_t::initialize_internal() was called with a misaligned memory address!");
+    ASSERT_PRECONDITION(
         memory_offset != c_invalid_address_offset,
         "chunk_manager_t::initialize_internal() was called with an invalid memory offset!");
-    retail_assert(
+    ASSERT_PRECONDITION(
         memory_offset % c_chunk_size == 0,
         "chunk_manager_t::initialize_internal() was called with a memory offset that is not a multiple of the chunk size (4MB)!");
-
-    validate_address_alignment(base_memory_address);
-    validate_offset_alignment(memory_offset);
 
     // Save our parameters.
     m_base_memory_address = base_memory_address;
@@ -94,7 +94,6 @@ address_offset_t chunk_manager_t::allocate(
 
     // Adjust the requested memory size, to ensure proper alignment.
     memory_size = calculate_allocation_size(memory_size);
-    validate_size(memory_size);
 
     // Quick exit for memory requests that are way too large.
     size_t available_memory_size = (m_last_allocated_slot_offset == c_last_slot_offset)
@@ -107,9 +106,9 @@ address_offset_t chunk_manager_t::allocate(
 
     // Get the number of slots required for this allocation and update m_last_allocated_slot_offset.
     slot_offset_t slot_count = memory_size / c_slot_size;
-    retail_assert(slot_count >= 1, "An allocation should use at least one slot!");
+    ASSERT_INVARIANT(slot_count >= 1, "An allocation should use at least one slot!");
     slot_offset_t allocation_slot_offset = m_last_allocated_slot_offset + 1;
-    retail_assert(
+    ASSERT_INVARIANT(
         m_last_allocated_slot_offset + slot_count > m_last_allocated_slot_offset,
         "The update of m_last_allocated_slot_offset would cause an integer overflow!");
 
@@ -123,7 +122,7 @@ address_offset_t chunk_manager_t::allocate(
         // Failure can be due to another thread attempting to do GC.
         // Allocations should only be performed on one thread,
         // so we just need to retry until we succeed.
-        retail_assert(!is_slot_marked_as_used(allocation_slot_offset), "Another thread has marked slot as used!");
+        ASSERT_INVARIANT(!is_slot_marked_as_used(allocation_slot_offset), "Another thread has marked slot as used!");
     };
 
     m_last_allocated_slot_offset += slot_count;
@@ -143,13 +142,13 @@ address_offset_t chunk_manager_t::allocate(
 void chunk_manager_t::commit(slot_offset_t last_allocated_offset)
 {
     validate_metadata(m_metadata);
-    retail_assert(
+    ASSERT_PRECONDITION(
         m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
         "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
 
     if (last_allocated_offset != c_invalid_slot_offset)
     {
-        retail_assert(
+        ASSERT_PRECONDITION(
             m_last_allocated_slot_offset == m_metadata->last_committed_slot_offset,
             "commit() should only be called with a valid offset if m_last_allocated_slot_offset has not been changed!");
 
@@ -167,7 +166,7 @@ void chunk_manager_t::commit(slot_offset_t last_allocated_offset)
 void chunk_manager_t::rollback()
 {
     validate_metadata(m_metadata);
-    retail_assert(
+    ASSERT_PRECONDITION(
         m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
         "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
 
@@ -193,7 +192,7 @@ void chunk_manager_t::rollback()
 bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
 {
     validate_metadata(m_metadata);
-    retail_assert(
+    ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to is_slot_marked_as_used() is out of bounds");
 
@@ -208,7 +207,7 @@ bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
 bool chunk_manager_t::try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const
 {
     validate_metadata(m_metadata);
-    retail_assert(
+    ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to try_mark_slot_used_status() is out of bounds");
 
@@ -224,7 +223,7 @@ bool chunk_manager_t::try_mark_slot_used_status(slot_offset_t slot_offset, bool 
 void chunk_manager_t::mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
 {
     validate_metadata(m_metadata);
-    retail_assert(
+    ASSERT_PRECONDITION(
         start_slot_offset >= c_first_slot_offset && start_slot_offset <= c_last_slot_offset,
         "Slot offset passed to mark_slot_range_used_status() is out of bounds");
 
