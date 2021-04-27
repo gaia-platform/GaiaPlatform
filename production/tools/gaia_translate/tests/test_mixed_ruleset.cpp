@@ -31,7 +31,7 @@ class test_mixed_code : public db_catalog_test_base_t
 {
 public:
     test_mixed_code()
-        : db_catalog_test_base_t("barn_storage.ddl"){};
+        : db_catalog_test_base_t("incubator.ddl"){};
 
 protected:
     void SetUp() override
