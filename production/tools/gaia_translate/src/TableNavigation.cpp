@@ -30,6 +30,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     bool first_component = true;
     string source_table;
     string source_field;
+    string source_table_type;
     for (const auto& path_component : path)
     {
         string table, field;
@@ -43,6 +44,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         {
             table = path_component;
         }
+
         if (first_component)
         {
             if (is_absolute)
@@ -74,76 +76,24 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
                 return_value = generate_navigation_code(anchor_table, {table}, unordered_map<string, string>(), last_variable_name);
             }
             first_component = false;
-            source_table = last_variable_name;
-            source_field = field;
         }
         else
         {
             last_variable_name = get_variable_name(table, tags);
-            if ( m_table_relationship_1.find(table) == m_table_relationship_1.end())
+
+            if (!generate_navigation_step(source_table_type, source_field, table, source_table, last_variable_name, return_value))
             {
-                if (source_field.empty())
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(last_variable_name)
-                        .append(" = ")
-                        .append(source_table)
-                        .append(".")
-                        .append(table)
-                        .append("();\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(last_variable_name)
-                        .append(" = ")
-                        .append(source_table)
-                        .append(".")
-                        .append(source_field)
-                        .append("_")
-                        .append(table)
-                        .append("();\n");
-                }
+                return navigation_code_data_t();
             }
-            else
-            {
-                if (source_field.empty())
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(last_variable_name)
-                        .append(" : ")
-                        .append(source_table)
-                        .append(".")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(last_variable_name)
-                        .append(" : ")
-                        .append(source_table)
-                        .append(".")
-                        .append(source_field)
-                        .append("_")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                return_value.postfix.append("}\n");
-            }
-            source_table = last_variable_name;
-            source_field = field;
         }
+        source_table_type = table;
+        source_table = last_variable_name;
+        source_field = field;
     }
 
     return return_value;
 }
+
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
 {
     string last_variable_name;
@@ -250,72 +200,16 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
             if (find_navigation_path(anchor_table, table, path))
             {
                 string source_table = variable_name;
+                string source_table_type = anchor_table;
                 for (const auto& p : path)
                 {
                     variable_name = get_variable_name(p.name, tags);
-                    if (processed_tables.find(variable_name) == processed_tables.end())
+                    if (!generate_navigation_step(source_table_type, "", p.name, source_table, variable_name, return_value))
                     {
-                        processed_tables.insert(variable_name);
-
-                        if (p.is_parent)
-                        {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(variable_name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append("auto ")
-                                    .append(variable_name)
-                                    .append(" = ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("();\n");
-                            }
-                        }
-                        else
-                        {
-                            if (p.linking_field.empty())
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(variable_name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-                            else
-                            {
-                                return_value.prefix
-                                    .append(c_nolint_range_copy)
-                                    .append("\nfor (auto ")
-                                    .append(variable_name)
-                                    .append(" : ")
-                                    .append(source_table)
-                                    .append(".")
-                                    .append(p.linking_field)
-                                    .append("_")
-                                    .append(p.name)
-                                    .append("_list())\n{\n");
-                            }
-                            return_value.postfix.append("}\n");
-                        }
-                        source_table = variable_name;
+                        return navigation_code_data_t();
                     }
+                    source_table_type = p.name;
+                    source_table = variable_name;
                 }
                 last_variable_name = variable_name;
             }
@@ -328,63 +222,9 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         else
         {
             last_variable_name = get_variable_name(table, tags);
-            if (is_1_relationship)
+            if (!generate_navigation_step(anchor_table, "", table, variable_name, last_variable_name, return_value))
             {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(last_variable_name)
-                        .append(" = ")
-                        .append(variable_name)
-                        .append(".")
-                        .append(table)
-                        .append("();\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append("auto ")
-                        .append(last_variable_name)
-                        .append(" = ")
-                        .append(variable_name)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("();\n");
-                }
-            }
-            else
-            {
-                if (linking_field.empty())
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(last_variable_name)
-                        .append(" : ")
-                        .append(variable_name)
-                        .append(".")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-                else
-                {
-                    return_value.prefix
-                        .append(c_nolint_range_copy)
-                        .append("\nfor (auto ")
-                        .append(last_variable_name)
-                        .append(" : ")
-                        .append(variable_name)
-                        .append(".")
-                        .append(linking_field)
-                        .append("_")
-                        .append(table)
-                        .append("_list())\n{\n");
-                }
-
-                return_value.postfix.append("}\n");
+                return navigation_code_data_t();
             }
         }
         processed_tables.insert(last_variable_name);
@@ -402,7 +242,7 @@ void table_navigation_t::fill_table_data()
 
         for (const auto& field : catalog::gaia_field_t::list())
         {
-            catalog::gaia_table_t tbl = field.gaia_table();
+            catalog::gaia_table_t tbl = field.table();
             if (!tbl)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
@@ -421,14 +261,14 @@ void table_navigation_t::fill_table_data()
             field_data.is_active = field.active();
             field_data.position = field.position();
             field_data.is_deprecated = field.deprecated();
-            table_data.db_name = tbl.gaia_database().name();
+            table_data.db_name = tbl.database().name();
             table_data.field_data[field.name()] = field_data;
             m_table_data[tbl.name()] = table_data;
         }
 
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            catalog::gaia_table_t child_table = relationship.child();
             if (!child_table)
             {
                 cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
@@ -436,7 +276,7 @@ void table_navigation_t::fill_table_data()
                 return;
             }
 
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
                 cerr << "Incorrect parent table in the relationship '" << relationship.name() << "'." << endl;
@@ -445,10 +285,10 @@ void table_navigation_t::fill_table_data()
             }
             table_link_data_t link_data_1;
             link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.name();
+            link_data_1.field = relationship.to_parent_link_name();
             table_link_data_t link_data_n;
             link_data_n.table = child_table.name();
-            link_data_n.field = relationship.name();
+            link_data_n.field = relationship.to_child_link_name();
 
             m_table_relationship_1.emplace(child_table.name(), link_data_1);
             m_table_relationship_n.emplace(parent_table.name(), link_data_n);
@@ -602,4 +442,95 @@ string table_navigation_t::generate_random_string(string::size_type length) cons
     }
 
     return s;
+}
+
+bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table,
+    const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
+{
+    auto parent_itr = m_table_relationship_1.equal_range(source_table);
+    auto child_itr = m_table_relationship_n.equal_range(source_table);
+
+    bool is_1_relationship = false, is_n_relationship = false;
+
+    string linking_field = source_field;
+    for (auto it = parent_itr.first; it != parent_itr.second; ++it)
+    {
+        if (it != m_table_relationship_1.end() && it->second.table == destination_table)
+        {
+            if (!source_field.empty())
+            {
+                if (it->second.field == source_field)
+                {
+                    is_1_relationship = true;
+                    break;
+                }
+            }
+            else
+            {
+                if (is_1_relationship)
+                {
+                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
+                    return false;
+                }
+                is_1_relationship = true;
+                linking_field = it->second.field;
+            }
+        }
+    }
+
+    for (auto it = child_itr.first; it != child_itr.second; ++it)
+    {
+        if (it != m_table_relationship_n.end() && it->second.table == destination_table)
+        {
+            if (!source_field.empty())
+            {
+                if (it->second.field == source_field)
+                {
+                    is_n_relationship = true;
+                    break;
+                }
+            }
+            else
+            {
+                if (is_n_relationship || is_1_relationship)
+                {
+                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
+                    return false;
+                }
+                is_n_relationship = true;
+                linking_field = it->second.field;
+            }
+        }
+    }
+
+    if (!is_n_relationship && !is_1_relationship)
+    {
+        cerr << "No relationship between '" << source_table << "' and '" << destination_table << "'." << endl;
+        return false;
+    }
+    if (is_1_relationship)
+    {
+        navigation_data.prefix
+            .append("auto ")
+            .append(variable_name)
+            .append(" = ")
+            .append(source_variable_name)
+            .append(".")
+            .append(linking_field)
+            .append("();\n");
+    }
+    else
+    {
+        navigation_data.prefix
+            .append(c_nolint_range_copy)
+            .append("\nfor (auto ")
+            .append(variable_name)
+            .append(" : ")
+            .append(source_variable_name)
+            .append(".")
+            .append(linking_field)
+            .append("())\n{\n");
+        navigation_data.postfix.append("}\n");
+    }
+    return true;
 }

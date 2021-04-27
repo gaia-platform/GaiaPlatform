@@ -95,6 +95,8 @@ private:
     unordered_map<string, string> generate_dummy_tag_map (const unordered_set<string>& tables) const;
     navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
         unordered_map<string, string> tags,  string& last_table);
+    bool generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table,
+        const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
     bool m_is_initialized;
     unordered_map<string, table_data_t> m_table_data;
     unordered_multimap<string, table_link_data_t> m_table_relationship_1;
