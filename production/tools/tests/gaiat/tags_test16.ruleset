@@ -8,5 +8,5 @@ ruleset test16
     }
 }
 
-// GAIAPLAT-816
+// GAIAPLAT-816 (fixed)
 // CHECK: Tag 'A' is already defined.
