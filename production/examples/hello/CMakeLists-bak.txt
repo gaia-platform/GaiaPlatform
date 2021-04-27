@@ -37,14 +37,18 @@ translate_ruleset(
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${LOCAL}/lib/libgaia.so)
 
+#add_library(spdlog STATIC IMPORTED GLOBAL)
+#set_target_properties(spdlog PROPERTIES IMPORTED_LOCATION /home/simone/repos/spdlog/.build/libspdlog.a)
+
 add_executable(hello
   hello.cpp
   ${PROJECT_BINARY_DIR}/hello_ruleset.cpp
 )
 
 add_dependencies(hello translate_hello_ruleset)
-set_target_properties(hello PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
+set_target_properties(hello PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(hello PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 target_include_directories(hello PRIVATE ${GAIA_INC})
 target_include_directories(hello PRIVATE ${PROJECT_BINARY_DIR})
+#target_include_directories(hello PRIVATE /home/simone/repos/spdlog/include)
 target_link_libraries(hello PRIVATE gaia rt pthread)

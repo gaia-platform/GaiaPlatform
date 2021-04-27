@@ -5,6 +5,9 @@
 
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+
+#include "gaia/logger.hpp"
 #include "gaia/system.hpp"
 
 #include "gaia_hello.h"
@@ -13,11 +16,10 @@ using namespace std;
 
 int main()
 {
-    cout
-        << "Hello example is running..."
-        << endl;
+    spdlog::info("Hello spdlog {}", SPDLOG_VERSION);
 
     gaia::system::initialize();
+    gaia_log::app().info("Hello example is running...");
 
     gaia::db::begin_transaction();
     gaia::hello::names_t::insert_row("Alice");
@@ -25,7 +27,6 @@ int main()
     gaia::hello::names_t::insert_row("Charles");
     gaia::db::commit_transaction();
 
+    gaia_log::app().info("Hello example has shut down.");
     gaia::system::shutdown();
-
-    cout << "Hello example has shut down." << endl;
 }
