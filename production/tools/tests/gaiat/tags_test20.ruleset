@@ -2,9 +2,11 @@
 
 ruleset test20
 {
-    OnUpdate(incubator)
+    OnInsert(I:incubator)
     {
-        float v;
-        v = sensor.value > 99.0 ? actuator.value : 99.0;
+        actuator.value += 1.0;
     }
 }
+
+// GAIAPLAT-850
+// CHECK: Tag 'I' defined but not used.
