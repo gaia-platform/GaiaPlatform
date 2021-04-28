@@ -5,7 +5,7 @@ Version: @CPACK_PACKAGE_VERSION@
 Release: 1
 Group: Applications/System
 License: Gaia License
-Requires: libexplain51, libcap2
+Requires: libexplain51, libcap2, spdlog
 
 %description
 Gaia System
