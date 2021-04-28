@@ -76,15 +76,8 @@ void start_repl(parser_t& parser)
                     break;
                 }
             }
-            int parsing_result = parser.parse_line(line);
-            if (parsing_result == EXIT_SUCCESS)
-            {
-                execute(parser.statements);
-            }
-            else
-            {
-                cerr << c_error_prompt << "Invalid input." << endl;
-            }
+            parser.parse_line(line);
+            execute(parser.statements);
         }
         catch (gaia::common::gaia_exception& e)
         {

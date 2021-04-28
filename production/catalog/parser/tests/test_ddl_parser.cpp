@@ -18,7 +18,7 @@ using namespace gaia::catalog::ddl;
 TEST(catalog_ddl_parser_test, create_table)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -33,7 +33,7 @@ TEST(catalog_ddl_parser_test, create_table)
 TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -48,7 +48,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 TEST(catalog_ddl_parser_test, create_table_multiple_fields)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -79,7 +79,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
 TEST(catalog_ddl_parser_test, drop_table)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE t;"));
+    ASSERT_NO_THROW(parser.parse_line("DROP TABLE t;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -90,7 +90,7 @@ TEST(catalog_ddl_parser_test, drop_table)
     EXPECT_EQ(drop_stmt->name, "t");
     EXPECT_FALSE(drop_stmt->if_exists);
 
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE IF EXISTS t;"));
+    ASSERT_NO_THROW(parser.parse_line("DROP TABLE IF EXISTS t;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -105,20 +105,20 @@ TEST(catalog_ddl_parser_test, drop_table)
 TEST(catalog_ddl_parser_test, case_sensitivity)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("create table t (c int32);"));
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("cReAte taBle T (c int32);"));
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE T (c int32, C int32);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_line("create table t (c int32);"));
+    ASSERT_NO_THROW(parser.parse_line("cReAte taBle T (c int32);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE T (c int32, C int32);"));
 
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE t;"));
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("drop table t;"));
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DrOp TaBle T;"));
+    ASSERT_NO_THROW(parser.parse_line("DROP TABLE t;"));
+    ASSERT_NO_THROW(parser.parse_line("drop table t;"));
+    ASSERT_NO_THROW(parser.parse_line("DrOp TaBle T;"));
 }
 
 TEST(catalog_ddl_parser_test, create_active_field)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -149,7 +149,7 @@ TEST(catalog_ddl_parser_test, create_active_field)
 TEST(catalog_ddl_parser_test, create_database)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE db;"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE db;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -164,7 +164,7 @@ TEST(catalog_ddl_parser_test, create_database)
 TEST(catalog_ddl_parser_test, create_database_if_not_exists)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -179,7 +179,7 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists)
 TEST(catalog_ddl_parser_test, create_table_in_database)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE d.t (id INT32);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE d.t (id INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -194,7 +194,7 @@ TEST(catalog_ddl_parser_test, create_table_in_database)
 TEST(catalog_ddl_parser_test, drop_database)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE d;"));
+    ASSERT_NO_THROW(parser.parse_line("DROP DATABASE d;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -205,7 +205,7 @@ TEST(catalog_ddl_parser_test, drop_database)
     EXPECT_EQ(drop_stmt->name, "d");
     EXPECT_FALSE(drop_stmt->if_exists);
 
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE IF EXISTS d;"));
+    ASSERT_NO_THROW(parser.parse_line("DROP DATABASE IF EXISTS d;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -220,23 +220,23 @@ TEST(catalog_ddl_parser_test, drop_database)
 TEST(catalog_ddl_parser_test, illegal_characters)
 {
     parser_t parser;
-    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id : int8);"));
-    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE : TABLE t(id int8);"));
-    EXPECT_NE(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t(id - int8);"));
+    EXPECT_THROW(parser.parse_line("CREATE TABLE t(id : int8);"), parsing_error);
+    EXPECT_THROW(parser.parse_line("CREATE : TABLE t(id int8);"), parsing_error);
+    EXPECT_THROW(parser.parse_line("CREATE TABLE t(id - int8);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, fixed_size_array)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[2]);"));
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[1]);"));
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c INT32[0]);"));
+    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[2]);"), parsing_error);
+    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[1]);"), parsing_error);
+    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[0]);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, vector_of_strings)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line("CREATE TABLE t (c STRING[]);"));
+    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c STRING[]);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, code_comments)
@@ -259,16 +259,16 @@ CREATE TABLE t -- create table t
 
     parser_t parser;
 
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(correct_ddl_text));
+    ASSERT_NO_THROW(parser.parse_line(correct_ddl_text));
     EXPECT_EQ(1, parser.statements.size());
 
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(incorrect_ddl_text));
+    ASSERT_THROW(parser.parse_line(incorrect_ddl_text), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, create_empty_table)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t ();"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t ();"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -291,7 +291,7 @@ CREATE RELATIONSHIP r (
   d2.t2.link2 -> d1.t1
 );
 )";
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_full_db));
+    ASSERT_NO_THROW(parser.parse_line(ddl_text_full_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
@@ -303,7 +303,7 @@ CREATE RELATIONSHIP r (
   t2.link2 -> t1
 );
 )";
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_no_db));
+    ASSERT_NO_THROW(parser.parse_line(ddl_text_no_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
     create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
@@ -315,7 +315,7 @@ CREATE RELATIONSHIP r (
   t2.link2 -> d1.t1
 );
 )";
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl_text_partial_db));
+    ASSERT_NO_THROW(parser.parse_line(ddl_text_partial_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
     create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
@@ -327,12 +327,12 @@ CREATE RELATIONSHIP (
   t2.link2 -> t1
 );
 )";
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_no_name));
+    ASSERT_THROW(parser.parse_line(ddl_text_negative_case_no_name), parsing_error);
 
     const string ddl_text_negative_case_single_link = R"(
 CREATE RELATIONSHIP r (
   t1.link -> t2,
 );
 )";
-    ASSERT_EQ(EXIT_FAILURE, parser.parse_line(ddl_text_negative_case_single_link));
+    ASSERT_THROW(parser.parse_line(ddl_text_negative_case_single_link), parsing_error);
 }
