@@ -76,9 +76,7 @@ inline void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
         throw std::invalid_argument("Invalid DDL file: '" + std::string(file_path.c_str()) + "'.");
     }
 
-    int parsing_result = parser.parse(file_path.string());
-    ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to parse the DDL file '" + ddl_filename + "'.");
-
+    parser.parse(file_path.string());
     execute(parser.statements);
 }
 
