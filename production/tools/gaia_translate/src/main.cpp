@@ -142,12 +142,18 @@ string generate_general_subscription_code()
     {
         return_value
             .append(c_ident)
-            .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("if (strcmp(ruleset_name, \"")
+            .append(ruleset)
+            .append("\") == 0)\n")
             .append(c_ident)
             .append("{\n")
             .append(c_ident)
             .append(c_ident)
-            .append("::" + ruleset + "::subscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("::")
+            .append(ruleset)
+            .append("::subscribe_ruleset_")
+            .append(ruleset)
+            .append("();\n")
             .append(c_ident)
             .append(c_ident)
             .append("return;\n")
@@ -166,12 +172,18 @@ string generate_general_subscription_code()
     {
         return_value
             .append(c_ident)
-            .append("if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n")
+            .append("if (strcmp(ruleset_name, \"")
+            .append(ruleset)
+            .append("\") == 0)\n")
             .append(c_ident)
             .append("{\n")
             .append(c_ident)
             .append(c_ident)
-            .append("::" + ruleset + "::unsubscribe_ruleset_" + ruleset + "();\n") //NOLINT(performance-inefficient-string-concatenation)
+            .append("::")
+            .append(ruleset)
+            .append("::unsubscribe_ruleset_")
+            .append(ruleset)
+            .append("();\n")
             .append(c_ident)
             .append(c_ident)
             .append("return;\n")
@@ -674,6 +686,82 @@ void generate_rules(Rewriter& rewriter)
     }
 }
 
+bool check_call_expression(ASTContext* context, const Stmt& node)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (node_parents_iterator.get<CompoundStmt>())
+        {
+            return false;
+        }
+        else if (node_parents_iterator.get<FunctionDecl>())
+        {
+            return false;
+        }
+        else if (const auto *expression = node_parents_iterator.get<IfStmt>())
+        {
+            if (expression->getCond() == &node || expression->getConditionVariableDeclStmt() == &node)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if (const auto *expression = node_parents_iterator.get<SwitchStmt>())
+        {
+            return true;
+        }
+        else if (const auto *expression = node_parents_iterator.get<WhileStmt>())
+        {
+            if (expression->getCond() == &node)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if (const auto *expression = node_parents_iterator.get<DoStmt>())
+        {
+            if (expression->getCond() == &node)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if (const auto *expression = node_parents_iterator.get<ForStmt>())
+        {
+            if (expression->getCond() == &node || expression->getInc() == &node)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if (const auto *expression = node_parents_iterator.get<Stmt>())
+        {
+           return check_call_expression(context, *expression);
+        }
+
+    }
+    return false;
+}
+
+bool check_decl_expression(ASTContext* context, const Decl& node)
+{
+    auto node_parents = context->getParents(node);
+    return check_call_expression(context, *(node_parents[0].get<DeclStmt>()));
+}
+
 SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, const SourceRange& source_range, Rewriter& rewriter)
 {
     SourceRange return_value(source_range.getBegin(), source_range.getEnd());
@@ -740,7 +828,7 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto *expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
-            return get_expression_source_range(context, *expression, return_value, rewriter);;
+            return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto *expression = node_parents_iterator.get<CallExpr>())
         {
@@ -749,7 +837,14 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
                                        rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
-            return return_value;
+            if (check_call_expression(context, *expression))
+            {
+                 return get_expression_source_range(context, *expression, return_value, rewriter);
+            }
+            else
+            {
+                return return_value;
+            }
         }
         else if (const auto *expression = node_parents_iterator.get<IfStmt>())
         {
@@ -795,6 +890,25 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
+        }
+        else if (const auto *declaration = node_parents_iterator.get<VarDecl>())
+        {
+            auto offset = Lexer::MeasureTokenLength(declaration->getEndLoc(),
+                                       rewriter.getSourceMgr(),
+                                       rewriter.getLangOpts()) + 1;
+            return_value.setEnd(declaration->getEndLoc().getLocWithOffset(offset));
+            return_value.setBegin(declaration->getBeginLoc());
+            if (check_decl_expression(context, *declaration))
+            {
+                 auto node_parents = context->getParents(*declaration);
+                 return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
+            }
+            else
+            {
+                cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                g_is_generation_error = true;
+                return SourceRange();
+            }
         }
         else if (const auto *expression = node_parents_iterator.get<Stmt>())
         {

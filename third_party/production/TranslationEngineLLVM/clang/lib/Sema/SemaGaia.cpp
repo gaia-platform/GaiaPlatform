@@ -561,6 +561,10 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
     }
 
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
@@ -623,6 +627,10 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
     DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
