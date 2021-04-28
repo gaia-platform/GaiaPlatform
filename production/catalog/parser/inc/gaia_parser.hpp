@@ -30,11 +30,11 @@ public:
         m_message = message;
     }
 
-    explicit parsing_error(const yy::parser::location_type& loc, const std::string& message)
+    explicit parsing_error(const yy::parser::location_type& parser_location, const std::string& message)
     {
-        std::stringstream err;
-        err << loc << ": " << message;
-        m_message = err.str();
+        std::stringstream message_stream;
+        message_stream << parser_location << ": " << message;
+        m_message = message_stream.str();
     }
 };
 

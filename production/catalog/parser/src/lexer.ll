@@ -100,7 +100,7 @@ comment ("--".*)
 
 <<EOF>>      return yy::parser::make_END(loc);
 
-.            throw gaia::catalog::ddl::parsing_error(loc, "invalid character '" + std::string(yytext) + "'");
+.            throw gaia::catalog::ddl::parsing_error(loc, "Invalid character '" + std::string(yytext) + "'");
 
 %%
 
@@ -111,7 +111,7 @@ make_NUMBER(const std::string &s, const yy::parser::location_type& loc)
     long n = strtol(s.c_str(), NULL, 10);
     if (! (INT_MIN <= n && n <= INT_MAX && errno != ERANGE))
     {
-        throw gaia::catalog::ddl::parsing_error(loc, "integer " + s + " is out of range.");
+        throw gaia::catalog::ddl::parsing_error(loc, "The integer " + s + " is out of range.");
     }
     return yy::parser::make_NUMBER ((int) n, loc);
 }
@@ -126,7 +126,7 @@ void gaia::catalog::ddl::parser_t::scan_begin()
     else if (!(yyin = fopen(m_file.c_str (), "r")))
     {
         std::stringstream err;
-        err << "cannot open " << m_file << ": " << strerror(errno);
+        err << "Cannot open " << m_file << ": " << strerror(errno);
         throw gaia::catalog::ddl::parsing_error(err.str());
     }
 }
