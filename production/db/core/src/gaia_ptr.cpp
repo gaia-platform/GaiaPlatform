@@ -121,7 +121,7 @@ gaia_ptr_t& gaia_ptr_t::clone()
     db_object_t* new_this = to_ptr();
     if (client_t::is_valid_event(new_this->type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list);
+        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
     }
 
     return *this;
@@ -164,7 +164,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
         // Compute field difference.
         field_position_list_t position_list;
         compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list);
+        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
     }
 
     return *this;
@@ -174,7 +174,7 @@ void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client_t::is_valid_event(type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list);
+        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
     }
 }
 
@@ -227,7 +227,7 @@ void gaia_ptr_t::reset()
 
     if (client_t::is_valid_event(to_ptr()->type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list);
+        client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list, get_txn_id());
     }
     (*locators)[m_locator] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;

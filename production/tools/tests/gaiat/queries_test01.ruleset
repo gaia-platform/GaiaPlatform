@@ -1,13 +1,14 @@
-// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 
 ruleset test01
 {
+    OnInsert(sensor)
     {
         I:incubator->I.value += I.min_temp;
     }
 }
 
 // GAIAPLAT-826
-// CHECK: Tags cannot be used in this context.
+// CHECK: Tag 'I' cannot be used in this context.

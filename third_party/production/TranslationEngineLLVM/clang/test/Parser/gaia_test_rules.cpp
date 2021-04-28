@@ -585,13 +585,13 @@ ruleset test82
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
 // GAIALAT-796
-ruleset test83 : Table(sensor)
-{
-    OnUpdate(value)
-    {
-        float v = value * 2.0;
-    }
-}
+// ruleset test83 : Table(sensor)
+// {
+    // OnUpdate(value)
+    // {
+        // float v = value * 2.0;
+    // }
+// }
 
 ruleset test84
 {
@@ -720,14 +720,105 @@ ruleset test99
     }
 }
 
+ruleset test100
+{
+    {
+        float m = / f : farmer -> incubator . min_temp ;
+    }
+}
 
-// GAIAPLAT-821
-// ruleset testE1
+ruleset test101
+{
+    {
+        farmer->incubator->raised.birthdate=actuator->incubator->sensor.timestamp; // expected-error {{assigning to 'const char *' from incompatible type 'unsigned long long'}}
+    }
+}
+
+ruleset test102
+{
+    {
+        animal->feeding->yield=5; // expected-error {{no viable overloaded '='}}
+    }
+}
+
+ruleset test103
+{
+    {
+        animal.age>actuator.timestamp; // expected-warning {{relational comparison result unused}}
+    }
+}
+
+ruleset test104
+{
+    OnInsert[A:animal] // expected-error {{expected '('}}
+    {
+        A.age=5;
+    }
+}
+
+ruleset test105 Table[actuator] // expected-error {{expected '{'}}
+{
+    {
+        actuator.value=.5;
+    }
+}
+
+ruleset test106
+{
+    OnInsert(*incubator) { // expected-error {{expected identifier}}
+        incubator.min_temp=98.9;
+    }
+}
+
+ruleset test107
+{
+    OnInsert(do(min_temp)) { // expected-error {{expected identifier}}
+        age=5;
+    }
+}
+
+ruleset test108
+{
+    OnInsert(age ? 3 : 4) { // expected-error {{expected ')'}} expected-note {{to match this '('}}
+        age=5;
+    }
+}
+
+ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
+{
+    {
+        actuator.value=.5;
+    }
+}
+
+ruleset test110 Table{actuator} // expected-error {{expected '{'}} expected-error {{expected unqualified-id}}
+{ // expected-error {{expected unqualified-id}}
+    {
+        actuator.value=.5; 
+    }
+}
+
+// Pathological incorrect syntax cases
+ruleset test101 { {.age=5;} } // expected-error {{expected expression}}
+ruleset test102 { {animal->.age=5;} } // expected-error {{expected expression}}
+ruleset test103 { {->animal.age=5;} } // expected-error {{expected expression}}
+ruleset test104 { {animal:.age=5;} } // expected-error {{expected expression}}
+ruleset test105 { {animal:=5;} } // expected-error {{expected expression}}
+ruleset test107 { {3:animal.age=5;} } // expected-error {{expected expression}}
+ruleset test107 { {.age=actuator.timestamp;} } // expected-error {{expected expression}}
+ruleset test107 { {animal.age=>actuator.timestamp;} } // expected-error {{expected expression}}
+ruleset test107 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
+ruleset test107 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
+ruleset test107 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
+
+// GAIAPLAT-827
+// ruleset test101
 // {
-//     OnUpdate(incubator)
+//     OnChange(sensor.value)
 //     {
-//         if (/@incubator) {
-//             int i = 0;
+//         if (S:sensor.value > 100.0)
+//         {
+//             actuator.value = 101.0;
 //         }
 //     }
 // }
@@ -760,14 +851,20 @@ ruleset test99
 //     }
 // }
 
-// GAIAPLAT-827
-// ruleset test14
+// GAIAPLAT-877
+// ruleset testE4
 // {
-//     OnChange(sensor.value)
+//     OnInsert(animal)
 //     {
-//         if (S:sensor.value > 100.0)
-//         {
-//             actuator.value = 101.0;
-//         }
+//         animal->feeding->portion = 5;
+//     }
+// }
+
+// GAIAPLAT-878
+// ruleset test105
+// {
+//     OnInsert(animal)
+//     {
+//         animal->feeding = 5;
 //     }
 // }

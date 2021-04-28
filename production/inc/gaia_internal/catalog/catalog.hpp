@@ -50,6 +50,9 @@ const std::string c_empty_db_name = "()";
 // qualified name for a table defined in a given database.
 constexpr char c_db_table_name_connector = '.';
 
+const std::string c_catalog_db_name = "catalog";
+const std::string c_event_log_db_name = "event_log";
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -110,7 +113,8 @@ enum class statement_type_t : uint8_t
 {
     create,
     drop,
-    alter
+    alter,
+    use
 };
 
 struct statement_t
@@ -191,6 +195,16 @@ enum class create_type_t : uint8_t
     create_relationship,
 };
 
+struct use_statement_t : statement_t
+{
+    explicit use_statement_t(std::string name)
+        : statement_t(statement_type_t::use), name(std::move(name))
+    {
+    }
+
+    std::string name;
+};
+
 // TODO: refactoring create statements into sub types, pending index changes (create_index).
 struct create_statement_t : statement_t
 {
@@ -248,6 +262,15 @@ struct drop_statement_t : statement_t
 
 /*@}*/
 } // namespace ddl
+
+class forbidden_sydtem_db_operation : public gaia::common::gaia_exception
+{
+public:
+    explicit forbidden_sydtem_db_operation(const std::string& name)
+    {
+        m_message = "Operations on the system database '" + name + "' are not allowed.";
+    }
+};
 
 /**
  * Thrown when creating a database that already exists.
@@ -401,6 +424,14 @@ public:
  * Initialize the catalog.
 */
 void initialize_catalog();
+
+/**
+ * Switch to the database.
+ *
+ * @param name database name
+ * @throw db_not_exists
+ */
+void use_database(const std::string& name);
 
 /**
  * Create a database in the catalog.

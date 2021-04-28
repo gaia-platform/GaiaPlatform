@@ -73,9 +73,4 @@ add_clang_library(clangSema
   gaia_system
   )
 
-# We should not need this right now because we are not pulling any headers that
-# include the spdlog but set it here anyway in case this changes in upstream
-# dependencies.
-set_target_properties(clangSema PROPERTIES COMPILE_FLAGS "-DSPDLOG_FMT_EXTERNAL")
-
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})

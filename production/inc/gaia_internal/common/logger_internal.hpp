@@ -89,10 +89,10 @@ logger_t& db();
 /** Catalog */
 logger_t& catalog();
 
-/** Rule engine */
+/** Rules engine */
 logger_t& rules();
 
-/** Rule engine stats */
+/** Rules engine stats */
 logger_t& rules_stats();
 
 /*@}*/

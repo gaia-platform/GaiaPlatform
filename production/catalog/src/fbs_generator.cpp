@@ -121,14 +121,14 @@ string generate_fbs(gaia_id_t table_id)
     return fbs;
 }
 
-string generate_fbs(const string& dbname)
+string generate_fbs(const string& db_name)
 {
-    gaia_id_t db_id = find_db_id(dbname);
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(dbname);
+        throw db_not_exists(db_name);
     }
-    string fbs = generate_fbs_namespace(dbname);
+    string fbs = generate_fbs_namespace(db_name);
     gaia::db::begin_transaction();
     for (auto const& table : gaia_database_t::get(db_id).gaia_tables())
     {

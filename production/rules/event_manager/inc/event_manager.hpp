@@ -144,10 +144,10 @@ private:
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
     friend void gaia::rules::test::initialize_rules_engine(const event_manager_settings_t& settings);
-    friend void gaia::rules::test::commit_trigger(gaia::db::gaia_txn_id_t, const db::triggers::trigger_event_t*, size_t count_events);
+    friend void gaia::rules::test::commit_trigger(const db::triggers::trigger_event_t*, size_t count_events);
 
     // Well known trigger function called by the database after commit.
-    void commit_trigger(gaia::db::gaia_txn_id_t txn_id, const db::triggers::trigger_event_list_t& event_list);
+    void commit_trigger(const db::triggers::trigger_event_list_t& event_list);
     void process_last_operation_events(
         event_binding_t& binding,
         const db::triggers::trigger_event_t& event,
@@ -158,7 +158,7 @@ private:
         std::chrono::steady_clock::time_point& start_time);
     void init(const event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
-    void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
+    bool add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(
         const db::triggers::trigger_event_t& event,

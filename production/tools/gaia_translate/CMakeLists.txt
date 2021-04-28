@@ -50,7 +50,7 @@ set(TEST_INCLUDES
   ${GAIA_REPO}/production/tools/gaia_translate/tests
 )
 
-set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl")
+set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/incubator.ddl")
 set(TRANSLATION_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
 set(TRANSLATION_RULESET_OUT "${GAIA_GENERATED_SCHEMAS}/test_translation.cpp")
 
@@ -62,7 +62,6 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TRANSLATION_RULESET} -output ${TRANSLATION_RULESET_OUT} --
       -I ${GAIA_INC}
-      -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
   COMMAND pkill -f -KILL gaia_db_server &

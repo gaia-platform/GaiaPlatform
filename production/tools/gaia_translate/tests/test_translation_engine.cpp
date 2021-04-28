@@ -31,7 +31,7 @@ class translation_engine_test : public db_catalog_test_base_t
 {
 public:
     translation_engine_test()
-        : db_catalog_test_base_t("barn_storage.ddl"){};
+        : db_catalog_test_base_t("incubator.ddl"){};
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {

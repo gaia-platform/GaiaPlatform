@@ -19,43 +19,65 @@ namespace catalog
 namespace ddl
 {
 
+/**
+ * Thrown when hit DDL parsing error(s).
+ */
+class parsing_error : public gaia::common::gaia_exception
+{
+public:
+    explicit parsing_error(const std::string& message)
+    {
+        m_message = message;
+    }
+
+    explicit parsing_error(const yy::parser::location_type& parser_location, const std::string& message)
+    {
+        std::stringstream message_stream;
+        message_stream << "Parsing error at location " << parser_location << ": " << message;
+        m_message = message_stream.str();
+    }
+};
+
 class parser_t
 {
 public:
-    parser_t()
-        : trace_parsing(false), trace_scanning(false){};
+    parser_t() = default;
 
     // Use smart pointers to store the statements because we need the polymorphic behaviour.
     std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>> statements;
 
-    int parse(const std::string& filename)
+    void parse(const std::string& filename)
     {
-        file = filename;
-        location.initialize(&file);
+        m_file = filename;
+        location.initialize(&m_file);
         scan_begin();
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
-        int res = parse();
+        int parsing_result = parse();
+        // All parsing errors should be thrown as the 'parsing_error' exception.
+        // Any violation below means there are unhandled parsing errors.
+        ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to handle parsing errors in the DDL file '" + filename + "'.");
         scan_end();
-        return res;
     };
 
-    int parse_line(const std::string& line)
+    void parse_line(const std::string& line)
     {
         scan_string_begin(line);
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
-        int res = parse();
+        int parsing_result = parse();
+        // All parsing errors should be thrown as the 'parsing_error' exception.
+        // Any violation below means there are unhandled parsing errors.
+        ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to handle parsing errors in the line: '" + line + "'.");
         scan_string_end();
-        return res;
     }
 
     yy::location location;
-    bool trace_parsing;
-    bool trace_scanning;
+    bool trace_parsing{};
+    bool trace_scanning{};
 
 private:
-    std::string file;
+    std::string m_file;
 
     void scan_begin();
     void scan_end();
