@@ -33,7 +33,7 @@ public:
     explicit parsing_error(const yy::parser::location_type& parser_location, const std::string& message)
     {
         std::stringstream message_stream;
-        message_stream << parser_location << ": " << message;
+        message_stream << "Parsing error at location " << parser_location << ": " << message;
         m_message = message_stream.str();
     }
 };
