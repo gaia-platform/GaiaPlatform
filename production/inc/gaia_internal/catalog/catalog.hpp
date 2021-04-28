@@ -50,6 +50,9 @@ const std::string c_empty_db_name = "()";
 // qualified name for a table defined in a given database.
 constexpr char c_db_table_name_connector = '.';
 
+const std::string c_catalog_db_name = "catalog";
+const std::string c_event_log_db_name = "event_log";
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -259,6 +262,15 @@ struct drop_statement_t : statement_t
 
 /*@}*/
 } // namespace ddl
+
+class no_system_db_operation : public gaia::common::gaia_exception
+{
+public:
+    explicit no_system_db_operation(const std::string& name)
+    {
+        m_message = "Operations on the system database '" + name + "' are not allowed.";
+    }
+};
 
 /**
  * Thrown when creating a database that already exists.
