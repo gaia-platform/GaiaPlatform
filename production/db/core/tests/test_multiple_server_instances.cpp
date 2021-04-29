@@ -12,6 +12,7 @@
 #include <thread>
 
 #include "gtest/gtest.h"
+#include <sys/prctl.h>
 
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
@@ -93,6 +94,7 @@ public:
             {
                 FAIL() << "Failed to execute " << m_server_exec_path.c_str();
             }
+            ::prctl(PR_SET_PDEATHSIG, SIGKILL);
         }
 
         gaia_log::app().debug("Server instance {} started with pid:{}", m_instance_name, m_server_pid);
@@ -102,7 +104,7 @@ public:
     {
         gaia_log::app().debug("Killing server instance {} and pid:{}", m_instance_name, m_server_pid);
 
-        ::system((std::string("kill -9 ") + std::to_string(m_server_pid)).c_str());
+        //        ::system((std::string("kill -9 ") + std::to_string(m_server_pid)).c_str());
     }
 
     void wait_for_server()
