@@ -15,13 +15,13 @@ endmacro()
 # Args:
 # - DDL_FILE: the path to the .ddl file.
 # - OUTPUT_FOLDER: folder where the header files will be generated.
-# - TARGET_NAME: [optional] the name of the generated target. If not provided
-#                the default value is generate_${DDL_NAME}_headers.
+# - TARGET_NAME: [optional] the name of the generated target.
+#     If not provided the default value is generate_${DDL_NAME}_headers.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
-#                   If not provided the database name will be inferred from the file
-#                   name. This is a temporary workaround, until we improve gaiac.
+#     If not provided the database name will be inferred from the file name.
+#     This is a temporary workaround, until we improve gaiac.
 # - GAIAC_CMD: [optional] custom gaiac command. If not provided will search gaiac
-#              in the path.
+#     in the path.
 function(process_schema)
   set(options "")
   set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME DATABASE_NAME GAIAC_CMD)
