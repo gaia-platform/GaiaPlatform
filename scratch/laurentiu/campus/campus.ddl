@@ -1,3 +1,7 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
 
 create database if not exists campus;
 
