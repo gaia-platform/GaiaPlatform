@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 
+#include <fstream>
 #include <memory>
 #include <random>
 #include <string>
@@ -62,6 +63,8 @@ protected:
 
     void SetUp() override
     {
+        std::cout << "----- " << std::filesystem::current_path().string() << "/" << executable_name() << std::endl;
+
         gaia_log::initialize({});
         // The server will only reset on SIGHUP if persistence is disabled.
         if (m_disable_persistence)
@@ -85,6 +88,13 @@ protected:
         {
             end_session();
         }
+    }
+
+    std::string executable_name()
+    {
+        std::string sp;
+        std::ifstream("/proc/self/comm") >> sp;
+        return sp;
     }
 };
 

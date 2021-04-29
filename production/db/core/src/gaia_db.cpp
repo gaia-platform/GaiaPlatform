@@ -55,3 +55,8 @@ gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
 {
     return gaia::db::client_t::get_txn_id();
 }
+
+gaia::db::session_opts_t gaia::db::get_default_session_opts()
+{
+    return gaia::db::config::get_default_session_opts();
+}

@@ -165,7 +165,6 @@ struct session_opts_t
 session_opts_t get_default_session_opts();
 
 bool is_transaction_active();
-void begin_session();
 void begin_session(session_opts_t session_opts = get_default_session_opts());
 void end_session();
 void begin_transaction();

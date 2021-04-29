@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <ctime>
 
+#include <filesystem>
 #include <shared_mutex>
 #include <string>
 #include <thread>
@@ -15,10 +16,12 @@
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
 
-#include "gaia_internal//common/logger_internal.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "gaia_addr_book.h"
 #include "schema_loader.hpp"
@@ -28,17 +31,38 @@ using namespace gaia::addr_book;
 
 using gaia_timer_t = gaia::common::timer_t;
 
+namespace fs = std::filesystem;
+
 static constexpr uint32_t c_num_server_instances = 10;
 static constexpr uint32_t c_num_employees = 10;
 static constexpr uint32_t c_sleep_micros = 100000;
 static constexpr uint32_t c_max_reader_wait_seconds = 10;
 
+static constexpr char c_db_core_folder_name[] = "db/core";
+
 class multiple_server_instances_test : public ::testing::Test
 {
 public:
+    multiple_server_instances_test()
+    {
+    }
+
     std::string get_server_exec_path()
     {
-        return "/home/simone/repos/GaiaPlatform/production/cmake-build-debug/db/core/gaia_db_server";
+        fs::path current_path = fs::current_path();
+        fs::path db_path = fs::path(current_path) / c_db_core_folder_name;
+
+        while (!fs::exists(db_path) && current_path.has_root_path() && current_path != current_path.root_path())
+        {
+            current_path = current_path.parent_path();
+            db_path = fs::path(current_path) / c_db_core_folder_name;
+        }
+
+        fs::path db_exec_path = db_path / c_db_server_exec_name;
+
+        ASSERT_INVARIANT(fs::exists(db_exec_path), "Impossible to find the db path");
+
+        return db_exec_path.string();
     }
 
 protected:
@@ -46,6 +70,8 @@ protected:
     {
         gaia_log::initialize({});
     }
+
+private:
 };
 
 class server_instance_t
@@ -58,7 +84,7 @@ public:
 
     void start_server()
     {
-        gaia_log::app().info("Starting server instance {}", m_instance_name, m_server_pid);
+        gaia_log::app().debug("Starting server instance {}", m_instance_name, m_server_pid);
         const char* const command[] = {m_server_exec_path.c_str(), "--instance-name", m_instance_name.c_str(), "--disable-persistence", NULL};
 
         if (0 == (m_server_pid = ::fork()))
@@ -69,12 +95,12 @@ public:
             }
         }
 
-        gaia_log::app().info("Server instance {} started with pid:{}", m_instance_name, m_server_pid);
+        gaia_log::app().debug("Server instance {} started with pid:{}", m_instance_name, m_server_pid);
     }
 
     void kill_server()
     {
-        gaia_log::app().info("Killing server instance {} and pid:{}", m_instance_name, m_server_pid);
+        gaia_log::app().debug("Killing server instance {} and pid:{}", m_instance_name, m_server_pid);
 
         ::system((std::string("kill -9 ") + std::to_string(m_server_pid)).c_str());
     }
@@ -91,7 +117,7 @@ public:
         {
             try
             {
-                gaia_log::app().info("Waiting for server instance {} attempt:{}", m_instance_name, counter);
+                gaia_log::app().debug("Waiting for server instance {} attempt:{}", m_instance_name, counter);
 
                 session_opts_t session_opts;
                 session_opts.instance_name = m_instance_name;
@@ -151,7 +177,7 @@ public:
 
     void do_write()
     {
-        gaia_log::app().info("Starting writer for instance {}", m_instance_name);
+        gaia_log::app().debug("Starting writer for instance {}", m_instance_name);
 
         session_opts_t session_opts;
         session_opts.instance_name = m_instance_name;
@@ -177,7 +203,7 @@ public:
         commit_transaction();
         end_session();
 
-        gaia_log::app().info("Exiting writer for instance {}", m_instance_name);
+        gaia_log::app().debug("Exiting writer for instance {}", m_instance_name);
     }
 
 private:
@@ -195,7 +221,7 @@ public:
 
     void do_read()
     {
-        gaia_log::app().info("Starting reader for instance {}", m_instance_name);
+        gaia_log::app().debug("Starting reader for instance {}", m_instance_name);
 
         session_opts_t session_opts;
         session_opts.instance_name = m_instance_name;
@@ -229,7 +255,7 @@ public:
         end_session();
 
         ASSERT_EQ(c_num_employees, num_employees);
-        gaia_log::app().info("Exiting reader for instance {}", m_instance_name);
+        gaia_log::app().debug("Exiting reader for instance {}", m_instance_name);
     }
 
 private:
