@@ -15,13 +15,16 @@ endmacro()
 # Args:
 # - DDL_FILE: the path to the .ddl file.
 # - OUTPUT_FOLDER: folder where the header files will be generated.
-# - TARGET_NAME: [optional] the name of the generated target. If not provided
-#                the default value is generate_${DDL_NAME}_headers.
+# - TARGET_NAME: [optional] the name of the generated target.
+#     If not provided the default value is generate_${DDL_NAME}_headers.
+# - DATABASE_NAME: [optional] name of the database the headers are generated from.
+#     If not provided the database name will be inferred from the file name.
+#     This is a temporary workaround, until we improve gaiac.
 # - GAIAC_CMD: [optional] custom gaiac command. If not provided will search gaiac
-#              in the path.
+#     in the path.
 function(process_schema)
   set(options "")
-  set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME GAIAC_CMD)
+  set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME DATABASE_NAME GAIAC_CMD)
   set(multiValueArgs "")
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -38,10 +41,15 @@ function(process_schema)
     set(ARG_GAIAC_CMD gaiac)
   endif()
 
+  if (NOT DEFINED ARG_DATABASE_NAME)
+    set(ARG_DATABASE_NAME ${DDL_NAME})
+    message(VERBOSE "DATABASE_NAME not provided, inferred database name: ${ARG_DATABASE_NAME}.")
+  endif()
+
   add_custom_command(
     COMMENT "Generating ${DDL_NAME}.h..."
     OUTPUT ${SCHEMA_HEADER_PATH}
-    COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE}
+    COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE} -d ${ARG_DATABASE_NAME}
     DEPENDS ${ARG_DDL_FILE}
   )
 
