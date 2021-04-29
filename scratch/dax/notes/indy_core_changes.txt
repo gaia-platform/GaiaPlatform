@@ -1,0 +1,22 @@
+Add tracing to rule worker thread queues
+
+maybe create T_in and T_out tables to avoid concurrency issues?
+
+Run with only one background thread for simulation?
+
+Iteration and threading is nice,but need to syncronize. I.e. would like to transform camera and radar data in parallel then let BLC know
+when that is done.
+
+Tenet:  thou shalt not do update diffs against signal data
+
+If we model all data as inserts, then we need a fast "GC" mechaism, or at lesat 
+
+Add an overload to commit to suppress firing events
+Add an API for exponential backoff for retrying transaction serialization errors
+insert/delete churn
+
+
+
+
+
+

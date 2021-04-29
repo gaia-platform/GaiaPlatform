@@ -1,0 +1,57 @@
+/usr/local/bin/cmake -S/home/dax/git/GaiaPlatform/demos -B/home/dax/git/GaiaPlatform/demos/build --check-build-system CMakeFiles/Makefile.cmake 0
+/usr/local/bin/cmake -E cmake_progress_start /home/dax/git/GaiaPlatform/demos/build/CMakeFiles /home/dax/git/GaiaPlatform/demos/build/CMakeFiles/progress.marks
+make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+make  -f incubator/CMakeFiles/generate_incubator_headers.dir/build.make incubator/CMakeFiles/generate_incubator_headers.dir/depend
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+cd /home/dax/git/GaiaPlatform/demos/build && /usr/local/bin/cmake -E cmake_depends "Unix Makefiles" /home/dax/git/GaiaPlatform/demos /home/dax/git/GaiaPlatform/demos/incubator /home/dax/git/GaiaPlatform/demos/build /home/dax/git/GaiaPlatform/demos/build/incubator /home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/generate_incubator_headers.dir/DependInfo.cmake --color=
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+make  -f incubator/CMakeFiles/generate_incubator_headers.dir/build.make incubator/CMakeFiles/generate_incubator_headers.dir/build
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+[ 16%] Compiling incubator.ddl.
+cd /home/dax/git/GaiaPlatform/demos/build/incubator && /home/dax/git/GaiaPlatform/production/build/catalog/gaiac/gaiac -o /home/dax/git/GaiaPlatform/demos/build/incubator -g /home/dax/git/GaiaPlatform/demos/incubator/incubator.ddl
+Generating EDC headers in: '/home/dax/git/GaiaPlatform/demos/build/incubator/gaia_incubator.h'.
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+[ 16%] Built target generate_incubator_headers
+make  -f incubator/CMakeFiles/translate_incubator_ruleset.dir/build.make incubator/CMakeFiles/translate_incubator_ruleset.dir/depend
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+cd /home/dax/git/GaiaPlatform/demos/build && /usr/local/bin/cmake -E cmake_depends "Unix Makefiles" /home/dax/git/GaiaPlatform/demos /home/dax/git/GaiaPlatform/demos/incubator /home/dax/git/GaiaPlatform/demos/build /home/dax/git/GaiaPlatform/demos/build/incubator /home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/translate_incubator_ruleset.dir/DependInfo.cmake --color=
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+make  -f incubator/CMakeFiles/translate_incubator_ruleset.dir/build.make incubator/CMakeFiles/translate_incubator_ruleset.dir/build
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+[ 33%] Translating incubator.ruleset.
+cd /home/dax/git/GaiaPlatform/demos/build/incubator && /home/dax/git/GaiaPlatform/production/build/tools/gaia_translate/gaiat /home/dax/git/GaiaPlatform/demos/incubator/incubator.ruleset -output /home/dax/git/GaiaPlatform/demos/build/incubator/incubator_rules.cpp -- -I /usr/lib/clang/10/include/
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+[ 33%] Built target translate_incubator_ruleset
+make  -f incubator/CMakeFiles/incubator.dir/build.make incubator/CMakeFiles/incubator.dir/depend
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+cd /home/dax/git/GaiaPlatform/demos/build && /usr/local/bin/cmake -E cmake_depends "Unix Makefiles" /home/dax/git/GaiaPlatform/demos /home/dax/git/GaiaPlatform/demos/incubator /home/dax/git/GaiaPlatform/demos/build /home/dax/git/GaiaPlatform/demos/build/incubator /home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/DependInfo.cmake --color=
+Dependee "/home/dax/git/GaiaPlatform/production/inc/gaia/direct_access/edc_iterators.hpp" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/production/inc/gaia/direct_access/edc_iterators.inc" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "incubator/gaia_incubator.h" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "incubator/incubator_generated.h" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/demos/build/incubator/gaia_incubator.h" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/demos/build/incubator/incubator_generated.h" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/demos/build/incubator/incubator_rules.cpp" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/production/inc/gaia/direct_access/edc_iterators.hpp" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Dependee "/home/dax/git/GaiaPlatform/production/inc/gaia/direct_access/edc_iterators.inc" is newer than depends file "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.internal".
+Clearing dependencies in "/home/dax/git/GaiaPlatform/demos/build/incubator/CMakeFiles/incubator.dir/depend.make".
+Scanning dependencies of target incubator
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+make  -f incubator/CMakeFiles/incubator.dir/build.make incubator/CMakeFiles/incubator.dir/build
+make[2]: Entering directory '/home/dax/git/GaiaPlatform/demos/build'
+[ 50%] Building CXX object incubator/CMakeFiles/incubator.dir/incubator.cpp.o
+cd /home/dax/git/GaiaPlatform/demos/build/incubator && /usr/local/bin/cmake -E __run_co_compile --tidy="clang-tidy;--extra-arg-before=--driver-mode=g++" --source=/home/dax/git/GaiaPlatform/demos/incubator/incubator.cpp -- /usr/bin/clang++-8   -I/home/dax/git/GaiaPlatform/production/inc -I/home/dax/git/GaiaPlatform/demos/build/incubator  -c -Wall -Wextra -ggdb -std=gnu++17 -o CMakeFiles/incubator.dir/incubator.cpp.o -c /home/dax/git/GaiaPlatform/demos/incubator/incubator.cpp
+/home/dax/git/GaiaPlatform/demos/incubator/incubator.cpp:146:15: warning: loop variable is copied but only used as const reference; consider making it a const reference [performance-for-range-copy]
+    for (auto i : incubator_t::list())
+              ^
+         const  &
+[ 66%] Building CXX object incubator/CMakeFiles/incubator.dir/incubator_rules.cpp.o
+cd /home/dax/git/GaiaPlatform/demos/build/incubator && /usr/local/bin/cmake -E __run_co_compile --tidy="clang-tidy;--extra-arg-before=--driver-mode=g++" --source=/home/dax/git/GaiaPlatform/demos/build/incubator/incubator_rules.cpp -- /usr/bin/clang++-8   -I/home/dax/git/GaiaPlatform/production/inc -I/home/dax/git/GaiaPlatform/demos/build/incubator  -c -Wall -Wextra -ggdb -std=gnu++17 -o CMakeFiles/incubator.dir/incubator_rules.cpp.o -c /home/dax/git/GaiaPlatform/demos/build/incubator/incubator_rules.cpp
+[ 83%] Linking CXX executable incubator
+cd /home/dax/git/GaiaPlatform/demos/build/incubator && /usr/local/bin/cmake -E cmake_link_script CMakeFiles/incubator.dir/link.txt --verbose=1
+/usr/bin/clang++-8    -ggdb -pthread CMakeFiles/incubator.dir/incubator.cpp.o CMakeFiles/incubator.dir/incubator_rules.cpp.o  -o incubator  -Wl,-rpath,/home/dax/git/GaiaPlatform/production/build/sdk /home/dax/git/GaiaPlatform/production/build/sdk/libgaia.so -lrt -lpthread
+make[2]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+[100%] Built target incubator
+make[1]: Leaving directory '/home/dax/git/GaiaPlatform/demos/build'
+/usr/local/bin/cmake -E cmake_progress_start /home/dax/git/GaiaPlatform/demos/build/CMakeFiles 0

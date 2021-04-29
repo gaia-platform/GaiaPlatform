@@ -1,0 +1,24 @@
+Still looking for empty docker and CI
+
+shared library for rules / app mode
+
+where where
+maybe here is where we build incubator demo and hello world app (one build to rule them?)
+
+tx id (tracing)
+
+How do we expose the index work?  (what's the end to end story for indices, parallel to gaia ptr), re-use the same gaia_ptr API, what doe we do with an index, query optimie
+
+
+Rules - PEGA
+Each node is a process (server process), each server had their own copy of everything.
+Each process only populated the rules they were using.
+Each process first attempt to dynamically load from the database to get its binary (database of rules)
+
+David's view:  two separate nodes in the cluster, "VOB", one node working in boarding area, one working on luggage distrubtion.  Person checking in kicks off rules in separate systems.
+Shared libraries, by ruleset or "all rules"?
+Pick and choose what we can bring in memory.  Compile all rulesets into a single shared library.
+
+Future:
+Dynamic recompile of rules < Danger Will Robbins (dax edit)
+

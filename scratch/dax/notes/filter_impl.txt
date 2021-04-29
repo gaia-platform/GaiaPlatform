@@ -1,0 +1,26 @@
+1) employee_t::expr::field_name x, will reserve query namespace for other
+2) x == 3, str_expr_t, support both ways, prioritize non-yoda
+3) strings: support ==, !=, <, > [regex, if we get to it]
+4) possibly remove "syntactic sugar namespace" 
+5) where "chaining" may be off the table
+
+PR: end of day or tomorrow.
+Estimate:  ROS
+
+Operations on containers a second wave 2D.
+Date Time type ...
+
+
+Lambda where()
+
+
+Implement Contains (separate issue)
+
+
+
+Optional field:
+- Nice to have object comparison
+
+Operation on binary.
+
+
