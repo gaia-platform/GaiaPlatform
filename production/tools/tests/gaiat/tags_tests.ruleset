@@ -64,7 +64,8 @@ ruleset test7
     OnUpdate(A:actuator)
     {
         use_float(A.value);
-        float v = A.value;
+        float v;
+        v = A.value;
     }
 }
 
@@ -82,7 +83,8 @@ ruleset test9
     // Table & fields.
     OnUpdate(S:sensor, V:sensor.value, sensor.name, sensor.timestamp)
     {
-        float v = S.value + V.value;
+        float v;
+        v = S.value + V.value;
         sensor.name = "perimeter";
     }
 }
@@ -119,48 +121,95 @@ ruleset test20
 }
 
 // GAIAPLAT-829
-// ruleset testE1
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         else
-//         {
-//             F:farmer.acreage -= 1;
-//         }
-//     }
-// }
+ ruleset testE1
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+        else
+        {
+            F:farmer.acreage -= 1;
+        }
+    }
+}
 
 // GAIAPLAT-829
-// ruleset testE2
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         F:farmer.acreage -= 1;
-//     }
-// }
+ruleset testE2
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:farmer.acreage += 1;
+        }
+        F:farmer.acreage -= 1;
+    }
+}
 
 // GAIAPLAT-829
-// ruleset testE3
-// {
-//     OnUpdate(incubator)
-//     {
-//         int unsigned i = 0;
-//         if (i == 0)
-//         {}
-//         else
-//         {
-//             F:farmer.acreage += 1;
-//         }
-//         F:farmer.acreage -= 1;
-//     }
-// }
+ruleset testE3
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {}
+        else
+        {
+            F:farmer.acreage += 1;
+        }
+        F:farmer.acreage -= 1;
+    }
+}
+
+// GAIAPLAT-829
+ ruleset testE11
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            /F:farmer.acreage += 1;
+        }
+        else
+        {
+            /F:farmer.acreage -= 1;
+        }
+    }
+}
+
+// GAIAPLAT-829
+ruleset testE2
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            /F:farmer.acreage += 1;
+        }
+        /F:farmer.acreage -= 1;
+    }
+}
+
+// GAIAPLAT-829
+ruleset testE3
+{
+    OnUpdate(incubator)
+    {
+        int unsigned i = 0;
+        if (i == 0)
+        {}
+        else
+        {
+            /F:farmer.acreage += 1;
+        }
+        /F:farmer.acreage -= 1;
+    }
+}

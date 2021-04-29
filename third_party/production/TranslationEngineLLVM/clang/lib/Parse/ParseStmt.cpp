@@ -178,7 +178,16 @@ Retry:
     Token Next = NextToken();
     if (Next.is(tok::colon)) { // C99 6.8.1: labeled-statement
       // identifier ':' statement
-      return ParseLabeledStatement(Attrs);
+      if (!getLangOpts().Gaia || !Actions.getCurScope()->isInRulesetScope() ||
+        GetLookAheadToken(2).isNot(tok::identifier))
+      {
+        return ParseLabeledStatement(Attrs);
+      }
+      else
+      {
+        ConsumeToken();
+        ConsumeToken();
+      }
     }
 
     // Look up the identifier, and typo-correct it to a keyword if it's not
@@ -207,6 +216,15 @@ Retry:
   }
 
   default: {
+    if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
+    {
+      if (Tok.is(tok::slash) && NextToken().is(tok::identifier) &&
+        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
+        {
+          ConsumeToken();
+          goto Retry;
+        }
+    }
     if ((getLangOpts().CPlusPlus || getLangOpts().MicrosoftExt ||
          Allowed == ACK_Any) &&
         isDeclarationStatement()) {

@@ -80,6 +80,11 @@ std::string Parser::GetExplicitNavigationPath()
         {
             returnValue = tagToken.getIdentifierInfo()->getName().str() + ":";
             startLocation = tagToken.getLocation();
+            if (getPreviousToken(tagToken).is(tok::slash))
+            {
+                returnValue = "/" + returnValue;
+                startLocation = getPreviousToken(tagToken).getLocation();
+            }
         }
     }
     else
