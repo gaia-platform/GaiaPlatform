@@ -53,10 +53,12 @@ public:
         }
         return m_table_data;
     }
-
+    // Function that generates navigation code for implicit navigation.
     navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables);
+    // Function that generates navigation code for explicit navigation.
     navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
         unordered_map<string, string> tags, bool is_absolute);
+    // Function that generates variable name for navigation variables.
     string get_variable_name(const string& table, const unordered_map<string, string>& tags) const;
 private:
     class db_monitor_t

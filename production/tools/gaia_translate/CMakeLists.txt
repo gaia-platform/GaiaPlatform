@@ -18,7 +18,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 
 set(GAIAT_SRCS
   src/main.cpp
-  src/TableNavigation.cpp
+  src/table_navigation.cpp
 )
 
 link_directories(

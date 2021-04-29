@@ -1,7 +1,7 @@
 #include <climits>
 #include <iostream>
 #include <random>
-#include "TableNavigation.h"
+#include "table_navigation.h"
 
 using namespace std;
 using namespace gaia::translation;
@@ -12,7 +12,7 @@ static const int c_variable_length =15;
 table_navigation_t::table_navigation_t() : m_is_initialized(false)
 {
 }
-
+// Function that generates navigation code for explicit navigation path.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
     unordered_map<string, string> tags, bool is_absolute)
 {
@@ -94,12 +94,13 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     return return_value;
 }
 
+// Function that generates navigation code for implicit navigation.
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
 {
     string last_variable_name;
     return generate_navigation_code(anchor_table, tables, generate_dummy_tag_map(tables), last_variable_name);
 }
-
+// Function that generates navigation code for implicit navigation and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
     unordered_map<string, string> tags, string& last_variable_name)
 {
@@ -234,6 +235,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     return return_value;
 }
 
+// Fill internal data from catalog.
 void table_navigation_t::fill_table_data()
 {
     try
@@ -242,15 +244,15 @@ void table_navigation_t::fill_table_data()
 
         for (const auto& field : catalog::gaia_field_t::list())
         {
-            catalog::gaia_table_t tbl = field.table();
-            if (!tbl)
+            catalog::gaia_table_t table = field.table();
+            if (!table)
             {
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
                 m_table_data.clear();
                 return;
             }
 
-            table_data_t table_data = m_table_data[tbl.name()];
+            table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
                 cerr << "Duplicate field '" << field.name() << "'." << endl;
@@ -261,9 +263,9 @@ void table_navigation_t::fill_table_data()
             field_data.is_active = field.active();
             field_data.position = field.position();
             field_data.is_deprecated = field.deprecated();
-            table_data.db_name = tbl.database().name();
+            table_data.db_name = table.database().name();
             table_data.field_data[field.name()] = field_data;
-            m_table_data[tbl.name()] = table_data;
+            m_table_data[table.name()] = table_data;
         }
 
         for (const auto& relationship : catalog::gaia_relationship_t::list())
@@ -302,6 +304,7 @@ void table_navigation_t::fill_table_data()
     }
 }
 
+// Auxilary function find topologically closest table.
 string table_navigation_t::get_closest_table(const unordered_map<string, int>& table_distance) const
 {
     int min_distance = INT_MAX;
@@ -318,6 +321,7 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
     return return_value;
 }
 
+// Find shortest navigation path between 2 tables.
 bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path) const
 {
     if (src == dst)
@@ -400,7 +404,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     }
     return true;
 }
-
+// Get variable name for navigation code
 string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags) const
 {
     auto tags_iterator = tags.find(table);
@@ -438,12 +442,12 @@ string table_navigation_t::generate_random_string(string::size_type length) cons
     s.reserve(length);
     while(length--)
     {
-        s += chrs[dis(gen)%(sizeof(chrs) - 1)];
+        s += chrs[dis(gen) % (sizeof(chrs) - 1)];
     }
 
     return s;
 }
-
+// Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table,
     const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {
