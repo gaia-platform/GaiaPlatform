@@ -121,7 +121,9 @@ public:
 
     void inline start(bool stop_server = true, bool remove_persistent_store = true)
     {
-        if (stop_server)
+        constexpr int c_wait_signal_millis = 10;
+
+        if (stop_server || remove_persistent_store)
         {
             stop();
         }
@@ -133,6 +135,7 @@ public:
             cmd.append(" ");
             cmd.append(c_disable_persistence_flag);
         }
+
         if (remove_persistent_store)
         {
             cmd.append(" ");
@@ -140,6 +143,9 @@ public:
             cmd.append(" ");
             cmd.append(c_data_dir_flag);
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
+
         ::system(cmd.c_str());
 
         // Wait for server to initialize.
@@ -157,9 +163,7 @@ public:
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-        std::string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path.string());
-        cmd.append(m_server_path);
+        std::string cmd = "pkill -KILL gaia_db_server";
         ::system(cmd.c_str());
     }
 
