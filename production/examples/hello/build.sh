@@ -5,7 +5,7 @@
 # All rights reserved.
 #############################################
 
-gaiac -g hello.ddl
+gaiac -g hello.ddl -d hello
 
 gaiat hello.ruleset -output hello_ruleset.cpp -- -I /usr/lib/clang/10/include/ -I /opt/gaia/include/
 
