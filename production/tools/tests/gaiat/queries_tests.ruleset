@@ -2,6 +2,8 @@
 
 #include "tags_test.h"
 
+// #define TEST_FAILURES
+
 ruleset test1
 {
     OnChange(actuator.value)
@@ -169,114 +171,140 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-872
+// GAIAPLAT-872 (fixed)
 // In this test, the navigation fans out in the 1:M direction.
-// ruleset test20
-// {
-//     OnInsert(yield)
-//     {
-//         int daily = 0;
-//         daily += /farmer->yield->feeding.portion;
-//     }
-// }
+ruleset test20
+{
+    OnInsert(yield)
+    {
+        int daily = 0;
+        daily += /farmer->yield->feeding.portion;
+    }
+}
 
-// GAIAPLAT-872
+// GAIAPLAT-872 (fixed)
 // In this test, the navigation is in the M:1 direction.
-// ruleset test21
-// {
-//     OnInsert(farmer)
-//     {
-//         use_string(/feeding->yield->farmer.name);
-//     }
-// }
+ruleset test21
+{
+    OnInsert(farmer)
+    {
+        use_string(/feeding->yield->farmer.name);
+    }
+}
+
+// GAIAPLAT-915
+// This translates without error, but translated code will not compile.
+ruleset testE13
+{
+    OnInsert(yield)
+    {
+        int daily = 0;
+        daily += /feeding.portion;
+    }
+}
 
 // GAIAPLAT-807 (fixed)
 // GAIAPLAT-892
-// ruleset test22
-// {
-//     OnInsert(S:sensor)
-//     {
-//         S->incubator.min_temp += S.value;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset test22
+{
+    OnInsert(S:sensor)
+    {
+        S->incubator.min_temp += S.value;
+    }
+}
+#endif
 
 // GAIAPLAT-803
 // This should be identical to test1 above.
-// ruleset testE1
-// {
-//     {
-//         @actuator.value += sensor.value;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE1
+{
+    {
+        @actuator.value += sensor.value;
+    }
+}
+#endif
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-// ruleset testE6
-// {
-//     OnChange(actuator)
-//     {
-//         if (/I:incubator.max_temp == 100.0)
-//         {
-//             use_float(I.min_temp);
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE6
+{
+    OnChange(actuator)
+    {
+        if (/I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
+#endif
 
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
-// ruleset testE7
-// {
-//     OnChange(actuator)
-//     {
-//         for (/I:incubator)
-//         {
-//             use_float(I.min_temp);
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE7
+{
+    OnChange(actuator)
+    {
+        for (/I:incubator)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
+#endif
 
-// GAIAPLAT-825
-// ruleset testE8
-// {
-//     {
-//         use_float(/I:incubator->actuator.value + I.min_temp);
-//         use_float(I:incubator->actuator.value + I.max_temp);
-//     }
-// }
+// GAIAPLAT-825 (fixed)
+ruleset testE8
+{
+    OnInsert(sensor)
+    {
+        use_float(/I:incubator->actuator.value + I.min_temp);
+        use_float(I:incubator->actuator.value + I.max_temp);
+    }
+}
 
 // GAIAPLAT-827
-// ruleset testE9
-// {
-//     OnChange(sensor.value)
-//     {
-//         if (S:sensor.value > 100.0)
-//         {
-//             actuator.value = 101.0;
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE9
+{
+    OnChange(sensor.value)
+    {
+        if (S:sensor.value > 100.0)
+        {
+            actuator.value = 101.0;
+        }
+    }
+}
+#endif
 
 // GAIAPLAT-828
-// ruleset testE10
-// {
-//     OnChange(incubator)
-//     {
-//         S:sensor.value = S.value * 1.01;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE10
+{
+    OnChange(incubator)
+    {
+        S:sensor.value = S.value * 1.01;
+    }
+}
+#endif
 
 // GAIAPLAT-839
-// ruleset testE11
-// {
-//     OnChange(yield.bushels)
-//     {
-//         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
-//             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE11
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+            = A.age + F.acreage + Y.bushels + D.portion + C.acres;
+    }
+}
+#endif
 
 // GAIAPLAT-832
-/*
+#ifdef TEST_FAILURES
 ruleset testE12
 {
     OnUpdate(incubator)
@@ -294,4 +322,4 @@ ruleset testE12
         v += sensor.value > 99.0 ? actuator.value : 99.0;
     }
 }
-*/
+#endif
