@@ -191,14 +191,14 @@ ruleset test19
 // }
 
 // GAIAPLAT-807 (fixed)
-// "Tag refers to an invalid table S."
-ruleset test22
-{
-    OnInsert(S:sensor)
-    {
-        S->incubator.min_temp += S.value;
-    }
-}
+// GAIAPLAT-892
+// ruleset test22
+// {
+//     OnInsert(S:sensor)
+//     {
+//         S->incubator.min_temp += S.value;
+//     }
+// }
 
 // GAIAPLAT-803
 // This should be identical to test1 above.

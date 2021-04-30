@@ -18,6 +18,8 @@
 
 using namespace std;
 using namespace gaia::prerequisites;
+using namespace gaia::prerequisites::student_expr;
+using namespace gaia::prerequisites::registration_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
@@ -244,27 +246,18 @@ TEST_F(test_queries_code, basic_implicit_navigation)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
+    // Fire OnUpdate(S:student).
+    // student "Richard" has two classes with 3 and 4 hours.
     gaia::db::begin_transaction();
-    for (auto& s : student_t::list())
-    {
-        if (strcmp(s.surname(), "Richard") == 0)
-        {
-            auto sw = s.writer();
-            sw.age = 46;
-            sw.update_row();
-            break;
-        }
-    }
+    auto s = student_t::list().where(surname == "Richard").begin();
+    auto sw = s->writer();
+    sw.age = 46;
+    sw.update_row();
     gaia::db::commit_transaction();
 
-    // GAIAPLAT-801
-    // The 801 issue is that the rule including an implicit query loops over the entire
-    // rule, not just the statement including the query. So the mechanisms to return
-    // results implemented within the rule do not work as expected here. Instead, sleep
-    // until the rule has had adequate time to execute.
-    usleep(c_rule_execution_step_delay);
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(S:student) not called";
     // Expected value is hours of math201 (4) plus sci101 (3).
-    EXPECT_EQ(g_onupdate_value, 7) << "Error message here";
+    EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
 TEST_F(test_queries_code, implicit_navigation_fork)
@@ -278,27 +271,17 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
+    // Fire OnUpdate(registration)
+    // This registration is connected to student "Russell" (4 total_hours) and course "math101" (3 hours)
     gaia::db::begin_transaction();
-    for (auto& r : registration_t::list())
-    {
-        if (strcmp(r.reg_id(), "reg003") == 0)
-        {
-            auto rw = r.writer();
-            rw.grade = c_grade_c;
-            rw.update_row();
-            break;
-        }
-    }
+    auto r = registration_t::list().where(reg_id == "reg003").begin();
+    auto rw = r->writer();
+    rw.grade = c_grade_c;
+    rw.update_row();
     gaia::db::commit_transaction();
 
-    // GAIAPLAT-801
-    // The 801 issue is that the rule including an implicit query loops over the entire
-    // rule, not just the statement including the query. So the mechanisms to return
-    // results implemented within the rule do not work as expected here. Instead, sleep
-    // until the rule has had adequate time to execute.
-    usleep(c_rule_execution_step_delay);
-    // Expected value is TotalHours of stu001 (4) plus Hours of math101 (3).
-    EXPECT_EQ(g_onupdate_value, 7) << "Error message here";
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(registration) not called";
+    EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
 const int num_inserts = 4;
