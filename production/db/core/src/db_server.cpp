@@ -491,6 +491,8 @@ void server_t::handle_request_stream(
         old_state == new_state,
         c_message_current_event_is_inconsistent_with_state_transition);
 
+    // The only currently supported stream type is table scans.
+    // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
     // data_type, and then invoke start_stream_producer() with that generator, but in
     // general each data_type corresponds to a generator with a different T_element_type,
@@ -499,26 +501,6 @@ void server_t::handle_request_stream(
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto request = static_cast<const client_request_t*>(event_data);
-    ASSERT_INVARIANT(
-        request->data_type() == request_data_t::table_scan,
-        c_message_unexpected_request_data_type);
-
-    auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-    auto id_generator = get_id_generator_for_type(type);
-
-    // We can't use structured binding names in a lambda capture list.
-    int client_socket, server_socket;
-    std::tie(client_socket, server_socket) = get_stream_socket_pair();
-
-    // The client socket should unconditionally be closed on exit because it's
-    // duplicated when passed to the client and we no longer need it on the
-    // server.
-    auto client_socket_cleanup = make_scope_guard([&]() {
-        close_fd(client_socket);
-    });
-    auto server_socket_cleanup = make_scope_guard([&]() {
-        close_fd(server_socket);
-    });
 
     switch (request->data_type())
     {
@@ -526,28 +508,40 @@ void server_t::handle_request_stream(
     {
         auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
         auto id_generator = get_id_generator_for_type(type);
-        start_stream_producer(server_socket, id_generator);
-    }
 
-    break;
+        // We can't use structured binding names in a lambda capture list.
+        int client_socket, server_socket;
+        std::tie(client_socket, server_socket) = get_stream_socket_pair();
+
+        // The client socket should unconditionally be closed on exit because it's
+        // duplicated when passed to the client and we no longer need it on the
+        // server.
+        auto client_socket_cleanup = make_scope_guard([&]() {
+            close_fd(client_socket);
+        });
+        auto server_socket_cleanup = make_scope_guard([&]() {
+            close_fd(server_socket);
+        });
+
+        start_stream_producer(server_socket, id_generator);
+
+        // Transfer ownership of the server socket to the stream producer thread.
+        server_socket_cleanup.dismiss();
+
+        // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
+        // However, its destructor will not run until the session thread exits and joins the producer thread.
+        FlatBufferBuilder builder;
+        build_server_reply(builder, event, old_state, new_state);
+        send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
+        break;
+    }
     case request_data_t::index_scan:
     {
-        /*
-        auto index = static_cast<gaia_id_t>(request->data_as_index_scan()->index_id());
-        start_stream_producer(
-            server_socket,
-            index::server_index_stream::get_record_generator_for_index(index));*/
+        break;
     }
-    break;
     default:
-        ASSERT_UNREACHABLE("scan type missing for stream");
+        ASSERT_UNREACHABLE("Unknown stream request type");
     }
-
-    // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
-    // However, its destructor will not run until the session thread exits and joins the producer thread.
-    FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state);
-    send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)

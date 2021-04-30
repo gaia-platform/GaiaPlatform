@@ -157,7 +157,6 @@ client_t::get_stream_generator_for_socket(int stream_socket)
     };
 }
 
-/*
 std::function<std::optional<gaia_id_t>()>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
@@ -171,7 +170,6 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 
     return id_generator;
 }
-*/
 
 static void build_client_request(
     FlatBufferBuilder& builder,
