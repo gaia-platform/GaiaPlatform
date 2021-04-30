@@ -230,7 +230,6 @@ int main(int argc, char* argv[])
 {
     gaia_log::initialize({});
 
-    int res = EXIT_SUCCESS;
     server_t server;
     string output_path;
     vector<string> db_names;
@@ -334,8 +333,13 @@ int main(int argc, char* argv[])
     }
 
     gaia::db::begin_session();
-    auto close_db_session = scope_guard::make_scope_guard([&]() {
+
+    const auto cleanup = scope_guard::make_scope_guard([&server]() {
         gaia::db::end_session();
+        if (server.server_started())
+        {
+            server.stop();
+        }
     });
 
     if (mode == operate_mode_t::interactive)
@@ -379,18 +383,14 @@ int main(int argc, char* argv[])
             {
                 cerr << "Unable to connect to the database server." << endl;
             }
-            res = EXIT_FAILURE;
+            return EXIT_FAILURE;
         }
         catch (gaia_exception& e)
         {
             cerr << c_error_prompt << e.what() << endl;
-            res = EXIT_FAILURE;
+            return EXIT_FAILURE;
         }
     }
-    if (server.server_started())
-    {
-        server.stop();
-    }
 
-    exit(res);
+    return EXIT_SUCCESS;
 }

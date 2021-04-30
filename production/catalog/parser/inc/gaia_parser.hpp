@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
 
 #include "yy_parser.hpp"
 
@@ -51,25 +53,33 @@ public:
         m_file = filename;
         location.initialize(&m_file);
         scan_begin();
+        const auto finish_scan = common::scope_guard::make_scope_guard([this]() { scan_end(); });
+
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
         int parsing_result = parse();
+
         // All parsing errors should be thrown as the 'parsing_error' exception.
         // Any violation below means there are unhandled parsing errors.
-        ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to handle parsing errors in the DDL file '" + filename + "'.");
-        scan_end();
+        ASSERT_POSTCONDITION(
+            parsing_result == EXIT_SUCCESS,
+            "Failed to handle parsing errors in the DDL file '" + filename + "'.");
     };
 
     void parse_line(const std::string& line)
     {
         scan_string_begin(line);
+        const auto finish_scan_string = common::scope_guard::make_scope_guard([this]() { scan_string_end(); });
+
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
         int parsing_result = parse();
+
         // All parsing errors should be thrown as the 'parsing_error' exception.
         // Any violation below means there are unhandled parsing errors.
-        ASSERT_INVARIANT(parsing_result == EXIT_SUCCESS, "Failed to handle parsing errors in the line: '" + line + "'.");
-        scan_string_end();
+        ASSERT_POSTCONDITION(
+            parsing_result == EXIT_SUCCESS,
+            "Failed to handle parsing errors in the line: '" + line + "'.");
     }
 
     yy::location location;
