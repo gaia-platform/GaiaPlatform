@@ -9,7 +9,13 @@
 
 using namespace std;
 using namespace gaia::common;
-using namespace gaia::db::payload_types;
+
+namespace gaia
+{
+namespace db
+{
+namespace payload_types
+{
 
 type_cache_t type_cache_t::s_type_cache;
 
@@ -164,3 +170,7 @@ void auto_type_information_t::set(const shared_ptr<const type_information_t>& ty
 
     m_type_information = type_information;
 }
+
+} // namespace payload_types
+} // namespace db
+} // namespace gaia
