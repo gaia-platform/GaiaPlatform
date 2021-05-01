@@ -24,12 +24,7 @@ struct record_data_t
     // Provides the record's locator.
     gaia::db::gaia_locator_t locator;
 
-    // Tells whether the record has been deleted.
-    bool is_deleted;
-
     record_data_t();
-
-    void set(gaia::db::gaia_locator_t locator);
 };
 
 struct record_iterator_t;
@@ -97,6 +92,11 @@ public:
     record_list_t(size_t range_size);
     ~record_list_t();
 
+    // Reset the list to an empty list that has a single range allocated.
+    // This method expects the record_list instance to no longer be in use by any other threads.
+    // There is no synchronization to protect this operation from other concurrent access.
+    void reset();
+
     // Compact the ranges of the list by removing deleted entries.
     void compact();
 
@@ -114,10 +114,13 @@ public:
     static bool move_next(record_iterator_t& iterator);
 
     // Read the record locator for the current iterator position.
-    static gaia::db::gaia_locator_t get_record_locator(record_iterator_t& iterator);
+    static record_data_t get_record_data(record_iterator_t& iterator);
 
     // Mark the record currently referenced by the iterator as deleted.
-    static void delete_record(record_iterator_t& iterator);
+    static void delete_record_data(record_iterator_t& iterator);
+
+protected:
+    void clear();
 
 protected:
     size_t m_range_size;

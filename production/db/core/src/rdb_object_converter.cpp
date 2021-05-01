@@ -8,9 +8,11 @@
 #include "db_internal_types.hpp"
 #include "db_object_helpers.hpp"
 #include "persistent_store_manager.hpp"
+#include "record_list_manager.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::storage;
 
 namespace gaia
 {
@@ -60,7 +62,14 @@ db_object_t* gaia::db::persistence::decode_object(
     auto payload = value_reader.read(size);
 
     // Create object.
-    return create_object(id, type, num_references, size, payload);
+    db_object_t* db_object = create_object(id, type, num_references, size, payload);
+
+    // Lookup object again to find its locator and add it to the type's record_list.
+    gaia_locator_t locator = gaia::db::db_hash_map::find(db_object->id);
+    std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(type);
+    record_list->add(locator);
+
+    return db_object;
 }
 
 } // namespace db

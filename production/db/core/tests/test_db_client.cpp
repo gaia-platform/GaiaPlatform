@@ -277,7 +277,7 @@ TEST_F(db_client_test, iterate_type)
 }
 
 // Temporarily disabling because server-side cursors can no longer be made transactional.
-TEST_F(db_client_test, DISABLED_iterate_type_cursor)
+TEST_F(db_client_test, iterate_type_cursor)
 {
     constexpr size_t c_buffer_size_exact = c_stream_batch_size;
     constexpr size_t c_buffer_size_exact_multiple = c_stream_batch_size * 2;

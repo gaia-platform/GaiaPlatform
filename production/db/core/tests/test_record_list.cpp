@@ -52,11 +52,11 @@ TEST(storage, record_list)
         }
 
         ASSERT_EQ(current_range, iterator.current_range);
-        ASSERT_EQ(expected_locator, record_list_t::get_record_locator(iterator));
+        ASSERT_EQ(expected_locator, record_list_t::get_record_data(iterator).locator);
 
         if (expected_locator % 2 != 0)
         {
-            record_list_t::delete_record(iterator);
+            record_list_t::delete_record_data(iterator);
         }
 
         expected_locator++;
@@ -75,7 +75,7 @@ TEST(storage, record_list)
     // Iterate over the list and verify content.
     do
     {
-        ASSERT_EQ(expected_locator, record_list_t::get_record_locator(iterator));
+        ASSERT_EQ(expected_locator, record_list_t::get_record_data(iterator).locator);
 
         expected_locator += 2;
     } while (record_list_t::move_next(iterator));
@@ -100,7 +100,7 @@ TEST(storage, record_list)
     do
     {
         // Skip our checks if we encounter the new locator value.
-        gaia_locator_t current_locator = record_list_t::get_record_locator(iterator);
+        gaia_locator_t current_locator = record_list_t::get_record_data(iterator).locator;
         if (current_locator != c_new_locator)
         {
             ASSERT_EQ(expected_locator, current_locator);
