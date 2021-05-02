@@ -27,6 +27,7 @@ ruleset test3
     }
 }
 
+// GAIAPLAT-855 (fixed)
 ruleset test4 : Table(actuator, incubator)
 {
     OnInsert(I:incubator)
@@ -49,6 +50,7 @@ ruleset test5
     }
 }
 
+// GAIAPLAT-855 (fixed)
 ruleset test6 : Table(actuator)
 {
     // One field.
@@ -89,6 +91,7 @@ ruleset test9
     }
 }
 
+// GAIAPLAT-855 (fixed)
 ruleset test10 : Table(sensor)
 {
     OnUpdate(S:sensor)
@@ -106,7 +109,7 @@ ruleset test11
     }
 }
 
-ruleset test20
+ruleset test12
 {
     OnUpdate(incubator)
     {
@@ -120,8 +123,44 @@ ruleset test20
     }
 }
 
+ruleset test13
+{
+    OnInsert(incubator)
+    {
+        // label:tag:table works for both label and tag.
+        LABEL:I:incubator->sensor.value = I.max_temp - 1.0;
+        if (actuator.value > 3.0)
+        {
+            goto LABEL;
+        }
+    }
+}
+
+ruleset test14
+{
+    OnInsert(incubator)
+    {
+        // Ensure the label is a goto target using empty statement.
+        LABEL:; sensor.value = max_temp - 1.0;
+        if (actuator.value > 3.0)
+        {
+            goto LABEL;
+        }
+    }
+}
+
+ruleset test15
+{
+    // NOTE: the ".min_temp" field didn't cause this rule to fire, but
+    // may serve as documentation for the rule's intended use.
+    OnInsert(I:incubator.min_temp)
+    {
+        use_float(I.min_temp);
+    }
+}
+
 // GAIAPLAT-829
- ruleset testE1
+ruleset testE1
 {
     OnUpdate(incubator)
     {

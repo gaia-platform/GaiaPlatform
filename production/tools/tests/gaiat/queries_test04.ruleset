@@ -1,0 +1,10 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test16
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->(C:crop.acres) = 0;
+        (/F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres) = 0;
+    }
+}

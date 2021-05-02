@@ -64,7 +64,6 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TRANSLATION_RULESET} -output ${TRANSLATION_RULESET_OUT} --
       -I ${GAIA_INC}
-      -I ${SPDLOG_INC}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
   COMMAND pkill -f -KILL gaia_db_server &

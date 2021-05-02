@@ -9,5 +9,5 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY build_sdk_samples.sh .
 COPY gaia-0.1.0_amd64.deb .
 
-RUN apt install ./gaia-0.1.0_amd64.deb
+RUN apt-get install -y ./gaia-0.1.0_amd64.deb
 RUN /bin/bash ./build_sdk_samples.sh

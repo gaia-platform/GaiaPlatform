@@ -16,6 +16,15 @@ namespace gaia
 namespace catalog
 {
 
+bool is_system_db(const string& name)
+{
+    if (name == c_catalog_db_name || name == c_event_log_db_name)
+    {
+        return true;
+    }
+    return false;
+}
+
 void initialize_catalog()
 {
     ddl_executor_t::get();
@@ -23,6 +32,10 @@ void initialize_catalog()
 
 void use_database(const string& name)
 {
+    if (is_system_db(name))
+    {
+        throw forbidden_sydtem_db_operation(name);
+    }
     ddl_executor_t::get().switch_db_context(name);
 }
 
@@ -42,6 +55,10 @@ gaia_id_t create_table(
     const ddl::field_def_list_t& fields,
     bool throw_on_exists)
 {
+    if (is_system_db(db_name))
+    {
+        throw forbidden_sydtem_db_operation(db_name);
+    }
     return ddl_executor_t::get().create_table(db_name, name, fields, throw_on_exists);
 }
 
@@ -56,6 +73,10 @@ gaia_id_t create_relationship(
 
 void drop_database(const string& name, bool throw_unless_exists)
 {
+    if (is_system_db(name))
+    {
+        throw forbidden_sydtem_db_operation(name);
+    }
     return ddl_executor_t::get().drop_database(name, throw_unless_exists);
 }
 
@@ -66,6 +87,10 @@ void drop_table(const string& name, bool throw_unless_exists)
 
 void drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
+    if (is_system_db(name))
+    {
+        throw forbidden_sydtem_db_operation(name);
+    }
     return ddl_executor_t::get().drop_table(db_name, name, throw_unless_exists);
 }
 
