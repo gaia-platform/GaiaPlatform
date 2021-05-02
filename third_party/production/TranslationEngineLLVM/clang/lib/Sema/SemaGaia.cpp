@@ -307,6 +307,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     }
 
     explicitPathTagMapping[loc] = tagMap;
+    explicitPathDeclarationScopeTagMapping[loc] = tagMap;
 
     return path.back();
 
@@ -821,7 +822,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
 
     for (const auto& explicitPathTagMapIterator : explicitPathTagMapping)
     {
-        const auto &tagMap = explicitPathTagMapIterator.second;
+        const auto& tagMap = explicitPathTagMapIterator.second;
         for (const auto& tagMapIterator : tagMap)
         {
             if (retVal.find(tagMapIterator.first) != retVal.end())
@@ -835,6 +836,20 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             }
         }
     }
+
+    for (const auto& explicitPathDeclarationScopeTagMapIterator : explicitPathDeclarationScopeTagMapping)
+    {
+        const auto& tagMap = explicitPathDeclarationScopeTagMapIterator.second;
+        for (const auto& tagMapIterator : tagMap)
+        {
+            if (retVal.find(tagMapIterator.first) != retVal.end())
+            {
+                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
+                return std::unordered_map<std::string, std::string>();
+            }
+        }
+    }
+
     return retVal;
 }
 

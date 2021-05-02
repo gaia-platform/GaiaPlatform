@@ -1,5 +1,5 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
-
+// RUN: %gaiat %s --
+/*
 ruleset test20
 {
     OnUpdate(incubator)
@@ -8,3 +8,4 @@ ruleset test20
         v = sensor.value > 99.0 ? actuator.value : 99.0;
     }
 }
+*/
