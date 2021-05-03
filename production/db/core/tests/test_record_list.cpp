@@ -56,7 +56,7 @@ TEST(storage, record_list)
 
         if (expected_locator % 2 != 0)
         {
-            record_list_t::delete_record_data(iterator);
+            record_list_t::mark_record_data_as_deleted(iterator);
         }
 
         expected_locator++;

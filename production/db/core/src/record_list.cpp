@@ -34,11 +34,6 @@ record_range_t::~record_range_t()
     delete[] m_record_range;
 }
 
-bool record_range_t::is_full() const
-{
-    return m_next_available_index == m_range_size;
-}
-
 void record_range_t::compact()
 {
     if (!m_has_deletions)
@@ -86,11 +81,6 @@ void record_range_t::add_next_range()
     m_next_range = new record_range_t(m_range_size);
 }
 
-record_range_t* record_range_t::next_range()
-{
-    return m_next_range;
-}
-
 record_iterator_t::record_iterator_t()
 {
     current_range = nullptr;
@@ -106,17 +96,14 @@ record_iterator_t::~record_iterator_t()
     }
 }
 
-bool record_iterator_t::at_end()
-{
-    return current_range == nullptr;
-}
-
 record_list_t::record_list_t(size_t range_size)
 {
     ASSERT_PRECONDITION(range_size > 0, "Range size must be greater than 0");
 
     m_range_size = range_size;
     m_record_ranges = new record_range_t(m_range_size);
+
+    m_approximate_count_deletions = 0;
 }
 
 record_list_t::~record_list_t()
@@ -148,15 +135,18 @@ void record_list_t::reset()
 
 void record_list_t::compact()
 {
-    // Iterate over our list and compact each range.
+    // Iterate over our list and look for ranges that can be compacted.
     for (record_range_t* current_range = m_record_ranges;
          current_range != nullptr;
          current_range = current_range->next_range())
     {
-        // Take an exclusive lock before compacting the range.
-        unique_lock unique_range_lock(current_range->m_lock);
+        if (current_range->has_deletions())
+        {
+            // Take an exclusive lock before compacting the range.
+            unique_lock unique_range_lock(current_range->m_lock);
 
-        current_range->compact();
+            current_range->compact();
+        }
     }
 }
 
@@ -168,27 +158,33 @@ void record_list_t::add(gaia_locator_t locator)
     record_range_t* current_range = m_record_ranges;
     while (current_range != nullptr)
     {
-        // Take an exclusive lock before attempting to add the new locator.
-        unique_lock unique_range_lock(current_range->m_lock);
-
-        // If current range has space, add our record to it.
-        if (!current_range->is_full())
+        // Only take a lock on the current range if it still has space available
+        // or if it's the last range and we need to add a new one.
+        if (!current_range->is_full() || current_range->next_range() == nullptr)
         {
-            current_range->add(locator);
+            // Take an exclusive lock before attempting to add the new locator.
+            unique_lock unique_range_lock(current_range->m_lock);
 
-            return;
+            // If the current range still has space, add our record to it.
+            if (!current_range->is_full())
+            {
+                current_range->add(locator);
+
+                return;
+            }
+
+            // If we reached the last range, add a new one.
+            if (current_range->next_range() == nullptr)
+            {
+                current_range->add_next_range();
+            }
+
+            unique_range_lock.unlock();
         }
-
-        // If we reached the last range, add a new one.
-        if (current_range->next_range() == nullptr)
-        {
-            current_range->add_next_range();
-        }
-
-        unique_range_lock.unlock();
 
         // Check the next range.
         // This is guaranteed to exist because of the above logic.
+        ASSERT_INVARIANT(current_range->next_range() != nullptr, "There is no next range in the record list!");
         current_range = current_range->next_range();
     }
 }
@@ -223,9 +219,23 @@ void record_list_t::seek(record_iterator_t& iterator)
 
 bool record_list_t::start(record_iterator_t& iterator)
 {
+    // Store a reference to itself in the iterator.
+    iterator.record_list = this;
+
     // Position iterator to beginning of list.
     iterator.current_range = m_record_ranges;
     iterator.current_index = 0;
+
+    // Schedule a compaction if enough records were deleted.
+    if (m_approximate_count_deletions > m_range_size)
+    {
+        compact();
+
+        // This is where the count can become inaccurate,
+        // by missing the deletions that occur during compaction.
+        // Hence it being called an approximate count.
+        m_approximate_count_deletions = 0;
+    }
 
     // Iterators will maintain a shared lock on the current range.
     iterator.current_range->m_lock.lock_shared();
@@ -260,10 +270,12 @@ record_data_t record_list_t::get_record_data(record_iterator_t& iterator)
     return iterator.current_range->get(iterator.current_index);
 }
 
-void record_list_t::delete_record_data(record_iterator_t& iterator)
+void record_list_t::mark_record_data_as_deleted(record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 
     iterator.current_range->get(iterator.current_index).locator = c_invalid_gaia_locator;
     iterator.current_range->m_has_deletions = true;
+
+    iterator.record_list->m_approximate_count_deletions++;
 }

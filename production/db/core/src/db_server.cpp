@@ -1409,8 +1409,17 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
 
             db_object_t* db_object = locator_to_ptr(locator);
 
+            // If the locator does not point to a valid record,
+            // it means that the record has been deleted - mark that in the record list as well.
+            if (!db_object)
+            {
+                record_list_t::mark_record_data_as_deleted(iterator);
+            }
+
+            // Whether we found a record or not, we need to advance the iterator.
             record_list_t::move_next(iterator);
 
+            // If the record was found, return its id.
             if (db_object)
             {
                 return db_object->id;
