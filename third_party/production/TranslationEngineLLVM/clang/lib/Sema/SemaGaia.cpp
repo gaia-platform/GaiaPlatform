@@ -1,4 +1,4 @@
-//===--- ParseGaia.cpp - Gaia Extensions Parser -----------------------===//
+//===--- SemaGaia.cpp - Gaia Extensions Parser -----------------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Gaia Extensions parsing of the Parser
+// This file implements the Gaia Extensions semantic checks for Sema
 // interface.
 //
 //===----------------------------------------------------------------------===//
@@ -158,6 +158,16 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_tag_redefined) << tag;
                 return "";
             }
+
+            for (const auto& explicitPathDeclarationScopeTagMapIterator : explicitPathDeclarationScopeTagMapping)
+            {
+                const auto& map = explicitPathDeclarationScopeTagMapIterator.second;
+                if (map.find(tag) != map.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tag;
+                    return "";
+                }
+            }
         }
         else if (arrowPosition < tagPosition)
         {
@@ -244,6 +254,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 {
                     tableName = tagMap[tableName];
                 }
+                path[0] = tableName;
             }
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
@@ -305,10 +316,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         RemoveExplicitPathData(loc);
     }
-
     explicitPathTagMapping[loc] = tagMap;
     explicitPathDeclarationScopeTagMapping[loc] = tagMap;
-
     return path.back();
 
 }
@@ -837,19 +846,6 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         }
     }
 
-    for (const auto& explicitPathDeclarationScopeTagMapIterator : explicitPathDeclarationScopeTagMapping)
-    {
-        const auto& tagMap = explicitPathDeclarationScopeTagMapIterator.second;
-        for (const auto& tagMapIterator : tagMap)
-        {
-            if (retVal.find(tagMapIterator.first) != retVal.end())
-            {
-                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
-                return std::unordered_map<std::string, std::string>();
-            }
-        }
-    }
-
     return retVal;
 }
 
@@ -912,7 +908,6 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
         varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context,
             argTagTables.data(), argTagTables.size()));
     }
-
     context->addDecl(varDecl);
 
     return varDecl;

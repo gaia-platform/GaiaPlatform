@@ -57,6 +57,7 @@ vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
 unordered_set<string> g_update_tables;
+unordered_map<string, string> g_attribute_tag_map;
 
 namespace std
 {
@@ -228,12 +229,13 @@ string get_table_name(const Decl* decl)
 // Employee.name_last
 // E:Employee
 // E:Employee.name_last
-bool parse_attribute(const string& attribute, string& table, string& field)
+bool parse_attribute(const string& attribute, string& table, string& field, string& tag)
 {
     string tagless_attribute;
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
     {
+        tag =  attribute.substr(0, tag_position);
         tagless_attribute = attribute.substr(tag_position + 1);
     }
     else
@@ -533,6 +535,26 @@ void generate_table_subscription(const string& table, const string& field_subscr
                 navigation_code.postfix);
         }
 
+        for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
+        {
+            for (const auto& data_iterator : explicit_path_data_iterator.second)
+            {
+                navigation_code_data_t navigation_code = g_table_navigation.generate_explicit_navigation_code(
+                    table, data_iterator.path_components, data_iterator.table_tag_map,
+                    data_iterator.is_absolute_path);
+                if (navigation_code.prefix.empty())
+                {
+                    g_is_generation_error = true;
+                    return;
+                }
+                copy_rewriter.InsertTextBefore(
+                    explicit_path_data_iterator.first.getBegin(),
+                    navigation_code.prefix);
+                copy_rewriter.InsertTextAfter(
+                    explicit_path_data_iterator.first.getEnd(),
+                    navigation_code.postfix);
+            }
+        }
 
         if (g_rule_attribute_source_range.isValid())
         {
@@ -1095,6 +1117,12 @@ bool get_explicit_path_data(const Decl *decl, explicit_path_data_t& data, Source
         {
             data.tag_table_map[tag_map_keys[tag_index]] = tag_map_values[tag_index];
             data.table_tag_map[tag_map_values[tag_index]] = tag_map_keys[tag_index];
+        }
+
+        for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
+        {
+            data.tag_table_map[attribute_tag_map_iterator.first] = attribute_tag_map_iterator.second;
+            data.table_tag_map[attribute_tag_map_iterator.second] = attribute_tag_map_iterator.first;
         }
         return true;
     }
@@ -1717,6 +1745,7 @@ public:
         g_insert_tables.clear();
         g_update_tables.clear();
         g_active_fields.clear();
+        g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
@@ -1727,8 +1756,8 @@ public:
             g_is_rule_prolog_specified = true;
             for (const auto& table_iterator : update_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
                     if (field.empty())
                     {
@@ -1740,6 +1769,11 @@ public:
                         {
                             return;
                         }
+                    }
+
+                    if (!tag.empty())
+                    {
+                        g_attribute_tag_map[tag] = table;
                     }
                 }
             }
@@ -1751,10 +1785,14 @@ public:
             g_rule_attribute_source_range = insert_attribute->getRange();
             for (const auto& table_iterator : insert_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
                     g_insert_tables.insert(table);
+                    if (!tag.empty())
+                    {
+                        g_attribute_tag_map[tag] = table;
+                    }
                 }
             }
         }
@@ -1765,8 +1803,8 @@ public:
             g_rule_attribute_source_range = change_attribute->getRange();
             for (const auto& table_iterator : change_attribute->tables())
             {
-                string table, field;
-                if (parse_attribute(table_iterator, table, field))
+                string table, field, tag;
+                if (parse_attribute(table_iterator, table, field, tag))
                 {
                     g_insert_tables.insert(table);
                     if (field.empty())
@@ -1779,6 +1817,10 @@ public:
                         {
                             return;
                         }
+                    }
+                    if (!tag.empty())
+                    {
+                        g_attribute_tag_map[tag] = table;
                     }
                 }
             }
@@ -1813,6 +1855,7 @@ public:
         g_active_fields.clear();
         g_insert_tables.clear();
         g_update_tables.clear();
+        g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
