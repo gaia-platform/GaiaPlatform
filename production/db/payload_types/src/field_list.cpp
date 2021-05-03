@@ -13,9 +13,15 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
 
-using namespace gaia::db::payload_types;
-using namespace gaia::common;
 using namespace std;
+using namespace gaia::common;
+
+namespace gaia
+{
+namespace db
+{
+namespace payload_types
+{
 
 field_list_t::field_list_t(gaia_id_t type_id)
     : m_type_id(type_id), m_data(nullptr)
@@ -139,3 +145,7 @@ gaia_id_t field_list_t::get_type_id() const
 {
     return m_type_id;
 }
+
+} // namespace payload_types
+} // namespace db
+} // namespace gaia
