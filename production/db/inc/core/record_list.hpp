@@ -53,21 +53,13 @@ public:
 
     // Add and read the next range.
     void add_next_range();
-    inline record_range_t* next_range()
-    {
-        return m_next_range;
-    }
+    inline record_range_t* next_range();
 
-    inline bool has_deletions()
-    {
-        return m_has_deletions;
-    }
+    // Tells whether the range contains any records marked as deleted.
+    inline bool has_deletions();
 
     // Tells whether the range is full.
-    inline bool is_full() const
-    {
-        return m_next_available_index >= m_range_size;
-    }
+    inline bool is_full() const;
 
 protected:
     size_t m_range_size;
@@ -104,10 +96,7 @@ struct record_iterator_t
     ~record_iterator_t();
 
     // Tells whether the iterator position represents the end of the range.
-    inline bool at_end()
-    {
-        return current_range == nullptr;
-    }
+    inline bool at_end();
 };
 
 // The implementation of a record list.
@@ -171,6 +160,8 @@ protected:
     // (not deleted) record.
     static void seek(record_iterator_t& iterator);
 };
+
+#include "record_list.inc"
 
 } // namespace storage
 } // namespace db
