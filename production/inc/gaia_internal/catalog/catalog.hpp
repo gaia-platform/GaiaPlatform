@@ -263,10 +263,10 @@ struct drop_statement_t : statement_t
 /*@}*/
 } // namespace ddl
 
-class forbidden_sydtem_db_operation : public gaia::common::gaia_exception
+class no_system_db_operation : public gaia::common::gaia_exception
 {
 public:
-    explicit forbidden_sydtem_db_operation(const std::string& name)
+    explicit no_system_db_operation(const std::string& name)
     {
         m_message = "Operations on the system database '" + name + "' are not allowed.";
     }

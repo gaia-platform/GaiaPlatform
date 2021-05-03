@@ -34,7 +34,7 @@ void use_database(const string& name)
 {
     if (is_system_db(name))
     {
-        throw forbidden_sydtem_db_operation(name);
+        throw forbidden_system_db_operation(name);
     }
     ddl_executor_t::get().switch_db_context(name);
 }
@@ -57,7 +57,7 @@ gaia_id_t create_table(
 {
     if (is_system_db(db_name))
     {
-        throw forbidden_sydtem_db_operation(db_name);
+        throw forbidden_system_db_operation(db_name);
     }
     return ddl_executor_t::get().create_table(db_name, name, fields, throw_on_exists);
 }
@@ -75,7 +75,7 @@ void drop_database(const string& name, bool throw_unless_exists)
 {
     if (is_system_db(name))
     {
-        throw forbidden_sydtem_db_operation(name);
+        throw forbidden_system_db_operation(name);
     }
     return ddl_executor_t::get().drop_database(name, throw_unless_exists);
 }
@@ -89,7 +89,7 @@ void drop_table(const string& db_name, const string& name, bool throw_unless_exi
 {
     if (is_system_db(name))
     {
-        throw forbidden_sydtem_db_operation(name);
+        throw forbidden_system_db_operation(name);
     }
     return ddl_executor_t::get().drop_table(db_name, name, throw_unless_exists);
 }
