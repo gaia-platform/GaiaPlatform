@@ -14,4 +14,4 @@ ruleset test22
     }
 }
 
-// CHECK: Label
+// CHECK: use of undeclared label 'LABEL'
