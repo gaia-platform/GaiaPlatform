@@ -24,7 +24,6 @@
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "server_index_impl.hpp"
 #include "txn_metadata.hpp"
 
 namespace gaia

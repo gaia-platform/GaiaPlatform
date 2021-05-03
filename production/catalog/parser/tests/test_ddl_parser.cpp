@@ -268,7 +268,7 @@ CREATE TABLE t -- create table t
 TEST(catalog_ddl_parser_test, create_empty_table)
 {
     parser_t parser;
-    
+
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t ();"));
 
     EXPECT_EQ(1, parser.statements.size());
@@ -341,7 +341,7 @@ CREATE RELATIONSHIP r (
 TEST(catalog_ddl_parser_test, create_index)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -359,7 +359,7 @@ TEST(catalog_ddl_parser_test, create_index)
 TEST(catalog_ddl_parser_test, create_unique_index)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE UNIQUE INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -377,7 +377,7 @@ TEST(catalog_ddl_parser_test, create_unique_index)
 TEST(catalog_ddl_parser_test, create_hash_index)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -395,7 +395,7 @@ TEST(catalog_ddl_parser_test, create_hash_index)
 TEST(catalog_ddl_parser_test, create_range_index)
 {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE RANGE INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_line("CREATE RANGE INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);

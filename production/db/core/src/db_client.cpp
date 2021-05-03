@@ -29,7 +29,6 @@
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
-#include "server_index_impl.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

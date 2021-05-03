@@ -90,7 +90,6 @@ add_library(gaia_db_client STATIC
   src/type_id_mapping.cpp
   src/txn_metadata.cpp
   src/txn_metadata_client.cpp
-  src/server_index_impl.cpp
   src/type_id_mapping.cpp
   src/index_builder.cpp
   src/client_index_impl.cpp)
@@ -137,11 +136,9 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
-  src/server_index_impl.cpp
   src/catalog_core.cpp
   src/type_id_mapping.cpp
   src/index_builder.cpp
-  src/server_index_impl.cpp
 )
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
