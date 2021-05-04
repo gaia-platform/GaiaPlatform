@@ -32,11 +32,18 @@ struct memory_manager_metadata_t
     // will keep shrinking. We'll use this offset to track the start of the block.
     std::atomic<address_offset_t> start_unused_memory_offset;
 
-    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 1];
+    // Keep track of the highest deallocated chunk offset,
+    // to limit bitmap searches for deallocated blocks.
+    std::atomic<chunk_offset_t> highest_deallocated_chunk_offset;
+
+    uint16_t reserved1;
+    uint32_t reserved2;
+    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 2];
 
     inline void clear()
     {
         start_unused_memory_offset = c_invalid_slot_offset;
+        highest_deallocated_chunk_offset = c_invalid_chunk_offset;
         std::fill(chunk_bitmap, chunk_bitmap + c_chunk_bitmap_size, 0);
     }
 };
