@@ -171,24 +171,24 @@ ruleset test19
 
 // GAIAPLAT-872
 // In this test, the navigation fans out in the 1:M direction.
-// ruleset test20
-// {
-//     OnInsert(yield)
-//     {
-//         int daily = 0;
-//         daily += /farmer->yield->feeding.portion;
-//     }
-// }
+ruleset test20
+{
+    OnInsert(yield)
+    {
+        int daily = 0;
+        daily += /farmer->yield->feeding.portion;
+    }
+}
 
 // GAIAPLAT-872
 // In this test, the navigation is in the M:1 direction.
-// ruleset test21
-// {
-//     OnInsert(farmer)
-//     {
-//         use_string(/feeding->yield->farmer.name);
-//     }
-// }
+ruleset test21
+{
+    OnInsert(farmer)
+    {
+        use_string(/feeding->yield->farmer.name);
+    }
+}
 
 // GAIAPLAT-807 (fixed)
 // "Tag refers to an invalid table S."
@@ -211,16 +211,16 @@ ruleset test22
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-// ruleset testE6
-// {
-//     OnChange(actuator)
-//     {
-//         if (/I:incubator.max_temp == 100.0)
-//         {
-//             use_float(I.min_temp);
-//         }
-//     }
-// }
+//ruleset testE6
+//{
+//    OnChange(actuator)
+//    {
+//        if (/I:incubator.max_temp == 100.0)
+//        {
+//            use_float(I.min_temp);
+//        }
+//    }
+//}
 
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
@@ -236,13 +236,14 @@ ruleset test22
 // }
 
 // GAIAPLAT-825
-// ruleset testE8
-// {
-//     {
-//         use_float(/I:incubator->actuator.value + I.min_temp);
-//         use_float(I:incubator->actuator.value + I.max_temp);
-//     }
-// }
+ruleset testE8
+{
+    OnChange(incubator)
+    {
+        use_float(/I:incubator->actuator.value + I.min_temp);
+        use_float(I:incubator->actuator.value + I.max_temp);
+    }
+ }
 
 // GAIAPLAT-827
 // ruleset testE9
@@ -266,14 +267,14 @@ ruleset test22
 // }
 
 // GAIAPLAT-839
-// ruleset testE11
-// {
-//     OnChange(yield.bushels)
-//     {
-//         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
-//             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
-//     }
-// }
+ruleset testE11
+{
+    OnChange(yield.bushels)
+    {
+        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+            = A.age + F.acreage + Y.bushels + D.portion + C.acres;
+    }
+}
 
 // GAIAPLAT-832
 /*

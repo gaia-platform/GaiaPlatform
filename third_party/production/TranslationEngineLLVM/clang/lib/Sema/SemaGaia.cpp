@@ -167,9 +167,19 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 return "";
             }
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            string tableName;
+            size_t dotPosition = table.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = table.substr(0, dotPosition);
+            }
+            else
+            {
+                tableName = table;
+            }
             if (!tag.empty())
             {
-                tagMap[tag] = table;
+                tagMap[tag] = tableName;
                 tag.clear();
             }
             path.push_back(table);
@@ -185,6 +195,20 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         Diag(loc, diag::err_invalid_explicit_path);
         return "";
     }
+    if (!tag.empty())
+    {
+        string tableName;
+        size_t dotPosition = table.find('.');
+        if (dotPosition != string::npos)
+        {
+            tableName = table.substr(0, dotPosition);
+        }
+        else
+        {
+            tableName = table;
+        }
+        tagMap[tag] = tableName;
+    }
     path.push_back(table);
 
     // If explicit path has one component only, this component will be checked at later stage
@@ -195,20 +219,10 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
 
         for (auto tagEntry: tagMap)
         {
-            string tableName;
-            size_t dotPosition = tagEntry.second.find('.');
-            if (dotPosition != string::npos)
-            {
-                tableName = tagEntry.second.substr(0, dotPosition);
-            }
-            else
-            {
-                tableName = tagEntry.second;
-            }
-            auto tableDescription = tableData.find(tableName);
+            auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tableName;
+                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
                 return "";
             }
         }

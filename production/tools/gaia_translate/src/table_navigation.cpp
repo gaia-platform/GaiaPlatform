@@ -12,6 +12,7 @@ static const int c_variable_length =15;
 table_navigation_t::table_navigation_t() : m_is_initialized(false)
 {
 }
+
 // Function that generates navigation code for explicit navigation path.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
     unordered_map<string, string> tags, bool is_absolute)
@@ -100,6 +101,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     string last_variable_name;
     return generate_navigation_code(anchor_table, tables, generate_dummy_tag_map(tables), last_variable_name);
 }
+
 // Function that generates navigation code for implicit navigation and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
     unordered_map<string, string> tags, string& last_variable_name)

@@ -82,14 +82,6 @@ ruleset testE13
     }
 }
 
-ruleset test22
-{
-    OnInsert(S:sensor)
-    {
-        S->incubator.min_temp += S.value;
-    }
-}
-
 ruleset test21
 {
     OnInsert(I:incubator)
