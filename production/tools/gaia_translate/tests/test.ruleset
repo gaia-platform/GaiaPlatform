@@ -81,3 +81,19 @@ ruleset testE13
         daily += /sensor.value;
     }
 }
+
+ruleset test22
+{
+    OnInsert(S:sensor)
+    {
+        S->incubator.min_temp += S.value;
+    }
+}
+
+ruleset test21
+{
+    OnInsert(I:incubator)
+    {
+        I->actuator.value += 1.0;
+    }
+}
