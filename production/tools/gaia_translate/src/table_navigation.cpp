@@ -7,22 +7,19 @@ using namespace std;
 using namespace gaia::translation;
 
 static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-static const int c_variable_length =15;
+static const int c_variable_length = 15;
 
-table_navigation_t::table_navigation_t() : m_is_initialized(false)
-{
-}
+bool table_navigation_t::m_is_initialized = false;
+unordered_map<string, table_data_t> table_navigation_t::m_table_data;
+unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_1;
+unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_n;
 
-// Function that generates navigation code for explicit navigation path.
+// Function that generates code to navigate between tables when explicit navigation path is specified.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
     unordered_map<string, string> tags, bool is_absolute)
 {
     string last_variable_name;
-    if (!m_is_initialized)
-    {
-        fill_table_data();
-        m_is_initialized = true;
-    }
+    ensure_initialization();
     navigation_code_data_t return_value;
     if (m_table_data.empty() || path.empty())
     {
@@ -32,6 +29,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     string source_table;
     string source_field;
     string source_table_type;
+    // Iterate through explicit navigation path components
     for (const auto& path_component : path)
     {
         string table, field;
@@ -95,22 +93,18 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     return return_value;
 }
 
-// Function that generates navigation code for implicit navigation.
+// Function that generates  code to navigate between anchor table and set of tables.
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
 {
     string last_variable_name;
     return generate_navigation_code(anchor_table, tables, generate_dummy_tag_map(tables), last_variable_name);
 }
 
-// Function that generates navigation code for implicit navigation and return more data about the generated path.
+// Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
     unordered_map<string, string> tags, string& last_variable_name)
 {
-    if (!m_is_initialized)
-    {
-        fill_table_data();
-        m_is_initialized = true;
-    }
+    ensure_initialization();
     navigation_code_data_t return_value;
     if (m_table_data.empty())
     {
@@ -148,6 +142,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     auto parent_itr = m_table_relationship_1.equal_range(anchor_table);
     auto child_itr = m_table_relationship_n.equal_range(anchor_table);
     unordered_set<string> processed_tables;
+    // Iterate through list of destination tables
     for (const string& table : tables)
     {
         if (table == anchor_table)
@@ -200,10 +195,12 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         if (!is_1_relationship && !is_n_relationship)
         {
             vector<navigation_data_t> path;
+            // Find topographically shortest path between anchor table and destination table.
             if (find_navigation_path(anchor_table, table, path))
             {
                 string source_table = variable_name;
                 string source_table_type = anchor_table;
+                // Generate code for the path.
                 for (const auto& p : path)
                 {
                     variable_name = get_variable_name(p.name, tags);
@@ -224,6 +221,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         }
         else
         {
+            // Generate code to navigate between 2 immediately connected tables.
             last_variable_name = get_variable_name(table, tags);
             if (!generate_navigation_step(anchor_table, "", table, variable_name, last_variable_name, return_value))
             {
@@ -231,7 +229,6 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
             }
         }
         processed_tables.insert(last_variable_name);
-
     }
 
     return return_value;
@@ -307,7 +304,7 @@ void table_navigation_t::fill_table_data()
 }
 
 // Auxilary function find topologically closest table.
-string table_navigation_t::get_closest_table(const unordered_map<string, int>& table_distance) const
+string table_navigation_t::get_closest_table(const unordered_map<string, int>& table_distance)
 {
     int min_distance = INT_MAX;
     string return_value;
@@ -324,7 +321,7 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
 }
 
 // Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path) const
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path)
 {
     if (src == dst)
     {
@@ -407,7 +404,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     return true;
 }
 // Get variable name for navigation code
-string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags) const
+string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags)
 {
     auto tags_iterator = tags.find(table);
     if (tags_iterator == tags.end())
@@ -420,7 +417,7 @@ string table_navigation_t::get_variable_name(const string& table, const unordere
     }
 }
 
-unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const unordered_set<string>& tables) const
+unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const unordered_set<string>& tables)
 {
     unordered_map<string, string> tags;
     for (const auto& table : tables)
@@ -430,7 +427,7 @@ unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const 
     return tags;
 }
 
-string table_navigation_t::generate_random_string(string::size_type length) const
+string table_navigation_t::generate_random_string(string::size_type length)
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
         "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -539,4 +536,13 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
         navigation_data.postfix.append("}\n");
     }
     return true;
+}
+
+void table_navigation_t::ensure_initialization()
+{
+    if (!m_is_initialized)
+    {
+        fill_table_data();
+        m_is_initialized = true;
+    }
 }

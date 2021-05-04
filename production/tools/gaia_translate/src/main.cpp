@@ -51,7 +51,6 @@ const int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
-table_navigation_t g_table_navigation;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -121,7 +120,7 @@ static void print_version(raw_ostream& stream)
 
 void validate_table_data()
 {
-    if (g_table_navigation.get_table_data().empty())
+    if (table_navigation_t::get_table_data().empty())
     {
         g_is_generation_error = true;
         return;
@@ -252,10 +251,10 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
     }
     validate_table_data();
 
-    if (g_table_navigation.get_table_data().find(tagless_attribute) == g_table_navigation.get_table_data().end())
+    if (table_navigation_t::get_table_data().find(tagless_attribute) == table_navigation_t::get_table_data().end())
     {
         // Might be a field.
-        for (const auto& tbl : g_table_navigation.get_table_data())
+        for (const auto& tbl : table_navigation_t::get_table_data())
         {
             if (tbl.second.field_data.find(tagless_attribute) != tbl.second.field_data.end())
             {
@@ -289,14 +288,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    if (g_table_navigation.get_table_data().find(table_name) == g_table_navigation.get_table_data().end())
+    if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
         cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
         g_is_generation_error = true;
         return false;
     }
 
-    auto fields = g_table_navigation.get_table_data().find(table_name)->second.field_data;
+    auto fields =table_navigation_t::get_table_data().find(table_name)->second.field_data;
 
     if (fields.find(field_name) == fields.end())
     {
@@ -322,7 +321,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 void generate_table_subscription(const string& table, const string& field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
-    if (g_table_navigation.get_table_data().find(table) == g_table_navigation.get_table_data().end())
+    if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
         cerr << "Table '" << table << "' was not found in the catalog." << endl;
         g_is_generation_error = true;
@@ -380,7 +379,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_subscription
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table);
         if (subscribe_update)
@@ -398,7 +397,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         g_current_ruleset_unsubscription
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -411,7 +410,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append(field_subscription_code)
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
@@ -423,7 +422,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append(field_subscription_code)
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
@@ -458,7 +457,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
         for (const auto& expression_used_iterator : g_expression_used_tables)
         {
-            navigation_code_data_t navigation_code = g_table_navigation.generate_navigation_code(table, expression_used_iterator.second);
+            navigation_code_data_t navigation_code = table_navigation_t::generate_navigation_code(table, expression_used_iterator.second);
             if (navigation_code.prefix.empty())
             {
                 g_is_generation_error = true;
@@ -477,7 +476,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         {
             for (const auto& data_iterator : explicit_path_data_iterator.second)
             {
-                navigation_code_data_t navigation_code = g_table_navigation.generate_explicit_navigation_code(
+                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                     table, data_iterator.path_components, data_iterator.table_tag_map,
                     data_iterator.is_absolute_path);
                 if (navigation_code.prefix.empty())
@@ -520,7 +519,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
 
         for (const auto& expression_used_iterator : g_expression_used_tables)
         {
-            navigation_code_data_t navigation_code = g_table_navigation.generate_navigation_code(table, expression_used_iterator.second);
+            navigation_code_data_t navigation_code = table_navigation_t::generate_navigation_code(table, expression_used_iterator.second);
             if (navigation_code.prefix.empty())
             {
                 g_is_generation_error = true;
@@ -539,7 +538,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
         {
             for (const auto& data_iterator : explicit_path_data_iterator.second)
             {
-                navigation_code_data_t navigation_code = g_table_navigation.generate_explicit_navigation_code(
+                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                     table, data_iterator.path_components, data_iterator.table_tag_map,
                     data_iterator.is_absolute_path);
                 if (navigation_code.prefix.empty())
@@ -579,7 +578,7 @@ void optimize_subscription(const string& table, int rule_count)
         g_current_ruleset_subscription
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -589,7 +588,7 @@ void optimize_subscription(const string& table, int rule_count)
         g_current_ruleset_unsubscription
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(g_table_navigation.get_table_data().find(table)->second.db_name)
+            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
             .append("::")
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
@@ -656,7 +655,7 @@ void generate_rules(Rewriter& rewriter)
             .append(rule_name)
             .append(";\n");
 
-        auto fields = g_table_navigation.get_table_data().find(table)->second.field_data;
+        auto fields = table_navigation_t::get_table_data().find(table)->second.field_data;
 
         for (const auto& field : field_description.second)
         {
@@ -1149,7 +1148,7 @@ void update_used_dbs(const explicit_path_data_t& explicit_path_data)
         {
             table_name = tag_table_iterator->second;
         }
-        g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
+        g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
     }
 }
 
@@ -1197,7 +1196,7 @@ public:
                 expression_source_range.setEnd(member_expression->getEndLoc());
                 if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                 {
-                    variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                     explicit_path_data.table_tag_map[table_name] = variable_name;
                 }
             }
@@ -1235,7 +1234,7 @@ public:
                     expression_source_range.setEnd(member_expression->getEndLoc());
                     if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                     {
-                        variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                        variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                         explicit_path_data.table_tag_map[table_name] = variable_name;
                     }
                 }
@@ -1263,7 +1262,7 @@ public:
 
         if (expression_source_range.isValid())
         {
-            g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
+            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             m_rewriter.ReplaceText(expression_source_range, variable_name + "." + field_name + "()");
             g_rewriter_history.push_back({expression_source_range, variable_name + "." + field_name + "()", replace_text});
             auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
@@ -1343,7 +1342,7 @@ public:
                             update_used_dbs(explicit_path_data);
                             if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                             {
-                                variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                                 explicit_path_data.table_tag_map[table_name] = variable_name;
                             }
                         }
@@ -1372,12 +1371,12 @@ public:
                             update_used_dbs(explicit_path_data);
                             if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                             {
-                                variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                                 explicit_path_data.table_tag_map[table_name] = variable_name;
                             }
                         }
                     }
-                    g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
+                    g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
 
                     tok::TokenKind token_kind;
                     std::string replacement_text
@@ -1591,7 +1590,7 @@ public:
                             update_used_dbs(explicit_path_data);
                             if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                             {
-                                variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                                 explicit_path_data.table_tag_map[table_name] = variable_name;
                             }
                         }
@@ -1618,13 +1617,13 @@ public:
                             update_used_dbs(explicit_path_data);
                             if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                             {
-                                variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                                 explicit_path_data.table_tag_map[table_name] = variable_name;
                             }
                         }
                     }
 
-                    g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
+                    g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
 
                     if (op->isPostfix())
                     {
@@ -1929,14 +1928,14 @@ public:
                     return;
                 }
 
-                if (g_table_navigation.get_table_data().find(variable_name) != g_table_navigation.get_table_data().end())
+                if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
                 {
                     cerr << "Local variable declaration '" << variable_name
                          << "' hides database table of the same name." << endl;
                     return;
                 }
 
-                for (auto table_data : g_table_navigation.get_table_data())
+                for (auto table_data : table_navigation_t::get_table_data())
                 {
                     if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                     {
@@ -2054,12 +2053,12 @@ public:
                 update_used_dbs(explicit_path_data);
                 if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
                 {
-                    variable_name = g_table_navigation.get_variable_name(table_name, explicit_path_data.table_tag_map);
+                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
                     explicit_path_data.table_tag_map[table_name] = variable_name;
                 }
             }
 
-            g_used_dbs.insert(g_table_navigation.get_table_data().find(table_name)->second.db_name);
+            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
 
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
