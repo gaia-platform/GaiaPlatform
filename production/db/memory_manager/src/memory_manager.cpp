@@ -193,8 +193,8 @@ address_offset_t memory_manager_t::allocate_from_deallocated_memory() const
     {
         return c_invalid_address_offset;
     }
-    uint64_t end_limit_bit_index = static_cast<uint64_t>(highest_deallocated_chunk_offset) - c_first_chunk_offset;
-    uint64_t first_unset_bit_index = c_max_bit_index;
+    auto end_limit_bit_index = static_cast<size_t>(highest_deallocated_chunk_offset) - c_first_chunk_offset;
+    size_t first_unset_bit_index = c_max_bit_index;
     bool has_claimed_chunk = false;
     address_offset_t allocation_offset = c_invalid_address_offset;
 
@@ -306,7 +306,7 @@ bool memory_manager_t::is_chunk_marked_as_used(chunk_offset_t chunk_offset) cons
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
         "Chunk offset passed to is_chunk_marked_as_used() is out of bounds");
 
-    uint64_t bit_index = chunk_offset - c_first_chunk_offset;
+    size_t bit_index = chunk_offset - c_first_chunk_offset;
 
     return is_bit_set(
         m_metadata->chunk_bitmap,
@@ -321,7 +321,7 @@ bool memory_manager_t::try_mark_chunk_used_status(chunk_offset_t chunk_offset, b
         chunk_offset >= c_first_chunk_offset && chunk_offset <= c_last_chunk_offset,
         "Chunk offset passed to try_mark_chunk_used_status() is out of bounds");
 
-    uint64_t bit_index = chunk_offset - c_first_chunk_offset;
+    size_t bit_index = chunk_offset - c_first_chunk_offset;
 
     return try_set_bit_value(
         m_metadata->chunk_bitmap,
