@@ -4,7 +4,8 @@ ruleset test13
 {
     OnUpdate(S:sensor, A:actuator)
     {
-        float v = S.value + A.value;
+        float v;
+        v = S.value + A.value;
     }
 }
 

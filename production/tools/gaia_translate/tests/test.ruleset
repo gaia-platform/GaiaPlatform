@@ -68,9 +68,24 @@ ruleset test3
 {
     OnUpdate(S:sensor, T:sensor)
     {
-        auto x = S.name;
         use_string(S.name);
         use_string(T.name);
-        use_string(x);
+    }
+}
+
+ruleset testE13
+{
+    OnInsert(sensor)
+    {
+        float daily = 0;
+        daily += /sensor.value;
+    }
+}
+
+ruleset test21
+{
+    OnInsert(I:incubator)
+    {
+        I->actuator.value += 1.0;
     }
 }

@@ -13,4 +13,4 @@ ruleset test22
 }
 
 // GAIAPLAT-851
-// CHECK: Cannot use tag 'A' as a goto label.
+// CHECK: use of undeclared label 'A'

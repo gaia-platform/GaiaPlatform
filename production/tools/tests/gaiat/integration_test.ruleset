@@ -2,6 +2,8 @@
 
 #include "tags_test.h"
 
+// #define TEST_FAILURES
+
 ruleset test
 {
 }
@@ -81,11 +83,8 @@ public:
     }
 };
 
-void testFunction()
-{
-    int value = 5;
-}
-
+// GAIAPLAT-911
+#ifdef TEST_FAILURES
 ruleset test7
 {
     OnChange(sensor)
@@ -98,13 +97,15 @@ ruleset test7
         }
     }
 }
+#endif
 
 ruleset test8
 {
     {
         auto rule_name = rule_context.rule_name;
         auto ruleset_name = rule_context.ruleset_name;
-        auto event_type = rule_context.event_type;
+        // NOTE: cannot use 'event_type' (hides catalog field entry of the same name).
+        auto context_event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
         if (@actuator.value < 5 && @sensor.value > 10)
@@ -135,6 +136,7 @@ ruleset test10
 
 // This is legal? But has error (duplicate 'name' fields).
 // GAIAPLAT-796
+#ifdef TEST_FAILURES
 ruleset testE1 : Table(sensor)
 {
     OnUpdate(name)
@@ -142,19 +144,22 @@ ruleset testE1 : Table(sensor)
         use_string(name);
     }
 }
+#endif
 
 // GAIAPLAT-711
-// ruleset testE2
-// {
-//     {
-//         int i = 0;
-//         if (incubator.max_temp > 99.0)
-//         {
-//             i = 1;
-//         }
-//         nomatch
-//         {
-//             i = 2;
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE2
+{
+    {
+        int i = 0;
+        if (incubator.max_temp > 99.0)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 2;
+        }
+    }
+}
+#endif
