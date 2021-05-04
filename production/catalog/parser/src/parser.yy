@@ -167,13 +167,13 @@ create_statement:
       $$->relationship = std::make_pair($6, $8);
       $$->if_not_exists = $3;
   }
-| CREATE opt_unique opt_index_type INDEX IDENTIFIER ON composite_name  "(" field_commalist ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $5);
+| CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $6);
       $$->unique_index = $2;
       $$->index_type = $3;
-      $$->database = $7.first;
-      $$->index_table = $7.second;
-      $$->index_fields = std::move(*$9);
+      $$->database = $8.first;
+      $$->index_table = $8.second;
+      $$->index_fields = std::move(*$10);
   }
 ;
 

@@ -323,6 +323,13 @@ gaia_id_t ddl_executor_t::create_table(
 gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
 {
     shared_lock lock(m_lock);
+
+    gaia_id_t db_id = find_db_id_no_lock(db);
+    if (db_id == c_invalid_gaia_id)
+    {
+        throw db_not_exists(db);
+    }
+
     string full_table_name = get_full_table_name(db, table);
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
@@ -822,21 +829,11 @@ gaia_id_t ddl_executor_t::create_index(
     const std::vector<std::string>& field_names)
 {
     shared_lock lock(m_lock);
-    gaia_id_t db_id = find_db_id_no_lock(db_name);
-    if (db_id == c_invalid_gaia_id)
-    {
-        throw db_not_exists(db_name);
-    }
 
-    string full_table_name = get_full_table_name(db_name, table_name);
-    if (m_table_names.find(full_table_name) == m_table_names.end())
-    {
-        throw table_not_exists(full_table_name);
-    }
+    gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
 
     auto_transaction_t txn(false);
 
-    gaia_id_t table_id = m_table_names.at(full_table_name);
     std::map<std::string, gaia_id_t> index_table_fields;
     for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
     {
