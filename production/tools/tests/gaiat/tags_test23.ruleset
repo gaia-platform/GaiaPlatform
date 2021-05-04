@@ -1,6 +1,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
-ruleset test22
+ruleset test23
 {
     OnInsert(incubator)
     {

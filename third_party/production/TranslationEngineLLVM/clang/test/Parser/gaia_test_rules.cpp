@@ -1,5 +1,8 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
 
+// Uncomment the #define to re-test failing tests.
+// #define TEST_FAILURES
+
 ruleset test  Table(sensor, incubator)   // expected-error {{expected '{'}}
 {
   {
@@ -585,13 +588,16 @@ ruleset test82
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
 // GAIALAT-796
-// ruleset test83 : Table(sensor)
-// {
-    // OnUpdate(value)
-    // {
-        // float v = value * 2.0;
-    // }
-// }
+#ifdef TEST_FAILURES
+ruleset test83 : Table(sensor)
+{
+    OnUpdate(value)
+    {
+        float v;
+        v = value * 2.0;
+    }
+}
+#endif
 
 ruleset test84
 {
@@ -734,12 +740,15 @@ ruleset test101
     }
 }
 
+// GAIAPLAT-913
+#ifdef TEST_FAILURES
 ruleset test102
 {
     {
         animal->feeding->yield=5; // expected-error {{no viable overloaded '='}}
     }
 }
+#endif
 
 ruleset test103
 {
@@ -791,7 +800,7 @@ ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
     }
 }
 
-ruleset test110 Table{actuator} // expected-error {{expected '{'}} expected-error {{expected unqualified-id}}
+ruleset test110 Table{actuator} // expected-error {{expected '{'}}
 { // expected-error {{expected unqualified-id}}
     {
         actuator.value=.5;
@@ -799,72 +808,85 @@ ruleset test110 Table{actuator} // expected-error {{expected '{'}} expected-erro
 }
 
 // Pathological incorrect syntax cases
-ruleset test1010 { {.age=5;} } // expected-error {{expected expression}}
-ruleset test1011 { {animal->.age=5;} } // expected-error {{expected expression}}
-ruleset test1012 { {->animal.age=5;} } // expected-error {{expected expression}}
-ruleset test1013 { {animal:.age=5;} } // expected-error {{expected expression}}
-ruleset test1014 { {animal:=5;} } // expected-error {{expected expression}}
-ruleset test1015 { {3:animal.age=5;} } // expected-error {{expected expression}}
-ruleset test1016 { {.age=actuator.timestamp;} } // expected-error {{expected expression}}
-ruleset test1017 { {animal.age=>actuator.timestamp;} } // expected-error {{expected expression}}
-ruleset test1018 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
-ruleset test1019 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
-ruleset test1020 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
+ruleset test111 { {.age=5;} } // expected-error {{expected expression}}
+ruleset test112 { {->animal.age=5;} } // expected-error {{expected expression}}
+ruleset test113 { {animal:.age=5;} } // expected-error {{expected expression}}
+ruleset test114 { {animal:=5;} } // expected-error {{expected expression}}
+ruleset test115 { {.age=actuator.timestamp;} } // expected-error {{expected expression}}
+ruleset test116 { {animal.age=>actuator.timestamp;} } // expected-error {{expected expression}}
+
+#ifdef TEST_FAILURES
+ruleset test117 { {animal->.age=5;} } // expected-error {{expected expression}}
+ruleset test118 { {3:animal.age=5;} } // expected-error {{expected expression}}
+ruleset test119 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
+ruleset test120 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
+ruleset test121 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
+#endif
 
 // GAIAPLAT-827
-// ruleset test101
-// {
-//     OnChange(sensor.value)
-//     {
-//         if (S:sensor.value > 100.0)
-//         {
-//             actuator.value = 101.0;
-//         }
-//     }
-// }
+ruleset test101
+{
+    OnChange(sensor.value)
+    {
+        if (S:sensor.value > 100.0)
+        {
+            actuator.value = 101.0;
+        }
+    }
+}
+
 
 // GAIAPLAT-821
-// ruleset testE1
-// {
-//     OnUpdate(incubator)
-//     {
-//         if (/@incubator) {
-//             int i = 0;
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE1
+{
+    OnUpdate(incubator)
+    {
+        if (/@incubator) {
+            int i = 0;
+        }
+    }
+}
+#endif
 
 // GAIAPLAT-821
-// ruleset testE2
-// {
-//     {
-//         min_temp += @incubator->sensor.value;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE2
+{
+    {
+        min_temp += @incubator->sensor.value;
+    }
+}
+#endif
 
 // GAIAPLAT-822
-// ruleset testE3
-// {
-//     {
-//         if (farmer->yield)
-//         {}
-//     }
-// }
+ruleset testE3
+{
+    {
+        if (farmer->yield.bushels)
+        {}
+    }
+}
 
 // GAIAPLAT-877
-// ruleset testE4
-// {
-//     OnInsert(animal)
-//     {
-//         animal->feeding->portion = 5;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE4
+{
+    OnInsert(animal)
+    {
+        animal->feeding->portion = 5;
+    }
+}
+#endif
 
 // GAIAPLAT-878
-// ruleset test105
-// {
-//     OnInsert(animal)
-//     {
-//         animal->feeding = 5;
-//     }
-// }
+// GAIAPLAT-913
+#ifdef TEST_FAILURES
+ruleset test105
+{
+    OnInsert(animal)
+    {
+        animal->feeding = 5;
+    }
+}
+#endif

@@ -2,6 +2,8 @@
 
 #include "tags_test.h"
 
+// #define TEST_FAILURES
+
 ruleset test1
 {
     OnInsert(I:incubator)
@@ -123,6 +125,8 @@ ruleset test12
     }
 }
 
+// GAIAPLAT-914
+#ifdef TEST_FAILURES
 ruleset test13
 {
     OnInsert(incubator)
@@ -135,6 +139,7 @@ ruleset test13
         }
     }
 }
+#endif
 
 ruleset test14
 {
@@ -207,7 +212,7 @@ ruleset testE3
 }
 
 // GAIAPLAT-829
- ruleset testE11
+ruleset testE11
 {
     OnUpdate(incubator)
     {

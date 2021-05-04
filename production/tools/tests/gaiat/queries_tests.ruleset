@@ -2,6 +2,8 @@
 
 #include "tags_test.h"
 
+// #define TEST_FAILURES
+
 ruleset test1
 {
     OnChange(actuator.value)
@@ -169,7 +171,7 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-872
+// GAIAPLAT-872 (fixed)
 // In this test, the navigation fans out in the 1:M direction.
 ruleset test20
 {
@@ -180,7 +182,7 @@ ruleset test20
     }
 }
 
-// GAIAPLAT-872
+// GAIAPLAT-872 (fixed)
 // In this test, the navigation is in the M:1 direction.
 ruleset test21
 {
@@ -190,8 +192,19 @@ ruleset test21
     }
 }
 
+// GAIAPLAT-915
+// This translates without error, but translated code will not compile.
+ruleset testE13
+{
+    OnInsert(yield)
+    {
+        int daily = 0;
+        daily += /feeding.portion;
+    }
+}
+
 // GAIAPLAT-807 (fixed)
-// "Tag refers to an invalid table S."
+// GAIAPLAT-892
 ruleset test22
 {
     OnInsert(S:sensor)
@@ -202,15 +215,18 @@ ruleset test22
 
 // GAIAPLAT-803
 // This should be identical to test1 above.
-// ruleset testE1
-// {
-//     {
-//         @actuator.value += sensor.value;
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE1
+{
+    {
+        @actuator.value += sensor.value;
+    }
+}
+#endif
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
+#ifdef TEST_FAILURES
 ruleset testE6
 {
     OnChange(actuator)
@@ -221,29 +237,32 @@ ruleset testE6
         }
     }
 }
+#endif
 
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
-// ruleset testE7
-// {
-//     OnChange(actuator)
-//     {
-//         for (/I:incubator)
-//         {
-//             use_float(I.min_temp);
-//         }
-//     }
-// }
+#ifdef TEST_FAILURES
+ruleset testE7
+{
+    OnChange(actuator)
+    {
+        for (/I:incubator)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
+#endif
 
-// GAIAPLAT-825
+// GAIAPLAT-825 (fixed)
 ruleset testE8
 {
-    OnChange(incubator)
+    OnInsert(sensor)
     {
         use_float(/I:incubator->actuator.value + I.min_temp);
         use_float(I:incubator->actuator.value + I.max_temp);
     }
- }
+}
 
 // GAIAPLAT-827
 ruleset testE9
@@ -277,7 +296,7 @@ ruleset testE11
 }
 
 // GAIAPLAT-832
-/*
+#ifdef TEST_FAILURES
 ruleset testE12
 {
     OnUpdate(incubator)
@@ -295,4 +314,4 @@ ruleset testE12
         v += sensor.value > 99.0 ? actuator.value : 99.0;
     }
 }
-*/
+#endif
