@@ -211,16 +211,16 @@ ruleset test22
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-//ruleset testE6
-//{
-//    OnChange(actuator)
-//    {
-//        if (/I:incubator.max_temp == 100.0)
-//        {
-//            use_float(I.min_temp);
-//        }
-//    }
-//}
+ruleset testE6
+{
+    OnChange(actuator)
+    {
+        if (/I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
 
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
