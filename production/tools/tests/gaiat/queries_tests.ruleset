@@ -246,25 +246,25 @@ ruleset testE8
  }
 
 // GAIAPLAT-827
-// ruleset testE9
-// {
-//     OnChange(sensor.value)
-//     {
-//         if (S:sensor.value > 100.0)
-//         {
-//             actuator.value = 101.0;
-//         }
-//     }
-// }
+ruleset testE9
+{
+    OnChange(sensor.value)
+    {
+        if (S:sensor.value > 100.0)
+        {
+            actuator.value = 101.0;
+        }
+    }
+}
 
 // GAIAPLAT-828
-// ruleset testE10
-// {
-//     OnChange(incubator)
-//     {
-//         S:sensor.value = S.value * 1.01;
-//     }
-// }
+ruleset testE10
+{
+    OnChange(incubator)
+    {
+        S:sensor.value = S.value * 1.01;
+    }
+}
 
 // GAIAPLAT-839
 ruleset testE11
