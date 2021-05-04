@@ -152,12 +152,14 @@ ruleset test_queries
     {
         int32_t age_sum = 0;
         // +++ Explicit navigation expression.
+        // GAIAPLAT-915
         // age_sum += /student.age;
         // --- Current equivalent.
         for (const auto& s : student_t::list())
         {
             age_sum += s.age();
         }
+
         g_oninsert2_value = age_sum;
 
         g_oninsert2_result = test_error_result_t::e_none;
