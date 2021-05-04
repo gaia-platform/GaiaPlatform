@@ -4650,7 +4650,6 @@ private:
   std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
-  std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathDeclarationScopeTagMapping;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value

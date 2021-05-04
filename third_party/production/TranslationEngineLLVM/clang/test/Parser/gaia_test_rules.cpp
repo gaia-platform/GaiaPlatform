@@ -794,22 +794,22 @@ ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
 ruleset test110 Table{actuator} // expected-error {{expected '{'}} expected-error {{expected unqualified-id}}
 { // expected-error {{expected unqualified-id}}
     {
-        actuator.value=.5; 
+        actuator.value=.5;
     }
 }
 
 // Pathological incorrect syntax cases
-ruleset test101 { {.age=5;} } // expected-error {{expected expression}}
-ruleset test102 { {animal->.age=5;} } // expected-error {{expected expression}}
-ruleset test103 { {->animal.age=5;} } // expected-error {{expected expression}}
-ruleset test104 { {animal:.age=5;} } // expected-error {{expected expression}}
-ruleset test105 { {animal:=5;} } // expected-error {{expected expression}}
-ruleset test107 { {3:animal.age=5;} } // expected-error {{expected expression}}
-ruleset test107 { {.age=actuator.timestamp;} } // expected-error {{expected expression}}
-ruleset test107 { {animal.age=>actuator.timestamp;} } // expected-error {{expected expression}}
-ruleset test107 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
-ruleset test107 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
-ruleset test107 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
+ruleset test1010 { {.age=5;} } // expected-error {{expected expression}}
+ruleset test1011 { {animal->.age=5;} } // expected-error {{expected expression}}
+ruleset test1012 { {->animal.age=5;} } // expected-error {{expected expression}}
+ruleset test1013 { {animal:.age=5;} } // expected-error {{expected expression}}
+ruleset test1014 { {animal:=5;} } // expected-error {{expected expression}}
+ruleset test1015 { {3:animal.age=5;} } // expected-error {{expected expression}}
+ruleset test1016 { {.age=actuator.timestamp;} } // expected-error {{expected expression}}
+ruleset test1017 { {animal.age=>actuator.timestamp;} } // expected-error {{expected expression}}
+ruleset test1018 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
+ruleset test1019 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
+ruleset test1020 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
 
 // GAIAPLAT-827
 // ruleset test101

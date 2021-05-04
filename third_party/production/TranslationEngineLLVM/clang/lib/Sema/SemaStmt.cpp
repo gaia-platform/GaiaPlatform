@@ -350,16 +350,6 @@ sema::CompoundScopeInfo &Sema::getCurCompoundScope() const {
 
 StmtResult Sema::ActOnCompoundStmt(SourceLocation L, SourceLocation R,
                                    ArrayRef<Stmt *> Elts, bool isStmtExpr) {
-  if (getLangOpts().Gaia)
-  {
-    if (L.isValid() && R.isValid())
-    {
-        auto startLocationIterator = explicitPathDeclarationScopeTagMapping.lower_bound(L);
-        auto endLocationIterator = explicitPathDeclarationScopeTagMapping.upper_bound(R);
-        explicitPathDeclarationScopeTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
-  }
-
   const unsigned NumElts = Elts.size();
 
   // If we're in C89 mode, check that we don't have any decls after stmts.  If

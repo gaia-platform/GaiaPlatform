@@ -1083,7 +1083,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     std::string explicitPath;
     if (Actions.GetExplicitPathData(ILoc, startLocation, endLocation, explicitPath))
     {
-      if (endLocation.isValid())
+      if (endLocation.isValid() && Tok.getEndLoc() < endLocation)
       {
         while (Tok.getEndLoc()  != endLocation)
         {
@@ -1092,7 +1092,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         ConsumeToken();
       }
     }
-
 
     if (!Res.isInvalid() && Res.isUnset()) {
       UnconsumeToken(Replacement);

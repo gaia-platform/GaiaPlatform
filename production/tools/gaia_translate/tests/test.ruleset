@@ -72,3 +72,12 @@ ruleset test3
         use_string(T.name);
     }
 }
+
+ruleset testE13
+{
+    OnInsert(sensor)
+    {
+        float daily = 0;
+        daily += /sensor.value;
+    }
+}

@@ -158,16 +158,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_tag_redefined) << tag;
                 return "";
             }
-
-            for (const auto& explicitPathDeclarationScopeTagMapIterator : explicitPathDeclarationScopeTagMapping)
-            {
-                const auto& map = explicitPathDeclarationScopeTagMapIterator.second;
-                if (map.find(tag) != map.end())
-                {
-                    Diag(loc, diag::err_tag_redefined) << tag;
-                    return "";
-                }
-            }
         }
         else if (arrowPosition < tagPosition)
         {
@@ -199,7 +189,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
 
     // If explicit path has one component only, this component will be checked at later stage
     // Therefore there is no need to perform more checks here.
-    if (path.size() > 1)
+    if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty())
     {
         unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
@@ -317,7 +307,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         RemoveExplicitPathData(loc);
     }
     explicitPathTagMapping[loc] = tagMap;
-    explicitPathDeclarationScopeTagMapping[loc] = tagMap;
     return path.back();
 
 }
