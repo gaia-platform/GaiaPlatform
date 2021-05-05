@@ -113,13 +113,24 @@ set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+add_library(persistence STATIC
+  src/word_stuff.cpp)
+target_include_directories(persistence PRIVATE
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+target_include_directories(persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(persistence SYSTEM PRIVATE "${GEN_DIR}")
+# The client is required to create gaia objects on recovery.
+set_target_properties(persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+set_property (TARGET persistence PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
   src/txn_metadata.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
-  src/word_stuff.cpp
 )
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
@@ -139,7 +150,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
@@ -218,6 +229,7 @@ set_target_properties(gaia_db_catalog_test PROPERTIES LINK_FLAGS "${GAIA_LINK_FL
 
 add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(word_stuff_test tests/word_stuff_test.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;persistence")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client;gaia_direct")
 add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")

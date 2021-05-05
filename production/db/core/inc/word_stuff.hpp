@@ -1,4 +1,30 @@
+/*
+ * Copyright 2021 Backtrace I/O, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #pragma once
+#include <vector>
+
+#include <sys/uio.h>
 
 /**
  * The word_stuff component implements a variant of consistent
@@ -54,17 +80,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define RADIX 0xFDUL
+
 /**
  * We use a two-byte header.
  */
-enum { CRDB_WORD_STUFF_HEADER_SIZE = 2 };
+enum
+{
+    CRDB_WORD_STUFF_HEADER_SIZE = 2
+};
 
 /**
  * Returns a pointer to the first byte of the first occurrence of the
  * word stuffing header in `data[0 ... num - 1]`, or `data + num` if
  * none.
  */
-const uint8_t *crdb_word_stuff_header_find(const uint8_t *data, size_t num);
+const uint8_t* crdb_word_stuff_header_find(const uint8_t* data, size_t num);
 
 /**
  * Returns the worst-case stuffed size for an input of `in_size` bytes.
@@ -86,23 +117,20 @@ size_t crdb_word_stuffed_size(size_t in_size, bool with_header);
  * *2* to `IN_SIZE / MAX_RUN_LENGTH`: we must round up, and take into
  * account the initial short run.
  */
-#define CRDB_WORD_STUFFED_BOUND(IN_SIZE)				\
-	((size_t)CRDB_WORD_STUFF_HEADER_SIZE + (IN_SIZE) +		\
-	 CRDB_WORD_STUFF_HEADER_SIZE * (2 + (IN_SIZE) / (253ULL * 253 - 1)))
+#define CRDB_WORD_STUFFED_BOUND(IN_SIZE) \
+    ((size_t)CRDB_WORD_STUFF_HEADER_SIZE + (IN_SIZE) + CRDB_WORD_STUFF_HEADER_SIZE * (2 + (IN_SIZE) / (253ULL * 253 - 1)))
 
 /**
  * Writes the 2-byte stuffing header to `dst`, and returns a pointer
  * to `dst + CRDB_WORD_STUFF_HEADER_SIZE`.
  */
-uint8_t *crdb_word_stuff_header(uint8_t dst[CRDB_WORD_STUFF_HEADER_SIZE]);
+uint8_t* crdb_word_stuff_header(uint8_t dst[CRDB_WORD_STUFF_HEADER_SIZE]);
 
 /**
- * Word stuffs the bytes in `src[0 ... src_size - 1]` into `dst`, which
- * must have room for `crdb_word_stuffed_size(src_size, false)`.
- *
- * @return a pointer to one past the last byte written in `dst`.
+ * Encode the vsrc buffer to generate a vector of iovec's that can be used one or more pwritev requests.
+ * The helper buffer serves to keep buffered data on the stack till the write request returns. 
  */
-uint8_t *crdb_word_stuff_encode(uint8_t *dst, const void *src, size_t src_size);
+void crdb_word_stuff_encode(std::vector<iovec>* txn_write_segments, uint8_t* helper_buffer, const void* vsrc, size_t src_size, bool append_header);
 
 /**
  * Decodes the word-stuffed input in `src` into `dst`, which must have room
@@ -111,4 +139,4 @@ uint8_t *crdb_word_stuff_encode(uint8_t *dst, const void *src, size_t src_size);
  * @return a pointer to one past the last byte written in `dst`, or NULL on
  *   decidedly invalid input.
  */
-uint8_t *crdb_word_stuff_decode(uint8_t *dst, const void *src, size_t src_size);
+uint8_t* crdb_word_stuff_decode(uint8_t* dst, const void* src, size_t src_size);

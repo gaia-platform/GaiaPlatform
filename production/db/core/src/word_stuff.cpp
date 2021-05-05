@@ -21,13 +21,20 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "word_stuff.h"
+#include "word_stuff.hpp"
 
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
 
-#define RADIX 0xFDUL
+#include <iostream>
+#include <vector>
+
+#include <sys/uio.h>
+
+#include "stdio.h"
+
+// #define RADIX 0xFDUL
 
 /*
  * We encode the first run size with a single byte, in radix 0xFD, to
@@ -232,21 +239,16 @@ decode_run_size(const uint8_t src[2])
         src_size -= consumed_;  \
     } while (0)
 
-uint8_t*
-crdb_word_stuff_encode(uint8_t* dst, const void* vsrc, size_t src_size)
+void crdb_word_stuff_encode(std::vector<iovec>* txn_write_segments, uint8_t* helper_buffer, const void* vsrc, size_t src_size, bool append_header)
 {
     const uint8_t* src = (uint8_t*)vsrc;
-    uint8_t* ret = dst;
-    bool first_header = true;
+    auto helper_buffer_ptr = helper_buffer;
 
     /*
 	 * Encoding looks for the next forbidden (header) sequence
 	 * within the length that can be encoded in the current chunk:
-	 * the first chunk uses a single byte, so the maximum length
-	 * is MAX_INITIAL_RUN (252), and all other chunks can use two
-	 * bytes, so their maximum length is MAX_REMAINING_RUN (252**2).
 	 *
-	 * In both cases, a value less than the maximum run size denotes
+	 * A value less than the maximum run size denotes
 	 * the length of a literal run, followed by an implicit forbidden
 	 * header, which can thus be consumed from the source.  Otherwise,
 	 * the length denotes a literal run, with no trailing header, so
@@ -263,30 +265,25 @@ crdb_word_stuff_encode(uint8_t* dst, const void* vsrc, size_t src_size)
         size_t max_run_size;
         size_t run_size;
 
-        if (first_header)
-        {
-            max_run_size = MAX_INITIAL_RUN;
-            next_forbidden = crdb_word_stuff_header_find(src, min(max_run_size, src_size));
-            run_size = next_forbidden - src;
+        max_run_size = MAX_REMAINING_RUN;
 
-            assert(run_size <= MAX_INITIAL_RUN);
-            *ret = run_size;
-            ret++;
-            first_header = false;
-        }
-        else
+        if (src_size == 0)
         {
-            max_run_size = MAX_REMAINING_RUN;
-            next_forbidden = crdb_word_stuff_header_find(src, min(max_run_size, src_size));
-
-            run_size = next_forbidden - src;
-            ret = encode_run_size(ret, run_size);
+            break;
         }
 
-        short_memcpy(ret, src, run_size);
-        ret += run_size;
+        next_forbidden = crdb_word_stuff_header_find(src, min(max_run_size, src_size));
+
+        run_size = next_forbidden - src;
+
+        // Pass run size to be encoded later.
+        // Two bytes for the run size.
+        helper_buffer_ptr = encode_run_size(helper_buffer_ptr, run_size);
+        txn_write_segments->push_back({helper_buffer_ptr - CRDB_WORD_STUFF_HEADER_SIZE, CRDB_WORD_STUFF_HEADER_SIZE});
+        txn_write_segments->push_back({(void*)src, run_size});
 
         CONSUME(run_size);
+
         /*
 		 * Values less than the chunk size limit are
 		 * implicitly suffixed with the stuff byte sequence.
@@ -302,11 +299,17 @@ crdb_word_stuff_encode(uint8_t* dst, const void* vsrc, size_t src_size)
 
             assert(src_size >= CRDB_WORD_STUFF_HEADER_SIZE && src[0] == header[0] && src[1] == header[1] && "If we stopped short, we must have found "
                                                                                                             "a forbidden header word.");
+
+            // If we stopped short, we must have found a forbidden header word."
             CONSUME(CRDB_WORD_STUFF_HEADER_SIZE);
         }
     }
 
-    return ret;
+    if (append_header)
+    {
+        // helper_buffer_ptr = crdb_word_stuff_header(helper_buffer_ptr);
+        // txn_write_segments->push_back({helper_buffer_ptr - CRDB_WORD_STUFF_HEADER_SIZE, CRDB_WORD_STUFF_HEADER_SIZE});
+    }
 }
 
 uint8_t*
@@ -314,7 +317,6 @@ crdb_word_stuff_decode(uint8_t* dst, const void* vsrc, size_t src_size)
 {
     const uint8_t* src = (uint8_t*)vsrc;
     uint8_t* ret = dst;
-    bool first_header = true;
 
     /*
 	 * This is the inverse of the encode loop, with additional
@@ -339,36 +341,28 @@ crdb_word_stuff_decode(uint8_t* dst, const void* vsrc, size_t src_size)
 	 * destination: it simply tells us that we correctly reached
 	 * the end of the message.
 	 */
+    size_t count = 0;
     for (;;)
     {
         size_t max_run_size;
         size_t run_size;
 
-        if (first_header)
+        max_run_size = MAX_REMAINING_RUN;
+
+        if (CRDB_UNLIKELY(
+                src_size < CRDB_WORD_STUFF_HEADER_SIZE))
         {
-            max_run_size = MAX_INITIAL_RUN;
-
-            if (CRDB_UNLIKELY(src_size < 1))
-                return NULL;
-
-            run_size = src[0];
-            CONSUME(1);
-            first_header = false;
+            return NULL;
         }
-        else
-        {
-            max_run_size = MAX_REMAINING_RUN;
 
-            if (CRDB_UNLIKELY(
-                    src_size < CRDB_WORD_STUFF_HEADER_SIZE))
-                return NULL;
+        run_size = decode_run_size(src);
 
-            run_size = decode_run_size(src);
-            CONSUME(CRDB_WORD_STUFF_HEADER_SIZE);
-        }
+        CONSUME(CRDB_WORD_STUFF_HEADER_SIZE);
 
         if (CRDB_UNLIKELY(src_size < run_size || run_size > max_run_size))
+        {
             return NULL;
+        }
 
         short_memcpy(ret, src, run_size);
         ret += run_size;
@@ -377,6 +371,8 @@ crdb_word_stuff_decode(uint8_t* dst, const void* vsrc, size_t src_size)
         /* We have to add the implicit header. */
         if (run_size < max_run_size)
         {
+            ret = crdb_word_stuff_header(ret);
+
             /* Unless it's the virtual terminating header. */
             if (src_size == 0)
                 break;
@@ -390,9 +386,9 @@ crdb_word_stuff_decode(uint8_t* dst, const void* vsrc, size_t src_size)
 			 */
             if (CRDB_UNLIKELY(
                     src_size < CRDB_WORD_STUFF_HEADER_SIZE))
+            {
                 return NULL;
-
-            ret = crdb_word_stuff_header(ret);
+            }
         }
     }
 
