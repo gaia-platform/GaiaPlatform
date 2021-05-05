@@ -541,7 +541,7 @@ TEST_F(ddl_executor_test, create_index_duplicate_field)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     check_table_name(table_id, test_table_name);
 
-    string test_index_name{"test_index"};
+    string test_index_name{"test_index_dup"};
     ASSERT_THROW(
         create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name", "name"}),
         duplicate_field);

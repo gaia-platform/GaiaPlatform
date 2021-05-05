@@ -341,13 +341,13 @@ gaia_id_t ddl_executor_t::create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
-    bool thrown_on_exists)
+    bool throw_on_exists)
 {
     shared_lock lock(m_lock);
 
     if (m_relationship_names.find(name) != m_relationship_names.end())
     {
-        if (thrown_on_exists)
+        if (throw_on_exists)
         {
             throw relationship_already_exists(name);
         }
@@ -826,7 +826,7 @@ gaia_id_t ddl_executor_t::create_index(
     const std::string& db_name,
     const std::string& table_name,
     const std::vector<std::string>& field_names,
-    bool thrown_on_exists)
+    bool throw_on_exists)
 {
     shared_lock lock(m_lock);
 
@@ -838,7 +838,7 @@ gaia_id_t ddl_executor_t::create_index(
     {
         if (index.name() == index_name)
         {
-            if (thrown_on_exists)
+            if (throw_on_exists)
             {
                 throw index_already_exists(index_name);
             }
