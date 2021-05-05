@@ -84,7 +84,6 @@ ruleset testE13
         daily += /sensor.value;
     }
 }
-#endif
 
 ruleset test21
 {
@@ -93,3 +92,4 @@ ruleset test21
         I->actuator.value += 1.0;
     }
 }
+#endif
