@@ -47,7 +47,7 @@ class gaia_system_test : public db_test_base_t
 public:
     static void SetUpTestSuite()
     {
-        reset_server();
+        get_server_instance().reset_server();
         begin_session();
 
         // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.

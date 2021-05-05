@@ -3,26 +3,20 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <cstdlib>
-#include <ctime>
-
-#include <filesystem>
 #include <shared_mutex>
 #include <string>
 #include <thread>
 
 #include "gtest/gtest.h"
-#include <sys/prctl.h>
 
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
 
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/common/timer.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/db/db_server_instance.hpp"
 
 #include "gaia_addr_book.h"
 #include "schema_loader.hpp"
@@ -32,38 +26,16 @@ using namespace gaia::addr_book;
 
 using gaia_timer_t = gaia::common::timer_t;
 
-namespace fs = std::filesystem;
-
 static constexpr uint32_t c_num_server_instances = 10;
 static constexpr uint32_t c_num_employees = 10;
 static constexpr uint32_t c_sleep_micros = 100000;
 static constexpr uint32_t c_max_reader_wait_seconds = 10;
-
-static constexpr char c_db_core_folder_name[] = "db/core";
 
 class multiple_server_instances_test : public ::testing::Test
 {
 public:
     multiple_server_instances_test()
     {
-    }
-
-    std::string get_server_exec_path()
-    {
-        fs::path current_path = fs::current_path();
-        fs::path db_path = fs::path(current_path) / c_db_core_folder_name;
-
-        while (!fs::exists(db_path) && current_path.has_root_path() && current_path != current_path.root_path())
-        {
-            current_path = current_path.parent_path();
-            db_path = fs::path(current_path) / c_db_core_folder_name;
-        }
-
-        fs::path db_exec_path = db_path / c_db_server_exec_name;
-
-        ASSERT_INVARIANT(fs::exists(db_exec_path), "Impossible to find the db path");
-
-        return db_exec_path.string();
     }
 
 protected:
@@ -73,100 +45,6 @@ protected:
     }
 
 private:
-};
-
-class server_instance_t
-{
-public:
-    server_instance_t(const std::string& server_exec_path, const std::string& instance_name)
-        : m_server_exec_path(server_exec_path), m_instance_name(instance_name)
-    {
-    }
-
-    void start_server()
-    {
-        gaia_log::app().debug("Starting server instance {}", m_instance_name, m_server_pid);
-        const char* const command[] = {m_server_exec_path.c_str(), "--instance-name", m_instance_name.c_str(), "--disable-persistence", NULL};
-
-        if (0 == (m_server_pid = ::fork()))
-        {
-            if (-1 == ::execve(command[0], (char**)command, NULL))
-            {
-                FAIL() << "Failed to execute " << m_server_exec_path.c_str();
-            }
-            ::prctl(PR_SET_PDEATHSIG, SIGKILL);
-        }
-
-        gaia_log::app().debug("Server instance {} started with pid:{}", m_instance_name, m_server_pid);
-    }
-
-    void kill_server()
-    {
-        gaia_log::app().debug("Killing server instance {} and pid:{}", m_instance_name, m_server_pid);
-
-        //        ::system((std::string("kill -9 ") + std::to_string(m_server_pid)).c_str());
-    }
-
-    void wait_for_server()
-    {
-        constexpr int c_poll_interval_millis = 10;
-        constexpr int c_print_error_interval = 1000;
-        // Initialize to 1 to avoid printing a spurious wait message.
-        int counter = 1;
-
-        // Wait for server to initialize.
-        while (true)
-        {
-            try
-            {
-                gaia_log::app().debug("Waiting for server instance {} attempt:{}", m_instance_name, counter);
-
-                session_opts_t session_opts;
-                session_opts.instance_name = m_instance_name;
-
-                begin_session(session_opts);
-            }
-            catch (gaia::common::system_error& ex)
-            {
-                if (ex.get_errno() == ECONNREFUSED)
-                {
-                    if (counter % c_print_error_interval == 0)
-                    {
-                        gaia_log::sys().warn(
-                            "Cannot connect to Gaia Server; the 'gaia_db_server' process may not be running!");
-                        counter = 1;
-                    }
-                    else
-                    {
-                        counter++;
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
-                    continue;
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            catch (...)
-            {
-                throw;
-            }
-            break;
-        }
-        // This was just a test connection, so disconnect.
-        end_session();
-    }
-
-    std::string instance_name()
-    {
-        return m_instance_name;
-    }
-
-private:
-    std::string m_server_exec_path;
-    std::string m_instance_name;
-    ::pid_t m_server_pid;
 };
 
 class client_writer_t
@@ -264,33 +142,15 @@ private:
     std::string m_instance_name;
 };
 
-// https://stackoverflow.com/a/440240
-std::string gen_random_str(const int len)
-{
-
-    std::string tmp_s;
-    static const char alphanum[] = "0123456789"
-                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                   "abcdefghijklmnopqrstuvwxyz";
-
-    tmp_s.reserve(len);
-
-    for (int i = 0; i < len; ++i)
-        tmp_s += alphanum[::rand() % (sizeof(alphanum) - 1)];
-
-    return tmp_s;
-}
-
 TEST_F(multiple_server_instances_test, multiple_instacnes)
 {
     std::vector<server_instance_t> server_instances;
 
     for (uint32_t i = 0; i < c_num_server_instances; i++)
     {
-        std::string instance_name = gen_random_str(5).append("_").append(std::to_string(i));
-        server_instance_t gaia_db_instance{get_server_exec_path(), instance_name};
-        gaia_db_instance.start_server();
-        gaia_db_instance.wait_for_server();
+        server_instance_t gaia_db_instance;
+        gaia_db_instance.start();
+        gaia_db_instance.wait_for_init();
         server_instances.push_back(gaia_db_instance);
     }
 
@@ -324,6 +184,6 @@ TEST_F(multiple_server_instances_test, multiple_instacnes)
 
     for (auto& server_instance : server_instances)
     {
-        server_instance.kill_server();
+        server_instance.stop();
     }
 }
