@@ -226,7 +226,6 @@ ruleset testE1
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-#ifdef TEST_FAILURES
 ruleset testE6
 {
     OnChange(actuator)
@@ -237,8 +236,17 @@ ruleset testE6
         }
     }
 }
-#endif
 
+ruleset testE61
+{
+    OnChange(actuator)
+    {
+        while (/I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
 #ifdef TEST_FAILURES

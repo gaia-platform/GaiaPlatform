@@ -10,7 +10,6 @@
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 
-
 using namespace gaia;
 using namespace gaia::common;
 using namespace std;

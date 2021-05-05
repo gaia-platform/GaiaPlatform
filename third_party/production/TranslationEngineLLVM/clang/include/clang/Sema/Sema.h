@@ -4616,6 +4616,9 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
   bool GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath);
+  bool IsInExtendedExplicitPathScope() const { return isInExtendedExplicitPathScope;}
+  void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
+  void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
 private:
 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
@@ -4650,6 +4653,9 @@ private:
   std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
+
+  std::map<SourceLocation, std::unordered_map<std::string, std::string>> extendedExplicitPathTagMapping;
+  bool isInExtendedExplicitPathScope;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value

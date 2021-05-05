@@ -403,6 +403,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     }
     return true;
 }
+
 // Get variable name for navigation code
 string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags)
 {

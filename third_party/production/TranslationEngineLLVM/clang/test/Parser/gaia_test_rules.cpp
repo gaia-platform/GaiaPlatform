@@ -835,6 +835,19 @@ ruleset test101
     }
 }
 
+// GAIAPLAT-808
+// The I.min_temp doesn't use the tag from the 'if'.
+ruleset testE62
+{
+    OnChange(I:incubator)
+    {
+        if (/I:incubator.max_temp == 100.0) // expected-error {{Tag 'I' is already defined.}}
+                                            // expected-error@-1  {{use of undeclared identifier 'I'}}
+        {
+            I.min_temp ++;
+        }
+    }
+}
 
 // GAIAPLAT-821
 #ifdef TEST_FAILURES

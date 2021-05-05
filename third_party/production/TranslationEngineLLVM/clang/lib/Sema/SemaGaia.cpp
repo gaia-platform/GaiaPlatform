@@ -321,8 +321,13 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         RemoveExplicitPathData(loc);
     }
     explicitPathTagMapping[loc] = tagMap;
-    return path.back();
 
+    if (IsInExtendedExplicitPathScope())
+    {
+        extendedExplicitPathTagMapping[loc] = tagMap;
+    }
+
+    return path.back();
 }
 
 unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
@@ -845,6 +850,26 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             else
             {
                 retVal[tagMapIterator.first] = tagMapIterator.second;
+            }
+        }
+    }
+
+    for (const auto& explicitPathTagMapIterator : extendedExplicitPathTagMapping)
+    {
+        const auto& tagMap = explicitPathTagMapIterator.second;
+        for (const auto& tagMapIterator : tagMap)
+        {
+            if (explicitPathTagMapping.find(explicitPathTagMapIterator.first) == explicitPathTagMapping.end())
+            {
+                if (retVal.find(tagMapIterator.first) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tagMapIterator.first] = tagMapIterator.second;
+                }
             }
         }
     }

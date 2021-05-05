@@ -108,7 +108,6 @@ struct rewriter_history_t
 
 vector<rewriter_history_t> g_rewriter_history;
 
-
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 static const char c_ident[] = "    ";
@@ -1055,7 +1054,7 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
             path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
             g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
         }
-        if ( expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
+        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
             expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
         {
             path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());

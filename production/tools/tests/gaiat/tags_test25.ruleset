@@ -1,0 +1,17 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// GAIAPLAT-808
+ruleset testE6
+{
+    OnChange(actuator)
+    {
+        if (/I:incubator.max_temp == 100.0)
+        {
+            I.min_temp ++;
+        }
+        I.max_temp++;
+    }
+}
+// CHECK: Table 'I' was not found in the catalog.
+// CHECK: I.max_temp++;
+// CHECK: use of undeclared identifier 'I'
