@@ -521,10 +521,30 @@ TEST_F(ddl_executor_test, create_index)
     string test_index_name{"test_index"};
     gaia_id_t index_id = create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"});
 
-    auto_transaction_t txn;
+    auto_transaction_t txn(false);
     ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
     ASSERT_EQ(gaia_index_t::get(index_id).table().gaia_id(), table_id);
     txn.commit();
+
+    ASSERT_THROW(
+        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}),
+        index_already_exists);
+
+    ASSERT_NO_THROW(create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}, false));
+}
+
+TEST_F(ddl_executor_test, create_index_duplicate_field)
+{
+    string test_table_name{"create_index_test"};
+    ddl::field_def_list_t test_table_fields;
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+    check_table_name(table_id, test_table_name);
+
+    string test_index_name{"test_index"};
+    ASSERT_THROW(
+        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name", "name"}),
+        duplicate_field);
 }
 
 TEST_F(ddl_executor_test, list_indexes)

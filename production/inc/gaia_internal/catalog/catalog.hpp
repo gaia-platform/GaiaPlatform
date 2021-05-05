@@ -443,6 +443,20 @@ public:
 };
 
 /**
+ * Thrown when creating an index that already exists.
+ */
+class index_already_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit index_already_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The index '" << name << "' already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Initialize the catalog.
 */
 void initialize_catalog();
@@ -507,7 +521,8 @@ gaia::common::gaia_id_t create_index(
     index_type_t type,
     const std::string& db_name,
     const std::string& table_name,
-    const std::vector<std::string>& field_names);
+    const std::vector<std::string>& field_names,
+    bool throw_on_exist = true);
 
 /**
  * Delete a database.

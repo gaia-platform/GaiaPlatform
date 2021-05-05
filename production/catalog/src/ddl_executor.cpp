@@ -7,8 +7,8 @@
 
 #include <memory>
 #include <string>
-
-#include <bits/stdint-uintn.h>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
@@ -206,20 +206,19 @@ void ddl_executor_t::bootstrap_catalog()
         //     name string,
         //     unique bool,
         //     type uint8,
-        //     fields string,
-        //     references gaia_table,
+        //     fields uint64[],
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_uint64, 0));
         create_table_impl("catalog", "gaia_index", fields, true, false, static_cast<gaia_type_t>(catalog_table_type_t::gaia_index));
 
         create_relationship(
             "gaia_catalog_table_index",
-            {"catalog", "gaia_table", "gaia_indexes", "catalog", "gaia_index", relationship_cardinality_t::many},
-            {"catalog", "gaia_index", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            {c_catalog_db_name, "gaia_table", "gaia_indexes", "catalog", "gaia_index", relationship_cardinality_t::many},
+            {c_catalog_db_name, "gaia_index", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
     }
 }
@@ -826,7 +825,8 @@ gaia_id_t ddl_executor_t::create_index(
     index_type_t type,
     const std::string& db_name,
     const std::string& table_name,
-    const std::vector<std::string>& field_names)
+    const std::vector<std::string>& field_names,
+    bool thrown_on_exists)
 {
     shared_lock lock(m_lock);
 
@@ -834,44 +834,51 @@ gaia_id_t ddl_executor_t::create_index(
 
     auto_transaction_t txn(false);
 
-    std::map<std::string, gaia_id_t> index_table_fields;
+    for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
+    {
+        if (index.name() == index_name)
+        {
+            if (thrown_on_exists)
+            {
+                throw index_already_exists(index_name);
+            }
+            else
+            {
+                return index.gaia_id();
+            }
+        }
+    }
+
+    std::unordered_map<std::string, gaia_id_t> index_table_fields;
     for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
     {
         index_table_fields[field.name()] = field.gaia_id();
     }
 
-    std::set<gaia_id_t> index_field_ids;
+    std::unordered_set<std::string> field_name_set;
+    std::vector<gaia_id_t> index_field_ids;
     for (const auto& name : field_names)
     {
         if (index_table_fields.find(name) == index_table_fields.end())
         {
             throw field_not_exists(name);
         }
-        if (index_field_ids.count(index_table_fields.at(name)))
+        if (field_name_set.find(name) != field_name_set.end())
         {
             throw duplicate_field(name);
         }
-        index_field_ids.insert(index_table_fields.at(name));
-    }
-
-    string fields_str;
-    for (auto iter = index_field_ids.begin(); iter != index_field_ids.end(); ++iter)
-    {
-        if (iter == index_field_ids.begin())
-        {
-            fields_str = std::to_string(*iter);
-        }
         else
         {
-            fields_str += ",";
-            fields_str += std::to_string(*iter);
+            field_name_set.insert(name);
         }
+        index_field_ids.push_back(index_table_fields.at(name));
     }
+
     gaia_id_t index_id = gaia_index_t::insert_row(
         index_name.c_str(),
         unique,
         static_cast<uint8_t>(type),
-        fields_str.c_str());
+        index_field_ids);
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
     txn.commit();

@@ -121,17 +121,9 @@ namespace db
         catalog::Getgaia_index(m_obj_ptr->data())->type());
 }
 
-[[nodiscard]] std::vector<common::gaia_id_t> index_view_t::fields() const
+[[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* index_view_t::fields() const
 {
-    std::vector<gaia_id_t> field_ids;
-    std::stringstream ss;
-    ss << catalog::Getgaia_index(m_obj_ptr->data())->fields();
-    std::string field_str;
-    while (std::getline(ss, field_str, ','))
-    {
-        field_ids.push_back(std::stoull(field_str));
-    }
-    return field_ids;
+    return catalog::Getgaia_index(m_obj_ptr->data())->fields();
 }
 
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)

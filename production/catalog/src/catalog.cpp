@@ -77,9 +77,11 @@ gaia_id_t create_index(
     index_type_t type,
     const std::string& db_name,
     const std::string& table_name,
-    const std::vector<std::string>& field_names)
+    const std::vector<std::string>& field_names,
+    bool thrown_on_exists)
 {
-    return ddl_executor_t::get().create_index(index_name, unique, type, db_name, table_name, field_names);
+    return ddl_executor_t::get().create_index(
+        index_name, unique, type, db_name, table_name, field_names, thrown_on_exists);
 }
 
 void drop_database(const string& name, bool throw_unless_exists)

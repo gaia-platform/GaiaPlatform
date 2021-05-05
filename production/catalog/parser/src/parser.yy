@@ -171,6 +171,7 @@ create_statement:
       $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $6);
       $$->unique_index = $2;
       $$->index_type = $3;
+      $$->if_not_exists = $5;
       $$->database = $8.first;
       $$->index_table = $8.second;
       $$->index_fields = std::move(*$10);

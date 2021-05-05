@@ -422,10 +422,10 @@ struct gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     const char* name() const {return GET_STR(name);}
     bool unique() const {return GET(unique);}
     uint8_t type() const {return GET(type);}
-    const char* fields() const {return GET_STR(fields);}
-    static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const char* fields) {
+    gaia::direct_access::edc_vector_t<uint64_t> fields() const {return GET_ARRAY(fields);}
+    static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, fields));
+        b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, &fields));
         return edc_object_t::insert_row(b);
     }
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_index, gaia_index_t>& list() {
@@ -441,7 +441,7 @@ struct gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
         static gaia::direct_access::expression_t<gaia_index_t, const char*> name;
         static gaia::direct_access::expression_t<gaia_index_t, bool> unique;
         static gaia::direct_access::expression_t<gaia_index_t, uint8_t> type;
-        static gaia::direct_access::expression_t<gaia_index_t, const char*> fields;
+        static gaia::direct_access::expression_t<gaia_index_t, gaia::direct_access::edc_vector_t<uint64_t>> fields;
         static gaia::direct_access::expression_t<gaia_index_t, gaia_table_t> table;
     };
     using expr = expr_<void>;
@@ -455,7 +455,7 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, gaia::c
 template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::name{&gaia_index_t::name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, bool> gaia_index_t::expr_<unused_t>::unique{&gaia_index_t::unique};
 template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, uint8_t> gaia_index_t::expr_<unused_t>::type{&gaia_index_t::type};
-template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
+template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, gaia::direct_access::edc_vector_t<uint64_t>> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
 template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, gaia_table_t> gaia_index_t::expr_<unused_t>::table{&gaia_index_t::table};
 
 namespace gaia_index_expr {

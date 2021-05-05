@@ -60,7 +60,7 @@ index_key_t index_builder::make_key(gaia_id_t index_id, gaia_type_t type_id, con
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
 
-    for (auto field_id : index_view.fields())
+    for (auto field_id : *(index_view.fields()))
     {
         field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
         k.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));

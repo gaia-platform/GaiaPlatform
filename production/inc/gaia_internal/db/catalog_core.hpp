@@ -84,7 +84,7 @@ struct index_view_t : catalog_db_object_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] bool unique() const;
     [[nodiscard]] catalog::index_type_t type() const;
-    [[nodiscard]] std::vector<common::gaia_id_t> fields() const;
+    [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* fields() const;
 };
 
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
