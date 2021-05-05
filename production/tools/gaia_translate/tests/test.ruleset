@@ -1,6 +1,8 @@
 #include "gaia/logger.hpp"
 #include "gaia/events.hpp"
 
+// #define TEST_FAILURES
+
 int g_rule_called = 0;
 int g_insert_called = 0;
 int g_update_called = 0;
@@ -73,6 +75,7 @@ ruleset test3
     }
 }
 
+#ifdef TEST_FAILURES
 ruleset testE13
 {
     OnInsert(sensor)
@@ -81,6 +84,7 @@ ruleset testE13
         daily += /sensor.value;
     }
 }
+#endif
 
 ruleset test21
 {
