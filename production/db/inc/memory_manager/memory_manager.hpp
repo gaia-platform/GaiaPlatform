@@ -64,8 +64,8 @@ private:
     // Get the amount of memory that has never been used yet.
     size_t get_unused_memory_size() const;
 
-    // Internal method for making allocations from freed memory.
-    address_offset_t allocate_from_freed_memory() const;
+    // Internal method for making allocations from deallocated memory.
+    address_offset_t allocate_from_deallocated_memory() const;
 
     // Internal method for making allocations from the unused portion of memory.
     address_offset_t allocate_from_unused_memory() const;
