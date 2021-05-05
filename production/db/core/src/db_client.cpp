@@ -160,8 +160,10 @@ std::function<std::optional<gaia_id_t>()>
 client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
 {
     bool has_exhausted_id_generator = false;
+    size_t log_index = 0;
+
     std::function<std::optional<gaia_id_t>()> extended_id_generator
-        = [has_exhausted_id_generator, id_generator]() mutable -> std::optional<gaia_id_t> {
+        = [id_generator, has_exhausted_id_generator, log_index, type]() mutable -> std::optional<gaia_id_t> {
         if (!has_exhausted_id_generator)
         {
             std::optional<gaia_id_t> id_opt = id_generator();
@@ -177,7 +179,26 @@ client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::opti
 
         if (has_exhausted_id_generator)
         {
-            // Iterate over locally added gaia_id's.
+            while (log_index < s_log.data()->record_count)
+            {
+                txn_log_t::log_record_t* lr = &(s_log.data()->log_records[log_index++]);
+
+                // Look for insertions of objects of the given data type and return their gaia_id.
+                if (lr->old_offset == c_invalid_gaia_offset)
+                {
+                    gaia_offset_t offset = lr->new_offset;
+
+                    ASSERT_INVARIANT(
+                        offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+
+                    db_object_t* db_object = offset_to_ptr(offset);
+
+                    if (db_object->type == type)
+                    {
+                        return db_object->id;
+                    }
+                }
+            }
         }
 
         return std::nullopt;
