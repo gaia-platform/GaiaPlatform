@@ -157,6 +157,36 @@ client_t::get_stream_generator_for_socket(int stream_socket)
 }
 
 std::function<std::optional<gaia_id_t>()>
+client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
+{
+    bool has_exhausted_id_generator = false;
+    std::function<std::optional<gaia_id_t>()> extended_id_generator
+        = [has_exhausted_id_generator, id_generator]() mutable -> std::optional<gaia_id_t> {
+        if (!has_exhausted_id_generator)
+        {
+            std::optional<gaia_id_t> id_opt = id_generator();
+            if (id_opt)
+            {
+                return id_opt;
+            }
+            else
+            {
+                has_exhausted_id_generator = true;
+            }
+        }
+
+        if (has_exhausted_id_generator)
+        {
+            // Iterate over locally added gaia_id's.
+        }
+
+        return std::nullopt;
+    };
+
+    return extended_id_generator;
+}
+
+std::function<std::optional<gaia_id_t>()>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
@@ -167,7 +197,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
     cleanup_stream_socket.dismiss();
 
-    return id_generator;
+    return extend_id_generator_for_type(type, id_generator);
 }
 
 static void build_client_request(

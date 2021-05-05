@@ -1830,16 +1830,6 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         // txn's partially-applied log during snapshot reconstruction.
         txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
-
-        // In case of insertions, we want to update the record list for the object's type.
-        // We do this after updating the shared locator view, so we can access the new object's data.
-        if (lr->old_offset == c_invalid_gaia_offset)
-        {
-            gaia_locator_t locator = lr->locator;
-            db_object_t* db_object = locator_to_ptr(locator);
-            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
-            record_list->add(locator);
-        }
     }
 
     // We're using the otherwise-unused first entry of the "locators" array to
@@ -2293,6 +2283,30 @@ void server_t::txn_rollback()
     }
 }
 
+void server_t::perform_pre_commit_work_for_txn()
+{
+    // Process the txn log.
+    for (size_t i = 0; i < s_log->record_count; ++i)
+    {
+        txn_log_t::log_record_t* lr = &(s_log->log_records[i]);
+
+        // In case of insertions, we want to update the record list for the object's type.
+        // We do this after updating the shared locator view, so we can access the new object's data.
+        if (lr->old_offset == c_invalid_gaia_offset)
+        {
+            gaia_locator_t locator = lr->locator;
+            gaia_offset_t offset = lr->new_offset;
+
+            ASSERT_INVARIANT(
+                offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+
+            db_object_t* db_object = offset_to_ptr(offset);
+            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+            record_list->add(locator);
+        }
+    }
+}
+
 // Before this method is called, we have already received the log fd from the client
 // and mmapped it.
 // This method returns true for a commit decision and false for an abort decision.
@@ -2317,6 +2331,9 @@ bool server_t::txn_commit()
     }
 
     ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
+
+    // Perform pre-commit work.
+    perform_pre_commit_work_for_txn();
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
