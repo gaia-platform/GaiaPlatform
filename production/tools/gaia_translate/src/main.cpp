@@ -51,6 +51,8 @@ const int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
+constexpr int c_encoding_shift = 16;
+constexpr int c_encoding_mask = 0xFFFF;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -60,15 +62,15 @@ unordered_map<string, string> g_attribute_tag_map;
 
 namespace std
 {
-    template<> struct hash<SourceRange>
+template <>
+struct hash<SourceRange>
+{
+    std::size_t operator()(SourceRange const& range) const noexcept
     {
-        std::size_t operator()(SourceRange const& range) const noexcept
-        {
-            return std::hash<unsigned int>{}(
-                (range.getBegin().getRawEncoding() << 16) |
-                (range.getEnd().getRawEncoding() & 0xFFFF));
-        }
-    };
+        return std::hash<unsigned int>{}(
+            (range.getBegin().getRawEncoding() << c_encoding_shift) | (range.getEnd().getRawEncoding() & c_encoding_mask));
+    }
+};
 } // namespace std
 
 struct explicit_path_data_t
@@ -76,9 +78,9 @@ struct explicit_path_data_t
     // Path Components.
     vector<string> path_components;
     // Map from table to tag
-    unordered_map<string,string> table_tag_map;
+    unordered_map<string, string> table_tag_map;
     // Map from tag to table
-    unordered_map<string,string> tag_table_map;
+    unordered_map<string, string> tag_table_map;
     bool is_absolute_path;
 };
 
@@ -233,7 +235,7 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
     {
-        tag =  attribute.substr(0, tag_position);
+        tag = attribute.substr(0, tag_position);
         tagless_attribute = attribute.substr(tag_position + 1);
     }
     else
@@ -294,7 +296,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    auto fields =table_navigation_t::get_table_data().find(table_name)->second.field_data;
+    auto fields = table_navigation_t::get_table_data().find(table_name)->second.field_data;
 
     if (fields.find(field_name) == fields.end())
     {
@@ -442,8 +444,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
     {
         if (g_is_rule_context_rule_name_referenced)
         {
-            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(),
-                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
         }
         if (g_rule_attribute_source_range.isValid())
         {
@@ -500,20 +501,19 @@ void generate_table_subscription(const string& table, const string& field_subscr
         {
             switch (history_item.operation)
             {
-                case replace_text:
-                    copy_rewriter.ReplaceText(history_item.range, history_item.string_argument);
-                    break;
-                case insert_text_after_token:
-                    copy_rewriter.InsertTextAfterToken(history_item.range.getBegin(), history_item.string_argument);
-                    break;
-                default:
-                    break;
+            case replace_text:
+                copy_rewriter.ReplaceText(history_item.range, history_item.string_argument);
+                break;
+            case insert_text_after_token:
+                copy_rewriter.InsertTextAfterToken(history_item.range.getBegin(), history_item.string_argument);
+                break;
+            default:
+                break;
             }
         }
         if (g_is_rule_context_rule_name_referenced)
         {
-            copy_rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(),
-                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+            copy_rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
         }
 
         for (const auto& expression_used_iterator : g_expression_used_tables)
@@ -719,7 +719,7 @@ bool check_call_expression(ASTContext* context, const Stmt& node)
         {
             return false;
         }
-        else if (const auto *expression = node_parents_iterator.get<IfStmt>())
+        else if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
             if (expression->getCond() == &node || expression->getConditionVariableDeclStmt() == &node)
             {
@@ -730,11 +730,11 @@ bool check_call_expression(ASTContext* context, const Stmt& node)
                 return false;
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<SwitchStmt>())
+        else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
         {
             return true;
         }
-        else if (const auto *expression = node_parents_iterator.get<WhileStmt>())
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
             if (expression->getCond() == &node)
             {
@@ -745,7 +745,7 @@ bool check_call_expression(ASTContext* context, const Stmt& node)
                 return false;
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<DoStmt>())
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
             if (expression->getCond() == &node)
             {
@@ -756,7 +756,7 @@ bool check_call_expression(ASTContext* context, const Stmt& node)
                 return false;
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<ForStmt>())
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
             if (expression->getCond() == &node || expression->getInc() == &node)
             {
@@ -767,11 +767,10 @@ bool check_call_expression(ASTContext* context, const Stmt& node)
                 return false;
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<Stmt>())
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
         {
-           return check_call_expression(context, *expression);
+            return check_call_expression(context, *expression);
         }
-
     }
     return false;
 }
@@ -801,127 +800,103 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         {
             return return_value;
         }
-        else if (const auto *expression = node_parents_iterator.get<BinaryOperator>())
+        else if (const auto* expression = node_parents_iterator.get<BinaryOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<UnaryOperator>())
+        else if (const auto* expression = node_parents_iterator.get<UnaryOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<ConditionalOperator>())
+        else if (const auto* expression = node_parents_iterator.get<ConditionalOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<BinaryConditionalOperator>())
+        else if (const auto* expression = node_parents_iterator.get<BinaryConditionalOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<CompoundAssignOperator>())
+        else if (const auto* expression = node_parents_iterator.get<CompoundAssignOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<CXXMemberCallExpr>())
+        else if (const auto* expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
-        else if (const auto *expression = node_parents_iterator.get<CallExpr>())
+        else if (const auto* expression = node_parents_iterator.get<CallExpr>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             if (check_call_expression(context, *expression))
             {
-                 return get_expression_source_range(context, *expression, return_value, rewriter);
+                return get_expression_source_range(context, *expression, return_value, rewriter);
             }
             else
             {
                 return return_value;
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<IfStmt>())
+        else if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
         }
-        else if (const auto *expression = node_parents_iterator.get<SwitchStmt>())
+        else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
         }
-        else if (const auto *expression = node_parents_iterator.get<WhileStmt>())
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
         }
-        else if (const auto *expression = node_parents_iterator.get<DoStmt>())
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
         }
-        else if (const auto *expression = node_parents_iterator.get<ForStmt>())
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(expression->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(expression->getBeginLoc());
             return return_value;
         }
-        else if (const auto *declaration = node_parents_iterator.get<VarDecl>())
+        else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
-            auto offset = Lexer::MeasureTokenLength(declaration->getEndLoc(),
-                                       rewriter.getSourceMgr(),
-                                       rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(declaration->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             return_value.setEnd(declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(declaration->getBeginLoc());
             if (check_decl_expression(context, *declaration))
             {
-                 auto node_parents = context->getParents(*declaration);
-                 return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
+                auto node_parents = context->getParents(*declaration);
+                return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
             }
             else
             {
@@ -930,14 +905,13 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
                 return SourceRange();
             }
         }
-        else if (const auto *expression = node_parents_iterator.get<Stmt>())
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
         {
-           return get_expression_source_range(context, *expression, return_value, rewriter);
+            return get_expression_source_range(context, *expression, return_value, rewriter);
         }
     }
     return return_value;
 }
-
 
 void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const SourceRange& source_range, Rewriter& rewriter)
 {
@@ -963,41 +937,35 @@ void update_expression_used_tables(ASTContext* context, const Stmt* node, const 
 
     for (auto& expression_tables_iterator : g_expression_used_tables)
     {
-        if (expression_tables_iterator.first.getBegin() == expression_source_range.getBegin() &&
-             expression_source_range.getEnd() < expression_tables_iterator.first.getEnd())
+        if (expression_tables_iterator.first.getBegin() == expression_source_range.getBegin() && expression_source_range.getEnd() < expression_tables_iterator.first.getEnd())
         {
             expression_tables_iterator.second.insert(table);
             return;
         }
-        if (expression_tables_iterator.first.getBegin() < expression_source_range.getBegin() &&
-            expression_tables_iterator.first.getEnd() == expression_source_range.getEnd())
-        {
-            expression_tables_iterator.second.insert(table);
-            return;
-        }
-
-        if (expression_tables_iterator.first.getBegin() < expression_source_range.getBegin() &&
-            expression_source_range.getEnd() < expression_tables_iterator.first.getEnd())
+        if (expression_tables_iterator.first.getBegin() < expression_source_range.getBegin() && expression_tables_iterator.first.getEnd() == expression_source_range.getEnd())
         {
             expression_tables_iterator.second.insert(table);
             return;
         }
 
-        if (expression_tables_iterator.first.getBegin() == expression_source_range.getBegin() &&
-             expression_tables_iterator.first.getEnd() < expression_source_range.getEnd())
+        if (expression_tables_iterator.first.getBegin() < expression_source_range.getBegin() && expression_source_range.getEnd() < expression_tables_iterator.first.getEnd())
+        {
+            expression_tables_iterator.second.insert(table);
+            return;
+        }
+
+        if (expression_tables_iterator.first.getBegin() == expression_source_range.getBegin() && expression_tables_iterator.first.getEnd() < expression_source_range.getEnd())
         {
             tables.insert(expression_tables_iterator.second.begin(), expression_tables_iterator.second.end());
             g_expression_used_tables.erase(expression_tables_iterator.first);
         }
-        if ( expression_source_range.getBegin() < expression_tables_iterator.first.getBegin() &&
-            expression_tables_iterator.first.getEnd() == expression_source_range.getEnd())
+        if (expression_source_range.getBegin() < expression_tables_iterator.first.getBegin() && expression_tables_iterator.first.getEnd() == expression_source_range.getEnd())
         {
             tables.insert(expression_tables_iterator.second.begin(), expression_tables_iterator.second.end());
             g_expression_used_tables.erase(expression_tables_iterator.first);
         }
 
-        if (expression_source_range.getBegin() < expression_tables_iterator.first.getBegin() &&
-            expression_tables_iterator.first.getEnd() < expression_source_range.getEnd() )
+        if (expression_source_range.getBegin() < expression_tables_iterator.first.getBegin() && expression_tables_iterator.first.getEnd() < expression_source_range.getEnd())
         {
             tables.insert(expression_tables_iterator.second.begin(), expression_tables_iterator.second.end());
             g_expression_used_tables.erase(expression_tables_iterator.first);
@@ -1030,38 +998,32 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
 
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
-        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() &&
-             expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
+        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() && expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
         {
             expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
-        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() &&
-            expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
+        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() && expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
         {
             expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
-        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() &&
-            expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
+        if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() && expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
         {
             expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
-        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() &&
-             expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd())
+        if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() && expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd())
         {
             path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
             g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
         }
-        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
-            expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
+        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() && expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
         {
             path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
             g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
         }
-        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() &&
-            expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd() )
+        if (expression_source_range.getBegin() < expression_explicit_path_data_iterator.first.getBegin() && expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd())
         {
             path_data.insert(path_data.end(), expression_explicit_path_data_iterator.second.begin(), expression_explicit_path_data_iterator.second.end());
             g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
@@ -1072,7 +1034,7 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     g_expression_explicit_path_data[expression_source_range] = path_data;
 }
 
-bool get_explicit_path_data(const Decl *decl, explicit_path_data_t& data, SourceRange& path_source_range)
+bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, SourceRange& path_source_range)
 {
     if (decl == nullptr)
     {
@@ -1182,7 +1144,7 @@ public:
             }
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
-            variable_name =table_name;
+            variable_name = table_name;
 
             if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
             {
@@ -1216,7 +1178,7 @@ public:
             {
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
                 table_name = get_table_name(declaration_expression->getDecl());
-                variable_name =table_name;
+                variable_name = table_name;
 
                 const ValueDecl* decl = declaration_expression->getDecl();
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -1264,22 +1226,16 @@ public:
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             m_rewriter.ReplaceText(expression_source_range, variable_name + "." + field_name + "()");
             g_rewriter_history.push_back({expression_source_range, variable_name + "." + field_name + "()", replace_text});
-            auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
-                                       m_rewriter.getSourceMgr(),
-                                       m_rewriter.getLangOpts()) + 1;
+            auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
             if (!explicit_path_present)
             {
-                update_expression_used_tables(result.Context, expression, table_name,
-                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
-                update_expression_used_tables(result.Context, member_expression, table_name,
-                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_used_tables(result.Context, expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_used_tables(result.Context, member_expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
             }
             else
             {
-                update_expression_explicit_path_data(result.Context, expression, explicit_path_data,
-                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
-                update_expression_explicit_path_data(result.Context, member_expression, explicit_path_data,
-                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_explicit_path_data(result.Context, expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_explicit_path_data(result.Context, member_expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
             }
         }
     }
@@ -1449,35 +1405,32 @@ public:
                     if (left_declaration_expression != nullptr)
                     {
                         set_source_range.setEnd(Lexer::findLocationAfterToken(
-                            set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
-                            m_rewriter.getLangOpts(), true).getLocWithOffset(-1));
+                                                    set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
+                                                    m_rewriter.getLangOpts(), true)
+                                                    .getLocWithOffset(-1));
                     }
                     else
                     {
                         set_source_range.setEnd(Lexer::findLocationAfterToken(
-                            member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
-                            m_rewriter.getLangOpts(), true).getLocWithOffset(-1));
+                                                    member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
+                                                    m_rewriter.getLangOpts(), true)
+                                                    .getLocWithOffset(-1));
                     }
                     m_rewriter.ReplaceText(set_source_range, replacement_text);
                     g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
 
                     m_rewriter.InsertTextAfterToken(
                         op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    g_rewriter_history.push_back({SourceRange(op->getEndLoc()),
-                        "; w.update_row(); return w." + field_name + ";}()", insert_text_after_token});
+                    g_rewriter_history.push_back({SourceRange(op->getEndLoc()), "; w.update_row(); return w." + field_name + ";}()", insert_text_after_token});
 
-                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(),
-                                       m_rewriter.getSourceMgr(),
-                                       m_rewriter.getLangOpts()) + 1;
+                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name,
-                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(result.Context, op, table_name, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
                     else
                     {
-                        update_expression_explicit_path_data(result.Context, op, explicit_path_data,
-                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_explicit_path_data(result.Context, op, explicit_path_data, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
                 }
                 else
@@ -1657,17 +1610,13 @@ public:
                     }
                     m_rewriter.ReplaceText(
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
-                            replace_string);
-                    g_rewriter_history.push_back({SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
-                        replace_string, replace_text});
-                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(),
-                                       m_rewriter.getSourceMgr(),
-                                       m_rewriter.getLangOpts()) + 1;
+                        replace_string);
+                    g_rewriter_history.push_back({SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)), replace_string, replace_text});
+                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
 
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name,
-                            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(result.Context, op, table_name, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
                     else
                     {
@@ -1675,11 +1624,8 @@ public:
                         {
                             offset += 1;
                         }
-                        update_expression_explicit_path_data(result.Context, op, explicit_path_data,
-                            SourceRange(op->getBeginLoc().getLocWithOffset(-1),
-                                                         op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_explicit_path_data(result.Context, op, explicit_path_data, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
-
                 }
                 else
                 {
@@ -1871,6 +1817,18 @@ public:
                     + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
             }
             g_current_ruleset = ruleset_declaration->getName().str();
+
+            // Make sure each new ruleset name is unique.
+            for (const auto& r : g_rulesets)
+            {
+                if (r == g_current_ruleset)
+                {
+                    cerr << "Ruleset names must be unique - '" << g_current_ruleset << "' has been found multiple times." << endl;
+                    g_is_generation_error = true;
+                    return;
+                }
+            }
+
             g_rulesets.push_back(g_current_ruleset);
             g_current_ruleset_subscription.clear();
             g_current_ruleset_unsubscription.clear();
@@ -1883,8 +1841,7 @@ public:
                         ruleset_declaration->getBeginLoc(),
                         ruleset_declaration->getEndLoc()),
                     "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n");
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
-                        "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n", replace_text});
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()), "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n", replace_text});
             }
             else
             {
@@ -1898,10 +1855,8 @@ public:
                 // Replace closing brace with namespace comment.
                 m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
 
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
-                         "namespace " + g_current_ruleset + "\n{\n", replace_text});
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getEndLoc()),
-                        "}// namespace " + g_current_ruleset, replace_text});
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)), "namespace " + g_current_ruleset + "\n{\n", replace_text});
+                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset, replace_text});
             }
         }
     }
@@ -1972,8 +1927,7 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
                 "\"" + g_current_ruleset + "\"");
-            g_rewriter_history.push_back({SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                        "\"" + g_current_ruleset + "\"", replace_text});
+            g_rewriter_history.push_back({SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()), "\"" + g_current_ruleset + "\"", replace_text});
         }
 
         if (rule_expression != nullptr)
@@ -1982,8 +1936,7 @@ public:
                 SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
                 "gaia_rule_name");
             g_is_rule_context_rule_name_referenced = true;
-            g_rewriter_history.push_back({SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                        "gaia_rule_name", replace_text});
+            g_rewriter_history.push_back({SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()), "gaia_rule_name", replace_text});
         }
 
         if (event_expression != nullptr)
@@ -1991,8 +1944,7 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
                 "context->event_type");
-            g_rewriter_history.push_back({SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
-                        "context->event_type", replace_text});
+            g_rewriter_history.push_back({SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()), "context->event_type", replace_text});
         }
 
         if (type_expression != nullptr)
@@ -2000,8 +1952,7 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
                 "context->gaia_type");
-            g_rewriter_history.push_back({SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                        "context->gaia_type", replace_text});
+            g_rewriter_history.push_back({SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()), "context->gaia_type", replace_text});
         }
     }
 
@@ -2069,18 +2020,14 @@ public:
             {
                 m_rewriter.ReplaceText(expression_source_range, variable_name);
                 g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
-                auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(),
-                                       m_rewriter.getSourceMgr(),
-                                       m_rewriter.getLangOpts()) + 1;
+                auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                 if (explicit_path_present)
                 {
-                    update_expression_explicit_path_data(result.Context, expression, explicit_path_data,
-                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                    update_expression_explicit_path_data(result.Context, expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
                 }
                 else
                 {
-                    update_expression_used_tables(result.Context, expression, table_name,
-                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                    update_expression_used_tables(result.Context, expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
                 }
             }
         }
