@@ -26,6 +26,7 @@
 
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
+#include "schema_loader.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -202,19 +203,16 @@ public:
 protected:
     static void SetUpTestSuite()
     {
+        db_test_base_t::SetUpTestSuite();
+
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        // NOTE: to run this test manually, you need to set the env variable DDL_FILE
-        // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
-        get_server_instance().reset_server();
-        const char* ddl_file = getenv("DDL_FILE");
-        ASSERT_NE(ddl_file, nullptr);
         begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
-        load_catalog(ddl_file);
+        schema_loader_t::instance().load_schema("addr_book.ddl");
 
         event_manager_settings_t settings;
 

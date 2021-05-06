@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 #include <spdlog/fmt/fmt.h>
 #include <sys/prctl.h>
@@ -97,8 +98,20 @@ void server_instance_t::start(bool wait_for_init)
 {
     ASSERT_PRECONDITION(!m_is_initialized, "The server must not be initialized");
 
-    gaia_log::sys().debug("Starting server instance {}", instance_name());
     std::vector<const char*> command = get_server_command();
+
+    // TODO this should be wrapped into a if_debug_enabled()
+    std::string command_str;
+    for (const char* part : command)
+    {
+        if (part)
+        {
+            command_str.append(part);
+            command_str.append(" ");
+        }
+    }
+
+    gaia_log::sys().debug("Starting server instance {} with command '{}'", instance_name(), command_str);
 
     if (0 == (m_server_pid = ::fork()))
     {
@@ -149,6 +162,8 @@ void server_instance_t::restart(bool wait_for_init)
 void server_instance_t::reset_server()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
+
+    gaia_log::sys().debug("Resetting server instance {} and pid:{}", instance_name(), m_server_pid);
 
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.

@@ -105,7 +105,8 @@ protected:
     // these functions will only be called once for all tests.
     static void SetUpTestSuite()
     {
-        get_server_instance().reset_server();
+        db_test_base_t::SetUpTestSuite();
+
         begin_session();
         load_catalog();
     }
