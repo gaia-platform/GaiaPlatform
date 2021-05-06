@@ -2314,6 +2314,9 @@ bool server_t::txn_commit()
 {
     ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
 
+    // Perform pre-commit work.
+    perform_pre_commit_work_for_txn();
+
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
 
@@ -2331,9 +2334,6 @@ bool server_t::txn_commit()
     }
 
     ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
-
-    // Perform pre-commit work.
-    perform_pre_commit_work_for_txn();
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
