@@ -10,7 +10,13 @@
 #include "field_access.hpp"
 
 using namespace gaia::common;
-using namespace gaia::db::payload_types;
+
+namespace gaia
+{
+namespace db
+{
+namespace payload_types
+{
 
 data_holder_t::data_holder_t()
 {
@@ -74,3 +80,7 @@ int data_holder_t::compare(const data_holder_t& other) const
         throw unhandled_field_type(type);
     }
 }
+
+} // namespace payload_types
+} // namespace db
+} // namespace gaia

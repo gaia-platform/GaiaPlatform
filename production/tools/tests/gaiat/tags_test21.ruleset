@@ -4,10 +4,14 @@ ruleset test21
 {
     OnInsert(I:incubator)
     {
-        I->actuator.value += 1.0;
-        I->raised->A:animal->feeding.portion = 100;
+        // I->actuator.value += 1.0;
+        // I->raised->A:animal->feeding.portion = 100;
+        incubator->actuator.value += 1.0;
+        incubator->raised->A:animal->feeding.portion = 100;
     }
 }
 
 // GAIAPLAT-850
 // CHECK: Tag 'A' defined but not used.
+// GAIAPLAT-892
+// translator crash when I-> used instead of incubator->

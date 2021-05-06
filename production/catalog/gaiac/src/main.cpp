@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
 {
     gaia_log::initialize({});
 
-    int res = EXIT_SUCCESS;
+    server_instance_t server;
     string output_path;
     vector<string> db_names;
     string ddl_filename;
@@ -240,7 +240,6 @@ int main(int argc, char* argv[])
     parser_t parser;
     bool remove_persistent_store = false;
     const char* path_to_db_server = nullptr;
-    std::unique_ptr<server_instance_t> server = nullptr;
 
     // If no arguments are specified print the help.
     if (argc == 1)
@@ -333,12 +332,19 @@ int main(int argc, char* argv[])
         //            server_conf.reinitialize_persistent_store = true;
         //        }
 
-        server = std::make_unique<server_instance_t>(server_conf);
-        server->start();
+        server = server_instance_t{server_conf};
+        server.start();
     }
 
     gaia::db::begin_session();
-    auto close_db_session = scope_guard::make_scope_guard([&]() { gaia::db::end_session(); });
+
+    const auto cleanup = scope_guard::make_scope_guard([&server]() {
+        gaia::db::end_session();
+        if (server.is_initialized())
+        {
+            server.stop();
+        }
+    });
 
     if (mode == operate_mode_t::interactive)
     {
@@ -381,19 +387,14 @@ int main(int argc, char* argv[])
             {
                 cerr << "Unable to connect to the database server." << endl;
             }
-            res = EXIT_FAILURE;
+            return EXIT_FAILURE;
         }
         catch (gaia_exception& e)
         {
             cerr << c_error_prompt << e.what() << endl;
-            res = EXIT_FAILURE;
+            return EXIT_FAILURE;
         }
     }
 
-    if (server)
-    {
-        server->stop();
-    }
-
-    exit(res);
+    return EXIT_SUCCESS;
 }

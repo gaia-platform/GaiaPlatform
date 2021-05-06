@@ -116,26 +116,26 @@ ruleset test_queries
     OnInsert(R:registration)
     {
         // printf("OnInsert(registration) = %s\n", registration.reg_id);
-        // printf("Course name=%s\n", Course.Name);
+        // printf("course name=%s\n", course.Name);
         status = "Ineligible";
         // Has this student taken all prerequisites?
-        //>for (Course.requires->prereq.required_by->PC:Course) {
-        // for (const auto& p : Course.requires) {
+        //>for (course.requires->prereq.required_by->PC:course) {
+        // for (const auto& p : course.requires) {
         //>    bool taken = false;
-        //>    for (student->registration->TC:Course) {
-        //>        if (TC.CourseId == PC.CourseId) {
+        //>    for (student->registration->TC:course) {
+        //>        if (TC.courseId == PC.courseId) {
         //>            taken = true;
         //>            break;
         //>        }
         //>    }
         //>    if (!taken) {
-        //>        printf("student has not taken course %s\n", PC.CourseId);
+        //>        printf("student has not taken course %s\n", PC.courseId);
         //>        return;
         //>    }
         //>}
         //
         // Has this student passed all prerequisites with minimum grades?
-        //>for (Course.requires->P:prereq.required_by->Course->R:registration->S:student) {
+        //>for (course.requires->P:prereq.required_by->course->R:registration->S:student) {
         //>    if (student_id == S.student_id) {
         //>    if (R:Grade < P.MinGrade) {
         //>        return;
@@ -152,12 +152,14 @@ ruleset test_queries
     {
         int32_t age_sum = 0;
         // +++ Explicit navigation expression.
+        // GAIAPLAT-915
         // age_sum += /student.age;
         // --- Current equivalent.
         for (const auto& s : student_t::list())
         {
             age_sum += s.age();
         }
+
         g_oninsert2_value = age_sum;
 
         g_oninsert2_result = test_error_result_t::e_none;
@@ -166,26 +168,18 @@ ruleset test_queries
 
     OnUpdate(S:student)
     {
-        // Implicit query from student to Course.
-        // Result should be the total of hours for all Courses taken by student.
-        // This code should eventually work
-        if (false)
-        {
-            int32_t hours = 0;
-            hours += hours;
-            g_onupdate_value = hours;
-            g_onupdate_result = test_error_result_t::e_none;
-            g_onupdate_called = true;
-        }
-        else
-        {
-            // Temporary code:
-            g_onupdate_value += hours;
-        }
+        // Implicit query from student to course.
+        // Result should be the total of hours for all courses taken by student.
+        int32_t hours_total = 0;
+        hours_total += hours;
+        g_onupdate_value = hours_total;
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
     }
 
     OnUpdate (registration)
     {
         g_onupdate_value = total_hours + hours;
+        g_onupdate_called = true;
     }
 }

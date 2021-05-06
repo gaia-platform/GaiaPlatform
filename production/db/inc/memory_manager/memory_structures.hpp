@@ -32,11 +32,22 @@ struct memory_manager_metadata_t
     // will keep shrinking. We'll use this offset to track the start of the block.
     std::atomic<address_offset_t> start_unused_memory_offset;
 
-    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 1];
+    // Keep track of the highest deallocated chunk offset,
+    // to limit bitmap searches for deallocated blocks.
+    std::atomic<chunk_offset_t> highest_deallocated_chunk_offset;
+
+    // These reserved variables account for how much space is remaining unused
+    // out of the space we reserved for this metadata structure.
+    // The reserved array covers the bulk of the space as a multiple of 8B words
+    // and any remainder smaller than 8B is covered by individual variables.
+    uint16_t reserved1;
+    uint32_t reserved2;
+    uint64_t reserved[c_chunk_size / sizeof(uint64_t) - c_chunk_bitmap_size - 2];
 
     inline void clear()
     {
         start_unused_memory_offset = c_invalid_slot_offset;
+        highest_deallocated_chunk_offset = c_invalid_chunk_offset;
         std::fill(chunk_bitmap, chunk_bitmap + c_chunk_bitmap_size, 0);
     }
 };
@@ -72,6 +83,8 @@ struct chunk_manager_metadata_t
 
     slot_offset_t last_committed_slot_offset;
 
+    // These reserved variables account for how much space is remaining unused
+    // out of the space we reserved for this metadata structure.
     uint16_t reserved1;
     uint32_t reserved2;
     uint64_t reserved3;

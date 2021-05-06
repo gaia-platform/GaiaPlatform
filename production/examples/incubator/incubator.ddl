@@ -3,6 +3,10 @@
 -- All rights reserved.
 ---------------------------------------------
 
+create database if not exists incubator;
+
+use incubator;
+
 create table if not exists incubator (
       name string,
       is_on bool,

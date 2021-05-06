@@ -1,3 +1,12 @@
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
+
+create database if not exists campus;
+
+use campus;
+
 create table if not exists persons
 (
     first_name string,
