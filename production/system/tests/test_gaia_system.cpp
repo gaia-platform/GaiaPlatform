@@ -5,25 +5,20 @@
 
 #include <unistd.h>
 
-#include <chrono>
-
 #include <atomic>
-#include <iostream>
 #include <thread>
 
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
-#include "gaia/system.hpp"
 
-#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "gaia_addr_book.h"
+#include "schema_loader.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -47,17 +42,13 @@ class gaia_system_test : public db_test_base_t
 public:
     static void SetUpTestSuite()
     {
-        get_server_instance().reset_server();
-        begin_session();
+        db_test_base_t::SetUpTestSuite();
 
-        // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.
-        // Currently this is under production/schemas/test/addr_book.
-        const char* ddl_file = getenv("DDL_FILE");
-        ASSERT_NE(ddl_file, nullptr);
+        begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
-        gaia::catalog::load_catalog(ddl_file);
+        schema_loader_t::instance().load_schema("addr_book.ddl");
 
         gaia::rules::initialize_rules_engine();
 

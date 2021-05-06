@@ -10,7 +10,6 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
 
 #include "rule_checker.hpp"
 
@@ -106,7 +105,7 @@ protected:
     // these functions will only be called once for all tests.
     static void SetUpTestSuite()
     {
-        reset_server();
+        get_server_instance().reset_server();
         begin_session();
         load_catalog();
     }

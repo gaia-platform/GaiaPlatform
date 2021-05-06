@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "gaia/db/db.hpp"
+#include <cpptoml.h>
 
-#include "cpptoml.h"
+#include "gaia/db/db.hpp"
 
 namespace gaia
 {

@@ -37,10 +37,6 @@ using std::make_pair;
 using std::map;
 using std::string;
 
-// TODO (Mihir) - Run with ctest?
-// Sample usage:
-// test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/core"
-
 class recovery_test : public ::testing::Test
 {
 public:
@@ -105,6 +101,15 @@ protected:
         gaia::db::config::set_default_session_opts(session_opts);
     }
 
+    static void TearDownTestSuite()
+    {
+        if (s_server.is_initialized())
+        {
+            s_server.stop();
+        }
+        s_server.delete_data_dir();
+    }
+
     void SetUp() override
     {
         s_server.start();
@@ -118,11 +123,8 @@ protected:
 
     void TearDown() override
     {
-        if (s_server.is_initialized())
-        {
-            s_server.stop();
-            s_server.delete_data_dir();
-        }
+        s_server.stop();
+        s_server.delete_data_dir();
     }
 
 private:
@@ -378,7 +380,6 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
     begin_session();
     ASSERT_TRUE(get_count() == initial_record_count || get_count() == 0);
     end_session();
-    s_server.stop();
 }
 
 void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test()

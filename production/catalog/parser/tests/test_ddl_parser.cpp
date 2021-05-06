@@ -3,19 +3,21 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <cstdlib>
-
 #include "gtest/gtest.h"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 
 #include "gaia_parser.hpp"
-#include "yy_parser.hpp"
 
 using namespace std;
 using namespace gaia::catalog::ddl;
 
-TEST(catalog_ddl_parser_test, create_table)
+class catalog_ddl_parser_test : public gaia::db::db_test_base_t
+{
+};
+
+TEST_F(catalog_ddl_parser_test, create_table)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
@@ -30,7 +32,7 @@ TEST(catalog_ddl_parser_test, create_table)
     EXPECT_FALSE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_if_not_exists)
+TEST_F(catalog_ddl_parser_test, create_table_if_not_exists)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
@@ -45,7 +47,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
     EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_multiple_fields)
+TEST_F(catalog_ddl_parser_test, create_table_multiple_fields)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
@@ -76,7 +78,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     EXPECT_EQ(field->active, false);
 }
 
-TEST(catalog_ddl_parser_test, drop_table)
+TEST_F(catalog_ddl_parser_test, drop_table)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("DROP TABLE t;"));
@@ -102,7 +104,7 @@ TEST(catalog_ddl_parser_test, drop_table)
     EXPECT_TRUE(drop_stmt->if_exists);
 }
 
-TEST(catalog_ddl_parser_test, case_sensitivity)
+TEST_F(catalog_ddl_parser_test, case_sensitivity)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
@@ -115,7 +117,7 @@ TEST(catalog_ddl_parser_test, case_sensitivity)
     ASSERT_NO_THROW(parser.parse_line("DrOp TaBle T;"));
 }
 
-TEST(catalog_ddl_parser_test, create_active_field)
+TEST_F(catalog_ddl_parser_test, create_active_field)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
@@ -146,7 +148,7 @@ TEST(catalog_ddl_parser_test, create_active_field)
     EXPECT_EQ(field->active, true);
 }
 
-TEST(catalog_ddl_parser_test, create_database)
+TEST_F(catalog_ddl_parser_test, create_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE db;"));
@@ -161,7 +163,7 @@ TEST(catalog_ddl_parser_test, create_database)
     EXPECT_FALSE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_database_if_not_exists)
+TEST_F(catalog_ddl_parser_test, create_database_if_not_exists)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
@@ -176,7 +178,7 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists)
     EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_in_database)
+TEST_F(catalog_ddl_parser_test, create_table_in_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE d.t (id INT32);"));
@@ -191,7 +193,7 @@ TEST(catalog_ddl_parser_test, create_table_in_database)
     EXPECT_EQ(create_stmt->database, "d");
 }
 
-TEST(catalog_ddl_parser_test, drop_database)
+TEST_F(catalog_ddl_parser_test, drop_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("DROP DATABASE d;"));
@@ -217,7 +219,7 @@ TEST(catalog_ddl_parser_test, drop_database)
     EXPECT_TRUE(drop_stmt->if_exists);
 }
 
-TEST(catalog_ddl_parser_test, illegal_characters)
+TEST_F(catalog_ddl_parser_test, illegal_characters)
 {
     parser_t parser;
     EXPECT_THROW(parser.parse_line("CREATE TABLE t(id : int8);"), parsing_error);
@@ -225,7 +227,7 @@ TEST(catalog_ddl_parser_test, illegal_characters)
     EXPECT_THROW(parser.parse_line("CREATE TABLE t(id - int8);"), parsing_error);
 }
 
-TEST(catalog_ddl_parser_test, fixed_size_array)
+TEST_F(catalog_ddl_parser_test, fixed_size_array)
 {
     parser_t parser;
     ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[2]);"), parsing_error);
@@ -233,13 +235,13 @@ TEST(catalog_ddl_parser_test, fixed_size_array)
     ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[0]);"), parsing_error);
 }
 
-TEST(catalog_ddl_parser_test, vector_of_strings)
+TEST_F(catalog_ddl_parser_test, vector_of_strings)
 {
     parser_t parser;
     ASSERT_THROW(parser.parse_line("CREATE TABLE t (c STRING[]);"), parsing_error);
 }
 
-TEST(catalog_ddl_parser_test, code_comments)
+TEST_F(catalog_ddl_parser_test, code_comments)
 {
     const string correct_ddl_text = R"(
 -------------------------------
@@ -265,7 +267,7 @@ CREATE TABLE t -- create table t
     ASSERT_THROW(parser.parse_line(incorrect_ddl_text), parsing_error);
 }
 
-TEST(catalog_ddl_parser_test, create_empty_table)
+TEST_F(catalog_ddl_parser_test, create_empty_table)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t ();"));
@@ -281,7 +283,7 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     EXPECT_EQ(create_stmt->fields.size(), 0);
 }
 
-TEST(catalog_ddl_parser_test, create_relationship)
+TEST_F(catalog_ddl_parser_test, create_relationship)
 {
     parser_t parser;
 

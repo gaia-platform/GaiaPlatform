@@ -12,9 +12,7 @@
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
 
-#include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
 

@@ -207,7 +207,7 @@ protected:
 
         // NOTE: to run this test manually, you need to set the env variable DDL_FILE
         // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
-        reset_server();
+        get_server_instance().reset_server();
         const char* ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
         begin_session();

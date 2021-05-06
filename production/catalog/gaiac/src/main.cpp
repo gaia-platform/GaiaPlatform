@@ -21,6 +21,8 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
+#include <gaia_internal/common/system_error.hpp>
+#include <gaia_internal/db/gaia_db_internal.hpp>
 
 #include "command.hpp"
 #include "gaia_parser.hpp"
