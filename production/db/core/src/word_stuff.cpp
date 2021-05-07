@@ -276,8 +276,6 @@ void crdb_word_stuff_encode(std::vector<iovec>* txn_write_segments, uint8_t* hel
 
         run_size = next_forbidden - src;
 
-        // Pass run size to be encoded later.
-        // Two bytes for the run size.
         helper_buffer_ptr = encode_run_size(helper_buffer_ptr, run_size);
         txn_write_segments->push_back({helper_buffer_ptr - CRDB_WORD_STUFF_HEADER_SIZE, CRDB_WORD_STUFF_HEADER_SIZE});
         txn_write_segments->push_back({(void*)src, run_size});
@@ -307,8 +305,8 @@ void crdb_word_stuff_encode(std::vector<iovec>* txn_write_segments, uint8_t* hel
 
     if (append_header)
     {
-        // helper_buffer_ptr = crdb_word_stuff_header(helper_buffer_ptr);
-        // txn_write_segments->push_back({helper_buffer_ptr - CRDB_WORD_STUFF_HEADER_SIZE, CRDB_WORD_STUFF_HEADER_SIZE});
+        helper_buffer_ptr = crdb_word_stuff_header(helper_buffer_ptr);
+        txn_write_segments->push_back({helper_buffer_ptr - CRDB_WORD_STUFF_HEADER_SIZE, CRDB_WORD_STUFF_HEADER_SIZE});
     }
 }
 
