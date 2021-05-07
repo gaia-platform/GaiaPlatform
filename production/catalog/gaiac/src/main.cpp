@@ -182,23 +182,27 @@ bool valid_db_name(const string& db_name)
 
 string usage()
 {
+    // TODO gaiac should read the config file
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -d|--db-name <dbname>    Specify the database name.\n"
-          "  -i|--interactive         Interactive prompt, as a REPL.\n"
-          "  -g|--generate            Generate direct access API header files.\n"
-          "  -o|--output <path>       Set the path to all generated files.\n"
+          "  -n|--instance-name <name> Specify the database instance name."
+          "                            If not specified will use "
+       << c_default_instance_name << "."
+                                     "                            If 'rnd' is specified will use a "
+                                     "  -d|--db-name <dbname>     Specify the database name.\n"
+                                     "  -i|--interactive          Interactive prompt, as a REPL.\n"
+                                     "  -g|--generate             Generate direct access API header files.\n"
+                                     "  -o|--output <path>        Set the path to all generated files.\n"
 #ifdef DEBUG
-          "  -p|--parse-trace         Print parsing trace.\n"
-          "  -s|--scan-trace          Print scanning trace.\n"
-          "  -t|--db-server-path      Start the DB server (for testing purposes).\n"
-          "  --destroy-db             Destroy the persistent store.\n"
+                                     "  -p|--parse-trace          Print parsing trace.\n"
+                                     "  -s|--scan-trace           Print scanning trace.\n"
+                                     "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
 #endif
-          "  <ddl_file>               Process the DDLs in the file.\n"
-          "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-          "                           The database will be created automatically.\n"
-          "  -h|--help                Print help information.\n"
-          "  -v|--version             Version information.\n";
+                                     "  <ddl_file>                Process the DDLs in the file.\n"
+                                     "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+                                     "                            The database will be created automatically.\n"
+                                     "  -h|--help                 Print help information.\n"
+                                     "  -v|--version              Version information.\n";
     return ss.str();
 }
 
@@ -234,6 +238,7 @@ int main(int argc, char* argv[])
 
     server_instance_t server;
     string output_path;
+    string instance_name = c_default_instance_name;
     vector<string> db_names;
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
@@ -301,6 +306,15 @@ int main(int argc, char* argv[])
             }
             db_names.push_back(db_name);
         }
+        else if (argv[i] == string("-n") || argv[i] == string("--instance-name"))
+        {
+            if (++i > argc - 1)
+            {
+                cerr << c_error_prompt << "Missing instance name." << endl;
+                exit(EXIT_FAILURE);
+            }
+            instance_name = argv[i];
+        }
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
             cout << usage() << endl;
@@ -311,10 +325,6 @@ int main(int argc, char* argv[])
             cout << version() << endl;
             exit(EXIT_SUCCESS);
         }
-        else if (argv[i] == string("--destroy-db"))
-        {
-            remove_persistent_store = true;
-        }
         else
         {
             ddl_filename = argv[i];
@@ -324,19 +334,16 @@ int main(int argc, char* argv[])
     if (path_to_db_server)
     {
         server_instance_conf_t server_conf = server_instance_conf_t::get_default();
-        server_conf.instance_name = c_default_instance_name;
+        server_conf.instance_name = instance_name;
         server_conf.server_exec_path = string(path_to_db_server) + "/" + string(c_db_server_exec_name);
-
-        //        if (remove_persistent_store)
-        //        {
-        //            server_conf.reinitialize_persistent_store = true;
-        //        }
 
         server = server_instance_t{server_conf};
         server.start();
     }
 
-    gaia::db::begin_session();
+    gaia::db::session_opts_t session_opts;
+    session_opts.instance_name = instance_name;
+    gaia::db::begin_session(session_opts);
 
     const auto cleanup = scope_guard::make_scope_guard([&server]() {
         gaia::db::end_session();
