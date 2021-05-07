@@ -128,9 +128,13 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     size_t searchStartPosition = 0;
     unordered_map<string, string> tagMap;
     vector<string> path;
-    if (pathString.front() == '/')
+    if (pathString.front() == '/' || pathString.front() == '@')
     {
         searchStartPosition = 1;
+    }
+    if (pathString.rfind("/@") == 0)
+    {
+        searchStartPosition = 2;
     }
     string tag;
     size_t tagPosition = 0, arrowPosition = 0;

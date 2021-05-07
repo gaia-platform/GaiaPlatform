@@ -1201,8 +1201,12 @@ public:
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
-                expression_source_range
-                    = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+                if (!explicit_path_present)
+                {
+                   expression_source_range
+                        = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+                }
+
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
@@ -1239,8 +1243,12 @@ public:
                 }
                 if (decl->hasAttr<GaiaFieldValueAttr>())
                 {
-                    expression_source_range
-                        = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+                    if (!explicit_path_present)
+                    {
+                        expression_source_range
+                            = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+                    }
+
                     if (!validate_and_add_active_field(table_name, field_name, true))
                     {
                         return;
