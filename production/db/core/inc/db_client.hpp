@@ -132,7 +132,7 @@ private:
     get_fd_stream_generator_for_socket(int stream_socket);
 
     static std::function<std::optional<common::gaia_id_t>()>
-    extend_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
+    augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
 
     /**
      *  Check if an event should be generated for a given type.

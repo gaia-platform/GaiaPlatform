@@ -28,6 +28,7 @@ struct record_data_t
     gaia::db::gaia_locator_t locator;
 
     record_data_t();
+    record_data_t(gaia::db::gaia_locator_t locator);
 };
 
 struct record_iterator_t;
@@ -35,34 +36,38 @@ class record_list_t;
 
 // A record list is implemented as a list of "ranges" that are arrays of record_data_t instances.
 // This class implements a range.
+// The methods of this class take no locks.
 class record_range_t
 {
     friend struct record_iterator_t;
     friend class record_list_t;
 
 public:
-    record_range_t(size_t range_size);
+    record_range_t(record_list_t* record_list);
     ~record_range_t();
 
     // Compact a range by removing deleted entries.
     void compact();
 
     // Add and get an element.
-    void add(gaia::db::gaia_locator_t locator);
+    // The addition may fail when it's running concurrently,
+    // so its return value indicates whether it succeeded or not.
+    bool add(const record_data_t& record_data);
     record_data_t& get(size_t index);
 
     // Add and read the next range.
     void add_next_range();
     inline record_range_t* next_range();
 
-    // Tells whether the range contains any records marked as deleted.
-    inline bool has_deletions();
-
     // Tells whether the range is full.
     inline bool is_full() const;
 
 protected:
-    size_t m_range_size;
+    void clear();
+
+protected:
+    // A back pointer to the record_list that the range belongs to.
+    record_list_t* m_record_list;
 
     // The record range: an array of record_data_t structures.
     record_data_t* m_record_range;
@@ -70,13 +75,13 @@ protected:
     // The next available index in the array.
     std::atomic<size_t> m_next_available_index;
 
-    // Tells whether some of the range's entries have been deleted.
+    // Tells whether some of the range's entries have been marked as deleted.
     std::atomic<bool> m_has_deletions;
 
     // Pointer to the next range.
-    record_range_t* m_next_range;
+    std::atomic<record_range_t*> m_next_range;
 
-    // A lock for synchronizing operations on a range.
+    // A lock for synchronizing operations on the range.
     mutable std::shared_mutex m_lock;
 };
 
@@ -84,9 +89,6 @@ protected:
 // An iterator's destructor will release any locks held during iteration.
 struct record_iterator_t
 {
-    // A pointer to the record_list over which we are iterating.
-    record_list_t* record_list;
-
     // The position of the iterator is represented
     // by the current range and the current index in the range.
     record_range_t* current_range;
@@ -95,7 +97,7 @@ struct record_iterator_t
     record_iterator_t();
     ~record_iterator_t();
 
-    // Tells whether the iterator position represents the end of the range.
+    // Tells whether the iterator position represents the end of the iteration.
     inline bool at_end();
 };
 
@@ -105,9 +107,14 @@ struct record_iterator_t
 // we don't expect ranges to disappear from a list.
 //
 // The synchronization of the access to the record list works as follows:
-// - Additions will take an exclusive lock on the first range they find with available space.
+// - Additions will take a shared lock on the first range they find with available space
+// (or on the last range, if the list is full).
 // - Iterations will take a shared lock on the current range. Entries are marked as deleted during iterations.
 // - Compaction (of entries within a range) will take an exclusive lock on the ranges that can be compacted.
+//
+// NOTE: An additional compaction could be implemented for removing unnecessary ranges.
+// It synchronize using a global lock at list level.
+// This is not done now because of the current plan of reimplementing all these structures in shared memory.
 class record_list_t
 {
     friend struct record_iterator_t;
@@ -119,13 +126,16 @@ public:
     // Reset the list to an empty list that has a single range allocated.
     // This method expects the record_list instance to no longer be in use by any other threads.
     // There is no synchronization to protect this operation from other concurrent access.
-    void reset();
+    void reset(size_t range_size);
 
     // Compact the ranges of the list by removing deleted entries.
     void compact();
 
-    // Add a recod's locator to our record list.
+    // Add a record's data to our record list.
     void add(gaia::db::gaia_locator_t locator);
+
+    // Get the size of a range in this list.
+    inline size_t get_range_size();
 
     // Start an iteration.
     // Return true if the iterator was positioned on a valid record
@@ -145,6 +155,12 @@ public:
 
 protected:
     void clear();
+    void delete_list();
+
+    // Seek the first valid record starting from the current iterator position.
+    // This may be the record at the current iterator position, if that position
+    // references a valid (not marked as deleted) record.
+    static void seek(record_iterator_t& iterator);
 
 protected:
     size_t m_range_size;
@@ -154,11 +170,6 @@ protected:
     // This approximate count of deletions is only used
     // to determine when to schedule the next list compaction.
     std::atomic<size_t> m_approximate_count_deletions;
-
-    // Seek the first valid record starting from the current iterator position.
-    // This may be the current iterator position, if it references a valid
-    // (not deleted) record.
-    static void seek(record_iterator_t& iterator);
 };
 
 #include "record_list.inc"

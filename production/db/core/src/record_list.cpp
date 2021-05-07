@@ -18,20 +18,40 @@ record_data_t::record_data_t()
     locator = c_invalid_gaia_locator;
 }
 
-record_range_t::record_range_t(size_t range_size)
+record_data_t::record_data_t(gaia_locator_t locator)
 {
-    ASSERT_PRECONDITION(range_size > 0, "Range size must be greater than 0");
+    this->locator = locator;
+}
 
-    m_range_size = range_size;
-    m_record_range = new record_data_t[m_range_size];
-    m_next_available_index = 0;
-    m_has_deletions = false;
-    m_next_range = nullptr;
+record_range_t::record_range_t(record_list_t* record_list)
+{
+    ASSERT_PRECONDITION(record_list != nullptr, "Record list passed to record_range_t constructor must not be null!");
+
+    clear();
+
+    m_record_list = record_list;
+    m_record_range = new record_data_t[m_record_list->get_range_size()];
+
+    ASSERT_POSTCONDITION(
+        m_record_range[0].locator == c_invalid_gaia_locator, "Record range is not properly initialized!");
+    ASSERT_POSTCONDITION(
+        m_record_range[m_record_list->get_range_size() - 1].locator == c_invalid_gaia_locator,
+        "Record range is not properly initialized!");
 }
 
 record_range_t::~record_range_t()
 {
     delete[] m_record_range;
+    clear();
+}
+
+void record_range_t::clear()
+{
+    m_record_list = nullptr;
+    m_record_range = nullptr;
+    m_next_available_index = 0;
+    m_has_deletions = false;
+    m_next_range = nullptr;
 }
 
 void record_range_t::compact()
@@ -53,32 +73,57 @@ void record_range_t::compact()
 
     m_next_available_index = write_index;
     m_has_deletions = false;
+
+    ASSERT_POSTCONDITION(
+        m_next_available_index < m_record_list->get_range_size(),
+        "Compaction has not made any space available in the range!");
 }
 
-void record_range_t::add(gaia_locator_t locator)
+bool record_range_t::add(const record_data_t& record_data)
 {
-    ASSERT_PRECONDITION(locator != c_invalid_gaia_locator, "An invalid locator was passed to record_range_t::add()!");
-    ASSERT_PRECONDITION(!is_full(), "Range is full!");
+    ASSERT_PRECONDITION(
+        record_data.locator != c_invalid_gaia_locator, "An invalid locator was passed to record_range_t::add()!");
 
-    int index = m_next_available_index++;
+    size_t index = m_next_available_index++;
+    if (index < m_record_list->get_range_size())
+    {
+        m_record_range[index] = record_data;
+        return true;
+    }
+    else
+    {
+        ASSERT_INVARIANT(
+            m_next_available_index >= m_record_list->get_range_size(),
+            "m_next_available_index should have indicated that no next element is available!");
 
-    m_record_range[index].locator = locator;
+        // We may have bumped this too far - reset it back to just past the last range element.
+        m_next_available_index = m_record_list->get_range_size();
+        return false;
+    }
 }
 
 record_data_t& record_range_t::get(size_t index)
 {
     ASSERT_PRECONDITION(m_record_range != nullptr, "Range is not allocated!");
-    ASSERT_PRECONDITION(index < m_range_size, "Range index is out of bounds!");
-    ASSERT_PRECONDITION(index < m_next_available_index, "Range index is out of allocated bounds!");
+    ASSERT_PRECONDITION(index < m_record_list->get_range_size(), "Range index is out of range bounds!");
+    ASSERT_PRECONDITION(index < m_next_available_index, "Range index is out of used range bounds!");
 
     return m_record_range[index];
 }
 
 void record_range_t::add_next_range()
 {
-    ASSERT_PRECONDITION(m_next_range == nullptr, "Cannot add next range because one already exists!");
+    auto next_range = new record_range_t(m_record_list);
+    record_range_t* expected_next_range = nullptr;
 
-    m_next_range = new record_range_t(m_range_size);
+    // Try to set the next range. If another threads succeeds before us,
+    // just delete the range we created and continue.
+    if (!m_next_range.compare_exchange_strong(expected_next_range, next_range))
+    {
+        delete next_range;
+    }
+
+    ASSERT_POSTCONDITION(m_next_range != nullptr, "The next range should have been set!");
 }
 
 record_iterator_t::record_iterator_t()
@@ -98,20 +143,23 @@ record_iterator_t::~record_iterator_t()
 
 record_list_t::record_list_t(size_t range_size)
 {
-    ASSERT_PRECONDITION(range_size > 0, "Range size must be greater than 0");
-
-    m_range_size = range_size;
-    m_record_ranges = new record_range_t(m_range_size);
-
-    m_approximate_count_deletions = 0;
+    clear();
+    reset(range_size);
 }
 
 record_list_t::~record_list_t()
 {
-    clear();
+    delete_list();
 }
 
 void record_list_t::clear()
+{
+    m_range_size = 0;
+    m_record_ranges = nullptr;
+    m_approximate_count_deletions = 0;
+}
+
+void record_list_t::delete_list()
 {
     // Iterate over the range list and deallocate each range.
     while (m_record_ranges != nullptr)
@@ -121,16 +169,20 @@ void record_list_t::clear()
         delete current_range;
     }
 
-    ASSERT_POSTCONDITION(m_record_ranges == nullptr, "Failed to clear record_list!");
+    ASSERT_INVARIANT(m_record_ranges == nullptr, "Failed to clear record_list!");
+
+    clear();
 }
 
-void record_list_t::reset()
+void record_list_t::reset(size_t range_size)
 {
-    // Clear record list.
-    clear();
+    ASSERT_PRECONDITION(range_size > 0, "Range size must be greater than 0");
 
-    // Create a fresh new range.
-    m_record_ranges = new record_range_t(m_range_size);
+    // Delete record list.
+    delete_list();
+
+    m_range_size = range_size;
+    m_record_ranges = new record_range_t(this);
 }
 
 void record_list_t::compact()
@@ -140,7 +192,7 @@ void record_list_t::compact()
          current_range != nullptr;
          current_range = current_range->next_range())
     {
-        if (current_range->has_deletions())
+        if (current_range->m_has_deletions)
         {
             // Take an exclusive lock before compacting the range.
             unique_lock unique_range_lock(current_range->m_lock);
@@ -154,22 +206,26 @@ void record_list_t::add(gaia_locator_t locator)
 {
     ASSERT_PRECONDITION(locator != c_invalid_gaia_locator, "An invalid locator was passed to record_list_t::add()!");
 
+    record_data_t record_data(locator);
+
     // We'll iterate over our list and look for a range with available space.
-    record_range_t* current_range = m_record_ranges;
-    while (current_range != nullptr)
+
+    for (record_range_t* current_range = m_record_ranges;
+         current_range != nullptr;
+         current_range = current_range->next_range())
     {
         // Only take a lock on the current range if it still has space available
         // or if it's the last range and we need to add a new one.
         if (!current_range->is_full() || current_range->next_range() == nullptr)
         {
-            // Take an exclusive lock before attempting to add the new locator.
-            unique_lock unique_range_lock(current_range->m_lock);
+            // Take a shared lock before attempting to add the new locator.
+            // This is safe because the operations that we perform here on the range
+            // are using atomic operations to ensure safety.
+            shared_lock shared_range_lock(current_range->m_lock);
 
-            // If the current range still has space, add our record to it.
-            if (!current_range->is_full())
+            // If the range is not full and we succeed the addition, we're done.
+            if (!current_range->is_full() && current_range->add(record_data))
             {
-                current_range->add(locator);
-
                 return;
             }
 
@@ -179,13 +235,11 @@ void record_list_t::add(gaia_locator_t locator)
                 current_range->add_next_range();
             }
 
-            unique_range_lock.unlock();
+            shared_range_lock.unlock();
         }
 
-        // Check the next range.
-        // This is guaranteed to exist because of the above logic.
+        // The next range is guaranteed to exist because of the above logic.
         ASSERT_INVARIANT(current_range->next_range() != nullptr, "There is no next range in the record list!");
-        current_range = current_range->next_range();
     }
 }
 
@@ -194,8 +248,14 @@ void record_list_t::seek(record_iterator_t& iterator)
 {
     while (!iterator.at_end())
     {
+        // m_next_available_index can sometimes be bumped beyond the end of the range,
+        // so we need to check it against the range size as well.
+        size_t range_index_limit = std::min(
+            iterator.current_range->m_next_available_index.load(),
+            iterator.current_range->m_record_list->get_range_size());
+
         // Search for a non-deleted record in the current range.
-        for (; iterator.current_index < iterator.current_range->m_next_available_index; iterator.current_index++)
+        for (; iterator.current_index < range_index_limit; iterator.current_index++)
         {
             if (iterator.current_range->get(iterator.current_index).locator != c_invalid_gaia_locator)
             {
@@ -219,9 +279,6 @@ void record_list_t::seek(record_iterator_t& iterator)
 
 bool record_list_t::start(record_iterator_t& iterator)
 {
-    // Store a reference to itself in the iterator.
-    iterator.record_list = this;
-
     // Position iterator to beginning of list.
     iterator.current_range = m_record_ranges;
     iterator.current_index = 0;
@@ -274,8 +331,9 @@ void record_list_t::mark_record_data_as_deleted(record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 
+    // We mark a record data entry as deleted by setting its locator to an invalid value.
     iterator.current_range->get(iterator.current_index).locator = c_invalid_gaia_locator;
     iterator.current_range->m_has_deletions = true;
 
-    iterator.record_list->m_approximate_count_deletions++;
+    iterator.current_range->m_record_list->m_approximate_count_deletions++;
 }

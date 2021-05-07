@@ -74,7 +74,7 @@ void record_list_manager_t::reset_record_list(gaia_type_t type_id)
     // If the list was never created, then we shouldn't do anything.
     if (!!list)
     {
-        list->reset();
+        list->reset(c_record_list_range_size);
     }
 }
 

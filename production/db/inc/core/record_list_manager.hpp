@@ -61,7 +61,7 @@ protected:
         gaia::common::gaia_type_t type_id);
 
 protected:
-    static constexpr size_t c_record_list_range_size = 200;
+    static constexpr size_t c_record_list_range_size = 256;
 
     // The singleton instance.
     static record_list_manager_t s_record_list_manager;

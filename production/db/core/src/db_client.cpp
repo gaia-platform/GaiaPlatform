@@ -157,13 +157,14 @@ client_t::get_stream_generator_for_socket(int stream_socket)
 }
 
 std::function<std::optional<gaia_id_t>()>
-client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
+client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
 {
     bool has_exhausted_id_generator = false;
     size_t log_index = 0;
 
-    std::function<std::optional<gaia_id_t>()> extended_id_generator
+    std::function<std::optional<gaia_id_t>()> augmented_id_generator
         = [id_generator, has_exhausted_id_generator, log_index, type]() mutable -> std::optional<gaia_id_t> {
+        // First, we use the ig_generator until it's exhausted.
         if (!has_exhausted_id_generator)
         {
             std::optional<gaia_id_t> id_opt = id_generator();
@@ -177,6 +178,7 @@ client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::opti
             }
         }
 
+        // Once the id_generator is exhausted, we start iterating over our transaction log.
         if (has_exhausted_id_generator)
         {
             while (log_index < s_log.data()->record_count)
@@ -204,7 +206,7 @@ client_t::extend_id_generator_for_type(gaia_type_t type, std::function<std::opti
         return std::nullopt;
     };
 
-    return extended_id_generator;
+    return augmented_id_generator;
 }
 
 std::function<std::optional<gaia_id_t>()>
@@ -218,7 +220,11 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
     cleanup_stream_socket.dismiss();
 
-    return extend_id_generator_for_type(type, id_generator);
+    // We need to augment the server-based id generator with a local generator
+    // that will also return the elements that have been added by the client
+    // in the current transaction, which the server does not yet know about.
+    auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
+    return augmented_id_generator;
 }
 
 static void build_client_request(
