@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "gaia_internal/common/queue.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
@@ -118,6 +119,12 @@ struct record_iterator_t
 class record_list_t
 {
     friend struct record_iterator_t;
+    friend class record_range_t;
+
+protected:
+    // How many extra elements than needed should we wait to accumulate in a queue
+    // before extracting them, to prevent locking conflicts with additions.
+    const size_t c_dequeue_extra_buffer_size = 2;
 
 public:
     record_list_t(size_t range_size);
@@ -133,6 +140,9 @@ public:
 
     // Add a record's data to our record list.
     void add(gaia::db::gaia_locator_t locator);
+
+    // Request the deletion of a record entry.
+    void request_deletion(gaia::db::gaia_locator_t locator);
 
     // Get the size of a range in this list.
     inline size_t get_range_size();
@@ -157,6 +167,9 @@ protected:
     void clear();
     void delete_list();
 
+    // Mark records as deleted.
+    void perform_deletion_marking(size_t deletion_batch_size);
+
     // Seek the first valid record starting from the current iterator position.
     // This may be the record at the current iterator position, if that position
     // references a valid (not marked as deleted) record.
@@ -167,9 +180,15 @@ protected:
 
     record_range_t* m_record_ranges;
 
-    // This approximate count of deletions is only used
+    gaia::common::queue_t<gaia::db::gaia_locator_t> m_deletions_requested;
+
+    // These booleans are used to ensure that only one operation can be attempted at a time.
+    std::atomic<bool> m_is_deletion_marking_in_progress;
+    std::atomic<bool> m_is_compaction_in_progress;
+
+    // This count of deletion markings is only used
     // to determine when to schedule the next list compaction.
-    std::atomic<size_t> m_approximate_count_deletions;
+    std::atomic<size_t> m_count_deletion_markings;
 };
 
 #include "record_list.inc"

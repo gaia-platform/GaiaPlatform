@@ -5,6 +5,8 @@
 
 #include "record_list.hpp"
 
+#include <unordered_map>
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
@@ -68,6 +70,10 @@ void record_range_t::compact()
         if (m_record_range[read_index].locator != c_invalid_gaia_locator)
         {
             m_record_range[write_index++] = m_record_range[read_index];
+        }
+        else
+        {
+            m_record_list->m_count_deletion_markings--;
         }
     }
 
@@ -156,7 +162,9 @@ void record_list_t::clear()
 {
     m_range_size = 0;
     m_record_ranges = nullptr;
-    m_approximate_count_deletions = 0;
+    m_is_deletion_marking_in_progress = false;
+    m_is_compaction_in_progress = false;
+    m_count_deletion_markings = 0;
 }
 
 void record_list_t::delete_list()
@@ -204,12 +212,12 @@ void record_list_t::compact()
 
 void record_list_t::add(gaia_locator_t locator)
 {
-    ASSERT_PRECONDITION(locator != c_invalid_gaia_locator, "An invalid locator was passed to record_list_t::add()!");
+    ASSERT_PRECONDITION(
+        locator != c_invalid_gaia_locator, "An invalid locator was passed to record_list_t::add()!");
 
     record_data_t record_data(locator);
 
     // We'll iterate over our list and look for a range with available space.
-
     for (record_range_t* current_range = m_record_ranges;
          current_range != nullptr;
          current_range = current_range->next_range())
@@ -243,7 +251,63 @@ void record_list_t::add(gaia_locator_t locator)
     }
 }
 
-// Seek for the first valid record starting from the current iterator position.
+void record_list_t::request_deletion(gaia_locator_t locator)
+{
+    ASSERT_PRECONDITION(
+        locator != c_invalid_gaia_locator, "An invalid locator was passed to record_list_t::request_deletion()!");
+
+    m_deletions_requested.enqueue(locator);
+
+    // If we accumulated enough deletion requests, process a batch of them.
+    // We batch deletions, because marking them requires a full record_list scan.
+    size_t deletion_batch_size = m_range_size;
+    if (m_deletions_requested.size() > deletion_batch_size + c_dequeue_extra_buffer_size
+        && !m_is_deletion_marking_in_progress)
+    {
+        // Acquire the right to perform the deletion marking.
+        // This prevents multiple threads from attempting to perform this operation at the same time.
+        // Only the first thread that turns on the boolean will continue to do the work.
+        bool expected_setting = false;
+        if (m_is_deletion_marking_in_progress.compare_exchange_strong(expected_setting, true))
+        {
+            perform_deletion_marking(deletion_batch_size);
+
+            m_is_deletion_marking_in_progress = false;
+        }
+    }
+}
+
+void record_list_t::perform_deletion_marking(size_t deletion_batch_size)
+{
+    // Extract locators from the queue and place them in a map, for quick lookup.
+    std::unordered_map<gaia_locator_t, bool> map_locators;
+    for (size_t count = 0; count < deletion_batch_size; ++count)
+    {
+        gaia_locator_t locator = c_invalid_gaia_locator;
+        m_deletions_requested.dequeue(locator);
+
+        ASSERT_INVARIANT(
+            locator != c_invalid_gaia_locator, "An invalid locator was returned from the queue of requested deletions!");
+
+        map_locators.insert(make_pair(locator, true));
+    }
+
+    // Iterate through the record list and mark all locators found in the map as deleted.
+    record_iterator_t iterator;
+    size_t count_deletion_markings = 0;
+    for (start(iterator); !iterator.at_end(); move_next(iterator))
+    {
+        if (map_locators.find(get_record_data(iterator).locator) != map_locators.end())
+        {
+            mark_record_data_as_deleted(iterator);
+            ++count_deletion_markings;
+        }
+    }
+
+    ASSERT_POSTCONDITION(count_deletion_markings == deletion_batch_size, "Have failed to mark all requested deletions!");
+}
+
+// Seek the first valid record starting from the current iterator position.
 void record_list_t::seek(record_iterator_t& iterator)
 {
     while (!iterator.at_end())
@@ -284,14 +348,19 @@ bool record_list_t::start(record_iterator_t& iterator)
     iterator.current_index = 0;
 
     // Schedule a compaction if enough records were deleted.
-    if (m_approximate_count_deletions > m_range_size)
+    if (m_count_deletion_markings > m_range_size
+        && !m_is_compaction_in_progress)
     {
-        compact();
+        // Acquire the right to perform the deletion marking.
+        // This prevents multiple threads from attempting to perform this operation at the same time.
+        // Only the first thread that turns on the boolean will continue to do the work.
+        bool expected_setting = false;
+        if (m_is_compaction_in_progress.compare_exchange_strong(expected_setting, true))
+        {
+            compact();
 
-        // This is where the count can become inaccurate,
-        // by missing the deletions that occur during compaction.
-        // Hence it being called an approximate count.
-        m_approximate_count_deletions = 0;
+            m_is_compaction_in_progress = false;
+        }
     }
 
     // Iterators will maintain a shared lock on the current range.
@@ -335,5 +404,5 @@ void record_list_t::mark_record_data_as_deleted(record_iterator_t& iterator)
     iterator.current_range->get(iterator.current_index).locator = c_invalid_gaia_locator;
     iterator.current_range->m_has_deletions = true;
 
-    iterator.current_range->m_record_list->m_approximate_count_deletions++;
+    iterator.current_range->m_record_list->m_count_deletion_markings++;
 }

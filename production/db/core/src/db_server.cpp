@@ -1409,13 +1409,6 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
 
             db_object_t* db_object = locator_to_ptr(locator);
 
-            // If the locator does not point to a valid record,
-            // it means that the record has been deleted - mark that in the record list as well.
-            if (!db_object)
-            {
-                record_list_t::mark_record_data_as_deleted(iterator);
-            }
-
             // Whether we found a record or not, we need to advance the iterator.
             record_list_t::move_next(iterator);
 
@@ -1873,6 +1866,20 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         gaia_offset_t offset_to_free = deallocate_new_offsets
             ? txn_log->log_records[i].new_offset
             : txn_log->log_records[i].old_offset;
+
+        // If we're gc-ing the old version of an object that is being deleted,
+        // then request the deletion of its locator from the corresponding record list.
+        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset == c_invalid_gaia_offset)
+        {
+            // Get the old object data to extract its type.
+            db_object_t* db_object = offset_to_ptr(txn_log->log_records[i].old_offset);
+
+            // Retrieve the record_list_t instance corresponding to the type.
+            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+
+            // Request the deletion of the record corresponding to the object.
+            record_list->request_deletion(txn_log->log_records[i].locator);
+        }
 
         if (offset_to_free && s_object_deallocator_fn)
         {

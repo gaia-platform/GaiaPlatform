@@ -22,8 +22,6 @@ namespace db
 namespace storage
 {
 
-typedef std::unordered_map<gaia::common::gaia_type_t, std::shared_ptr<record_list_t>> record_list_map_t;
-
 class record_list_manager_t
 {
 protected:
@@ -71,7 +69,7 @@ protected:
     mutable std::shared_mutex m_lock;
 
     // The map used by the record_list manager.
-    record_list_map_t m_record_list_map;
+    std::unordered_map<gaia::common::gaia_type_t, std::shared_ptr<record_list_t>> m_record_list_map;
 };
 
 } // namespace storage
