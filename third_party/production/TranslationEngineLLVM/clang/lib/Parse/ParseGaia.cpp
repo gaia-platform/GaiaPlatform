@@ -150,7 +150,6 @@ std::string Parser::GetExplicitNavigationPath()
         endLocation = previousToken.getEndLoc();
     }
     Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue);
-    llvm::errs() << returnValue << "\n";
     return returnValue;
 }
 

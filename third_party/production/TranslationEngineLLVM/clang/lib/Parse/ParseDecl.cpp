@@ -3192,7 +3192,8 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
     case tok::kw_decltype:
     case tok::identifier: {
       if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
-        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace)
+        && NextToken().is(tok::l_paren))
       {
         IdentifierInfo *Id = Tok.getIdentifierInfo();
         if (Id != nullptr)

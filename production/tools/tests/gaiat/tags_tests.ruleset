@@ -229,7 +229,7 @@ ruleset testE11
 }
 
 // GAIAPLAT-829
-ruleset testE2
+ruleset testE21
 {
     OnUpdate(incubator)
     {
@@ -243,7 +243,7 @@ ruleset testE2
 }
 
 // GAIAPLAT-829
-ruleset testE3
+ruleset testE31
 {
     OnUpdate(incubator)
     {
