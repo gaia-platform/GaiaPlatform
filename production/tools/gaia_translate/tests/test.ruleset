@@ -82,6 +82,7 @@ ruleset testE13
     }
 }
 
+#if 0
 ruleset test21
 {
     OnInsert(I:incubator)
@@ -89,3 +90,4 @@ ruleset test21
         I->actuator.value += 1.0;
     }
 }
+#endif
