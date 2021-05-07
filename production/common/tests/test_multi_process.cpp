@@ -58,16 +58,6 @@ employee_t create_employee(const char* name)
     return e;
 }
 
-void dump_database(std::string name)
-{
-    begin_transaction();
-    for (employee_t& e : employee_t::list())
-    {
-        cout << name << "---->" << e.name_first() << endl;
-    }
-    commit_transaction();
-}
-
 constexpr const char c_go_child[] = "go_child";
 constexpr const char c_go_parent[] = "go_parent";
 
@@ -319,8 +309,6 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
         // PARENT PROCESS.
         begin_session();
 
-        dump_database("parent");
-
         // EXCHANGE 1: serialized transactions.
         //   Add two employees in the parent. Commit.
         //   Add an employee in the child. Abort.
@@ -397,8 +385,6 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
         semaphore_open();
 
         begin_session();
-
-        dump_database("child");
 
         // EXCHANGE 1: serialized transactions.
 

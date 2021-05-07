@@ -30,7 +30,7 @@ constexpr const char* c_default_pattern = "[%Y-%m-%dT%T.%e] [%l] [%P %t] <%n>: %
 
 constexpr size_t c_default_queue_size = 8192;
 constexpr size_t c_default_thread_count = 1;
-constexpr spdlog::level::level_enum c_default_level = spdlog::level::debug;
+constexpr spdlog::level::level_enum c_default_level = spdlog::level::info;
 
 /**
  * Creates an instance of spdlog::logger with some convenient defaults. This function

@@ -146,7 +146,7 @@ void server_instance_t::restart(bool wait_for_init)
     }
 }
 
-void server_instance_t::reset_server()
+void server_instance_t::reset_server(bool wait_for_init)
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
@@ -166,7 +166,11 @@ void server_instance_t::reset_server()
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
     std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
-    wait_for_init();
+
+    if (wait_for_init)
+    {
+        server_instance_t::wait_for_init();
+    }
 }
 
 void server_instance_t::wait_for_init()

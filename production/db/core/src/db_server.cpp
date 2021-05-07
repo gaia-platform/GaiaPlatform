@@ -9,20 +9,17 @@
 
 #include <csignal>
 
-#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <shared_mutex>
 #include <thread>
 #include <unordered_set>
 
 #include "spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
-#include <sys/file.h>
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
@@ -335,7 +332,9 @@ void server_t::handle_commit_txn(
     // Aborted txns only have their log fds invalidated and closed after the
     // watermark advances, to preserve the invariant that invalidation can only
     // follow the watermark.
-    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(s_fd_log); });
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(s_fd_log);
+    });
 
     // Check that the log memfd was sealed for writes.
     int seals = ::fcntl(s_fd_log, F_GET_SEALS);
@@ -511,8 +510,12 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
-    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
+    auto client_socket_cleanup = make_scope_guard([&]() {
+        close_fd(client_socket);
+    });
+    auto server_socket_cleanup = make_scope_guard([&]() {
+        close_fd(server_socket);
+    });
 
     start_stream_producer(server_socket, id_generator);
 
@@ -888,7 +891,9 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
+    auto listener_cleanup = make_scope_guard([&]() {
+        close_fd(s_listening_socket);
+    });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -2244,7 +2249,9 @@ void server_t::txn_rollback()
         s_txn_id != c_invalid_gaia_txn_id,
         "txn_rollback() was called without an active transaction!");
 
-    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(s_fd_log); });
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(s_fd_log);
+    });
 
     // Set our txn status to TXN_TERMINATED.
     // NB: this must be done before calling perform_maintenance()!

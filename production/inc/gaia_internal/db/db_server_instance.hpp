@@ -13,6 +13,9 @@ namespace gaia
 namespace db
 {
 
+/**
+ * Configuration to start an gaia_db_server instance.
+ */
 struct server_instance_conf_t
 {
     std::string server_exec_path;
@@ -31,10 +34,13 @@ struct server_instance_conf_t
     static std::string generate_data_dir(const std::string& instance_name);
 };
 
+/**
+ * Controls a gaia_db_server instance.
+ */
 class server_instance_t
 {
 public:
-    server_instance_t(const server_instance_conf_t server_conf)
+    explicit server_instance_t(const server_instance_conf_t server_conf)
         : m_conf(server_conf)
     {
     }
@@ -44,20 +50,51 @@ public:
     {
     }
 
+    /**
+     * Starts a gaia_db_server instance into a separated process.
+     * The gaia_db_server will be killed when the parent process dies.
+     *
+     * @param wait_for_init if true, wait for the server to be initialized.
+     */
     void start(bool wait_for_init = true);
 
+    /**
+     * Kill the gaia_db_server instance associated with this class.
+     */
     void stop();
 
+    /**
+     * Stop() and start().
+     *
+     * @param wait_for_init if true, wait for the server to be initialized.
+     */
     void restart(bool wait_for_init = true);
 
-    void reset_server();
+    /**
+     * Reset the client shared memory and the server data.
+     *
+     * @param wait_for_init if true, wait for the server to be initialized.
+     */
+    void reset_server(bool wait_for_init = true);
 
+    /**
+     * Waits for the server to be initialized.
+     */
     void wait_for_init();
 
+    /**
+     * Delete the data directory.
+     */
     void delete_data_dir();
 
+    /**
+     * Returns the instance name.
+     */
     std::string instance_name();
 
+    /**
+     * Returns true is start() was called.
+     */
     bool is_initialized();
 
 private:

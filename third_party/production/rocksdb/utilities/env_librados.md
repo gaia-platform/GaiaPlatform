@@ -2,14 +2,14 @@
 EnvLibrados is a customized RocksDB Env to use RADOS as the backend file system of RocksDB. It overrides all file system related API of default Env. The easiest way to use it is just like following:
 ```c++
 std::string db_name = "test_db";
-std::string m_config_path = "path/to/ceph/config";
+std::string config_path = "path/to/ceph/config";
 DB* db;
 Options options;
-options.env = EnvLibrados(db_name, m_config_path);
+options.env = EnvLibrados(db_name, config_path);
 Status s = DB::Open(options, kDBPath, &db);
 ...
 ```
-Then EnvLibrados will forward all file read/write operation to the RADOS cluster assigned by m_config_path. Default pool is db_name+"_pool".
+Then EnvLibrados will forward all file read/write operation to the RADOS cluster assigned by config_path. Default pool is db_name+"_pool".
 
 # Options for EnvLibrados
 There are some options that users could set for EnvLibrados.

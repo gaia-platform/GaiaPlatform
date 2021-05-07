@@ -592,7 +592,6 @@ protected:
     static void SetUpTestSuite()
     {
         db_test_base_t::SetUpTestSuite();
-        get_server_instance().reset_server();
         begin_session();
         db_catalog_test_base_t::reset_database_status();
         event_manager_settings_t settings;
