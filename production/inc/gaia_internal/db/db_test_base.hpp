@@ -56,10 +56,14 @@ protected:
     {
         gaia_log::initialize({});
 
-        m_server_instance = server_instance_t();
+        m_server_instance = server_instance_t{};
+
+        // Make the instance name the default, so that calls to begin_session()
+        // will automatically connect to that instance.
         session_opts_t session_opts;
         session_opts.instance_name = m_server_instance.instance_name();
         config::set_default_session_opts(session_opts);
+
         m_server_instance.start();
         m_server_instance.wait_for_init();
     }
@@ -98,10 +102,12 @@ protected:
         }
     }
 
+protected:
+    inline static server_instance_t m_server_instance = server_instance_t();
+
 private:
     bool m_client_manages_session;
     bool m_disable_persistence;
-    inline static server_instance_t m_server_instance = server_instance_t();
 };
 
 } // namespace db

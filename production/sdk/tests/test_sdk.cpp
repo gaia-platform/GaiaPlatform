@@ -36,7 +36,7 @@ std::atomic_bool g_rule_1_called = false;
 class sdk_test : public ::testing::Test
 {
 protected:
-    void SetUp()
+    void SetUp() override
     {
         gaia::system::initialize("./gaia.conf", "./gaia_log.conf");
 
@@ -46,7 +46,7 @@ protected:
         gaia::catalog::create_table("", "test_table", gaia::catalog::ddl::field_def_list_t(), false);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         gaia::system::shutdown();
     }

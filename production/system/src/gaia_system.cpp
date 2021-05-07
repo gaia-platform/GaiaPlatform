@@ -67,10 +67,14 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
         gaia_log::shutdown();
     });
 
-    gaia::db::session_opts_t session_opts = gaia::db::config::create_session_opts(root_config);
-    gaia::db::config::set_default_session_opts(session_opts);
+    if (root_config != nullptr)
+    {
+        // Sets the default sessions opts with what is specified in the config file.
+        gaia::db::session_opts_t session_opts = gaia::db::config::create_session_opts(root_config);
+        gaia::db::config::set_default_session_opts(session_opts);
+    }
 
-    gaia::db::begin_session(session_opts);
+    gaia::db::begin_session();
 
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     db_initialized = true;

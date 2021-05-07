@@ -5,7 +5,7 @@
 
 #include "gaia_internal/db/db_server_instance.hpp"
 
-#include <signal.h>
+#include <csignal>
 
 #include <filesystem>
 #include <fstream>
@@ -17,6 +17,7 @@
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
@@ -29,23 +30,6 @@ namespace gaia
 {
 namespace db
 {
-
-// https://stackoverflow.com/a/440240
-std::string gen_random_str(const int len)
-{
-
-    std::string tmp_s;
-    static const char alphanum[] = "0123456789"
-                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                   "abcdefghijklmnopqrstuvwxyz";
-
-    tmp_s.reserve(len);
-
-    for (int i = 0; i < len; ++i)
-        tmp_s += alphanum[::rand() % (sizeof(alphanum) - 1)];
-
-    return tmp_s;
-}
 
 server_instance_conf_t gaia::db::server_instance_conf_t::get_default()
 {
@@ -82,7 +66,7 @@ std::string server_instance_conf_t::generate_instance_name()
     std::string current_exe_path = fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
 
     std::size_t path_hash = std::hash<std::string>{}(current_exe_path);
-    std::string random_str = gen_random_str(4);
+    std::string random_str = common::gen_random_str(4);
 
     return fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
 }
@@ -115,11 +99,13 @@ void server_instance_t::start(bool wait_for_init)
 
     if (0 == (m_server_pid = ::fork()))
     {
-        // Kills the child process (gaia_db_sever) after the parent dies (this test).
+        // Kills the child process (gaia_db_sever) after the parent dies (current process).
         // This must be put right after ::fork() and before ::execve().
+        // This works well with ctest where each test is run as a separated process.
         ::prctl(PR_SET_PDEATHSIG, SIGKILL);
 
-        if (-1 == ::execve(command[0], (char**)command.data(), NULL))
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
             ASSERT_UNREACHABLE(fmt::format("Failed to execute '{}'", m_conf.server_exec_path.c_str()));
         }
@@ -142,7 +128,8 @@ void server_instance_t::stop()
 
     ::system(fmt::format("kill -9 {}", m_server_pid).c_str());
 
-    ::usleep(100000);
+    constexpr int c_wait_stop_millis = 100;
+    std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_stop_millis));
 
     m_is_initialized = false;
     m_server_pid = -1;
@@ -174,7 +161,7 @@ void server_instance_t::reset_server()
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.
-    ::system(fmt::format("pkill -f -HUP {}", m_server_pid).c_str());
+    ::system(fmt::format("kill -HUP {}", m_server_pid).c_str());
     // Wait a bit for the server's listening socket to be closed.
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
@@ -186,7 +173,7 @@ void server_instance_t::wait_for_init()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    constexpr int c_poll_interval_millis = 100;
+    constexpr int c_poll_interval_millis = 10;
     constexpr int c_print_error_interval = 1000;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
@@ -278,7 +265,7 @@ std::vector<const char*> server_instance_t::get_server_command()
         strings.push_back("--reinitialize-persistent-store");
     }
 
-    strings.push_back(NULL);
+    strings.push_back(nullptr);
     return strings;
 }
 } // namespace db
