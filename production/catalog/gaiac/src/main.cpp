@@ -188,21 +188,21 @@ string usage()
           "  -n|--instance-name <name> Specify the database instance name."
           "                            If not specified will use "
        << c_default_instance_name << "."
-                                     "                            If 'rnd' is specified will use a "
-                                     "  -d|--db-name <dbname>     Specify the database name.\n"
-                                     "  -i|--interactive          Interactive prompt, as a REPL.\n"
-                                     "  -g|--generate             Generate direct access API header files.\n"
-                                     "  -o|--output <path>        Set the path to all generated files.\n"
+       << "                            If 'rnd' is specified will use a "
+          "  -d|--db-name <dbname>     Specify the database name.\n"
+          "  -i|--interactive          Interactive prompt, as a REPL.\n"
+          "  -g|--generate             Generate direct access API header files.\n"
+          "  -o|--output <path>        Set the path to all generated files.\n"
 #ifdef DEBUG
-                                     "  -p|--parse-trace          Print parsing trace.\n"
-                                     "  -s|--scan-trace           Print scanning trace.\n"
-                                     "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
+          "  -p|--parse-trace          Print parsing trace.\n"
+          "  -s|--scan-trace           Print scanning trace.\n"
+          "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
 #endif
-                                     "  <ddl_file>                Process the DDLs in the file.\n"
-                                     "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-                                     "                            The database will be created automatically.\n"
-                                     "  -h|--help                 Print help information.\n"
-                                     "  -v|--version              Version information.\n";
+          "  <ddl_file>                Process the DDLs in the file.\n"
+          "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+          "                            The database will be created automatically.\n"
+          "  -h|--help                 Print help information.\n"
+          "  -v|--version              Version information.\n";
     return ss.str();
 }
 
