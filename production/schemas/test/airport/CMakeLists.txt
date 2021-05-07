@@ -28,6 +28,4 @@ add_custom_command(
 
 add_custom_target(generate_airport_headers ALL
   DEPENDS ${GAIA_GENERATED_SCHEMAS}/gaia_airport.h
-  # Add previous target to serialize parallel builds.
-  DEPENDS generate_addr_book_headers
 )
