@@ -1390,7 +1390,7 @@ std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(ga
     record_iterator_t iterator;
     bool is_initialized = false;
 
-    return [=]() mutable -> std::optional<gaia_id_t> {
+    return [type, iterator, is_initialized]() mutable -> std::optional<gaia_id_t> {
         // The initialization of the record_list iterator should be done by the same thread
         // that executes the iteration.
         if (!is_initialized)

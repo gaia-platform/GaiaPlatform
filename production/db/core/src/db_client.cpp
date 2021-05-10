@@ -163,8 +163,8 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
     size_t log_index = 0;
 
     std::function<std::optional<gaia_id_t>()> augmented_id_generator
-        = [id_generator, has_exhausted_id_generator, log_index, type]() mutable -> std::optional<gaia_id_t> {
-        // First, we use the ig_generator until it's exhausted.
+        = [type, id_generator, has_exhausted_id_generator, log_index]() mutable -> std::optional<gaia_id_t> {
+        // First, we use the id_generator until it's exhausted.
         if (!has_exhausted_id_generator)
         {
             std::optional<gaia_id_t> id_opt = id_generator();
