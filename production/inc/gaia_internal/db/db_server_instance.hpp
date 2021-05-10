@@ -20,8 +20,6 @@ struct server_instance_conf_t
 {
     std::string server_exec_path;
     std::string instance_name;
-    // TODO these should be mutually exclusive
-    bool reinitialize_persistent_store;
     bool disable_persistence;
     std::string data_dir;
 

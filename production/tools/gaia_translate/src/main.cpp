@@ -26,6 +26,7 @@
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 
 using namespace std;
 using namespace clang;
@@ -1847,6 +1848,9 @@ int main(int argc, const char** argv)
     cl::list<std::string> source_files(
         cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
         cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+    cl::opt<std::string> instance_name(
+        "n", cl::desc("DB instance name"), cl::Optional,
+        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
 
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
@@ -1874,6 +1878,13 @@ int main(int argc, const char** argv)
     {
         cerr << "Translation Engine does not support more than one source ruleset." << endl;
         return EXIT_FAILURE;
+    }
+
+    if (!instance_name.empty())
+    {
+        gaia::db::session_opts_t session_opts = gaia::db::get_default_session_opts();
+        session_opts.instance_name = instance_name.getValue();
+        gaia::db::config::set_default_session_opts(session_opts);
     }
 
     if (!compilation_database)

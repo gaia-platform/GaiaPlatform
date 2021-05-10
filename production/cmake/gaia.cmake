@@ -17,6 +17,7 @@ endmacro()
 # - OUTPUT_FOLDER: folder where the header files will be generated.
 # - TARGET_NAME: [optional] the name of the generated target.
 #     If not provided the default value is generate_${DDL_NAME}_headers.
+# - INSTANCE_NAME: [optional] name of the database instance gaiac will connect to.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
 #     If not provided the database name will be inferred from the file name.
 #     This is a temporary workaround, until we improve gaiac.
@@ -24,7 +25,7 @@ endmacro()
 #     in the path.
 function(process_schema)
   set(options "")
-  set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME DATABASE_NAME GAIAC_CMD)
+  set(oneValueArgs DDL_FILE OUTPUT_FOLDER TARGET_NAME DATABASE_NAME INSTANCE_NAME GAIAC_CMD)
   set(multiValueArgs "")
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -46,10 +47,14 @@ function(process_schema)
     message(VERBOSE "DATABASE_NAME not provided, inferred database name: ${ARG_DATABASE_NAME}.")
   endif()
 
+  if (DEFINED ARG_INSTANCE_NAME)
+    set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
+  endif()
+
   add_custom_command(
     COMMENT "Generating ${DDL_NAME}.h..."
     OUTPUT ${SCHEMA_HEADER_PATH}
-    COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE} -d ${ARG_DATABASE_NAME}
+    COMMAND ${ARG_GAIAC_CMD} -o ${ARG_OUTPUT_FOLDER} -g ${ARG_DDL_FILE} -d ${ARG_DATABASE_NAME} ${INSTANCE_NAME}
     DEPENDS ${ARG_DDL_FILE}
   )
 
@@ -78,6 +83,7 @@ endfunction()
 # - TARGET_NAME: [optional] the name of the generated target. If not provided
 #                the default value is translate_${RULESET_NAME}_ruleset.
 # - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
+# - INSTANCE_NAME: [optional] name of the database instance gaiat will connect to.
 # - GAIAT_CMD: [optional] custom gaiac command. If not provided will search gaiac
 #              in the path.
 # - DEPENDS: [optional] optional list of targets this task depends on.
@@ -113,6 +119,10 @@ function(translate_ruleset)
   # Add the output folder (which contains the DDL headers)
   string(APPEND GAIAT_INCLUDE_PATH "-I;${ARG_OUTPUT_FOLDER};")
 
+  if (DEFINED ARG_INSTANCE_NAME)
+      set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
+  endif()
+
   if(NOT DEFINED ARG_GAIAT_CMD)
     set(ARG_GAIAT_CMD gaiat)
   endif()
@@ -120,7 +130,7 @@ function(translate_ruleset)
   add_custom_command(
     COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
     OUTPUT ${RULESET_CPP_PATH}
-    COMMAND ${ARG_GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} --
+    COMMAND ${ARG_GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} ${INSTANCE_NAME}--
     ${ARG_CLANG_PARAMS}
     ${GAIAT_INCLUDE_PATH}
     -std=c++${CMAKE_CXX_STANDARD}

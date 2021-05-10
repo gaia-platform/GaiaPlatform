@@ -243,7 +243,6 @@ int main(int argc, char* argv[])
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
-    bool remove_persistent_store = false;
     const char* path_to_db_server = nullptr;
 
     // If no arguments are specified print the help.

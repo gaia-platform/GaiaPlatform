@@ -36,7 +36,6 @@ server_instance_conf_t gaia::db::server_instance_conf_t::get_default()
     return server_instance_conf_t{
         .server_exec_path = find_server_exec_path(),
         .instance_name = generate_instance_name(),
-        .reinitialize_persistent_store = false,
         .disable_persistence = true,
         .data_dir = ""};
 }
@@ -255,6 +254,7 @@ std::vector<const char*> server_instance_t::get_server_command()
 
     if (m_conf.disable_persistence)
     {
+        ASSERT_PRECONDITION(m_conf.data_dir.empty(), "data_dir must be empty when persistence is disabled.");
         strings.push_back("--disable-persistence");
     }
     else
@@ -262,11 +262,6 @@ std::vector<const char*> server_instance_t::get_server_command()
         ASSERT_PRECONDITION(!m_conf.data_dir.empty(), "data_dir must be specified when persistence is enabled.");
         strings.push_back("--data-dir");
         strings.push_back(m_conf.data_dir.c_str());
-    }
-
-    if (m_conf.reinitialize_persistent_store)
-    {
-        strings.push_back("--reinitialize-persistent-store");
     }
 
     strings.push_back(nullptr);

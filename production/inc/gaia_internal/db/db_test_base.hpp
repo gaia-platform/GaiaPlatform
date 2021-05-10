@@ -44,8 +44,8 @@ public:
     }
 
 protected:
-    explicit db_test_base_t(bool client_manages_session, bool disable_persistence = true)
-        : m_client_manages_session(client_manages_session), m_disable_persistence(disable_persistence)
+    explicit db_test_base_t(bool client_manages_session)
+        : m_client_manages_session(client_manages_session), m_disable_persistence(true)
     {
     }
 
