@@ -70,6 +70,9 @@ static void expand_home_path(std::string& path)
 /**
  * Manage the gaia configuration by lazy loading the config file only
  * if used.
+ *
+ * TODO: we should get rid of this class in favor a solid command line
+ *   argument parser (see comment below).
  */
 class lazy_gaia_conf
 {

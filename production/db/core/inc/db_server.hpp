@@ -125,10 +125,6 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
-    //    static inline server_conf_t::persistence_mode_t s_server_conf.persistence_mode(){server_conf_t::persistence_mode_t::e_default};
-    //    static inline std::string s_data_dir;
-    //    static inline std::string s_instance_name;
-
     static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
