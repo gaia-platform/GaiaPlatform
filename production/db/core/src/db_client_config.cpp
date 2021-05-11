@@ -19,7 +19,8 @@ gaia::db::session_options_t gaia::db::config::create_session_options(std::shared
 {
     ASSERT_PRECONDITION(root_config != nullptr, "root_config must be set!");
 
-    string value = root_config->get_qualified_as<string>(common::c_instance_name_string_key)
+    string value = root_config
+                       ->get_qualified_as<string>(common::c_instance_name_string_key)
                        .value_or(db::c_default_instance_name);
 
     gaia::db::session_options_t session_opts;
