@@ -7,6 +7,7 @@
 
 #include <unistd.h>
 
+#include <atomic>
 #include <shared_mutex>
 
 #include "gaia_internal/common/retail_assert.hpp"
@@ -50,13 +51,19 @@ public:
 
     // Extract a value from the queue.
     // If the queue is empty, the value will be left unset.
+    // The caller should properly initialize the value before this call,
+    // to be able to determine if it was actually set.
     void dequeue(T& value);
 
-    bool is_empty() const;
+    inline bool is_empty() const;
+
+    inline size_t size() const;
 
 protected:
     queue_element_t<T> m_head;
     queue_element_t<T> m_tail;
+
+    std::atomic<size_t> m_size;
 
     // Internal extraction method: returns true if the operation succeeded
     // or false if it was aborted due to another concurrent operation.
