@@ -16,7 +16,7 @@ unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigati
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
-    unordered_map<string, string> tags, bool is_absolute)
+    unordered_map<string, string> tags, bool is_absolute,  unordered_set<string> used_tables)
 {
     string last_variable_name;
     ensure_initialization();
@@ -72,7 +72,21 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                return_value = generate_navigation_code(anchor_table, {table}, unordered_map<string, string>(), last_variable_name);
+                if (path.size() == 1)
+                {
+                    auto tag_map = generate_dummy_tag_map(used_tables);
+                    return_value = generate_navigation_code(anchor_table,
+                        used_tables,
+                        tag_map,
+                        last_variable_name);
+                }
+                else
+                {
+                    return_value = generate_navigation_code(anchor_table,
+                        {table},
+                        unordered_map<string, string>(),
+                        last_variable_name);
+                }
             }
             first_component = false;
         }
@@ -91,13 +105,6 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     }
 
     return return_value;
-}
-
-// Function that generates  code to navigate between anchor table and set of tables.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables)
-{
-    string last_variable_name;
-    return generate_navigation_code(anchor_table, tables, generate_dummy_tag_map(tables), last_variable_name);
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.

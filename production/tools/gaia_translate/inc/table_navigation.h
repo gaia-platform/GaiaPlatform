@@ -47,11 +47,9 @@ public:
         ensure_initialization();
         return m_table_data;
     }
-    // Function that generates code to navigate between anchor table and set of tables.
-    static navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables);
     // Function that generates code to navigate between tables for explicit navigation.
     static navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
-        unordered_map<string, string> tags, bool is_absolute);
+        unordered_map<string, string> tags, bool is_absolute, unordered_set<string> used_tables);
     // Function that generates variable name for navigation code variables.
     static string get_variable_name(const string& table, const unordered_map<string, string>& tags);
 private:
