@@ -250,15 +250,13 @@ ruleset test30
   }
 }
 
-#ifdef TEST_FAILURES
 ruleset test31
 {
-  OnDelete(incubator) // expected-error {{unknown type name 'OnDelete'}}
+  OnDelete(incubator) // expected-error {{Invalid Gaia rule attribute}}
   {
 
   } // {{expected ';' after top level declarator}}
 }
-#endif
 
 ruleset test32
 {
@@ -683,10 +681,10 @@ ruleset test93
 
 ruleset test94
 {
-    Onward(incubator) // expected-error {{unknown type name 'Onward'}}
+    Onward(incubator) // expected-error {{Invalid Gaia rule attribute}}
     {
         incubator.min_temp = 0.0;
-    } // expected-error {{expected ';' after top level declarator}}
+    }
 }
 
 ruleset test95
@@ -852,7 +850,6 @@ ruleset testE62
 }
 
 // GAIAPLAT-922
-#ifdef TEST_FAILURES
 ruleset testE61
 {
     OnChange(actuator)
@@ -865,7 +862,6 @@ ruleset testE61
 
     }
 }
-#endif
 
 // GAIAPLAT-808
 ruleset testE6
@@ -882,7 +878,6 @@ ruleset testE6
 }
 
 // GAIAPLAT-821
-#ifdef TEST_FAILURES
 ruleset testE1
 {
     OnUpdate(incubator)
@@ -900,7 +895,6 @@ ruleset testE2
         min_temp += @incubator->sensor.value;
     }
 }
-#endif
 
 // GAIAPLAT-822
 ruleset testE3
