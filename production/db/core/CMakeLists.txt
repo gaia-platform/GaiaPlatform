@@ -114,7 +114,9 @@ set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(persistence STATIC
-  src/wal_file.cpp)
+  src/wal_file.cpp
+  src/io_uring_wrapper.cpp
+  src/io_uring_manager.cpp)
 target_include_directories(persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
