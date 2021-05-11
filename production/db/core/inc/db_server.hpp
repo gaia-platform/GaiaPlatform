@@ -42,6 +42,8 @@ public:
  */
 class server_config_t
 {
+    friend class server_t;
+
 public:
     enum class persistence_mode_t : uint8_t
     {
@@ -59,16 +61,16 @@ public:
     {
     }
 
+    inline persistence_mode_t persistence_mode();
+    inline const std::string& instance_name();
+    inline const std::string& data_dir();
+
+private:
     // Dummy constructor to allow server_t initialization.
-    // TODO this should be private but I just can't make the "friend" thing working.
     server_config_t()
         : m_persistence_mode(c_default_persistence_mode)
     {
     }
-
-    inline persistence_mode_t persistence_mode();
-    inline const std::string& instance_name();
-    inline const std::string& data_dir();
 
 private:
     persistence_mode_t m_persistence_mode;

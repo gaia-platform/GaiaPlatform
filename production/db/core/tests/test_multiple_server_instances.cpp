@@ -57,7 +57,7 @@ public:
     {
         gaia_log::app().debug("Starting writer for instance {}", m_instance_name);
 
-        session_opts_t session_opts;
+        session_options_t session_opts;
         session_opts.db_instance_name = m_instance_name;
 
         begin_session(session_opts);
@@ -101,7 +101,7 @@ public:
     {
         gaia_log::app().debug("Starting reader for instance {}", m_instance_name);
 
-        session_opts_t session_opts;
+        session_options_t session_opts;
         session_opts.db_instance_name = m_instance_name;
 
         begin_session(session_opts);

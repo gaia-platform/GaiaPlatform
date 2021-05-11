@@ -156,15 +156,15 @@ public:
     }
 };
 
-struct session_opts_t
+struct session_options_t
 {
     std::string db_instance_name;
 };
 
-session_opts_t get_default_session_opts();
+session_options_t get_default_session_options();
 
 bool is_transaction_active();
-void begin_session(session_opts_t session_opts = get_default_session_opts());
+void begin_session(session_options_t session_opts = get_default_session_options());
 void end_session();
 void begin_transaction();
 void rollback_transaction();

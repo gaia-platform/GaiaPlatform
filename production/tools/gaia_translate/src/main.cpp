@@ -1882,9 +1882,9 @@ int main(int argc, const char** argv)
 
     if (!instance_name.empty())
     {
-        gaia::db::session_opts_t session_opts = gaia::db::get_default_session_opts();
+        gaia::db::session_options_t session_opts = gaia::db::get_default_session_options();
         session_opts.db_instance_name = instance_name.getValue();
-        gaia::db::config::set_default_session_opts(session_opts);
+        gaia::db::config::set_default_session_options(session_opts);
     }
 
     if (!compilation_database)

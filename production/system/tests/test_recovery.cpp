@@ -96,9 +96,9 @@ protected:
         server_conf.data_dir = server_instance_conf_t::generate_data_dir(server_conf.instance_name);
         s_server = server_instance_t{server_conf};
 
-        session_opts_t session_opts;
+        session_options_t session_opts;
         session_opts.db_instance_name = s_server.instance_name();
-        gaia::db::config::set_default_session_opts(session_opts);
+        gaia::db::config::set_default_session_options(session_opts);
     }
 
     static void TearDownTestSuite()

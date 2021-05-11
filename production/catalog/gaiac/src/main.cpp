@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
         server.start();
     }
 
-    gaia::db::session_opts_t session_opts;
+    gaia::db::session_options_t session_opts;
     session_opts.db_instance_name = instance_name;
     gaia::db::begin_session(session_opts);
 

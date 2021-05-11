@@ -281,7 +281,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
-void client_t::begin_session(session_opts_t session_opts)
+void client_t::begin_session(session_options_t session_opts)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();

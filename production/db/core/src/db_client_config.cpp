@@ -13,33 +13,33 @@
 
 using std::string;
 
-inline std::unique_ptr<gaia::db::session_opts_t> g_default_session_opts = nullptr;
+inline std::unique_ptr<gaia::db::session_options_t> g_default_session_options = nullptr;
 
-gaia::db::session_opts_t gaia::db::config::create_session_opts(std::shared_ptr<cpptoml::table> root_config)
+gaia::db::session_options_t gaia::db::config::create_session_options(std::shared_ptr<cpptoml::table> root_config)
 {
     ASSERT_PRECONDITION(root_config != nullptr, "root_config must be set!");
 
     string value = root_config->get_qualified_as<string>(common::c_instance_name_string_key)
                        .value_or(db::c_default_instance_name);
 
-    gaia::db::session_opts_t session_opts;
+    gaia::db::session_options_t session_opts;
     session_opts.db_instance_name = value;
     return session_opts;
 }
 
-gaia::db::session_opts_t gaia::db::config::get_default_session_opts()
+gaia::db::session_options_t gaia::db::config::get_default_session_options()
 {
-    if (g_default_session_opts)
+    if (g_default_session_options)
     {
-        return *g_default_session_opts;
+        return *g_default_session_options;
     }
 
-    gaia::db::session_opts_t session_opts;
+    gaia::db::session_options_t session_opts;
     session_opts.db_instance_name = c_default_instance_name;
     return session_opts;
 }
 
-void gaia::db::config::set_default_session_opts(gaia::db::session_opts_t session_opts)
+void gaia::db::config::set_default_session_options(gaia::db::session_options_t session_opts)
 {
-    g_default_session_opts = std::make_unique<gaia::db::session_opts_t>(session_opts);
+    g_default_session_options = std::make_unique<gaia::db::session_options_t>(session_opts);
 }
