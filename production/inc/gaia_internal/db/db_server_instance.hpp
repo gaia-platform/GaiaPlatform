@@ -16,16 +16,20 @@ namespace db
 /**
  * Configuration to start an gaia_db_server instance.
  */
-struct server_instance_conf_t
+struct server_instance_config_t
 {
     std::string server_exec_path;
     std::string instance_name;
     bool disable_persistence;
     std::string data_dir;
 
-    static server_instance_conf_t get_default();
+    static server_instance_config_t get_default();
 
-    static std::string find_server_exec_path();
+    /**
+     * Finds the server executable path. Throws an exception if
+     * the path is not found.
+     */
+    static std::string find_server_path();
 
     static std::string generate_instance_name();
 
@@ -38,13 +42,13 @@ struct server_instance_conf_t
 class server_instance_t
 {
 public:
-    explicit server_instance_t(const server_instance_conf_t server_conf)
+    explicit server_instance_t(const server_instance_config_t server_conf)
         : m_conf(server_conf)
     {
     }
 
     server_instance_t()
-        : server_instance_t(server_instance_conf_t::get_default())
+        : server_instance_t(server_instance_config_t::get_default())
     {
     }
 
@@ -96,7 +100,7 @@ public:
     bool is_initialized();
 
 private:
-    server_instance_conf_t m_conf;
+    server_instance_config_t m_conf;
     ::pid_t m_server_pid = -1;
     bool m_is_initialized{false};
 

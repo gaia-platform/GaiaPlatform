@@ -182,7 +182,6 @@ bool valid_db_name(const string& db_name)
 
 string usage()
 {
-    // TODO gaiac should read the config file
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -n|--instance-name <name> Specify the database instance name."
@@ -332,7 +331,7 @@ int main(int argc, char* argv[])
 
     if (path_to_db_server)
     {
-        server_instance_conf_t server_conf = server_instance_conf_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_default();
         server_conf.instance_name = instance_name;
         server_conf.server_exec_path = string(path_to_db_server) + "/" + string(c_db_server_exec_name);
 
@@ -340,9 +339,9 @@ int main(int argc, char* argv[])
         server.start();
     }
 
-    gaia::db::session_options_t session_opts;
-    session_opts.db_instance_name = instance_name;
-    gaia::db::begin_session(session_opts);
+    gaia::db::session_options_t session_options;
+    session_options.db_instance_name = instance_name;
+    gaia::db::begin_session(session_options);
 
     const auto cleanup = scope_guard::make_scope_guard([&server]() {
         gaia::db::end_session();

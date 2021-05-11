@@ -15,6 +15,7 @@
 #include <sys/prctl.h>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/random.hpp"
@@ -31,16 +32,16 @@ namespace gaia
 namespace db
 {
 
-server_instance_conf_t gaia::db::server_instance_conf_t::get_default()
+server_instance_config_t gaia::db::server_instance_config_t::get_default()
 {
-    return server_instance_conf_t{
-        .server_exec_path = find_server_exec_path(),
+    return server_instance_config_t{
+        .server_exec_path = find_server_path(),
         .instance_name = generate_instance_name(),
         .disable_persistence = true,
         .data_dir = ""};
 }
 
-std::string server_instance_conf_t::find_server_exec_path()
+std::string server_instance_config_t::find_server_path()
 {
     fs::path current_path = fs::current_path();
     fs::path db_path = fs::path(current_path) / c_db_core_folder_name;
@@ -53,24 +54,29 @@ std::string server_instance_conf_t::find_server_exec_path()
 
     fs::path db_exec_path = db_path / c_db_server_exec_name;
 
-    ASSERT_INVARIANT(fs::exists(db_exec_path), "Impossible to find the db path");
+    if (!fs::exists(db_exec_path))
+    {
+        throw common::gaia_exception("Impossible to find the database server path");
+    }
 
     return db_exec_path.string();
 }
 
-std::string server_instance_conf_t::generate_instance_name()
+std::string server_instance_config_t::generate_instance_name()
 {
+    constexpr int c_random_suffix_size = 4;
+
     std::string executable_name;
     std::ifstream("/proc/self/comm") >> executable_name;
     std::string current_exe_path = fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
 
     std::size_t path_hash = std::hash<std::string>{}(current_exe_path);
-    std::string random_str = common::gen_random_str(4);
+    std::string random_str = common::gen_random_str(c_random_suffix_size);
 
     return fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
 }
 
-std::string server_instance_conf_t::generate_data_dir(const std::string& instance_name)
+std::string server_instance_config_t::generate_data_dir(const std::string& instance_name)
 {
     fs::path tmp_dir = fs::temp_directory_path() / "gaia" / instance_name;
     fs::create_directories(tmp_dir);
@@ -106,7 +112,7 @@ void server_instance_t::start(bool wait_for_init)
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
-            ASSERT_UNREACHABLE(fmt::format("Failed to execute '{}'", m_conf.server_exec_path.c_str()));
+            common::throw_system_error(fmt::format("execve failed: {}!", m_conf.server_exec_path));
         }
     }
 
@@ -188,14 +194,14 @@ void server_instance_t::wait_for_init()
         {
             gaia_log::sys().trace("Waiting for Gaia instance {}...", instance_name());
 
-            gaia::db::session_options_t session_opts;
-            session_opts.db_instance_name = instance_name();
+            gaia::db::session_options_t session_options;
+            session_options.db_instance_name = instance_name();
 
-            gaia::db::begin_session(session_opts);
+            gaia::db::begin_session(session_options);
         }
-        catch (gaia::common::system_error& ex)
+        catch (gaia::common::system_error& e)
         {
-            if (ex.get_errno() == ECONNREFUSED)
+            if (e.get_errno() == ECONNREFUSED)
             {
                 if (counter % c_print_error_interval == 0)
                 {

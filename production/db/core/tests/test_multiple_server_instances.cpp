@@ -57,10 +57,10 @@ public:
     {
         gaia_log::app().debug("Starting writer for instance {}", m_instance_name);
 
-        session_options_t session_opts;
-        session_opts.db_instance_name = m_instance_name;
+        session_options_t session_options;
+        session_options.db_instance_name = m_instance_name;
 
-        begin_session(session_opts);
+        begin_session(session_options);
 
         // TODO Apparently the gaia parser is not thread safe.
         //  I don't know if this is by design or a bug.
@@ -101,10 +101,10 @@ public:
     {
         gaia_log::app().debug("Starting reader for instance {}", m_instance_name);
 
-        session_options_t session_opts;
-        session_opts.db_instance_name = m_instance_name;
+        session_options_t session_options;
+        session_options.db_instance_name = m_instance_name;
 
-        begin_session(session_opts);
+        begin_session(session_options);
 
         uint32_t num_employees = 0;
 

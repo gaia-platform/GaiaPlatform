@@ -281,7 +281,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
-void client_t::begin_session(session_options_t session_opts)
+void client_t::begin_session(session_options_t session_options)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -297,11 +297,11 @@ void client_t::begin_session(session_options_t session_opts)
 
     ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
-    s_session_opts = session_opts;
+    s_session_options = session_options;
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(s_session_opts.db_instance_name);
+    s_session_socket = get_session_socket(s_session_options.db_instance_name);
 
     auto cleanup_session_socket = make_scope_guard([&]() {
         close_fd(s_session_socket);
@@ -388,7 +388,7 @@ void client_t::begin_transaction()
 
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
-    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_opts.db_instance_name, s_txn_id).c_str());
+    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_options.db_instance_name, s_txn_id).c_str());
 
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;

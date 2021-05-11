@@ -60,9 +60,9 @@ protected:
 
         // Make the instance name the default, so that calls to begin_session()
         // will automatically connect to that instance.
-        session_options_t session_opts;
-        session_opts.db_instance_name = s_server_instance.instance_name();
-        config::set_default_session_options(session_opts);
+        session_options_t session_options;
+        session_options.db_instance_name = s_server_instance.instance_name();
+        config::set_default_session_options(session_options);
 
         s_server_instance.start();
         s_server_instance.wait_for_init();

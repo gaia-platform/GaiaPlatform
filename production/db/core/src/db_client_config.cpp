@@ -23,9 +23,9 @@ gaia::db::session_options_t gaia::db::config::create_session_options(std::shared
                        ->get_qualified_as<string>(common::c_instance_name_string_key)
                        .value_or(db::c_default_instance_name);
 
-    gaia::db::session_options_t session_opts;
-    session_opts.db_instance_name = value;
-    return session_opts;
+    gaia::db::session_options_t session_options;
+    session_options.db_instance_name = value;
+    return session_options;
 }
 
 gaia::db::session_options_t gaia::db::config::get_default_session_options()
@@ -35,12 +35,12 @@ gaia::db::session_options_t gaia::db::config::get_default_session_options()
         return *g_default_session_options;
     }
 
-    gaia::db::session_options_t session_opts;
-    session_opts.db_instance_name = c_default_instance_name;
-    return session_opts;
+    gaia::db::session_options_t session_options;
+    session_options.db_instance_name = c_default_instance_name;
+    return session_options;
 }
 
-void gaia::db::config::set_default_session_options(gaia::db::session_options_t session_opts)
+void gaia::db::config::set_default_session_options(gaia::db::session_options_t session_options)
 {
-    g_default_session_options = std::make_unique<gaia::db::session_options_t>(session_opts);
+    g_default_session_options = std::make_unique<gaia::db::session_options_t>(session_options);
 }

@@ -164,7 +164,7 @@ struct session_options_t
 session_options_t get_default_session_options();
 
 bool is_transaction_active();
-void begin_session(session_options_t session_opts = get_default_session_options());
+void begin_session(session_options_t session_options = get_default_session_options());
 void end_session();
 void begin_transaction();
 void rollback_transaction();

@@ -117,7 +117,7 @@ private:
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
-    static inline std::unique_ptr<persistent_store_manager> rdb = nullptr;
+    static inline std::unique_ptr<persistent_store_manager> rdb{};
 
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;

@@ -16,9 +16,9 @@ bool gaia::db::is_transaction_active()
     return gaia::db::client_t::is_transaction_active();
 }
 
-void gaia::db::begin_session(gaia::db::session_options_t session_opts)
+void gaia::db::begin_session(gaia::db::session_options_t session_options)
 {
-    gaia::db::client_t::begin_session(session_opts);
+    gaia::db::client_t::begin_session(session_options);
 }
 
 void gaia::db::end_session()
