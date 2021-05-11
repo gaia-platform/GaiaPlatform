@@ -13,16 +13,16 @@
 
 TEST(random_test, gen_random_num)
 {
-    constexpr int c_lower_ranger = 0;
+    constexpr int c_lower_range = 0;
     constexpr int c_high_range = 15;
-    constexpr int c_iterations = (c_high_range - c_lower_ranger) * 10;
+    constexpr int c_iterations = (c_high_range - c_lower_range) * 10;
 
     for (int i = 0; i < c_iterations; ++i)
     {
-        int rnd = gaia::common::gen_random_num(c_lower_ranger, c_high_range);
-        ASSERT_TRUE(rnd >= c_lower_ranger && rnd <= c_high_range)
+        int rnd = gaia::common::gen_random_num(c_lower_range, c_high_range);
+        ASSERT_TRUE(rnd >= c_lower_range && rnd <= c_high_range)
             << "The number " << rnd << " is outside of the expected range ("
-            << c_lower_ranger << ", " << c_high_range << ")";
+            << c_lower_range << ", " << c_high_range << ")";
     }
 }
 

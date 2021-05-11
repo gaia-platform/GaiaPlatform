@@ -23,7 +23,7 @@ gaia::db::session_opts_t gaia::db::config::create_session_opts(std::shared_ptr<c
                        .value_or(db::c_default_instance_name);
 
     return gaia::db::session_opts_t{
-        .instance_name = value};
+        .db_instance_name = value};
 }
 
 gaia::db::session_opts_t gaia::db::config::get_default_session_opts()
@@ -34,7 +34,7 @@ gaia::db::session_opts_t gaia::db::config::get_default_session_opts()
     }
 
     return gaia::db::session_opts_t{
-        .instance_name = c_default_instance_name};
+        .db_instance_name = c_default_instance_name};
 }
 
 void gaia::db::config::set_default_session_opts(gaia::db::session_opts_t session_opts)

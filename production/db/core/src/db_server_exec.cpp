@@ -140,11 +140,11 @@ private:
     }
 };
 
-static server_conf_t process_command_line(int argc, char* argv[])
+static server_config_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_flags;
 
-    server_conf_t::persistence_mode_t persistence_mode{server_conf_t::c_default_persistence_mode};
+    server_config_t::persistence_mode_t persistence_mode{server_config_t::c_default_persistence_mode};
     std::string instance_name;
     std::string data_dir;
     std::string conf_file_path;
@@ -161,15 +161,15 @@ static server_conf_t process_command_line(int argc, char* argv[])
         used_flags.insert(argv[i]);
         if (strcmp(argv[i], c_disable_persistence_flag) == 0)
         {
-            persistence_mode = server_conf_t::persistence_mode_t::e_disabled;
+            persistence_mode = server_config_t::persistence_mode_t::e_disabled;
         }
         else if (strcmp(argv[i], c_disable_persistence_after_recovery_flag) == 0)
         {
-            persistence_mode = server_conf_t::persistence_mode_t::e_disabled_after_recovery;
+            persistence_mode = server_config_t::persistence_mode_t::e_disabled_after_recovery;
         }
         else if (strcmp(argv[i], c_reinitialize_persistent_store_flag) == 0)
         {
-            persistence_mode = server_conf_t::persistence_mode_t::e_reinitialized_on_startup;
+            persistence_mode = server_config_t::persistence_mode_t::e_reinitialized_on_startup;
         }
         else if ((strcmp(argv[i], c_data_dir_command_flag) == 0) && (i + 1 < argc))
         {
@@ -196,7 +196,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
 
     lazy_gaia_conf gaia_conf{conf_file_path};
 
-    if (data_dir.empty() && (persistence_mode != server_conf_t::persistence_mode_t::e_disabled))
+    if (data_dir.empty() && (persistence_mode != server_config_t::persistence_mode_t::e_disabled))
     {
         auto data_dir_string = gaia_conf.get_value<std::string>(c_data_dir_string_key);
         // There are two cases of s_data_dir "missing" from the configuration file. First, if the
@@ -229,19 +229,19 @@ static server_conf_t process_command_line(int argc, char* argv[])
     }
 
     // In case anyone can see this...
-    if (persistence_mode == server_conf_t::persistence_mode_t::e_disabled)
+    if (persistence_mode == server_config_t::persistence_mode_t::e_disabled)
     {
         std::cerr
             << "Persistence is disabled." << std::endl;
     }
 
-    if (persistence_mode == server_conf_t::persistence_mode_t::e_disabled_after_recovery)
+    if (persistence_mode == server_config_t::persistence_mode_t::e_disabled_after_recovery)
     {
         std::cerr
             << "Persistence is disabled after recovery." << std::endl;
     }
 
-    if (persistence_mode == server_conf_t::persistence_mode_t::e_reinitialized_on_startup)
+    if (persistence_mode == server_config_t::persistence_mode_t::e_reinitialized_on_startup)
     {
         std::cerr
             << "Persistence is reinitialized on startup." << std::endl;
@@ -250,7 +250,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
     std::cerr
         << "Database instance name is '" << instance_name << "'." << std::endl;
 
-    if (persistence_mode != server_conf_t::persistence_mode_t::e_disabled)
+    if (persistence_mode != server_config_t::persistence_mode_t::e_disabled)
     {
         if (data_dir.empty())
         {
@@ -297,7 +297,7 @@ static server_conf_t process_command_line(int argc, char* argv[])
         }
     }
 
-    return server_conf_t{persistence_mode, instance_name, data_dir};
+    return server_config_t{persistence_mode, instance_name, data_dir};
 }
 
 int main(int argc, char* argv[])

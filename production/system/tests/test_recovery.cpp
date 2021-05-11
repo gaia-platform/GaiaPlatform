@@ -41,7 +41,7 @@ class recovery_test : public ::testing::Test
 {
 public:
     // Empty server path, enable persistence.
-    static inline server_instance_t s_server;
+    static inline server_instance_t s_server{};
 
     // Write 16 records in a single transaction.
     static constexpr size_t c_load_batch_size = 16;
@@ -97,7 +97,7 @@ protected:
         s_server = server_instance_t{server_conf};
 
         session_opts_t session_opts;
-        session_opts.instance_name = s_server.instance_name();
+        session_opts.db_instance_name = s_server.instance_name();
         gaia::db::config::set_default_session_opts(session_opts);
     }
 

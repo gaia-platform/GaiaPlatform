@@ -42,12 +42,12 @@ function(process_schema)
     set(ARG_GAIAC_CMD gaiac)
   endif()
 
-  if (NOT DEFINED ARG_DATABASE_NAME)
+  if(NOT DEFINED ARG_DATABASE_NAME)
     set(ARG_DATABASE_NAME ${DDL_NAME})
     message(VERBOSE "DATABASE_NAME not provided, inferred database name: ${ARG_DATABASE_NAME}.")
   endif()
 
-  if (DEFINED ARG_INSTANCE_NAME)
+  if(DEFINED ARG_INSTANCE_NAME)
     set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
   endif()
 

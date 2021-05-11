@@ -40,7 +40,7 @@ public:
 /**
  * Encapsulates the server_t configuration.
  */
-class server_conf_t
+class server_config_t
 {
 public:
     enum class persistence_mode_t : uint8_t
@@ -54,21 +54,21 @@ public:
     static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
 
 public:
-    server_conf_t(server_conf_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
+    server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
         : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir))
     {
     }
 
     // Dummy constructor to allow server_t initialization.
-    // TODO this should be private but I just can make the "friend" thing working.
-    server_conf_t()
+    // TODO this should be private but I just can't make the "friend" thing working.
+    server_config_t()
         : m_persistence_mode(c_default_persistence_mode)
     {
     }
 
-    persistence_mode_t persistence_mode();
-    const std::string& instance_name();
-    const std::string& data_dir();
+    inline persistence_mode_t persistence_mode();
+    inline const std::string& instance_name();
+    inline const std::string& data_dir();
 
 private:
     persistence_mode_t m_persistence_mode;
@@ -88,11 +88,11 @@ class server_t
         size_t size);
 
 public:
-    static void run(server_conf_t server_conf);
+    static void run(server_config_t server_conf);
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
 
 private:
-    static inline server_conf_t s_server_conf{};
+    static inline server_config_t s_server_conf{};
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
@@ -330,6 +330,8 @@ private:
         bool m_auto_close_fd{true};
     };
 };
+
+#include "db_server.inc"
 
 } // namespace db
 } // namespace gaia

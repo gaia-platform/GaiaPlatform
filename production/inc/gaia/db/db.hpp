@@ -158,8 +158,7 @@ public:
 
 struct session_opts_t
 {
-    // TODO change to db_instance_name
-    std::string instance_name;
+    std::string db_instance_name;
 };
 
 session_opts_t get_default_session_opts();

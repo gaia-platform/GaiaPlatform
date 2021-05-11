@@ -18,13 +18,13 @@ namespace config
 
 /**
  * Given a toml parsed file returns a session_opts_t. If the configuration
- * does not contain the values necessary a session_opt_t object will be
+ * does not contain the necessary values, a session_opt_t object will be
  * created with default values.
  */
 gaia::db::session_opts_t create_session_opts(std::shared_ptr<cpptoml::table> root_config);
 
 /**
- * Get the default value for session_opt. This value can be changed by set_default_session_opts().
+ * Get the default value for session_opts. This value can be changed by set_default_session_opts().
  */
 gaia::db::session_opts_t get_default_session_opts();
 

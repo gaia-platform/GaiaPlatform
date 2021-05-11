@@ -72,16 +72,16 @@ protected:
         server_instance_conf_t server_conf = server_instance_conf_t::get_default();
         server_conf.instance_name = c_default_instance_name;
 
-        m_server_instance = server_instance_t{server_conf};
+        s_server_instance = server_instance_t{server_conf};
 
         // Make the instance name the default, so that calls to begin_session()
         // will automatically connect to that instance.
         session_opts_t session_opts;
-        session_opts.instance_name = m_server_instance.instance_name();
+        session_opts.db_instance_name = s_server_instance.instance_name();
         config::set_default_session_opts(session_opts);
 
-        m_server_instance.start();
-        m_server_instance.wait_for_init();
+        s_server_instance.start();
+        s_server_instance.wait_for_init();
     }
 };
 

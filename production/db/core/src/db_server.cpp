@@ -46,7 +46,7 @@ using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-using persistence_mode_t = server_conf_t::persistence_mode_t;
+using persistence_mode_t = server_config_t::persistence_mode_t;
 
 static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
 static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
@@ -2328,7 +2328,7 @@ bool server_t::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server_t::run(server_conf_t server_conf)
+void server_t::run(server_config_t server_conf)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_server_conf = server_conf;
@@ -2399,18 +2399,4 @@ void server_t::run(server_conf_t server_conf)
             ::raise(caught_signal);
         }
     }
-}
-persistence_mode_t server_conf_t::persistence_mode()
-{
-    return m_persistence_mode;
-}
-
-const std::string& server_conf_t::data_dir()
-{
-    return m_data_dir;
-}
-
-const std::string& server_conf_t::instance_name()
-{
-    return m_instance_name;
 }

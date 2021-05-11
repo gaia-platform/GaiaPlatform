@@ -20,9 +20,9 @@
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
-#include <gaia_internal/common/system_error.hpp>
-#include <gaia_internal/db/gaia_db_internal.hpp>
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "command.hpp"
 #include "gaia_parser.hpp"
@@ -341,7 +341,7 @@ int main(int argc, char* argv[])
     }
 
     gaia::db::session_opts_t session_opts;
-    session_opts.instance_name = instance_name;
+    session_opts.db_instance_name = instance_name;
     gaia::db::begin_session(session_opts);
 
     const auto cleanup = scope_guard::make_scope_guard([&server]() {

@@ -301,7 +301,7 @@ void client_t::begin_session(session_opts_t session_opts)
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(s_session_opts.instance_name);
+    s_session_socket = get_session_socket(s_session_opts.db_instance_name);
 
     auto cleanup_session_socket = make_scope_guard([&]() {
         close_fd(s_session_socket);
@@ -388,7 +388,7 @@ void client_t::begin_transaction()
 
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
-    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_opts.instance_name, s_txn_id).c_str());
+    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_opts.db_instance_name, s_txn_id).c_str());
 
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;

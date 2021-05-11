@@ -189,7 +189,7 @@ void server_instance_t::wait_for_init()
             gaia_log::sys().trace("Waiting for Gaia instance {}...", instance_name());
 
             gaia::db::session_opts_t session_opts;
-            session_opts.instance_name = instance_name();
+            session_opts.db_instance_name = instance_name();
 
             gaia::db::begin_session(session_opts);
         }
