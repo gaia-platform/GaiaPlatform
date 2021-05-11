@@ -12,10 +12,20 @@
 
 namespace gaia
 {
-
+/**
+ * \addtogroup Gaia
+ * @{
+ */
 namespace db
 {
+/**
+ * \addtogroup Db
+ * @{
+ */
 
+/**
+ * A session already exists on this thread.
+ */
 class session_exists : public common::gaia_exception
 {
 public:
@@ -25,6 +35,9 @@ public:
     }
 };
 
+/**
+ * No session exists on this thread.
+ */
 class no_active_session : public common::gaia_exception
 {
 public:
@@ -34,6 +47,9 @@ public:
     }
 };
 
+/**
+ * A transaction is already in progress in this session.
+ */
 class transaction_in_progress : public common::gaia_exception
 {
 public:
@@ -43,6 +59,9 @@ public:
     }
 };
 
+/**
+ * No transaction is in progress in this session.
+ */
 class no_open_transaction : public common::gaia_exception
 {
 public:
@@ -52,6 +71,9 @@ public:
     }
 };
 
+/**
+ * The committed transaction conflicts with another transaction.
+ */
 class transaction_update_conflict : public common::gaia_exception
 {
 public:
@@ -61,6 +83,9 @@ public:
     }
 };
 
+/**
+ * The committed transaction attempted to update too many objects.
+ */
 class transaction_object_limit_exceeded : public common::gaia_exception
 {
 public:
@@ -70,6 +95,9 @@ public:
     }
 };
 
+/**
+ * The transaction attempted to create an object with an existing ID.
+ */
 class duplicate_id : public common::gaia_exception
 {
 public:
@@ -81,6 +109,9 @@ public:
     }
 };
 
+/**
+ * The transaction exceeded the number of objects permitted in the system.
+ */
 class oom : public common::gaia_exception
 {
 public:
@@ -90,6 +121,9 @@ public:
     }
 };
 
+/**
+ * The transaction referenced an object ID that does not exist.
+ */
 class invalid_node_id : public common::gaia_exception
 {
 public:
@@ -101,6 +135,9 @@ public:
     }
 };
 
+/**
+ * The transaction attempted to create an object with an invalid ID.
+ */
 class invalid_id_value : public common::gaia_exception
 {
 public:
@@ -112,6 +149,9 @@ public:
     }
 };
 
+/**
+ * The transaction attempted to delete an object that is referenced by another object.
+ */
 class node_not_disconnected : public common::gaia_exception
 {
 public:
@@ -125,6 +165,9 @@ public:
     }
 };
 
+/**
+ * The transaction attempted to create or update an object that is too large.
+ */
 class payload_size_too_large : public common::gaia_exception
 {
 public:
@@ -136,6 +179,9 @@ public:
     }
 };
 
+/**
+ * The transaction attempted to create an object with an unknown type.
+ */
 class invalid_type : public common::gaia_exception
 {
 public:
@@ -156,12 +202,37 @@ public:
     }
 };
 
+/**
+ * Return true if a transaction is active in this session.
+ */
 bool is_transaction_active();
+
+/**
+ * Begin a new database session.
+ */
 void begin_session();
+
+/**
+ * Terminate the current database session.
+ */
 void end_session();
+
+/**
+ * Begin a new transaction in this session.
+ */
 void begin_transaction();
+
+/**
+ * Terminate the current transaction in this session.
+ */
 void rollback_transaction();
+
+/**
+ * Commit the current transaction in this session.
+ */
 void commit_transaction();
 
+/*@}*/
 } // namespace db
+/*@}*/
 } // namespace gaia
