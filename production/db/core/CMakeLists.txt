@@ -60,7 +60,7 @@ endforeach(FBS_SOURCE)
 ###############################################
 # Our main target.
 ###############################################
-add_library(gaia_storage SHARED
+add_library(gaia_storage STATIC
   src/record_list.cpp
   src/record_list_manager.cpp)
 target_include_directories(gaia_storage PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
