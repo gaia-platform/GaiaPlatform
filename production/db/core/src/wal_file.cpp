@@ -15,20 +15,16 @@
 #include <sstream>
 #include <string>
 
-#include "gaia_internal/db/db_types.hpp"
-
-#include "db_internal_types.hpp"
-// #include "io_uring_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/write_ahead_log_error.hpp"
-
-#include "liburing.h"
+#include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
 
-// Todo: Pipe calls to an I/O uring submission queue instead of performing synchronous calls to open,
-// close and fallocate the file.
+// Todo (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
+// Open() operation will remain synchronous, since we need the file fd to perform other async
+// operations on the file.
 wal_file_t::wal_file_t(std::string& dir, int fd, wal_sequence_t file_seq, size_t size)
 {
     dir_fd = fd;
@@ -64,8 +60,6 @@ wal_file_t::wal_file_t(std::string& dir, int fd, wal_sequence_t file_seq, size_t
 
 wal_file_t::~wal_file_t()
 {
-    // Close file.
-    // TODO(mihir) submit batch before close.
     close(file_fd);
 }
 

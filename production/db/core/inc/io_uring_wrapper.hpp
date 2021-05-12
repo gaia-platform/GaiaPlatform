@@ -55,6 +55,10 @@ public:
         void* data,
         u_char flags);
 
+    static void close(int fd);
+
+    static void fallocate(int fd, int mode, size_t offset, size_t size);
+
     static size_t submit(bool wait);
 
     static size_t space_left();
@@ -73,13 +77,15 @@ public:
 
 private:
     // Size can only be a power of 2 and the max value is 4096.
-    static constexpr size_t c_buffer_size = 128;
+    static constexpr size_t c_buffer_size = 64;
 
     // Reserve some space in the submission queue for Drain/Fsync and any eventfd writes.
     static constexpr size_t c_buffer_size_soft_limit = 60;
     static constexpr char c_setup_err_msg[] = "IOUring setup failed.";
     static constexpr char c_buffer_empty_err_msg[] = "IOUring submission queue out of space.";
     static struct io_uring* ring;
+
+    static void prep_sqe(void* data, u_char flags, io_uring_sqe* sqe);
 };
 } // namespace db
 } // namespace gaia

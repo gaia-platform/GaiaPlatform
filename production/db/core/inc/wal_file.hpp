@@ -22,11 +22,8 @@ namespace db
 typedef uint32_t wal_sequence_t;
 typedef uint32_t wal_file_offset_t;
 
-// Layer to help carry out async I/O on a file via io_uring.
-// Note that all ring management operations (has_enough_size(); if not, submit the batch) occur in wal_writer.cpp
 class wal_file_t
 {
-
 public:
     static uint64_t file_size;
     static wal_sequence_t file_num;

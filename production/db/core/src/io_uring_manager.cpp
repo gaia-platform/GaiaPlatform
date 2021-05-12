@@ -25,8 +25,11 @@ namespace db
 
 io_uring_manager_t::io_uring_manager_t()
 {
-    in_progress_buffer.reset(new io_uring_wrapper_t());
-    in_flight_buffer.reset(new io_uring_wrapper_t());
+    in_progress_buffer.reset();
+    in_progress_buffer = std::make_unique<io_uring_wrapper_t>();
+    in_flight_buffer.reset();
+    in_flight_buffer = std::make_unique<io_uring_wrapper_t>();
+
     flush_efd = eventfd(1, 0);
     if (flush_efd == -1)
     {
@@ -36,6 +39,8 @@ io_uring_manager_t::io_uring_manager_t()
 
 io_uring_manager_t::~io_uring_manager_t()
 {
+    in_progress_buffer.reset();
+    in_flight_buffer.reset();
     teardown();
 }
 
@@ -49,7 +54,7 @@ void io_uring_manager_t::handle_io_uring_error(int ret, std::string err_msg)
     if (!ret)
     {
         teardown();
-        throw io_uring_error(err_msg, errno);
+        throw io_uring_error(err_msg, -1);
     }
 }
 
@@ -72,7 +77,6 @@ void io_uring_manager_t::validate_completion_batch()
     }
 }
 
-// Todo: To keep things simple, call handle_submit() each time we create a new file even if batch size isn't exhausted.
 void io_uring_manager_t::handle_submit(int file_fd, bool wait = false)
 {
     eventfd_t event_counter;
@@ -87,13 +91,14 @@ void io_uring_manager_t::handle_submit(int file_fd, bool wait = false)
     // Validate events from the previous in-flight batch if they exist.
     // The completion queue should have as many events as the flushed_batch_size. The method
     // throws an error otherwise.
-    // TODO(mihir): Validation of the flushed batch completions needs to happen asap and not wait on the
-    // next batch swap as - the session threads can't proceed until this validation is completed.
-    // Option 1: Spin up a separate thread to do a blocking wait and this check.
-    // Option 2: Wake up one of the blocked session threads to do this check.
-    // Option 3: The persistence thread will wake up on in-flight flush completion in an epoll loop
-    // and simply validate completions. Maybe we can create a separate efd here specific to completion validations.
-    // Proposal: option3
+
+    // TODO(mihir): Validation of the flushed batch completions needs to happen ASAP and not wait for the
+    // next time handle_submit() is called (as is happening in this code path);
+    // The session threads can't proceed until this validation is completed.
+    // Option 1: Reserve a separate thread to do a blocking wait and validation of results.
+    // Option 2: One of the blocked session threads can do this check.
+    // Option 3: The persistence thread will wake up on in-flight flush completions via epoll_wait()
+    // and validate completions.
     validate_completion_batch();
 
     // Finish up batch before swapping & flushing it. We swap batches since writes can only
@@ -116,22 +121,24 @@ void io_uring_manager_t::handle_submit(int file_fd, bool wait = false)
 
     if (wait)
     {
-        submission_count = in_progress_buffer->submit(wait);
+        submission_count = in_flight_buffer->submit(wait);
         validate_completion_batch();
     }
     else
     {
         // Issue async submit.
         bool wait_for_io = false;
-        auto submission_count = in_progress_buffer->submit(wait_for_io);
+        submission_count = in_flight_buffer->submit(wait_for_io);
     }
     handle_io_uring_error(flushed_batch_size == submission_count, "IOUring submission failure.");
-    handle_io_uring_error(in_progress_buffer->count_unsubmitted_entries() == 0, "IOUring batch size after submission should be 0.");
+    handle_io_uring_error(in_flight_buffer->count_unsubmitted_entries() == 0, "IOUring batch size after submission should be 0.");
 }
 
-// Internally manager two buffers and call submit with fsync either when
-// 1) The submit flag is set
-// 2) When the in-progress buffer gets full.
+void io_uring_manager_t::close_fd(int fd)
+{
+    in_progress_buffer->close(fd);
+}
+
 void io_uring_manager_t::pwritev(
     const struct iovec* iovecs,
     size_t iovcnt,
@@ -139,6 +146,7 @@ void io_uring_manager_t::pwritev(
     uint64_t current_offset,
     bool submit)
 {
+    // Call handle_submit() either when the submit flag is set or when the in-progress buffer gets full.
     if (in_progress_buffer.get()->space_left() - submit_batch_sqe_count == 0 || submit)
     {
         // This call will block if flushing the in_flight batch is still in progress.
@@ -161,14 +169,7 @@ void io_uring_manager_t::pwritev(
     }
 }
 
-void io_uring_manager_t::write(
-    const void* buf,
-    size_t len,
-    bool submit)
-{
-}
-
-bool io_uring_manager_t::swap_buffers()
+void io_uring_manager_t::swap_buffers()
 {
     in_flight_buffer.swap(in_progress_buffer);
 }

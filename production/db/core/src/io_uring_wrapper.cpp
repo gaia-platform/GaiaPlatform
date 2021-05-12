@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 #include "io_uring_wrapper.hpp"
 
 #include "gaia_internal/common/io_uring_error.hpp"
@@ -39,6 +37,17 @@ io_uring* io_uring_wrapper_t::get_ring()
     return ring;
 }
 
+void io_uring_wrapper_t::prep_sqe(void* data, u_char flags, io_uring_sqe* sqe)
+{
+    sqe = io_uring_get_sqe(ring);
+    if (!sqe)
+    {
+        throw io_uring_error(c_buffer_empty_err_msg);
+    }
+    io_uring_sqe_set_data(sqe, data);
+    io_uring_sqe_set_flags(sqe, flags);
+}
+
 void io_uring_wrapper_t::pwritev(
     const struct iovec* iov,
     size_t iovcnt,
@@ -47,11 +56,9 @@ void io_uring_wrapper_t::pwritev(
     void* data,
     u_char flags)
 {
-    auto sqe = io_uring_get_sqe(ring);
-    ASSERT_INVARIANT(!sqe, c_buffer_empty_err_msg);
-    io_uring_sqe_set_data(sqe, data);
-    io_uring_sqe_set_flags(sqe, flags);
-    io_uring_prep_writev(sqe, file_fd, iov, iovcnt, current_offset);
+    io_uring_sqe sqe;
+    prep_sqe(data, flags, &sqe);
+    io_uring_prep_writev(&sqe, file_fd, iov, iovcnt, current_offset);
 }
 
 void io_uring_wrapper_t::write(
@@ -62,11 +69,9 @@ void io_uring_wrapper_t::write(
     void* data,
     u_char flags)
 {
-    auto sqe = io_uring_get_sqe(ring);
-    ASSERT_INVARIANT(!sqe, c_buffer_empty_err_msg);
-    io_uring_sqe_set_data(sqe, data);
-    io_uring_sqe_set_flags(sqe, flags);
-    io_uring_prep_write(sqe, file_fd, buf, len, current_offset);
+    io_uring_sqe sqe;
+    prep_sqe(data, flags, &sqe);
+    io_uring_prep_write(&sqe, file_fd, buf, len, current_offset);
 }
 
 void io_uring_wrapper_t::fsync(
@@ -75,11 +80,23 @@ void io_uring_wrapper_t::fsync(
     void* data,
     u_char flags)
 {
-    auto sqe = io_uring_get_sqe(ring);
-    ASSERT_INVARIANT(!sqe, c_buffer_empty_err_msg);
-    io_uring_sqe_set_data(sqe, data);
-    io_uring_sqe_set_flags(sqe, flags);
-    io_uring_prep_fsync(sqe, file_fd, fsync_flags);
+    io_uring_sqe sqe;
+    prep_sqe(data, flags, &sqe);
+    io_uring_prep_fsync(&sqe, file_fd, fsync_flags);
+}
+
+void io_uring_wrapper_t::close(int fd)
+{
+    io_uring_sqe sqe;
+    prep_sqe(nullptr, 0, &sqe);
+    io_uring_prep_close(&sqe, fd);
+}
+
+void io_uring_wrapper_t::fallocate(int fd, int mode, size_t offset, size_t size)
+{
+    io_uring_sqe sqe;
+    prep_sqe(nullptr, 0, &sqe);
+    io_uring_prep_fallocate(&sqe, fd, mode, offset, size);
 }
 
 size_t io_uring_wrapper_t::submit(bool wait)
