@@ -19,9 +19,8 @@ namespace gaia
 namespace db
 {
 
-// For simplicity, all submission enqueue APIs assume that
-// the submission queue has enough space to write to. The caller should verify that enough space
-// exists before queuing requests.
+// For simplicity all APIs in this file assume that the io_uring submission queue has enough space to write to.
+// The caller should verify that enough space exists before queuing requests to the ring.
 class io_uring_wrapper_t
 {
 public:
@@ -69,7 +68,7 @@ public:
 
     /**
      * Returns an I/O completion, if one is readily available. Doesn’t wait.
-     * Returns 0 with cqe_ptr filled in on success, -errno on failure.
+     * Returns 0 with cqe filled in on success, -errno on failure.
      */
     static int get_completion_event(struct io_uring_cqe** cqe);
 
@@ -79,10 +78,10 @@ private:
     // Size can only be a power of 2 and the max value is 4096.
     static constexpr size_t c_buffer_size = 64;
 
-    // Reserve some space in the submission queue for Drain/Fsync and any eventfd writes.
-    static constexpr size_t c_buffer_size_soft_limit = 60;
     static constexpr char c_setup_err_msg[] = "IOUring setup failed.";
     static constexpr char c_buffer_empty_err_msg[] = "IOUring submission queue out of space.";
+
+    // ring will internally maintain a submission queue and a completion queue which exist in shared memory.
     static struct io_uring* ring;
 
     static void prep_sqe(void* data, u_char flags, io_uring_sqe* sqe);

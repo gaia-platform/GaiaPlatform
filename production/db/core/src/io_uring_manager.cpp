@@ -68,8 +68,7 @@ void io_uring_manager_t::validate_completion_batch()
         handle_io_uring_error(ret == 0, "Expected completions to be ready post flush_fd write.");
 
         // Validate completion result.
-        // Error for the following syscalls is denoted by -1: write, pwritev, fdatasync
-        // Todo: Set user data for entires so they can be used to create meaningful error messages.
+        // Todo (mihir): Set user data for submission entries so they can be used to create meaningful error messages.
         handle_io_uring_error(cqe->res >= 0, "CQE completion failure from in_flight batch.");
 
         // Mark completion as seen.
@@ -92,18 +91,20 @@ void io_uring_manager_t::handle_submit(int file_fd, bool wait = false)
     // The completion queue should have as many events as the flushed_batch_size. The method
     // throws an error otherwise.
 
-    // TODO(mihir): Validation of the flushed batch completions needs to happen ASAP and not wait for the
+    // TODO(mihir): Note that validation of the flushed batch completions needs to happen ASAP and not wait for the
     // next time handle_submit() is called (as is happening in this code path);
-    // The session threads can't proceed until this validation is completed.
+    // The session threads can't proceed until this validation of completions pertaining to the in-flight buffer
+    /// has finished.
     // Option 1: Reserve a separate thread to do a blocking wait and validation of results.
     // Option 2: One of the blocked session threads can do this check.
     // Option 3: The persistence thread will wake up on in-flight flush completions via epoll_wait()
     // and validate completions.
+    // Proposal: Option3
     validate_completion_batch();
 
     // Finish up batch before swapping & flushing it. We swap batches since writes can only
     // be made to the in-progress batch.
-    // Usually sqes are used independently, meaning that the execution of one does not affect
+    // Usually submission queue entries (sqes) are used independently, meaning that the execution of one does not affect
     // the execution or ordering of subsequent sqe entries in the ring. io_uring supports draining the
     // submission side queue until all previous writes have finished. The queued writes will complete
     // in parallel and out of order, but the fsync operation will only begin after all prior writes in the

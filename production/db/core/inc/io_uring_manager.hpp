@@ -25,9 +25,9 @@ namespace db
 
 // This class will be used by the persistence thread to perform async writes to disk.
 // Context: The persistence thread exists on the server and will scan the txn table for any new txn updates and
-// will write them to the log. The session thread will signal to the persistence thread that new writes are available via an eventfd on
+// will write them to the log. The session threads will signal to the persistence thread that new writes are available via an eventfd on
 // txn commit. Additionally, the session threads will wait on the persistence thread to write its updates to disk before returning
-// commit decision to the client. Signaling between threads will occur via eventfds.
+// the commit decision to the client. Signaling between threads will occur via eventfds.
 class io_uring_manager_t
 {
 public:
@@ -55,7 +55,7 @@ public:
     // Signifies flush is in progress.
     static inline int flush_efd = 0;
 
-    // Reserve slots in the buffer to be able to append additional operations in a batch before it gets submitted.
+    // Reserve slots in the buffer to be able to append additional operations in a batch before it gets submitted to the kernel.
     static constexpr size_t submit_batch_sqe_count = 3;
     static constexpr eventfd_t default_flush_efd_value = 1;
 
