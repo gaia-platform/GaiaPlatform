@@ -110,14 +110,14 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 table_list_t catalog_core_t::list_tables()
 {
     counters_t* counters = gaia::db::get_counters();
-    auto gaia_table_generator = [counters, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
+    auto gaia_table_generator = [counters, locator = c_first_gaia_locator]() mutable -> std::optional<table_view_t> {
         // We need an acquire barrier before reading `last_locator`. We can
         // change this full barrier to an acquire barrier when we change to proper
         // C++ atomic types.
         __sync_synchronize();
-        while (++locator && locator <= counters->last_locator)
+        while (locator <= counters->last_locator)
         {
-            auto ptr = locator_to_ptr(locator);
+            auto ptr = locator_to_ptr(locator++);
             if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
             {
                 return table_view_t(ptr);

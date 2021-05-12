@@ -173,7 +173,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
 {
     gaia_ptr_t ptr;
-    ptr.m_locator = 1;
+    ptr.m_locator = c_first_gaia_locator;
 
     if (!ptr.is(type))
     {
