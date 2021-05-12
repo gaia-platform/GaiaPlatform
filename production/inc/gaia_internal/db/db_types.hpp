@@ -41,6 +41,11 @@ typedef uint64_t gaia_locator_t;
 constexpr gaia_locator_t c_invalid_gaia_locator = 0;
 
 /**
+ * The value of the first gaia_locator.
+ */
+constexpr gaia_locator_t c_first_gaia_locator = c_invalid_gaia_locator + 1;
+
+/**
  * The type of a Gaia data offset.
  *
  * This represents the offset of a gaia_se_object in the global data shared
