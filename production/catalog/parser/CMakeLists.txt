@@ -41,4 +41,4 @@ set(DDL_PARSER_TEST_SOURCES
   tests/test_ddl_parser.cpp
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
-add_gtest(test_ddl_parser "${DDL_PARSER_TEST_SOURCES}" "${GAIA_PARSER_INCLUDES}" "gaia_db_client")
+add_gtest(test_ddl_parser "${DDL_PARSER_TEST_SOURCES}" "${GAIA_PARSER_INCLUDES}" "")

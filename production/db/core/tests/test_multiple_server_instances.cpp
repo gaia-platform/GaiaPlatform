@@ -90,7 +90,7 @@ private:
 class client_reader_t
 {
 public:
-    client_reader_t(std::string instance_name)
+    explicit client_reader_t(std::string instance_name)
         : m_instance_name(std::move(instance_name))
     {
     }
