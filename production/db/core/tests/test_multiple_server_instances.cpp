@@ -6,6 +6,7 @@
 #include <shared_mutex>
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "gtest/gtest.h"
 
@@ -32,9 +33,7 @@ static constexpr uint32_t c_max_reader_wait_seconds = 10;
 class multiple_server_instances_test : public ::testing::Test
 {
 public:
-    multiple_server_instances_test()
-    {
-    }
+    multiple_server_instances_test() = default;
 
 protected:
     static void SetUpTestSuite()
@@ -48,8 +47,8 @@ private:
 class client_writer_t
 {
 public:
-    client_writer_t(const std::string& instance_name, std::shared_mutex& gaia_parser_lock)
-        : m_instance_name(instance_name), m_gaia_parser_lock(gaia_parser_lock)
+    client_writer_t(std::string instance_name, std::shared_mutex& gaia_parser_lock)
+        : m_instance_name(std::move(instance_name)), m_gaia_parser_lock(gaia_parser_lock)
     {
     }
 
@@ -91,8 +90,8 @@ private:
 class client_reader_t
 {
 public:
-    client_reader_t(const std::string& instance_name)
-        : m_instance_name(instance_name)
+    client_reader_t(std::string instance_name)
+        : m_instance_name(std::move(instance_name))
     {
     }
 
