@@ -62,9 +62,8 @@ public:
 
         begin_session(session_options);
 
-        // TODO Apparently the gaia parser is not thread safe.
-        //  I don't know if this is by design or a bug.
-        //  @chuan to review (if it is a bug I will file a JIRA)
+        // TODO The gaia parser does not support running
+        //  multiple DDL from different threads.
         std::unique_lock lock(m_gaia_parser_lock);
         schema_loader_t::instance().load_schema("addr_book.ddl");
         lock.unlock();
