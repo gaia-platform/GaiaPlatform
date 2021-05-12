@@ -170,6 +170,29 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     return *this;
 }
 
+gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
+{
+    gaia_ptr_t ptr;
+    ptr.m_locator = 1;
+
+    if (!ptr.is(type))
+    {
+        ptr.find_next(type);
+    }
+
+    return ptr;
+}
+
+gaia_ptr_t gaia_ptr_t::find_next()
+{
+    if (m_locator)
+    {
+        find_next(to_ptr()->type);
+    }
+
+    return *this;
+}
+
 void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client_t::is_valid_event(type))
