@@ -507,7 +507,7 @@ TEST_F(db_client_test, create_large_object)
         num_refs = 51;
         std::cerr << std::endl;
         std::cerr << "*** Creating a too-large node (" << payload_size + sizeof(gaia_id_t) << " bytes):" << std::endl;
-        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), payload_size_too_large);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), object_too_large);
     }
     commit_transaction();
 }

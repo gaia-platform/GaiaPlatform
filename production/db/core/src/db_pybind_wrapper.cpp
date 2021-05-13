@@ -91,10 +91,9 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     register_exception<gaia::db::transaction_object_limit_exceeded>(m, "transaction_object_limit_exceeded");
     register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
     register_exception<gaia::db::oom>(m, "oom");
-    register_exception<gaia::db::invalid_node_id>(m, "invalid_node_id");
-    register_exception<gaia::db::invalid_id_value>(m, "invalid_id_value");
-    register_exception<gaia::db::node_not_disconnected>(m, "node_not_disconnected");
-    register_exception<gaia::db::payload_size_too_large>(m, "payload_size_too_large");
+    register_exception<gaia::db::invalid_object_id>(m, "invalid_object_id");
+    register_exception<gaia::db::object_still_referenced>(m, "object_still_referenced");
+    register_exception<gaia::db::object_too_large>(m, "object_too_large");
     register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
     class_<gaia_ptr_t>(m, "gaia_ptr")

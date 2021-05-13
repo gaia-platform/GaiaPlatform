@@ -74,7 +74,7 @@ extern "C" void handle_rule_exception()
     {
         throw;
     }
-    catch (const gaia::db::invalid_node_id&)
+    catch (const gaia::db::invalid_object_id&)
     {
         g_exception_counters[exception_type_t::invalid_node]++;
     }
