@@ -1268,6 +1268,8 @@ def err_invalid_rule_context_use : Error<
   "Invalid use of 'rule_context'.">;
 def err_duplicate_tag_defined: Error<
   "Tag '%0' is already defined.">;
+def err_tag_not_allowed: Error<
+  "Tag not allowed in a Table attribute.">;
 }
 
 } // end of Parser diagnostics

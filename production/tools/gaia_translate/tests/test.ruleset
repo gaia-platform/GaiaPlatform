@@ -1,6 +1,8 @@
 #include "gaia/logger.hpp"
 #include "gaia/events.hpp"
 
+// #define TEST_FAILURES
+
 int g_rule_called = 0;
 int g_insert_called = 0;
 int g_update_called = 0;

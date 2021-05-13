@@ -193,7 +193,7 @@ size_t count_set_bits(
         // then first mask out the bits that we are supposed to ignore before doing the counting.
         if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
         {
-            uint64_t mask = (1ULL << end_bit_index_within_word) - 1;
+            uint64_t mask = (1ULL << (end_bit_index_within_word + 1)) - 1;
             word &= mask;
         }
 
@@ -230,7 +230,7 @@ size_t find_first_unset_bit(
         // then first mask out the bits that we are supposed to ignore before doing any check.
         if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
         {
-            uint64_t mask = (1ULL << end_bit_index_within_word) - 1;
+            uint64_t mask = (1ULL << (end_bit_index_within_word + 1)) - 1;
             // Because we're looking out for unset bits,
             // the masking is done by setting the irrelevant bits to 1.
             word |= ~mask;

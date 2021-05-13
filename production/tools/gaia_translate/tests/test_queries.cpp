@@ -235,7 +235,7 @@ protected:
     }
 };
 
-TEST_F(test_queries_code, basic_implicit_navigation)
+TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
 {
     gaia::db::begin_transaction();
     populate_db();

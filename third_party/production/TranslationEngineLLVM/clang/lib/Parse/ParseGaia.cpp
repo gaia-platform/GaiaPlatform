@@ -445,6 +445,13 @@ bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
         }
     } while(TryConsumeToken(tok::comma));
 
+    // Don't confuse an identifier with a tag.
+    if (Tok.is(tok::colon))
+    {
+        Diag(Tok, diag::err_tag_not_allowed);
+        return false;
+    }
+
     if (tracker.consumeClose())
     {
         return false;

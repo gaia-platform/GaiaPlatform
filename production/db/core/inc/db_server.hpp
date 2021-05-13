@@ -251,6 +251,8 @@ private:
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
+    static void perform_pre_commit_work_for_txn();
+
     static bool validate_txn(gaia_txn_id_t commit_ts);
 
     static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
