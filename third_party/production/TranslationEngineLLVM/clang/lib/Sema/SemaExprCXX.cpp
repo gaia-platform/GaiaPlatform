@@ -7800,8 +7800,8 @@ ExprResult Sema::ActOnFinishFullExpr(Expr *FE, SourceLocation CC,
       SourceLocation endLocation = FE->getEndLoc();
       if (startLocation.isValid() && endLocation.isValid())
       {
-        auto startLocationIterator = explicitPathTagMapping.lower_bound(startLocation.getRawEncoding());
-        auto endLocationIterator = explicitPathTagMapping.upper_bound(endLocation.getRawEncoding());
+        auto startLocationIterator = explicitPathTagMapping.lower_bound(startLocation);
+        auto endLocationIterator = explicitPathTagMapping.upper_bound(endLocation);
         explicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
       }
     }

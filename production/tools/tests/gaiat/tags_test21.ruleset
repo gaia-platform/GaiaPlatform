@@ -1,11 +1,12 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: echo "Tag 'A' defined but not used." | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test21
 {
     OnInsert(I:incubator)
     {
-        // I->actuator.value += 1.0;
-        // I->raised->A:animal->feeding.portion = 100;
+        I->actuator.value += 1.0;
+        I->raised->A:animal->feeding.portion = 100;
         incubator->actuator.value += 1.0;
         incubator->raised->A:animal->feeding.portion = 100;
     }

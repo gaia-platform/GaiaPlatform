@@ -343,23 +343,23 @@ public:
   }
 
   /// isRulesetScope() - Return true if this scope is a ruleset scope.
-  bool isRulesetScope() const 
+  bool isRulesetScope() const
   {
       return (getFlags() & Scope::GaiaRulesetScope);
   }
 
-  bool isInRulesetScope() const 
+  bool isInRulesetScope() const
   {
-    for (const Scope *S = this; S; S = S->getParent()) 
+    for (const Scope *S = this; S; S = S->getParent())
     {
-      if (S->getFlags() & Scope::GaiaRulesetScope)
+      if (S->isRulesetScope())
       {
         return true;
       }
     }
     return false;
   }
-  
+
   /// isInCXXInlineMethodScope - Return true if this scope is a C++ inline
   /// method scope or is inside one.
   bool isInCXXInlineMethodScope() const {

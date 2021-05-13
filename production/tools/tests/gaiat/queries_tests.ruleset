@@ -205,7 +205,6 @@ ruleset testE13
 
 // GAIAPLAT-807 (fixed)
 // GAIAPLAT-892
-#ifdef TEST_FAILURES
 ruleset test22
 {
     OnInsert(S:sensor)
@@ -213,7 +212,14 @@ ruleset test22
         S->incubator.min_temp += S.value;
     }
 }
-#endif
+
+ruleset test23
+{
+    OnUpdate(min_temp)
+    {
+        sensor.value += sensor->incubator.min_temp;
+    }
+}
 
 // GAIAPLAT-803
 // This should be identical to test1 above.
@@ -228,7 +234,6 @@ ruleset testE1
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-#ifdef TEST_FAILURES
 ruleset testE6
 {
     OnChange(actuator)
@@ -239,8 +244,17 @@ ruleset testE6
         }
     }
 }
-#endif
 
+ruleset testE61
+{
+    OnChange(actuator)
+    {
+        while (/I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
 #ifdef TEST_FAILURES
@@ -267,7 +281,6 @@ ruleset testE8
 }
 
 // GAIAPLAT-827
-#ifdef TEST_FAILURES
 ruleset testE9
 {
     OnChange(sensor.value)
@@ -278,10 +291,8 @@ ruleset testE9
         }
     }
 }
-#endif
 
 // GAIAPLAT-828
-#ifdef TEST_FAILURES
 ruleset testE10
 {
     OnChange(incubator)
@@ -289,10 +300,8 @@ ruleset testE10
         S:sensor.value = S.value * 1.01;
     }
 }
-#endif
 
 // GAIAPLAT-839
-#ifdef TEST_FAILURES
 ruleset testE11
 {
     OnChange(yield.bushels)
@@ -301,7 +310,6 @@ ruleset testE11
             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
     }
 }
-#endif
 
 // GAIAPLAT-832
 #ifdef TEST_FAILURES
