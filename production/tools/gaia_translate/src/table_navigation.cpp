@@ -1,7 +1,9 @@
+#include "table_navigation.h"
+
 #include <climits>
+
 #include <iostream>
 #include <random>
-#include "table_navigation.h"
 
 using namespace std;
 using namespace gaia::translation;
@@ -15,8 +17,7 @@ unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigati
 unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_n;
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
-navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path,
-    unordered_map<string, string> tags, bool is_absolute,  unordered_set<string> used_tables)
+navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path, unordered_map<string, string> tags, bool is_absolute, unordered_set<string> used_tables)
 {
     string last_variable_name;
     ensure_initialization();
@@ -74,17 +75,11 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             {
                 if (path.size() == 1)
                 {
-                    return_value = generate_navigation_code(anchor_table,
-                        used_tables,
-                        tags,
-                        last_variable_name);
+                    return_value = generate_navigation_code(anchor_table, used_tables, tags, last_variable_name);
                 }
                 else
                 {
-                    return_value = generate_navigation_code(anchor_table,
-                        {table},
-                        unordered_map<string, string>(),
-                        last_variable_name);
+                    return_value = generate_navigation_code(anchor_table, {table}, unordered_map<string, string>(), last_variable_name);
                 }
             }
             first_component = false;
@@ -107,8 +102,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
-    unordered_map<string, string> tags, string& last_variable_name)
+navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables, unordered_map<string, string> tags, string& last_variable_name)
 {
     ensure_initialization();
     navigation_code_data_t return_value;
@@ -424,7 +418,7 @@ string table_navigation_t::get_variable_name(const string& table, const unordere
     }
 }
 
-unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const unordered_set<string>& tables)
+unordered_map<string, string> table_navigation_t::generate_dummy_tag_map(const unordered_set<string>& tables)
 {
     unordered_map<string, string> tags;
     for (const auto& table : tables)
@@ -437,7 +431,7 @@ unordered_map<string, string> table_navigation_t::generate_dummy_tag_map (const 
 string table_navigation_t::generate_random_string(string::size_type length)
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-        "abcdefghijklmnopqrstuvwxyz0123456789";
+                        "abcdefghijklmnopqrstuvwxyz0123456789";
 
     random_device rd;
     mt19937_64 gen(rd());
@@ -446,7 +440,7 @@ string table_navigation_t::generate_random_string(string::size_type length)
     string s;
 
     s.reserve(length);
-    while(length--)
+    while (length--)
     {
         s += chrs[dis(gen) % (sizeof(chrs) - 1)];
     }
@@ -454,8 +448,7 @@ string table_navigation_t::generate_random_string(string::size_type length)
     return s;
 }
 // Function that generates a single navigation step code.
-bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table,
-    const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
+bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {
     auto parent_itr = m_table_relationship_1.equal_range(source_table);
     auto child_itr = m_table_relationship_n.equal_range(source_table);

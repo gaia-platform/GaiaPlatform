@@ -213,6 +213,14 @@ ruleset test22
     }
 }
 
+ruleset test23
+{
+    OnUpdate(min_temp)
+    {
+        sensor.value += sensor->incubator.min_temp;
+    }
+}
+
 // GAIAPLAT-803
 // This should be identical to test1 above.
 #ifdef TEST_FAILURES

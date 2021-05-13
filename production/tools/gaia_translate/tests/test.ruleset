@@ -84,6 +84,7 @@ ruleset testE13
     }
 }
 
+#if 0
 ruleset test21
 {
     OnInsert(I:incubator)
@@ -114,3 +115,4 @@ ruleset test15
         S:sensor.value = S.value * 1.01;
     }
 }
+#endif

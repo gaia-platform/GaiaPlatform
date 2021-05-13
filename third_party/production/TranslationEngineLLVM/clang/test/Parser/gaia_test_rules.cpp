@@ -252,10 +252,10 @@ ruleset test30
 
 ruleset test31
 {
-  OnDelete(incubator) // expected-error {{Invalid Gaia rule attribute.}}
+  OnDelete(incubator) // expected-error {{Invalid Gaia rule attribute}}
   {
 
-  }
+  } // {{expected ';' after top level declarator}}
 }
 
 ruleset test32
@@ -681,7 +681,7 @@ ruleset test93
 
 ruleset test94
 {
-    Onward(incubator) // expected-error {{Invalid Gaia rule attribute.}}
+    Onward(incubator) // expected-error {{Invalid Gaia rule attribute}}
     {
         incubator.min_temp = 0.0;
     }
@@ -849,7 +849,7 @@ ruleset testE62
     }
 }
 
-// GAIAPLAT-808
+// GAIAPLAT-922
 ruleset testE61
 {
     OnChange(actuator)

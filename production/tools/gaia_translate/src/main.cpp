@@ -959,8 +959,7 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     g_expression_explicit_path_data[expression_source_range] = path_data;
 }
 
-void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const string& variable_name,
-    const SourceRange& source_range, Rewriter& rewriter)
+void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const string& variable_name, const SourceRange& source_range, Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
     string table_name = get_table_from_expression(table);
@@ -969,7 +968,7 @@ void update_expression_used_tables(ASTContext* context, const Stmt* node, const 
     path_data.table_tag_map[table_name] = variable_name;
     path_data.tag_table_map[variable_name] = table_name;
     path_data.used_tables.insert(table_name);
-    update_expression_explicit_path_data(context,node, path_data, source_range, rewriter);
+    update_expression_explicit_path_data(context, node, path_data, source_range, rewriter);
 }
 
 bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, SourceRange& path_source_range)
@@ -1093,7 +1092,7 @@ public:
             {
                 if (!explicit_path_present)
                 {
-                   expression_source_range
+                    expression_source_range
                         = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                 }
 
@@ -1257,7 +1256,8 @@ public:
                         const ValueDecl* decl = declaration_expression->getDecl();
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
                         table_name = get_table_name(decl);
-                        variable_name = declaration_expression->getNameInfo().getAsString();;
+                        variable_name = declaration_expression->getNameInfo().getAsString();
+                        ;
 
                         if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
                         {

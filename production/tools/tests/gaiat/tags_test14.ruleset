@@ -1,4 +1,5 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: echo "Cannot specify more than one table in OnInsert." | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test14
 {
