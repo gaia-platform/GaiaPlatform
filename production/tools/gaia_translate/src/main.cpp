@@ -83,6 +83,7 @@ struct explicit_path_data_t
     unordered_map<string, string> tag_table_map;
     bool is_absolute_path;
     unordered_set<string> used_tables;
+    unordered_map<string, string> defined_tags;
 };
 
 unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
@@ -117,6 +118,19 @@ static const char c_ident[] = "    ";
 static void print_version(raw_ostream& stream)
 {
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+}
+
+string get_table_from_expression(const string& expression)
+{
+    size_t dot_position = expression.find('.');
+    if (dot_position != string::npos)
+    {
+        return expression.substr(0, dot_position);
+    }
+    else
+    {
+        return expression;
+    }
 }
 
 void validate_table_data()
@@ -889,25 +903,6 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
     return return_value;
 }
 
-void update_expression_path_data(vector<explicit_path_data_t>& path_data, const explicit_path_data_t& data)
-{
-    if (data.path_components.size() != 1)
-    {
-        path_data.push_back(data);
-        return;
-    }
-    for (auto& path_data_iterator : path_data)
-    {
-        if (path_data_iterator.path_components.size() == 1)
-        {
-            path_data_iterator.used_tables.insert(data.path_components.front());
-            return;
-        }
-    }
-
-    path_data.push_back(data);
-}
-
 void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, const explicit_path_data_t& data, const SourceRange& source_range, Rewriter& rewriter)
 {
     if (node == nullptr || data.path_components.empty())
@@ -925,24 +920,23 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
         expression_explicit_path_data_iterator->second.push_back(data);
         return;
     }
-
     vector<explicit_path_data_t> path_data;
 
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() && expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
         {
-            update_expression_path_data(expression_explicit_path_data_iterator.second, data);
+            expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
         if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() && expression_explicit_path_data_iterator.first.getEnd() == expression_source_range.getEnd())
         {
-            update_expression_path_data(expression_explicit_path_data_iterator.second, data);
+            expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
         if (expression_explicit_path_data_iterator.first.getBegin() < expression_source_range.getBegin() && expression_source_range.getEnd() < expression_explicit_path_data_iterator.first.getEnd())
         {
-            update_expression_path_data(expression_explicit_path_data_iterator.second, data);
+            expression_explicit_path_data_iterator.second.push_back(data);
             return;
         }
         if (expression_explicit_path_data_iterator.first.getBegin() == expression_source_range.getBegin() && expression_explicit_path_data_iterator.first.getEnd() < expression_source_range.getEnd())
@@ -961,18 +955,20 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
             g_expression_explicit_path_data.erase(expression_explicit_path_data_iterator.first);
         }
     }
-    update_expression_path_data(path_data, data);
+    path_data.push_back(data);
     g_expression_explicit_path_data[expression_source_range] = path_data;
 }
 
-void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const SourceRange& source_range, Rewriter& rewriter)
+void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const string& variable_name,
+    const SourceRange& source_range, Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
+    string table_name = get_table_from_expression(table);
     path_data.is_absolute_path = false;
     path_data.path_components.push_back(table);
-    path_data.used_tables.insert(table);
-    path_data.table_tag_map[table] = table;
-    path_data.tag_table_map[table] = table;
+    path_data.table_tag_map[table_name] = variable_name;
+    path_data.tag_table_map[variable_name] = table_name;
+    path_data.used_tables.insert(table_name);
     update_expression_explicit_path_data(context,node, path_data, source_range, rewriter);
 }
 
@@ -995,19 +991,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
             data.path_components.push_back(path_component_iterator);
         }
 
-        string table_name;
-        string component =  data.path_components.front();
-        size_t dot_position = component.find('.');
-        if (dot_position != string::npos)
-        {
-            table_name = component.substr(0, dot_position);
-        }
-        else
-        {
-            table_name = component;
-        }
-
-        data.used_tables.insert(table_name);
+        data.used_tables.insert(get_table_from_expression(data.path_components.front()));
         const GaiaExplicitPathTagKeysAttr* explicit_path_tag_key_attribute = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
         const GaiaExplicitPathTagValuesAttr* explicit_path_tag_value_attribute = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
         if (explicit_path_tag_key_attribute->tagMapKeys_size() != explicit_path_tag_value_attribute->tagMapValues_size())
@@ -1032,6 +1016,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         {
             data.tag_table_map[tag_map_keys[tag_index]] = tag_map_values[tag_index];
             data.table_tag_map[tag_map_values[tag_index]] = tag_map_keys[tag_index];
+            data.defined_tags[tag_map_values[tag_index]] = tag_map_keys[tag_index];
         }
 
         for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
@@ -1048,16 +1033,7 @@ void update_used_dbs(const explicit_path_data_t& explicit_path_data)
 {
     for (const auto& component : explicit_path_data.path_components)
     {
-        string table_name;
-        size_t dot_position = component.find('.');
-        if (dot_position != string::npos)
-        {
-            table_name = component.substr(0, dot_position);
-        }
-        else
-        {
-            table_name = component;
-        }
+        string table_name = get_table_from_expression(component);
 
         auto tag_table_iterator = explicit_path_data.tag_table_map.find(table_name);
         if (tag_table_iterator != explicit_path_data.tag_table_map.end())
@@ -1099,7 +1075,8 @@ public:
             }
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
-            variable_name = table_name;
+            variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
+            explicit_path_data.table_tag_map[table_name] = variable_name;
 
             if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
             {
@@ -1110,12 +1087,8 @@ public:
             {
                 update_used_dbs(explicit_path_data);
                 expression_source_range.setEnd(member_expression->getEndLoc());
-                if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
-                {
-                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                    explicit_path_data.table_tag_map[table_name] = variable_name;
-                }
             }
+
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
                 if (!explicit_path_present)
@@ -1137,7 +1110,7 @@ public:
             {
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
                 table_name = get_table_name(declaration_expression->getDecl());
-                variable_name = table_name;
+                variable_name = declaration_expression->getNameInfo().getAsString();
                 const ValueDecl* decl = declaration_expression->getDecl();
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -1152,11 +1125,23 @@ public:
                 {
                     update_used_dbs(explicit_path_data);
                     expression_source_range.setEnd(member_expression->getEndLoc());
-                    if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
+
+                    auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+                    if (defined_tag_iterator != explicit_path_data.defined_tags.end())
                     {
-                        variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                        explicit_path_data.table_tag_map[table_name] = variable_name;
+                        variable_name = defined_tag_iterator->second;
                     }
+                }
+                if (table_name != variable_name)
+                {
+                    explicit_path_data.table_tag_map[table_name] = variable_name;
+                    explicit_path_data.tag_table_map[variable_name] = table_name;
+                }
+
+                if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
+                {
+                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                    explicit_path_data.table_tag_map[table_name] = variable_name;
                 }
                 if (decl->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -1191,8 +1176,8 @@ public:
             auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
             if (!explicit_path_present)
             {
-                update_expression_used_tables(result.Context, expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
-                update_expression_used_tables(result.Context, member_expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_used_tables(result.Context, expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_used_tables(result.Context, member_expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
             }
             else
             {
@@ -1247,7 +1232,8 @@ public:
                         }
                         table_name = get_table_name(operator_declaration);
                         field_name = operator_declaration->getName().str();
-                        variable_name = table_name;
+                        variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
+                        explicit_path_data.table_tag_map[table_name] = variable_name;
 
                         if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
                         {
@@ -1257,11 +1243,6 @@ public:
                         else
                         {
                             update_used_dbs(explicit_path_data);
-                            if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
-                            {
-                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                                explicit_path_data.table_tag_map[table_name] = variable_name;
-                            }
                         }
                     }
                     else
@@ -1276,7 +1257,7 @@ public:
                         const ValueDecl* decl = declaration_expression->getDecl();
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
                         table_name = get_table_name(decl);
-                        variable_name = table_name;
+                        variable_name = declaration_expression->getNameInfo().getAsString();;
 
                         if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
                         {
@@ -1286,11 +1267,24 @@ public:
                         else
                         {
                             update_used_dbs(explicit_path_data);
-                            if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
-                            {
-                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                                explicit_path_data.table_tag_map[table_name] = variable_name;
-                            }
+                        }
+
+                        auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+                        if (defined_tag_iterator != explicit_path_data.defined_tags.end())
+                        {
+                            variable_name = defined_tag_iterator->second;
+                        }
+
+                        if (table_name != variable_name)
+                        {
+                            explicit_path_data.table_tag_map[table_name] = variable_name;
+                            explicit_path_data.tag_table_map[variable_name] = table_name;
+                        }
+
+                        if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
+                        {
+                            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                            explicit_path_data.table_tag_map[table_name] = variable_name;
                         }
                     }
                     g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -1388,7 +1382,7 @@ public:
                     auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(result.Context, op, table_name, variable_name, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
                     else
                     {
@@ -1494,7 +1488,8 @@ public:
 
                         table_name = get_table_name(operator_declaration);
                         field_name = operator_declaration->getName().str();
-                        variable_name = table_name;
+                        variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
+                        explicit_path_data.table_tag_map[table_name] = variable_name;
                         if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
                         {
                             explicit_path_present = false;
@@ -1502,11 +1497,6 @@ public:
                         else
                         {
                             update_used_dbs(explicit_path_data);
-                            if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
-                            {
-                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                                explicit_path_data.table_tag_map[table_name] = variable_name;
-                            }
                         }
                     }
                     else
@@ -1521,7 +1511,7 @@ public:
                         const ValueDecl* operator_declaration = declaration_expression->getDecl();
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
                         table_name = get_table_name(operator_declaration);
-                        variable_name = table_name;
+                        variable_name = declaration_expression->getNameInfo().getAsString();
                         if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
                         {
                             explicit_path_present = false;
@@ -1529,11 +1519,23 @@ public:
                         else
                         {
                             update_used_dbs(explicit_path_data);
-                            if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
+                            auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+                            if (defined_tag_iterator != explicit_path_data.defined_tags.end())
                             {
-                                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                                explicit_path_data.table_tag_map[table_name] = variable_name;
+                                variable_name = defined_tag_iterator->second;
                             }
+                        }
+
+                        if (table_name != variable_name)
+                        {
+                            explicit_path_data.table_tag_map[table_name] = variable_name;
+                            explicit_path_data.tag_table_map[variable_name] = table_name;
+                        }
+
+                        if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
+                        {
+                            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                            explicit_path_data.table_tag_map[table_name] = variable_name;
                         }
                     }
 
@@ -1578,7 +1580,7 @@ public:
 
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(result.Context, op, table_name, variable_name, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
                     }
                     else
                     {
@@ -1950,8 +1952,7 @@ public:
                 return;
             }
             table_name = get_table_name(decl);
-            variable_name = table_name;
-
+            variable_name = decl->getNameAsString();
             if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
             {
                 explicit_path_present = false;
@@ -1961,11 +1962,24 @@ public:
             {
                 expression_source_range = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
                 update_used_dbs(explicit_path_data);
-                if (explicit_path_data.table_tag_map.find(table_name) == explicit_path_data.table_tag_map.end())
-                {
-                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.table_tag_map);
-                    explicit_path_data.table_tag_map[table_name] = variable_name;
-                }
+            }
+
+            auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+            if (defined_tag_iterator != explicit_path_data.defined_tags.end())
+            {
+                variable_name = defined_tag_iterator->second;
+            }
+
+            if (table_name != variable_name)
+            {
+                explicit_path_data.table_tag_map[table_name] = variable_name;
+                explicit_path_data.tag_table_map[variable_name] = table_name;
+            }
+
+            if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
+            {
+                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                explicit_path_data.table_tag_map[table_name] = variable_name;
             }
 
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -1987,7 +2001,7 @@ public:
                 }
                 else
                 {
-                    update_expression_used_tables(result.Context, expression, table_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                    update_expression_used_tables(result.Context, expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
                 }
             }
         }

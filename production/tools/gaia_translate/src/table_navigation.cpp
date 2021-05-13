@@ -74,10 +74,9 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             {
                 if (path.size() == 1)
                 {
-                    auto tag_map = generate_dummy_tag_map(used_tables);
                     return_value = generate_navigation_code(anchor_table,
                         used_tables,
-                        tag_map,
+                        tags,
                         last_variable_name);
                 }
                 else
