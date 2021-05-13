@@ -32,7 +32,7 @@ gaia::db::counters_t* gaia::db::get_counters()
 
     if (!gaia::db::client_t::s_shared_counters.is_set())
     {
-        throw no_active_session();
+        throw no_open_session();
     }
 
     return gaia::db::client_t::s_shared_counters.data();
@@ -46,7 +46,7 @@ gaia::db::data_t* gaia::db::get_data()
 
     if (!gaia::db::client_t::s_shared_data.is_set())
     {
-        throw no_active_session();
+        throw no_open_session();
     }
 
     return gaia::db::client_t::s_shared_data.data();
@@ -60,7 +60,7 @@ gaia::db::id_index_t* gaia::db::get_id_index()
 
     if (!gaia::db::client_t::s_shared_id_index.is_set())
     {
-        throw no_active_session();
+        throw no_open_session();
     }
 
     return gaia::db::client_t::s_shared_id_index.data();

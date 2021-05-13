@@ -23,7 +23,8 @@ namespace db
  * @{
  */
 
-/** \brief A session already exists on this thread.
+/**
+ * \brief A session already exists on this thread.
  *
  *  Only one session at a time can exist on a thread.
  */
@@ -36,20 +37,22 @@ public:
     }
 };
 
-/** \brief No session exists on this thread.
+/**
+ * \brief No session exists on this thread.
  *
- *  A transaction can only be opened from a thread with an active session.
+ *  A transaction can only be opened from a thread with an open session.
  */
-class no_active_session : public common::gaia_exception
+class no_open_session : public common::gaia_exception
 {
 public:
-    no_active_session()
+    no_open_session()
     {
         m_message = "Open a session before performing data access.";
     }
 };
 
-/** \brief A transaction is already in progress in this session.
+/**
+ * \brief A transaction is already in progress in this session.
  *
  *  Only one transaction at a time can exist within a session.
  */
@@ -62,7 +65,8 @@ public:
     }
 };
 
-/** \brief No transaction has been opened in this session.
+/**
+ * \brief No transaction has been opened in this session.
  *
  *  Data can only be accessed from an open transaction.
  */
@@ -75,7 +79,8 @@ public:
     }
 };
 
-/** \brief The transaction conflicts with another transaction.
+/**
+ * \brief The transaction conflicts with another transaction.
  *
  *  If two transactions modify the same data at the same time, one of them must abort.
  */
@@ -88,7 +93,8 @@ public:
     }
 };
 
-/** \brief The transaction attempted to update too many objects.
+/**
+ * \brief The transaction attempted to update too many objects.
  *
  *  A transaction can create, update, or delete at most 2^20 objects.
  */
@@ -101,7 +107,8 @@ public:
     }
 };
 
-/** \brief The transaction attempted to create an object with an existing ID.
+/**
+ * \brief The transaction attempted to create an object with an existing ID.
  *
  *  A transaction must create a new object using an ID that has not already been used for another object.
  */
@@ -116,20 +123,22 @@ public:
     }
 };
 
-/** \brief The transaction tried to create more objects than fit into memory.
+/**
+ * \brief The transaction tried to create more objects than fit into memory.
  *
  *  The memory used to store objects cannot exceed the configured physical memory limit.
  */
-class oom : public common::gaia_exception
+class out_of_memory : public common::gaia_exception
 {
 public:
-    oom()
+    out_of_memory()
     {
         m_message = "Out of memory.";
     }
 };
 
-/** \brief The transaction tried to create more objects than are permitted in the system.
+/**
+ * \brief The transaction tried to create more objects than are permitted in the system.
  *
  *  The system cannot contain more than 2^32 objects at one time.
  */
@@ -142,7 +151,8 @@ public:
     }
 };
 
-/** \brief The transaction referenced an object ID that does not exist.
+/**
+ * \brief The transaction referenced an object ID that does not exist.
  *
  *  An object can only reference existing objects.
  */
@@ -157,7 +167,8 @@ public:
     }
 };
 
-/** \brief The transaction attempted to delete an object that is referenced by another object.
+/**
+ * \brief The transaction attempted to delete an object that is referenced by another object.
  *
  *  Objects that are still referenced by existing objects cannot be deleted.
  */
@@ -174,7 +185,8 @@ public:
     }
 };
 
-/** \brief The transaction attempted to create or update an object that is too large.
+/**
+ * \brief The transaction attempted to create or update an object that is too large.
  *
  *  An object cannot be larger than 64KB.
  */
@@ -189,7 +201,8 @@ public:
     }
 };
 
-/** \brief The transaction attempted to create an object with an unknown type.
+/**
+ * \brief The transaction attempted to create an object with an unknown type.
  *
  *  An object's type must exist in the catalog.
  */
@@ -214,45 +227,63 @@ public:
 };
 
 /**
- * \brief Returns true if a transaction is active in this session.
+ * \brief Returns true if a transaction is open in this session.
  *
  * \return true if a transaction has been opened in this session, false otherwise.
  */
-bool is_transaction_active();
+bool is_transaction_open();
 
 /**
  * \brief Opens a new database session.
  *
- * Opening a session creates a connection to the database server and allocates session-owned resources on both the client and server.
+ * Opening a session creates a connection to the database server and allocates
+ * session-owned resources on both the client and the server.
+ *
+ * \exception gaia::db::session_exists a session is already open in this thread.
  */
 void begin_session();
 
 /**
  * \brief Closes the current database session.
  *
- * Closing a session terminates the connection to the database server and releases session-owned resources on both the client and server.
+ * Closing a session terminates the connection to the database server and
+ * releases session-owned resources on both the client and the server.
+ *
+ * \exception gaia::db::no_open_session no session is open in this thread.
  */
 void end_session();
 
 /**
  * \brief Opens a new database transaction.
  *
- * Opening a transaction creates a snapshot of the database for this session. Objects can only be created, updated, or deleted from within a transaction.
+ * Gaia supports one open transaction per session.
+ * Opening a transaction creates a snapshot of the database for this session.
+ * Objects can only be created, updated, or deleted from within a transaction.
+ * To terminate the transaction and commit its changes, call commit_transaction().
+ * To terminate the transaction without committing its changes, call rollback_transaction().
+ *
+ * \exception gaia::db::no_open_session open a session before opening a transaction.
+ * \exception gaia::db::transaction_in_progress a transaction is already open in this session.
  */
 void begin_transaction();
 
 /**
- * \brief Rolls back the current transaction.
+ * \brief Terminates the current transaction in this session.
  *
  * No changes made by this transaction will be visible to any other transactions.
+ *
+ * \exception gaia::db::no_open_transaction no transaction is open in this session.
  */
 void rollback_transaction();
 
 /**
- * \brief Submits the current transaction to the server for validation.
+ * \brief Commits the current transaction's changes, after submitting them to the server for validation.
  *
- * After the transaction is submitted, it may either commit or abort. A committed transaction's changes will be visible to all future transactions. An aborted transaction's changes will not be visible to any future transactions.
+ * After the transaction is submitted to the server for validation, it may either commit or abort.
+ * A committed transaction's changes will be visible to all future transactions.
+ * An aborted transaction's changes will not be visible to any future transactions.
  *
+ * \exception gaia::db::no_open_transaction no transaction is open in this session.
  * \exception gaia::db::transaction_update_conflict transaction conflicts with another transaction.
  */
 void commit_transaction();

@@ -10,9 +10,9 @@
 
 #include "db_client.hpp"
 
-bool gaia::db::is_transaction_active()
+bool gaia::db::is_transaction_open()
 {
-    return gaia::db::client_t::is_transaction_active();
+    return gaia::db::client_t::is_transaction_open();
 }
 
 void gaia::db::begin_session()
