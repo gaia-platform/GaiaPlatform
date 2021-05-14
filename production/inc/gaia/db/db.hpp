@@ -66,7 +66,7 @@ public:
 };
 
 /**
- * \brief No transaction has been opened in this session.
+ * \brief No transaction is open in this session.
  *
  *  Data can only be accessed from an open transaction.
  */
@@ -110,7 +110,7 @@ public:
 /**
  * \brief The transaction attempted to create an object with an existing ID.
  *
- *  A transaction must create a new object using an ID that has not already been used for another object.
+ *  A transaction must create a new object using an ID that has not been assigned to another object.
  */
 class duplicate_id : public common::gaia_exception
 {
@@ -140,7 +140,7 @@ public:
 /**
  * \brief The transaction tried to create more objects than are permitted in the system.
  *
- *  The system cannot contain more than 2^32 objects at one time.
+ *  The system cannot contain more than 2^32 objects.
  */
 class system_object_limit_exceeded : public common::gaia_exception
 {
@@ -188,7 +188,7 @@ public:
 /**
  * \brief The transaction attempted to create or update an object that is too large.
  *
- *  An object cannot be larger than 64KB.
+ *  An object cannot be larger than 64 KB.
  */
 class object_too_large : public common::gaia_exception
 {
@@ -280,8 +280,8 @@ void rollback_transaction();
  * \brief Commits the current transaction's changes, after submitting them to the server for validation.
  *
  * After the transaction is submitted to the server for validation, it may either commit or abort.
- * A committed transaction's changes will be visible to all future transactions.
- * An aborted transaction's changes will not be visible to any future transactions.
+ * A committed transaction's changes are visible to all future transactions.
+ * An aborted transaction's changes are not visible to any other transactions.
  *
  * \exception gaia::db::no_open_transaction no transaction is open in this session.
  * \exception gaia::db::transaction_update_conflict transaction conflicts with another transaction.
