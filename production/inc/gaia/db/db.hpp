@@ -277,11 +277,10 @@ void begin_transaction();
 void rollback_transaction();
 
 /**
- * \brief Commits the current transaction's changes if validation succeeds, otherwise aborts the current transaction.
+ * \brief Commits the current transaction's changes.
  *
- * After the transaction is submitted to the server for validation, it may either commit or abort.
- * A committed transaction's changes are visible to all future transactions.
- * An aborted transaction's changes are not visible to any other transactions.
+ * The transaction is submitted to the server for validation.
+ * If the server doesn't validate the transaction, it aborts the transaction.
  *
  * \exception gaia::db::no_open_transaction no transaction is open in this session.
  * \exception gaia::db::transaction_update_conflict transaction conflicts with another transaction.
