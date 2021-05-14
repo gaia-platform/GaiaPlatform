@@ -116,5 +116,5 @@ PYBIND11_MODULE(gaia_db_pybind, m)
         .def("data_size", &gaia_ptr_t::data_size)
         .def("references", &gaia_ptr_t::references, return_value_policy::reference)
         .def("num_references", &gaia_ptr_t::num_references)
-        .def("find_next", static_cast<gaia_ptr_t (gaia_ptr_t::*)()>(&gaia_ptr_t::find_next));
+        .def("find_next", static_cast<gaia_ptr_t (gaia_ptr_t::*)() const>(&gaia_ptr_t::find_next));
 }
