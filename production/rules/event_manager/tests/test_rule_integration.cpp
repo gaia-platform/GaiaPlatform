@@ -126,7 +126,7 @@ void rule_delete(const rule_context_t* context)
 {
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
-    EXPECT_THROW(d.delete_row(), invalid_node_id);
+    EXPECT_THROW(d.delete_row(), invalid_object_id);
     g_wait_for_count--;
 }
 

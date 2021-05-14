@@ -68,13 +68,13 @@ extern "C" void handle_rule_exception()
 {
     // A transaction should not be active if we got here because the rules engine
     // should have aborted the transaction prior to getting in to the catch handler.
-    EXPECT_FALSE(gaia::db::is_transaction_active());
+    EXPECT_FALSE(gaia::db::is_transaction_open());
 
     try
     {
         throw;
     }
-    catch (const gaia::db::invalid_node_id&)
+    catch (const gaia::db::invalid_object_id&)
     {
         g_exception_counters[exception_type_t::invalid_node]++;
     }

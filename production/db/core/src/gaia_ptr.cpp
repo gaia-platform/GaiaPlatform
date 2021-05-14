@@ -51,7 +51,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_referen
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
@@ -96,7 +96,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& node)
     {
         if (references[i] != c_invalid_gaia_id)
         {
-            throw node_not_disconnected(node.id(), node.type());
+            throw object_still_referenced(node.id(), node.type());
         }
     }
     node.reset();
@@ -136,7 +136,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
     // Updates m_locator to point to the new object.
@@ -280,7 +280,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (!child_ptr)
     {
-        throw invalid_node_id(child_id);
+        throw invalid_object_id(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -350,7 +350,7 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -376,7 +376,7 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (!child_ptr)
     {
-        throw invalid_node_id(child_id);
+        throw invalid_object_id(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -451,7 +451,7 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     // Remove reference.
@@ -474,7 +474,7 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
 
     if (!new_parent_ptr)
     {
-        throw invalid_node_id(new_parent_id);
+        throw invalid_object_id(new_parent_id);
     }
 
     // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods

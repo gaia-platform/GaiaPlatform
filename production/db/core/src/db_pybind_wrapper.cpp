@@ -84,17 +84,16 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     m.def("print_node", &print_node);
 
     register_exception<gaia::db::session_exists>(m, "session_exists");
-    register_exception<gaia::db::no_active_session>(m, "no_session_active");
+    register_exception<gaia::db::no_open_session>(m, "no_session_active");
     register_exception<gaia::db::transaction_in_progress>(m, "transaction_in_progress");
     register_exception<gaia::db::no_open_transaction>(m, "transaction_not_open");
     register_exception<gaia::db::transaction_update_conflict>(m, "transaction_update_conflict");
     register_exception<gaia::db::transaction_object_limit_exceeded>(m, "transaction_object_limit_exceeded");
     register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
-    register_exception<gaia::db::oom>(m, "oom");
-    register_exception<gaia::db::invalid_node_id>(m, "invalid_node_id");
-    register_exception<gaia::db::invalid_id_value>(m, "invalid_id_value");
-    register_exception<gaia::db::node_not_disconnected>(m, "node_not_disconnected");
-    register_exception<gaia::db::payload_size_too_large>(m, "payload_size_too_large");
+    register_exception<gaia::db::out_of_memory>(m, "out_of_memory");
+    register_exception<gaia::db::invalid_object_id>(m, "invalid_object_id");
+    register_exception<gaia::db::object_still_referenced>(m, "object_still_referenced");
+    register_exception<gaia::db::object_too_large>(m, "object_too_large");
     register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
     class_<gaia_ptr_t>(m, "gaia_ptr")

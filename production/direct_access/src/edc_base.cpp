@@ -199,7 +199,7 @@ void edc_db_t::delete_row(gaia_id_t id)
     gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
     if (!node_ptr)
     {
-        throw invalid_node_id(id);
+        throw invalid_object_id(id);
     }
 
     gaia_ptr_t::remove(node_ptr);
@@ -210,7 +210,7 @@ void edc_db_t::update(gaia_id_t id, size_t data_size, const void* data)
     gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
     if (!node_ptr)
     {
-        throw invalid_node_id(id);
+        throw invalid_object_id(id);
     }
     node_ptr.update_payload(data_size, data);
 }
@@ -220,7 +220,7 @@ void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, s
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     parent.add_child_reference(child_id, child_slot);
@@ -231,7 +231,7 @@ void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, s
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     parent.remove_child_reference(child_id, child_slot);
