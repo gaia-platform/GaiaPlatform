@@ -213,25 +213,26 @@ gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
 
     if (!ptr.is(type))
     {
-        ptr.find_next(type);
+        ptr = ptr.find_next(type);
     }
 
     return ptr;
 }
 
-gaia_ptr_t gaia_ptr_t::find_next()
+gaia_ptr_t gaia_ptr_t::find_next() const
 {
     if (m_locator)
     {
-        find_next(to_ptr()->type);
+        return find_next(to_ptr()->type);
     }
 
     return *this;
 }
 
-void gaia_ptr_t::find_next(gaia_type_t type)
+gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 {
     gaia::db::counters_t* counters = gaia::db::get_counters();
+    gaia_ptr_t next_ptr = *this;
 
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
@@ -239,16 +240,18 @@ void gaia_ptr_t::find_next(gaia_type_t type)
     __sync_synchronize();
 
     // Search for objects of this type within the range of used locators.
-    while (++m_locator && m_locator <= counters->last_locator)
+    while (++next_ptr.m_locator && next_ptr.m_locator <= counters->last_locator)
     {
-        if (is(type))
+        if (next_ptr.is(type))
         {
-            return;
+            return next_ptr;
         }
         __sync_synchronize();
     }
 
-    m_locator = c_invalid_gaia_locator;
+    // Mark end of search.
+    next_ptr.m_locator = c_invalid_gaia_locator;
+    return next_ptr;
 }
 
 // This trivial implementation is necessary to avoid calling into client_t code from the header file.

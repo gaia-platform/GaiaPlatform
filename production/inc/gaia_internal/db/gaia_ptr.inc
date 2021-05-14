@@ -29,7 +29,7 @@ gaia_ptr_t gaia_ptr_t::operator++()
 {
     if (m_locator)
     {
-        find_next(to_ptr()->type);
+        return find_next(to_ptr()->type);
     }
     return *this;
 }

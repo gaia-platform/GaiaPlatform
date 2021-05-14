@@ -61,7 +61,7 @@ public:
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
     static gaia_ptr_t find_first(common::gaia_type_t type);
-    gaia_ptr_t find_next();
+    gaia_ptr_t find_next() const;
 
     inline bool is_null() const;
 
@@ -157,7 +157,7 @@ protected:
 
     inline bool is(common::gaia_type_t type) const;
 
-    void find_next(common::gaia_type_t type);
+    gaia_ptr_t find_next(common::gaia_type_t type) const;
 
     void reset();
 
