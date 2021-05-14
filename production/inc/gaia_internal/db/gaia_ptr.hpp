@@ -65,7 +65,6 @@ public:
 
     inline bool is_null() const;
 
-    inline gaia_locator_t locator() const;
     inline common::gaia_id_t id() const;
     inline common::gaia_type_t type() const;
     inline char* data() const;
@@ -73,14 +72,19 @@ public:
     inline common::gaia_id_t* references() const;
     inline size_t num_references() const;
 
+    db_object_t* to_ptr() const;
+    gaia_offset_t to_offset() const;
+
     /**
-     * Returns an iterator representing a server-side cursor over all objects
-     * of the given type.
+     * Returns an iterator representing a server-side cursor over all objects of the given type.
      */
     static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iter(
         common::gaia_type_t type,
         std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
 
+    /**
+     * Returns a range representing a server-side cursor over all objects of the given type.
+     */
     static common::iterators::range_t<common::iterators::generator_iterator_t<gaia_ptr_t>> find_all_range(
         common::gaia_type_t type,
         std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
@@ -152,9 +156,6 @@ protected:
 
     void allocate(size_t size);
 
-    db_object_t* to_ptr() const;
-    gaia_offset_t to_offset() const;
-
     inline bool is(common::gaia_type_t type) const;
 
     gaia_ptr_t find_next(common::gaia_type_t type) const;
@@ -171,7 +172,7 @@ private:
     static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
 
 private:
-    gaia_locator_t m_locator = {c_invalid_gaia_locator};
+    gaia_locator_t m_locator{c_invalid_gaia_locator};
 };
 
 #include "gaia_ptr.inc"

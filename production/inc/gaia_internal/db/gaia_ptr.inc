@@ -42,12 +42,7 @@ gaia_ptr_t gaia_ptr_t::open(
 
 bool gaia_ptr_t::is_null() const
 {
-    return m_locator == 0;
-}
-
-gaia_locator_t gaia_ptr_t::locator() const
-{
-    return m_locator;
+    return m_locator == c_invalid_gaia_locator;
 }
 
 common::gaia_id_t gaia_ptr_t::id() const
