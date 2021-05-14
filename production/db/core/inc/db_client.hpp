@@ -28,12 +28,12 @@ class client_t
     friend class gaia_ptr_t;
 
     /**
-     * @throws no_open_transaction if there is no active transaction.
+     * @throws no_open_transaction if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
-     * @throws no_open_session if there is no active session.
+     * @throws no_open_session if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();

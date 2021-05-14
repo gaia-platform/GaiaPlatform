@@ -277,7 +277,7 @@ void begin_transaction();
 void rollback_transaction();
 
 /**
- * \brief Commits the current transaction's changes, after submitting them to the server for validation.
+ * \brief Commits the current transaction's changes if validation succeeds, otherwise aborts the current transaction.
  *
  * After the transaction is submitted to the server for validation, it may either commit or abort.
  * A committed transaction's changes are visible to all future transactions.
