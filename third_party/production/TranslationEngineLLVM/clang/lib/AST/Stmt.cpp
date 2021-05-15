@@ -806,7 +806,7 @@ void MSAsmStmt::initialize(const ASTContext &C, StringRef asmstr,
 
 IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
                Stmt *Init, VarDecl *Var, Expr *Cond, Stmt *Then,
-               SourceLocation EL, Stmt *Else)
+               SourceLocation EL, Stmt *Else,  SourceLocation NML, Stmt *NoMatch)
     : Stmt(IfStmtClass) {
   bool HasElse = Else != nullptr;
   bool HasVar = Var != nullptr;
@@ -826,12 +826,15 @@ IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
   if (HasInit)
     setInit(Init);
 
+  setNoMatch(NoMatch);
+
   setIfLoc(IL);
   if (HasElse)
     setElseLoc(EL);
+  setNoMatchLoc(NML);
 }
 
-IfStmt::IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit)
+IfStmt::IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool HasNoMatch)
     : Stmt(IfStmtClass, Empty) {
   IfStmtBits.HasElse = HasElse;
   IfStmtBits.HasVar = HasVar;
@@ -840,7 +843,8 @@ IfStmt::IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit)
 
 IfStmt *IfStmt::Create(const ASTContext &Ctx, SourceLocation IL,
                        bool IsConstexpr, Stmt *Init, VarDecl *Var, Expr *Cond,
-                       Stmt *Then, SourceLocation EL, Stmt *Else) {
+                       Stmt *Then, SourceLocation EL, Stmt *Else,
+                       SourceLocation NML, Stmt *NoMatch) {
   bool HasElse = Else != nullptr;
   bool HasVar = Var != nullptr;
   bool HasInit = Init != nullptr;
@@ -849,16 +853,16 @@ IfStmt *IfStmt::Create(const ASTContext &Ctx, SourceLocation IL,
           NumMandatoryStmtPtr + HasElse + HasVar + HasInit, HasElse),
       alignof(IfStmt));
   return new (Mem)
-      IfStmt(Ctx, IL, IsConstexpr, Init, Var, Cond, Then, EL, Else);
+      IfStmt(Ctx, IL, IsConstexpr, Init, Var, Cond, Then, EL, Else, NML, NoMatch);
 }
 
 IfStmt *IfStmt::CreateEmpty(const ASTContext &Ctx, bool HasElse, bool HasVar,
-                            bool HasInit) {
+                            bool HasInit, bool HasNoMatch) {
   void *Mem = Ctx.Allocate(
       totalSizeToAlloc<Stmt *, SourceLocation>(
           NumMandatoryStmtPtr + HasElse + HasVar + HasInit, HasElse),
       alignof(IfStmt));
-  return new (Mem) IfStmt(EmptyShell(), HasElse, HasVar, HasInit);
+  return new (Mem) IfStmt(EmptyShell(), HasElse, HasVar, HasInit, HasNoMatch);
 }
 
 VarDecl *IfStmt::getConditionVariable() {

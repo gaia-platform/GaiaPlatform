@@ -3774,11 +3774,13 @@ public:
   StmtResult ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc = SourceLocation(), Stmt* NoMatchStmt = nullptr);
   StmtResult BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc, Stmt* NoMatchStmt);
   StmtResult ActOnStartOfSwitchStmt(SourceLocation SwitchLoc,
                                     Stmt *InitStmt,
                                     ConditionResult Cond);

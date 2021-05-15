@@ -1254,34 +1254,71 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   SourceLocation ElseStmtLoc;
   StmtResult ElseStmt;
 
-  if (Tok.is(tok::kw_else)) {
-    if (TrailingElseLoc)
-      *TrailingElseLoc = Tok.getLocation();
+  SourceLocation NoMatchLoc;
+  SourceLocation NoMatchStmtLoc;
+  StmtResult NoMatchStmt;
 
-    ElseLoc = ConsumeToken();
-    ElseStmtLoc = Tok.getLocation();
+  if (Tok.isOneOf(tok::kw_else, tok::kw_nomatch))
+  {
+    if (Tok.is(tok::kw_else))
+    {
+      if (TrailingElseLoc)
+        *TrailingElseLoc = Tok.getLocation();
 
-    // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
-    // there is no compound stmt.  C90 does not have this clause.  We only do
-    // this if the body isn't a compound statement to avoid push/pop in common
-    // cases.
-    //
-    // C++ 6.4p1:
-    // The substatement in a selection-statement (each substatement, in the else
-    // form of the if statement) implicitly defines a local scope.
-    //
-    ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
+      ElseLoc = ConsumeToken();
+      ElseStmtLoc = Tok.getLocation();
+
+      // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
+      // there is no compound stmt.  C90 does not have this clause.  We only do
+      // this if the body isn't a compound statement to avoid push/pop in common
+      // cases.
+      //
+      // C++ 6.4p1:
+      // The substatement in a selection-statement (each substatement, in the else
+      // form of the if statement) implicitly defines a local scope.
+      //
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
                           Tok.is(tok::l_brace));
 
-    EnterExpressionEvaluationContext PotentiallyDiscarded(
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
         Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
         Sema::ExpressionEvaluationContextRecord::EK_Other,
         /*ShouldEnter=*/ConstexprCondition && *ConstexprCondition);
-    ElseStmt = ParseStatement();
+      ElseStmt = ParseStatement();
 
-    // Pop the 'else' scope if needed.
-    InnerScope.Exit();
-  } else if (Tok.is(tok::code_completion)) {
+      // Pop the 'else' scope if needed.
+      InnerScope.Exit();
+    }
+    else
+    {
+      if (TrailingElseLoc)
+        *TrailingElseLoc = Tok.getLocation();
+
+      NoMatchLoc = ConsumeToken();
+      NoMatchStmtLoc = Tok.getLocation();
+
+      // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
+      // there is no compound stmt.  C90 does not have this clause.  We only do
+      // this if the body isn't a compound statement to avoid push/pop in common
+      // cases.
+      //
+      // C++ 6.4p1:
+      // The substatement in a selection-statement (each substatement, in the else
+      // form of the if statement) implicitly defines a local scope.
+      //
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
+                          Tok.is(tok::l_brace));
+
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
+        Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
+        Sema::ExpressionEvaluationContextRecord::EK_Other,
+        /*ShouldEnter=*/ConstexprCondition && *ConstexprCondition);
+      NoMatchStmt = ParseStatement();
+
+      // Pop the 'else' scope if needed.
+      InnerScope.Exit();
+    }
+  }else if (Tok.is(tok::code_completion)) {
     Actions.CodeCompleteAfterIf(getCurScope());
     cutOffParsing();
     return StmtError();
@@ -1294,9 +1331,15 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   // If the then or else stmt is invalid and the other is valid (and present),
   // make turn the invalid one into a null stmt to avoid dropping the other
   // part.  If both are invalid, return error.
-  if ((ThenStmt.isInvalid() && ElseStmt.isInvalid()) ||
-      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr) ||
-      (ThenStmt.get() == nullptr && ElseStmt.isInvalid())) {
+  if (
+      (ThenStmt.isInvalid() && ElseStmt.isInvalid() && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.get() == nullptr && ElseStmt.isInvalid() && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.isInvalid() && ElseStmt.isInvalid() && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.get() == nullptr && ElseStmt.isInvalid() && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.get() == nullptr && ElseStmt.get() == nullptr && NoMatchStmt.isInvalid())
+     ) {
     // Both invalid, or one is invalid and other is non-present: return error.
     return StmtError();
   }
@@ -1306,9 +1349,11 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     ThenStmt = Actions.ActOnNullStmt(ThenStmtLoc);
   if (ElseStmt.isInvalid())
     ElseStmt = Actions.ActOnNullStmt(ElseStmtLoc);
+  if (NoMatchStmt.isInvalid())
+    NoMatchStmt = Actions.ActOnNullStmt(NoMatchStmtLoc);
 
   return Actions.ActOnIfStmt(IfLoc, IsConstexpr, InitStmt.get(), Cond,
-                             ThenStmt.get(), ElseLoc, ElseStmt.get());
+                             ThenStmt.get(), ElseLoc, ElseStmt.get(), NoMatchLoc, NoMatchStmt.get());
 }
 
 /// ParseSwitchStatement

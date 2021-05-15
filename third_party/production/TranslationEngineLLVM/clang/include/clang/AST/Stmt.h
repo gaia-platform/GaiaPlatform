@@ -1733,22 +1733,26 @@ class IfStmt final
 
   /// Build an if/then/else statement.
   IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr, Stmt *Init,
-         VarDecl *Var, Expr *Cond, Stmt *Then, SourceLocation EL, Stmt *Else);
+         VarDecl *Var, Expr *Cond, Stmt *Then, SourceLocation EL, Stmt *Else, SourceLocation NML, Stmt *NoMatch);
 
   /// Build an empty if/then/else statement.
-  explicit IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit);
+  explicit IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool HasNoMatch);
+
+  SourceLocation NoMatchLocation;
+  Stmt *NoMatchStmt;
 
 public:
   /// Create an IfStmt.
   static IfStmt *Create(const ASTContext &Ctx, SourceLocation IL,
                         bool IsConstexpr, Stmt *Init, VarDecl *Var, Expr *Cond,
                         Stmt *Then, SourceLocation EL = SourceLocation(),
-                        Stmt *Else = nullptr);
+                        Stmt *Else = nullptr, SourceLocation NML  = SourceLocation(),
+                        Stmt *NoMatch  = nullptr);
 
   /// Create an empty IfStmt optionally with storage for an else statement,
   /// condition variable and init expression.
   static IfStmt *CreateEmpty(const ASTContext &Ctx, bool HasElse, bool HasVar,
-                             bool HasInit);
+                             bool HasInit, bool HasNoMatch = false);
 
   /// True if this IfStmt has the storage for an init statement.
   bool hasInitStorage() const { return IfStmtBits.HasInit; }
@@ -1794,6 +1798,18 @@ public:
     assert(hasElseStorage() &&
            "This if statement has no storage for an else statement!");
     getTrailingObjects<Stmt *>()[elseOffset()] = Else;
+  }
+
+  Stmt *getNoMatch() {
+    return NoMatchStmt;
+  }
+
+  const Stmt *getNoMatch() const {
+    return NoMatchStmt;
+  }
+
+  void setNoMatch(Stmt *NoMatch) {
+    NoMatchStmt = NoMatch;
   }
 
   /// Retrieve the variable declared in this "if" statement, if any.
@@ -1857,6 +1873,14 @@ public:
     *getTrailingObjects<SourceLocation>() = ElseLoc;
   }
 
+  SourceLocation getNoMatchLoc() const {
+    return NoMatchLocation;
+  }
+
+  void setNoMatchLoc(SourceLocation NoMatchLoc) {
+    NoMatchLocation = NoMatchLoc;
+  }
+
   bool isConstexpr() const { return IfStmtBits.IsConstexpr; }
   void setConstexpr(bool C) { IfStmtBits.IsConstexpr = C; }
 
@@ -1864,9 +1888,17 @@ public:
 
   SourceLocation getBeginLoc() const { return getIfLoc(); }
   SourceLocation getEndLoc() const LLVM_READONLY {
+    SourceLocation endLocation = getThen()->getEndLoc();
     if (getElse())
-      return getElse()->getEndLoc();
-    return getThen()->getEndLoc();
+      endLocation = getElse()->getEndLoc();
+    if (NoMatchStmt != nullptr)
+    {
+      if (endLocation < NoMatchStmt->getEndLoc())
+      {
+        endLocation = NoMatchStmt->getEndLoc();
+      }
+    }
+    return endLocation;
   }
 
   // Iterators over subexpressions.  The iterators will include iterating
