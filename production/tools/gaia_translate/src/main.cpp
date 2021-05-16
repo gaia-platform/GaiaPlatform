@@ -448,11 +448,35 @@ void generate_table_subscription(const string& table, const string& field_subscr
     }
 
     string function_prologue = "\n";
+    bool is_absoute_path_only = true;
+    for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
+    {
+        if (!is_absoute_path_only)
+        {
+            break;
+        }
+        for (const auto& data_iterator : explicit_path_data_iterator.second)
+        {
+            if (!data_iterator.is_absolute_path)
+            {
+                is_absoute_path_only = false;
+                break;
+            }
+        }
+    }
+
     function_prologue
         .append(c_nolint_identifier_naming)
         .append("\nvoid ")
-        .append(rule_name)
-        .append("(const gaia::rules::rule_context_t* context)\n");
+        .append(rule_name);
+    if (!g_is_rule_context_rule_name_referenced && (is_absoute_path_only || g_expression_explicit_path_data.empty()))
+    {
+        function_prologue.append("(const gaia::rules::rule_context_t*)\n");
+    }
+    else
+    {
+        function_prologue.append("(const gaia::rules::rule_context_t* context)\n");
+    }
 
     if (rule_count == 1)
     {
