@@ -806,7 +806,8 @@ void MSAsmStmt::initialize(const ASTContext &C, StringRef asmstr,
 
 IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
                Stmt *Init, VarDecl *Var, Expr *Cond, Stmt *Then,
-               SourceLocation EL, Stmt *Else,  SourceLocation NML, Stmt *NoMatch)
+               SourceLocation EL, Stmt *Else,
+               SourceLocation NML, Stmt *NoMatch)
     : Stmt(IfStmtClass) {
   bool HasElse = Else != nullptr;
   bool HasVar = Var != nullptr;

@@ -1731,11 +1731,11 @@ class IfStmt final
   unsigned thenOffset() const { return condOffset() + ThenOffsetFromCond; }
   unsigned elseOffset() const { return condOffset() + ElseOffsetFromCond; }
 
-  /// Build an if/then/else statement.
+  /// Build an if/then/else/nomatch statement.
   IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr, Stmt *Init,
          VarDecl *Var, Expr *Cond, Stmt *Then, SourceLocation EL, Stmt *Else, SourceLocation NML, Stmt *NoMatch);
 
-  /// Build an empty if/then/else statement.
+  /// Build an empty if/then/else/nomatch statement.
   explicit IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool HasNoMatch);
 
   SourceLocation NoMatchLocation;
