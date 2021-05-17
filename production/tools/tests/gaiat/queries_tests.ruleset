@@ -194,7 +194,7 @@ ruleset test21
 
 // GAIAPLAT-915
 // This translates without error, but translated code will not compile.
-ruleset testE13
+ruleset test22
 {
     OnInsert(yield)
     {
@@ -205,7 +205,7 @@ ruleset testE13
 
 // GAIAPLAT-807 (fixed)
 // GAIAPLAT-892
-ruleset test22
+ruleset test23
 {
     OnInsert(S:sensor)
     {
@@ -213,7 +213,7 @@ ruleset test22
     }
 }
 
-ruleset test23
+ruleset test24
 {
     OnUpdate(min_temp)
     {
@@ -224,7 +224,7 @@ ruleset test23
 // GAIAPLAT-803
 // This should be identical to test1 above.
 #ifdef TEST_FAILURES
-ruleset testE1
+ruleset test25
 {
     {
         @actuator.value += sensor.value;
@@ -234,7 +234,7 @@ ruleset testE1
 
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-ruleset testE6
+ruleset test26
 {
     OnChange(actuator)
     {
@@ -245,7 +245,7 @@ ruleset testE6
     }
 }
 
-ruleset testE61
+ruleset test27
 {
     OnChange(actuator)
     {
@@ -258,7 +258,7 @@ ruleset testE61
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
 #ifdef TEST_FAILURES
-ruleset testE7
+ruleset test28
 {
     OnChange(actuator)
     {
@@ -271,7 +271,7 @@ ruleset testE7
 #endif
 
 // GAIAPLAT-825 (fixed)
-ruleset testE8
+ruleset test29
 {
     OnInsert(sensor)
     {
@@ -281,7 +281,7 @@ ruleset testE8
 }
 
 // GAIAPLAT-827
-ruleset testE9
+ruleset test30
 {
     OnChange(sensor.value)
     {
@@ -293,7 +293,7 @@ ruleset testE9
 }
 
 // GAIAPLAT-828
-ruleset testE10
+ruleset test31
 {
     OnChange(incubator)
     {
@@ -302,7 +302,7 @@ ruleset testE10
 }
 
 // GAIAPLAT-839
-ruleset testE11
+ruleset test32
 {
     OnChange(yield.bushels)
     {
@@ -313,7 +313,7 @@ ruleset testE11
 
 // GAIAPLAT-832
 #ifdef TEST_FAILURES
-ruleset testE12
+ruleset test33
 {
     OnUpdate(incubator)
     {
@@ -331,3 +331,11 @@ ruleset testE12
     }
 }
 #endif
+
+ruleset test34
+{
+    OnUpdate(sensor)
+    {
+        min_temp = 99.8;
+    }
+}

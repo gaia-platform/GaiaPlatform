@@ -38,6 +38,8 @@ std::atomic<int32_t> g_insert_count;
 
 ruleset test_tags
 {
+    // test_tags_code.oninsert
+    // test_tags_code.multi_inserts
     OnInsert(student)
     {
         g_insert_count++;
@@ -45,6 +47,7 @@ ruleset test_tags
         g_oninsert_called = true;
     }
 
+    // test_tags_code.oninsert
     OnInsert(S:student)
     {
         g_oninsert2_value = S.age;
@@ -52,6 +55,7 @@ ruleset test_tags
         g_oninsert2_called = true;
     }
 
+    // test_tags_code.basic_tags
     OnInsert(R:registration)
     {
         // Check common field references.
@@ -69,30 +73,39 @@ ruleset test_tags
         g_oninsert3_called = true;
     }
 
+    // test_tags_code.oninsert
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnChange(student)
     {
         g_onchange_result = test_error_result_t::e_none;
         g_onchange_called = true;
     }
 
+    // test_tags_code.oninsert
+    // test_tags_code.onupdate
     OnChange(student.age)
     {
         g_onchange2_result = test_error_result_t::e_none;
         g_onchange2_called = true;
     }
 
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnUpdate(student)
     {
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }
 
+    // test_tags_code.onchange
     OnUpdate(student.surname)
     {
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate2_called = true;
     }
 
+    // test_tags_code.onupdate
     OnUpdate(student.age)
     {
         g_onupdate3_value = age;
@@ -100,6 +113,8 @@ ruleset test_tags
         g_onupdate3_called = true;
     }
 
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnUpdate(student.age, student.surname)
     {
         g_onupdate4_result = test_error_result_t::e_none;
@@ -113,6 +128,7 @@ ruleset test_queries
     // Tags in Declarative Rules". Pseudo-code will be used until the
     // translator is done.
 
+    // test_queries_code.new_registration
     OnInsert(R:registration)
     {
         // printf("OnInsert(registration) = %s\n", registration.reg_id);
@@ -148,24 +164,18 @@ ruleset test_queries
         g_oninsert_called = true;
     }
 
+    // test_queries_code.sum_of_ages
     OnInsert(S:student)
     {
         int32_t age_sum = 0;
-        // +++ Explicit navigation expression.
-        // GAIAPLAT-915
-        // age_sum += /student.age;
-        // --- Current equivalent.
-        for (const auto& s : student_t::list())
-        {
-            age_sum += s.age();
-        }
-
+        age_sum += /student.age;
         g_oninsert2_value = age_sum;
-
         g_oninsert2_result = test_error_result_t::e_none;
         g_oninsert2_called = true;
     }
 
+    // test_queries_code.basic_implicit_navigation
+    // test_queries_code.basic_implicit_fork
     OnUpdate(S:student)
     {
         // Implicit query from student to course.
@@ -181,5 +191,36 @@ ruleset test_queries
     {
         g_onupdate_value = total_hours + hours;
         g_onupdate_called = true;
+    }
+}
+
+ruleset test_query_1
+{
+    // test_queries_code.sum_of_hours
+    // Auto-sum of student hours.
+    OnInsert(registration)
+    {
+        age = 0;
+        // Both 'age' and 'hours' are single-cardinality implicit test_queries
+        // from the registration row.
+        age += hours;
+        g_oninsert_value = age;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+ruleset test_query_2
+{
+    // test_queries_code.sum_of_hours
+    // Auto-sum of student hours.
+    OnInsert(registration)
+    {
+        age = 0;
+        // Visit all courses in which the student is registered.
+        age += student->registration->course.hours;
+        g_oninsert_value = age;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
     }
 }

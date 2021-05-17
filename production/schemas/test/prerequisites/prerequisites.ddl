@@ -43,11 +43,11 @@ create table if not exists prereq (
 );
 
 create relationship if not exists prereq_course (
-    course.required_by -> prereq,
+    course.required_by -> prereq[],
     prereq.prereq -> course
 );
 
 create relationship if not exists course_prereq (
-    course.requires -> prereq,
+    course.requires -> prereq[],
     prereq.course -> course
 );

@@ -235,7 +235,7 @@ protected:
     }
 };
 
-TEST_F(test_queries_code, DISABLED_basic_implicit_navigation)
+TEST_F(test_queries_code, basic_implicit_navigation)
 {
     gaia::db::begin_transaction();
     populate_db();
@@ -332,9 +332,84 @@ TEST_F(test_queries_code, new_registration)
         usleep(c_rule_execution_step_delay);
     } while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
 
-    // GAIAPLAT-801
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+}
+
+TEST_F(test_queries_code, sum_of_ages)
+{
+    gaia::db::begin_transaction();
+    populate_db();
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_queries");
+
+    // Fire OnInsert(student). Expect to see a sum of all student ages.
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert2_called)) << "OnInsert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert2_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_oninsert2_value, 281) << "Incorrect sum";
+}
+
+TEST_F(test_queries_code, sum_of_hours)
+{
+    gaia::db::begin_transaction();
+    populate_db();
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_1");
+
+    // OnInsert(registration) will sum up the student's hours.
+    gaia::db::begin_transaction();
+
+    auto reg = registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
+    student_1.registrations().insert(reg);
+    course_5.registrations().insert(reg);
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_oninsert_value, 5) << "Incorrect sum";
+}
+
+TEST_F(test_queries_code, sum_of_all_hours)
+{
+    gaia::db::begin_transaction();
+    populate_db();
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_2");
+
+    // OnInsert(registration) will sum up the student's hours.
+    gaia::db::begin_transaction();
+
+    auto reg = registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
+    student_1.registrations().insert(reg);
+    course_5.registrations().insert(reg);
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_oninsert_value, 12) << "Incorrect sum";
 }
 
 // Query tests:

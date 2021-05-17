@@ -835,6 +835,66 @@ ruleset test101
     }
 }
 
+// GAIAPLAT-947
+#ifdef TEST_FAILURES
+ruleset test122
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        else
+        {
+            i = 2;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+#endif
+
+ruleset test123
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+ruleset test124
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++)
+        {
+            i++;
+        }
+        if (i < 5)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset testE62
