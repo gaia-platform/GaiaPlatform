@@ -559,6 +559,13 @@ Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
     {
       auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
       auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
+
+      if (startLocationIterator == extendedExplicitPathTagMapping.end()
+        && endLocationIterator == extendedExplicitPathTagMapping.end() && NoMatchStmt != nullptr)
+      {
+        Diag(startLocation, diag::err_nomatch_without_navigation);
+        return StmtError();
+      }
       extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
     }
   }
