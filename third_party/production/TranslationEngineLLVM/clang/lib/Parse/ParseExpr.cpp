@@ -781,8 +781,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::slash:
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
-      if (NextToken().is(tok::identifier) &&
-        getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::semi, tok::at))
+      if (NextToken().isOneOf(tok::identifier, tok::at) &&
+        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
         {
           ConsumeToken();
           return ParseCastExpression(
@@ -1083,7 +1083,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     std::string explicitPath;
     if (Actions.GetExplicitPathData(ILoc, startLocation, endLocation, explicitPath))
     {
-      if (endLocation.isValid())
+      if (endLocation.isValid() && Tok.getEndLoc() < endLocation)
       {
         while (Tok.getEndLoc()  != endLocation)
         {
@@ -1092,8 +1092,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         ConsumeToken();
       }
     }
-
-
     if (!Res.isInvalid() && Res.isUnset()) {
       UnconsumeToken(Replacement);
       return ParseCastExpression(isUnaryExpression, isAddressOfOperand,
@@ -1455,53 +1453,69 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
-      if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
+    if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
+    {
+      SourceLocation atTok = ConsumeToken();
+      if (Tok.is(tok::identifier))
       {
-          SourceLocation atTok = ConsumeToken();
-          if (Tok.is(tok::identifier))
+        ExprResult expr =  ParseCastExpression(isUnaryExpression,
+          isAddressOfOperand,
+          NotCastExpr,
+          isTypeCast,
+          isVectorLiteral);
+        if (expr.get() != nullptr)
+        {
+          DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(expr.get());
+          MemberExpr *memberExpr = dyn_cast<MemberExpr>(expr.get());
+          if (declExpr == nullptr && memberExpr != nullptr)
           {
-              ExprResult expr =  ParseCastExpression(isUnaryExpression,
-                isAddressOfOperand,
-                NotCastExpr,
-                isTypeCast,
-                isVectorLiteral);
-                DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(expr.get());
-                MemberExpr *memberExpr = dyn_cast<MemberExpr>(expr.get());
-                if (declExpr == nullptr && memberExpr != nullptr)
-                {
-                    declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
-                }
-                if (declExpr != nullptr)
-                {
-                    ValueDecl *decl = declExpr->getDecl();
-                    if (decl->hasAttr<GaiaFieldAttr>() ||
-                        decl->hasAttr<FieldTableAttr>())
-                    {
-                        auto tableAttr = decl->getAttr<FieldTableAttr>();
-                        decl->dropAttrs();
-                        decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
-                        if (tableAttr != nullptr)
-                        {
-                            decl->addAttr(tableAttr);
-                        }
-                    }
-                    else
-                    {
-                        return ExprError(Diag(atTok, diag::err_unexpected_at));
-                    }
-                }
-
-                return expr;
+            declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
           }
-          else
+          if (declExpr != nullptr)
           {
-              return ExprError();
-          }
+            ValueDecl *decl = declExpr->getDecl();
+            if (decl->hasAttr<GaiaFieldAttr>() ||
+              decl->hasAttr<FieldTableAttr>()||
+              decl->hasAttr<GaiaExplicitPathAttr>())
+            {
+              auto tableAttr = decl->getAttr<FieldTableAttr>();
+              auto pathAttr = decl->getAttr<GaiaExplicitPathAttr>();
+              auto tagMapKeyAttr = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
+              auto tagMapValueAttr = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
+              decl->dropAttrs();
+              decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
+              if (tableAttr != nullptr)
+              {
+                decl->addAttr(tableAttr);
+              }
 
+              if (pathAttr != nullptr)
+              {
+                decl->addAttr(pathAttr);
+                decl->addAttr(tagMapKeyAttr);
+                decl->addAttr(tagMapValueAttr);
+              }
+            }
+            else
+            {
+              return ExprError(Diag(atTok, diag::err_unexpected_at));
+            }
+          }
+          return expr;
+        }
+        else
+        {
+          return ExprError(Diag(atTok, diag::err_unexpected_at));
+        }
       }
+      else
+      {
+        return ExprError();
+      }
+    }
 
-      SourceLocation AtLoc = ConsumeToken();
-      return ParseObjCAtExpression(AtLoc);
+    SourceLocation AtLoc = ConsumeToken();
+    return ParseObjCAtExpression(AtLoc);
   }
   case tok::caret:
     Res = ParseBlockLiteralExpression();

@@ -13,6 +13,7 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
@@ -21,6 +22,7 @@
 #include "gaia_table_generated.h"
 
 using namespace gaia::common;
+using namespace gaia::common::iterators;
 
 namespace gaia
 {
@@ -109,28 +111,23 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 
 table_list_t catalog_core_t::list_tables()
 {
-    counters_t* counters = gaia::db::get_counters();
-    auto gaia_table_generator = [counters, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
-        // We need an acquire barrier before reading `last_locator`. We can
-        // change this full barrier to an acquire barrier when we change to proper
-        // C++ atomic types.
-        __sync_synchronize();
-        while (++locator && locator <= counters->last_locator)
+    auto gaia_ptr_iterator = gaia_ptr_t::find_all_iter(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
+
+    auto gaia_table_generator = [gaia_ptr_iterator]() mutable -> std::optional<table_view_t> {
+        auto gaia_ptr = *gaia_ptr_iterator;
+        if (gaia_ptr)
         {
-            auto ptr = locator_to_ptr(locator);
-            if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
-            {
-                return table_view_t(ptr);
-            }
-            __sync_synchronize();
+            ++gaia_ptr_iterator;
+            return table_view_t(gaia_ptr.to_ptr());
         }
         return std::nullopt;
     };
-    return gaia::common::iterators::range_from_generator(gaia_table_generator);
+
+    return range_from_generator(gaia_table_generator);
 }
 
 template <typename T_catalog_obj_view>
-common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
+range_t<generator_iterator_t<T_catalog_obj_view>>
 list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
     auto obj_ptr = id_to_ptr(table_id);
@@ -146,7 +143,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
         id = obj_ptr->references()[next_offset];
         return obj_view;
     };
-    return gaia::common::iterators::range_from_generator(generator);
+    return range_from_generator(generator);
 }
 
 field_list_t catalog_core_t::list_fields(gaia_id_t table_id)

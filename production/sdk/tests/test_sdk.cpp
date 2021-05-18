@@ -191,32 +191,31 @@ TEST_F(sdk_test, gaia_logger)
 
 TEST_F(sdk_test, transactions)
 {
-    EXPECT_FALSE(gaia::db::is_transaction_active());
+    EXPECT_FALSE(gaia::db::is_transaction_open());
 
     gaia::db::begin_transaction();
-    EXPECT_TRUE(gaia::db::is_transaction_active());
+    EXPECT_TRUE(gaia::db::is_transaction_open());
     gaia::db::commit_transaction();
-    EXPECT_FALSE(gaia::db::is_transaction_active());
+    EXPECT_FALSE(gaia::db::is_transaction_open());
 
     gaia::db::begin_transaction();
-    EXPECT_TRUE(gaia::db::is_transaction_active());
+    EXPECT_TRUE(gaia::db::is_transaction_open());
     gaia::db::rollback_transaction();
-    EXPECT_FALSE(gaia::db::is_transaction_active());
+    EXPECT_FALSE(gaia::db::is_transaction_open());
 }
 
 TEST_F(sdk_test, db_exceptions)
 {
     test_exception<gaia::db::session_exists>();
-    test_exception<gaia::db::no_active_session>();
+    test_exception<gaia::db::no_open_session>();
     test_exception<gaia::db::transaction_in_progress>();
     test_exception<gaia::db::no_open_transaction>();
     test_exception<gaia::db::transaction_update_conflict>();
     test_exception<gaia::db::transaction_object_limit_exceeded>();
     test_exception<gaia::db::duplicate_id>(gaia::common::c_invalid_gaia_id);
-    test_exception<gaia::db::oom>();
-    test_exception<gaia::db::invalid_node_id>(gaia::common::c_invalid_gaia_id);
-    test_exception<gaia::db::invalid_id_value>(gaia::common::c_invalid_gaia_id);
-    test_exception<gaia::db::node_not_disconnected>(gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
-    test_exception<gaia::db::payload_size_too_large>(100, 100);
+    test_exception<gaia::db::out_of_memory>();
+    test_exception<gaia::db::invalid_object_id>(gaia::common::c_invalid_gaia_id);
+    test_exception<gaia::db::object_still_referenced>(gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
+    test_exception<gaia::db::object_too_large>(100, 100);
     test_exception<gaia::db::invalid_type>(employee_t::s_gaia_type);
 }

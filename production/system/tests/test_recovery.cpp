@@ -326,7 +326,7 @@ void recovery_test::delete_all(int initial_record_count)
             {
                 e.delete_row();
             }
-            catch (const node_not_disconnected& e)
+            catch (const object_still_referenced& e)
             {
                 continue;
             }
@@ -490,7 +490,7 @@ TEST_F(recovery_test, reference_update_test)
     {
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
+        ASSERT_THROW(address_t::get(address_id).delete_row(), object_still_referenced);
         for (auto const& phone : address_t::get(address_id).phones())
         {
             recovered_phone_ids.insert(phone.gaia_id());
@@ -567,7 +567,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         // Get the parent.
         gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(gaia_ptr_t::remove(parent), node_not_disconnected);
+        ASSERT_THROW(gaia_ptr_t::remove(parent), object_still_referenced);
 
         // Find the children.
         gaia_ptr_t first_child = gaia_ptr_t::open(parent.references()[c_first_patient_offset]);

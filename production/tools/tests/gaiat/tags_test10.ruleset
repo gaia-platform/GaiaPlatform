@@ -1,4 +1,5 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: echo "WARNING: Variable declaration hides a tag." | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 

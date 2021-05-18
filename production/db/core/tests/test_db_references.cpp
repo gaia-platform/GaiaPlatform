@@ -242,7 +242,7 @@ TEST_F(gaia_db_references_test, add_parent_reference__fail_on_wrong_offset)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__invalid_node_id)
+TEST_F(gaia_db_references_test, add_child_reference__invalid_object_id)
 {
     begin_transaction();
 
@@ -255,12 +255,12 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_node_id)
 
     EXPECT_THROW(
         parent.add_child_reference(c_non_existent_id, c_next_patient_offset),
-        invalid_node_id);
+        invalid_object_id);
 
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_parent_reference__invalid_node_id)
+TEST_F(gaia_db_references_test, add_parent_reference__invalid_object_id)
 {
     begin_transaction();
 
@@ -273,7 +273,7 @@ TEST_F(gaia_db_references_test, add_parent_reference__invalid_node_id)
 
     EXPECT_THROW(
         child.add_parent_reference(c_non_existent_id, c_parent_doctor_offset),
-        invalid_node_id);
+        invalid_object_id);
 
     commit_transaction();
 }
@@ -442,7 +442,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_offset)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__invalid_node_id)
+TEST_F(gaia_db_references_test, remove_child_reference__invalid_object_id)
 {
     begin_transaction();
 
@@ -455,7 +455,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_node_id)
 
     EXPECT_THROW(
         parent.remove_child_reference(c_non_existent_id, c_next_patient_offset),
-        invalid_node_id);
+        invalid_object_id);
 
     commit_transaction();
 }

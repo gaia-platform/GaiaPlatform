@@ -29,12 +29,12 @@ class client_t
     friend class gaia_ptr_t;
 
     /**
-     * @throws no_open_transaction if there is no active transaction.
+     * @throws no_open_transaction if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
-     * @throws no_active_session if there is no active session.
+     * @throws no_open_session if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
@@ -45,7 +45,7 @@ class client_t
         size_t size);
 
 public:
-    static inline bool is_transaction_active();
+    static inline bool is_transaction_open();
 
     /**
      * Called by the rules engine only during initialization and
@@ -130,6 +130,12 @@ private:
     template <typename T_element_type>
     static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(int stream_socket);
+
+    static std::function<std::optional<int>()>
+    get_fd_stream_generator_for_socket(int stream_socket);
+
+    static std::function<std::optional<common::gaia_id_t>()>
+    augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
 
     /**
      *  Check if an event should be generated for a given type.

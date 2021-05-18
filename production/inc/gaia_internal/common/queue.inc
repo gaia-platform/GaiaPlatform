@@ -28,6 +28,8 @@ queue_t<T>::queue_t()
 
     m_tail.next = nullptr;
     m_tail.previous = &m_head;
+
+    m_size = 0;
 }
 
 template <class T>
@@ -49,11 +51,11 @@ void queue_t<T>::enqueue(const T& value)
     // Create element to hold new value.
     queue_element_t<T>* new_first_element = new queue_element_t<T>(value);
 
-    // Link it to the head of the queue - this is safe to do.
+    // Link it to the head of the queue - this is safe to do, because the head never changes.
     new_first_element->previous = &m_head;
 
     // For next operations, we need to take an exclusive lock on the head.
-    std::unique_lock<std::shared_mutex> unique_lock_head(m_head.lock);
+    std::unique_lock unique_lock_head(m_head.lock);
 
     queue_element_t<T>* current_first_element = m_head.next;
 
@@ -61,12 +63,15 @@ void queue_t<T>::enqueue(const T& value)
     // to protect ourselves from a dequeue() operation that may try to concurrently remove it.
     // A shared lock will be sufficient here, as it will prevent the exclusive lock
     // requested by dequeue().
-    std::shared_lock<std::shared_mutex> shared_lock_first(current_first_element->lock);
+    std::shared_lock shared_lock_first(current_first_element->lock);
 
     // We can now safely insert our new node.
     new_first_element->next = current_first_element;
     m_head.next = new_first_element;
     current_first_element->previous = new_first_element;
+
+    // Track the queue size change.
+    ++m_size;
 }
 
 template <class T>
@@ -87,7 +92,7 @@ bool queue_t<T>::dequeue_internal(T& value)
     // Create scope for lock release.
     {
         // We need to take an exclusive lock on the tail.
-        std::unique_lock<std::shared_mutex> unique_lock_tail(m_tail.lock);
+        std::unique_lock unique_lock_tail(m_tail.lock);
 
         // Read the last element.
         current_last_element = m_tail.previous;
@@ -107,7 +112,7 @@ bool queue_t<T>::dequeue_internal(T& value)
         //
         // There is a second case in which we acquire this lock before the other enqueue() thread
         // and it is us that are blocking the other thread; that case is handled by the checks below.
-        std::unique_lock<std::shared_mutex> unique_lock_last(current_last_element->lock);
+        std::unique_lock unique_lock_last(current_last_element->lock);
 
         // With our second lock, it is safe to read the new last element.
         queue_element_t<T>* new_last_element = current_last_element->previous;
@@ -123,7 +128,7 @@ bool queue_t<T>::dequeue_internal(T& value)
         //   and a shared lock on the first element.
         // The concurrent operations on the first element are safe because they don't conflict:
         // enqueue() updates the previous link, whereas dequeue() updates the next link.
-        std::shared_lock<std::shared_mutex> shared_lock_new_last(new_last_element->lock, std::defer_lock);
+        std::shared_lock shared_lock_new_last(new_last_element->lock, std::defer_lock);
         if (shared_lock_new_last.try_lock() == false)
         {
             ASSERT_INVARIANT(
@@ -145,6 +150,11 @@ bool queue_t<T>::dequeue_internal(T& value)
         // Remove the old last element.
         new_last_element->next = &m_tail;
         m_tail.previous = new_last_element;
+
+        ASSERT_INVARIANT(m_size > 0, "Size is 0 for a non-empty queue!");
+
+        // Track the queue size change.
+        --m_size;
     }
 
     // Finally, we can deallocate the no longer needed element.
@@ -156,5 +166,11 @@ bool queue_t<T>::dequeue_internal(T& value)
 template <class T>
 bool queue_t<T>::is_empty() const
 {
-    return (m_tail.previous == &m_head);
+    return (size() == 0);
+}
+
+template <class T>
+size_t queue_t<T>::size() const
+{
+    return m_size;
 }

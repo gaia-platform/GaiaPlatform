@@ -30,7 +30,7 @@ auto_transaction_t::~auto_transaction_t()
     // call to gaia::db::commit_transaction or
     // gaia::db::rollback_transaction. Ensure we check this case so that
     // we don't cause an exception here in the destructor.
-    if (gaia::db::is_transaction_active())
+    if (gaia::db::is_transaction_open())
     {
         gaia::db::rollback_transaction();
     }
