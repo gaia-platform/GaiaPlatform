@@ -8,7 +8,6 @@
 #include <csignal>
 
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 
 #include <spdlog/fmt/fmt.h>
@@ -88,7 +87,7 @@ void server_instance_t::start(bool wait_for_init)
 {
     ASSERT_PRECONDITION(!m_is_initialized, "The server must not be initialized");
 
-    std::vector<const char*> command = get_server_command();
+    std::vector<const char*> command = get_server_command_and_argument();
 
     // TODO this should be wrapped into a if_debug_enabled()
     std::string command_str;
@@ -101,7 +100,7 @@ void server_instance_t::start(bool wait_for_init)
         }
     }
 
-    gaia_log::sys().debug("Starting server instance {} with command '{}'", instance_name(), command_str);
+    gaia_log::sys().debug("Starting server instance:{} with command: '{}'.", instance_name(), command_str);
 
     if (0 == (m_server_pid = ::fork()))
     {
@@ -117,7 +116,7 @@ void server_instance_t::start(bool wait_for_init)
         }
     }
 
-    gaia_log::sys().debug("Server instance {} started with pid:{}", instance_name(), m_server_pid);
+    gaia_log::sys().debug("Server instance:{} started with pid:{}.", instance_name(), m_server_pid);
     m_is_initialized = true;
 
     if (wait_for_init)
@@ -130,7 +129,7 @@ void server_instance_t::stop()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    gaia_log::sys().debug("Killing server instance {} and pid:{}", instance_name(), m_server_pid);
+    gaia_log::sys().debug("Killing server instance:{} and pid:{}.", instance_name(), m_server_pid);
 
     ::system(fmt::format("kill -9 {}", m_server_pid).c_str());
 
@@ -156,7 +155,7 @@ void server_instance_t::reset_server(bool wait_for_init)
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    gaia_log::sys().debug("Resetting server instance {} and pid:{}", instance_name(), m_server_pid);
+    gaia_log::sys().debug("Resetting server instance:{} and pid:{}.", instance_name(), m_server_pid);
 
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.
@@ -193,7 +192,7 @@ void server_instance_t::wait_for_init()
     {
         try
         {
-            gaia_log::sys().trace("Waiting for Gaia instance {}...", instance_name());
+            gaia_log::sys().trace("Waiting for Gaia instance:{}...", instance_name());
 
             gaia::db::config::session_options_t session_options;
             session_options.db_instance_name = instance_name();
@@ -209,7 +208,7 @@ void server_instance_t::wait_for_init()
                 if (counter % c_print_error_interval == 0)
                 {
                     gaia_log::sys().warn(
-                        "Cannot connect to Gaia instance {}; the 'gaia_db_server' process may not be running!", instance_name());
+                        "Cannot connect to Gaia instance:{}; the '{}' process may not be running!", instance_name(), c_db_server_exec_name);
                     counter = 1;
                 }
                 else
@@ -253,7 +252,7 @@ bool server_instance_t::is_initialized()
     return m_is_initialized;
 }
 
-std::vector<const char*> server_instance_t::get_server_command()
+std::vector<const char*> server_instance_t::get_server_command_and_argument()
 {
     std::vector<const char*> strings;
 

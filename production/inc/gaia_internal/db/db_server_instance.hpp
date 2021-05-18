@@ -104,7 +104,7 @@ private:
     ::pid_t m_server_pid = -1;
     bool m_is_initialized{false};
 
-    std::vector<const char*> get_server_command();
+    std::vector<const char*> get_server_command_and_argument();
 };
 
 } // namespace db

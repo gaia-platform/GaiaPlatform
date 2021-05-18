@@ -56,7 +56,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        s_server_instance = server_instance_t{};
+        s_server_instance = server_instance_t();
 
         // Make the instance name the default, so that calls to begin_session()
         // will automatically connect to that instance.
