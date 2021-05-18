@@ -169,6 +169,37 @@ public:
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 };
 
+template <typename T_class>
+class edc_reference_t
+{
+public:
+    edc_reference_t()
+        : m_gaia_id(common::c_invalid_gaia_id){};
+
+    explicit edc_reference_t(common::gaia_id_t m_gaia_id)
+        : m_gaia_id(m_gaia_id){};
+
+    T_class* operator->()
+    {
+        if (!_is_created)
+        {
+            new (m_object) T_class(m_gaia_id);
+            _is_created = true;
+        }
+        return (T_class*)m_object;
+    }
+
+    const T_class get()
+    {
+        return T_class::get(m_gaia_id);
+    }
+
+private:
+    common::gaia_id_t m_gaia_id;
+    alignas(alignof(edc_base_t)) char m_object[sizeof(edc_base_t)];
+    bool _is_created;
+};
+
 /*@}*/
 } // namespace direct_access
 /*@}*/

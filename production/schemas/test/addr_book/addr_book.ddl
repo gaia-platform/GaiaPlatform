@@ -52,7 +52,54 @@ create relationship if not exists phone_owner (
     phone.owner -> employee
 );
 
+create table if not exists internet_contract (
+    provider string,
+    contract_id string
+);
+
+create relationship if not exists internet_address (
+    address.internet_contract -> internet_contract,
+    internet_contract.address -> address
+);
+
 create table if not exists customer (
     name string,
     sales_by_quarter int32[]
 );
+
+
+create table if not exists A (
+    str_val string,
+    num_val int32
+);
+
+create table if not exists B (
+    str_val string,
+    num_val int32
+);
+
+create relationship if not exists a_b (
+   A.b -> B,
+   B.a -> A
+);
+
+
+-- create table if not exists C (
+--     str_val string,
+--     num_val int32
+-- );
+--
+-- create table if not exists D (
+--     str_val string,
+--     num_val int32
+-- );
+--
+-- create relationship if not exists c_d (
+--    C.d_arr -> D[],
+--    D.c -> C
+-- );
+--
+-- create relationship if not exists d_c (
+--    D.c_arr -> C[],
+--    C.d -> D
+-- );

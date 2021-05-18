@@ -44,6 +44,18 @@ public:
         return m_relationship.child().name();
     }
 
+    bool is_one_to_many()
+    {
+        return static_cast<relationship_cardinality_t>(m_relationship.cardinality())
+            == relationship_cardinality_t::many;
+    }
+
+    bool is_one_to_one()
+    {
+        return static_cast<relationship_cardinality_t>(m_relationship.cardinality())
+            == relationship_cardinality_t::one;
+    }
+
 protected:
     gaia_relationship_t m_relationship;
 };
@@ -195,9 +207,7 @@ static relationship_vector_t list_parent_relationships(gaia_table_t table)
         relationships.push_back(relationship);
     }
 
-    std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool {
-        return r1.first_child_offset() < r2.first_child_offset();
-    });
+    std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool { return r1.first_child_offset() < r2.first_child_offset(); });
 
     return relationships;
 }
@@ -212,9 +222,7 @@ static relationship_vector_t list_child_relationships(gaia_table_t table)
         relationships.push_back(relationship);
     }
 
-    std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool {
-        return r1.parent_offset() < r2.parent_offset();
-    });
+    std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool { return r1.parent_offset() < r2.parent_offset(); });
 
     return relationships;
 }
@@ -399,8 +407,11 @@ static string generate_edc_struct(
         code.SetValue("FIELD_NAME", relationship.field_name());
         code.SetValue("CHILD_TABLE", relationship.child_table());
 
-        code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
-                "{{FIELD_NAME}}_list_t;";
+        //        if (relationship.is_one_to_many())
+        {
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
+                    "{{FIELD_NAME}}_list_t;";
+        }
     }
 
     // Default public constructor.
@@ -495,15 +506,37 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
+        code.SetValue("CHILD_TABLE", relationship.child_table());
         code.SetValue("FIELD_NAME", relationship.field_name());
         code.SetValue("FIRST_OFFSET", relationship.first_offset());
         code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const {";
-        code.IncrementIdentLevel();
-        code += "return {{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
-        code.DecrementIdentLevel();
-        code += "}";
+        if (relationship.is_one_to_many())
+        {
+            code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const {";
+            code.IncrementIdentLevel();
+            code += "return {{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
+            code.DecrementIdentLevel();
+            code += "}";
+        }
+        else if (relationship.is_one_to_one())
+        {
+            code += "direct_access::edc_reference_t<{{CHILD_TABLE}}_t> {{FIELD_NAME}}() const {";
+            code.IncrementIdentLevel();
+            code += "return direct_access::edc_reference_t<{{CHILD_TABLE}}_t>{this->references()[{{FIRST_OFFSET}}]};";
+            code.DecrementIdentLevel();
+            code += "}";
+
+            code += "void set_{{FIELD_NAME}}(common::gaia_id_t child_id) {";
+            code.IncrementIdentLevel();
+            code += "insert_child_reference(gaia_id(), child_id, {{FIRST_OFFSET}});";
+            code.DecrementIdentLevel();
+            code += "}";
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+        }
     }
 
     // Stores field names to make it simpler to create a namespace after the class
@@ -548,15 +581,28 @@ static string generate_edc_struct(
     for (auto& relationship : parent_relationships)
     {
         string type;
-        type.append(code.GetValue("TABLE_NAME"));
-        type.append("_t::");
-        type.append(relationship.field_name());
-        type.append("_list_t");
 
-        expr_variable = generate_expr_variable(code.GetValue("TABLE_NAME"), type, relationship.field_name());
-        code += expr_variable.first;
-        expr_init_list.emplace_back(expr_variable.second);
-        field_names.push_back(relationship.field_name());
+        if (relationship.is_one_to_many())
+        {
+            type.append(code.GetValue("TABLE_NAME"));
+            type.append("_t::");
+            type.append(relationship.field_name());
+            type.append("_list_t");
+        }
+        else
+        {
+            code.SetValue("CHILD_TABLE", relationship.child_table());
+            type.append(code.GetValue("CHILD_TABLE"));
+            type.append("_t");
+        }
+
+        if (!relationship.is_one_to_one())
+        {
+            expr_variable = generate_expr_variable(code.GetValue("TABLE_NAME"), type, relationship.field_name());
+            code += expr_variable.first;
+            expr_init_list.emplace_back(expr_variable.second);
+            field_names.push_back(relationship.field_name());
+        }
     }
 
     code.DecrementIdentLevel();
@@ -565,13 +611,14 @@ static string generate_edc_struct(
 
     // The private area.
     code.DecrementIdentLevel();
+
+    // The constructor.
+    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
+
     code += "private:";
     code.IncrementIdentLevel();
     code += "friend struct edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
-
-    // The constructor.
-    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
     code.DecrementIdentLevel();

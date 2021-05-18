@@ -142,21 +142,21 @@ void ddl_executor_t::bootstrap_catalog()
             c_catalog_db_name, "gaia_relationship",
             fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
         // create relationship gaia_catalog_relationship_parent (
-        //     catalog.gaia_table.gaia_relatinships_parent -> catalog.gaia_relationship,
+        //     catalog.gaia_table.outgoing_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.parent -> catalog.gaia_table
         // );
         create_relationship(
             "gaia_catalog_relationship_parent",
-            {c_catalog_db_name, "gaia_table", "gaia_relationships_parent", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {c_catalog_db_name, "gaia_table", "outgoing_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "parent", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
         // create relationship gaia_catalog_relationship_child (
-        //     catalog.gaia_table.gaia_relatinships_child -> catalog.gaia_relationship,
+        //     catalog.gaia_table.incoming_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.child -> catalog.gaia_table
         // );
         create_relationship(
             "gaia_catalog_relationship_child",
-            {c_catalog_db_name, "gaia_table", "gaia_relationships_child", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {c_catalog_db_name, "gaia_table", "incoming_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "child", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
     }
@@ -376,8 +376,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     bool is_parent_required = false;
     bool is_deprecated = false;
 
-    gaia_id_t relationship_id = c_invalid_gaia_id;
-    relationship_id = gaia_relationship_t::insert_row(
+    gaia_id_t relationship_id = gaia_relationship_t::insert_row(
         name.c_str(),
         to_parent_link_name,
         to_child_link_name,

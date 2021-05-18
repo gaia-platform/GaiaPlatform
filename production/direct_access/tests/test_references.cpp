@@ -7,6 +7,7 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/gaia_relationships.hpp"
@@ -21,6 +22,8 @@ using namespace gaia::addr_book;
 using std::string;
 using std::thread;
 using std::to_string;
+
+using gaia_time_t = gaia::common::timer_t;
 
 class gaia_references_test : public db_catalog_test_base_t
 {
@@ -52,20 +55,6 @@ protected:
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
 };
-
-int count_addresses(const employee_t& e)
-{
-    int count = 0;
-    for (auto const& ap : e.addresses())
-    {
-        if (ap)
-        {
-            count++;
-        }
-    }
-
-    return count;
-}
 
 employee_t insert_records(size_t count)
 {
@@ -103,7 +92,7 @@ TEST_F(gaia_references_test, connect)
 
     e3.addresses().insert(a3);
 
-    EXPECT_EQ(count_addresses(e3), 1);
+    EXPECT_EQ(e3.addresses().size(), 1);
 
     e3.addresses().remove(a3);
     a3.delete_row();
@@ -817,9 +806,7 @@ TEST_F(gaia_references_test, set_filter)
     size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
-                                .where([&name_length](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+                                .where([&name_length](const employee_t& e) { return strlen(e.name_first()) == name_length; });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -968,4 +955,85 @@ TEST_F(gaia_references_test, test_refernece_container_size)
     ASSERT_EQ(0, employee.addresses().size());
 
     commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_circular_refernece)
+{
+    begin_transaction();
+
+    //    for (gaia_table_t table : gaia_table_t::list())
+    //    {
+    //       std::cout << table.name() << " " << table.type() << " " << table.gaia_id() << std::endl;
+    //    }
+
+    std::cout << "gaia_id_t: " << sizeof(gaia_id_t) << std::endl;
+    std::cout << "A_t: " << sizeof(A_t) << std::endl;
+    std::cout << "edc_object_t: " << sizeof(edc_object_t<c_gaia_type_A, A_t, internal::A, internal::AT>) << std::endl;
+    std::cout << "edc_base_t: " << sizeof(edc_base_t) << std::endl;
+    std::cout << "edc_db_t: " << sizeof(edc_db_t) << std::endl;
+
+    A_t a_obj = A_t::get(A_t::insert_row("str1", 2));
+    B_t b_obj = B_t::get(B_t::insert_row("str2", 3));
+
+    a_obj.set_b(b_obj.gaia_id());
+
+    ASSERT_STREQ(a_obj.b().get().str_val(), "str2");
+    ASSERT_EQ(a_obj.b().get().num_val(), 3);
+    ASSERT_STREQ(b_obj.a().str_val(), "str1");
+    ASSERT_EQ(b_obj.a().num_val(), 2);
+
+    ASSERT_STREQ(a_obj.b()->str_val(), "str2");
+    ASSERT_EQ(a_obj.b()->num_val(), 3);
+    ASSERT_EQ(a_obj.b().get().num_val(), 3);
+}
+
+TEST_F(gaia_references_test, test_object_allocation_price)
+{
+    begin_transaction();
+
+    constexpr int count = 100000;
+
+    gaia_id_t ids[count];
+
+    for (int i = 0; i < count; ++i)
+    {
+        A_writer w;
+        w.num_val = i;
+        w.str_val = to_string(i);
+        ids[i] = w.insert_row();
+    }
+
+    gaia_time_t::log_function_duration(
+        [&ids]() {
+            A_t stuff1[count];
+
+            for (int i = 0; i < count; ++i)
+            {
+                stuff1[i] = A_t::get(ids[i]);
+            }
+        },
+        "EDC get");
+
+    gaia_time_t::log_function_duration(
+        [&ids]() {
+            A_t stuff1[count];
+
+            for (int i = 0; i < count; ++i)
+            {
+                //                stuff1[i] = A_t(ids[i]);
+            }
+        },
+        "EDC constructor");
+
+    gaia_time_t::log_function_duration(
+        [&ids]() {
+            gaia_id_t stuff2[count];
+
+            // "Ensure" the compiler won't optimize this into stuff2 = ids.
+            for (int i = 0; i < count - 1; ++i)
+            {
+                stuff2[i + 1] = ids[i];
+            }
+        },
+        "id");
 }
