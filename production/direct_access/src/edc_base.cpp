@@ -145,46 +145,10 @@ bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)
     return false;
 }
 
-gaia_id_t edc_base_t::find_next()
-{
-    gaia_ptr_t node = to_ptr<gaia_ptr_t>()->find_next();
-    if (node)
-    {
-        return node.id();
-    }
-    return c_invalid_gaia_id;
-}
-
 gaia_id_t edc_db_t::get_reference(gaia_id_t id, size_t slot)
 {
     gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
     return node_ptr.references()[slot];
-}
-
-gaia_id_t edc_db_t::find_first(gaia_type_t container)
-{
-    gaia_ptr_t node = gaia_ptr_t::find_first(container);
-    if (!node)
-    {
-        return c_invalid_gaia_id;
-    }
-
-    return node.id();
-}
-
-gaia_id_t edc_db_t::find_next(gaia_id_t id)
-{
-    auto node_ptr = gaia_ptr_t(id);
-    gaia_id_t next_id = c_invalid_gaia_id;
-    if (node_ptr)
-    {
-        node_ptr = node_ptr.find_next();
-        if (node_ptr)
-        {
-            next_id = node_ptr.id();
-        }
-    }
-    return next_id;
 }
 
 gaia_id_t edc_db_t::insert(gaia_type_t container, size_t data_size, const void* data)

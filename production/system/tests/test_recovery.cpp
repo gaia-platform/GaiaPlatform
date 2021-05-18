@@ -138,7 +138,7 @@ void recovery_test::validate_data()
 {
     size_t count = 0;
     begin_transaction();
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         auto it = s_employee_map.find(employee.gaia_id());
 
@@ -255,7 +255,9 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
             // Insert row.
             auto e = generate_employee_record();
             temp_employee_map.insert(
-                make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
+                make_pair(
+                    e.gaia_id(),
+                    employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
         }
         commit_transaction();
 
@@ -289,7 +291,7 @@ int recovery_test::get_count()
 {
     int total_count = 0;
     begin_transaction();
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         total_count++;
     }
@@ -305,7 +307,7 @@ void recovery_test::delete_all(int initial_record_count)
 
     // Cache entries to delete.
     std::set<gaia_id_t> to_delete;
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         total_count++;
         to_delete.insert(employee.gaia_id());

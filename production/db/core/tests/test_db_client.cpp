@@ -328,23 +328,11 @@ void iterate_test_validate_iterations()
 {
     gaia_type_t first_test_type = gaia_type_t(c_first_test_type);
 
-    gaia_type_t type = 1;
-
-    std::cerr << std::endl;
-    std::cerr << "*** Iterating over nodes in type with predicate:" << std::endl;
-    type = 1;
-    for (auto node : gaia_ptr_t::find_all_range(
-             type, [](gaia_ptr_t ptr) { return ptr.id() == 1; }))
-    {
-        print_node(node);
-        EXPECT_EQ(node.id(), 1);
-    }
-
     size_t count, expected_count;
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over empty type:" << std::endl;
-    type = first_test_type - 1;
+    gaia_type_t type = first_test_type - 1;
     count = 0;
     expected_count = 0;
     for (auto node : gaia_ptr_t::find_all_range(type))

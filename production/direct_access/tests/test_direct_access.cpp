@@ -32,20 +32,12 @@ protected:
 
 int count_rows()
 {
-    // Old method for scanning objects:
-    int cnt = 0;
-    for (auto e = employee_t::get_first(); e; e = e.get_next())
-    {
-        ++cnt;
-    }
-
     // Primary method for scanning objects:
     int count = 0;
     for (auto e : employee_t::list())
     {
         ++count;
     }
-    EXPECT_EQ(count, cnt);
     return count;
 }
 
@@ -167,10 +159,11 @@ TEST_F(edc_object_test, read_back_scan)
     commit_transaction();
 
     begin_transaction();
-    auto e = employee_t::get_first();
+    auto i = employee_t::list().begin();
+    auto e = *i;
     EXPECT_EQ(eid, e.gaia_id());
     EXPECT_STREQ("Howard", e.name_first());
-    e = e.get_next();
+    e = *(++i);
     EXPECT_EQ(eid2, e.gaia_id());
     EXPECT_STREQ("Henry", e.name_first());
     commit_transaction();
@@ -184,7 +177,8 @@ void update_read_back(bool update_flag)
     create_employee("Henry");
     txn.commit();
 
-    auto e = employee_t::get_first();
+    auto i = employee_t::list().begin();
+    auto e = *i;
     auto w = e.writer();
     w.name_first = "Herald";
     w.name_last = "Hollman";
@@ -192,7 +186,7 @@ void update_read_back(bool update_flag)
     {
         w.update_row();
     }
-    e = e.get_next();
+    e = *(++i);
 
     // get writer for next row!
     w = e.writer();
@@ -204,7 +198,8 @@ void update_read_back(bool update_flag)
     }
     txn.commit();
 
-    e = employee_t::get_first();
+    i = employee_t::list().begin();
+    e = *i;
     if (update_flag)
     {
         EXPECT_STREQ("Herald", e.name_first());
@@ -216,7 +211,7 @@ void update_read_back(bool update_flag)
         EXPECT_STREQ("Howard", e.name_first());
         EXPECT_STREQ(nullptr, e.name_last());
     }
-    e = e.get_next();
+    e = *(++i);
     if (update_flag)
     {
         EXPECT_STREQ("Gerald", e.name_first());

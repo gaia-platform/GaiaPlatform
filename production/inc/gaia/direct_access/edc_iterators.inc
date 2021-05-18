@@ -27,28 +27,28 @@ edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id, std::functio
 template <typename T_class>
 edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
 {
-    if (!m_obj)
-    {
-        return *this;
-    }
+    // if (!m_obj)
+    // {
+    //     return *this;
+    // }
 
-    if (m_filter_fn)
-    {
-        for (m_obj = m_obj.get_next(); m_obj; m_obj = m_obj.get_next())
-        {
-            if (m_filter_fn(m_obj))
-            {
-                break;
-            }
-        }
-    }
-    else
-    {
-        if (m_obj)
-        {
-            m_obj = m_obj.get_next();
-        }
-    }
+    // if (m_filter_fn)
+    // {
+    //     for (m_obj = m_obj.get_next(); m_obj; m_obj = m_obj.get_next())
+    //     {
+    //         if (m_filter_fn(m_obj))
+    //         {
+    //             break;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     if (m_obj)
+    //     {
+    //         m_obj = m_obj.get_next();
+    //     }
+    // }
 
     return *this;
 }
@@ -93,23 +93,24 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 template <gaia::common::gaia_type_t T_container, typename T_class>
 edc_iterator_t<T_class> edc_container_t<T_container, T_class>::begin() const
 {
-    gaia::common::gaia_id_t id = edc_base_t::find_first(T_container);
-    while (id != common::c_invalid_gaia_id)
-    {
-        if (m_filter_fn)
-        {
-            if (m_filter_fn(T_class::get(id)))
-            {
-                return edc_iterator_t<T_class>(id, m_filter_fn);
-            }
-        }
-        else
-        {
-            break;
-        }
+    gaia::common::gaia_id_t id = common::c_invalid_gaia_id;
+    // edc_base_t::find_first(T_container);
+    // while (id != common::c_invalid_gaia_id)
+    // {
+    //     if (m_filter_fn)
+    //     {
+    //         if (m_filter_fn(T_class::get(id)))
+    //         {
+    //             return edc_iterator_t<T_class>(id, m_filter_fn);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
 
-        id = edc_db_t::find_next(id);
-    }
+    //     id = edc_db_t::find_next(id);
+    // }
     return edc_iterator_t<T_class>(id);
 }
 

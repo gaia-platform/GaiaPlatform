@@ -262,8 +262,7 @@ gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
 }
 
 generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iter(
-    gaia_type_t type,
-    std::function<bool(gaia_ptr_t)> user_predicate)
+    gaia_type_t type)
 {
     // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
     std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
@@ -280,8 +279,8 @@ generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iter(
     // directly constructing a range from the generator, because we need
     // to filter out values corresponding to deleted objects, and we can
     // do that only by supplying a predicate to the iterator.
-    std::function<bool(gaia_ptr_t)> gaia_ptr_predicate = [user_predicate](gaia_ptr_t ptr) {
-        return !ptr.is_null() && user_predicate(ptr);
+    std::function<bool(gaia_ptr_t)> gaia_ptr_predicate = [](gaia_ptr_t ptr) {
+        return !ptr.is_null();
     };
 
     auto gaia_ptr_iterator = generator_iterator_t(
@@ -292,10 +291,9 @@ generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iter(
 }
 
 range_t<generator_iterator_t<gaia_ptr_t>> gaia_ptr_t::find_all_range(
-    gaia_type_t type,
-    std::function<bool(gaia_ptr_t)> user_predicate)
+    gaia_type_t type)
 {
-    return range(find_all_iter(type, user_predicate));
+    return range(find_all_iter(type));
 }
 
 void gaia_ptr_t::reset()

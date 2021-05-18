@@ -79,17 +79,6 @@ public:
     }
 
     /**
-     * Ask for the first object of a flatbuffer type, T_gaia_type.
-     */
-    static T_gaia get_first();
-
-    /**
-     * Ask for the next object of a flatbuffer type. This call must follow a call to the
-     * static method get_first().
-     */
-    T_gaia get_next();
-
-    /**
      * Ask for a specific object based on its id. References to this method must be qualified
      * by the T_gaia_type, and that type must match the type of the identified object.
      *
@@ -174,6 +163,9 @@ protected:
 template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct edc_writer_t : public T_obj, edc_db_t
 {
+    friend edc_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
+
+public:
     edc_writer_t() = default;
 
     /**
@@ -194,8 +186,6 @@ private:
     {
         gaia::common::gaia_id_t id;
     } m_gaia;
-
-    friend edc_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
 };
 
 /*@}*/

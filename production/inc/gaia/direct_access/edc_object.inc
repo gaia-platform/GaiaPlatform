@@ -96,24 +96,6 @@ edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::writer()
 }
 
 template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_first()
-{
-    gaia::common::gaia_id_t id = edc_base_t::find_first(T_container);
-    return T_class(id);
-}
-
-template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get_next()
-{
-    if (!edc_base_t::exists())
-    {
-        throw gaia::db::invalid_object_id(gaia::common::c_invalid_gaia_id);
-    }
-    gaia::common::gaia_id_t id = edc_base_t::find_next();
-    return T_class(id);
-}
-
-template <gaia::common::gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 T_class edc_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
 {
     return T_class(verify_type(id));

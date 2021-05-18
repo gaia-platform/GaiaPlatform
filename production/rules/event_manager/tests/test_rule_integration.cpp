@@ -313,7 +313,7 @@ TEST_F(rule_integration_test, test_insert)
     // rule that was fired above.
     {
         auto_transaction_t txn(false);
-        address_t a = address_t::get_first();
+        address_t a = *(address_t::list().begin());
         EXPECT_STREQ(a.city(), c_city);
         EXPECT_STREQ(a.state(), c_state);
     }

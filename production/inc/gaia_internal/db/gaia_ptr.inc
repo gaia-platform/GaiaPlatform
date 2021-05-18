@@ -25,15 +25,6 @@ gaia_ptr_t::operator bool() const
     return to_ptr() != nullptr;
 }
 
-gaia_ptr_t gaia_ptr_t::operator++()
-{
-    if (m_locator)
-    {
-        return find_next(to_ptr()->type);
-    }
-    return *this;
-}
-
 gaia_ptr_t gaia_ptr_t::open(
     common::gaia_id_t id)
 {
