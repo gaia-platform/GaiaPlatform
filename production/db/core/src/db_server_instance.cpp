@@ -21,6 +21,7 @@
 #include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
 namespace fs = std::filesystem;
@@ -194,10 +195,12 @@ void server_instance_t::wait_for_init()
         {
             gaia_log::sys().trace("Waiting for Gaia instance {}...", instance_name());
 
-            gaia::db::session_options_t session_options;
+            gaia::db::config::session_options_t session_options;
             session_options.db_instance_name = instance_name();
 
-            gaia::db::begin_session(session_options);
+            gaia::db::config::set_default_session_options(session_options);
+
+            gaia::db::begin_session();
         }
         catch (gaia::common::system_error& e)
         {

@@ -26,6 +26,7 @@
 #include "type_id_mapping.hpp"
 
 using namespace gaia::db;
+using namespace gaia::db::config;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
@@ -98,7 +99,7 @@ protected:
 
         session_options_t session_options;
         session_options.db_instance_name = s_server.instance_name();
-        gaia::db::config::set_default_session_options(session_options);
+        set_default_session_options(session_options);
     }
 
     static void TearDownTestSuite()

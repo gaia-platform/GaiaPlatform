@@ -15,6 +15,7 @@
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
 
 #include "gaia_addr_book.h"
@@ -30,10 +31,11 @@ static constexpr uint32_t c_num_employees = 10;
 static constexpr uint32_t c_sleep_micros = 100000;
 static constexpr uint32_t c_max_reader_wait_seconds = 10;
 
-class multiple_server_instances_test : public ::testing::Test
+// TODO re-enable once we have multi instance support.
+class DISABLED_multiple_server_instances_test : public ::testing::Test
 {
 public:
-    multiple_server_instances_test() = default;
+    DISABLED_multiple_server_instances_test() = default;
 
 protected:
     static void SetUpTestSuite()
@@ -56,10 +58,11 @@ public:
     {
         gaia_log::app().debug("Starting writer for instance {}", m_instance_name);
 
-        session_options_t session_options;
+        config::session_options_t session_options;
         session_options.db_instance_name = m_instance_name;
 
-        begin_session(session_options);
+        // TODO re-enable once we have multi instance support.
+        //        begin_session(session_options);
 
         // TODO The gaia parser does not support running
         //  multiple DDL from different threads.
@@ -99,10 +102,11 @@ public:
     {
         gaia_log::app().debug("Starting reader for instance {}", m_instance_name);
 
-        session_options_t session_options;
+        config::session_options_t session_options;
         session_options.db_instance_name = m_instance_name;
 
-        begin_session(session_options);
+        // TODO re-enable once we have multi instance support.
+        //begin_session(session_options);
 
         uint32_t num_employees = 0;
 
@@ -138,7 +142,7 @@ private:
     std::string m_instance_name;
 };
 
-TEST_F(multiple_server_instances_test, multiple_instacnes)
+TEST_F(DISABLED_multiple_server_instances_test, multiple_instacnes)
 {
     std::vector<server_instance_t> server_instances;
 

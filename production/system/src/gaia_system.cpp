@@ -70,7 +70,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     if (root_config != nullptr)
     {
         // Sets the default sessions opts with what is specified in the config file.
-        gaia::db::session_options_t session_options = gaia::db::config::create_session_options(root_config);
+        gaia::db::config::session_options_t session_options = gaia::db::config::create_session_options(root_config);
         gaia::db::config::set_default_session_options(session_options);
     }
 

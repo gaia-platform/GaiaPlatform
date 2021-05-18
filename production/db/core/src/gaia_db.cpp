@@ -16,8 +16,9 @@ bool gaia::db::is_transaction_active()
     return gaia::db::client_t::is_transaction_active();
 }
 
-void gaia::db::begin_session(gaia::db::session_options_t session_options)
+void gaia::db::begin_session()
 {
+    config::session_options_t session_options = config::get_default_session_options();
     gaia::db::client_t::begin_session(session_options);
 }
 
@@ -54,9 +55,4 @@ void gaia::db::clear_shared_memory()
 gaia::db::gaia_txn_id_t gaia::db::get_txn_id()
 {
     return gaia::db::client_t::get_txn_id();
-}
-
-gaia::db::session_options_t gaia::db::get_default_session_options()
-{
-    return gaia::db::config::get_default_session_options();
 }

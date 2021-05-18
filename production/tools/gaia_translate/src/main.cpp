@@ -1882,7 +1882,7 @@ int main(int argc, const char** argv)
 
     if (!instance_name.empty())
     {
-        gaia::db::session_options_t session_options = gaia::db::get_default_session_options();
+        gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
         session_options.db_instance_name = instance_name.getValue();
         gaia::db::config::set_default_session_options(session_options);
     }
