@@ -874,6 +874,7 @@ ruleset test123
     }
 }
 
+// GAIAPLAT-948
 ruleset test124
 {
     OnInsert(incubator)

@@ -212,7 +212,7 @@ ruleset test_query_1
 
 ruleset test_query_2
 {
-    // test_queries_code.sum_of_hours
+    // test_queries_code.sum_of_all_hours
     // Auto-sum of student hours.
     OnInsert(registration)
     {
@@ -220,6 +220,50 @@ ruleset test_query_2
         // Visit all courses in which the student is registered.
         age += student->registration->course.hours;
         g_oninsert_value = age;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+// GAIAPLAT-950
+ruleset test_query_3
+{
+    // test_queries_code.tag_define_use
+    OnInsert(registration)
+    {
+        // Visit all courses in which the student is registered. Use the tags.
+        // S:student->R:registration->C:course.hours = S.total_hours + C.hours;
+
+#ifdef TEST_FAILURES
+// GAIAPLAT-951
+// When compiling this, also enable test_queries_code.tag_define_use.
+        {
+            // This is the correct algorithm. The above is waiting for GAIAPLAT-950.
+            auto reg1 = gaia::prerequisites::registration_t::get(context->record);
+            auto C = reg1.registered_course();
+            {
+                auto reg2 = gaia::prerequisites::registration_t::get(context->record);
+                auto S = reg2.registered_student();
+                {
+                    auto reg3 = gaia::prerequisites::registration_t::get(context->record);
+                    auto stud1 = reg3.registered_student();
+                    for (auto R : stud1.registrations())
+                    {
+                        auto C = R.registered_course();
+                        [&]() mutable {
+                            auto w = C.writer();
+                            w.hours= S.total_hours() + C.hours();
+                            printf("%d + %d\n", S.total_hours(), C.hours());
+                            w.update_row();
+                            return w.hours;
+                        }();
+                    }
+                }
+            }
+        }
+#endif        
+
+        g_oninsert_value = 0;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
