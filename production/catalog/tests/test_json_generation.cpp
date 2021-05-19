@@ -24,6 +24,8 @@ class json_generation_test : public db_test_base_t
 protected:
     static void SetUpTestSuite()
     {
+        db_test_base_t::SetUpTestSuite();
+
         test_table_fields.emplace_back(make_unique<data_field_def_t>("id", data_type_t::e_int8, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         test_table_fields.emplace_back(make_unique<data_field_def_t>("value", data_type_t::e_float, 1));

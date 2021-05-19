@@ -75,10 +75,8 @@ set(TEST_RULE_INTEGRATION_INCLUDES
 
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
-  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
 
 add_gtest(test_rule_exceptions
   "tests/test_rule_exceptions.cpp;tests/event_manager_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
-  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")

@@ -146,6 +146,7 @@ endif()
 # Rocksdb.
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 # Flatbuffers.
+set(FLATBUFFERS_BUILD_TESTS OFF)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 

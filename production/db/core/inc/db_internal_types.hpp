@@ -55,14 +55,12 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
     return os;
 }
 
-constexpr char c_server_connect_socket_name[] = "gaia_db_server";
+constexpr char c_gaia_mem_locators_prefix[] = "gaia_mem_locators_";
+constexpr char c_gaia_mem_counters_prefix[] = "gaia_mem_counters_";
+constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
+constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 
-constexpr char c_gaia_mem_locators[] = "gaia_mem_locators";
-constexpr char c_gaia_mem_counters[] = "gaia_mem_counters";
-constexpr char c_gaia_mem_data[] = "gaia_mem_data";
-constexpr char c_gaia_mem_id_index[] = "gaia_mem_id_index";
-
-constexpr char c_gaia_mem_txn_log[] = "gaia_mem_txn_log";
+constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32.

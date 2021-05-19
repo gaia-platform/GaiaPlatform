@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "rocksdb/utilities/transaction_db.h"
 
 #include "gaia_internal/db/db_types.hpp"
@@ -18,8 +20,8 @@ namespace db
 class rdb_internal_t
 {
 public:
-    rdb_internal_t(const std::string& dir, const rocksdb::WriteOptions& write_opts, const rocksdb::TransactionDBOptions& txn_opts)
-        : m_txn_db(nullptr), m_data_dir(dir), m_write_options(write_opts), m_txn_options(txn_opts)
+    rdb_internal_t(std::string dir, const rocksdb::WriteOptions& write_opts, rocksdb::TransactionDBOptions txn_opts)
+        : m_txn_db(nullptr), m_data_dir(std::move(dir)), m_write_options(write_opts), m_txn_options(std::move(txn_opts))
     {
     }
 

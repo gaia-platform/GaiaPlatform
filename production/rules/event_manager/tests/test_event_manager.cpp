@@ -13,7 +13,6 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "event_manager_test_helpers.hpp"
@@ -592,7 +591,7 @@ public:
 protected:
     static void SetUpTestSuite()
     {
-        reset_server();
+        db_test_base_t::SetUpTestSuite();
         begin_session();
         db_catalog_test_base_t::reset_database_status();
         event_manager_settings_t settings;

@@ -88,6 +88,7 @@ protected:
     // parent and child will initialize their own logger.
     static void SetUpTestSuite()
     {
+        db_test_base_t::SetUpTestSuite();
         pthread_atfork(before_fork, after_fork, after_fork);
     }
     void SetUp() override

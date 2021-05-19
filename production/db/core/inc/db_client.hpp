@@ -10,6 +10,7 @@
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "db_shared_data.hpp"
@@ -56,7 +57,7 @@ public:
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.
-    static void begin_session();
+    static void begin_session(config::session_options_t session_options);
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
@@ -75,6 +76,8 @@ private:
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
     // These fields have session lifetime.
+    thread_local static inline config::session_options_t s_session_options;
+
     thread_local static inline int s_fd_locators = -1;
 
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
@@ -118,7 +121,7 @@ private:
 
     static void apply_txn_log(int log_fd);
 
-    static int get_session_socket();
+    static int get_session_socket(const std::string& socket_name);
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
 

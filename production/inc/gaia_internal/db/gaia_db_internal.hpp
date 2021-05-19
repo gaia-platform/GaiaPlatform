@@ -32,8 +32,8 @@ gaia_txn_id_t get_txn_id();
 // The name of the SE server binary.
 constexpr char c_db_server_exec_name[] = "gaia_db_server";
 
-// Used by the SE server and client to bind and connect to the server's listening socket.
-constexpr char c_db_server_socket_name[] = "gaia_db_server_socket";
+// The name of the default gaia instance
+constexpr char c_default_instance_name[] = "gaia_default_instance";
 
 } // namespace db
 } // namespace gaia
