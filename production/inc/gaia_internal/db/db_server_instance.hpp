@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -18,7 +19,7 @@ namespace db
  */
 struct server_instance_config_t
 {
-    std::string server_exec_path;
+    std::filesystem::path server_exec_path;
     std::string instance_name;
     bool disable_persistence;
     std::string data_dir;
@@ -29,7 +30,7 @@ struct server_instance_config_t
      * Finds the server executable path. Throws an exception if
      * the path is not found.
      */
-    static std::string find_server_path();
+    static std::filesystem::path find_server_path();
 
     static std::string generate_instance_name();
 

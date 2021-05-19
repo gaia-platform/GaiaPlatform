@@ -41,7 +41,7 @@ server_instance_config_t gaia::db::server_instance_config_t::get_default()
         .data_dir = ""};
 }
 
-std::string server_instance_config_t::find_server_path()
+fs::path server_instance_config_t::find_server_path()
 {
     fs::path current_path = fs::current_path();
     fs::path db_path = fs::path(current_path) / c_db_core_folder_name;
@@ -56,10 +56,10 @@ std::string server_instance_config_t::find_server_path()
 
     if (!fs::exists(db_exec_path))
     {
-        throw common::gaia_exception("Impossible to find the database server path");
+        throw common::gaia_exception("Database server path does not exist.");
     }
 
-    return db_exec_path.string();
+    return db_exec_path;
 }
 
 std::string server_instance_config_t::generate_instance_name()
@@ -112,7 +112,7 @@ void server_instance_t::start(bool wait_for_init)
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
-            common::throw_system_error(fmt::format("execve failed: {}!", m_conf.server_exec_path));
+            common::throw_system_error(fmt::format("execve failed: {}!", m_conf.server_exec_path.string()));
         }
     }
 
