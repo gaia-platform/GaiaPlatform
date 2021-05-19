@@ -42,7 +42,7 @@ ddl_executor_t::ddl_executor_t()
 
 ddl_executor_t& ddl_executor_t::get()
 {
-    static thread_local ddl_executor_t s_instance;
+    static ddl_executor_t s_instance;
     return s_instance;
 }
 
