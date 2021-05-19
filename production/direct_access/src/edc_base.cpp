@@ -131,6 +131,32 @@ gaia_id_t* edc_base_t::references() const
 // edc_db_t implementation
 //
 
+gaia_id_t edc_db_t::find_first(gaia_type_t container)
+{
+    gaia_ptr_t node = gaia_ptr_t::find_first(container);
+    if (!node)
+    {
+        return c_invalid_gaia_id;
+    }
+
+    return node.id();
+}
+
+gaia_id_t edc_db_t::find_next(gaia_id_t id)
+{
+    auto node_ptr = gaia_ptr_t(id);
+    gaia_id_t next_id = c_invalid_gaia_id;
+    if (node_ptr)
+    {
+        node_ptr = node_ptr.find_next();
+        if (node_ptr)
+        {
+            next_id = node_ptr.id();
+        }
+    }
+    return next_id;
+}
+
 // If the node exists, returns true and retrieves the container type of the node.
 // Otherwise, returns false.
 bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)

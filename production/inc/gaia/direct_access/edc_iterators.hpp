@@ -34,7 +34,7 @@ namespace direct_access
 //
 // @tparam T_class the Extended Data Class
 template <typename T_class>
-class edc_iterator_t
+class edc_iterator_t : edc_db_t
 {
 public:
     using difference_type = std::ptrdiff_t;
@@ -56,7 +56,6 @@ public:
 
 private:
     T_class m_obj;
-    // gaia::common::iterators::generator_iterator_t<gaia::db::gaia_ptr_t> m_generator_iterator;
     std::function<bool(const T_class&)> m_filter_fn;
 };
 
