@@ -87,7 +87,6 @@ private:
     static string get_closest_table(const unordered_map<string, int>& table_distance);
     static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path);
     static string generate_random_string(string::size_type length);
-    static unordered_map<string, string> generate_dummy_tag_map (const unordered_set<string>& tables);
     static navigation_code_data_t generate_navigation_code(const string& anchor_table, unordered_set<string> tables,
         unordered_map<string, string> tags,  string& last_table);
     static bool generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table,

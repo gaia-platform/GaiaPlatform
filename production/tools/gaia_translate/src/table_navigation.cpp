@@ -79,7 +79,12 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
                 }
                 else
                 {
-                    return_value = generate_navigation_code(anchor_table, {table}, unordered_map<string, string>(), last_variable_name);
+                    unordered_map<string, string> path_tags;
+                    if (tags.find(table) != tags.end())
+                    {
+                        path_tags[table] = tags[table];
+                    }
+                    return_value = generate_navigation_code(anchor_table, {table}, path_tags, last_variable_name);
                 }
             }
             first_component = false;
@@ -410,22 +415,12 @@ string table_navigation_t::get_variable_name(const string& table, const unordere
     auto tags_iterator = tags.find(table);
     if (tags_iterator == tags.end())
     {
-        return "_" + generate_random_string(c_variable_length);
+        return "_" + table + "_" + generate_random_string(c_variable_length);
     }
     else
     {
         return tags_iterator->second;
     }
-}
-
-unordered_map<string, string> table_navigation_t::generate_dummy_tag_map(const unordered_set<string>& tables)
-{
-    unordered_map<string, string> tags;
-    for (const auto& table : tables)
-    {
-        tags[table] = table;
-    }
-    return tags;
 }
 
 string table_navigation_t::generate_random_string(string::size_type length)

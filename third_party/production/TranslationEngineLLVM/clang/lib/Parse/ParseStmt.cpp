@@ -1289,7 +1289,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
       // Pop the 'else' scope if needed.
       InnerScope.Exit();
     }
-    else
+    if (Tok.is(tok::kw_nomatch))
     {
       if (TrailingElseLoc)
         *TrailingElseLoc = Tok.getLocation();
