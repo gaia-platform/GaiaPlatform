@@ -47,6 +47,7 @@ extern int32_t g_oninsert2_value;
 extern int32_t g_oninsert3_value;
 extern int32_t g_onupdate_value;
 extern int32_t g_onupdate3_value;
+extern string g_string_value;
 
 extern std::atomic<int32_t> g_insert_count;
 
@@ -446,6 +447,80 @@ TEST_F(test_queries_code, DISABLED_tag_define_use)
         loop_num++;
     }
     gaia::db::commit_transaction();
+}
+
+TEST_F(test_queries_code, if_stmt)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_4");
+
+    // OnInsert(registration) will sum up the student's hours.
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_oninsert_value, 0) << "Incorrect result";
+}
+
+TEST_F(test_queries_code, if_stmt2)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_4");
+
+    // @hours - active variable.
+    // Rule causes forward chanining, but terminates after 4 calls.
+    g_onupdate_value = 0;
+    gaia::db::begin_transaction();
+
+    auto cw = course_1.writer();
+    cw.hours = 5;
+    cw.update_row();
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(course) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_onupdate_value, 5) << "Incorrect result";
+}
+
+TEST_F(test_queries_code, while_stmt)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_5");
+
+    // @hours - active variable.
+    // Rule causes forward chanining, but terminates after 4 calls.
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto sw = student_1.writer();
+    sw.gpa = 3.5;
+    sw.update_row();
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_string_value, "") << "Incorrect result";
 }
 
 // Query tests:

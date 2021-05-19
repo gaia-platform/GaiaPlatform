@@ -339,3 +339,27 @@ ruleset test34
         min_temp = 99.8;
     }
 }
+
+ruleset test35
+{
+    {
+        float total_temp = 0.0;
+        total_temp += /@incubator.min_temp;
+        total_temp += @incubator.max_temp;
+    }
+}
+
+ruleset test36
+{
+    OnInsert(farmer)
+    {
+        float some_value = 0.0;
+        int some_number = 0;
+        some_number += animal.age;
+        some_number += acres;
+        some_value += sensor.value;
+        some_number += acreage;
+        some_number += portion;
+        some_value += yield->feeding->animal->raised->incubator->sensor.value;
+    }
+}

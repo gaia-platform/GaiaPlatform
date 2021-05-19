@@ -988,3 +988,13 @@ ruleset test105
     }
 }
 #endif
+
+// GAIAPLAT-803
+#ifdef TEST_FAILURES
+ruleset test106
+{
+    {
+        @animal.age = 4;
+    }
+}
+#endif

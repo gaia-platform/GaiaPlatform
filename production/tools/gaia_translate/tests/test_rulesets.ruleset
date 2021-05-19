@@ -33,6 +33,7 @@ int32_t g_oninsert2_value;
 int32_t g_oninsert3_value;
 int32_t g_onupdate_value;
 int32_t g_onupdate3_value;
+std::string g_string_value;
 
 std::atomic<int32_t> g_insert_count;
 
@@ -268,3 +269,53 @@ ruleset test_query_3
         g_oninsert_called = true;
     }
 }
+
+ruleset test_query_4
+{
+    // test_queries_code.if_stmt
+    OnInsert(student)
+    {
+        int a = 0;
+        if (total_hours > 10)
+        {
+            a += age;
+        }
+        g_oninsert_value = a;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+
+    // test_queries_code.if_stmt2
+    // Forward chaining rule. Stops when hours are 1.
+    {
+        if (@hours > 1)
+        {
+            hours -= 1;
+            total_hours += 1;
+        }
+        else
+        {
+            // This should only happen the last time.
+            g_onupdate_result = test_error_result_t::e_none;
+            g_onupdate_called = true;
+        }
+        g_onupdate_value++;
+    }
+}
+
+ruleset test_query_5
+{
+    OnUpdate(S:student)
+    {
+        while (student->R:registration->C:course.hours > 0)
+        {
+            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
+        }
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+}
+// NOTE: alter above to
+//        while (S:student->R:registration->C:course.hours > 0)
+//        {
+//            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
