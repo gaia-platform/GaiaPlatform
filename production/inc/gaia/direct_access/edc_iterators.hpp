@@ -62,9 +62,9 @@ private:
 
 // A edc_container_t is all objects of the same Extended Data Class in the database.
 //
-// @tparam T_container the type identifier of Extended Data Class
+// @tparam container_type the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
-template <gaia::common::gaia_type_t T_container, typename T_class>
+template <gaia::common::gaia_type_t container_type, typename T_class>
 struct edc_container_t : edc_db_t
 {
     // This constructor will be used by the where() method to create a filtered container.
@@ -78,7 +78,7 @@ struct edc_container_t : edc_db_t
 
     size_t size() const;
 
-    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
+    static edc_container_t<container_type, T_class> where(std::function<bool(const T_class&)>);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;

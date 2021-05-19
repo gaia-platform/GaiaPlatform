@@ -90,11 +90,11 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 //
 
 // The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
-template <gaia::common::gaia_type_t T_container, typename T_class>
-edc_iterator_t<T_class> edc_container_t<T_container, T_class>::begin() const
+template <gaia::common::gaia_type_t container_type, typename T_class>
+edc_iterator_t<T_class> edc_container_t<container_type, T_class>::begin() const
 {
     gaia::common::gaia_id_t id = common::c_invalid_gaia_id;
-    // edc_base_t::find_first(T_container);
+    // edc_base_t::find_first(container_type);
     // while (id != common::c_invalid_gaia_id)
     // {
     //     if (m_filter_fn)
@@ -115,20 +115,20 @@ edc_iterator_t<T_class> edc_container_t<T_container, T_class>::begin() const
 }
 
 // The where() method constructs a edc_container_t with a std::function to be used for filtering.
-template <gaia::common::gaia_type_t T_container, typename T_class>
-edc_container_t<T_container, T_class> edc_container_t<T_container, T_class>::where(std::function<bool(const T_class&)> filter_function)
+template <gaia::common::gaia_type_t container_type, typename T_class>
+edc_container_t<container_type, T_class> edc_container_t<container_type, T_class>::where(std::function<bool(const T_class&)> filter_function)
 {
-    return edc_container_t<T_container, T_class>(filter_function);
+    return edc_container_t<container_type, T_class>(filter_function);
 }
 
-template <gaia::common::gaia_type_t T_container, typename T_class>
-edc_iterator_t<T_class> edc_container_t<T_container, T_class>::end() const
+template <gaia::common::gaia_type_t container_type, typename T_class>
+edc_iterator_t<T_class> edc_container_t<container_type, T_class>::end() const
 {
     return edc_iterator_t<T_class>(gaia::common::c_invalid_gaia_id);
 }
 
-template <gaia::common::gaia_type_t T_container, typename T_class>
-size_t edc_container_t<T_container, T_class>::size() const
+template <gaia::common::gaia_type_t container_type, typename T_class>
+size_t edc_container_t<container_type, T_class>::size() const
 {
     return std::distance(begin(), end());
 }
