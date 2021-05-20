@@ -38,11 +38,8 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <typename T_type>
-class edc_vector_t;
-
 template <gaia::common::gaia_type_t container_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_writer_t;
+class edc_writer_t;
 
 /**
  * The edc_object_t that must be specialized to operate on a flatbuffer type.
@@ -53,8 +50,15 @@ struct edc_writer_t;
  * @tparam T_obj the mutable flatbuffer type to be implemented
  */
 template <gaia::common::gaia_type_t container_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_object_t : edc_base_t
+class edc_object_t : public edc_base_t
 {
+public:
+    /**
+     * This can be used for subscribing to rules when you don't
+     * have a specific instance of the type.
+     */
+    static gaia::common::gaia_type_t s_gaia_type;
+
 public:
     explicit edc_object_t(const char* gaia_typename);
 
@@ -62,12 +66,6 @@ public:
      * Return a reference that is pre-populated with values from the row
      */
     edc_writer_t<container_type, T_gaia, T_fb, T_obj> writer();
-
-    /**
-     * This can be used for subscribing to rules when you don't
-     * have a specific instance of the type.
-     */
-    static gaia::common::gaia_type_t s_gaia_type;
 
     /**
      * This can be used when you are passed a edc_base_t
@@ -161,7 +159,7 @@ protected:
 };
 
 template <gaia::common::gaia_type_t container_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_writer_t : public T_obj, edc_db_t
+class edc_writer_t : public T_obj, protected edc_db_t
 {
     friend edc_object_t<container_type, T_gaia, T_fb, T_obj>;
 

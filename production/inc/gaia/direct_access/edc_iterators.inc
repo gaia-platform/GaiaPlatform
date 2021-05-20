@@ -37,7 +37,7 @@ edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
         gaia::common::gaia_id_t id = m_obj.id();
         while (id != gaia::common::c_invalid_gaia_id)
         {
-            id = find_next(id);
+            id = edc_db_t::find_next(id);
             m_obj = T_class::get(id);
 
             if (!m_obj.exists() || m_filter_fn(m_obj))
@@ -50,7 +50,7 @@ edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
     {
         if (m_obj && m_obj.exists())
         {
-            m_obj = T_class::get(find_next(m_obj.id()));
+            m_obj = T_class::get(edc_db_t::find_next(m_obj.id()));
         }
     }
 
@@ -97,7 +97,7 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 template <gaia::common::gaia_type_t container_type, typename T_class>
 edc_iterator_t<T_class> edc_container_t<container_type, T_class>::begin() const
 {
-    gaia::common::gaia_id_t id = find_first(container_type);
+    gaia::common::gaia_id_t id = edc_db_t::find_first(container_type);
     while (id != common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
@@ -112,7 +112,7 @@ edc_iterator_t<T_class> edc_container_t<container_type, T_class>::begin() const
             break;
         }
 
-        id = find_next(id);
+        id = edc_db_t::find_next(id);
     }
     return edc_iterator_t<T_class>(id);
 }
@@ -227,7 +227,7 @@ edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
 
     if (m_parent_id != gaia::common::c_invalid_gaia_id)
     {
-        id = edc_base_t::get_reference(m_parent_id, m_child_offset);
+        id = edc_db_t::get_reference(m_parent_id, m_child_offset);
         while (id != gaia::common::c_invalid_gaia_id)
         {
             if (m_filter_fn)
@@ -236,7 +236,7 @@ edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::begin() const
                 {
                     break;
                 }
-                id = edc_base_t::get_reference(id, m_next_offset);
+                id = edc_db_t::get_reference(id, m_next_offset);
             }
             else
             {
@@ -272,7 +272,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
         throw edc_invalid_state(m_parent_id, child_id, received.gaia_typename());
     }
 
-    edc_base_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
+    edc_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
@@ -284,7 +284,7 @@ void reference_chain_container_t<T_child>::insert(T_child& child_edc)
 template <typename T_child>
 void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_id)
 {
-    edc_base_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
+    edc_db_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>

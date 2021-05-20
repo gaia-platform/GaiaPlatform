@@ -26,7 +26,7 @@ namespace direct_access
  * Used by edc object, writer, and iterator classes.
  * Not for use outside the context of those classes.
  */
-struct edc_db_t
+class edc_db_t
 {
 protected:
     static common::gaia_id_t find_first(common::gaia_type_t container);
@@ -53,7 +53,7 @@ protected:
  * The edc_base_t struct is a tag to mark extended data class objects as well as provide
  * non-template functionality.
  */
-struct edc_base_t : edc_db_t
+class edc_base_t : protected edc_db_t
 {
 public:
     /**

@@ -34,7 +34,7 @@ namespace direct_access
 //
 // @tparam T_class the Extended Data Class
 template <typename T_class>
-class edc_iterator_t : edc_db_t
+class edc_iterator_t : protected edc_db_t
 {
 public:
     using difference_type = std::ptrdiff_t;
@@ -64,8 +64,9 @@ private:
 // @tparam container_type the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
 template <gaia::common::gaia_type_t container_type, typename T_class>
-struct edc_container_t : edc_db_t
+class edc_container_t : protected edc_db_t
 {
+public:
     // This constructor will be used by the where() method to create a filtered container.
     explicit edc_container_t(std::function<bool(const T_class&)> filter_function)
         : m_filter_fn(filter_function){};
@@ -90,7 +91,7 @@ private:
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 template <typename T_child>
-class edc_set_iterator_t
+class edc_set_iterator_t : protected edc_db_t
 {
 public:
     using difference_type = std::ptrdiff_t;
@@ -131,7 +132,7 @@ private:
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 template <typename T_child>
-class reference_chain_container_t : edc_db_t
+class reference_chain_container_t : protected edc_db_t
 {
 public:
     // This constructor will be used by the where() method to create a filtered container.

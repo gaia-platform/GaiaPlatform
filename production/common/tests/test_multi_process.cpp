@@ -179,14 +179,14 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        auto i = employee_t::list().begin();
-        auto employee = *i;
+        auto employee_iterator = employee_t::list().begin();
+        auto employee = *employee_iterator;
         EXPECT_STREQ(employee.name_first(), "Howard");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Henry");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Harold");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hank");
         commit_transaction();
 
@@ -211,18 +211,18 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        i = employee_t::list().begin();
-        employee = *i;
+        employee_iterator = employee_t::list().begin();
+        employee = *employee_iterator;
         EXPECT_STREQ(employee.name_first(), "Howard");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Henry");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Harold");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hank");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hugo");
-        employee = *(++i);
+        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hubert");
         commit_transaction();
 
