@@ -19,7 +19,6 @@
 #include <sys/wait.h>
 
 #include "gaia/db/db.hpp"
-#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/random.hpp"
@@ -63,8 +62,12 @@ fs::path server_instance_config_t::find_server_path()
 
     if (!fs::exists(db_exec_path))
     {
-        throw common::gaia_exception(
-            fmt::format("Database server path does not exist: {}", db_exec_path.string()));
+        // TODO returning an empty path instead of throwing an error to avoid failure
+        //  when the server_instance_t is used outside of test scope (eg. gaiac).
+        //  This logic (find_server_path) is only for testing and should be decoupled from
+        //  the server_instance_t.
+        //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-960
+        return fs::path();
     }
 
     return db_exec_path;
