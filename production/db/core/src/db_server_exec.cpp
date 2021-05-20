@@ -215,7 +215,7 @@ static server_config_t process_command_line(int argc, char* argv[])
 
     if (instance_name.empty())
     {
-        auto instance_name_string = gaia_conf.get_value<std::string>(c_data_dir_string_key);
+        auto instance_name_string = gaia_conf.get_value<std::string>(c_instance_name_string_key);
 
         if (instance_name_string)
         {
