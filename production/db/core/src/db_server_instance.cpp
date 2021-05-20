@@ -169,7 +169,7 @@ void server_instance_t::stop()
     }
     else if (return_pid == 0)
     {
-        gaia::common::throw_system_error("The db server process should be killed");
+        throw common::system_error("The db server process should be killed!");
     }
 
     m_is_initialized = false;
