@@ -10,8 +10,13 @@
 #include <filesystem>
 #include <iostream>
 
+#include <libexplain/execve.h>
+#include <libexplain/fork.h>
+#include <libexplain/kill.h>
+#include <libexplain/waitpid.h>
 #include <spdlog/fmt/fmt.h>
 #include <sys/prctl.h>
+#include <sys/wait.h>
 
 #include "gaia/db/db.hpp"
 #include "gaia/exceptions.hpp"
@@ -26,6 +31,8 @@
 namespace fs = std::filesystem;
 
 static constexpr char c_db_core_folder_name[] = "db/core";
+static constexpr int c_poll_interval_millis = 5;
+static constexpr int c_print_error_interval = 1000;
 
 namespace gaia
 {
@@ -56,7 +63,8 @@ fs::path server_instance_config_t::find_server_path()
 
     if (!fs::exists(db_exec_path))
     {
-        throw common::gaia_exception("Database server path does not exist.");
+        throw common::gaia_exception(
+            fmt::format("Database server path does not exist: {}", db_exec_path.string()));
     }
 
     return db_exec_path;
@@ -102,17 +110,29 @@ void server_instance_t::start(bool wait_for_init)
 
     gaia_log::sys().debug("Starting server instance:{} with command: '{}'.", instance_name(), command_str);
 
-    if (0 == (m_server_pid = ::fork()))
+    m_server_pid = ::fork();
+
+    if (m_server_pid < 0)
+    {
+        const char* reason = ::explain_fork();
+        common::throw_system_error(reason);
+    }
+    else if (m_server_pid == 0)
     {
         // Kills the child process (gaia_db_sever) after the parent dies (current process).
         // This must be put right after ::fork() and before ::execve().
         // This works well with ctest where each test is run as a separated process.
-        ::prctl(PR_SET_PDEATHSIG, SIGKILL);
+        if (::prctl(PR_SET_PDEATHSIG, SIGKILL) == -1)
+        {
+            common::throw_system_error("prctl() failed!");
+        }
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
-            common::throw_system_error(fmt::format("execve failed: {}!", m_conf.server_exec_path.string()));
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+            const char* reason = ::explain_execve(command[0], const_cast<char**>(command.data()), nullptr);
+            common::throw_system_error(reason);
         }
     }
 
@@ -131,10 +151,28 @@ void server_instance_t::stop()
 
     gaia_log::sys().debug("Killing server instance:{} and pid:{}.", instance_name(), m_server_pid);
 
-    ::system(fmt::format("kill -9 {}", m_server_pid).c_str());
+    if (::kill(m_server_pid, SIGKILL) == -1)
+    {
+        const char* reason = ::explain_kill(m_server_pid, SIGKILL);
+        gaia::common::throw_system_error(reason);
+    }
 
-    constexpr int c_wait_stop_millis = 100;
-    std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_stop_millis));
+    // Wait for the termination, this should be almost immediate
+    // hence no need to have a separate public function.
+    int status;
+    pid_t return_pid = ::waitpid(m_server_pid, &status, 0);
+
+    if (return_pid == -1)
+    {
+        const char* reason = ::explain_waitpid(return_pid, &status, 0);
+        gaia::common::throw_system_error(reason);
+    }
+    else if (return_pid == 0)
+    {
+        // waitpid() returns zero only if WNOHANG option is specified.
+        // We don't use WNOHANG but leaving this branch to prevent regressions.
+        throw common::system_error("The db server process should be killed!");
+    }
 
     m_is_initialized = false;
     m_server_pid = -1;
@@ -143,12 +181,7 @@ void server_instance_t::stop()
 void server_instance_t::restart(bool wait_for_init)
 {
     stop();
-    start();
-
-    if (wait_for_init)
-    {
-        server_instance_t::wait_for_init();
-    }
+    start(wait_for_init);
 }
 
 void server_instance_t::reset_server(bool wait_for_init)
@@ -166,7 +199,7 @@ void server_instance_t::reset_server(bool wait_for_init)
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.
-    ::system(fmt::format("kill -HUP {}", m_server_pid).c_str());
+    ::kill(m_server_pid, SIGHUP);
     // Wait a bit for the server's listening socket to be closed.
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
@@ -182,8 +215,6 @@ void server_instance_t::wait_for_init()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    constexpr int c_poll_interval_millis = 10;
-    constexpr int c_print_error_interval = 1000;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
 
