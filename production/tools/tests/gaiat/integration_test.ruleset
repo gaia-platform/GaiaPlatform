@@ -163,28 +163,6 @@ ruleset testE2
     }
 }
 
-// GAIAPLAT-948
-ruleset test124
-{
-    OnInsert(incubator)
-    {
-        const char* s = "just a string";
-        int i = 0;
-        while (*s++)
-        {
-            i++;
-        }
-        if (i < 5)
-        {
-            i = 1;
-        }
-        nomatch
-        {
-            i = 3;
-        }
-    }
-}
-
 // GAIAPLAT-946
 // Leave this at the end of the file.
 #ifdef TEST_FAILURES

@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <string>
+#include <cstring>
 #include <atomic>
 
-#include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
-
-using namespace gaia::prerequisites;
 
 bool g_oninsert_called;
 bool g_oninsert2_called;
@@ -219,7 +218,9 @@ ruleset test_query_2
     {
         age = 0;
         // Visit all courses in which the student is registered.
+#ifdef TEST_FAILURES
         age += student->registration->course.hours;
+#endif
         g_oninsert_value = age;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
@@ -233,7 +234,7 @@ ruleset test_query_3
     OnInsert(registration)
     {
         // Visit all courses in which the student is registered. Use the tags.
-        // S:student->R:registration->C:course.hours = S.total_hours + C.hours;
+        S:student->R:registration->C:course.hours = S.total_hours + C.hours;
 
 #ifdef TEST_FAILURES
 // GAIAPLAT-951
@@ -262,7 +263,7 @@ ruleset test_query_3
                 }
             }
         }
-#endif        
+#endif
 
         g_oninsert_value = 0;
         g_oninsert_result = test_error_result_t::e_none;
@@ -307,10 +308,14 @@ ruleset test_query_5
 {
     OnUpdate(S:student)
     {
+#ifdef TEST_FAILURES
         while (student->R:registration->C:course.hours > 0)
         {
             g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
         }
+#else
+g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
+#endif
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }

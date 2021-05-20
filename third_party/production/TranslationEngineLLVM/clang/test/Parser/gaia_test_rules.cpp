@@ -885,7 +885,7 @@ ruleset test124
         {
             i++;
         }
-        if (i < 5)
+        if (i < 5) // expected-error {{nomatch cannot be used if decarative references are nout used in if condition.}}
         {
             i = 1;
         }
