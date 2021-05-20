@@ -27,6 +27,8 @@
 namespace fs = std::filesystem;
 
 static constexpr char c_db_core_folder_name[] = "db/core";
+static constexpr int c_poll_interval_millis = 5;
+static constexpr int c_print_error_interval = 1000;
 
 namespace gaia
 {
@@ -132,7 +134,7 @@ void server_instance_t::stop(bool wait_for_stop)
 
     gaia_log::sys().debug("Killing server instance:{} and pid:{}.", instance_name(), m_server_pid);
 
-    ::system(fmt::format("kill -9 {}", m_server_pid).c_str());
+    ::system(fmt::format("kill -KILL {}", m_server_pid).c_str());
 
     if (wait_for_stop)
     {
@@ -180,8 +182,6 @@ void server_instance_t::wait_for_init()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    constexpr int c_poll_interval_millis = 5;
-    constexpr int c_print_error_interval = 1000;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
 
@@ -233,8 +233,6 @@ void server_instance_t::wait_for_init()
 
 void server_instance_t::wait_for_termination()
 {
-    constexpr int c_poll_interval_millis = 5;
-    constexpr int c_print_error_interval = 500;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
 
