@@ -61,9 +61,9 @@ private:
 
 // A edc_container_t is all objects of the same Extended Data Class in the database.
 //
-// @tparam container_type the type identifier of Extended Data Class
+// @tparam container_type_id the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
-template <gaia::common::gaia_type_t container_type, typename T_class>
+template <gaia::common::gaia_type_t container_type_id, typename T_class>
 class edc_container_t : protected edc_db_t
 {
 public:
@@ -78,7 +78,7 @@ public:
 
     size_t size() const;
 
-    static edc_container_t<container_type, T_class> where(std::function<bool(const T_class&)>);
+    static edc_container_t<container_type_id, T_class> where(std::function<bool(const T_class&)>);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
@@ -167,7 +167,7 @@ public:
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 
 private:
-    gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
+    gaia::common::gaia_id_t m_parent_id{gaia::common::c_invalid_gaia_id};
     std::function<bool(const T_child&)> m_filter_fn{};
     size_t m_child_offset;
     size_t m_next_offset;

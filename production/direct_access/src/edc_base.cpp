@@ -70,38 +70,38 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 
 gaia_id_t edc_db_t::find_first(gaia_type_t container)
 {
-    gaia_ptr_t node = gaia_ptr_t::find_first(container);
-    if (!node)
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::find_first(container);
+    if (!gaia_ptr)
     {
         return c_invalid_gaia_id;
     }
 
-    return node.id();
+    return gaia_ptr.id();
 }
 
 gaia_id_t edc_db_t::find_next(gaia_id_t id)
 {
-    auto node_ptr = gaia_ptr_t(id);
+    auto gaia_ptr = gaia_ptr_t(id);
     gaia_id_t next_id = c_invalid_gaia_id;
-    if (node_ptr)
+    if (gaia_ptr)
     {
-        node_ptr = node_ptr.find_next();
-        if (node_ptr)
+        gaia_ptr = gaia_ptr.find_next();
+        if (gaia_ptr)
         {
-            next_id = node_ptr.id();
+            next_id = gaia_ptr.id();
         }
     }
     return next_id;
 }
 
-// If the node exists, returns true and retrieves the container type of the node.
+// If the object exists, returns true and retrieves the container type of the object.
 // Otherwise, returns false.
 bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 {
-    gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
-    if (node_ptr)
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    if (gaia_ptr)
     {
-        type = node_ptr.type();
+        type = gaia_ptr.type();
         return true;
     }
 
@@ -110,36 +110,36 @@ bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 
 gaia_id_t edc_db_t::get_reference(gaia_id_t id, size_t slot)
 {
-    gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
-    return node_ptr.references()[slot];
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    return gaia_ptr.references()[slot];
 }
 
 gaia_id_t edc_db_t::insert(gaia_type_t container, size_t data_size, const void* data)
 {
-    gaia_id_t node_id = gaia_ptr_t::generate_id();
-    gaia_ptr_t::create(node_id, container, data_size, data);
-    return node_id;
+    gaia_id_t id = gaia_ptr_t::generate_id();
+    gaia_ptr_t::create(id, container, data_size, data);
+    return id;
 }
 
 void edc_db_t::delete_row(gaia_id_t id)
 {
-    gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
-    if (!node_ptr)
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    if (!gaia_ptr)
     {
         throw invalid_object_id(id);
     }
 
-    gaia_ptr_t::remove(node_ptr);
+    gaia_ptr_t::remove(gaia_ptr);
 }
 
 void edc_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 {
-    gaia_ptr_t node_ptr = gaia_ptr_t::open(id);
-    if (!node_ptr)
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    if (!gaia_ptr)
     {
         throw invalid_object_id(id);
     }
-    node_ptr.update_payload(data_size, data);
+    gaia_ptr.update_payload(data_size, data);
 }
 
 void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot)
