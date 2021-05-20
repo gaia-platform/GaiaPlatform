@@ -169,6 +169,8 @@ void server_instance_t::stop()
     }
     else if (return_pid == 0)
     {
+        // waitpid() returns zero only if WNOHANG option is specified.
+        // We don't use WNOHANG but leaving this branch to prevent regressions.
         throw common::system_error("The db server process should be killed!");
     }
 
