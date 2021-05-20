@@ -12,6 +12,7 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <sys/prctl.h>
+#include <sys/wait.h>
 
 #include "gaia/db/db.hpp"
 #include "gaia/exceptions.hpp"
@@ -125,7 +126,7 @@ void server_instance_t::start(bool wait_for_init)
     }
 }
 
-void server_instance_t::stop()
+void server_instance_t::stop(bool wait_for_stop)
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
@@ -133,22 +134,19 @@ void server_instance_t::stop()
 
     ::system(fmt::format("kill -9 {}", m_server_pid).c_str());
 
-    constexpr int c_wait_stop_millis = 100;
-    std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_stop_millis));
+    if (wait_for_stop)
+    {
+        wait_for_termination();
+    }
 
     m_is_initialized = false;
     m_server_pid = -1;
 }
 
-void server_instance_t::restart(bool wait_for_init)
+void server_instance_t::restart(bool wait_for_init_and_stop)
 {
-    stop();
-    start();
-
-    if (wait_for_init)
-    {
-        server_instance_t::wait_for_init();
-    }
+    stop(wait_for_init_and_stop);
+    start(wait_for_init_and_stop);
 }
 
 void server_instance_t::reset_server(bool wait_for_init)
@@ -231,6 +229,41 @@ void server_instance_t::wait_for_init()
     }
     // This was just a test connection, so disconnect.
     gaia::db::end_session();
+}
+
+void server_instance_t::wait_for_termination()
+{
+    constexpr int c_poll_interval_millis = 10;
+    constexpr int c_print_error_interval = 1000;
+    // Initialize to 1 to avoid printing a spurious wait message.
+    int counter = 1;
+
+    pid_t return_pid = -1;
+
+    while (return_pid != m_server_pid)
+    {
+        int status;
+        return_pid = ::waitpid(m_server_pid, &status, WNOHANG);
+
+        if (return_pid == -1)
+        {
+            gaia::common::throw_system_error("waitpid failed!");
+        }
+        else if (return_pid == 0)
+        {
+            if (counter % c_print_error_interval == 0)
+            {
+                gaia_log::sys().warn(
+                    "The server instance:{} is still running, waiting for termination...", instance_name());
+                counter = 1;
+            }
+            else
+            {
+                counter++;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
+    }
 }
 
 void server_instance_t::delete_data_dir()
