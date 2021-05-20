@@ -65,61 +65,8 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
-// edc_iterator_state_t implementation
-//
-
-edc_iterator_state_t::~edc_iterator_state_t()
-{
-    if (m_state != nullptr)
-    {
-        delete[] m_state;
-        m_state = nullptr;
-    }
-}
-
-bool edc_iterator_state_t::is_set()
-{
-    return m_state != nullptr;
-}
-
-//
 // edc_db_t implementation
 //
-
-bool edc_db_t::initialize_iterator(gaia_type_t container, edc_iterator_state_t& iterator_state)
-{
-    if (iterator_state.m_state == nullptr)
-    {
-        iterator_state.m_state = new uint8_t[sizeof(generator_iterator_t<gaia_ptr_t>)];
-    }
-
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state);
-    iterator = gaia_ptr_t::find_all_iterator(container);
-    return static_cast<bool>(*iterator);
-}
-
-gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
-{
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state);
-    gaia_ptr_t gaia_ptr = *iterator;
-    return gaia_ptr.id();
-}
-
-bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
-{
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state);
-    if (*iterator)
-    {
-        return static_cast<bool>(*(++iterator));
-    }
-    else
-    {
-        return false;
-    }
-}
 
 gaia_id_t edc_db_t::find_first(gaia_type_t container)
 {
