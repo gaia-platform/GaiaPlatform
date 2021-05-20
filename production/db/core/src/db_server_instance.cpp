@@ -233,8 +233,8 @@ void server_instance_t::wait_for_init()
 
 void server_instance_t::wait_for_termination()
 {
-    constexpr int c_poll_interval_millis = 10;
-    constexpr int c_print_error_interval = 1000;
+    constexpr int c_poll_interval_millis = 5;
+    constexpr int c_print_error_interval = 500;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
 
@@ -251,6 +251,9 @@ void server_instance_t::wait_for_termination()
         }
         else if (return_pid == 0)
         {
+            // Process still running.
+            std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
+
             if (counter % c_print_error_interval == 0)
             {
                 gaia_log::sys().warn(
@@ -262,7 +265,6 @@ void server_instance_t::wait_for_termination()
                 counter++;
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
     }
 }
 
