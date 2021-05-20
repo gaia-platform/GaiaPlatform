@@ -64,15 +64,14 @@ public:
     /**
      * Kill the gaia_db_server instance associated with this class.
      */
-    void stop(bool wait_for_stop = true);
+    void stop();
 
     /**
      * Stop() and start().
      *
-     * @param wait_for_init_and_stop if true, wait for the server to be stopped and
-     *        initialized.
+     * @param wait_for_init if true, wait for the server to be initialized.
      */
-    void restart(bool wait_for_init_and_stop = true);
+    void restart(bool wait_for_init = true);
 
     /**
      * Reset the client shared memory and the server data.
@@ -85,13 +84,6 @@ public:
      * Waits for the server to be initialized.
      */
     void wait_for_init();
-
-    /**
-     * Wait for termination of the server process.
-     * The server process is likely to be a zombie process after being killed
-     * because it is a child of the gaia process (tests in most cases).
-     */
-    void wait_for_termination();
 
     /**
      * Delete the data directory.
