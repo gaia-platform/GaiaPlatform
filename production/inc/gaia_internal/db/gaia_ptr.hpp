@@ -77,7 +77,7 @@ public:
     /**
      * Returns an iterator representing a server-side cursor over all objects of the given type.
      */
-    static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iter(
+    static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iterator(
         common::gaia_type_t type);
 
     /**

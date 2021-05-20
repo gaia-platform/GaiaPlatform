@@ -7,11 +7,13 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace gaia::db;
 using namespace std;
 using namespace gaia::common;
+using namespace gaia::common::iterators;
 
 namespace gaia
 {
@@ -63,73 +65,61 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
-// edc_base_t implementation
+// edc_iterator_state_t implementation
 //
 
-static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr_t));
-
-template <typename T_ptr>
-constexpr T_ptr* edc_base_t::to_ptr()
+edc_iterator_state_t::~edc_iterator_state_t()
 {
-    return reinterpret_cast<T_ptr*>(&m_record);
-}
-
-template <typename T_ptr>
-constexpr const T_ptr* edc_base_t::to_const_ptr() const
-{
-    return reinterpret_cast<const T_ptr*>(&m_record);
-}
-
-// We only support a single specialization of our ptr functions above using gaia_ptr_t
-template gaia_ptr_t* edc_base_t::to_ptr();
-template const gaia_ptr_t* edc_base_t::to_const_ptr() const;
-
-edc_base_t::edc_base_t(const char* gaia_typename)
-    : m_typename(gaia_typename)
-{
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t();
-}
-
-edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
-    : m_typename(gaia_typename)
-{
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
-}
-
-gaia_id_t edc_base_t::id() const
-{
-    auto ptr = to_const_ptr<gaia_ptr_t>();
-    if (*ptr)
+    if (m_state != nullptr)
     {
-        return ptr->id();
+        delete[] m_state;
+        m_state = nullptr;
     }
-
-    return c_invalid_gaia_id;
 }
 
-bool edc_base_t::exists() const
+bool edc_iterator_state_t::is_set()
 {
-    return static_cast<bool>(*to_const_ptr<gaia_ptr_t>());
-}
-
-const char* edc_base_t::data() const
-{
-    return to_const_ptr<gaia_ptr_t>()->data();
-}
-
-bool edc_base_t::equals(const edc_base_t& other) const
-{
-    return (*(to_const_ptr<gaia_ptr_t>()) == *(other.to_const_ptr<gaia_ptr_t>()));
-}
-
-gaia_id_t* edc_base_t::references() const
-{
-    return to_const_ptr<gaia_ptr_t>()->references();
+    return m_state != nullptr;
 }
 
 //
 // edc_db_t implementation
 //
+
+bool edc_db_t::initialize_iterator(gaia_type_t container, edc_iterator_state_t& iterator_state)
+{
+    if (iterator_state.m_state == nullptr)
+    {
+        iterator_state.m_state = new uint8_t[sizeof(generator_iterator_t<gaia_ptr_t>)];
+    }
+
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state);
+    iterator = gaia_ptr_t::find_all_iterator(container);
+    return static_cast<bool>(*iterator);
+}
+
+gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
+{
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state);
+    gaia_ptr_t gaia_ptr = *iterator;
+    return gaia_ptr.id();
+}
+
+bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
+{
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state);
+    if (*iterator)
+    {
+        return static_cast<bool>(*(++iterator));
+    }
+    else
+    {
+        return false;
+    }
+}
 
 gaia_id_t edc_db_t::find_first(gaia_type_t container)
 {
@@ -225,6 +215,71 @@ void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, s
     }
 
     parent.remove_child_reference(child_id, child_slot);
+}
+
+//
+// edc_base_t implementation
+//
+
+static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr_t));
+
+template <typename T_ptr>
+constexpr T_ptr* edc_base_t::to_ptr()
+{
+    return reinterpret_cast<T_ptr*>(&m_record);
+}
+
+template <typename T_ptr>
+constexpr const T_ptr* edc_base_t::to_const_ptr() const
+{
+    return reinterpret_cast<const T_ptr*>(&m_record);
+}
+
+// We only support a single specialization of our ptr functions above using gaia_ptr_t
+template gaia_ptr_t* edc_base_t::to_ptr();
+template const gaia_ptr_t* edc_base_t::to_const_ptr() const;
+
+edc_base_t::edc_base_t(const char* gaia_typename)
+    : m_typename(gaia_typename)
+{
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t();
+}
+
+edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
+    : m_typename(gaia_typename)
+{
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
+}
+
+gaia_id_t edc_base_t::id() const
+{
+    auto ptr = to_const_ptr<gaia_ptr_t>();
+    if (*ptr)
+    {
+        return ptr->id();
+    }
+
+    return c_invalid_gaia_id;
+}
+
+bool edc_base_t::exists() const
+{
+    return static_cast<bool>(*to_const_ptr<gaia_ptr_t>());
+}
+
+const char* edc_base_t::data() const
+{
+    return to_const_ptr<gaia_ptr_t>()->data();
+}
+
+bool edc_base_t::equals(const edc_base_t& other) const
+{
+    return (*(to_const_ptr<gaia_ptr_t>()) == *(other.to_const_ptr<gaia_ptr_t>()));
+}
+
+gaia_id_t* edc_base_t::references() const
+{
+    return to_const_ptr<gaia_ptr_t>()->references();
 }
 
 } // namespace direct_access

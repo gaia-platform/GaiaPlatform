@@ -23,14 +23,46 @@ namespace direct_access
 {
 
 /**
+ * Used by iterator class to maintain state of an iteration.
+ *
+ * This is just a pointer wrapper, to isolate callers from the internal implementation details.
+ */
+struct edc_db_t;
+class edc_iterator_state_t
+{
+    friend struct edc_db_t;
+
+public:
+    edc_iterator_state_t() = default;
+    ~edc_iterator_state_t();
+
+    bool is_set();
+
+private:
+    // Disable copies.
+    edc_iterator_state_t(const edc_iterator_state_t&) = delete;
+    edc_iterator_state_t& operator=(const edc_iterator_state_t&) = delete;
+
+private:
+    // The iterator state.
+    uint8_t* m_state{nullptr};
+};
+
+/**
  * Used by edc object, writer, and iterator classes.
  * Not for use outside the context of those classes.
  */
 struct edc_db_t
 {
 protected:
+    // Low-level interface for iterating over objects of a given container.
+    static bool initialize_iterator(common::gaia_type_t container, edc_iterator_state_t& iterator_state);
+    static common::gaia_id_t get_iterator_value(edc_iterator_state_t& iterator_state);
+    static bool advance_iterator(edc_iterator_state_t& iterator_state);
+
     static common::gaia_id_t find_first(common::gaia_type_t container);
     static common::gaia_id_t find_next(common::gaia_id_t id);
+
     static common::gaia_id_t get_reference(common::gaia_id_t id, size_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);
     static void update(common::gaia_id_t id, size_t data_size, const void* data);

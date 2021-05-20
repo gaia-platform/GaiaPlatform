@@ -38,12 +38,12 @@ bool gaia_ptr_t::is_null() const
 
 common::gaia_id_t gaia_ptr_t::id() const
 {
-    return to_ptr()->id;
+    return (to_ptr() != nullptr) ? to_ptr()->id : common::c_invalid_gaia_id;
 }
 
 common::gaia_type_t gaia_ptr_t::type() const
 {
-    return to_ptr()->type;
+    return (to_ptr() != nullptr) ? to_ptr()->type : common::c_invalid_gaia_type;
 }
 
 char* gaia_ptr_t::data() const
