@@ -180,7 +180,7 @@ void server_instance_t::wait_for_init()
 {
     ASSERT_PRECONDITION(m_is_initialized, "The server must be initialized");
 
-    constexpr int c_poll_interval_millis = 10;
+    constexpr int c_poll_interval_millis = 5;
     constexpr int c_print_error_interval = 1000;
     // Initialize to 1 to avoid printing a spurious wait message.
     int counter = 1;
