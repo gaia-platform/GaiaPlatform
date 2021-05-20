@@ -12,26 +12,17 @@ bool gaia_ptr_t::operator==(const gaia_ptr_t& other) const
 
 bool gaia_ptr_t::operator==(const std::nullptr_t) const
 {
-    return to_ptr() == nullptr;
+    return !to_ptr();
 }
 
 bool gaia_ptr_t::operator!=(const std::nullptr_t) const
 {
-    return to_ptr() != nullptr;
+    return to_ptr();
 }
 
 gaia_ptr_t::operator bool() const
 {
-    return to_ptr() != nullptr;
-}
-
-gaia_ptr_t gaia_ptr_t::operator++()
-{
-    if (m_locator)
-    {
-        return find_next(to_ptr()->type);
-    }
-    return *this;
+    return to_ptr();
 }
 
 gaia_ptr_t gaia_ptr_t::open(
@@ -47,12 +38,12 @@ bool gaia_ptr_t::is_null() const
 
 common::gaia_id_t gaia_ptr_t::id() const
 {
-    return to_ptr()->id;
+    return to_ptr() ? to_ptr()->id : common::c_invalid_gaia_id;
 }
 
 common::gaia_type_t gaia_ptr_t::type() const
 {
-    return to_ptr()->type;
+    return to_ptr() ? to_ptr()->type : common::c_invalid_gaia_type;
 }
 
 char* gaia_ptr_t::data() const

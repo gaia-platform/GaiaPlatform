@@ -106,14 +106,6 @@ void rule_non_std_exception(const rule_context_t*)
     throw my_non_std_exception();
 }
 
-void rule_invalid_node_exception(const rule_context_t*)
-{
-
-    employee_t bad;
-    // Accessing this object should throw an exception because the employee does not exist in the database.
-    bad = bad.get_next();
-}
-
 void rule_conflict_exception(const rule_context_t* context)
 {
     {
@@ -143,12 +135,6 @@ void rule_conflict_exception(const rule_context_t* context)
 class rule_exception_test : public db_test_base_t
 {
 public:
-    void subscribe_invalid_node()
-    {
-        rule_binding_t rule{"ruleset", "rule_invalid_node", rule_invalid_node_exception};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
-    }
-
     void subscribe_conflict()
     {
         rule_binding_t binding{"ruleset", "rule_conflict", rule_conflict_exception};
@@ -264,20 +250,6 @@ TEST_F(rule_exception_test, test_non_std_exception)
     trigger_rule();
     gaia::rules::shutdown_rules_engine();
     verify_exception_counters(exception_type_t::non_standard, 1);
-
-    gaia::rules::initialize_rules_engine();
-}
-
-// Ensures the exception is caught by the rules engine and
-// doesn't escape to the test process.
-TEST_F(rule_exception_test, test_invalid_node_exception)
-{
-    init_exception_counters();
-
-    subscribe_invalid_node();
-    trigger_rule();
-    gaia::rules::shutdown_rules_engine();
-    verify_exception_counters(exception_type_t::invalid_node, 1);
 
     gaia::rules::initialize_rules_engine();
 }

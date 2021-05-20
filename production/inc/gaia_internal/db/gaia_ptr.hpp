@@ -26,7 +26,6 @@ public:
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
-    inline gaia_ptr_t operator++();
 
     static common::gaia_id_t generate_id();
 
@@ -78,16 +77,14 @@ public:
     /**
      * Returns an iterator representing a server-side cursor over all objects of the given type.
      */
-    static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iter(
-        common::gaia_type_t type,
-        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
+    static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iterator(
+        common::gaia_type_t type);
 
     /**
      * Returns a range representing a server-side cursor over all objects of the given type.
      */
     static common::iterators::range_t<common::iterators::generator_iterator_t<gaia_ptr_t>> find_all_range(
-        common::gaia_type_t type,
-        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
+        common::gaia_type_t type);
 
     /**
      * Adds a child reference to a parent object. All the pointers involved in the relationship

@@ -558,11 +558,11 @@ public:
     {
         uint64_t rows_cleared = 0;
         gaia::db::begin_transaction();
-        auto entry = gaia::event_log::event_log_t::get_first();
+        auto entry = *(gaia::event_log::event_log_t::list().begin());
         while (entry)
         {
             entry.delete_row();
-            entry = gaia::event_log::event_log_t::get_first();
+            entry = *(gaia::event_log::event_log_t::list().begin());
             rows_cleared++;
         }
         gaia::db::commit_transaction();
@@ -583,7 +583,7 @@ public:
     void verify_event_log_is_empty()
     {
         gaia::db::begin_transaction();
-        auto entry = gaia::event_log::event_log_t::get_first();
+        auto entry = *(gaia::event_log::event_log_t::list().begin());
         EXPECT_FALSE((bool)entry);
         gaia::db::commit_transaction();
     }
