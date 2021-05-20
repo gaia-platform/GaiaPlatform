@@ -85,7 +85,7 @@ enum class trim_action_type_t : uint8_t
 /*
  * Value index types.
  */
-enum class value_index_type_t : uint8_t
+enum class index_type_t : uint8_t
 {
     hash,
     range
@@ -193,6 +193,7 @@ enum class create_type_t : uint8_t
     create_database,
     create_table,
     create_relationship,
+    create_index,
 };
 
 struct use_statement_t : statement_t
@@ -231,6 +232,13 @@ struct create_statement_t : statement_t
     // A relationship is defined by a pair of links because we only allow
     // bi-directional relationships.
     std::pair<link_def_t, link_def_t> relationship;
+    bool unique_index;
+
+    index_type_t index_type;
+
+    std::string index_table;
+
+    std::vector<std::string> index_fields;
 };
 
 enum class drop_type_t : uint8_t
@@ -329,6 +337,20 @@ public:
 };
 
 /**
+ * Thrown when a specified table does not exists.
+ */
+class field_not_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit field_not_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The field \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when a field is specified more than once.
  */
 class duplicate_field : public gaia::common::gaia_exception
@@ -421,6 +443,20 @@ public:
 };
 
 /**
+ * Thrown when creating an index that already exists.
+ */
+class index_already_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit index_already_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The index '" << name << "' already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Initialize the catalog.
 */
 void initialize_catalog();
@@ -463,6 +499,30 @@ gaia::common::gaia_id_t create_table(
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_def_list_t& fields);
+
+/**
+ * Create an index
+ *
+ * @param name index name
+ * @param unique indicator if the index is unique
+ * @param type index type
+ * @param db_name database name of the table to be indexed
+ * @param table_name name of the table to be indexed
+ * @param field_names name of the table fields to be indexed
+ * @return id of the new index
+ * @throw db_not_exists
+ * @throw table_not_exists
+ * @throw field_not_exists
+ * @throw duplicate_field
+ */
+gaia::common::gaia_id_t create_index(
+    const std::string& index_name,
+    bool unique,
+    index_type_t type,
+    const std::string& db_name,
+    const std::string& table_name,
+    const std::vector<std::string>& field_names,
+    bool throw_on_exist = true);
 
 /**
  * Delete a database.

@@ -50,9 +50,21 @@ public:
         const ddl::link_def_t& link2,
         bool thrown_on_exists = true);
 
+    gaia::common::gaia_id_t create_index(
+        const std::string& index_name,
+        bool unique,
+        index_type_t type,
+        const std::string& db_name,
+        const std::string& table_name,
+        const std::vector<std::string>& field_names,
+        bool thrown_on_exists = true);
+
     void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
 
     void drop_database(const std::string& name, bool throw_unless_exists);
+
+    void drop_table(const std::string& db_name, const std::string& name);
+    void drop_database(const std::string& name);
 
     void switch_db_context(const std::string& db_name);
 
