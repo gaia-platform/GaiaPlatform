@@ -337,7 +337,7 @@ public:
 };
 
 /**
- * Thrown when a specified table does not exists.
+ * Thrown when a specified field does not exists.
  */
 class field_not_exists : public gaia::common::gaia_exception
 {

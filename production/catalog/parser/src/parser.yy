@@ -293,7 +293,7 @@ field_commalist:
 
 %%
 
-void yy::parser::error (const location_type& l, const std::string& m)
+void yy::parser::error(const location_type& l, const std::string& m)
 {
     throw parsing_error(l, m);
 }
