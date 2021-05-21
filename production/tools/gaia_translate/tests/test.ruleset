@@ -84,6 +84,8 @@ ruleset testE13
     }
 }
 
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test21
 {
     OnInsert(I:incubator)
@@ -91,6 +93,7 @@ ruleset test21
         I->actuator.value += 1.0;
     }
 }
+#endif
 
 void use_float(float)
 {
@@ -107,6 +110,8 @@ ruleset testE21
     }
 }
 
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test15
 {
     OnChange(incubator)
@@ -114,3 +119,4 @@ ruleset test15
         S:sensor.value = S.value * 1.01;
     }
 }
+#endif

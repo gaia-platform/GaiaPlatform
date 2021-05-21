@@ -147,9 +147,9 @@ ruleset testE1 : Table(sensor)
 #endif
 
 // GAIAPLAT-711
-#ifdef TEST_FAILURES
 ruleset testE2
 {
+    OnInsert(sensor)
     {
         int i = 0;
         if (incubator.max_temp > 99.0)
@@ -162,4 +162,9 @@ ruleset testE2
         }
     }
 }
+
+// GAIAPLAT-946
+// Leave this at the end of the file.
+#ifdef TEST_FAILURES
+ruleset gen_infinite_loop
 #endif

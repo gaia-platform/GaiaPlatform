@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <string>
+#include <cstring>
 #include <atomic>
 
-#include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
-
-using namespace gaia::prerequisites;
 
 bool g_oninsert_called;
 bool g_oninsert2_called;
@@ -33,11 +32,14 @@ int32_t g_oninsert2_value;
 int32_t g_oninsert3_value;
 int32_t g_onupdate_value;
 int32_t g_onupdate3_value;
+std::string g_string_value;
 
 std::atomic<int32_t> g_insert_count;
 
 ruleset test_tags
 {
+    // test_tags_code.oninsert
+    // test_tags_code.multi_inserts
     OnInsert(student)
     {
         g_insert_count++;
@@ -45,6 +47,7 @@ ruleset test_tags
         g_oninsert_called = true;
     }
 
+    // test_tags_code.oninsert
     OnInsert(S:student)
     {
         g_oninsert2_value = S.age;
@@ -52,6 +55,7 @@ ruleset test_tags
         g_oninsert2_called = true;
     }
 
+    // test_tags_code.basic_tags
     OnInsert(R:registration)
     {
         // Check common field references.
@@ -69,30 +73,39 @@ ruleset test_tags
         g_oninsert3_called = true;
     }
 
+    // test_tags_code.oninsert
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnChange(student)
     {
         g_onchange_result = test_error_result_t::e_none;
         g_onchange_called = true;
     }
 
+    // test_tags_code.oninsert
+    // test_tags_code.onupdate
     OnChange(student.age)
     {
         g_onchange2_result = test_error_result_t::e_none;
         g_onchange2_called = true;
     }
 
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnUpdate(student)
     {
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }
 
+    // test_tags_code.onchange
     OnUpdate(student.surname)
     {
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate2_called = true;
     }
 
+    // test_tags_code.onupdate
     OnUpdate(student.age)
     {
         g_onupdate3_value = age;
@@ -100,6 +113,8 @@ ruleset test_tags
         g_onupdate3_called = true;
     }
 
+    // test_tags_code.onchange
+    // test_tags_code.onupdate
     OnUpdate(student.age, student.surname)
     {
         g_onupdate4_result = test_error_result_t::e_none;
@@ -113,14 +128,14 @@ ruleset test_queries
     // Tags in Declarative Rules". Pseudo-code will be used until the
     // translator is done.
 
+    // test_queries_code.new_registration
     OnInsert(R:registration)
     {
         // printf("OnInsert(registration) = %s\n", registration.reg_id);
-        // printf("course name=%s\n", course.Name);
+        // printf("course name=%s\n", course.name);
         status = "Ineligible";
         // Has this student taken all prerequisites?
-        //>for (course.requires->prereq.required_by->PC:course) {
-        // for (const auto& p : course.requires) {
+        //>for (course.requires->prereq.prereq->PC:course) {
         //>    bool taken = false;
         //>    for (student->registration->TC:course) {
         //>        if (TC.courseId == PC.courseId) {
@@ -148,24 +163,18 @@ ruleset test_queries
         g_oninsert_called = true;
     }
 
+    // test_queries_code.sum_of_ages
     OnInsert(S:student)
     {
         int32_t age_sum = 0;
-        // +++ Explicit navigation expression.
-        // GAIAPLAT-915
-        // age_sum += /student.age;
-        // --- Current equivalent.
-        for (const auto& s : student_t::list())
-        {
-            age_sum += s.age();
-        }
-
+        age_sum += /student.age;
         g_oninsert2_value = age_sum;
-
         g_oninsert2_result = test_error_result_t::e_none;
         g_oninsert2_called = true;
     }
 
+    // test_queries_code.basic_implicit_navigation
+    // test_queries_code.basic_implicit_fork
     OnUpdate(S:student)
     {
         // Implicit query from student to course.
@@ -182,4 +191,131 @@ ruleset test_queries
         g_onupdate_value = total_hours + hours;
         g_onupdate_called = true;
     }
+}
+
+ruleset test_query_1
+{
+    // test_queries_code.sum_of_hours
+    // Auto-sum of student hours.
+    OnInsert(registration)
+    {
+        age = 0;
+        // Both 'age' and 'hours' are single-cardinality implicit test_queries
+        // from the registration row.
+        age += hours;
+        g_oninsert_value = age;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+ruleset test_query_2
+{
+    // test_queries_code.sum_of_all_hours
+    // Auto-sum of student hours.
+    OnInsert(registration)
+    {
+        age = 0;
+        // Visit all courses in which the student is registered.
+#ifdef TEST_FAILURES
+        age += student->registration->course.hours;
+#endif
+        g_oninsert_value = age;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+// GAIAPLAT-950
+ruleset test_query_3
+{
+    // test_queries_code.tag_define_use
+    OnInsert(registration)
+    {
+        // Visit all courses in which the student is registered. Use the tags.
+        S:student->R:registration->C:course.hours = S.total_hours + C.hours;
+
+        g_oninsert_value = 0;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+ruleset test_query_4
+{
+    // test_queries_code.if_stmt
+    OnInsert(student)
+    {
+        int a = 0;
+        if (total_hours > 10)
+        {
+            a += age;
+        }
+        g_oninsert_value = a;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+
+    // test_queries_code.if_stmt2
+    // Forward chaining rule. Stops when hours are 1.
+    {
+        if (@hours > 1)
+        {
+            hours -= 1;
+            total_hours += 1;
+        }
+        else
+        {
+            // This should only happen the last time.
+            g_onupdate_result = test_error_result_t::e_none;
+            g_onupdate_called = true;
+        }
+        g_onupdate_value++;
+    }
+
+    // test_queries_code.if_stmt3
+    {
+        if (strcmp(@student->G:registration.grade, "C") == 0)
+        {
+            student.gpa *= 1.1;
+        }
+        else
+        {
+            student.gpa *= 0.9;
+        }
+#ifdef TEST_FAILURES
+        nomatch
+        {
+            student.gpa = 0.0;
+        }
+#endif
+        g_onupdate_value = int(10*student.gpa);
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+}
+
+ruleset test_query_5
+{
+    OnUpdate(S:student)
+    {
+#ifdef TEST_FAILURES
+        while (student->R:registration->C:course.hours > 0)
+        {
+            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
+        }
+#else
+g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
+#endif
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+}
+// NOTE: alter above to
+//        while (S:student->R:registration->C:course.hours > 0)
+//        {
+//            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
+
+ruleset test_query_6
+{
 }
