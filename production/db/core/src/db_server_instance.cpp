@@ -133,7 +133,7 @@ void server_instance_t::start(bool wait_for_init)
         // Kills the child process (gaia_db_sever) after the parent dies (current process).
         // This must be put right after ::fork() and before ::execve().
         // This works well with ctest where each test is run as a separated process.
-        if (::prctl(PR_SET_PDEATHSIG, SIGKILL) == -1)
+        if (-1 == ::prctl(PR_SET_PDEATHSIG, SIGKILL))
         {
             common::throw_system_error("prctl() failed!");
         }

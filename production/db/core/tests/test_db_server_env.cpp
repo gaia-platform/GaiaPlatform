@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
+#include <libexplain/kill.h>
 #include <sys/prctl.h>
 
 #include <gaia_internal/common/config.hpp>
@@ -48,7 +49,7 @@ protected:
             // Kills the child process (gaia_db_sever) after the parent dies (current process).
             // This must be put right after ::fork() and before ::execve().
             // This works well with ctest where each test is run as a separated process.
-            if (::prctl(PR_SET_PDEATHSIG, SIGKILL) == -1)
+            if (-1 == ::prctl(PR_SET_PDEATHSIG, SIGKILL))
             {
                 throw_system_error("prctl() failed!");
             }
@@ -79,7 +80,11 @@ protected:
 
     void kill_server()
     {
-        ::kill(m_server_pid, SIGKILL);
+        if (-1 == ::kill(m_server_pid, SIGKILL))
+        {
+            const char* reason = ::explain_kill(m_server_pid, SIGKILL);
+            gaia::common::throw_system_error(reason);
+        }
     }
 
 private:
@@ -123,10 +128,6 @@ TEST_F(db_server_env_test, instacne_name_from_env)
             {
                 throw;
             }
-        }
-        catch (...)
-        {
-            throw;
         }
         break;
     }

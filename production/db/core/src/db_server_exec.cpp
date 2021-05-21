@@ -90,14 +90,14 @@ T_type lexical_cast(const std::string& str)
  * 2. Environment variable.
  * 3. Configuration file.
  */
-class gaia_conf_fallback_t
+class gaia_config_fallback_t
 {
 public:
-    explicit gaia_conf_fallback_t(std::string config_path)
+    explicit gaia_config_fallback_t(std::string config_path)
         : m_config_path(std::move(config_path)){};
 
-    gaia_conf_fallback_t()
-        : gaia_conf_fallback_t(""){};
+    gaia_config_fallback_t()
+        : gaia_config_fallback_t(""){};
 
     template <class T_value>
     std::optional<T_value> get_config_file_value(const char* key)
@@ -255,7 +255,7 @@ static server_config_t process_command_line(int argc, char* argv[])
         }
     }
 
-    gaia_conf_fallback_t gaia_conf{conf_file_path};
+    gaia_config_fallback_t gaia_conf{conf_file_path};
 
     data_dir = gaia_conf.get_value<std::string>(
         data_dir, c_data_dir_string_env, c_data_dir_string_key, "");
