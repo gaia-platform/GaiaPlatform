@@ -120,13 +120,11 @@ ruleset test9
         {
             temp += sensor.value;
         }
-#ifdef TEST_FAILURES
 // GAIAPLAT-947
         else
         {
             temp -= sensor.value;
         }
-#endif
         nomatch
         {
             temp += 10.0;

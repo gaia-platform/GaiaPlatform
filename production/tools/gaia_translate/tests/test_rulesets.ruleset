@@ -132,11 +132,10 @@ ruleset test_queries
     OnInsert(R:registration)
     {
         // printf("OnInsert(registration) = %s\n", registration.reg_id);
-        // printf("course name=%s\n", course.Name);
+        // printf("course name=%s\n", course.name);
         status = "Ineligible";
         // Has this student taken all prerequisites?
-        //>for (course.requires->prereq.required_by->PC:course) {
-        // for (const auto& p : course.requires) {
+        //>for (course.requires->prereq.prereq->PC:course) {
         //>    bool taken = false;
         //>    for (student->registration->TC:course) {
         //>        if (TC.courseId == PC.courseId) {
@@ -236,35 +235,6 @@ ruleset test_query_3
         // Visit all courses in which the student is registered. Use the tags.
         S:student->R:registration->C:course.hours = S.total_hours + C.hours;
 
-#ifdef TEST_FAILURES
-// GAIAPLAT-951
-// When compiling this, also enable test_queries_code.tag_define_use.
-        {
-            // This is the correct algorithm. The above is waiting for GAIAPLAT-950.
-            auto reg1 = gaia::prerequisites::registration_t::get(context->record);
-            auto C = reg1.registered_course();
-            {
-                auto reg2 = gaia::prerequisites::registration_t::get(context->record);
-                auto S = reg2.registered_student();
-                {
-                    auto reg3 = gaia::prerequisites::registration_t::get(context->record);
-                    auto stud1 = reg3.registered_student();
-                    for (auto R : stud1.registrations())
-                    {
-                        auto C = R.registered_course();
-                        [&]() mutable {
-                            auto w = C.writer();
-                            w.hours= S.total_hours() + C.hours();
-                            printf("%d + %d\n", S.total_hours(), C.hours());
-                            w.update_row();
-                            return w.hours;
-                        }();
-                    }
-                }
-            }
-        }
-#endif
-
         g_oninsert_value = 0;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
@@ -302,6 +272,27 @@ ruleset test_query_4
         }
         g_onupdate_value++;
     }
+
+    // test_queries_code.if_stmt3
+    {
+        if (strcmp(@student->G:registration.grade, "C") == 0)
+        {
+            student.gpa *= 1.1;
+        }
+        else
+        {
+            student.gpa *= 0.9;
+        }
+#ifdef TEST_FAILURES
+        nomatch
+        {
+            student.gpa = 0.0;
+        }
+#endif
+        g_onupdate_value = int(10*student.gpa);
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
 }
 
 ruleset test_query_5
@@ -324,3 +315,7 @@ g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
 //        while (S:student->R:registration->C:course.hours > 0)
 //        {
 //            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
+
+ruleset test_query_6
+{
+}

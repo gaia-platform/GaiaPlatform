@@ -836,7 +836,6 @@ ruleset test101
 }
 
 // GAIAPLAT-947
-#ifdef TEST_FAILURES
 ruleset test122
 {
     OnInsert(incubator)
@@ -856,7 +855,6 @@ ruleset test122
         }
     }
 }
-#endif
 
 ruleset test123
 {

@@ -163,7 +163,7 @@ protected:
         course_5 = course_t::get(course_t::insert_row("cou005", "math301", 5));
 
         // These are gaia_id_t.
-        auto reg_1 = registration_t::insert_row("reg001", c_status_pending, c_grade_none);
+        reg_1 = registration_t::get(registration_t::insert_row("reg001", c_status_pending, c_grade_none));
         auto reg_2 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
         auto reg_3 = registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
         auto reg_4 = registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
@@ -499,6 +499,31 @@ TEST_F(test_queries_code, if_stmt2)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_onupdate_value, 5) << "Incorrect result";
+}
+
+TEST_F(test_queries_code, if_stmt3)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_4");
+
+    // @grade - active variable.
+    // Rule causes forward chanining, but terminates after 4 calls.
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto rw = reg_1.writer();
+    rw.grade = "D";
+    rw.update_row();
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(registration) not called";
+    EXPECT_EQ(g_onupdate_value, 29) << "OnUpdate(registration) incorrect result";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 }
 
 TEST_F(test_queries_code, while_stmt)
