@@ -52,33 +52,66 @@ data_holder_t::data_holder_t(const char* value, std::size_t len)
 
 data_holder_t::operator uint64_t() const
 {
-    ASSERT_PRECONDITION(flatbuffers::IsInteger(type) && !is_signed_integer(type), "Unbox failed: type needs to be unsigned integer.");
+    if (!flatbuffers::IsInteger(type) || is_signed_integer(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be unsigned integer.");
+    }
     auto integer_ptr = reinterpret_cast<const uint64_t*>(&hold.integer_value);
     return *integer_ptr;
 }
 
 data_holder_t::operator int64_t() const
 {
-    ASSERT_PRECONDITION(is_signed_integer(type), "Unbox failed: type needs to be signed integer.");
+    if (!is_signed_integer(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be signed integer.");
+    }
     return hold.integer_value;
+}
+
+data_holder_t::operator uint32_t() const
+{
+    if (!flatbuffers::IsInteger(type) || is_signed_integer(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be unsigned integer.");
+    }
+    auto integer_ptr = reinterpret_cast<const uint64_t*>(&hold.integer_value);
+    return static_cast<uint32_t>(*integer_ptr);
+}
+
+data_holder_t::operator int32_t() const
+{
+    if (!is_signed_integer(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be signed integer.");
+    }
+    return static_cast<int32_t>(hold.integer_value);
 }
 
 data_holder_t::operator float() const
 {
-    ASSERT_PRECONDITION(flatbuffers::IsFloat(type), "Unbox failed: type needs to be float.");
-    auto float_ptr = reinterpret_cast<const float*>(&hold.float_value);
-    return *float_ptr;
+    if (!flatbuffers::IsFloat(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be float.");
+    }
+    return static_cast<float>(hold.float_value);
 }
 
 data_holder_t::operator double() const
 {
-    ASSERT_PRECONDITION(flatbuffers::IsFloat(type), "Unbox failed: type needs to be double.");
+    if (!flatbuffers::IsFloat(type))
+    {
+        throw unboxing_error("Unbox failed: type needs to be float.");
+    }
     return hold.float_value;
 }
 
 data_holder_t::operator const char*() const
 {
-    ASSERT_PRECONDITION(type == reflection::String || type == reflection::Vector, "Unbox failed: type needs to be string or vector.");
+    if (type != reflection::String && type != reflection::Vector)
+    {
+        throw unboxing_error("Unbox failed: type needs to be string or vector.");
+    }
 
     if (type == reflection::String)
     {
@@ -97,22 +130,7 @@ int data_holder_t::compare(const data_holder_t& other) const
 {
     ASSERT_PRECONDITION(type == other.type, "data_holder_t::compare() was called for different types.");
 
-    if (type == reflection::String)
-    {
-        if (hold.string_value == nullptr && other.hold.string_value == nullptr)
-        {
-            return 0;
-        }
-        else if (hold.string_value == nullptr || other.hold.string_value == nullptr)
-        {
-            return (hold.string_value == nullptr) ? -1 : 1;
-        }
-        else
-        {
-            return strcmp(hold.string_value, other.hold.string_value);
-        }
-    }
-    else if (flatbuffers::IsInteger(type))
+    if (flatbuffers::IsInteger(type))
     {
         if (is_signed_integer(type))
         {
@@ -139,6 +157,21 @@ int data_holder_t::compare(const data_holder_t& other) const
             ? 0
             : (hold.float_value > other.hold.float_value) ? 1 : -1;
     }
+    else if (type == reflection::String)
+    {
+        if (hold.string_value == nullptr && other.hold.string_value == nullptr)
+        {
+            return 0;
+        }
+        else if (hold.string_value == nullptr || other.hold.string_value == nullptr)
+        {
+            return (hold.string_value == nullptr) ? -1 : 1;
+        }
+        else
+        {
+            return strcmp(hold.string_value, other.hold.string_value);
+        }
+    }
     else if (type == reflection::Vector)
     {
         if (hold.vector_value.data() == nullptr && other.hold.vector_value.data() == nullptr)
@@ -151,7 +184,12 @@ int data_holder_t::compare(const data_holder_t& other) const
         }
         else
         {
-            // Perform lexicographic compare
+            // Perform lexicographic compare. This treats vectors as BLOBs, allowing vector
+            // to be compared regardless of length.
+            //
+            // This means APIs using compare() cannot perform introspection, but this provides a path
+            // for generic code to handle Vector types.
+
             size_t len = std::min(other.hold.vector_value.size(), hold.vector_value.size());
             int cmp = memcmp(hold.vector_value.data(), other.hold.vector_value.data(), len);
 
@@ -171,7 +209,15 @@ int data_holder_t::compare(const data_holder_t& other) const
 
 std::size_t data_holder_t::hash() const
 {
-    if (type == reflection::String)
+    if (flatbuffers::IsInteger(type))
+    {
+        return std::hash<int64_t>{}(hold.integer_value);
+    }
+    else if (flatbuffers::IsFloat(type))
+    {
+        return std::hash<double>{}(hold.float_value);
+    }
+    else if (type == reflection::String)
     {
         if (hold.string_value == nullptr)
         {
@@ -181,14 +227,6 @@ std::size_t data_holder_t::hash() const
         {
             return std::hash<std::string_view>{}(hold.string_value);
         }
-    }
-    else if (flatbuffers::IsInteger(type))
-    {
-        return std::hash<int64_t>{}(hold.integer_value);
-    }
-    else if (flatbuffers::IsFloat(type))
-    {
-        return std::hash<double>{}(hold.float_value);
     }
     else if (type == reflection::Vector)
     {
@@ -209,11 +247,7 @@ std::size_t data_holder_t::hash() const
 
 std::ostream& operator<<(std::ostream& os, const data_holder_t& data)
 {
-    if (data.type == reflection::String)
-    {
-        os << data.hold.string_value;
-    }
-    else if (flatbuffers::IsInteger(data.type))
+    if (flatbuffers::IsInteger(data.type))
     {
 
         if (is_signed_integer(data.type))
@@ -228,6 +262,10 @@ std::ostream& operator<<(std::ostream& os, const data_holder_t& data)
     else if (flatbuffers::IsFloat(data.type))
     {
         os << data.hold.float_value;
+    }
+    else if (data.type == reflection::String)
+    {
+        os << data.hold.string_value;
     }
     else if (data.type == reflection::Vector)
     {
