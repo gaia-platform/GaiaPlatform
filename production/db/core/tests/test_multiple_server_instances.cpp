@@ -42,8 +42,6 @@ protected:
     {
         gaia_log::initialize({});
     }
-
-private:
 };
 
 class client_writer_t

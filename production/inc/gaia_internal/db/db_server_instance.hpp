@@ -32,6 +32,10 @@ struct server_instance_config_t
      */
     static std::filesystem::path find_server_path();
 
+    /**
+     * Generates a random instance name unless the GAIA_DB_INSTANCE_NAME
+     * env is set.
+     */
     static std::string generate_instance_name();
 
     static std::string generate_data_dir(const std::string& instance_name);

@@ -20,6 +20,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -75,6 +76,13 @@ fs::path server_instance_config_t::find_server_path()
 
 std::string server_instance_config_t::generate_instance_name()
 {
+    char* value = std::getenv(common::c_instance_name_string_env);
+
+    if (value)
+    {
+        return value;
+    }
+
     constexpr int c_random_suffix_size = 4;
 
     std::string executable_name;
