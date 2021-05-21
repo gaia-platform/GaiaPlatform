@@ -32,6 +32,8 @@ protected:
         gaia_log::initialize({});
     }
 
+    /// Starts the gaia_db_server passing instance_name and data_dir as
+    /// environment variables.
     void start_server(std::string instance_name, std::string data_dir)
     {
         m_server_pid = ::fork();
@@ -106,6 +108,7 @@ TEST_F(db_server_env_test, instacne_name_from_env)
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
             ::putenv(const_cast<char*>(gaia_db_instance_env.c_str()));
 
+            // The client should pick up the instance name from the ENV
             gaia::db::begin_session();
             connected = true;
         }
