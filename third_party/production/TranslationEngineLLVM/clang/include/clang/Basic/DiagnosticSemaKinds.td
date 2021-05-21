@@ -9537,5 +9537,5 @@ def err_tag_redefined : Error<
 def err_incorrect_tag_use_in_path : Error<
     "Tag '%0' cannot be used in this context.">;
 def err_nomatch_without_navigation : Error<
-    "nomatch cannot be used if decarative references are nout used in if condition.">;
+    "A non-declarative 'if' statement may not use nomatch.">;
 } // end of sema component.

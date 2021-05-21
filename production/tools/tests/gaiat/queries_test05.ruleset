@@ -22,4 +22,4 @@ ruleset test124
     }
 }
 
-// CHECK: nomatch cannot be used if decarative references are nout used in if condition
+// CHECK: A non-declarative 'if' statement may not use nomatch.

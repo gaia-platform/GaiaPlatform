@@ -84,7 +84,8 @@ ruleset testE13
     }
 }
 
-#ifdef TEST_FAILURES
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test21
 {
     OnInsert(I:incubator)
@@ -109,7 +110,8 @@ ruleset testE21
     }
 }
 
-#ifdef TEST_FAILURES
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test15
 {
     OnChange(incubator)

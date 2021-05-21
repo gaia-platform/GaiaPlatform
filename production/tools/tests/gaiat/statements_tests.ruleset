@@ -316,3 +316,104 @@ ruleset test19
 #endif
     }
 }
+
+ruleset test20
+{
+    OnInsert(incubator)
+    {
+        // Single-cardinality reference in 'for' loop.
+        for (int i = 0; i < farmer.acreage; i++)
+        {
+            farmer.acreage++;
+        }
+    }
+}
+
+ruleset test21
+{
+    OnInsert(incubator)
+    {
+        // Multiple-cardinality reference in 'for' loop.
+        // Reference a tag in the loop.
+        for (float f = 0.0; f < S:sensor.value; f += 1.3)
+        {
+            S.timestamp++;
+        }
+    }
+}
+
+ruleset test22
+{
+    OnInsert(incubator)
+    {
+        // Stupidly complex rule.
+        long tot_acres = 0;
+        long tot_feed = 0;
+        long tot_age = 0;
+        for (int i = 0; i < /F:farmer->R:raised->A:animal->FE:feeding->Y:yield->C:crop.acres; i++)
+        {
+            tot_acres = crop.acres;
+            while (A->FE2:feeding.portion > 0)
+            {
+                tot_feed += FE2.portion;
+            }
+            tot_age += Y->feeding->animal.age;
+        }
+    }
+}
+
+ruleset test23
+{
+    OnInsert(incubator)
+    {
+        // Convoluted if/nomatch with no braces.
+        bool here = false;
+        if (incubator.max_temp > 99.0)
+            if (actuator.value < 97.3)
+                if (sensor.value > 82.1)
+                    here = true;
+                nomatch
+                    here = false;
+            else
+                here = false;
+            nomatch
+                here = true;
+        nomatch
+            here = false;
+    }
+}
+
+ruleset test24
+{
+    OnInsert(feeding)
+    {
+        // Another convoluted set or queries.
+        // Note that the translated code is not yet correct.
+        long some_number = 0;
+        long i = 0;
+        for (i += farmer.acreage; i < farmer->yield->feeding.portion; i += /crop.acres)
+        {
+            some_number += i;
+        }
+    }
+}
+
+ruleset test25
+{
+    OnInsert(feeding)
+    {
+        // Note that the translated code is not yet correct.
+        farmer->incubator->raised.birthdate += crop->yield->feeding.portion;
+    }
+}
+
+void sprintf(char*, const char*, const char*, float, float);
+
+ruleset test26
+{
+    OnInsert(feeding)
+    {
+        char str[200];
+        sprintf(str, "%ld,%f,%f", I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+    }
+}
