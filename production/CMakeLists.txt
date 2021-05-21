@@ -37,31 +37,34 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
-# Set variables for LLVM if requested.
+# Default to Release builds if not specified on the command line.
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+endif()
+
+# Default compiler/linker flags.
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3")
+set(GAIA_LINK_FLAGS "-pthread")
+
+# This is just for the RocksDB build.
+set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
+
+# LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
-  # Default to Release builds if not specified on the command line.
-  if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-  endif()
-  set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
-  set(GAIA_LINK_FLAGS "-pthread")
-  # LLVM and CLANG specific options.
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-else()
-  set(GAIA_LINK_FLAGS "-pthread")
 endif()
 
+# Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -g -O0 -fno-limit-debug-info")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
 
   if(ENABLE_ASAN)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined")
   endif()
 endif()
 
