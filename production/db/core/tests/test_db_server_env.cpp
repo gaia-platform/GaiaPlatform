@@ -91,7 +91,7 @@ private:
     pid_t m_server_pid;
 };
 
-TEST_F(db_server_env_test, instacne_name_from_env)
+TEST_F(db_server_env_test, instance_name_from_env)
 {
 
     std::string instance_name = server_instance_config_t::generate_instance_name();
@@ -99,7 +99,8 @@ TEST_F(db_server_env_test, instacne_name_from_env)
 
     start_server(instance_name, data_dir);
 
-    constexpr int c_max_retry = 10;
+    // Wait up to 500ms.
+    constexpr int c_max_retry = 100;
     static constexpr int c_poll_interval_millis = 5;
 
     bool connected = false;
