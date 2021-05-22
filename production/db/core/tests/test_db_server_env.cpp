@@ -99,7 +99,8 @@ TEST_F(db_server_env_test, instacne_name_from_env)
 
     start_server(instance_name, data_dir);
 
-    constexpr int c_max_retry = 10;
+    // Wait up to 5s.
+    constexpr int c_max_retry = 1000;
     static constexpr int c_poll_interval_millis = 5;
 
     bool connected = false;
