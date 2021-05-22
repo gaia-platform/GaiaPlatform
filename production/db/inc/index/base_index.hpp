@@ -24,18 +24,7 @@ namespace db
 {
 namespace index
 {
-
-typedef catalog::index_type_t index_type_t;
-
-struct index_record_t
-{
-    gaia::db::gaia_locator_t locator;
-    gaia::db::gaia_txn_id_t txn_id;
-    gaia::db::gaia_offset_t offset;
-    uint8_t deleted;
-
-    friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
-};
+using index_type_t = catalog::index_type_t;
 
 class index_not_found : public common::gaia_exception
 {
@@ -59,20 +48,24 @@ public:
     }
 };
 
+struct index_record_t
+{
+    gaia::db::gaia_txn_id_t txn_id;
+    gaia::db::gaia_offset_t offset;
+    gaia::db::gaia_locator_t locator;
+    uint8_t deleted;
+
+    friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
+};
+
 class base_index_t
 {
-private:
-    gaia::common::gaia_id_t index_id;
-    index_type_t index_type;
-
-protected:
-    mutable std::recursive_mutex index_lock;
-
 public:
     base_index_t(gaia::common::gaia_id_t index_id, index_type_t index_type)
-        : index_id(index_id), index_type(index_type)
+        : m_index_id(index_id), m_index_type(index_type)
     {
     }
+    virtual ~base_index_t() = default;
 
     gaia::common::gaia_id_t id() const;
     index_type_t type() const;
@@ -83,8 +76,17 @@ public:
 
     virtual void clear() = 0;
     virtual std::function<std::optional<index_record_t>()> generator(gaia_txn_id_t txn_id) = 0;
-    virtual ~base_index_t() = default;
-}; // namespace index
+
+private:
+    gaia::common::gaia_id_t m_index_id;
+    index_type_t m_index_type;
+
+protected:
+    // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread
+    // this is a requirement because the implementation requires a reader to lock when obtaining the start
+    // and end iterators. In future, the index resides in shared memory and should ideally be lock-free.
+    mutable std::recursive_mutex m_index_lock;
+};
 
 } // namespace index
 } // namespace db

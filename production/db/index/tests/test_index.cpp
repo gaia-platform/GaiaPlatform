@@ -19,10 +19,10 @@ index_record_t create_index_record()
 {
     static gaia::db::gaia_locator_t locator = 0;
 
-    return {locator++, c_fake_txid, c_fake_offset, false};
+    return {c_fake_txid, c_fake_offset, locator++, false};
 }
 
-TEST(index_iter, empty_range_index)
+TEST(index, empty_range_index)
 {
     range_index_t range_index(0);
     size_t count = 0;
@@ -35,7 +35,7 @@ TEST(index_iter, empty_range_index)
     ASSERT_EQ(count, 0);
 }
 
-TEST(index_iter, empty_hash_index)
+TEST(index, empty_hash_index)
 {
     hash_index_t hash_index(0);
     size_t count = 0;
@@ -46,7 +46,7 @@ TEST(index_iter, empty_hash_index)
     ASSERT_EQ(count, 0);
 }
 
-TEST(index_iter, one_record_hash_index)
+TEST(index, one_record_hash_index)
 {
     hash_index_t hash_index(0);
     size_t count = 0;
@@ -62,7 +62,7 @@ TEST(index_iter, one_record_hash_index)
     ASSERT_EQ(count, 1);
 }
 
-TEST(index_iter, one_record_range_index)
+TEST(index, one_record_range_index)
 {
     range_index_t range_index(0);
     size_t count = 0;
@@ -78,7 +78,7 @@ TEST(index_iter, one_record_range_index)
     ASSERT_EQ(count, 1);
 }
 
-TEST(index_iter, single_key_multi_record_hash_index)
+TEST(index, single_key_multi_record_hash_index)
 {
     hash_index_t hash_index(0);
     size_t count = 0;
@@ -96,7 +96,7 @@ TEST(index_iter, single_key_multi_record_hash_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index_iter, single_key_multi_record_range_index)
+TEST(index, single_key_multi_record_range_index)
 {
     range_index_t range_index(0);
     size_t count = 0;
@@ -114,7 +114,7 @@ TEST(index_iter, single_key_multi_record_range_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index_iter, multi_key_multi_record_hash_index)
+TEST(index, multi_key_multi_record_hash_index)
 {
     hash_index_t hash_index(0);
     size_t count = 0;
@@ -134,7 +134,7 @@ TEST(index_iter, multi_key_multi_record_hash_index)
     ASSERT_EQ(count, 5);
 }
 
-TEST(index_iter, multi_key_multi_record_range_index)
+TEST(index, multi_key_multi_record_range_index)
 {
     range_index_t range_index(0);
     size_t count = 0;
@@ -155,7 +155,7 @@ TEST(index_iter, multi_key_multi_record_range_index)
 }
 
 // Simulate index updates for range index
-TEST(index_iter, range_update_test)
+TEST(index, range_update_test)
 {
     index_record_t to_update = create_index_record();
     range_index_t range_index(0);
@@ -177,7 +177,7 @@ TEST(index_iter, range_update_test)
 }
 
 // Simulate index updates for hash index
-TEST(index_iter, hash_update_test)
+TEST(index, hash_update_test)
 {
     index_record_t to_update = create_index_record();
     hash_index_t hash_index(0);
@@ -198,7 +198,7 @@ TEST(index_iter, hash_update_test)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index_iter, eq_range_hash_index)
+TEST(index, eq_range_hash_index)
 {
     hash_index_t hash_index(0);
     size_t count = 0;
@@ -220,7 +220,7 @@ TEST(index_iter, eq_range_hash_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index_iter, eq_range_range_index)
+TEST(index, eq_range_range_index)
 {
     range_index_t range_index(0);
     size_t count = 0;

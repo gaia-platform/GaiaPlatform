@@ -35,4 +35,4 @@ set (INDEX_TEST_INCLUDES
 
 # Tests.
 
-add_gtest(test_index_iter tests/test_index_iter.cpp "${INDEX_TEST_INCLUDES}" "gaia_common;gaia_payload_types;gaia_index")
+add_gtest(test_index tests/test_index.cpp "${INDEX_TEST_INCLUDES}" "gaia_common;gaia_payload_types;gaia_index")

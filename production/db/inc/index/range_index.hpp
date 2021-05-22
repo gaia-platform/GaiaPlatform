@@ -24,7 +24,7 @@ namespace
 using range_type = std::multimap<index_key_t, index_record_t>;
 } // namespace
 
-typedef locking_iterator_t<range_type, range_type::const_iterator> range_index_iterator_t;
+using range_index_iterator_t = locking_iterator_t<range_type, range_type::const_iterator>;
 
 class range_index_t : public index_t<range_type, range_index_iterator_t>
 {

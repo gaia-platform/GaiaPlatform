@@ -22,40 +22,40 @@ template <typename T_index, typename T_index_iter>
 class locking_iterator_t
 {
 private:
-    base_index_t* db_idx = nullptr;
-    T_index_iter index_iter;
-    T_index_iter end_iter;
+    base_index_t* m_db_idx = nullptr;
+    T_index_iter m_index_iter;
+    T_index_iter m_end_iter;
 
 public:
     locking_iterator_t() = default;
     locking_iterator_t(base_index_t* db_idx, T_index_iter iter, T_index_iter end_iter)
     {
-        this->db_idx = db_idx;
-        this->index_iter = iter;
-        this->end_iter = end_iter;
+        m_db_idx = db_idx;
+        m_index_iter = iter;
+        m_end_iter = end_iter;
 
         db_idx->get_lock().lock();
     }
     locking_iterator_t(const locking_iterator_t& other)
     {
-        this->db_idx = other.db_idx;
-        this->index_iter = other.index_iter;
-        this->end_iter = other.end_iter;
+        m_db_idx = other.m_db_idx;
+        m_index_iter = other.m_index_iter;
+        m_end_iter = other.m_end_iter;
 
-        db_idx->get_lock().lock();
+        m_db_idx->get_lock().lock();
     }
 
     ~locking_iterator_t()
     {
-        if (db_idx != nullptr)
+        if (m_db_idx != nullptr)
         {
-            db_idx->get_lock().unlock();
+            m_db_idx->get_lock().unlock();
         }
     }
 
     locking_iterator_t& operator++()
     {
-        index_iter++;
+        m_index_iter++;
         return *this;
     }
 
@@ -68,29 +68,28 @@ public:
 
     locking_iterator_t& next_key() const
     {
-        auto key = index_iter->first;
+        auto key = m_index_iter->first;
 
         do
         {
-            ++index_iter;
-        } while (index_iter->first == key && index_iter != end_iter);
+            ++m_index_iter;
+        } while (m_index_iter->first == key && m_index_iter != m_end_iter);
 
         return *this;
     }
-
     const typename T_index_iter::value_type& operator*() const
     {
-        return *index_iter;
+        return *m_index_iter;
     }
 
     const typename T_index_iter::value_type* operator->() const
     {
-        return &(*index_iter);
+        return &(*m_index_iter);
     }
 
     bool operator==(const locking_iterator_t& other) const
     {
-        return index_iter == other.index_iter;
+        return m_index_iter == other.m_index_iter;
     }
 
     bool operator!=(const locking_iterator_t& other) const

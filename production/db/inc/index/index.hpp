@@ -20,41 +20,26 @@ namespace db
 namespace index
 {
 
-/*
+/**
 * Reflection based logical key for the index.
 */
 
 class index_key_t
 {
-    friend struct index_key_hash;
-    std::vector<gaia::db::payload_types::data_holder_t> key_values;
-
-private:
-    int compare(const index_key_t& other) const;
 
 public:
     index_key_t() = default;
 
-    template <typename... Ts>
-    index_key_t(Ts... keys)
-    {
-        multi_insert(keys...);
-    }
+    template <typename... T_keys>
+    index_key_t(T_keys... keys);
+
+    template <typename T_key, typename... T_keys>
+    void multi_insert(T_key key_value, T_keys... rest);
+
+    template <typename T_key>
+    void multi_insert(T_key key_value);
 
     void insert(gaia::db::payload_types::data_holder_t value);
-
-    template <typename T, typename... Ts>
-    void multi_insert(T key_value, Ts... rest)
-    {
-        insert(key_value);
-        multi_insert(rest...);
-    }
-
-    template <typename T>
-    void multi_insert(T key_value)
-    {
-        insert(key_value);
-    }
 
     bool operator<(const index_key_t& other) const;
     bool operator<=(const index_key_t& other) const;
@@ -65,9 +50,14 @@ public:
     size_t size() const;
 
     friend std::ostream& operator<<(std::ostream& os, const index_key_t& key);
+    friend struct index_key_hash;
+    std::vector<gaia::db::payload_types::data_holder_t> m_key_values;
+
+private:
+    int compare(const index_key_t& other) const;
 };
 
-/*
+/**
 * Standard conforming hash function for index keys.
 */
 
@@ -76,60 +66,53 @@ struct index_key_hash
     gaia::db::payload_types::data_hash_t operator()(const index_key_t& key) const;
 };
 
-/*
-* RAII object class with an XLOCK on the underlying index object
-* This interface is temporary until we have "live" indexes
+/**
+* RAII object class with an XLOCK on the underlying index object.
+* This interface is temporary until we have "live" indexes.
+* T_index is the underlying index data structure.
 */
 
-template <typename T>
+template <typename T_structure>
 class index_writer_t
 {
-private:
-    base_index_t* db_idx;
-    T& index;
-
 public:
-    index_writer_t(base_index_t* db_idx, T& index)
-        : db_idx(db_idx), index(index)
+    index_writer_t(base_index_t* db_idx, T_structure& index)
+        : m_db_idx(db_idx), m_index(index)
     {
-        db_idx->get_lock().lock();
+        m_db_idx->get_lock().lock();
     }
 
-    T& get_index()
+    T_structure& get_index()
     {
-        return index;
+        return m_index;
     }
 
     ~index_writer_t()
     {
-        db_idx->get_lock().unlock();
+        m_db_idx->get_lock().unlock();
     }
+
+private:
+    base_index_t* m_db_idx;
+    T_structure& m_index;
 };
 
-/*
- * Abstract in-memory index type
- * T is the underlying backing structure
- * T_iterator is the iterator returned by the structure
+/**
+ * Abstract in-memory index type:
+ * T_structure is the underlying backing data structure of the index.
+ * T_iterator is the iterator returned by the structure.
  */
 
-template <typename T, typename T_iterator>
+template <typename T_structure, typename T_iterator>
 class index_t : public base_index_t
 {
-private:
-    gaia::common::gaia_id_t index_id;
-    index_type_t index_type;
-
-protected:
-    T index;
-
-    // find physical key corresponding to a logical_key + record or return the end iterator.
-    auto find_physical_key(index_key_t& key, index_record_t& record);
 
 public:
     index_t(gaia::common::gaia_id_t index_id, index_type_t index_type)
         : base_index_t(index_id, index_type)
     {
     }
+    virtual ~index_t() = default;
 
     virtual T_iterator begin() = 0;
     virtual T_iterator end() = 0;
@@ -144,10 +127,19 @@ public:
     void clear() override;
 
     // RAII class for bulk index maintenance operations
-    index_writer_t<T> get_writer();
+    index_writer_t<T_structure> get_writer();
 
     std::function<std::optional<index_record_t>()> generator(gaia_txn_id_t txn_id) override;
-    virtual ~index_t() = default;
+
+private:
+    gaia::common::gaia_id_t m_index_id;
+    index_type_t m_index_type;
+
+protected:
+    T_structure m_index;
+
+    // Find physical key corresponding to a logical_key + record or return the end iterator.
+    auto find_physical_key(index_key_t& key, index_record_t& record);
 };
 
 #include "index.inc"
