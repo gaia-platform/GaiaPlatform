@@ -99,7 +99,7 @@ TEST_F(db_server_env_test, instance_name_from_env)
 
     start_server(instance_name, data_dir);
 
-    // Wait up to 5s.
+    // Wait up to 500ms.
     constexpr int c_max_retry = 100;
     static constexpr int c_poll_interval_millis = 5;
 
