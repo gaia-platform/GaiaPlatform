@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cstdlib>
+
 #include <initializer_list>
 #include <iostream>
 #include <string>
@@ -37,6 +39,9 @@ static void usage()
         << c_data_dir_command_flag
         << " <data dir>]\n"
         << "                      ["
+        << c_instance_name_command_flag
+        << " <db instance name>]\n"
+        << "                      ["
         << c_conf_file_flag
         << " <config file path>]"
         << std::endl;
@@ -67,23 +72,35 @@ static void expand_home_path(std::string& path)
     path = home + path.substr(1);
 }
 
+template <typename T_type>
+T_type lexical_cast(const std::string& str)
+{
+    T_type var;
+    std::istringstream iss;
+    iss.str(str);
+    iss >> var;
+    return var;
+}
+
 /**
- * Manage the gaia configuration by lazy loading the config file only
- * if used.
+ * Allow getting a config value from multiple sources: command line, environment variable, and config file.
  *
- * TODO: we should get rid of this class in favor a solid command line
- *   argument parser (see comment below).
+ * The value is selected from the first available source, in order of importance:
+ * 1. Command line arg.
+ * 2. Environment variable.
+ * 3. Configuration file.
  */
-class lazy_gaia_conf
+class gaia_config_fallback_t
 {
 public:
-    explicit lazy_gaia_conf(std::string config_path)
-        : m_config_path(std::move(config_path))
-    {
-    }
+    explicit gaia_config_fallback_t(std::string config_path)
+        : m_config_path(std::move(config_path)){};
+
+    gaia_config_fallback_t()
+        : gaia_config_fallback_t(""){};
 
     template <class T_value>
-    std::optional<T_value> get_value(const char* key)
+    std::optional<T_value> get_config_file_value(const char* key)
     {
         auto root_config = get_root_config();
 
@@ -100,6 +117,50 @@ public:
         }
 
         return std::nullopt;
+    }
+
+    template <class T_value>
+    std::optional<T_value> get_env_value(const char* env_name)
+    {
+        char* value = std::getenv(env_name);
+
+        if (value)
+        {
+            return {lexical_cast<T_value>(value)};
+        }
+
+        return std::nullopt;
+    }
+
+    template <class T_value>
+    std::optional<T_value> get_value(std::string param_value, const char* env_name, const char* config_file_key)
+    {
+        if (!param_value.empty())
+        {
+            return param_value;
+        }
+
+        auto env_value = get_env_value<T_value>(env_name);
+
+        if (env_value)
+        {
+            return env_value;
+        }
+
+        return get_config_file_value<T_value>(config_file_key);
+    }
+
+    template <class T_value>
+    T_value get_value(std::string param_value, const char* env_name, const char* config_file_key, T_value default_value)
+    {
+        auto value = get_value<T_value>(param_value, env_name, config_file_key);
+
+        if (value)
+        {
+            return *value;
+        }
+
+        return default_value;
     }
 
 private:
@@ -194,39 +255,14 @@ static server_config_t process_command_line(int argc, char* argv[])
         }
     }
 
-    lazy_gaia_conf gaia_conf{conf_file_path};
+    gaia_config_fallback_t gaia_conf{conf_file_path};
 
-    if (data_dir.empty() && (persistence_mode != server_config_t::persistence_mode_t::e_disabled))
-    {
-        auto data_dir_string = gaia_conf.get_value<std::string>(c_data_dir_string_key);
-        // There are two cases of s_data_dir "missing" from the configuration file. First, if the
-        // s_data_dir key doesn't exist. Second, if the s_data_dir key exists, but the value doesn't
-        // exist. Either way, we don't care, and the effect is that we obtain no data_dir_string
-        // from the configuration file.
-        if (data_dir_string)
-        {
-            // The 's_data_dir' key exists. Make sure it is non-empty.
-            if (!data_dir_string->empty())
-            {
-                data_dir = *data_dir_string;
-            }
-        }
-    }
+    data_dir = gaia_conf.get_value<std::string>(
+        data_dir, c_data_dir_string_env, c_data_dir_string_key, "");
 
-    if (instance_name.empty())
-    {
-        auto instance_name_string = gaia_conf.get_value<std::string>(c_instance_name_string_key);
-
-        if (instance_name_string)
-        {
-            instance_name = *instance_name_string;
-        }
-
-        if (instance_name.empty())
-        {
-            instance_name = gaia::db::c_default_instance_name;
-        }
-    }
+    instance_name = gaia_conf.get_value<std::string>(
+        instance_name, c_instance_name_string_env,
+        c_instance_name_string_key, c_default_instance_name);
 
     // In case anyone can see this...
     if (persistence_mode == server_config_t::persistence_mode_t::e_disabled)
@@ -302,6 +338,8 @@ static server_config_t process_command_line(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    std::cerr << "Starting " << c_db_server_exec_name << "..." << std::endl;
+
     auto server_conf = process_command_line(argc, argv);
 
     gaia::db::server_t::run(server_conf);

@@ -42,8 +42,10 @@ session_options_t get_default_session_options()
         return *g_default_session_options;
     }
 
+    char* value = std::getenv(common::c_instance_name_string_env);
+
     session_options_t session_options;
-    session_options.db_instance_name = c_default_instance_name;
+    session_options.db_instance_name = value ?: c_default_instance_name;
     return session_options;
 }
 

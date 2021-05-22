@@ -20,6 +20,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -75,6 +76,13 @@ fs::path server_instance_config_t::find_server_path()
 
 std::string server_instance_config_t::generate_instance_name()
 {
+    char* value = std::getenv(common::c_instance_name_string_env);
+
+    if (value)
+    {
+        return value;
+    }
+
     constexpr int c_random_suffix_size = 4;
 
     std::string executable_name;
@@ -125,7 +133,7 @@ void server_instance_t::start(bool wait_for_init)
         // Kills the child process (gaia_db_sever) after the parent dies (current process).
         // This must be put right after ::fork() and before ::execve().
         // This works well with ctest where each test is run as a separated process.
-        if (::prctl(PR_SET_PDEATHSIG, SIGKILL) == -1)
+        if (-1 == ::prctl(PR_SET_PDEATHSIG, SIGKILL))
         {
             common::throw_system_error("prctl() failed!");
         }
