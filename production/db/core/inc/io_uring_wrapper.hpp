@@ -29,7 +29,7 @@ enum class uring_op_t : uint64_t
 };
 
 // For simplicity all APIs in this file assume that the io_uring submission queue has enough space to write to.
-// The caller should verify that enough space exists before queuing requests to the ring.
+// The caller should verify that enough space exists before queuing more requests.
 class io_uring_wrapper_t
 {
 private:
@@ -39,7 +39,6 @@ private:
     static constexpr char c_setup_err_msg[] = "IOUring setup failed.";
     static constexpr char c_buffer_empty_err_msg[] = "IOUring submission queue out of space.";
 
-    // ring will internally maintain a submission queue and a completion queue which exist in shared memory.
     std::unique_ptr<io_uring> ring;
 
     void prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe);
@@ -71,8 +70,6 @@ public:
         uint32_t fsync_flags,
         uint64_t data,
         u_char flags);
-
-    void close(int fd, uint64_t data, u_char flags);
 
     void open(size_t buffer_size = c_buffer_size);
 

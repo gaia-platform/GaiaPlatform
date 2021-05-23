@@ -64,7 +64,7 @@ void io_uring_manager_t::handle_io_uring_error(bool condition, std::string err_m
     {
         teardown();
         std::stringstream ss;
-        ss << err_msg << "; with operation return code=" << err << "; with errno=" << errno;
+        ss << err_msg << "; with operation return code=" << err;
         throw io_uring_error(ss.str());
     }
 }
@@ -93,11 +93,8 @@ void io_uring_manager_t::validate_completion_batch()
         io_uring_cqe* cqe;
         auto ret = in_flight_buffer->get_completion_event(&cqe);
         handle_io_uring_error(ret == 0, "Expected completions to be ready post flush_fd write.", ret);
-        std::cout << "user data = " << cqe->user_data << std::endl;
-        std::cout << "user result = " << cqe->res << std::endl;
-        std::cout << "str error = " << strerror(-cqe->res) << std::endl;
+
         // Validate completion result.
-        // Todo (mihir): Set user data for submission entries so they can be used to create meaningful error messages.
         handle_io_uring_error(cqe->res >= 0, "CQE completion failure from in_flight batch.", cqe->res);
 
         // Mark completion as seen.
@@ -118,7 +115,7 @@ size_t io_uring_manager_t::handle_submit(int file_fd, bool wait)
     // The flush_efd's counter gets updated when flush of the in_flight batch completes.
     // The initial value of the event counter is set to 1 so we don't block the very first
     // batch flush.
-    eventfd_read(flush_efd, &event_counter); // Should this be non-blocking? Do we want to keep validating in-flight-batch?
+    eventfd_read(flush_efd, &event_counter);
 
     // Flush of in-flight batch has completed.
     // Validate events from the previous in-flight batch if they exist.
@@ -283,7 +280,6 @@ size_t io_uring_manager_t::pwritev(
 {
     size_t submission_entries_needed = 1;
     submit_if_full(file_fd, submission_entries_needed);
-    std::cout << "current offset = " << current_offset << std::endl;
     in_progress_buffer.get()->pwritev(iovecs, iovcnt, file_fd, current_offset, get_enum_value(uring_op_t::PWRITEV), 0);
     return submission_entries_needed;
 }

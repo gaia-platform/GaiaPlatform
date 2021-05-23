@@ -44,7 +44,6 @@ wal_file_t::wal_file_t(std::string& dir, int fd, wal_sequence_t file_seq, size_t
         throw write_ahead_log_error("Unable to create wal file", errno);
     }
 
-    // Todo: zero-fill entires in file.
     // Reference: http://yoshinorimatsunobu.blogspot.com/2009/05/overwriting-is-much-faster-than_28.html
     auto res = fallocate(file_fd, 0, 0, file_size);
     ASSERT_INVARIANT(res == 0, "Fallocate failed.");

@@ -32,7 +32,7 @@ class io_uring_manager_t
 {
 public:
     /**
-     * Initializes io_uring ring buffers. 
+     * Initializes io_uring buffers. 
      * Setting up each ring will create two shared memory queues.
     */
     io_uring_manager_t();
@@ -44,9 +44,6 @@ public:
     ~io_uring_manager_t();
 
     void open(size_t buffer_size = 64);
-
-    // Writes are batched and we maintain two buffers so that writes to a buffer
-    // can still proceed when the other buffer is getting flushed to disk.
 
     // The buffer that is getting flushed to disk.
     std::unique_ptr<io_uring_wrapper_t> in_flight_buffer;

@@ -79,11 +79,6 @@ constexpr size_t c_hash_buckets = 1ULL << 20;
 // This is arbitrary, but we need to keep txn logs to a reasonable size.
 constexpr size_t c_max_log_records = 1ULL << 20;
 
-// Track maximum number of chunks in addition to begin and end offsets.
-// This sets an upper bound on txn size. 32MB < txn_size < 36MB
-// The actual limit (enforced by the client) may be lesser than 32MB but can't exceed this value.
-constexpr size_t c_max_chunk_offsets = 8 + 2;
-
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
 // The elements are atomic because reads and writes to shared memory need to be
@@ -102,7 +97,6 @@ struct txn_log_t
     gaia_txn_id_t begin_ts;
     size_t record_count;
     size_t deleted_count;
-    size_t chunk_offsets_count;
 
     struct log_record_t
     {
@@ -130,8 +124,9 @@ struct txn_log_t
     };
 
     log_record_t log_records[c_max_log_records];
+
+    // Todo (Mihir) Move deleted IDs outside of log_record_t
     common::gaia_id_t deleted_ids[c_max_log_records];
-    gaia_offset_t chunk_offsets[c_max_chunk_offsets];
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
@@ -193,6 +188,5 @@ struct id_index_t
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
-
 } // namespace db
 } // namespace gaia
