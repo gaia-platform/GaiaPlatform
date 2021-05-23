@@ -20,15 +20,10 @@ namespace gaia
 {
 namespace db
 {
-
-// Persistence types.
 typedef uint32_t record_size_t;
 typedef uint32_t crc32_t;
 typedef uint32_t wal_sequence_t;
 typedef uint32_t wal_file_offset_t;
-
-// We don't need 8 bytes to represent file offset as the physical size of the log file
-// will have a much shorter upper bound.
 typedef uint32_t log_offset_t;
 
 enum class record_type_t : uint8_t
@@ -85,22 +80,10 @@ struct record_iterator
 {
     uint8_t* cursor;
     uint8_t* end;
-
-    /*
-	 * Stop returning records as soon as their first byte
-	 * (including the header) is at or after `stop_at`.
-	 *
-	 * This is initially equal to `end`, but can be shifted
-	 * earlier in the record stream.  Note that a record that
-	 * starts before `stop_at` will end after that pointer.
-	 */
     uint8_t* stop_at;
-
     uint8_t* begin;
-
     void* mapped;
     size_t map_size;
-
     int file_fd;
 };
 

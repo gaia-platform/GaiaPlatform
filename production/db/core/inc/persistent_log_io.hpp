@@ -61,6 +61,7 @@ public:
 
     void process_txn_log(txn_log_t* txn_log, gaia_txn_id_t commit_ts);
 
+    // Todo (Mihir)
     void create_decision_record(
         std::vector<std::pair<gaia_txn_id_t, txn_decision_type_t>>& txn_decisions);
 };
