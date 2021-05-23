@@ -1,4 +1,4 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test
 {
@@ -15,4 +15,4 @@ ruleset test
 }
 
 // GAIAPLAT-802
-// CHECK: Ruleset names must be unique - 'test' has been found multiple times.
+// CHECK: Rulesets must have unique names.

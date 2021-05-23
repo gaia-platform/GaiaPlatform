@@ -1,5 +1,4 @@
-// RUN: echo "illegal rule syntax - must be inside a code block" | FileCheck  %s
-// %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test1
 {

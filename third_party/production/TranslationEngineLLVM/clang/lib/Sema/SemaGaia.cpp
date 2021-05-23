@@ -1,4 +1,4 @@
-//===--- SemaGaia.cpp - Gaia Extensions Parser -----------------------===//
+//===--- ParseGaia.cpp - Gaia Extensions Parser -----------------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Gaia Extensions semantic checks for Sema
+// This file implements the Gaia Extensions parsing of the Parser
 // interface.
 //
 //===----------------------------------------------------------------------===//
@@ -92,21 +92,6 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
     return returnType;
 }
 
-StringRef Sema::ConvertString(const string& str, SourceLocation loc)
-{
-    string literalString = string("\"") + str + string("\"");
-    Token Toks[1];
-    Toks[0].startToken();
-    Toks[0].setKind(tok::string_literal);
-    Toks[0].setLocation(loc);
-    Toks[0].setLiteralData(literalString.data());
-    Toks[0].setLength(literalString.size());
-
-    StringLiteral *literal =
-        cast<StringLiteral>(ActOnStringLiteral(Toks, nullptr).get());
-    return literal->getString();
-}
-
 class DBMonitor
 {
     public:
@@ -128,13 +113,9 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     size_t searchStartPosition = 0;
     unordered_map<string, string> tagMap;
     vector<string> path;
-    if (pathString.front() == '/' || pathString.front() == '@')
+    if (pathString.front() == '/')
     {
         searchStartPosition = 1;
-    }
-    if (pathString.rfind("/@") == 0)
-    {
-        searchStartPosition = 2;
     }
     string tag;
     size_t tagPosition = 0, arrowPosition = 0;
@@ -171,19 +152,9 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 return "";
             }
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
-            string tableName;
-            size_t dotPosition = table.find('.');
-            if (dotPosition != string::npos)
-            {
-                tableName = table.substr(0, dotPosition);
-            }
-            else
-            {
-                tableName = table;
-            }
             if (!tag.empty())
             {
-                tagMap[tag] = tableName;
+                tagMap[tag] = table;
                 tag.clear();
             }
             path.push_back(table);
@@ -199,34 +170,30 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         Diag(loc, diag::err_invalid_explicit_path);
         return "";
     }
-    if (!tag.empty())
-    {
-        string tableName;
-        size_t dotPosition = table.find('.');
-        if (dotPosition != string::npos)
-        {
-            tableName = table.substr(0, dotPosition);
-        }
-        else
-        {
-            tableName = table;
-        }
-        tagMap[tag] = tableName;
-    }
     path.push_back(table);
 
     // If explicit path has one component only, this component will be checked at later stage
     // Therefore there is no need to perform more checks here.
-    if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty())
+    if (path.size() > 1)
     {
         unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
         for (auto tagEntry: tagMap)
         {
-            auto tableDescription = tableData.find(tagEntry.second);
+            string tableName;
+            size_t dotPosition = tagEntry.second.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = tagEntry.second.substr(0, dotPosition);
+            }
+            else
+            {
+                tableName = tagEntry.second;
+            }
+            auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
+                Diag(loc, diag::err_invalid_table_name) << tableName;
                 return "";
             }
         }
@@ -262,7 +229,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 {
                     tableName = tagMap[tableName];
                 }
-                path[0] = tableName;
             }
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
@@ -317,21 +283,16 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             previousField = fieldName;
             previousTable = tableName;
         }
-        explicitPathData[loc].path = path;
-        explicitPathData[loc].tagMap = tagMap;
     }
     else
     {
         RemoveExplicitPathData(loc);
     }
-    explicitPathTagMapping[loc] = tagMap;
 
-    if (IsInExtendedExplicitPathScope())
-    {
-        extendedExplicitPathTagMapping[loc] = tagMap;
-    }
+    explicitPathTagMapping[loc.getRawEncoding()] = tagMap;
 
     return path.back();
+
 }
 
 unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
@@ -583,10 +544,6 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
     }
 
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    if (tableData.empty())
-    {
-        return Context.VoidTy;
-    }
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
@@ -649,10 +606,6 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
     DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    if (tableData.empty())
-    {
-        return Context.VoidTy;
-    }
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
@@ -843,7 +796,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
 
     for (const auto& explicitPathTagMapIterator : explicitPathTagMapping)
     {
-        const auto& tagMap = explicitPathTagMapIterator.second;
+        const auto &tagMap = explicitPathTagMapIterator.second;
         for (const auto& tagMapIterator : tagMap)
         {
             if (retVal.find(tagMapIterator.first) != retVal.end())
@@ -857,27 +810,6 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             }
         }
     }
-
-    for (const auto& explicitPathTagMapIterator : extendedExplicitPathTagMapping)
-    {
-        const auto& tagMap = explicitPathTagMapIterator.second;
-        for (const auto& tagMapIterator : tagMap)
-        {
-            if (explicitPathTagMapping.find(explicitPathTagMapIterator.first) == explicitPathTagMapping.end())
-            {
-                if (retVal.find(tagMapIterator.first) != retVal.end())
-                {
-                    Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
-                    return std::unordered_map<std::string, std::string>();
-                }
-                else
-                {
-                    retVal[tagMapIterator.first] = tagMapIterator.second;
-                }
-            }
-        }
-    }
-
     return retVal;
 }
 
@@ -886,7 +818,6 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
-
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
@@ -919,27 +850,10 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     std::string path;
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
     {
-        SmallVector<StringRef, 4> argPathComponents, argTagKeys, argTagTables;
-
-        for (auto pathComponentsIterator : explicitPathData[loc].path)
-        {
-            argPathComponents.push_back(ConvertString(pathComponentsIterator, loc));
-        }
-
-        for (auto tagsIterator : explicitPathData[loc].tagMap)
-        {
-            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
-            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
-        }
-
         varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
-            startLocation.getRawEncoding(), endLocation.getRawEncoding(),
-            argPathComponents.data(), argPathComponents.size()));
-        varDecl->addAttr(GaiaExplicitPathTagKeysAttr::CreateImplicit(Context,
-            argTagKeys.data(), argTagKeys.size()));
-        varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context,
-            argTagTables.data(), argTagTables.size()));
+            startLocation.getRawEncoding(), endLocation.getRawEncoding()));
     }
+
     context->addDecl(varDecl);
 
     return varDecl;
@@ -982,18 +896,21 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 
 void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
 {
-    explicitPathData[location] = {startLocation, endLocation, explicitPath,
-        std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
+    ExplicitPathData_t data;
+    data.startLocation = startLocation;
+    data.endLocation = endLocation;
+    data.explicitPath = explicitPath;
+    explicitPathData.emplace(location.getRawEncoding(), data);
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)
 {
-    explicitPathData.erase(location);
+    explicitPathData.erase(location.getRawEncoding());
 }
 
 bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
 {
-    auto data = explicitPathData.find(location);
+    auto data = explicitPathData.find(location.getRawEncoding());
     if (data == explicitPathData.end())
     {
         return false;

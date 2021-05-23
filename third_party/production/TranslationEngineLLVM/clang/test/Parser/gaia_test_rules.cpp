@@ -252,10 +252,10 @@ ruleset test30
 
 ruleset test31
 {
-  OnDelete(incubator) // expected-error {{Invalid Gaia rule attribute}}
+  OnDelete(incubator) // expected-error {{unknown type name 'OnDelete'}}
   {
 
-  } // {{expected ';' after top level declarator}}
+  }// expected-error {{expected ';' after top level declarator}}
 }
 
 ruleset test32
@@ -681,10 +681,10 @@ ruleset test93
 
 ruleset test94
 {
-    Onward(incubator) // expected-error {{Invalid Gaia rule attribute}}
+    Onward(incubator) // expected-error {{unknown type name 'Onward'}}
     {
         incubator.min_temp = 0.0;
-    }
+    } // expected-error {{expected ';' after top level declarator}}
 }
 
 ruleset test95
@@ -803,7 +803,7 @@ ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
 ruleset test110 Table{actuator} // expected-error {{expected '{'}}
 { // expected-error {{expected unqualified-id}}
     {
-        actuator.value=.5;
+        actuator.value=.5; 
     }
 }
 
@@ -824,6 +824,7 @@ ruleset test121 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{
 #endif
 
 // GAIAPLAT-827
+#ifdef TEST_FAILURES
 ruleset test101
 {
     OnChange(sensor.value)
@@ -834,67 +835,30 @@ ruleset test101
         }
     }
 }
-
-// GAIAPLAT-808
-// The I.min_temp doesn't use the tag from the 'if'.
-ruleset testE62
-{
-    OnChange(I:incubator)
-    {
-        if (/I:incubator.max_temp == 100.0) // expected-error {{Tag 'I' is already defined.}}
-                                            // expected-error@-1  {{use of undeclared identifier 'I'}}
-        {
-            I.min_temp ++;
-        }
-    }
-}
-
-// GAIAPLAT-922
-ruleset testE61
-{
-    OnChange(actuator)
-    {
-        if (/I:incubator.max_temp == 100.0)
-        {
-            I:incubator.min_temp ++; // expected-error {{Tag 'I' is already defined.}}
-                                     // expected-error@-1  {{use of undeclared identifier 'incubator'}}
-        }
-
-    }
-}
-
-// GAIAPLAT-808
-ruleset testE6
-{
-    OnChange(actuator)
-    {
-        if (/I:incubator.max_temp == 100.0)
-        {
-            I.min_temp ++;
-        }
-        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog.}}
-                      // expected-error@-1  {{use of undeclared identifier 'I'}}
-    }
-}
+#endif
 
 // GAIAPLAT-821
+#ifdef TEST_FAILURES
 ruleset testE1
 {
     OnUpdate(incubator)
     {
-        if (/@incubator.min_temp) {
+        if (/@incubator) {
             int i = 0;
         }
     }
 }
+#endif
 
 // GAIAPLAT-821
+#ifdef TEST_FAILURES
 ruleset testE2
 {
     {
         min_temp += @incubator->sensor.value;
     }
 }
+#endif
 
 // GAIAPLAT-822
 ruleset testE3

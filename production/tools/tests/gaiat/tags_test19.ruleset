@@ -1,4 +1,4 @@
-// RUN: %gaiat %s --
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test19
 {
@@ -13,3 +13,6 @@ ruleset test19
         }
     }
 }
+
+// GAIAPLAT-831
+// CHECK: Tag 'F' is already defined.

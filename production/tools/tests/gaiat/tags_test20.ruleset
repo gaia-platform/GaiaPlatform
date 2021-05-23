@@ -1,5 +1,4 @@
-// RUN: echo "Tag 'I' defined but not used." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test20
 {

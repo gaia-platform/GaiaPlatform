@@ -223,22 +223,6 @@ class Parser : public CodeCompletionHandler {
   /// The "depth" of the template parameters currently being parsed.
   unsigned TemplateParameterDepth;
 
-  class ExtendedExplicitPathScopeMonitor
-  {
-    public:
-      ExtendedExplicitPathScopeMonitor(Sema &Actions) : m_Actions(Actions)
-      {
-        Actions.EnterExtendedExplicitPathScope();
-      }
-
-      ~ExtendedExplicitPathScopeMonitor()
-      {
-        m_Actions.ExitExtendedExplicitPathScope();
-      }
-    private:
-      Sema& m_Actions;
-  };
-
   /// RAII class that manages the template parameter depth.
   class TemplateParameterDepthRAII {
     unsigned &Depth;

@@ -13,12 +13,10 @@ set(TRANSLATION_ENGINE_INCLUDES
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated
-  ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
 set(GAIAT_SRCS
   src/main.cpp
-  src/table_navigation.cpp
 )
 
 link_directories(

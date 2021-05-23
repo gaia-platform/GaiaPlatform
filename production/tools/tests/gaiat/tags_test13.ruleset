@@ -1,5 +1,4 @@
-// RUN: echo "OnUpdate attributes must refer to the same table." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test13
 {

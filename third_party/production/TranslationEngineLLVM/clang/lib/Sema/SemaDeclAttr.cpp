@@ -2152,6 +2152,48 @@ static bool validateRuleAttribute(StringRef attribute,
   return true;
 }
 
+static void handleGaiaExplicitPathAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  if (!checkAttributeNumArgs(S, AL, 3))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+
+  StringRef path;
+  if (!S.checkStringLiteralArgumentAttr(AL, 0, path))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 0;
+    return;
+  }
+
+  uint32_t startLocation = 0;
+  Expr *startLocationExpr = AL.getArgAsExpr(1);
+  if (!checkUInt32Argument(S, AL, startLocationExpr, startLocation))
+    return;
+
+  uint32_t endLocation = 0;
+  Expr *endLocationExpr = AL.getArgAsExpr(2);
+  if (!checkUInt32Argument(S, AL, endLocationExpr, endLocation))
+    return;
+
+  if (startLocation == 0 && endLocation == 0)
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 1;
+    return;
+  }
+  if (startLocation > endLocation)
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_invalid) << AL << 1;
+    return;
+  }
+
+  D->addAttr(::new (S.Context)
+             GaiaExplicitPathAttr(AL.getLoc(), S.Context, path,  startLocation, endLocation,
+                                         AL.getAttributeSpellingListIndex()));
+}
+
 static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
   if (!checkAttributeAtLeastNumArgs(S, AL, 1))
@@ -2222,9 +2264,44 @@ static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     AL.getAttributeSpellingListIndex()));
 }
 
+static void handleFieldTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  IdentifierLoc *tableArg = AL.getArgAsIdent(0);
+  if (!AL.isArgIdent(0))
+  {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+      << AL << AANT_ArgumentIdentifier;
+    return;
+  }
+  D->addAttr(::new (S.Context) FieldTableAttr(
+    AL.getRange(), S.Context, tableArg->Ident,
+    AL.getAttributeSpellingListIndex()));
+}
+
 static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
   D->addAttr(::new (S.Context) RuleAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaFieldLValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
+}
+
+static void handleFieldAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  D->addAttr(::new (S.Context) GaiaFieldAttr(
+    AL.getRange(), S.Context,
+    AL.getAttributeSpellingListIndex()));
+}
+
+static void handleFieldValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  D->addAttr(::new (S.Context) GaiaFieldValueAttr(
     AL.getRange(), S.Context,
     AL.getAttributeSpellingListIndex()));
 }
@@ -7244,13 +7321,28 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_Rule:
     handleRuleAttr(S, D, AL);
     break;
+  case ParsedAttr::AT_GaiaField:
+    handleFieldAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaFieldValue:
+    handleFieldValueAttr(S, D, AL);
+    break;
   case ParsedAttr::AT_SerialStream:
     handleStreamAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaFieldLValue:
+    handleGaiaFieldLValueAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_FieldTable:
+    handleFieldTableAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaOnUpdate:
   case ParsedAttr::AT_GaiaOnInsert:
   case ParsedAttr::AT_GaiaOnChange:
     handleGaiaRuleAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaExplicitPath:
+    handleGaiaExplicitPathAttr(S, D, AL);
     break;
   }
 }

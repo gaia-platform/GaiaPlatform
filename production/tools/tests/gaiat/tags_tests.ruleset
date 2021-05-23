@@ -62,16 +62,17 @@ ruleset test6 : Table(actuator)
     }
 }
 
-ruleset test7
-{
-    // One table.
-    OnUpdate(A:actuator)
-    {
-        use_float(A.value);
-        float v;
-        v = A.value;
-    }
-}
+// GAIAPLAT-907
+// ruleset test7
+// {
+//     // One table.
+//     OnUpdate(A:actuator)
+//     {
+//         use_float(A.value);
+//         float v;
+//         v = A.value;
+//     }
+// }
 
 ruleset test8
 {
@@ -212,7 +213,7 @@ ruleset testE3
 }
 
 // GAIAPLAT-829
-ruleset testE4
+ruleset testE11
 {
     OnUpdate(incubator)
     {
@@ -229,7 +230,7 @@ ruleset testE4
 }
 
 // GAIAPLAT-829
-ruleset testE5
+ruleset testE2
 {
     OnUpdate(incubator)
     {
@@ -243,7 +244,7 @@ ruleset testE5
 }
 
 // GAIAPLAT-829
-ruleset testE6
+ruleset testE3
 {
     OnUpdate(incubator)
     {
