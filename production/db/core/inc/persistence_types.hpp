@@ -35,11 +35,8 @@ enum class record_type_t : uint8_t
 {
     not_set = 0x0,
     txn = 0x1,
-    txn_first = 0x2,
-    txn_middle = 0x3,
-    txn_last = 0x4,
-    decision = 0x5,
-    file_header = 0x6,
+    decision = 0x2,
+    file_header = 0x3,
 };
 
 enum class txn_decision_type_t : uint8_t
@@ -56,18 +53,6 @@ struct txn_decision_record_t
     txn_decision_type_t decision;
 };
 
-// Generate one for the current file and for every file we close.
-// The first 4 bytes in this file will represent the crc and the next byte will
-// represent the system endianess.
-// Keep re-writing the metadata file every time.
-struct txn_index_metadata_t
-{
-    size_t file_size;
-    wal_sequence_t index;
-    size_t decision_size;
-    txn_decision_record_t decisions[];
-};
-
 struct txn_index_entry_t
 {
     wal_sequence_t index;
@@ -76,22 +61,18 @@ struct txn_index_entry_t
 
 struct record_header_t
 {
-    crc32_t crc; // 4
+    crc32_t crc;
 
-    record_size_t payload_size; // 4
-    record_type_t record_type; // 1
+    record_size_t payload_size;
+    record_type_t record_type;
 
     // The wal_index and the offset uniquely represent the location of a txn's updates in the log.
-    txn_index_entry_t entry; // 8
+    txn_index_entry_t entry;
 
-    gaia_txn_id_t txn_commit_ts; // 8
+    gaia_txn_id_t txn_commit_ts;
 
     // Deleted IDs in the txn record.
-    size_t deleted_count; // 8
-
-    // Location of a decision record that came before the current decision record. Add it in the payload
-    // of the decision record.
-    // txn_index_entry_t prev_entry;
+    size_t deleted_count;
 };
 
 struct read_record_t
@@ -130,9 +111,7 @@ struct record_iterator
 // 2) custom txn headers
 // 3) Txn decisions
 // 4) iovec entries to be supplied to the pwritev() call.
-// The amount of space needed is constrained by the size of the I/O batch.
-// Force flush the current I/O batch if this buffer gets full.
-static constexpr size_t c_max_helper_buf_size = 1000 * 1024 * 1024;
+static constexpr size_t c_max_helper_buf_size = 16 * 1024 * 1024;
 
 struct helper_buffer_t
 {

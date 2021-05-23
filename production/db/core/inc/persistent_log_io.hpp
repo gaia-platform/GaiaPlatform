@@ -36,30 +36,21 @@ static constexpr crc32_t c_crc_initial_value = ((uint32_t)-1);
 class wal_writer_t
 {
 public:
-    // Hardcode wal segment size for now. Add an option to the server config file.
+    // Hardcode wal segment size for now.
     static constexpr uint64_t file_size = 4 * 1024 * 1024;
 
     static inline std::string dir_path{};
     static inline int dir_fd = 0;
-
-    // No need to recover file_num since recovery is expected to cleanup all log files.
     static inline wal_sequence_t file_num = 1;
 
     wal_writer_t(std::string& dir_path, int dir_fd);
     ~wal_writer_t();
 
-    // Keep track of the current file that the transaction is writing to.
-    // Operations allocate space to the file and close it are performed async with io_uring.
-    // Open will be performed synchronously.
+    // Keep track of the current log file.
     std::unique_ptr<wal_file_t> current_file;
 
-    // IOUring Manager.
     std::unique_ptr<io_uring_manager_t> io_uring_manager;
 
-    // Encodes all writes belonging to a txn and returns a vector<iovec> which is then
-    // supplied to one or more pwritev() calls.
-    // In the current implementation 'encoding' is fairly simply, there are no fixups to the
-    // object payload and we simply write the payload to the log.
     void create_txn_record(
         gaia_txn_id_t commit_ts,
         size_t payload_size,
@@ -67,10 +58,6 @@ public:
         std::vector<gaia_offset_t>& object_offsets,
         gaia::common::gaia_id_t* deleted_ids,
         size_t deleted_id_count);
-
-    void encode_decision_record(
-        std::vector<gaia_txn_id_t>& decision_commit_ts,
-        std::vector<iovec>& writes_to_submit);
 
     void process_txn_log(txn_log_t* txn_log, gaia_txn_id_t commit_ts);
 

@@ -145,22 +145,11 @@ void wal_writer_t::process_txn_log(txn_log_t* txn_log, gaia_txn_id_t commit_ts)
     create_txn_record(commit_ts, payload_size, record_type_t::txn, contiguous_offsets, &txn_log->deleted_ids[0], txn_log->deleted_count);
 }
 
-void wal_writer_t::create_decision_record(
-    std::vector<std::pair<gaia_txn_id_t, txn_decision_type_t>>& txn_decisions)
-{
-}
-
-// Test: Encode multiple txn records.
-// Max number of SQEs. You need to reduce the number of pwritecalls.
-// Per txn batch maintain a helper buffer with size
-// This API assumes that we preprocessed the offsets and only send object
-// offsets that can fit into the current log file.
-// Assumption is all writes fit inside current log file.
 void wal_writer_t::create_txn_record(
     gaia_txn_id_t commit_ts,
-    size_t payload_size, // Excludes the header.
+    size_t payload_size,
     record_type_t type,
-    std::vector<gaia_offset_t>& object_offsets,
+    std::vector<gaia_offset_t>& contiguous_offsets,
     gaia_id_t* deleted_ids,
     size_t deleted_id_count)
 {
@@ -175,7 +164,6 @@ void wal_writer_t::create_txn_record(
     header.entry.index = current_file->file_num;
     header.entry.offset = current_file->current_offset;
 
-    // Compute CRC and extend it with the objects.
     crc32_t txn_crc = 0;
     txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
 
@@ -184,10 +172,10 @@ void wal_writer_t::create_txn_record(
     writes_to_submit.push_back(header_entry);
 
     // Calculate crc and create pwrite entries.
-    for (size_t i = 0; i < object_offsets.size(); i += 2)
+    for (size_t i = 0; i < contiguous_offsets.size(); i += 2)
     {
-        auto ptr = offset_to_ptr(object_offsets.at(i));
-        auto chunk_size = object_offsets.at(i + 1) - object_offsets.at(i);
+        auto ptr = offset_to_ptr(contiguous_offsets.at(i));
+        auto chunk_size = contiguous_offsets.at(i + 1) - contiguous_offsets.at(i);
 
         txn_crc = calculate_crc32(txn_crc, ptr, chunk_size);
 
@@ -242,9 +230,7 @@ wal_reader_t::get_next_wal_record(struct record_iterator* it, read_record_t* des
     return -1;
 }
 
-// This API could be made generic based on type of the destination pointer.
-size_t
-wal_reader_t::update_cursor(struct record_iterator* it, read_record_t* destination)
+size_t wal_reader_t::update_cursor(struct record_iterator* it, read_record_t* destination)
 {
     destination = reinterpret_cast<read_record_t*>(it->cursor);
     if (destination->header.crc == 0)
