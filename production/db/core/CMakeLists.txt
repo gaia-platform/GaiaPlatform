@@ -24,6 +24,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${ROCKSDB_INC}"
+  "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
 
@@ -113,6 +114,34 @@ set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+# Liburing
+message(CHECK_START "Looking for liburing")
+find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
+find_library(LIBURING_LIBRARY NAMES liburing.a)
+if (LIBURING_LIBRARY)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+  message(FATAL_ERROR "liburing is required.")
+endif()
+
+add_library(persistence STATIC
+  src/wal_file.cpp
+  src/io_uring_wrapper.cpp
+  src/io_uring_manager.cpp
+  src/persistent_log_io.cpp)
+target_include_directories(persistence PRIVATE
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+target_include_directories(persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(persistence SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
+# Only need util, not all of rocks.
+target_link_libraries(persistence rocksdb "${LIBURING_LIBRARY}")
+set_target_properties(persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+set_property (TARGET persistence PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
   src/txn_metadata.cpp
@@ -138,7 +167,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
@@ -221,6 +250,12 @@ add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}
 add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
+add_gtest(test_log_write tests/test_log_write.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
+
+add_gtest(test_io_uring_manager
+  tests/test_io_uring_manager.cpp
+  "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_REPO}/production/db/core/inc;${GAIA_INC};${FLATBUFFERS_INC}"
+  "gaia_common;persistence;${LIB_EXPLAIN};${LIB_CAP}")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

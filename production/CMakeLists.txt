@@ -79,6 +79,7 @@ set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
+set(ROCKSDB_UTIL "${ROCKSDB}/util")
 
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
