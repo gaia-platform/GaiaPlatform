@@ -15,6 +15,8 @@ using namespace gaia::db::index;
 
 constexpr std::size_t c_default_seed = 1182248752;
 constexpr std::size_t c_golden_ratio = 0x9e3779b9;
+constexpr std::size_t c_seed_left_shift = 6;
+constexpr std::size_t c_seed_right_shift = 2;
 
 namespace gaia
 {
@@ -94,7 +96,7 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
     */
     for (payload_types::data_holder_t data : key.m_key_values)
     {
-        seed ^= data.hash() + c_golden_ratio + (seed << 6) + (seed >> 2); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+        seed ^= data.hash() + c_golden_ratio + (seed << c_seed_left_shift) + (seed >> c_seed_right_shift);
     }
 
     return seed;

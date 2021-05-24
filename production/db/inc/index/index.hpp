@@ -139,6 +139,7 @@ protected:
     T_structure m_index;
 
     // Find physical key corresponding to a logical_key + record or return the end iterator.
+    // Returns the iterator type of the underlying structure.
     auto find_physical_key(index_key_t& key, index_record_t& record);
 };
 

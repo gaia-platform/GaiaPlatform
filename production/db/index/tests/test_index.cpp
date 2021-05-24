@@ -12,14 +12,15 @@
 using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
 
-constexpr gaia::db::gaia_txn_id_t c_fake_txid = 777;
+// Placeholder values for index records.
+constexpr gaia::db::gaia_txn_id_t c_fake_txn_id = 777;
 constexpr gaia::db::gaia_offset_t c_fake_offset = 0;
 
 index_record_t create_index_record()
 {
     static gaia::db::gaia_locator_t locator = 0;
 
-    return {c_fake_txid, c_fake_offset, locator++, false};
+    return {c_fake_txn_id, c_fake_offset, locator++, false};
 }
 
 TEST(index, empty_range_index)
@@ -55,7 +56,7 @@ TEST(index, one_record_hash_index)
 
     for (const auto& [k, r] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -71,7 +72,7 @@ TEST(index, one_record_range_index)
 
     for (const auto& [k, r] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -89,7 +90,7 @@ TEST(index, single_key_multi_record_hash_index)
 
     for (const auto& [k, r] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -107,7 +108,7 @@ TEST(index, single_key_multi_record_range_index)
 
     for (const auto& [k, r] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -127,7 +128,7 @@ TEST(index, multi_key_multi_record_hash_index)
 
     for (const auto& [k, r] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -147,7 +148,7 @@ TEST(index, multi_key_multi_record_range_index)
 
     for (const auto& [k, r] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -169,7 +170,7 @@ TEST(index, range_update_test)
 
     for (const auto& [k, r] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -191,7 +192,7 @@ TEST(index, hash_update_test)
 
     for (const auto& [k, r] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txid);
+        ASSERT_EQ(r.txn_id, c_fake_txn_id);
         count++;
     }
 

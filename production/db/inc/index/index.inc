@@ -63,16 +63,16 @@ std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>:
     return [end_iter = m_index.cend(), lock = {std::move(lock)}, it, txn_id]() mutable -> std::optional<index_record_t> {
         while (it != end_iter)
         {
-            index_record_t rec = it->second;
+            index_record_t record = it->second;
 
-            if (rec.txn_id > txn_id)
+            if (record.txn_id > txn_id)
             {
                 ++it;
             }
             else
             {
                 ++it;
-                return rec;
+                return record;
             }
         }
         // Signal end of iteration.
@@ -81,17 +81,18 @@ std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>:
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.
+
 template <typename T_structure, typename T_iterator>
 auto index_t<T_structure, T_iterator>::find_physical_key(index_key_t& key, index_record_t& record)
 {
-    auto idx_rec = m_index.find(key);
-    while (idx_rec != m_index.end() && idx_rec->first == key)
+    auto it = m_index.find(key);
+    while (it != m_index.end() && it->first == key)
     {
-        if (idx_rec->second.locator == record.locator && idx_rec->second.txn_id == record.txn_id)
+        if (it->second.locator == record.locator && it->second.txn_id == record.txn_id)
         {
-            return idx_rec;
+            return it;
         }
-        ++idx_rec;
+        ++it;
     }
 
     return m_index.end();
