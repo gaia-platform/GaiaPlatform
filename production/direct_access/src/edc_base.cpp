@@ -10,6 +10,8 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
+#define USE_LOCATOR_ITERATION
+
 using namespace gaia::db;
 using namespace std;
 using namespace gaia::common;
@@ -79,6 +81,7 @@ bool edc_iterator_state_t::is_set()
 
 bool edc_db_t::initialize_iterator(gaia_type_t container_type_id, edc_iterator_state_t& iterator_state)
 {
+#ifdef USE_LOCATOR_ITERATION
     if (!iterator_state.m_state)
     {
         iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(gaia_ptr_t));
@@ -87,63 +90,62 @@ bool edc_db_t::initialize_iterator(gaia_type_t container_type_id, edc_iterator_s
     gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
     gaia_ptr = gaia_ptr_t::find_first(container_type_id);
     return static_cast<bool>(gaia_ptr);
+#else
+    if (!iterator_state.m_state)
+    {
+        iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(generator_iterator_t<gaia_ptr_t>));
+    }
 
-    // if (!iterator_state.m_state)
-    // {
-    //     iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(generator_iterator_t<gaia_ptr_t>));
-    // }
-
-    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-    //     &iterator_state.m_state[0]);
-    // iterator = gaia_ptr_t::find_all_iterator(container_type_id);
-    // return static_cast<bool>(iterator);
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state[0]);
+    iterator = gaia_ptr_t::find_all_iterator(container_type_id);
+    return static_cast<bool>(iterator);
+#endif
 }
 
 gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
 {
     ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to access unset iterator state!");
 
+#ifdef USE_LOCATOR_ITERATION
     gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
     if (!gaia_ptr)
     {
         return c_invalid_gaia_id;
     }
     return gaia_ptr.id();
-
-    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-    //     &iterator_state.m_state[0]);
-    // if (iterator)
-    // {
-    //     gaia_ptr_t gaia_ptr = *iterator;
-    //     return gaia_ptr.id();
-    // }
-    // else
-    // {
-    //    return c_invalid_gaia_id;
-    // }
+#else
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state[0]);
+    if (!iterator)
+    {
+        return c_invalid_gaia_id;
+    }
+    gaia_ptr_t gaia_ptr = *iterator;
+    return gaia_ptr.id();
+#endif
 }
 
 bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
 {
     ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to advance unset iterator state!");
 
+#ifdef USE_LOCATOR_ITERATION
     gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
     if (gaia_ptr)
     {
         gaia_ptr = gaia_ptr.find_next();
     }
     return static_cast<bool>(gaia_ptr);
-
-    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-    //     &iterator_state.m_state[0]);
-    // if (iterator)
-    // {
-    //     return static_cast<bool>(++iterator);
-    // }
-    // else
-    // {
-    //    return false;
-    // }
+#else
+    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+        &iterator_state.m_state[0]);
+    if (iterator)
+    {
+        return static_cast<bool>(++iterator);
+    }
+    return false;
+#endif
 }
 
 gaia_id_t edc_db_t::find_first(gaia_type_t container)
