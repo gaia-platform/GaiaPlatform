@@ -93,6 +93,7 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
     /*
     * Combine hash values for each key.
     * The algorithm here is same as boost::hash_combine.
+    * Taken from http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.18.2680
     */
     for (payload_types::data_holder_t data : key.m_key_values)
     {

@@ -64,14 +64,10 @@ std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>:
         while (it != end_iter)
         {
             index_record_t record = it->second;
+            ++it;
 
-            if (record.txn_id > txn_id)
+            if (record.txn.id <= txn_id)
             {
-                ++it;
-            }
-            else
-            {
-                ++it;
                 return record;
             }
         }
