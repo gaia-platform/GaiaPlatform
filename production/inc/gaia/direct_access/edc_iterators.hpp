@@ -7,6 +7,8 @@
 
 #include "gaia/direct_access/edc_base.hpp"
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 namespace gaia
 {
 
@@ -33,9 +35,15 @@ namespace direct_access
 // Only used from edc_container_t template, which defines the begin(), where() and end().
 //
 // @tparam T_class the Extended Data Class
+template <gaia::common::gaia_type_t container_type_id, typename T_class>
+class edc_container_t;
+
 template <typename T_class>
 class edc_iterator_t : protected edc_db_t
 {
+    template <gaia::common::gaia_type_t container_type_id, typename T_whatever_class>
+    friend class edc_container_t;
+
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_class;
@@ -43,8 +51,6 @@ public:
     using reference = T_class&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit edc_iterator_t(gaia::common::gaia_id_t id);
-    explicit edc_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function);
     edc_iterator_t() = default;
 
     edc_iterator_t<T_class>& operator++();
@@ -54,7 +60,13 @@ public:
     reference operator*();
     pointer operator->();
 
-private:
+protected:
+    explicit edc_iterator_t(edc_iterator_state_t& iterator_state);
+    explicit edc_iterator_t(edc_iterator_state_t& iterator_state, std::function<bool(const T_class&)> filter_function);
+    explicit edc_iterator_t(gaia::common::gaia_id_t id);
+
+protected:
+    edc_iterator_state_t m_iterator_state;
     T_class m_obj;
     std::function<bool(const T_class&)> m_filter_fn;
 };

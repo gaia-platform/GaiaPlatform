@@ -65,8 +65,86 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
+// edc_iterator_state_t implementation
+//
+
+bool edc_iterator_state_t::is_set()
+{
+    return static_cast<bool>(m_state);
+}
+
+//
 // edc_db_t implementation
 //
+
+bool edc_db_t::initialize_iterator(gaia_type_t container_type_id, edc_iterator_state_t& iterator_state)
+{
+    if (!iterator_state.m_state)
+    {
+        iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(gaia_ptr_t));
+    }
+
+    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    gaia_ptr = gaia_ptr_t::find_first(container_type_id);
+    return static_cast<bool>(gaia_ptr);
+
+    // if (!iterator_state.m_state)
+    // {
+    //     iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(generator_iterator_t<gaia_ptr_t>));
+    // }
+
+    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+    //     &iterator_state.m_state[0]);
+    // iterator = gaia_ptr_t::find_all_iterator(container_type_id);
+    // return static_cast<bool>(iterator);
+}
+
+gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
+{
+    ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to access unset iterator state!");
+
+    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    if (!gaia_ptr)
+    {
+        return c_invalid_gaia_id;
+    }
+    return gaia_ptr.id();
+
+    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+    //     &iterator_state.m_state[0]);
+    // if (iterator)
+    // {
+    //     gaia_ptr_t gaia_ptr = *iterator;
+    //     return gaia_ptr.id();
+    // }
+    // else
+    // {
+    //    return c_invalid_gaia_id;
+    // }
+}
+
+bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
+{
+    ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to advance unset iterator state!");
+
+    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    if (gaia_ptr)
+    {
+        gaia_ptr = gaia_ptr.find_next();
+    }
+    return static_cast<bool>(gaia_ptr);
+
+    // generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
+    //     &iterator_state.m_state[0]);
+    // if (iterator)
+    // {
+    //     return static_cast<bool>(++iterator);
+    // }
+    // else
+    // {
+    //    return false;
+    // }
+}
 
 gaia_id_t edc_db_t::find_first(gaia_type_t container)
 {
@@ -75,7 +153,6 @@ gaia_id_t edc_db_t::find_first(gaia_type_t container)
     {
         return c_invalid_gaia_id;
     }
-
     return gaia_ptr.id();
 }
 

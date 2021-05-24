@@ -23,12 +23,35 @@ namespace direct_access
 {
 
 /**
+ * Used by iterator class to maintain state of an iteration.
+ *
+ * This is just a pointer wrapper, to isolate callers from the internal implementation details.
+ */
+class edc_db_t;
+class edc_iterator_state_t
+{
+    friend class edc_db_t;
+
+public:
+    bool is_set();
+
+private:
+    // The iterator state.
+    std::shared_ptr<uint8_t[]> m_state;
+};
+
+/**
  * Used by edc object, writer, and iterator classes.
  * Not for use outside the context of those classes.
  */
 class edc_db_t
 {
 protected:
+    // Low-level interface for iterating over objects of a given container.
+    static bool initialize_iterator(common::gaia_type_t container_type_id, edc_iterator_state_t& iterator_state);
+    static common::gaia_id_t get_iterator_value(edc_iterator_state_t& iterator_state);
+    static bool advance_iterator(edc_iterator_state_t& iterator_state);
+
     static common::gaia_id_t find_first(common::gaia_type_t container);
     static common::gaia_id_t find_next(common::gaia_id_t id);
 
