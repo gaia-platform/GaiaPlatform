@@ -17,12 +17,7 @@ namespace db
 namespace index
 {
 
-namespace
-{
 using hash_type = std::unordered_multimap<index_key_t, index_record_t, index_key_hash>;
-} // namespace
-
-// Const output iterator for hash_index
 using hash_index_iterator_t = locking_iterator_t<hash_type, hash_type::const_iterator>;
 
 /**

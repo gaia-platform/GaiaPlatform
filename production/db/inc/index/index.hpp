@@ -73,10 +73,10 @@ struct index_key_hash
 */
 
 template <typename T_structure>
-class index_writer_t
+class index_writer_guard_t
 {
 public:
-    index_writer_t(base_index_t* db_idx, T_structure& index)
+    index_writer_guard_t(base_index_t* db_idx, T_structure& index)
         : m_db_idx(db_idx), m_index(index)
     {
         m_db_idx->get_lock().lock();
@@ -87,7 +87,7 @@ public:
         return m_index;
     }
 
-    ~index_writer_t()
+    ~index_writer_guard_t()
     {
         m_db_idx->get_lock().unlock();
     }
@@ -127,7 +127,7 @@ public:
     void clear() override;
 
     // RAII class for bulk index maintenance operations
-    index_writer_t<T_structure> get_writer();
+    index_writer_guard_t<T_structure> get_writer();
 
     std::function<std::optional<index_record_t>()> generator(gaia_txn_id_t txn_id) override;
 

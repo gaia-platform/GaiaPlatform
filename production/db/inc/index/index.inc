@@ -49,9 +49,9 @@ void index_t<T_structure, T_iterator>::clear()
 
 // RAII class for bulk index maintenance operations
 template <typename T_structure, typename T_iterator>
-index_writer_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
+index_writer_guard_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
 {
-    return index_writer_t<T_structure>(this, m_index);
+    return index_writer_guard_t<T_structure>(this, m_index);
 }
 
 template <typename T_structure, typename T_iterator>

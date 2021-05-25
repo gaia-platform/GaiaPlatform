@@ -19,11 +19,7 @@ namespace db
 namespace index
 {
 
-namespace
-{
 using range_type = std::multimap<index_key_t, index_record_t>;
-} // namespace
-
 using range_index_iterator_t = locking_iterator_t<range_type, range_type::const_iterator>;
 
 /**
