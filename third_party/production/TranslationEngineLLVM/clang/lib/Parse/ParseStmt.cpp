@@ -1291,6 +1291,24 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     }
     if (Tok.is(tok::kw_nomatch))
     {
+      // Remove tags that may have been declared in the if
+      SourceLocation startLocation = IfLoc;
+      SourceLocation endLocation ;
+      if (ElseStmt.get() != nullptr)
+      {
+        endLocation = ElseStmt.get()->getEndLoc();
+      }
+      else
+      {
+        endLocation = ThenStmt.get()->getEndLoc();
+      }
+
+      if (!Actions.RemoveTagData(SourceRange(startLocation, endLocation)))
+      {
+        Diag(startLocation, diag::err_nomatch_without_navigation);
+        return StmtError();
+      }
+
       if (TrailingElseLoc)
         *TrailingElseLoc = Tok.getLocation();
 

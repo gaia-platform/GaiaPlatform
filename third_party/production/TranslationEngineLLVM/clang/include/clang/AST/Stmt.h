@@ -168,6 +168,9 @@ protected:
     /// True if this if statement has storage for an init statement.
     unsigned HasInit : 1;
 
+    /// True if this if statement has storage for a NoMatch statement.
+    unsigned HasNoMatch : 1;
+
     /// The location of the "if".
     SourceLocation IfLoc;
   };
@@ -1711,16 +1714,16 @@ class IfStmt final
   //
   // * A "SourceLocation" for the location of the "else".
   //    Present if and only if hasElseStorage().
-  enum { InitOffset = 0, ThenOffsetFromCond = 1, ElseOffsetFromCond = 2 };
+  enum { InitOffset = 0, ThenOffsetFromCond = 1, ElseOffsetFromCond = 2, NoMatchOffsetFromCond = 3};
   enum { NumMandatoryStmtPtr = 2 };
 
   unsigned numTrailingObjects(OverloadToken<Stmt *>) const {
     return NumMandatoryStmtPtr + hasElseStorage() + hasVarStorage() +
-           hasInitStorage();
+           hasInitStorage() + hasNoMatchStorage();
   }
 
   unsigned numTrailingObjects(OverloadToken<SourceLocation>) const {
-    return hasElseStorage();
+    return hasElseStorage() + hasNoMatchStorage();
   }
 
   unsigned initOffset() const { return InitOffset; }
@@ -1730,6 +1733,7 @@ class IfStmt final
   }
   unsigned thenOffset() const { return condOffset() + ThenOffsetFromCond; }
   unsigned elseOffset() const { return condOffset() + ElseOffsetFromCond; }
+  unsigned nomatchOffset() const { return condOffset() + NoMatchOffsetFromCond; }
 
   /// Build an if/then/else/nomatch statement.
   IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr, Stmt *Init,
@@ -1739,7 +1743,6 @@ class IfStmt final
   explicit IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool HasNoMatch);
 
   SourceLocation NoMatchLocation;
-  Stmt *NoMatchStmt;
 
 public:
   /// Create an IfStmt.
@@ -1762,6 +1765,9 @@ public:
 
   /// True if this IfStmt has storage for an else statement.
   bool hasElseStorage() const { return IfStmtBits.HasElse; }
+
+  /// True if this IfStmt has storage for a nomatch statement.
+  bool hasNoMatchStorage() const { return IfStmtBits.HasNoMatch; }
 
   Expr *getCond() {
     return reinterpret_cast<Expr *>(getTrailingObjects<Stmt *>()[condOffset()]);
@@ -1801,15 +1807,19 @@ public:
   }
 
   Stmt *getNoMatch() {
-    return NoMatchStmt;
+    return hasNoMatchStorage() ? getTrailingObjects<Stmt *>()[nomatchOffset()]
+                            : nullptr;
   }
 
   const Stmt *getNoMatch() const {
-    return NoMatchStmt;
+    return hasNoMatchStorage() ? getTrailingObjects<Stmt *>()[nomatchOffset()]
+                            : nullptr;
   }
 
   void setNoMatch(Stmt *NoMatch) {
-    NoMatchStmt = NoMatch;
+    assert(hasNoMatchStorage() &&
+           "This if statement has no storage for nomatch statement!");
+    getTrailingObjects<Stmt *>()[nomatchOffset()] = NoMatch;
   }
 
   /// Retrieve the variable declared in this "if" statement, if any.
@@ -1891,11 +1901,11 @@ public:
     SourceLocation endLocation = getThen()->getEndLoc();
     if (getElse())
       endLocation = getElse()->getEndLoc();
-    if (NoMatchStmt != nullptr)
+    if (getNoMatch() != nullptr)
     {
-      if (endLocation < NoMatchStmt->getEndLoc())
+      if (endLocation < getNoMatch()->getEndLoc())
       {
-        endLocation = NoMatchStmt->getEndLoc();
+        endLocation = getNoMatch()->getEndLoc();
       }
     }
     return endLocation;

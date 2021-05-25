@@ -9536,6 +9536,4 @@ def err_tag_redefined : Error<
     "Tag '%0' is already defined.">;
 def err_incorrect_tag_use_in_path : Error<
     "Tag '%0' cannot be used in this context.">;
-def err_nomatch_without_navigation : Error<
-    "nomatch cannot be used if decarative references are nout used in if condition.">;
 } // end of sema component.

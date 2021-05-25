@@ -3259,3 +3259,16 @@ def GaiaExplicitPathTagValues : Attr {
   let Documentation = [Undocumented];
   let Args = [VariadicStringArgument<"tagMapValues">];
 }
+
+def GaiaExplicitPathDefinedTagKeys : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathDefinedTagKeys">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapKeys">];
+}
+def GaiaExplicitPathDefinedTagValues : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathDefinedTagValues">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapValues">];
+}

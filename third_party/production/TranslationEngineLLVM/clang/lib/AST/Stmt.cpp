@@ -812,9 +812,11 @@ IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
   bool HasElse = Else != nullptr;
   bool HasVar = Var != nullptr;
   bool HasInit = Init != nullptr;
+  bool HasNoMatch = NoMatch != nullptr;
   IfStmtBits.HasElse = HasElse;
   IfStmtBits.HasVar = HasVar;
   IfStmtBits.HasInit = HasInit;
+  IfStmtBits.HasNoMatch = HasNoMatch;
 
   setConstexpr(IsConstexpr);
 
@@ -826,8 +828,8 @@ IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
     setConditionVariable(Ctx, Var);
   if (HasInit)
     setInit(Init);
-
-  setNoMatch(NoMatch);
+  if (HasNoMatch)
+    setNoMatch(NoMatch);
 
   setIfLoc(IL);
   if (HasElse)
@@ -840,6 +842,7 @@ IfStmt::IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool H
   IfStmtBits.HasElse = HasElse;
   IfStmtBits.HasVar = HasVar;
   IfStmtBits.HasInit = HasInit;
+  IfStmtBits.HasNoMatch = HasNoMatch;
 }
 
 IfStmt *IfStmt::Create(const ASTContext &Ctx, SourceLocation IL,
@@ -849,9 +852,10 @@ IfStmt *IfStmt::Create(const ASTContext &Ctx, SourceLocation IL,
   bool HasElse = Else != nullptr;
   bool HasVar = Var != nullptr;
   bool HasInit = Init != nullptr;
+  bool HasNoMatch = NoMatch != nullptr;
   void *Mem = Ctx.Allocate(
       totalSizeToAlloc<Stmt *, SourceLocation>(
-          NumMandatoryStmtPtr + HasElse + HasVar + HasInit, HasElse),
+          NumMandatoryStmtPtr + HasElse + HasVar + HasInit + HasNoMatch, HasElse + HasNoMatch),
       alignof(IfStmt));
   return new (Mem)
       IfStmt(Ctx, IL, IsConstexpr, Init, Var, Cond, Then, EL, Else, NML, NoMatch);
@@ -861,7 +865,7 @@ IfStmt *IfStmt::CreateEmpty(const ASTContext &Ctx, bool HasElse, bool HasVar,
                             bool HasInit, bool HasNoMatch) {
   void *Mem = Ctx.Allocate(
       totalSizeToAlloc<Stmt *, SourceLocation>(
-          NumMandatoryStmtPtr + HasElse + HasVar + HasInit, HasElse),
+          NumMandatoryStmtPtr + HasElse + HasVar + HasInit + HasNoMatch, HasElse + HasNoMatch),
       alignof(IfStmt));
   return new (Mem) IfStmt(EmptyShell(), HasElse, HasVar, HasInit, HasNoMatch);
 }

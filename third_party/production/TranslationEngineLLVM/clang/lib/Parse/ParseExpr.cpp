@@ -1483,6 +1483,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
               auto pathAttr = decl->getAttr<GaiaExplicitPathAttr>();
               auto tagMapKeyAttr = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
               auto tagMapValueAttr = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
+              auto definedTagMapKeyAttr = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
+              auto definedTagMapValueAttr = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
               decl->dropAttrs();
               decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
               if (tableAttr != nullptr)
@@ -1495,6 +1497,12 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                 decl->addAttr(pathAttr);
                 decl->addAttr(tagMapKeyAttr);
                 decl->addAttr(tagMapValueAttr);
+              }
+
+              if (definedTagMapKeyAttr !=nullptr)
+              {
+                decl->addAttr(definedTagMapKeyAttr);
+                decl->addAttr(definedTagMapValueAttr);
               }
             }
             else

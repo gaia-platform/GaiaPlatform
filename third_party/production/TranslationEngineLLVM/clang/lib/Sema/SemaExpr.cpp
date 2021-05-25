@@ -2084,7 +2084,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   IdentifierInfo *II = Name.getAsIdentifierInfo();
   SourceLocation NameLoc = NameInfo.getLoc();
 
-   if (SS.isInvalid())
+  if (SS.isInvalid())
   {
     RemoveExplicitPathData(NameLoc);
     return ExprError();

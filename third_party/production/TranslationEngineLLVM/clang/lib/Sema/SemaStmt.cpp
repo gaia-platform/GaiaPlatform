@@ -555,19 +555,7 @@ Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
     {
       endLocation = NoMatchStmt->getEndLoc();
     }
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-
-      if (startLocationIterator == extendedExplicitPathTagMapping.end()
-        && endLocationIterator == extendedExplicitPathTagMapping.end() && NoMatchStmt != nullptr)
-      {
-        Diag(startLocation, diag::err_nomatch_without_navigation);
-        return StmtError();
-      }
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(startLocation, endLocation));
   }
 
   if (Cond.isInvalid())
@@ -868,12 +856,7 @@ Sema::ActOnFinishSwitchStmt(SourceLocation SwitchLoc, Stmt *Switch,
     {
       endLocation = SS->getEndLoc();
     }
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(startLocation, endLocation));
   }
 
   bool CaseListIsIncomplete = getCurFunction()->SwitchStack.back().getInt();
@@ -1344,15 +1327,7 @@ StmtResult Sema::ActOnWhileStmt(SourceLocation WhileLoc, ConditionResult Cond,
                                 Stmt *Body) {
   if (getLangOpts().Gaia)
   {
-    SourceLocation startLocation = WhileLoc;
-    SourceLocation endLocation = Body->getEndLoc();
-
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(WhileLoc, Body->getEndLoc()));
   }
   if (Cond.isInvalid())
     return StmtError();
@@ -1809,15 +1784,7 @@ StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
                               Stmt *Body) {
   if (getLangOpts().Gaia)
   {
-    SourceLocation startLocation = ForLoc;
-    SourceLocation endLocation = Body->getEndLoc();
-
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
   }
 
   if (Second.isInvalid())
