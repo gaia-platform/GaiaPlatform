@@ -60,6 +60,18 @@ TEST(payload_types, type_holder_vector)
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
     ASSERT_EQ(0, value.compare(value));
+
+    value.hold.vector_value = "BATMAN";
+    other_value.hold.vector_value = "NANANANANANA";
+    ASSERT_TRUE(value.compare(other_value) < 0);
+    ASSERT_TRUE(other_value.compare(value) > 0);
+    ASSERT_EQ(0, value.compare(value));
+
+    value.hold.vector_value = "";
+    other_value.hold.vector_value = "A";
+    ASSERT_TRUE(value.compare(other_value) < 0);
+    ASSERT_TRUE(other_value.compare(value) > 0);
+    ASSERT_EQ(0, value.compare(value));
 }
 
 TEST(payload_types, type_holder_signed_integer)
@@ -112,7 +124,7 @@ TEST(payload_types, type_holder_box_unbox)
     data_holder_t signed_float_value = c_another_float_value;
     float f;
 
-    // Check for equality  accounting for floating point error.
+    // Check for equality accounting for floating point error.
     f = float_value;
     ASSERT_EQ(f, static_cast<float>(c_float_value));
 

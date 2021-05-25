@@ -193,9 +193,9 @@ int data_holder_t::compare(const data_holder_t& other) const
             size_t len = std::min(other.hold.vector_value.size(), hold.vector_value.size());
             int cmp = memcmp(hold.vector_value.data(), other.hold.vector_value.data(), len);
 
-            if (cmp == 0)
+            if (cmp == 0 && hold.vector_value.size() != other.hold.vector_value.size())
             {
-                return hold.vector_value.size() > other.hold.vector_value.size();
+                return (hold.vector_value.size() < other.hold.vector_value.size()) ? -1 : 1;
             }
 
             return cmp;
