@@ -79,7 +79,7 @@ private:
  */
 
 /**
- * The edc_base_t struct is a tag to mark extended data class objects as well as provide
+ * The edc_base_t class is a tag to mark extended data class objects as well as provide
  * non-template functionality.
  */
 class edc_base_t : protected edc_db_t
@@ -101,10 +101,15 @@ public:
     virtual common::gaia_type_t gaia_type() = 0;
     virtual ~edc_base_t() = default;
 
-    common::gaia_id_t id() const;
-    bool exists() const;
+    /**
+     * This is the database's identification of this object. The id can be
+     * used to refer to this object later.
+     */
+    common::gaia_id_t gaia_id() const;
 
 protected:
+    bool exists() const;
+
     bool equals(const edc_base_t& other) const;
     const char* data() const;
 

@@ -43,31 +43,19 @@ edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
         return *this;
     }
 
-    gaia::common::gaia_id_t id = m_obj.id();
+    gaia::common::gaia_id_t id = m_obj.gaia_id();
     while (id != gaia::common::c_invalid_gaia_id)
     {
         edc_db_t::advance_iterator(m_iterator_state);
         id = edc_db_t::get_iterator_value(m_iterator_state);
         m_obj = T_class::get(id);
 
-        if (m_filter_fn)
+        if (m_obj && m_filter_fn && !m_filter_fn(m_obj))
         {
-            if (m_obj)
-            {
-                if (m_obj.exists() && m_filter_fn(m_obj))
-                {
-                    break;
-                }
-            }
-            else
-            {
-                break;
-            }
+            continue;
         }
-        else
-        {
-            break;
-        }
+
+        break;
     }
 
     return *this;
@@ -122,7 +110,7 @@ edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() con
         if (m_filter_fn)
         {
             T_class obj = T_class::get(id);
-            if (obj.exists() && m_filter_fn(obj))
+            if (obj && m_filter_fn(obj))
             {
                 return edc_iterator_t<T_class>(iterator_state, m_filter_fn);
             }

@@ -277,7 +277,7 @@ edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
     *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
 }
 
-gaia_id_t edc_base_t::id() const
+gaia_id_t edc_base_t::gaia_id() const
 {
     auto ptr = to_const_ptr<gaia_ptr_t>();
     if (*ptr)
