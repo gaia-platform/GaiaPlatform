@@ -132,19 +132,20 @@ bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
 
 #ifdef USE_LOCATOR_ITERATION
     gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
-    if (gaia_ptr)
+    if (!gaia_ptr)
     {
-        gaia_ptr = gaia_ptr.find_next();
+        return false;
     }
+    gaia_ptr = gaia_ptr.find_next();
     return static_cast<bool>(gaia_ptr);
 #else
     generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
         &iterator_state.m_state[0]);
-    if (iterator)
+    if (!iterator)
     {
-        return static_cast<bool>(++iterator);
+        return false;
     }
-    return false;
+    return static_cast<bool>(++iterator);
 #endif
 }
 

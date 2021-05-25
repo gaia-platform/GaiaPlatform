@@ -50,6 +50,8 @@ edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
         id = edc_db_t::get_iterator_value(m_iterator_state);
         m_obj = T_class::get(id);
 
+        // If we have an object and a filter function and the object doesn't satisfy the filter,
+        // then keep looking for another object that does.
         if (m_obj && m_filter_fn && !m_filter_fn(m_obj))
         {
             continue;
