@@ -68,6 +68,7 @@ target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES}
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_storage PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_storage PRIVATE gaia_common)
+set_property (TARGET gaia_storage PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ###############################################
 # Database-related code begins here.
