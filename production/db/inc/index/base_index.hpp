@@ -29,7 +29,7 @@ using index_type_t = catalog::index_type_t;
 class index_not_found : public common::gaia_exception
 {
 public:
-    explicit index_not_found(const common::gaia_id_t index_id)
+    explicit index_not_found(common::gaia_id_t index_id)
     {
         std::stringstream message;
         message << "Cannot find index \"" << index_id << "\".";
@@ -82,8 +82,8 @@ private:
     index_type_t m_index_type;
 
 protected:
-    // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread
-    // this is a requirement because the implementation requires a reader to lock when obtaining the start
+    // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread.
+    // This is a requirement because the implementation requires a reader to lock when obtaining the start
     // and end iterators. In future, the index resides in shared memory and should ideally be lock-free.
     mutable std::recursive_mutex m_index_lock;
 };

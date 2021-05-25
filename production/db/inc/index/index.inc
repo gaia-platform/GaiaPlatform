@@ -22,7 +22,7 @@ void index_key_t::multi_insert(T_key key_value)
     insert(key_value);
 }
 
-// Index structure maintenance
+// Index structure maintenance.
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, index_record_t record)
 {
@@ -39,7 +39,7 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
     }
 }
 
-// Clear index structure
+// Clear index structure.
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::clear()
 {
@@ -47,7 +47,7 @@ void index_t<T_structure, T_iterator>::clear()
     m_index.clear();
 }
 
-// RAII class for bulk index maintenance operations
+// RAII class for bulk index maintenance operations.
 template <typename T_structure, typename T_iterator>
 index_writer_guard_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
 {
@@ -77,9 +77,8 @@ std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>:
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.
-
 template <typename T_structure, typename T_iterator>
-auto index_t<T_structure, T_iterator>::find_physical_key(index_key_t& key, index_record_t& record)
+typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(index_key_t& key, index_record_t& record)
 {
     auto it = m_index.find(key);
     while (it != m_index.end() && it->first == key)

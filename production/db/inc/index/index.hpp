@@ -26,6 +26,8 @@ namespace index
 
 class index_key_t
 {
+    friend std::ostream& operator<<(std::ostream& os, const index_key_t& key);
+    friend struct index_key_hash;
 
 public:
     index_key_t() = default;
@@ -49,12 +51,10 @@ public:
 
     size_t size() const;
 
-    friend std::ostream& operator<<(std::ostream& os, const index_key_t& key);
-    friend struct index_key_hash;
-    std::vector<gaia::db::payload_types::data_holder_t> m_key_values;
-
 private:
     int compare(const index_key_t& other) const;
+
+    std::vector<gaia::db::payload_types::data_holder_t> m_key_values;
 };
 
 /**
@@ -106,7 +106,6 @@ private:
 template <typename T_structure, typename T_iterator>
 class index_t : public base_index_t
 {
-
 public:
     index_t(gaia::common::gaia_id_t index_id, index_type_t index_type)
         : base_index_t(index_id, index_type)
@@ -140,7 +139,7 @@ protected:
 
     // Find physical key corresponding to a logical_key + record or return the end iterator.
     // Returns the iterator type of the underlying structure.
-    auto find_physical_key(index_key_t& key, index_record_t& record);
+    typename T_structure::iterator find_physical_key(index_key_t& key, index_record_t& record);
 };
 
 #include "index.inc"

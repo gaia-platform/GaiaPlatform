@@ -19,13 +19,13 @@ namespace db
 namespace index
 {
 
-using range_type = std::multimap<index_key_t, index_record_t>;
-using range_index_iterator_t = locking_iterator_t<range_type, range_type::const_iterator>;
+using range_type_t = std::multimap<index_key_t, index_record_t>;
+using range_index_iterator_t = locking_iterator_t<range_type_t, range_type_t::const_iterator>;
 
 /**
 * Actual range index implementation.
 */
-class range_index_t : public index_t<range_type, range_index_iterator_t>
+class range_index_t : public index_t<range_type_t, range_index_iterator_t>
 {
 public:
     explicit range_index_t(gaia::common::gaia_id_t index_id)

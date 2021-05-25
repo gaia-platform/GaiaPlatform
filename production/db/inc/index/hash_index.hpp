@@ -17,14 +17,14 @@ namespace db
 namespace index
 {
 
-using hash_type = std::unordered_multimap<index_key_t, index_record_t, index_key_hash>;
-using hash_index_iterator_t = locking_iterator_t<hash_type, hash_type::const_iterator>;
+using hash_type_t = std::unordered_multimap<index_key_t, index_record_t, index_key_hash>;
+using hash_index_iterator_t = locking_iterator_t<hash_type_t, hash_type_t::const_iterator>;
 
 /**
 * Actual hash index implementation.
 */
 
-class hash_index_t : public index_t<hash_type, hash_index_iterator_t>
+class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:
     explicit hash_index_t(gaia::common::gaia_id_t index_id)
