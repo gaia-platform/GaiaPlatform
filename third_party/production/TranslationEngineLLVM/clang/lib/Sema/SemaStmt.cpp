@@ -536,27 +536,26 @@ public:
 
 StmtResult
 Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
-                  ConditionResult Cond,
-                  Stmt *thenStmt, SourceLocation ElseLoc,
-                  Stmt *elseStmt) {
+                  ConditionResult Cond, Stmt *thenStmt,
+                  SourceLocation ElseLoc, Stmt *elseStmt,
+                  SourceLocation NoMatchLoc, Stmt* NoMatchStmt) {
   if (getLangOpts().Gaia)
   {
     SourceLocation startLocation = IfLoc;
     SourceLocation endLocation ;
     if (elseStmt != nullptr)
     {
-      endLocation = ElseLoc;
+      endLocation = elseStmt->getEndLoc();
     }
     else
     {
       endLocation = thenStmt->getEndLoc();
     }
-    if (startLocation.isValid() && endLocation.isValid())
+    if (NoMatchStmt != nullptr && endLocation < NoMatchStmt->getEndLoc())
     {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
+      endLocation = NoMatchStmt->getEndLoc();
     }
+    RemoveTagData(SourceRange(startLocation, endLocation));
   }
 
   if (Cond.isInvalid())
@@ -573,18 +572,18 @@ Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
       !Diags.isIgnored(diag::warn_comma_operator, CondExpr->getExprLoc()))
     CommaVisitor(*this).Visit(CondExpr);
 
-  if (!elseStmt)
+  if (!elseStmt && !NoMatchStmt)
     DiagnoseEmptyStmtBody(CondExpr->getEndLoc(), thenStmt,
                           diag::warn_empty_if_body);
 
   return BuildIfStmt(IfLoc, IsConstexpr, InitStmt, Cond, thenStmt, ElseLoc,
-                     elseStmt);
+                     elseStmt, NoMatchLoc, NoMatchStmt);
 }
 
 StmtResult Sema::BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                              Stmt *InitStmt, ConditionResult Cond,
                              Stmt *thenStmt, SourceLocation ElseLoc,
-                             Stmt *elseStmt) {
+                             Stmt *elseStmt, SourceLocation NoMatchLoc, Stmt* NoMatchStmt) {
   if (Cond.isInvalid())
     return StmtError();
 
@@ -595,7 +594,7 @@ StmtResult Sema::BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
   DiagnoseUnusedExprResult(elseStmt);
 
   return IfStmt::Create(Context, IfLoc, IsConstexpr, InitStmt, Cond.get().first,
-                        Cond.get().second, thenStmt, ElseLoc, elseStmt);
+                        Cond.get().second, thenStmt, ElseLoc, elseStmt, NoMatchLoc, NoMatchStmt);
 }
 
 namespace {
@@ -857,12 +856,7 @@ Sema::ActOnFinishSwitchStmt(SourceLocation SwitchLoc, Stmt *Switch,
     {
       endLocation = SS->getEndLoc();
     }
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(startLocation, endLocation));
   }
 
   bool CaseListIsIncomplete = getCurFunction()->SwitchStack.back().getInt();
@@ -1333,15 +1327,7 @@ StmtResult Sema::ActOnWhileStmt(SourceLocation WhileLoc, ConditionResult Cond,
                                 Stmt *Body) {
   if (getLangOpts().Gaia)
   {
-    SourceLocation startLocation = WhileLoc;
-    SourceLocation endLocation = Body->getEndLoc();
-
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(WhileLoc, Body->getEndLoc()));
   }
   if (Cond.isInvalid())
     return StmtError();
@@ -1798,15 +1784,7 @@ StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
                               Stmt *Body) {
   if (getLangOpts().Gaia)
   {
-    SourceLocation startLocation = ForLoc;
-    SourceLocation endLocation = Body->getEndLoc();
-
-    if (startLocation.isValid() && endLocation.isValid())
-    {
-      auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(startLocation);
-      auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(endLocation);
-      extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
-    }
+    RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
   }
 
   if (Second.isInvalid())

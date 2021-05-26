@@ -3774,11 +3774,13 @@ public:
   StmtResult ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc = SourceLocation(), Stmt* NoMatchStmt = nullptr);
   StmtResult BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc, Stmt* NoMatchStmt);
   StmtResult ActOnStartOfSwitchStmt(SourceLocation SwitchLoc,
                                     Stmt *InitStmt,
                                     ConditionResult Cond);
@@ -4619,6 +4621,7 @@ public:
   bool IsInExtendedExplicitPathScope() const { return isInExtendedExplicitPathScope;}
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
+  bool RemoveTagData(SourceRange range);
 private:
 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
@@ -4632,6 +4635,7 @@ private:
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
+  bool does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc);
 
   struct ExplicitPathData_t
   {

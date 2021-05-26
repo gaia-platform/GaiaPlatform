@@ -17,12 +17,12 @@ unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigati
 unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_n;
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
-navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, vector<string> path, unordered_map<string, string> tags, bool is_absolute, unordered_set<string> used_tables)
+navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(string anchor_table, explicit_path_data_t path_data)
 {
     string last_variable_name;
     ensure_initialization();
     navigation_code_data_t return_value;
-    if (m_table_data.empty() || path.empty())
+    if (m_table_data.empty() || path_data.path_components.empty())
     {
         return navigation_code_data_t();
     }
@@ -31,7 +31,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
     string source_field;
     string source_table_type;
     // Iterate through explicit navigation path components
-    for (const auto& path_component : path)
+    for (const auto& path_component : path_data.path_components)
     {
         string table, field;
         auto dot_position = path_component.find('.');
@@ -44,19 +44,38 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         {
             table = path_component;
         }
-
         if (first_component)
         {
-            if (is_absolute)
+            if (path_data.is_absolute_path)
             {
-                last_variable_name = get_variable_name(table, tags);
+                if (path_data.path_components.size() == 1)
+                {
+                    last_variable_name = path_data.variable_name;
+                }
+                else
+                {
+                    last_variable_name = get_variable_name(table, path_data.tag_table_map);
 
+                    if (last_variable_name != table)
+                    {
+                        // Path component is not a tag defined earlier. Check if it is a tag defined in the path
+                        auto defined_tag_iterator = path_data.defined_tags.find(table);
+                        if (defined_tag_iterator != path_data.defined_tags.end())
+                        {
+                            last_variable_name = defined_tag_iterator->second;
+                        }
+                    }
+                }
+                // It is a tag. Find the real table name.
+                if (last_variable_name == table)
+                {
+                    table = path_data.tag_table_map[table];
+                }
                 auto table_data_itr = m_table_data.find(table);
                 if (table_data_itr == m_table_data.end())
                 {
                     return navigation_code_data_t();
                 }
-
                 return_value.prefix
                     .append("\n{\n")
                     .append(c_nolint_range_copy)
@@ -73,21 +92,62 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                if (path.size() == 1)
+                if (path_data.path_components.size() == 1)
                 {
-                    return_value = generate_navigation_code(anchor_table, used_tables, tags, last_variable_name);
+                    last_variable_name = path_data.variable_name;
+                    return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
                 }
                 else
                 {
-                    return_value = generate_navigation_code(anchor_table, {table}, unordered_map<string, string>(), last_variable_name);
+                    last_variable_name = get_variable_name(table, path_data.tag_table_map);
+                    if (last_variable_name != table)
+                    {
+                        // Path component is not a tag defined earlier. Check if it is a tag defined in the path
+                        auto defined_tag_iterator = path_data.defined_tags.find(table);
+                        if (defined_tag_iterator != path_data.defined_tags.end())
+                        {
+                            last_variable_name = defined_tag_iterator->second;
+                        }
+                    }
+                    unordered_map<string, string> path_tags;
+                    if (!path_data.variable_name.empty() && path_data.tag_table_map.find(path_data.variable_name) != path_data.tag_table_map.end())
+                    {
+                        path_tags[path_data.variable_name] = path_data.tag_table_map[path_data.variable_name];
+                    }
+                    if (path_data.tag_table_map.find(table) != path_data.tag_table_map.end())
+                    {
+                        path_tags[table] = path_data.tag_table_map[table];
+                        table = path_data.tag_table_map[table];
+                    }
+                    return_value = generate_navigation_code(anchor_table, {table}, path_data.tag_table_map, last_variable_name);
                 }
             }
             first_component = false;
         }
         else
         {
-            last_variable_name = get_variable_name(table, tags);
-
+            if (path_data.variable_name.empty() ||
+                    path_data.tag_table_map.find(path_data.variable_name) == path_data.tag_table_map.end())
+            {
+                last_variable_name = get_variable_name(table, path_data.tag_table_map);
+            }
+            else
+            {
+                last_variable_name =  path_data.variable_name;
+            }
+            if (last_variable_name == table)
+            {
+                table =  path_data.tag_table_map[table];
+            }
+            else
+            {
+                // Path component is not a tag defined earlier. Check if it is a tag defined in the path
+                auto defined_tag_iterator = path_data.defined_tags.find(table);
+                if (defined_tag_iterator != path_data.defined_tags.end())
+                {
+                    last_variable_name = defined_tag_iterator->second;
+                }
+            }
             if (!generate_navigation_step(source_table_type, source_field, table, source_table, last_variable_name, return_value))
             {
                 return navigation_code_data_t();
@@ -96,19 +156,26 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         source_table_type = table;
         source_table = last_variable_name;
         source_field = field;
+
     }
 
     return return_value;
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, unordered_set<string> tables, unordered_map<string, string> tags, string& last_variable_name)
+navigation_code_data_t table_navigation_t::generate_navigation_code(string anchor_table, unordered_set<string> tables, unordered_map<string, string> tags, string& last_variable_name)
 {
     ensure_initialization();
     navigation_code_data_t return_value;
-    if (m_table_data.empty())
+    if (m_table_data.empty() || tables.empty())
     {
         return navigation_code_data_t();
+    }
+    string anchor_table_name = anchor_table;
+    string variable_name = get_variable_name(anchor_table, tags);
+    if (variable_name == anchor_table)
+    {
+        anchor_table_name = tags[anchor_table];
     }
     auto anchor_table_data_itr = m_table_data.find(anchor_table);
     if (anchor_table_data_itr == m_table_data.end())
@@ -116,9 +183,17 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         return navigation_code_data_t();
     }
 
-    string variable_name = get_variable_name(anchor_table, tags);
-    last_variable_name = variable_name;
+    string table_name = *tables.begin();
+    const auto table_iterator = tags.find(table_name);
+    if (table_iterator != tags.end())
+    {
+        table_name = table_iterator->second;
+    }
 
+    if (tables.size() == 1 && table_name == anchor_table_name)
+    {
+        variable_name = last_variable_name;
+    }
     return_value.prefix
         .append("\n{\nauto ")
         .append(variable_name)
@@ -129,28 +204,34 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         .append("_t::get(context->record);\n");
     return_value.postfix = "\n}\n";
 
-    if (tables.empty() || (tables.size() == 1 && tables.find(anchor_table) != tables.end()))
+    if (tables.size() == 1 && table_name == anchor_table_name)
     {
         return return_value;
     }
-    if (m_table_relationship_1.find(anchor_table) == m_table_relationship_1.end()
-        && m_table_relationship_n.find(anchor_table) == m_table_relationship_n.end())
+    if (m_table_relationship_1.find(anchor_table_name) == m_table_relationship_1.end()
+        && m_table_relationship_n.find(anchor_table_name) == m_table_relationship_n.end())
     {
         cerr << "No path between '" << anchor_table << "' and other tables." << endl;
         return navigation_code_data_t();
     }
-    auto parent_itr = m_table_relationship_1.equal_range(anchor_table);
-    auto child_itr = m_table_relationship_n.equal_range(anchor_table);
+    auto parent_itr = m_table_relationship_1.equal_range(anchor_table_name);
+    auto child_itr = m_table_relationship_n.equal_range(anchor_table_name);
     unordered_set<string> processed_tables;
     // Iterate through list of destination tables
     for (const string& table : tables)
     {
-        if (table == anchor_table)
+        string table_name = table;
+        const auto table_iterator = tags.find(table);
+        if (table_iterator != tags.end())
+        {
+            table_name = table_iterator->second;
+        }
+        if (table_name == anchor_table_name)
         {
             continue;
         }
 
-        if (processed_tables.find(get_variable_name(table, tags)) != processed_tables.end())
+        if (processed_tables.find(table) != processed_tables.end())
         {
             continue;
         }
@@ -160,7 +241,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         string linking_field;
         for (auto it = parent_itr.first; it != parent_itr.second; ++it)
         {
-            if (it != m_table_relationship_1.end() && it->second.table == table)
+            if (it != m_table_relationship_1.end() && it->second.table == table_name)
             {
                 if (is_1_relationship)
                 {
@@ -174,7 +255,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
 
         for (auto it = child_itr.first; it != child_itr.second; ++it)
         {
-            if (it != m_table_relationship_n.end() && it->second.table == table)
+            if (it != m_table_relationship_n.end() && it->second.table == table_name)
             {
                 if (is_n_relationship)
                 {
@@ -196,14 +277,25 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         {
             vector<navigation_data_t> path;
             // Find topographically shortest path between anchor table and destination table.
-            if (find_navigation_path(anchor_table, table, path))
+            if (find_navigation_path(anchor_table_name, table_name, path))
             {
                 string source_table = variable_name;
-                string source_table_type = anchor_table;
+                string source_table_type = anchor_table_name;
                 // Generate code for the path.
                 for (const auto& p : path)
                 {
-                    variable_name = get_variable_name(p.name, tags);
+                    if (p.name == anchor_table_name)
+                    {
+                        variable_name = anchor_table;
+                    }
+                    else if (p.name == table_name)
+                    {
+                        variable_name = last_variable_name;
+                    }
+                    else
+                    {
+                        variable_name = get_variable_name(p.name, tags);
+                    }
                     if (!generate_navigation_step(source_table_type, "", p.name, source_table, variable_name, return_value))
                     {
                         return navigation_code_data_t();
@@ -221,9 +313,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         }
         else
         {
-            // Generate code to navigate between 2 immediately connected tables.
-            last_variable_name = get_variable_name(table, tags);
-            if (!generate_navigation_step(anchor_table, "", table, variable_name, last_variable_name, return_value))
+            if (!generate_navigation_step(anchor_table_name, "", table_name, variable_name, last_variable_name, return_value))
             {
                 return navigation_code_data_t();
             }
@@ -405,27 +495,16 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Get variable name for navigation code
-string table_navigation_t::get_variable_name(const string& table, const unordered_map<string, string>& tags)
+string table_navigation_t::get_variable_name(const string& variable, const unordered_map<string, string>& tags)
 {
-    auto tags_iterator = tags.find(table);
-    if (tags_iterator == tags.end())
+    if (tags.find(variable) == tags.end())
     {
-        return "_" + generate_random_string(c_variable_length);
+        return "_" + variable + "_" + generate_random_string(c_variable_length);
     }
     else
     {
-        return tags_iterator->second;
+        return variable;
     }
-}
-
-unordered_map<string, string> table_navigation_t::generate_dummy_tag_map(const unordered_set<string>& tables)
-{
-    unordered_map<string, string> tags;
-    for (const auto& table : tables)
-    {
-        tags[table] = table;
-    }
-    return tags;
 }
 
 string table_navigation_t::generate_random_string(string::size_type length)

@@ -219,11 +219,15 @@ TEST_F(test_tags_code, onupdate)
     EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
-    // Check OnUpdate of student.surname.
+    // Check OnUpdate of student.age.
     EXPECT_TRUE(wait_for_rule(g_onupdate3_called)) << "OnUpdate(student.age) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate3_result) << "OnUpdate failure";
 
-    // Check OnUpdate of student.age.
+    // Check OnUpdate of student.age or student.surname.
+    EXPECT_TRUE(wait_for_rule(g_onupdate4_called)) << "OnUpdate(student.age, student.surname) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate4_result) << "OnUpdate failure";
+
+    // Check OnUpdate of student.surname.
     EXPECT_FALSE(wait_for_rule(g_onupdate2_called)) << "OnUpdate(student.surname) not called";
 }
 

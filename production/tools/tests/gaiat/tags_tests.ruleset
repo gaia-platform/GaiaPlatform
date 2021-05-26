@@ -165,7 +165,7 @@ ruleset test15
 }
 
 // GAIAPLAT-829
-ruleset testE1
+ruleset test16
 {
     OnUpdate(incubator)
     {
@@ -182,7 +182,7 @@ ruleset testE1
 }
 
 // GAIAPLAT-829
-ruleset testE2
+ruleset test17
 {
     OnUpdate(incubator)
     {
@@ -196,7 +196,7 @@ ruleset testE2
 }
 
 // GAIAPLAT-829
-ruleset testE3
+ruleset test18
 {
     OnUpdate(incubator)
     {
@@ -212,7 +212,7 @@ ruleset testE3
 }
 
 // GAIAPLAT-829
-ruleset testE4
+ruleset test19
 {
     OnUpdate(incubator)
     {
@@ -229,7 +229,7 @@ ruleset testE4
 }
 
 // GAIAPLAT-829
-ruleset testE5
+ruleset test20
 {
     OnUpdate(incubator)
     {
@@ -243,7 +243,7 @@ ruleset testE5
 }
 
 // GAIAPLAT-829
-ruleset testE6
+ruleset test21
 {
     OnUpdate(incubator)
     {
@@ -257,3 +257,14 @@ ruleset testE6
         /F:farmer.acreage -= 1;
     }
 }
+
+// GAIAPLAT-951
+// Dereference confused with tag usage.
+#ifdef TEST_FAILURES
+ruleset test22
+{
+    {
+        auto r = context->record;
+    }
+}
+#endif

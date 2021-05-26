@@ -1,0 +1,25 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// GAIAPLAT-948
+ruleset test124
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++)
+        {
+            i++;
+        }
+        if (i < 5)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+// CHECK: A non-declarative 'if' statement may not use nomatch.

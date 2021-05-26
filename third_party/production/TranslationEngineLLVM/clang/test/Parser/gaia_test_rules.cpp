@@ -824,7 +824,7 @@ ruleset test121 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{
 #endif
 
 // GAIAPLAT-827
-ruleset test101
+ruleset test122
 {
     OnChange(sensor.value)
     {
@@ -835,9 +835,68 @@ ruleset test101
     }
 }
 
+// GAIAPLAT-947
+ruleset test123
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        else
+        {
+            i = 2;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+ruleset test124
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+// GAIAPLAT-948
+ruleset test125
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++)
+        {
+            i++;
+        }
+        if (i < 5) // expected-error {{A non-declarative 'if' statement may not use nomatch.}}
+        {
+            i = 1;
+        }
+        nomatch   // expected-error {{expected expression}}
+        {
+            i = 3;
+        }
+    }
+}
+
 // GAIAPLAT-808
 // The I.min_temp doesn't use the tag from the 'if'.
-ruleset testE62
+ruleset test126
 {
     OnChange(I:incubator)
     {
@@ -850,7 +909,7 @@ ruleset testE62
 }
 
 // GAIAPLAT-922
-ruleset testE61
+ruleset test127
 {
     OnChange(actuator)
     {
@@ -864,7 +923,7 @@ ruleset testE61
 }
 
 // GAIAPLAT-808
-ruleset testE6
+ruleset test128
 {
     OnChange(actuator)
     {
@@ -878,7 +937,7 @@ ruleset testE6
 }
 
 // GAIAPLAT-821
-ruleset testE1
+ruleset test129
 {
     OnUpdate(incubator)
     {
@@ -889,7 +948,7 @@ ruleset testE1
 }
 
 // GAIAPLAT-821
-ruleset testE2
+ruleset test130
 {
     {
         min_temp += @incubator->sensor.value;
@@ -897,7 +956,7 @@ ruleset testE2
 }
 
 // GAIAPLAT-822
-ruleset testE3
+ruleset test131
 {
     {
         if (farmer->yield.bushels)
@@ -907,7 +966,7 @@ ruleset testE3
 
 // GAIAPLAT-877
 #ifdef TEST_FAILURES
-ruleset testE4
+ruleset test132
 {
     OnInsert(animal)
     {
@@ -919,11 +978,21 @@ ruleset testE4
 // GAIAPLAT-878
 // GAIAPLAT-913
 #ifdef TEST_FAILURES
-ruleset test105
+ruleset test133
 {
     OnInsert(animal)
     {
         animal->feeding = 5;
+    }
+}
+#endif
+
+// GAIAPLAT-803
+#ifdef TEST_FAILURES
+ruleset test134
+{
+    {
+        @animal.age = 4;
     }
 }
 #endif

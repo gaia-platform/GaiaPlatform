@@ -61,7 +61,7 @@ ruleset test2
 {
 }
 
-void use_string(const char* name)
+void use_string(const char*)
 {
 
 }
@@ -85,6 +85,7 @@ ruleset testE13
 }
 
 #if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test21
 {
     OnInsert(I:incubator)
@@ -92,8 +93,9 @@ ruleset test21
         I->actuator.value += 1.0;
     }
 }
+#endif
 
-void use_float(float f)
+void use_float(float)
 {
 }
 
@@ -108,6 +110,8 @@ ruleset testE21
     }
 }
 
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test15
 {
     OnChange(incubator)

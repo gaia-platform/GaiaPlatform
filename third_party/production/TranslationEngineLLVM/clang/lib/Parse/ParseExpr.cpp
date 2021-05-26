@@ -248,7 +248,8 @@ bool Parser::isNotExpressionStart() {
   if (K == tok::l_brace || K == tok::r_brace  ||
       K == tok::kw_for  || K == tok::kw_while ||
       K == tok::kw_if   || K == tok::kw_else  ||
-      K == tok::kw_goto || K == tok::kw_try)
+      K == tok::kw_goto || K == tok::kw_try   ||
+      K == tok::kw_nomatch)
     return true;
   // If this is a decl-specifier, we can't be at the start of an expression.
   return isKnownToBeDeclarationSpecifier();
@@ -1482,6 +1483,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
               auto pathAttr = decl->getAttr<GaiaExplicitPathAttr>();
               auto tagMapKeyAttr = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
               auto tagMapValueAttr = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
+              auto definedTagMapKeyAttr = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
+              auto definedTagMapValueAttr = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
               decl->dropAttrs();
               decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
               if (tableAttr != nullptr)
@@ -1494,6 +1497,12 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                 decl->addAttr(pathAttr);
                 decl->addAttr(tagMapKeyAttr);
                 decl->addAttr(tagMapValueAttr);
+              }
+
+              if (definedTagMapKeyAttr !=nullptr)
+              {
+                decl->addAttr(definedTagMapKeyAttr);
+                decl->addAttr(definedTagMapValueAttr);
               }
             }
             else
