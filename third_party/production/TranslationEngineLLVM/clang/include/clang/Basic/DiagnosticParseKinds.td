@@ -1271,7 +1271,7 @@ def err_duplicate_tag_defined: Error<
 def err_tag_not_allowed: Error<
   "Tag not allowed in a Table attribute.">;
 def err_nomatch_without_navigation : Error<
-    "nomatch cannot be used if decarative references are not used in if condition.">;
+    "A non-declarative 'if' statement may not use nomatch.">;
 }
 
 } // end of Parser diagnostics

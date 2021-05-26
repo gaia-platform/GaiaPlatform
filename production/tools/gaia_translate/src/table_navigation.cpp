@@ -100,6 +100,15 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(str
                 else
                 {
                     last_variable_name = get_variable_name(table, path_data.tag_table_map);
+                    if (last_variable_name != table)
+                    {
+                        // Path component is not a tag defined earlier. Check if it is a tag defined in the path
+                        auto defined_tag_iterator = path_data.defined_tags.find(table);
+                        if (defined_tag_iterator != path_data.defined_tags.end())
+                        {
+                            last_variable_name = defined_tag_iterator->second;
+                        }
+                    }
                     unordered_map<string, string> path_tags;
                     if (!path_data.variable_name.empty() && path_data.tag_table_map.find(path_data.variable_name) != path_data.tag_table_map.end())
                     {
@@ -129,6 +138,15 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(str
             if (last_variable_name == table)
             {
                 table =  path_data.tag_table_map[table];
+            }
+            else
+            {
+                // Path component is not a tag defined earlier. Check if it is a tag defined in the path
+                auto defined_tag_iterator = path_data.defined_tags.find(table);
+                if (defined_tag_iterator != path_data.defined_tags.end())
+                {
+                    last_variable_name = defined_tag_iterator->second;
+                }
             }
             if (!generate_navigation_step(source_table_type, source_field, table, source_table, last_variable_name, return_value))
             {
@@ -200,7 +218,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(string ancho
     auto child_itr = m_table_relationship_n.equal_range(anchor_table_name);
     unordered_set<string> processed_tables;
     // Iterate through list of destination tables
-    for (string table : tables)
+    for (const string& table : tables)
     {
         string table_name = table;
         const auto table_iterator = tags.find(table);

@@ -883,11 +883,11 @@ ruleset test125
         {
             i++;
         }
-        if (i < 5) // expected-error {{nomatch cannot be used if decarative references are nout used in if condition.}}
+        if (i < 5) // expected-error {{A non-declarative 'if' statement may not use nomatch.}}
         {
             i = 1;
         }
-        nomatch
+        nomatch   // expected-error {{expected expression}}
         {
             i = 3;
         }
