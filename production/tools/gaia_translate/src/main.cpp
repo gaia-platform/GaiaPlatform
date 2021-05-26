@@ -910,6 +910,12 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
         {
             return return_value;
         }
+        else if (const auto* expression = node_parents_iterator.get<CXXOperatorCallExpr>())
+        {
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            return get_expression_source_range(context, *expression, return_value, rewriter);
+        }
         else if (const auto* expression = node_parents_iterator.get<BinaryOperator>())
         {
             auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
