@@ -1,0 +1,5 @@
+add_library(gaia_spdlog_setup INTERFACE)
+add_dependencies(gaia_spdlog_setup cpptoml)
+add_dependencies(gaia_spdlog_setup gaia_spdlog)
+target_include_directories(gaia_spdlog_setup INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
