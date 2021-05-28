@@ -10,6 +10,7 @@
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -111,23 +112,20 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 
 table_list_t catalog_core_t::list_tables()
 {
-    counters_t* counters = gaia::db::get_counters();
-    auto gaia_table_generator = [counters, locator = c_first_gaia_locator]() mutable -> std::optional<table_view_t> {
-        // We need an acquire barrier before reading `last_locator`. We can
-        // change this full barrier to an acquire barrier when we change to proper
-        // C++ atomic types.
-        __sync_synchronize();
-        while (locator <= counters->last_locator)
+    auto table_list = gaia::catalog::gaia_table_t::list();
+    auto it = table_list.begin();
+    auto end_it = table_list.end();
+    auto gaia_table_generator = [it, end_it]() mutable -> std::optional<table_view_t> {
+        while (it != end_it)
         {
-            auto ptr = locator_to_ptr(locator++);
-            if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
-            {
-                return table_view_t(ptr);
-            }
-            __sync_synchronize();
+            gaia_id_t id = it->gaia_id();
+            gaia_ptr_t gaia_ptr(id);
+            ++it;
+            return table_view_t(gaia_ptr.to_ptr());
         }
         return std::nullopt;
     };
+
     return range_from_generator(gaia_table_generator);
 }
 
