@@ -25,19 +25,11 @@ namespace direct_access
 /**
  * Used by iterator class to maintain state of an iteration.
  *
- * This is just a pointer wrapper, to isolate callers from the internal implementation details.
+ * This is needed to ensure proper destruction of derived instances via the virtual destructor.
  */
-class edc_db_t;
-class edc_iterator_state_t
+struct edc_base_iterator_state_t
 {
-    friend class edc_db_t;
-
-public:
-    bool is_set();
-
-private:
-    // The iterator state.
-    std::shared_ptr<uint8_t[]> m_state;
+    virtual ~edc_base_iterator_state_t() = default;
 };
 
 /**
@@ -48,9 +40,9 @@ class edc_db_t
 {
 protected:
     // Low-level interface for iterating over objects of a given container.
-    static bool initialize_iterator(common::gaia_type_t container_type_id, edc_iterator_state_t& iterator_state);
-    static common::gaia_id_t get_iterator_value(edc_iterator_state_t& iterator_state);
-    static bool advance_iterator(edc_iterator_state_t& iterator_state);
+    static std::shared_ptr<edc_base_iterator_state_t> initialize_iterator(common::gaia_type_t container_type_id);
+    static common::gaia_id_t get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
+    static bool advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
 
     static common::gaia_id_t get_reference(common::gaia_id_t id, size_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);

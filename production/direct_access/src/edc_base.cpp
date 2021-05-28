@@ -10,7 +10,7 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-#define USE_LOCATOR_ITERATION
+#undef USE_LOCATOR_ITERATION
 
 using namespace gaia::db;
 using namespace std;
@@ -67,56 +67,57 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
-// edc_iterator_state_t implementation
+// Implementation of structs derived from edc_base_iterator_state_t
 //
 
-bool edc_iterator_state_t::is_set()
+struct edc_gaia_ptr_state_t : public edc_base_iterator_state_t
 {
-    return static_cast<bool>(m_state);
-}
+    ~edc_gaia_ptr_state_t() override = default;
+
+    gaia_ptr_t gaia_ptr;
+};
+
+struct edc_generator_iterator_state_t : public edc_base_iterator_state_t
+{
+    ~edc_generator_iterator_state_t() override = default;
+
+    generator_iterator_t<gaia_ptr_t> iterator;
+};
 
 //
 // edc_db_t implementation
 //
 
-bool edc_db_t::initialize_iterator(gaia_type_t container_type_id, edc_iterator_state_t& iterator_state)
+std::shared_ptr<edc_base_iterator_state_t> edc_db_t::initialize_iterator(gaia_type_t container_type_id)
 {
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state;
 #ifdef USE_LOCATOR_ITERATION
-    if (!iterator_state.m_state)
-    {
-        iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(gaia_ptr_t));
-    }
-
-    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    iterator_state.reset(new edc_gaia_ptr_state_t());
+    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
     gaia_ptr = gaia_ptr_t::find_first(container_type_id);
-    return static_cast<bool>(gaia_ptr);
 #else
-    if (!iterator_state.m_state)
-    {
-        iterator_state.m_state = std::make_shared<uint8_t[]>(sizeof(generator_iterator_t<gaia_ptr_t>));
-    }
-
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state[0]);
+    iterator_state.reset(new edc_generator_iterator_state_t());
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     iterator = gaia_ptr_t::find_all_iterator(container_type_id);
-    return static_cast<bool>(iterator);
 #endif
+    return iterator_state;
 }
 
-gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
+gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
-    ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to access unset iterator state!");
+    ASSERT_PRECONDITION(!!iterator_state, "Attempt to access unset iterator state!");
 
 #ifdef USE_LOCATOR_ITERATION
-    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
     if (!gaia_ptr)
     {
         return c_invalid_gaia_id;
     }
     return gaia_ptr.id();
 #else
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state[0]);
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     if (!iterator)
     {
         return c_invalid_gaia_id;
@@ -126,12 +127,12 @@ gaia_id_t edc_db_t::get_iterator_value(edc_iterator_state_t& iterator_state)
 #endif
 }
 
-bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
+bool edc_db_t::advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
-    ASSERT_PRECONDITION(iterator_state.is_set(), "Attempt to advance unset iterator state!");
+    ASSERT_PRECONDITION(!!iterator_state, "Attempt to advance unset iterator state!");
 
 #ifdef USE_LOCATOR_ITERATION
-    gaia_ptr_t& gaia_ptr = *reinterpret_cast<gaia_ptr_t*>(&iterator_state.m_state[0]);
+    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
     if (!gaia_ptr)
     {
         return false;
@@ -139,8 +140,8 @@ bool edc_db_t::advance_iterator(edc_iterator_state_t& iterator_state)
     gaia_ptr = gaia_ptr.find_next();
     return static_cast<bool>(gaia_ptr);
 #else
-    generator_iterator_t<gaia_ptr_t>& iterator = *reinterpret_cast<generator_iterator_t<gaia_ptr_t>*>(
-        &iterator_state.m_state[0]);
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     if (!iterator)
     {
         return false;

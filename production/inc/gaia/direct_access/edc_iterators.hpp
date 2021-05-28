@@ -61,12 +61,14 @@ public:
     pointer operator->();
 
 protected:
-    explicit edc_iterator_t(edc_iterator_state_t& iterator_state);
-    explicit edc_iterator_t(edc_iterator_state_t& iterator_state, std::function<bool(const T_class&)> filter_function);
+    explicit edc_iterator_t(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
+    explicit edc_iterator_t(
+        std::shared_ptr<edc_base_iterator_state_t> iterator_state,
+        std::function<bool(const T_class&)> filter_function);
     explicit edc_iterator_t(gaia::common::gaia_id_t id);
 
 protected:
-    edc_iterator_state_t m_iterator_state;
+    std::shared_ptr<edc_base_iterator_state_t> m_iterator_state;
     T_class m_obj;
     std::function<bool(const T_class&)> m_filter_fn;
 };

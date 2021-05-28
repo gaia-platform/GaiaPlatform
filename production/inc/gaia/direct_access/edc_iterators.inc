@@ -12,16 +12,18 @@ namespace direct_access
 // Implementation for edc_iterator_t.
 //
 template <typename T_class>
-edc_iterator_t<T_class>::edc_iterator_t(edc_iterator_state_t& iterator_state)
-    : m_iterator_state(std::move(iterator_state))
+edc_iterator_t<T_class>::edc_iterator_t(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
+    : m_iterator_state(iterator_state)
 {
     gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
     m_obj = T_class::get(id);
 }
 
 template <typename T_class>
-edc_iterator_t<T_class>::edc_iterator_t(edc_iterator_state_t& iterator_state, std::function<bool(const T_class&)> filter_function)
-    : m_iterator_state(std::move(iterator_state)), m_filter_fn(filter_function)
+edc_iterator_t<T_class>::edc_iterator_t(
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state,
+    std::function<bool(const T_class&)> filter_function)
+    : m_iterator_state(iterator_state), m_filter_fn(filter_function)
 {
     gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
     m_obj = T_class::get(id);
@@ -36,7 +38,7 @@ edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id)
 template <typename T_class>
 edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
 {
-    ASSERT_PRECONDITION(m_iterator_state.is_set(), "Attempt to increment unset iterator state!");
+    ASSERT_PRECONDITION(!!m_iterator_state, "Attempt to increment unset iterator state!");
 
     if (!m_obj)
     {
@@ -103,8 +105,8 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 template <gaia::common::gaia_type_t container_type_id, typename T_class>
 edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() const
 {
-    edc_iterator_state_t iterator_state;
-    edc_db_t::initialize_iterator(container_type_id, iterator_state);
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state
+        = edc_db_t::initialize_iterator(container_type_id);
 
     gaia::common::gaia_id_t id = common::c_invalid_gaia_id;
     while ((id = edc_db_t::get_iterator_value(iterator_state)) != common::c_invalid_gaia_id)
