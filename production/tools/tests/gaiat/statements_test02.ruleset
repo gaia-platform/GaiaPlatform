@@ -1,0 +1,14 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    OnInsert(incubator)
+    {
+        if (incubator)
+        {
+            farmer.acreage++;
+        }
+    }
+}
+
+// CHECK: value of type 'incubator__type' is not contextually convertible to 'bool'

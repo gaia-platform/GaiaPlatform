@@ -280,7 +280,7 @@ ruleset test29
     }
 }
 
-// GAIAPLAT-827
+// GAIAPLAT-827 (fixed)
 ruleset test30
 {
     OnChange(sensor.value)
@@ -292,7 +292,7 @@ ruleset test30
     }
 }
 
-// GAIAPLAT-828
+// GAIAPLAT-828 (fixed)
 ruleset test31
 {
     OnChange(incubator)
@@ -363,3 +363,14 @@ ruleset test36
         some_value += yield->feeding->animal->raised->incubator->sensor.value;
     }
 }
+
+// GAIAPLAT-945
+#ifdef TEST_FAILURES
+ruleset test37
+{
+    OnUpdate(min_temp)
+    {
+        sensor.value += sensor.incubator->incubator.min_temp;
+    }
+}
+#endif

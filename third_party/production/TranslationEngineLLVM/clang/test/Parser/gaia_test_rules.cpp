@@ -936,7 +936,7 @@ ruleset test128
     }
 }
 
-// GAIAPLAT-821
+// GAIAPLAT-821 (fixed)
 ruleset test129
 {
     OnUpdate(incubator)
@@ -947,7 +947,7 @@ ruleset test129
     }
 }
 
-// GAIAPLAT-821
+// GAIAPLAT-821 (fixed)
 ruleset test130
 {
     {

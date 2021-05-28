@@ -120,15 +120,18 @@ ruleset test9
         {
             temp += sensor.value;
         }
-// GAIAPLAT-947
+// GAIAPLAT-947 (fixed)
         else
         {
             temp -= sensor.value;
         }
+#ifdef TEST_FAILURES
+// GAIAPLAT-988
         nomatch
         {
             temp += 10.0;
         }
+#endif
     }
 }
 
@@ -300,11 +303,12 @@ ruleset test19
         {
             answer += /feeding.portion;
         }
+#ifdef TEST_FAILURES
+// GAIAPLAT-988
         nomatch
         {
             answer = 15;
         }
-#ifdef TEST_FAILURES
         nomatch
         {
             answer = 30;
@@ -372,6 +376,8 @@ ruleset test23
             if (actuator.value < 97.3)
                 if (sensor.value > 82.1)
                     here = true;
+#ifdef TEST_FAILURES
+// GAIAPLAT-988
                 nomatch
                     here = false;
             else
@@ -380,6 +386,7 @@ ruleset test23
                 here = true;
         nomatch
             here = false;
+#endif
     }
 }
 

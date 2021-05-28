@@ -402,11 +402,7 @@ TEST_F(test_queries_code, sum_of_all_hours)
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
-#ifdef TEST_FAILURES
     EXPECT_EQ(g_oninsert_value, 12) << "Incorrect sum";
-#else
-    EXPECT_EQ(g_oninsert_value, 0) << "Incorrect sum";
-#endif
 }
 
 TEST_F(test_queries_code, tag_define_use)

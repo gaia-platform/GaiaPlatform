@@ -137,7 +137,7 @@ ruleset test10
 // This is legal? But has error (duplicate 'name' fields).
 // GAIAPLAT-796
 #ifdef TEST_FAILURES
-ruleset testE1 : Table(sensor)
+ruleset test11 : Table(sensor)
 {
     OnUpdate(name)
     {
@@ -146,8 +146,7 @@ ruleset testE1 : Table(sensor)
 }
 #endif
 
-// GAIAPLAT-711
-ruleset testE2
+ruleset test12
 {
     OnInsert(sensor)
     {
@@ -156,10 +155,13 @@ ruleset testE2
         {
             i = 1;
         }
+#ifdef TEST_FAILURES
+// GAIAPLAT-988
         nomatch
         {
             i = 2;
         }
+#endif
     }
 }
 
