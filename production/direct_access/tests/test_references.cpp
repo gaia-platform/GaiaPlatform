@@ -987,15 +987,26 @@ TEST_F(gaia_references_test, test_circular_refernece)
     ASSERT_EQ(a_obj.b().get().num_val(), 3);
 }
 
+template <typename T>
+void print_bytes(const T& input, std::ostream& os = std::cout)
+{
+    const unsigned char* p = reinterpret_cast<const unsigned char*>(&input);
+    os << std::hex << std::showbase;
+    os << "[";
+    for (unsigned int i = 0; i < sizeof(T); ++i)
+        os << static_cast<int>(*(p++)) << " ";
+    os << "]" << std::endl;
+}
+
 TEST_F(gaia_references_test, test_object_allocation_price)
 {
     begin_transaction();
 
-    constexpr int count = 100000;
+    constexpr int c_count = 100000;
 
-    gaia_id_t ids[count];
+    gaia_id_t ids[c_count];
 
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < c_count; ++i)
     {
         A_writer w;
         w.num_val = i;
@@ -1003,36 +1014,39 @@ TEST_F(gaia_references_test, test_object_allocation_price)
         ids[i] = w.insert_row();
     }
 
-    gaia_time_t::log_function_duration(
-        [&ids]() {
-            A_t stuff1[count];
+    A_t obj = A_t::get(ids[0]);
+    edc_reference_t<A_t> ref(ids[0]);
 
-            for (int i = 0; i < count; ++i)
+    print_bytes(ids[0]);
+    print_bytes(obj);
+    print_bytes(ref);
+
+    A_t stuff1[c_count];
+    gaia_time_t::log_function_duration(
+        [&ids, &stuff1]() {
+            for (int i = 0; i < c_count; ++i)
             {
                 stuff1[i] = A_t::get(ids[i]);
             }
         },
         "EDC get");
 
+    A_t stuff2[c_count];
     gaia_time_t::log_function_duration(
-        [&ids]() {
-            A_t stuff1[count];
-
-            for (int i = 0; i < count; ++i)
+        [&ids, &stuff2]() {
+            for (int i = 0; i < c_count; ++i)
             {
-                //                stuff1[i] = A_t(ids[i]);
+                stuff2[i] = A_t(ids[i]);
             }
         },
         "EDC constructor");
 
+    gaia_id_t stuff3[c_count];
     gaia_time_t::log_function_duration(
-        [&ids]() {
-            gaia_id_t stuff2[count];
-
-            // "Ensure" the compiler won't optimize this into stuff2 = ids.
-            for (int i = 0; i < count - 1; ++i)
+        [&ids, &stuff3]() {
+            for (int i = 0; i < c_count; ++i)
             {
-                stuff2[i + 1] = ids[i];
+                stuff3[i] = ids[i];
             }
         },
         "id");

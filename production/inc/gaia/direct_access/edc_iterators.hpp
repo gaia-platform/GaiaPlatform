@@ -181,12 +181,12 @@ public:
 
     T_class* operator->()
     {
-        if (!_is_created)
+        if (!m_is_created)
         {
             new (m_object) T_class(m_gaia_id);
-            _is_created = true;
+            m_is_created = true;
         }
-        return (T_class*)m_object;
+        return reinterpret_cast<T_class*>(m_object);
     }
 
     const T_class get()
@@ -197,7 +197,7 @@ public:
 private:
     common::gaia_id_t m_gaia_id;
     alignas(alignof(edc_base_t)) char m_object[sizeof(edc_base_t)];
-    bool _is_created;
+    bool m_is_created;
 };
 
 /*@}*/
