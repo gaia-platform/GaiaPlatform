@@ -138,7 +138,7 @@ install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 
 # Place gaia_spdlog headers.
-install(DIRECTORY ${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog/include/gaia_spdlog DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${GAIA_SPDLOG_INC}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Place gaia headers.
 install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

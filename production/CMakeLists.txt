@@ -80,6 +80,9 @@ set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
+set(GAIA_SPDLOG "${GAIA_REPO}/third_party/bundle/gaia_spdlog")
+set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
+
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
 
