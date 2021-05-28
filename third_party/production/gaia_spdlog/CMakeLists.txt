@@ -1,0 +1,21 @@
+set(GAIA_SPDLOG_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog)
+add_library(gaia_spdlog INTERFACE)
+add_dependencies(gaia_spdlog spdlog_dependency)
+target_include_directories(gaia_spdlog INTERFACE ${GAIA_SPDLOG_ROOT}/include)
+target_link_libraries(gaia_spdlog INTERFACE ${GAIA_SPDLOG_ROOT}/lib/libgaia_spdlog.a)
+ExternalProject_Add(spdlog_dependency
+  SOURCE_DIR
+    ${GAIA_REPO}/third_party/bundle/gaia_spdlog
+  INSTALL_DIR ${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog
+  CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE=Release
+    -DGAIA_SPDLOG_BUILD_BENCH:BOOL=OFF
+    -DGAIA_SPDLOG_BUILD_TESTS:BOOL=OFF
+    -DGAIA_SPDLOG_BUILD_SHARED:BOOL=OFF
+    -DGAIA_SPDLOG_INSTALL:BOOL=ON
+    -DGAIA_SPDLOG_FMT_EXTERNAL:BOOL=OFF
+    -DCMAKE_PREFIX_PATH:PATH=${DEPENDENCIES_INSTALL_PREFIX}
+    -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+    -DCMAKE_INSTALL_PREFIX:PATH=${GAIA_SPDLOG_ROOT}
+  BUILD_BYPRODUCTS ${GAIA_SPDLOG_ROOT}/lib/libgaia_spdlog.a
+)
