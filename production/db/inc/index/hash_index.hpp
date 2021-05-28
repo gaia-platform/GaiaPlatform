@@ -28,7 +28,7 @@ class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:
     explicit hash_index_t(gaia::common::gaia_id_t index_id)
-        : index_t(index_id, index_type_t::hash)
+        : index_t(index_id, catalog::index_type_t::hash)
     {
     }
     ~hash_index_t() = default;

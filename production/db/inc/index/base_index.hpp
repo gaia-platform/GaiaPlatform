@@ -24,7 +24,6 @@ namespace db
 {
 namespace index
 {
-using index_type_t = catalog::index_type_t;
 
 class index_not_found : public common::gaia_exception
 {
@@ -61,14 +60,14 @@ struct index_record_t
 class base_index_t
 {
 public:
-    base_index_t(gaia::common::gaia_id_t index_id, index_type_t index_type)
+    base_index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type)
         : m_index_id(index_id), m_index_type(index_type)
     {
     }
     virtual ~base_index_t() = default;
 
     gaia::common::gaia_id_t id() const;
-    index_type_t type() const;
+    catalog::index_type_t type() const;
 
     std::recursive_mutex& get_lock() const;
 
@@ -79,7 +78,7 @@ public:
 
 private:
     gaia::common::gaia_id_t m_index_id;
-    index_type_t m_index_type;
+    catalog::index_type_t m_index_type;
 
 protected:
     // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread.

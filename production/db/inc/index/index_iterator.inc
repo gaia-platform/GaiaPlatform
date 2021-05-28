@@ -45,12 +45,18 @@ locking_iterator_t<T_structure, T_index_it> locking_iterator_t<T_structure, T_in
 template <typename T_structure, typename T_index_it>
 locking_iterator_t<T_structure, T_index_it>& locking_iterator_t<T_structure, T_index_it>::next_key() const
 {
+    // Already at the end, return immediately.
+    if (m_index_it == m_end_it)
+    {
+        return *this;
+    }
+
     auto key = m_index_it->first;
 
     do
     {
         ++m_index_it;
-    } while (m_index_it->first == key && m_index_it != m_end_it);
+    } while (m_index_it != m_end_it && m_index_it->first == key);
 
     return *this;
 }

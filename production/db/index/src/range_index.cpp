@@ -19,31 +19,31 @@ namespace index
 range_index_iterator_t range_index_t::begin()
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return range_index_iterator_t(this, m_index.cbegin(), m_index.cend());
+    return range_index_iterator_t(this, m_data.cbegin(), m_data.cend());
 }
 
 range_index_iterator_t range_index_t::end()
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return range_index_iterator_t(this, m_index.cend(), m_index.cend());
+    return range_index_iterator_t(this, m_data.cend(), m_data.cend());
 }
 
 range_index_iterator_t range_index_t::find(const index_key_t& key)
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return range_index_iterator_t(this, m_index.find(key), m_index.cend());
+    return range_index_iterator_t(this, m_data.find(key), m_data.cend());
 }
 
 range_index_iterator_t range_index_t::lower_bound(const index_key_t& key)
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return range_index_iterator_t(this, m_index.lower_bound(key), m_index.cend());
+    return range_index_iterator_t(this, m_data.lower_bound(key), m_data.cend());
 }
 
 range_index_iterator_t range_index_t::upper_bound(const index_key_t& key)
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return range_index_iterator_t(this, m_index.upper_bound(key), m_index.cend());
+    return range_index_iterator_t(this, m_data.upper_bound(key), m_data.cend());
 }
 
 std::pair<range_index_iterator_t, range_index_iterator_t> range_index_t::equal_range(const index_key_t& key)

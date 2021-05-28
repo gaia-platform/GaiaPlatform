@@ -12,11 +12,11 @@ namespace db
 namespace index
 {
 
-gaia::common::gaia_id_t base_index_t::id() const
+common::gaia_id_t base_index_t::id() const
 {
     return m_index_id;
 }
-gaia::db::index::index_type_t base_index_t::type() const
+catalog::index_type_t base_index_t::type() const
 {
     return m_index_type;
 }

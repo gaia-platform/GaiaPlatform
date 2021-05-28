@@ -28,14 +28,14 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
 {
     std::lock_guard lock(m_index_lock);
     auto old_it = find_physical_key(key, record);
-    if (old_it != m_index.end())
+    if (old_it != m_data.end())
     {
-        // Update old record matching this physical key
+        // Update old record matching this physical key.
         old_it->second = record;
     }
     else
     {
-        m_index.insert(std::make_pair(key, record));
+        m_data.insert(std::make_pair(key, record));
     }
 }
 
@@ -44,23 +44,23 @@ template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::clear()
 {
     std::lock_guard lock(m_index_lock);
-    m_index.clear();
+    m_data.clear();
 }
 
 // RAII class for bulk index maintenance operations.
 template <typename T_structure, typename T_iterator>
 index_writer_guard_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
 {
-    return index_writer_guard_t<T_structure>(this, m_index);
+    return index_writer_guard_t<T_structure>(this, m_data);
 }
 
 template <typename T_structure, typename T_iterator>
 std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
 {
     std::unique_lock<std::recursive_mutex> lock(m_index_lock);
-    auto it = m_index.cbegin();
+    auto it = m_data.cbegin();
 
-    return [end_iter = m_index.cend(), lock = {std::move(lock)}, it, txn_id]() mutable -> std::optional<index_record_t> {
+    return [end_iter = m_data.cend(), lock = {std::move(lock)}, it, txn_id]() mutable -> std::optional<index_record_t> {
         while (it != end_iter)
         {
             index_record_t record = it->second;
@@ -80,8 +80,8 @@ std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>:
 template <typename T_structure, typename T_iterator>
 typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(index_key_t& key, index_record_t& record)
 {
-    auto it = m_index.find(key);
-    while (it != m_index.end() && it->first == key)
+    auto it = m_data.find(key);
+    while (it != m_data.end() && it->first == key)
     {
         if (it->second.locator == record.locator && it->second.txn_id == record.txn_id)
         {
@@ -90,5 +90,5 @@ typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_k
         ++it;
     }
 
-    return m_index.end();
+    return m_data.end();
 }

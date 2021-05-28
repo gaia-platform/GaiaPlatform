@@ -19,27 +19,27 @@ namespace index
 hash_index_iterator_t hash_index_t::begin()
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return hash_index_iterator_t(this, m_index.cbegin(), m_index.cend());
+    return hash_index_iterator_t(this, m_data.cbegin(), m_data.cend());
 }
 
 hash_index_iterator_t hash_index_t::end()
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return hash_index_iterator_t(this, m_index.cend(), m_index.cend());
+    return hash_index_iterator_t(this, m_data.cend(), m_data.cend());
 }
 
 hash_index_iterator_t hash_index_t::find(const index_key_t& key)
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    return hash_index_iterator_t(this, m_index.find(key), m_index.cend());
+    return hash_index_iterator_t(this, m_data.find(key), m_data.cend());
 }
 
 std::pair<hash_index_iterator_t, hash_index_iterator_t> hash_index_t::equal_range(const index_key_t& key)
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    const auto [start, end] = m_index.equal_range(key);
+    const auto [start, end] = m_data.equal_range(key);
 
-    return std::make_pair(hash_index_iterator_t(this, start, m_index.cend()), hash_index_iterator_t(this, end, m_index.cend()));
+    return std::make_pair(hash_index_iterator_t(this, start, m_data.cend()), hash_index_iterator_t(this, end, m_data.cend()));
 }
 
 } // namespace index

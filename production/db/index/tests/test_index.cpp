@@ -54,9 +54,9 @@ TEST(index, one_record_hash_index)
 
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : hash_index)
+    for (const auto& [k, record] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -70,9 +70,9 @@ TEST(index, one_record_range_index)
 
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : range_index)
+    for (const auto& [k, record] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -88,9 +88,9 @@ TEST(index, single_key_multi_record_hash_index)
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : hash_index)
+    for (const auto& [k, record] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -106,9 +106,9 @@ TEST(index, single_key_multi_record_range_index)
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : range_index)
+    for (const auto& [k, record] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -126,9 +126,9 @@ TEST(index, multi_key_multi_record_hash_index)
     hash_index.insert_index_entry(index_key_t(2), index_record_t(create_index_record()));
     hash_index.insert_index_entry(index_key_t(3), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : hash_index)
+    for (const auto& [k, record] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -146,9 +146,9 @@ TEST(index, multi_key_multi_record_range_index)
     range_index.insert_index_entry(index_key_t(2), index_record_t(create_index_record()));
     range_index.insert_index_entry(index_key_t(3), index_record_t(create_index_record()));
 
-    for (const auto& [k, r] : range_index)
+    for (const auto& [k, record] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -168,9 +168,9 @@ TEST(index, range_update_test)
     range_index.insert_index_entry(index_key_t(1), to_update);
     range_index.insert_index_entry(index_key_t(2), to_update);
 
-    for (const auto& [k, r] : range_index)
+    for (const auto& [k, record] : range_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 
@@ -190,9 +190,9 @@ TEST(index, hash_update_test)
     hash_index.insert_index_entry(index_key_t(1), to_update);
     hash_index.insert_index_entry(index_key_t(2), to_update);
 
-    for (const auto& [k, r] : hash_index)
+    for (const auto& [k, record] : hash_index)
     {
-        ASSERT_EQ(r.txn_id, c_fake_txn_id);
+        ASSERT_EQ(record.txn_id, c_fake_txn_id);
         count++;
     }
 

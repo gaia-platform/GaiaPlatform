@@ -5,6 +5,8 @@
 
 #include "index.hpp"
 
+#include <string>
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 #include "field_access.hpp"
@@ -12,11 +14,6 @@
 
 using namespace gaia::common;
 using namespace gaia::db::index;
-
-constexpr std::size_t c_default_seed = 1182248752;
-constexpr std::size_t c_golden_ratio = 0x9e3779b9;
-constexpr std::size_t c_seed_left_shift = 6;
-constexpr std::size_t c_seed_right_shift = 2;
 
 namespace gaia
 {
@@ -85,9 +82,11 @@ std::size_t index_key_t::size() const
 
 /*
 * Combine hash of all data holders in this key.
+* Concatenate all hash values and rehash.
 */
 std::size_t index_key_hash::operator()(index_key_t const& key) const
 {
+<<<<<<< HEAD
     size_t seed = c_default_seed;
 
     /*
@@ -95,28 +94,31 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
     * The algorithm here is same as boost::hash_combine.
     * Taken from http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.18.2680
     */
+=======
+    std::ostringstream hash_concat;
+>>>>>>> 6d0f1faf4... Changed the hash combiner and addressed more comments
     for (payload_types::data_holder_t data : key.m_key_values)
     {
-        seed ^= data.hash() + c_golden_ratio + (seed << c_seed_left_shift) + (seed >> c_seed_right_shift);
+        hash_concat << data.hash();
     }
 
-    return seed;
+    return std::hash<std::string>{}(hash_concat.str());
 }
 
 /*
  * ostream operator overloads
  */
 
-std::ostream& operator<<(std::ostream& os, const index_record_t& rec)
+std::ostream& operator<<(std::ostream& os, const index_record_t& record)
 {
     os << "locator: "
-       << rec.locator
+       << record.locator
        << "\ttxn_id: "
-       << rec.txn_id
+       << record.txn_id
        << "\toffset: "
-       << rec.offset
+       << record.offset
        << "\tdeleted: "
-       << rec.deleted
+       << record.deleted
        << std::endl;
     return os;
 }

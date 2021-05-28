@@ -29,7 +29,7 @@ class range_index_t : public index_t<range_type_t, range_index_iterator_t>
 {
 public:
     explicit range_index_t(gaia::common::gaia_id_t index_id)
-        : index_t(index_id, index_type_t::range)
+        : index_t(index_id, catalog::index_type_t::range)
     {
     }
     ~range_index_t() = default;
@@ -42,7 +42,6 @@ public:
     range_index_iterator_t upper_bound(const index_key_t& key);
 
     std::pair<range_index_iterator_t, range_index_iterator_t> equal_range(const index_key_t& key);
-    ;
 };
 
 } // namespace index
