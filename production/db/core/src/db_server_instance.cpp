@@ -5,16 +5,19 @@
 
 #include "gaia_internal/db/db_server_instance.hpp"
 
+#include <unistd.h>
+
 #include <csignal>
 
 #include <filesystem>
 #include <iostream>
+#include <thread>
 
+#include <gaia_spdlog/fmt/fmt.h>
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
 #include <libexplain/kill.h>
 #include <libexplain/waitpid.h>
-#include <spdlog/fmt/fmt.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
 

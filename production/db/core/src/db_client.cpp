@@ -13,7 +13,7 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <spdlog/fmt/fmt.h>
+#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>

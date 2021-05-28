@@ -18,8 +18,8 @@ debug_logger_t* debug_logger_t::create(const char* logger_name)
     // Create and register a synchronous logger with no sinks.  Registering the logger
     // is required so that the constructor of the logger_t class doesn't create the default
     // asynchronous one.
-    auto logger = make_shared<spdlog::logger>(logger_name);
-    spdlog::register_logger(logger);
+    auto logger = make_shared<gaia_spdlog::logger>(logger_name);
+    gaia_spdlog::register_logger(logger);
     return new debug_logger_t(logger_name);
 }
 

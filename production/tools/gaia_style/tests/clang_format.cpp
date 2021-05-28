@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "flatbuffers/base.h"
-#include "spdlog/spdlog.h"
+#include "gaia_spdlog/spdlog.h"
 
 #include "gaia/common.hpp"
 #include "gaia/component.hpp"

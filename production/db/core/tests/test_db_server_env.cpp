@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <thread>
 
 #include <gtest/gtest.h>
 #include <libexplain/execve.h>

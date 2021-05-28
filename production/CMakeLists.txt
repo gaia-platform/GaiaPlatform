@@ -163,9 +163,9 @@ endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Spdlog.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog" gaia_spdlog)
 # Spdlog_setup.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_spdlog_setup)
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest

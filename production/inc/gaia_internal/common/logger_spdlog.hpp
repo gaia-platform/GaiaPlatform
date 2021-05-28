@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-#include <spdlog/spdlog.h>
+#include <gaia_spdlog/spdlog.h>
 
 namespace gaia::common::logging
 {
@@ -30,13 +30,13 @@ constexpr const char* c_default_pattern = "[%Y-%m-%dT%T.%e] [%l] [%P %t] <%n>: %
 
 constexpr size_t c_default_queue_size = 8192;
 constexpr size_t c_default_thread_count = 1;
-constexpr spdlog::level::level_enum c_default_level = spdlog::level::info;
+constexpr gaia_spdlog::level::level_enum c_default_level = gaia_spdlog::level::info;
 
 /**
- * Creates an instance of spdlog::logger with some convenient defaults. This function
+ * Creates an instance of gaia_spdlog::logger with some convenient defaults. This function
  * is used to create loggers whenever they are not defined in the log configuration.
  */
-std::shared_ptr<spdlog::logger> create_logger_with_default_settings(const std::string& logger_name);
+std::shared_ptr<gaia_spdlog::logger> create_logger_with_default_settings(const std::string& logger_name);
 } // namespace spdlog_defaults
 
 } // namespace gaia::common::logging

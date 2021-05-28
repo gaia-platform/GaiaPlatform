@@ -17,7 +17,7 @@
 #include <thread>
 #include <unordered_set>
 
-#include "spdlog/fmt/fmt.h"
+#include "gaia_spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
