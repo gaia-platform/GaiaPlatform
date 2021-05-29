@@ -5,14 +5,14 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_OSTREAM_H_
-#define FMT_OSTREAM_H_
+#ifndef GAIA_FMT_OSTREAM_H_
+#define GAIA_FMT_OSTREAM_H_
 
 #include <ostream>
 
 #include "format.h"
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 
 template <typename Char> class basic_printf_parse_context;
 template <typename OutputIt, typename Char> class basic_printf_context;
@@ -37,20 +37,20 @@ template <class Char> class formatbuf : public std::basic_streambuf<Char> {
   // to overflow. There is no disadvantage here for sputn since this always
   // results in a call to xsputn.
 
-  int_type overflow(int_type ch = traits_type::eof()) FMT_OVERRIDE {
+  int_type overflow(int_type ch = traits_type::eof()) GAIA_FMT_OVERRIDE {
     if (!traits_type::eq_int_type(ch, traits_type::eof()))
       buffer_.push_back(static_cast<Char>(ch));
     return ch;
   }
 
-  std::streamsize xsputn(const Char* s, std::streamsize count) FMT_OVERRIDE {
+  std::streamsize xsputn(const Char* s, std::streamsize count) GAIA_FMT_OVERRIDE {
     buffer_.append(s, s + count);
     return count;
   }
 };
 
 struct converter {
-  template <typename T, FMT_ENABLE_IF(is_integral<T>::value)> converter(T);
+  template <typename T, GAIA_FMT_ENABLE_IF(is_integral<T>::value)> converter(T);
 };
 
 template <typename Char> struct test_stream : std::basic_ostream<Char> {
@@ -108,7 +108,7 @@ void format_value(buffer<Char>& buf, const T& value,
                   locale_ref loc = locale_ref()) {
   formatbuf<Char> format_buf(buf);
   std::basic_ostream<Char> output(&format_buf);
-#if !defined(FMT_STATIC_THOUSANDS_SEPARATOR)
+#if !defined(GAIA_FMT_STATIC_THOUSANDS_SEPARATOR)
   if (loc) output.imbue(loc.get<std::locale>());
 #endif
   output << value;
@@ -120,12 +120,12 @@ void format_value(buffer<Char>& buf, const T& value,
 template <typename T, typename Char>
 struct fallback_formatter<T, Char, enable_if_t<is_streamable<T, Char>::value>>
     : private formatter<basic_string_view<Char>, Char> {
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
+  GAIA_FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
       -> decltype(ctx.begin()) {
     return formatter<basic_string_view<Char>, Char>::parse(ctx);
   }
   template <typename ParseCtx,
-            FMT_ENABLE_IF(std::is_same<
+            GAIA_FMT_ENABLE_IF(std::is_same<
                           ParseCtx, basic_printf_parse_context<Char>>::value)>
   auto parse(ParseCtx& ctx) -> decltype(ctx.begin()) {
     return ctx.begin();
@@ -163,15 +163,15 @@ void vprint(std::basic_ostream<Char>& os, basic_string_view<Char> format_str,
 
   **Example**::
 
-    fmt::print(cerr, "Don't {}!", "panic");
+    gaia_fmt::print(cerr, "Don't {}!", "panic");
   \endrst
  */
 template <typename S, typename... Args,
           typename Char = enable_if_t<detail::is_string<S>::value, char_t<S>>>
 void print(std::basic_ostream<Char>& os, const S& format_str, Args&&... args) {
   vprint(os, to_string_view(format_str),
-         fmt::make_args_checked<Args...>(format_str, args...));
+         gaia_fmt::make_args_checked<Args...>(format_str, args...));
 }
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_OSTREAM_H_
+#endif  // GAIA_FMT_OSTREAM_H_

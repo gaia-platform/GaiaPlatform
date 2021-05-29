@@ -96,8 +96,7 @@ public:
     explicit gaia_config_fallback_t(std::string config_path)
         : m_config_path(std::move(config_path)){};
 
-    gaia_config_fallback_t()
-        : gaia_config_fallback_t(""){};
+    gaia_config_fallback_t() = default;
 
     template <class T_value>
     std::optional<T_value> get_config_file_value(const char* key)

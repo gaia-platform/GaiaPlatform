@@ -7,10 +7,10 @@
 #include <gaia_spdlog/fmt/fmt.h>
 #include <gaia_spdlog/common.h>
 
-// Some fmt helpers to efficiently format and pad ints and strings
+// Some gaia_fmt helpers to efficiently format and pad ints and strings
 namespace gaia_spdlog {
 namespace details {
-namespace fmt_helper {
+namespace gaia_fmt_helper {
 
 inline gaia_spdlog::string_view_t to_string_view(const memory_buf_t &buf) GAIA_SPDLOG_NOEXCEPT
 {
@@ -26,7 +26,7 @@ inline void append_string_view(gaia_spdlog::string_view_t view, memory_buf_t &de
 template<typename T>
 inline void append_int(T n, memory_buf_t &dest)
 {
-    fmt::format_int i(n);
+    gaia_fmt::format_int i(n);
     dest.append(i.data(), i.data() + i.size());
 }
 
@@ -34,10 +34,10 @@ template<typename T>
 inline unsigned int count_digits(T n)
 {
     using count_type = typename std::conditional<(sizeof(T) > sizeof(uint32_t)), uint64_t, uint32_t>::type;
-    return static_cast<unsigned int>(fmt::
-// fmt 7.0.0 renamed the internal namespace to detail.
-// See: https://github.com/fmtlib/fmt/issues/1538
-#if FMT_VERSION < 70000
+    return static_cast<unsigned int>(gaia_fmt::
+// gaia_fmt 7.0.0 renamed the internal namespace to detail.
+// See: https://github.com/gaia_fmtlib/gaia_fmt/issues/1538
+#if GAIA_FMT_VERSION < 70000
             internal
 #else
             detail
@@ -52,9 +52,9 @@ inline void pad2(int n, memory_buf_t &dest)
         dest.push_back(static_cast<char>('0' + n / 10));
         dest.push_back(static_cast<char>('0' + n % 10));
     }
-    else // unlikely, but just in case, let fmt deal with it
+    else // unlikely, but just in case, let gaia_fmt deal with it
     {
-        fmt::format_to(dest, "{:02}", n);
+        gaia_fmt::format_to(dest, "{:02}", n);
     }
 }
 
@@ -111,6 +111,6 @@ inline ToDuration time_fraction(log_clock::time_point tp)
     return duration_cast<ToDuration>(duration) - duration_cast<ToDuration>(secs);
 }
 
-} // namespace fmt_helper
+} // namespace gaia_fmt_helper
 } // namespace details
 } // namespace gaia_spdlog

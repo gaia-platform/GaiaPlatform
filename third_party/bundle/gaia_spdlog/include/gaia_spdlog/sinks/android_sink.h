@@ -43,7 +43,7 @@ protected:
         memory_buf_t formatted;
         if (use_raw_msg_)
         {
-            details::fmt_helper::append_string_view(msg.payload, formatted);
+            details::gaia_fmt_helper::append_string_view(msg.payload, formatted);
         }
         else
         {

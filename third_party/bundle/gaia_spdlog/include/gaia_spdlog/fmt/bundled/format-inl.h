@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_FORMAT_INL_H_
-#define FMT_FORMAT_INL_H_
+#ifndef GAIA_FMT_FORMAT_INL_H_
+#define GAIA_FMT_FORMAT_INL_H_
 
 #include <cassert>
 #include <cctype>
@@ -17,7 +17,7 @@
 #include <cwchar>
 #include <exception>
 
-#ifndef FMT_STATIC_THOUSANDS_SEPARATOR
+#ifndef GAIA_FMT_STATIC_THOUSANDS_SEPARATOR
 #  include <locale>
 #endif
 
@@ -27,15 +27,15 @@
 
 #include "format.h"
 
-// Dummy implementations of strerror_r and strerror_s called if corresponding
+// Dummy implementations of gaia_gaia_strerror_r and gaia_strerror_s called if corresponding
 // system functions are not available.
-inline fmt::detail::null<> strerror_r(int, char*, ...) { return {}; }
-inline fmt::detail::null<> strerror_s(char*, size_t, ...) { return {}; }
+inline gaia_fmt::detail::null<> gaia_gaia_strerror_r(int, char*, ...) { return {}; }
+inline gaia_fmt::detail::null<> gaia_strerror_s(char*, size_t, ...) { return {}; }
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 namespace detail {
 
-FMT_FUNC void assert_fail(const char* file, int line, const char* message) {
+GAIA_FMT_FUNC void assert_fail(const char* file, int line, const char* message) {
   // Use unchecked std::fprintf to avoid triggering another assertion when
   // writing to stderr fails
   std::fprintf(stderr, "%s:%d: assertion failed: %s", file, line, message);
@@ -45,16 +45,16 @@ FMT_FUNC void assert_fail(const char* file, int line, const char* message) {
 }
 
 #ifndef _MSC_VER
-#  define FMT_SNPRINTF snprintf
+#  define GAIA_FMT_SNPRINTF snprintf
 #else  // _MSC_VER
-inline int fmt_snprintf(char* buffer, size_t size, const char* format, ...) {
+inline int gaia_fmt_snprintf(char* buffer, size_t size, const char* format, ...) {
   va_list args;
   va_start(args, format);
   int result = vsnprintf_s(buffer, size, _TRUNCATE, format, args);
   va_end(args);
   return result;
 }
-#  define FMT_SNPRINTF fmt_snprintf
+#  define GAIA_FMT_SNPRINTF gaia_fmt_snprintf
 #endif  // _MSC_VER
 
 // A portable thread-safe version of strerror.
@@ -67,8 +67,8 @@ inline int fmt_snprintf(char* buffer, size_t size, const char* format, ...) {
 //   other  - failure
 // Buffer should be at least of size 1.
 inline int safe_strerror(int error_code, char*& buffer,
-                         size_t buffer_size) FMT_NOEXCEPT {
-  FMT_ASSERT(buffer != nullptr && buffer_size != 0, "invalid buffer");
+                         size_t buffer_size) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(buffer != nullptr && buffer_size != 0, "invalid buffer");
 
   class dispatcher {
    private:
@@ -79,14 +79,14 @@ inline int safe_strerror(int error_code, char*& buffer,
     // A noop assignment operator to avoid bogus warnings.
     void operator=(const dispatcher&) {}
 
-    // Handle the result of XSI-compliant version of strerror_r.
+    // Handle the result of XSI-compliant version of gaia_gaia_strerror_r.
     int handle(int result) {
       // glibc versions before 2.13 return result in errno.
       return result == -1 ? errno : result;
     }
 
-    // Handle the result of GNU-specific version of strerror_r.
-    FMT_MAYBE_UNUSED
+    // Handle the result of GNU-specific version of gaia_gaia_strerror_r.
+    GAIA_FMT_MAYBE_UNUSED
     int handle(char* message) {
       // If the buffer is full then the message is probably truncated.
       if (message == buffer_ && strlen(buffer_) == buffer_size_ - 1)
@@ -95,22 +95,22 @@ inline int safe_strerror(int error_code, char*& buffer,
       return 0;
     }
 
-    // Handle the case when strerror_r is not available.
-    FMT_MAYBE_UNUSED
+    // Handle the case when gaia_gaia_strerror_r is not available.
+    GAIA_FMT_MAYBE_UNUSED
     int handle(detail::null<>) {
-      return fallback(strerror_s(buffer_, buffer_size_, error_code_));
+      return fallback(gaia_strerror_s(buffer_, buffer_size_, error_code_));
     }
 
-    // Fallback to strerror_s when strerror_r is not available.
-    FMT_MAYBE_UNUSED
+    // Fallback to gaia_strerror_s when gaia_gaia_strerror_r is not available.
+    GAIA_FMT_MAYBE_UNUSED
     int fallback(int result) {
       // If the buffer is full then the message is probably truncated.
       return result == 0 && strlen(buffer_) == buffer_size_ - 1 ? ERANGE
                                                                 : result;
     }
 
-#if !FMT_MSC_VER
-    // Fallback to strerror if strerror_r and strerror_s are not available.
+#if !GAIA_FMT_MSC_VER
+    // Fallback to strerror if gaia_gaia_strerror_r and gaia_strerror_s are not available.
     int fallback(detail::null<>) {
       errno = 0;
       buffer_ = strerror(error_code_);
@@ -122,13 +122,13 @@ inline int safe_strerror(int error_code, char*& buffer,
     dispatcher(int err_code, char*& buf, size_t buf_size)
         : error_code_(err_code), buffer_(buf), buffer_size_(buf_size) {}
 
-    int run() { return handle(strerror_r(error_code_, buffer_, buffer_size_)); }
+    int run() { return handle(gaia_gaia_strerror_r(error_code_, buffer_, buffer_size_)); }
   };
   return dispatcher(error_code, buffer, buffer_size).run();
 }
 
-FMT_FUNC void format_error_code(detail::buffer<char>& out, int error_code,
-                                string_view message) FMT_NOEXCEPT {
+GAIA_FMT_FUNC void format_error_code(detail::buffer<char>& out, int error_code,
+                                string_view message) GAIA_FMT_NOEXCEPT {
   // Report error code making sure that the output fits into
   // inline_buffer_size to avoid dynamic memory allocation and potential
   // bad_alloc.
@@ -150,8 +150,8 @@ FMT_FUNC void format_error_code(detail::buffer<char>& out, int error_code,
   assert(out.size() <= inline_buffer_size);
 }
 
-FMT_FUNC void report_error(format_func func, int error_code,
-                           string_view message) FMT_NOEXCEPT {
+GAIA_FMT_FUNC void report_error(format_func func, int error_code,
+                           string_view message) GAIA_FMT_NOEXCEPT {
   memory_buffer full_message;
   func(full_message, error_code, message);
   // Don't use fwrite_fully because the latter may throw.
@@ -163,11 +163,11 @@ FMT_FUNC void report_error(format_func func, int error_code,
 inline void fwrite_fully(const void* ptr, size_t size, size_t count,
                          FILE* stream) {
   size_t written = std::fwrite(ptr, size, count, stream);
-  if (written < count) FMT_THROW(system_error(errno, "cannot write to file"));
+  if (written < count) GAIA_FMT_THROW(system_error(errno, "cannot write to file"));
 }
 }  // namespace detail
 
-#if !defined(FMT_STATIC_THOUSANDS_SEPARATOR)
+#if !defined(GAIA_FMT_STATIC_THOUSANDS_SEPARATOR)
 namespace detail {
 
 template <typename Locale>
@@ -180,35 +180,35 @@ template <typename Locale> Locale locale_ref::get() const {
   return locale_ ? *static_cast<const std::locale*>(locale_) : std::locale();
 }
 
-template <typename Char> FMT_FUNC std::string grouping_impl(locale_ref loc) {
+template <typename Char> GAIA_FMT_FUNC std::string grouping_impl(locale_ref loc) {
   return std::use_facet<std::numpunct<Char>>(loc.get<std::locale>()).grouping();
 }
-template <typename Char> FMT_FUNC Char thousands_sep_impl(locale_ref loc) {
+template <typename Char> GAIA_FMT_FUNC Char thousands_sep_impl(locale_ref loc) {
   return std::use_facet<std::numpunct<Char>>(loc.get<std::locale>())
       .thousands_sep();
 }
-template <typename Char> FMT_FUNC Char decimal_point_impl(locale_ref loc) {
+template <typename Char> GAIA_FMT_FUNC Char decimal_point_impl(locale_ref loc) {
   return std::use_facet<std::numpunct<Char>>(loc.get<std::locale>())
       .decimal_point();
 }
 }  // namespace detail
 #else
 template <typename Char>
-FMT_FUNC std::string detail::grouping_impl(locale_ref) {
+GAIA_FMT_FUNC std::string detail::grouping_impl(locale_ref) {
   return "\03";
 }
-template <typename Char> FMT_FUNC Char detail::thousands_sep_impl(locale_ref) {
-  return FMT_STATIC_THOUSANDS_SEPARATOR;
+template <typename Char> GAIA_FMT_FUNC Char detail::thousands_sep_impl(locale_ref) {
+  return GAIA_FMT_STATIC_THOUSANDS_SEPARATOR;
 }
-template <typename Char> FMT_FUNC Char detail::decimal_point_impl(locale_ref) {
+template <typename Char> GAIA_FMT_FUNC Char detail::decimal_point_impl(locale_ref) {
   return '.';
 }
 #endif
 
-FMT_API FMT_FUNC format_error::~format_error() FMT_NOEXCEPT = default;
-FMT_API FMT_FUNC system_error::~system_error() FMT_NOEXCEPT = default;
+GAIA_FMT_API GAIA_FMT_FUNC format_error::~format_error() GAIA_FMT_NOEXCEPT = default;
+GAIA_FMT_API GAIA_FMT_FUNC system_error::~system_error() GAIA_FMT_NOEXCEPT = default;
 
-FMT_FUNC void system_error::init(int err_code, string_view format_str,
+GAIA_FMT_FUNC void system_error::init(int err_code, string_view format_str,
                                  format_args args) {
   error_code_ = err_code;
   memory_buffer buffer;
@@ -219,7 +219,7 @@ FMT_FUNC void system_error::init(int err_code, string_view format_str,
 
 namespace detail {
 
-template <> FMT_FUNC int count_digits<4>(detail::fallback_uintptr n) {
+template <> GAIA_FMT_FUNC int count_digits<4>(detail::fallback_uintptr n) {
   // fallback_uintptr is always stored in little endian.
   int i = static_cast<int>(sizeof(void*)) - 1;
   while (i > 0 && n.value[i] == 0) --i;
@@ -250,31 +250,31 @@ const typename basic_data<T>::digit_pair basic_data<T>::digits[] = {
 template <typename T>
 const char basic_data<T>::hex_digits[] = "0123456789abcdef";
 
-#define FMT_POWERS_OF_10(factor)                                             \
+#define GAIA_FMT_POWERS_OF_10(factor)                                             \
   factor * 10, (factor)*100, (factor)*1000, (factor)*10000, (factor)*100000, \
       (factor)*1000000, (factor)*10000000, (factor)*100000000,               \
       (factor)*1000000000
 
 template <typename T>
 const uint64_t basic_data<T>::powers_of_10_64[] = {
-    1, FMT_POWERS_OF_10(1), FMT_POWERS_OF_10(1000000000ULL),
+    1, GAIA_FMT_POWERS_OF_10(1), GAIA_FMT_POWERS_OF_10(1000000000ULL),
     10000000000000000000ULL};
 
 template <typename T>
 const uint32_t basic_data<T>::zero_or_powers_of_10_32[] = {0,
-                                                           FMT_POWERS_OF_10(1)};
+                                                           GAIA_FMT_POWERS_OF_10(1)};
 template <typename T>
 const uint64_t basic_data<T>::zero_or_powers_of_10_64[] = {
-    0, FMT_POWERS_OF_10(1), FMT_POWERS_OF_10(1000000000ULL),
+    0, GAIA_FMT_POWERS_OF_10(1), GAIA_FMT_POWERS_OF_10(1000000000ULL),
     10000000000000000000ULL};
 
 template <typename T>
 const uint32_t basic_data<T>::zero_or_powers_of_10_32_new[] = {
-    0, 0, FMT_POWERS_OF_10(1)};
+    0, 0, GAIA_FMT_POWERS_OF_10(1)};
 
 template <typename T>
 const uint64_t basic_data<T>::zero_or_powers_of_10_64_new[] = {
-    0, 0, FMT_POWERS_OF_10(1), FMT_POWERS_OF_10(1000000000ULL),
+    0, 0, GAIA_FMT_POWERS_OF_10(1), GAIA_FMT_POWERS_OF_10(1000000000ULL),
     10000000000000000000ULL};
 
 // Normalized 64-bit significands of pow(10, k), for k = -348, -340, ..., 340.
@@ -392,7 +392,7 @@ const uint64_t basic_data<T>::dragonbox_pow10_significands_64[] = {
 
 template <typename T>
 const uint128_wrapper basic_data<T>::dragonbox_pow10_significands_128[] = {
-#if FMT_USE_FULL_CACHE_DRAGONBOX
+#if GAIA_FMT_USE_FULL_CACHE_DRAGONBOX
     {0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7b},
     {0x9faacf3df73609b1, 0x77b191618c54e9ad},
     {0xc795830d75038c1d, 0xd59df5b9ef6a2418},
@@ -1039,7 +1039,7 @@ const uint128_wrapper basic_data<T>::dragonbox_pow10_significands_128[] = {
 #endif
 };
 
-#if !FMT_USE_FULL_CACHE_DRAGONBOX
+#if !GAIA_FMT_USE_FULL_CACHE_DRAGONBOX
 template <typename T>
 const uint64_t basic_data<T>::powers_of_5_64[] = {
     0x0000000000000001, 0x0000000000000005, 0x0000000000000019,
@@ -1076,7 +1076,7 @@ template <typename T>
 const char basic_data<T>::right_padding_shifts[] = {0, 31, 0, 1, 0};
 
 template <typename T> struct bits {
-  static FMT_CONSTEXPR_DECL const int value =
+  static GAIA_FMT_CONSTEXPR_DECL const int value =
       static_cast<int>(sizeof(T) * std::numeric_limits<unsigned char>::digits);
 };
 
@@ -1107,11 +1107,11 @@ class fp {
   // All sizes are in bits.
   // Subtract 1 to account for an implicit most significant bit in the
   // normalized form.
-  static FMT_CONSTEXPR_DECL const int double_significand_size =
+  static GAIA_FMT_CONSTEXPR_DECL const int double_significand_size =
       std::numeric_limits<double>::digits - 1;
-  static FMT_CONSTEXPR_DECL const uint64_t implicit_bit =
+  static GAIA_FMT_CONSTEXPR_DECL const uint64_t implicit_bit =
       1ULL << double_significand_size;
-  static FMT_CONSTEXPR_DECL const int significand_size =
+  static GAIA_FMT_CONSTEXPR_DECL const int significand_size =
       bits<significand_type>::value;
 
   fp() : f(0), e(0) {}
@@ -1122,7 +1122,7 @@ class fp {
   template <typename Double> explicit fp(Double d) { assign(d); }
 
   // Assigns d to this and return true iff predecessor is closer than successor.
-  template <typename Float, FMT_ENABLE_IF(is_supported_float<Float>::value)>
+  template <typename Float, GAIA_FMT_ENABLE_IF(is_supported_float<Float>::value)>
   bool assign(Float d) {
     // Assume float is in the format [sign][exponent][significand].
     using limits = std::numeric_limits<Float>;
@@ -1149,7 +1149,7 @@ class fp {
     return is_predecessor_closer;
   }
 
-  template <typename Float, FMT_ENABLE_IF(!is_supported_float<Float>::value)>
+  template <typename Float, GAIA_FMT_ENABLE_IF(!is_supported_float<Float>::value)>
   bool assign(Float) {
     *this = fp();
     return false;
@@ -1176,7 +1176,7 @@ inline bool operator==(fp x, fp y) { return x.f == y.f && x.e == y.e; }
 
 // Computes lhs * rhs / pow(2, 64) rounded to nearest with half-up tie breaking.
 inline uint64_t multiply(uint64_t lhs, uint64_t rhs) {
-#if FMT_USE_INT128
+#if GAIA_FMT_USE_INT128
   auto product = static_cast<__uint128_t>(lhs) * rhs;
   auto f = static_cast<uint64_t>(product >> 64);
   return (static_cast<uint64_t>(product) & (1ULL << 63)) != 0 ? f + 1 : f;
@@ -1248,7 +1248,7 @@ class bigint {
   bigit operator[](int index) const { return bigits_[to_unsigned(index)]; }
   bigit& operator[](int index) { return bigits_[to_unsigned(index)]; }
 
-  static FMT_CONSTEXPR_DECL const int bigit_bits = bits<bigit>::value;
+  static GAIA_FMT_CONSTEXPR_DECL const int bigit_bits = bits<bigit>::value;
 
   friend struct formatter<bigint>;
 
@@ -1266,8 +1266,8 @@ class bigint {
 
   // Computes *this -= other assuming aligned bigints and *this >= other.
   void subtract_aligned(const bigint& other) {
-    FMT_ASSERT(other.exp_ >= exp_, "unaligned bigints");
-    FMT_ASSERT(compare(*this, other) >= 0, "");
+    GAIA_FMT_ASSERT(other.exp_ >= exp_, "unaligned bigints");
+    GAIA_FMT_ASSERT(compare(*this, other) >= 0, "");
     bigit borrow = 0;
     int i = other.exp_ - exp_;
     for (size_t j = 0, n = other.bigits_.size(); j != n; ++i, ++j)
@@ -1332,7 +1332,7 @@ class bigint {
 
   int num_bigits() const { return static_cast<int>(bigits_.size()) + exp_; }
 
-  FMT_NOINLINE bigint& operator<<=(int shift) {
+  GAIA_FMT_NOINLINE bigint& operator<<=(int shift) {
     assert(shift >= 0);
     exp_ += shift / bigit_bits;
     shift %= bigit_bits;
@@ -1348,7 +1348,7 @@ class bigint {
   }
 
   template <typename Int> bigint& operator*=(Int value) {
-    FMT_ASSERT(value > 0, "");
+    GAIA_FMT_ASSERT(value > 0, "");
     multiply(uint32_or_64_or_128_t<Int>(value));
     return *this;
   }
@@ -1418,7 +1418,7 @@ class bigint {
     int num_bigits = static_cast<int>(bigits_.size());
     int num_result_bigits = 2 * num_bigits;
     bigits_.resize(to_unsigned(num_result_bigits));
-    using accumulator_t = conditional_t<FMT_USE_INT128, uint128_t, accumulator>;
+    using accumulator_t = conditional_t<GAIA_FMT_USE_INT128, uint128_t, accumulator>;
     auto sum = accumulator_t();
     for (int bigit_index = 0; bigit_index < num_bigits; ++bigit_index) {
       // Compute bigit at position bigit_index of the result by adding
@@ -1459,9 +1459,9 @@ class bigint {
   // Divides this bignum by divisor, assigning the remainder to this and
   // returning the quotient.
   int divmod_assign(const bigint& divisor) {
-    FMT_ASSERT(this != &divisor, "");
+    GAIA_FMT_ASSERT(this != &divisor, "");
     if (compare(*this, divisor) < 0) return 0;
-    FMT_ASSERT(divisor.bigits_[divisor.bigits_.size() - 1u] != 0, "");
+    GAIA_FMT_ASSERT(divisor.bigits_[divisor.bigits_.size() - 1u] != 0, "");
     align(divisor);
     int quotient = 0;
     do {
@@ -1480,9 +1480,9 @@ enum class round_direction { unknown, up, down };
 // error should be less than divisor / 2.
 inline round_direction get_round_direction(uint64_t divisor, uint64_t remainder,
                                            uint64_t error) {
-  FMT_ASSERT(remainder < divisor, "");  // divisor - remainder won't overflow.
-  FMT_ASSERT(error < divisor, "");      // divisor - error won't overflow.
-  FMT_ASSERT(error < divisor - error, "");  // error * 2 won't overflow.
+  GAIA_FMT_ASSERT(remainder < divisor, "");  // divisor - remainder won't overflow.
+  GAIA_FMT_ASSERT(error < divisor, "");      // divisor - error won't overflow.
+  GAIA_FMT_ASSERT(error < divisor - error, "");  // error * 2 won't overflow.
   // Round down if (remainder + error) * 2 <= divisor.
   if (remainder <= divisor - remainder && error * 2 <= divisor - remainder * 2)
     return round_direction::down;
@@ -1506,15 +1506,15 @@ enum result {
 // error: the size of the region (lower, upper) outside of which numbers
 // definitely do not round to value (Delta in Grisu3).
 template <typename Handler>
-FMT_ALWAYS_INLINE digits::result grisu_gen_digits(fp value, uint64_t error,
+GAIA_FMT_ALWAYS_INLINE digits::result grisu_gen_digits(fp value, uint64_t error,
                                                   int& exp, Handler& handler) {
   const fp one(1ULL << -value.e, value.e);
   // The integral part of scaled value (p1 in Grisu) = value / one. It cannot be
   // zero because it contains a product of two 64-bit numbers with MSB set (due
   // to normalization) - 1, shifted right by at most 60 bits.
   auto integral = static_cast<uint32_t>(value.f >> -one.e);
-  FMT_ASSERT(integral != 0, "");
-  FMT_ASSERT(integral == value.f >> -one.e, "");
+  GAIA_FMT_ASSERT(integral != 0, "");
+  GAIA_FMT_ASSERT(integral == value.f >> -one.e, "");
   // The fractional part of scaled value (p2 in Grisu) c = value % one.
   uint64_t fractional = value.f & (one.f - 1);
   exp = count_digits(integral);  // kappa in Grisu.
@@ -1564,7 +1564,7 @@ FMT_ALWAYS_INLINE digits::result grisu_gen_digits(fp value, uint64_t error,
       integral = 0;
       break;
     default:
-      FMT_ASSERT(false, "invalid number of digits");
+      GAIA_FMT_ASSERT(false, "invalid number of digits");
     }
     --exp;
     auto remainder = (static_cast<uint64_t>(integral) << -one.e) + fractional;
@@ -1612,7 +1612,7 @@ struct fixed_handler {
 
   digits::result on_digit(char digit, uint64_t divisor, uint64_t remainder,
                           uint64_t error, int, bool integral) {
-    FMT_ASSERT(remainder < divisor, "");
+    GAIA_FMT_ASSERT(remainder < divisor, "");
     buf[size++] = digit;
     if (!integral && error >= remainder) return digits::error;
     if (size < precision) return digits::more;
@@ -1622,7 +1622,7 @@ struct fixed_handler {
       // and divisor > (1 << 32) there.
       if (error >= divisor || error >= divisor - error) return digits::error;
     } else {
-      FMT_ASSERT(error == 1 && divisor > 2, "");
+      GAIA_FMT_ASSERT(error == 1 && divisor > 2, "");
     }
     auto dir = get_round_direction(divisor, remainder, error);
     if (dir != round_direction::up)
@@ -1646,9 +1646,9 @@ struct fixed_handler {
 // Implementation of Dragonbox algorithm: https://github.com/jk-jeon/dragonbox.
 namespace dragonbox {
 // Computes 128-bit result of multiplication of two 64-bit unsigned integers.
-FMT_SAFEBUFFERS inline uint128_wrapper umul128(uint64_t x,
-                                               uint64_t y) FMT_NOEXCEPT {
-#if FMT_USE_INT128
+GAIA_FMT_SAFEBUFFERS inline uint128_wrapper umul128(uint64_t x,
+                                               uint64_t y) GAIA_FMT_NOEXCEPT {
+#if GAIA_FMT_USE_INT128
   return static_cast<uint128_t>(x) * static_cast<uint128_t>(y);
 #elif defined(_MSC_VER) && defined(_M_X64)
   uint128_wrapper result;
@@ -1675,9 +1675,9 @@ FMT_SAFEBUFFERS inline uint128_wrapper umul128(uint64_t x,
 }
 
 // Computes upper 64 bits of multiplication of two 64-bit unsigned integers.
-FMT_SAFEBUFFERS inline uint64_t umul128_upper64(uint64_t x,
-                                                uint64_t y) FMT_NOEXCEPT {
-#if FMT_USE_INT128
+GAIA_FMT_SAFEBUFFERS inline uint64_t umul128_upper64(uint64_t x,
+                                                uint64_t y) GAIA_FMT_NOEXCEPT {
+#if GAIA_FMT_USE_INT128
   auto p = static_cast<uint128_t>(x) * static_cast<uint128_t>(y);
   return static_cast<uint64_t>(p >> 64);
 #elif defined(_MSC_VER) && defined(_M_X64)
@@ -1689,8 +1689,8 @@ FMT_SAFEBUFFERS inline uint64_t umul128_upper64(uint64_t x,
 
 // Computes upper 64 bits of multiplication of a 64-bit unsigned integer and a
 // 128-bit unsigned integer.
-FMT_SAFEBUFFERS inline uint64_t umul192_upper64(uint64_t x, uint128_wrapper y)
-    FMT_NOEXCEPT {
+GAIA_FMT_SAFEBUFFERS inline uint64_t umul192_upper64(uint64_t x, uint128_wrapper y)
+    GAIA_FMT_NOEXCEPT {
   uint128_wrapper g0 = umul128(x, y.high());
   g0 += umul128_upper64(x, y.low());
   return g0.high();
@@ -1698,14 +1698,14 @@ FMT_SAFEBUFFERS inline uint64_t umul192_upper64(uint64_t x, uint128_wrapper y)
 
 // Computes upper 32 bits of multiplication of a 32-bit unsigned integer and a
 // 64-bit unsigned integer.
-inline uint32_t umul96_upper32(uint32_t x, uint64_t y) FMT_NOEXCEPT {
+inline uint32_t umul96_upper32(uint32_t x, uint64_t y) GAIA_FMT_NOEXCEPT {
   return static_cast<uint32_t>(umul128_upper64(x, y));
 }
 
 // Computes middle 64 bits of multiplication of a 64-bit unsigned integer and a
 // 128-bit unsigned integer.
-FMT_SAFEBUFFERS inline uint64_t umul192_middle64(uint64_t x, uint128_wrapper y)
-    FMT_NOEXCEPT {
+GAIA_FMT_SAFEBUFFERS inline uint64_t umul192_middle64(uint64_t x, uint128_wrapper y)
+    GAIA_FMT_NOEXCEPT {
   uint64_t g01 = x * y.high();
   uint64_t g10 = umul128_upper64(x, y.low());
   return g01 + g10;
@@ -1713,22 +1713,22 @@ FMT_SAFEBUFFERS inline uint64_t umul192_middle64(uint64_t x, uint128_wrapper y)
 
 // Computes lower 64 bits of multiplication of a 32-bit unsigned integer and a
 // 64-bit unsigned integer.
-inline uint64_t umul96_lower64(uint32_t x, uint64_t y) FMT_NOEXCEPT {
+inline uint64_t umul96_lower64(uint32_t x, uint64_t y) GAIA_FMT_NOEXCEPT {
   return x * y;
 }
 
 // Computes floor(log10(pow(2, e))) for e in [-1700, 1700] using the method from
-// https://fmt.dev/papers/Grisu-Exact.pdf#page=5, section 3.4.
-inline int floor_log10_pow2(int e) FMT_NOEXCEPT {
-  FMT_ASSERT(e <= 1700 && e >= -1700, "too large exponent");
+// https://gaia_fmt.dev/papers/Grisu-Exact.pdf#page=5, section 3.4.
+inline int floor_log10_pow2(int e) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(e <= 1700 && e >= -1700, "too large exponent");
   const int shift = 22;
   return (e * static_cast<int>(data::log10_2_significand >> (64 - shift))) >>
          shift;
 }
 
 // Various fast log computations.
-inline int floor_log2_pow10(int e) FMT_NOEXCEPT {
-  FMT_ASSERT(e <= 1233 && e >= -1233, "too large exponent");
+inline int floor_log2_pow10(int e) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(e <= 1233 && e >= -1233, "too large exponent");
   const uint64_t log2_10_integer_part = 3;
   const uint64_t log2_10_fractional_digits = 0x5269e12f346e2bf9;
   const int shift_amount = 19;
@@ -1737,8 +1737,8 @@ inline int floor_log2_pow10(int e) FMT_NOEXCEPT {
                   (log2_10_fractional_digits >> (64 - shift_amount)))) >>
          shift_amount;
 }
-inline int floor_log10_pow2_minus_log10_4_over_3(int e) FMT_NOEXCEPT {
-  FMT_ASSERT(e <= 1700 && e >= -1700, "too large exponent");
+inline int floor_log10_pow2_minus_log10_4_over_3(int e) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(e <= 1700 && e >= -1700, "too large exponent");
   const uint64_t log10_4_over_3_fractional_digits = 0x1ffbfc2bbc780375;
   const int shift_amount = 22;
   return (e * static_cast<int>(data::log10_2_significand >>
@@ -1749,33 +1749,33 @@ inline int floor_log10_pow2_minus_log10_4_over_3(int e) FMT_NOEXCEPT {
 }
 
 // Returns true iff x is divisible by pow(2, exp).
-inline bool divisible_by_power_of_2(uint32_t x, int exp) FMT_NOEXCEPT {
-  FMT_ASSERT(exp >= 1, "");
-  FMT_ASSERT(x != 0, "");
-#ifdef FMT_BUILTIN_CTZ
-  return FMT_BUILTIN_CTZ(x) >= exp;
+inline bool divisible_by_power_of_2(uint32_t x, int exp) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(exp >= 1, "");
+  GAIA_FMT_ASSERT(x != 0, "");
+#ifdef GAIA_FMT_BUILTIN_CTZ
+  return GAIA_FMT_BUILTIN_CTZ(x) >= exp;
 #else
   return exp < num_bits<uint32_t>() && x == ((x >> exp) << exp);
 #endif
 }
-inline bool divisible_by_power_of_2(uint64_t x, int exp) FMT_NOEXCEPT {
-  FMT_ASSERT(exp >= 1, "");
-  FMT_ASSERT(x != 0, "");
-#ifdef FMT_BUILTIN_CTZLL
-  return FMT_BUILTIN_CTZLL(x) >= exp;
+inline bool divisible_by_power_of_2(uint64_t x, int exp) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(exp >= 1, "");
+  GAIA_FMT_ASSERT(x != 0, "");
+#ifdef GAIA_FMT_BUILTIN_CTZLL
+  return GAIA_FMT_BUILTIN_CTZLL(x) >= exp;
 #else
   return exp < num_bits<uint64_t>() && x == ((x >> exp) << exp);
 #endif
 }
 
 // Returns true iff x is divisible by pow(5, exp).
-inline bool divisible_by_power_of_5(uint32_t x, int exp) FMT_NOEXCEPT {
-  FMT_ASSERT(exp <= 10, "too large exponent");
+inline bool divisible_by_power_of_5(uint32_t x, int exp) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(exp <= 10, "too large exponent");
   return x * data::divtest_table_for_pow5_32[exp].mod_inv <=
          data::divtest_table_for_pow5_32[exp].max_quotient;
 }
-inline bool divisible_by_power_of_5(uint64_t x, int exp) FMT_NOEXCEPT {
-  FMT_ASSERT(exp <= 23, "too large exponent");
+inline bool divisible_by_power_of_5(uint64_t x, int exp) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_ASSERT(exp <= 23, "too large exponent");
   return x * data::divtest_table_for_pow5_64[exp].mod_inv <=
          data::divtest_table_for_pow5_64[exp].max_quotient;
 }
@@ -1784,7 +1784,7 @@ inline bool divisible_by_power_of_5(uint64_t x, int exp) FMT_NOEXCEPT {
 // divisible by pow(5, N).
 // Precondition: n <= 2 * pow(5, N + 1).
 template <int N>
-bool check_divisibility_and_divide_by_pow5(uint32_t& n) FMT_NOEXCEPT {
+bool check_divisibility_and_divide_by_pow5(uint32_t& n) GAIA_FMT_NOEXCEPT {
   static constexpr struct {
     uint32_t magic_number;
     int bits_for_comparison;
@@ -1801,23 +1801,23 @@ bool check_divisibility_and_divide_by_pow5(uint32_t& n) FMT_NOEXCEPT {
 
 // Computes floor(n / pow(10, N)) for small n and N.
 // Precondition: n <= pow(10, N + 1).
-template <int N> uint32_t small_division_by_pow10(uint32_t n) FMT_NOEXCEPT {
+template <int N> uint32_t small_division_by_pow10(uint32_t n) GAIA_FMT_NOEXCEPT {
   static constexpr struct {
     uint32_t magic_number;
     int shift_amount;
     uint32_t divisor_times_10;
   } infos[] = {{0xcccd, 19, 100}, {0xa3d8, 22, 1000}};
   constexpr auto info = infos[N - 1];
-  FMT_ASSERT(n <= info.divisor_times_10, "n is too large");
+  GAIA_FMT_ASSERT(n <= info.divisor_times_10, "n is too large");
   return n * info.magic_number >> info.shift_amount;
 }
 
 // Computes floor(n / 10^(kappa + 1)) (float)
-inline uint32_t divide_by_10_to_kappa_plus_1(uint32_t n) FMT_NOEXCEPT {
+inline uint32_t divide_by_10_to_kappa_plus_1(uint32_t n) GAIA_FMT_NOEXCEPT {
   return n / float_info<float>::big_divisor;
 }
 // Computes floor(n / 10^(kappa + 1)) (double)
-inline uint64_t divide_by_10_to_kappa_plus_1(uint64_t n) FMT_NOEXCEPT {
+inline uint64_t divide_by_10_to_kappa_plus_1(uint64_t n) GAIA_FMT_NOEXCEPT {
   return umul128_upper64(n, 0x83126e978d4fdf3c) >> 9;
 }
 
@@ -1828,47 +1828,47 @@ template <> struct cache_accessor<float> {
   using carrier_uint = float_info<float>::carrier_uint;
   using cache_entry_type = uint64_t;
 
-  static uint64_t get_cached_power(int k) FMT_NOEXCEPT {
-    FMT_ASSERT(k >= float_info<float>::min_k && k <= float_info<float>::max_k,
+  static uint64_t get_cached_power(int k) GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(k >= float_info<float>::min_k && k <= float_info<float>::max_k,
                "k is out of range");
     return data::dragonbox_pow10_significands_64[k - float_info<float>::min_k];
   }
 
   static carrier_uint compute_mul(carrier_uint u,
-                                  const cache_entry_type& cache) FMT_NOEXCEPT {
+                                  const cache_entry_type& cache) GAIA_FMT_NOEXCEPT {
     return umul96_upper32(u, cache);
   }
 
   static uint32_t compute_delta(const cache_entry_type& cache,
-                                int beta_minus_1) FMT_NOEXCEPT {
+                                int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return static_cast<uint32_t>(cache >> (64 - 1 - beta_minus_1));
   }
 
   static bool compute_mul_parity(carrier_uint two_f,
                                  const cache_entry_type& cache,
-                                 int beta_minus_1) FMT_NOEXCEPT {
-    FMT_ASSERT(beta_minus_1 >= 1, "");
-    FMT_ASSERT(beta_minus_1 < 64, "");
+                                 int beta_minus_1) GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(beta_minus_1 >= 1, "");
+    GAIA_FMT_ASSERT(beta_minus_1 < 64, "");
 
     return ((umul96_lower64(two_f, cache) >> (64 - beta_minus_1)) & 1) != 0;
   }
 
   static carrier_uint compute_left_endpoint_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return static_cast<carrier_uint>(
         (cache - (cache >> (float_info<float>::significand_bits + 2))) >>
         (64 - float_info<float>::significand_bits - 1 - beta_minus_1));
   }
 
   static carrier_uint compute_right_endpoint_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return static_cast<carrier_uint>(
         (cache + (cache >> (float_info<float>::significand_bits + 1))) >>
         (64 - float_info<float>::significand_bits - 1 - beta_minus_1));
   }
 
   static carrier_uint compute_round_up_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return (static_cast<carrier_uint>(
                 cache >>
                 (64 - float_info<float>::significand_bits - 2 - beta_minus_1)) +
@@ -1881,11 +1881,11 @@ template <> struct cache_accessor<double> {
   using carrier_uint = float_info<double>::carrier_uint;
   using cache_entry_type = uint128_wrapper;
 
-  static uint128_wrapper get_cached_power(int k) FMT_NOEXCEPT {
-    FMT_ASSERT(k >= float_info<double>::min_k && k <= float_info<double>::max_k,
+  static uint128_wrapper get_cached_power(int k) GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(k >= float_info<double>::min_k && k <= float_info<double>::max_k,
                "k is out of range");
 
-#if FMT_USE_FULL_CACHE_DRAGONBOX
+#if GAIA_FMT_USE_FULL_CACHE_DRAGONBOX
     return data::dragonbox_pow10_significands_128[k -
                                                   float_info<double>::min_k];
 #else
@@ -1903,7 +1903,7 @@ template <> struct cache_accessor<double> {
 
     // Compute the required amount of bit-shift.
     int alpha = floor_log2_pow10(kb + offset) - floor_log2_pow10(kb) - offset;
-    FMT_ASSERT(alpha > 0 && alpha < 64, "shifting error detected");
+    GAIA_FMT_ASSERT(alpha > 0 && alpha < 64, "shifting error detected");
 
     // Try to recover the real cache.
     uint64_t pow5 = data::powers_of_5_64[offset];
@@ -1929,46 +1929,46 @@ template <> struct cache_accessor<double> {
                      0x3;
 
     // Add the error back.
-    FMT_ASSERT(recovered_cache.low() + error >= recovered_cache.low(), "");
+    GAIA_FMT_ASSERT(recovered_cache.low() + error >= recovered_cache.low(), "");
     return {recovered_cache.high(), recovered_cache.low() + error};
 #endif
   }
 
   static carrier_uint compute_mul(carrier_uint u,
-                                  const cache_entry_type& cache) FMT_NOEXCEPT {
+                                  const cache_entry_type& cache) GAIA_FMT_NOEXCEPT {
     return umul192_upper64(u, cache);
   }
 
   static uint32_t compute_delta(cache_entry_type const& cache,
-                                int beta_minus_1) FMT_NOEXCEPT {
+                                int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return static_cast<uint32_t>(cache.high() >> (64 - 1 - beta_minus_1));
   }
 
   static bool compute_mul_parity(carrier_uint two_f,
                                  const cache_entry_type& cache,
-                                 int beta_minus_1) FMT_NOEXCEPT {
-    FMT_ASSERT(beta_minus_1 >= 1, "");
-    FMT_ASSERT(beta_minus_1 < 64, "");
+                                 int beta_minus_1) GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(beta_minus_1 >= 1, "");
+    GAIA_FMT_ASSERT(beta_minus_1 < 64, "");
 
     return ((umul192_middle64(two_f, cache) >> (64 - beta_minus_1)) & 1) != 0;
   }
 
   static carrier_uint compute_left_endpoint_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return (cache.high() -
             (cache.high() >> (float_info<double>::significand_bits + 2))) >>
            (64 - float_info<double>::significand_bits - 1 - beta_minus_1);
   }
 
   static carrier_uint compute_right_endpoint_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return (cache.high() +
             (cache.high() >> (float_info<double>::significand_bits + 1))) >>
            (64 - float_info<double>::significand_bits - 1 - beta_minus_1);
   }
 
   static carrier_uint compute_round_up_for_shorter_interval_case(
-      const cache_entry_type& cache, int beta_minus_1) FMT_NOEXCEPT {
+      const cache_entry_type& cache, int beta_minus_1) GAIA_FMT_NOEXCEPT {
     return ((cache.high() >>
              (64 - float_info<double>::significand_bits - 2 - beta_minus_1)) +
             1) /
@@ -1978,7 +1978,7 @@ template <> struct cache_accessor<double> {
 
 // Various integer checks
 template <class T>
-bool is_left_endpoint_integer_shorter_interval(int exponent) FMT_NOEXCEPT {
+bool is_left_endpoint_integer_shorter_interval(int exponent) GAIA_FMT_NOEXCEPT {
   return exponent >=
              float_info<
                  T>::case_shorter_interval_left_endpoint_lower_threshold &&
@@ -1987,7 +1987,7 @@ bool is_left_endpoint_integer_shorter_interval(int exponent) FMT_NOEXCEPT {
 }
 template <class T>
 bool is_endpoint_integer(typename float_info<T>::carrier_uint two_f,
-                         int exponent, int minus_k) FMT_NOEXCEPT {
+                         int exponent, int minus_k) GAIA_FMT_NOEXCEPT {
   if (exponent < float_info<T>::case_fc_pm_half_lower_threshold) return false;
   // For k >= 0.
   if (exponent <= float_info<T>::case_fc_pm_half_upper_threshold) return true;
@@ -1998,7 +1998,7 @@ bool is_endpoint_integer(typename float_info<T>::carrier_uint two_f,
 
 template <class T>
 bool is_center_integer(typename float_info<T>::carrier_uint two_f, int exponent,
-                       int minus_k) FMT_NOEXCEPT {
+                       int minus_k) GAIA_FMT_NOEXCEPT {
   // Exponent for 5 is negative.
   if (exponent > float_info<T>::divisibility_check_by_5_threshold) return false;
   if (exponent > float_info<T>::case_fc_upper_threshold)
@@ -2010,9 +2010,9 @@ bool is_center_integer(typename float_info<T>::carrier_uint two_f, int exponent,
 }
 
 // Remove trailing zeros from n and return the number of zeros removed (float)
-FMT_ALWAYS_INLINE int remove_trailing_zeros(uint32_t& n) FMT_NOEXCEPT {
-#ifdef FMT_BUILTIN_CTZ
-  int t = FMT_BUILTIN_CTZ(n);
+GAIA_FMT_ALWAYS_INLINE int remove_trailing_zeros(uint32_t& n) GAIA_FMT_NOEXCEPT {
+#ifdef GAIA_FMT_BUILTIN_CTZ
+  int t = GAIA_FMT_BUILTIN_CTZ(n);
 #else
   int t = ctz(n);
 #endif
@@ -2038,9 +2038,9 @@ FMT_ALWAYS_INLINE int remove_trailing_zeros(uint32_t& n) FMT_NOEXCEPT {
 }
 
 // Removes trailing zeros and returns the number of zeros removed (double)
-FMT_ALWAYS_INLINE int remove_trailing_zeros(uint64_t& n) FMT_NOEXCEPT {
-#ifdef FMT_BUILTIN_CTZLL
-  int t = FMT_BUILTIN_CTZLL(n);
+GAIA_FMT_ALWAYS_INLINE int remove_trailing_zeros(uint64_t& n) GAIA_FMT_NOEXCEPT {
+#ifdef GAIA_FMT_BUILTIN_CTZLL
+  int t = GAIA_FMT_BUILTIN_CTZLL(n);
 #else
   int t = ctzll(n);
 #endif
@@ -2124,8 +2124,8 @@ FMT_ALWAYS_INLINE int remove_trailing_zeros(uint64_t& n) FMT_NOEXCEPT {
 
 // The main algorithm for shorter interval case
 template <class T>
-FMT_ALWAYS_INLINE FMT_SAFEBUFFERS decimal_fp<T> shorter_interval_case(
-    int exponent) FMT_NOEXCEPT {
+GAIA_FMT_ALWAYS_INLINE GAIA_FMT_SAFEBUFFERS decimal_fp<T> shorter_interval_case(
+    int exponent) GAIA_FMT_NOEXCEPT {
   decimal_fp<T> ret_value;
   // Compute k and beta
   const int minus_k = floor_log10_pow2_minus_log10_4_over_3(exponent);
@@ -2172,7 +2172,7 @@ FMT_ALWAYS_INLINE FMT_SAFEBUFFERS decimal_fp<T> shorter_interval_case(
 }
 
 template <typename T>
-FMT_SAFEBUFFERS decimal_fp<T> to_decimal(T x) FMT_NOEXCEPT {
+GAIA_FMT_SAFEBUFFERS decimal_fp<T> to_decimal(T x) GAIA_FMT_NOEXCEPT {
   // Step 1: integer promotion & Schubfach multiplier calculation.
 
   using carrier_uint = typename float_info<T>::carrier_uint;
@@ -2308,7 +2308,7 @@ small_divisor_case_label:
 
 // Formats value using a variation of the Fixed-Precision Positive
 // Floating-Point Printout ((FPP)^2) algorithm by Steele & White:
-// https://fmt.dev/p372-steele.pdf.
+// https://gaia_fmt.dev/p372-steele.pdf.
 template <typename Double>
 void fallback_format(Double d, int num_digits, bool binary32, buffer<char>& buf,
                      int& exp10) {
@@ -2429,7 +2429,7 @@ void fallback_format(Double d, int num_digits, bool binary32, buffer<char>& buf,
 template <typename T>
 int format_float(T value, int precision, float_specs specs, buffer<char>& buf) {
   static_assert(!std::is_same<T, float>::value, "");
-  FMT_ASSERT(value >= 0, "value is negative");
+  GAIA_FMT_ASSERT(value >= 0, "value is negative");
 
   const bool fixed = specs.format == float_format::fixed;
   if (value <= 0) {  // <= instead of == to silence a warning.
@@ -2493,7 +2493,7 @@ template <typename T>
 int snprintf_float(T value, int precision, float_specs specs,
                    buffer<char>& buf) {
   // Buffer capacity must be non-zero, otherwise MSVC's vsnprintf_s will fail.
-  FMT_ASSERT(buf.capacity() > buf.size(), "empty buffer");
+  GAIA_FMT_ASSERT(buf.capacity() > buf.size(), "empty buffer");
   static_assert(!std::is_same<T, float>::value, "");
 
   // Subtract 1 to account for the difference in precision since we use %e for
@@ -2523,14 +2523,14 @@ int snprintf_float(T value, int precision, float_specs specs,
   for (;;) {
     auto begin = buf.data() + offset;
     auto capacity = buf.capacity() - offset;
-#ifdef FMT_FUZZ
+#ifdef GAIA_FMT_FUZZ
     if (precision > 100000)
       throw std::runtime_error(
           "fuzz mode - avoid large allocation inside snprintf");
 #endif
     // Suppress the warning about a nonliteral format string.
     // Cannot use auto because of a bug in MinGW (#1532).
-    int (*snprintf_ptr)(char*, size_t, const char*, ...) = FMT_SNPRINTF;
+    int (*snprintf_ptr)(char*, size_t, const char*, ...) = GAIA_FMT_SNPRINTF;
     int result = precision >= 0
                      ? snprintf_ptr(begin, capacity, format, precision, value)
                      : snprintf_ptr(begin, capacity, format, value);
@@ -2642,7 +2642,7 @@ inline const char* utf8_decode(const char* buf, uint32_t* c, int* e) {
 }
 
 struct stringifier {
-  template <typename T> FMT_INLINE std::string operator()(T value) const {
+  template <typename T> GAIA_FMT_INLINE std::string operator()(T value) const {
     return to_string(value);
   }
   std::string operator()(basic_format_arg<format_context>::handle h) const {
@@ -2679,12 +2679,12 @@ template <> struct formatter<detail::bigint> {
   }
 };
 
-FMT_FUNC detail::utf8_to_utf16::utf8_to_utf16(string_view s) {
+GAIA_FMT_FUNC detail::utf8_to_utf16::utf8_to_utf16(string_view s) {
   auto transcode = [this](const char* p) {
     auto cp = uint32_t();
     auto error = 0;
     p = utf8_decode(p, &cp, &error);
-    if (error != 0) FMT_THROW(std::runtime_error("invalid utf8"));
+    if (error != 0) GAIA_FMT_THROW(std::runtime_error("invalid utf8"));
     if (cp <= 0xFFFF) {
       buffer_.push_back(static_cast<wchar_t>(cp));
     } else {
@@ -2710,9 +2710,9 @@ FMT_FUNC detail::utf8_to_utf16::utf8_to_utf16(string_view s) {
   buffer_.push_back(0);
 }
 
-FMT_FUNC void format_system_error(detail::buffer<char>& out, int error_code,
-                                  string_view message) FMT_NOEXCEPT {
-  FMT_TRY {
+GAIA_FMT_FUNC void format_system_error(detail::buffer<char>& out, int error_code,
+                                  string_view message) GAIA_FMT_NOEXCEPT {
+  GAIA_FMT_TRY {
     memory_buffer buf;
     buf.resize(inline_buffer_size);
     for (;;) {
@@ -2729,20 +2729,20 @@ FMT_FUNC void format_system_error(detail::buffer<char>& out, int error_code,
       buf.resize(buf.size() * 2);
     }
   }
-  FMT_CATCH(...) {}
+  GAIA_FMT_CATCH(...) {}
   format_error_code(out, error_code, message);
 }
 
-FMT_FUNC void detail::error_handler::on_error(const char* message) {
-  FMT_THROW(format_error(message));
+GAIA_FMT_FUNC void detail::error_handler::on_error(const char* message) {
+  GAIA_FMT_THROW(format_error(message));
 }
 
-FMT_FUNC void report_system_error(int error_code,
-                                  fmt::string_view message) FMT_NOEXCEPT {
+GAIA_FMT_FUNC void report_system_error(int error_code,
+                                  gaia_fmt::string_view message) GAIA_FMT_NOEXCEPT {
   report_error(format_system_error, error_code, message);
 }
 
-FMT_FUNC std::string detail::vformat(string_view format_str, format_args args) {
+GAIA_FMT_FUNC std::string detail::vformat(string_view format_str, format_args args) {
   if (format_str.size() == 2 && equal2(format_str.data(), "{}")) {
     auto arg = args.get(0);
     if (!arg) error_handler().on_error("argument not found");
@@ -2761,7 +2761,7 @@ extern "C" __declspec(dllimport) int __stdcall WriteConsoleW(  //
 }  // namespace detail
 #endif
 
-FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
+GAIA_FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
   memory_buffer buffer;
   detail::vformat_to(buffer, format_str,
                      basic_format_args<buffer_context<char>>(args));
@@ -2773,7 +2773,7 @@ FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
     if (!detail::WriteConsoleW(reinterpret_cast<void*>(_get_osfhandle(fd)),
                                u16.c_str(), static_cast<uint32_t>(u16.size()),
                                &written, nullptr)) {
-      FMT_THROW(format_error("failed to write to console"));
+      GAIA_FMT_THROW(format_error("failed to write to console"));
     }
     return;
   }
@@ -2783,7 +2783,7 @@ FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
 
 #ifdef _WIN32
 // Print assuming legacy (non-Unicode) encoding.
-FMT_FUNC void detail::vprint_mojibake(std::FILE* f, string_view format_str,
+GAIA_FMT_FUNC void detail::vprint_mojibake(std::FILE* f, string_view format_str,
                                       format_args args) {
   memory_buffer buffer;
   detail::vformat_to(buffer, format_str,
@@ -2792,10 +2792,10 @@ FMT_FUNC void detail::vprint_mojibake(std::FILE* f, string_view format_str,
 }
 #endif
 
-FMT_FUNC void vprint(string_view format_str, format_args args) {
+GAIA_FMT_FUNC void vprint(string_view format_str, format_args args) {
   vprint(stdout, format_str, args);
 }
 
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_FORMAT_INL_H_
+#endif  // GAIA_FMT_FORMAT_INL_H_

@@ -1,16 +1,16 @@
 // Formatting library for C++ - color support
 //
-// Copyright (c) 2018 - present, Victor Zverovich and fmt contributors
+// Copyright (c) 2018 - present, Victor Zverovich and gaia_fmt contributors
 // All rights reserved.
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_COLOR_H_
-#define FMT_COLOR_H_
+#ifndef GAIA_FMT_COLOR_H_
+#define GAIA_FMT_COLOR_H_
 
 #include "format.h"
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 
 enum class color : uint32_t {
   alice_blue = 0xF0F8FF,               // rgb(240,248,255)
@@ -185,11 +185,11 @@ enum class emphasis : uint8_t {
 // rgb is a struct for red, green and blue colors.
 // Using the name "rgb" makes some editors show the color in a tooltip.
 struct rgb {
-  FMT_CONSTEXPR rgb() : r(0), g(0), b(0) {}
-  FMT_CONSTEXPR rgb(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
-  FMT_CONSTEXPR rgb(uint32_t hex)
+  GAIA_FMT_CONSTEXPR rgb() : r(0), g(0), b(0) {}
+  GAIA_FMT_CONSTEXPR rgb(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
+  GAIA_FMT_CONSTEXPR rgb(uint32_t hex)
       : r((hex >> 16) & 0xFF), g((hex >> 8) & 0xFF), b(hex & 0xFF) {}
-  FMT_CONSTEXPR rgb(color hex)
+  GAIA_FMT_CONSTEXPR rgb(color hex)
       : r((uint32_t(hex) >> 16) & 0xFF),
         g((uint32_t(hex) >> 8) & 0xFF),
         b(uint32_t(hex) & 0xFF) {}
@@ -202,16 +202,16 @@ namespace detail {
 
 // color is a struct of either a rgb color or a terminal color.
 struct color_type {
-  FMT_CONSTEXPR color_type() FMT_NOEXCEPT : is_rgb(), value{} {}
-  FMT_CONSTEXPR color_type(color rgb_color) FMT_NOEXCEPT : is_rgb(true),
+  GAIA_FMT_CONSTEXPR color_type() GAIA_FMT_NOEXCEPT : is_rgb(), value{} {}
+  GAIA_FMT_CONSTEXPR color_type(color rgb_color) GAIA_FMT_NOEXCEPT : is_rgb(true),
                                                            value{} {
     value.rgb_color = static_cast<uint32_t>(rgb_color);
   }
-  FMT_CONSTEXPR color_type(rgb rgb_color) FMT_NOEXCEPT : is_rgb(true), value{} {
+  GAIA_FMT_CONSTEXPR color_type(rgb rgb_color) GAIA_FMT_NOEXCEPT : is_rgb(true), value{} {
     value.rgb_color = (static_cast<uint32_t>(rgb_color.r) << 16) |
                       (static_cast<uint32_t>(rgb_color.g) << 8) | rgb_color.b;
   }
-  FMT_CONSTEXPR color_type(terminal_color term_color) FMT_NOEXCEPT : is_rgb(),
+  GAIA_FMT_CONSTEXPR color_type(terminal_color term_color) GAIA_FMT_NOEXCEPT : is_rgb(),
                                                                      value{} {
     value.term_color = static_cast<uint8_t>(term_color);
   }
@@ -226,18 +226,18 @@ struct color_type {
 // Experimental text formatting support.
 class text_style {
  public:
-  FMT_CONSTEXPR text_style(emphasis em = emphasis()) FMT_NOEXCEPT
+  GAIA_FMT_CONSTEXPR text_style(emphasis em = emphasis()) GAIA_FMT_NOEXCEPT
       : set_foreground_color(),
         set_background_color(),
         ems(em) {}
 
-  FMT_CONSTEXPR text_style& operator|=(const text_style& rhs) {
+  GAIA_FMT_CONSTEXPR text_style& operator|=(const text_style& rhs) {
     if (!set_foreground_color) {
       set_foreground_color = rhs.set_foreground_color;
       foreground_color = rhs.foreground_color;
     } else if (rhs.set_foreground_color) {
       if (!foreground_color.is_rgb || !rhs.foreground_color.is_rgb)
-        FMT_THROW(format_error("can't OR a terminal color"));
+        GAIA_FMT_THROW(format_error("can't OR a terminal color"));
       foreground_color.value.rgb_color |= rhs.foreground_color.value.rgb_color;
     }
 
@@ -246,7 +246,7 @@ class text_style {
       background_color = rhs.background_color;
     } else if (rhs.set_background_color) {
       if (!background_color.is_rgb || !rhs.background_color.is_rgb)
-        FMT_THROW(format_error("can't OR a terminal color"));
+        GAIA_FMT_THROW(format_error("can't OR a terminal color"));
       background_color.value.rgb_color |= rhs.background_color.value.rgb_color;
     }
 
@@ -255,18 +255,18 @@ class text_style {
     return *this;
   }
 
-  friend FMT_CONSTEXPR text_style operator|(text_style lhs,
+  friend GAIA_FMT_CONSTEXPR text_style operator|(text_style lhs,
                                             const text_style& rhs) {
     return lhs |= rhs;
   }
 
-  FMT_CONSTEXPR text_style& operator&=(const text_style& rhs) {
+  GAIA_FMT_CONSTEXPR text_style& operator&=(const text_style& rhs) {
     if (!set_foreground_color) {
       set_foreground_color = rhs.set_foreground_color;
       foreground_color = rhs.foreground_color;
     } else if (rhs.set_foreground_color) {
       if (!foreground_color.is_rgb || !rhs.foreground_color.is_rgb)
-        FMT_THROW(format_error("can't AND a terminal color"));
+        GAIA_FMT_THROW(format_error("can't AND a terminal color"));
       foreground_color.value.rgb_color &= rhs.foreground_color.value.rgb_color;
     }
 
@@ -275,7 +275,7 @@ class text_style {
       background_color = rhs.background_color;
     } else if (rhs.set_background_color) {
       if (!background_color.is_rgb || !rhs.background_color.is_rgb)
-        FMT_THROW(format_error("can't AND a terminal color"));
+        GAIA_FMT_THROW(format_error("can't AND a terminal color"));
       background_color.value.rgb_color &= rhs.background_color.value.rgb_color;
     }
 
@@ -284,36 +284,36 @@ class text_style {
     return *this;
   }
 
-  friend FMT_CONSTEXPR text_style operator&(text_style lhs,
+  friend GAIA_FMT_CONSTEXPR text_style operator&(text_style lhs,
                                             const text_style& rhs) {
     return lhs &= rhs;
   }
 
-  FMT_CONSTEXPR bool has_foreground() const FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR bool has_foreground() const GAIA_FMT_NOEXCEPT {
     return set_foreground_color;
   }
-  FMT_CONSTEXPR bool has_background() const FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR bool has_background() const GAIA_FMT_NOEXCEPT {
     return set_background_color;
   }
-  FMT_CONSTEXPR bool has_emphasis() const FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR bool has_emphasis() const GAIA_FMT_NOEXCEPT {
     return static_cast<uint8_t>(ems) != 0;
   }
-  FMT_CONSTEXPR detail::color_type get_foreground() const FMT_NOEXCEPT {
-    FMT_ASSERT(has_foreground(), "no foreground specified for this style");
+  GAIA_FMT_CONSTEXPR detail::color_type get_foreground() const GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(has_foreground(), "no foreground specified for this style");
     return foreground_color;
   }
-  FMT_CONSTEXPR detail::color_type get_background() const FMT_NOEXCEPT {
-    FMT_ASSERT(has_background(), "no background specified for this style");
+  GAIA_FMT_CONSTEXPR detail::color_type get_background() const GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(has_background(), "no background specified for this style");
     return background_color;
   }
-  FMT_CONSTEXPR emphasis get_emphasis() const FMT_NOEXCEPT {
-    FMT_ASSERT(has_emphasis(), "no emphasis specified for this style");
+  GAIA_FMT_CONSTEXPR emphasis get_emphasis() const GAIA_FMT_NOEXCEPT {
+    GAIA_FMT_ASSERT(has_emphasis(), "no emphasis specified for this style");
     return ems;
   }
 
  private:
-  FMT_CONSTEXPR text_style(bool is_foreground,
-                           detail::color_type text_color) FMT_NOEXCEPT
+  GAIA_FMT_CONSTEXPR text_style(bool is_foreground,
+                           detail::color_type text_color) GAIA_FMT_NOEXCEPT
       : set_foreground_color(),
         set_background_color(),
         ems() {
@@ -326,10 +326,10 @@ class text_style {
     }
   }
 
-  friend FMT_CONSTEXPR_DECL text_style fg(detail::color_type foreground)
-      FMT_NOEXCEPT;
-  friend FMT_CONSTEXPR_DECL text_style bg(detail::color_type background)
-      FMT_NOEXCEPT;
+  friend GAIA_FMT_CONSTEXPR_DECL text_style fg(detail::color_type foreground)
+      GAIA_FMT_NOEXCEPT;
+  friend GAIA_FMT_CONSTEXPR_DECL text_style bg(detail::color_type background)
+      GAIA_FMT_NOEXCEPT;
 
   detail::color_type foreground_color;
   detail::color_type background_color;
@@ -338,23 +338,23 @@ class text_style {
   emphasis ems;
 };
 
-FMT_CONSTEXPR text_style fg(detail::color_type foreground) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR text_style fg(detail::color_type foreground) GAIA_FMT_NOEXCEPT {
   return text_style(/*is_foreground=*/true, foreground);
 }
 
-FMT_CONSTEXPR text_style bg(detail::color_type background) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR text_style bg(detail::color_type background) GAIA_FMT_NOEXCEPT {
   return text_style(/*is_foreground=*/false, background);
 }
 
-FMT_CONSTEXPR text_style operator|(emphasis lhs, emphasis rhs) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR text_style operator|(emphasis lhs, emphasis rhs) GAIA_FMT_NOEXCEPT {
   return text_style(lhs) | rhs;
 }
 
 namespace detail {
 
 template <typename Char> struct ansi_color_escape {
-  FMT_CONSTEXPR ansi_color_escape(detail::color_type text_color,
-                                  const char* esc) FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR ansi_color_escape(detail::color_type text_color,
+                                  const char* esc) GAIA_FMT_NOEXCEPT {
     // If we have a terminal color, we need to output another escape code
     // sequence.
     if (!text_color.is_rgb) {
@@ -389,7 +389,7 @@ template <typename Char> struct ansi_color_escape {
     to_esc(color.b, buffer + 15, 'm');
     buffer[19] = static_cast<Char>(0);
   }
-  FMT_CONSTEXPR ansi_color_escape(emphasis em) FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR ansi_color_escape(emphasis em) GAIA_FMT_NOEXCEPT {
     uint8_t em_codes[4] = {};
     uint8_t em_bits = static_cast<uint8_t>(em);
     if (em_bits & static_cast<uint8_t>(emphasis::bold)) em_codes[0] = 1;
@@ -408,18 +408,18 @@ template <typename Char> struct ansi_color_escape {
     }
     buffer[index++] = static_cast<Char>(0);
   }
-  FMT_CONSTEXPR operator const Char*() const FMT_NOEXCEPT { return buffer; }
+  GAIA_FMT_CONSTEXPR operator const Char*() const GAIA_FMT_NOEXCEPT { return buffer; }
 
-  FMT_CONSTEXPR const Char* begin() const FMT_NOEXCEPT { return buffer; }
-  FMT_CONSTEXPR const Char* end() const FMT_NOEXCEPT {
+  GAIA_FMT_CONSTEXPR const Char* begin() const GAIA_FMT_NOEXCEPT { return buffer; }
+  GAIA_FMT_CONSTEXPR const Char* end() const GAIA_FMT_NOEXCEPT {
     return buffer + std::char_traits<Char>::length(buffer);
   }
 
  private:
   Char buffer[7u + 3u * 4u + 1u];
 
-  static FMT_CONSTEXPR void to_esc(uint8_t c, Char* out,
-                                   char delimiter) FMT_NOEXCEPT {
+  static GAIA_FMT_CONSTEXPR void to_esc(uint8_t c, Char* out,
+                                   char delimiter) GAIA_FMT_NOEXCEPT {
     out[0] = static_cast<Char>('0' + c / 100);
     out[1] = static_cast<Char>('0' + c / 10 % 10);
     out[2] = static_cast<Char>('0' + c % 10);
@@ -428,42 +428,42 @@ template <typename Char> struct ansi_color_escape {
 };
 
 template <typename Char>
-FMT_CONSTEXPR ansi_color_escape<Char> make_foreground_color(
-    detail::color_type foreground) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR ansi_color_escape<Char> make_foreground_color(
+    detail::color_type foreground) GAIA_FMT_NOEXCEPT {
   return ansi_color_escape<Char>(foreground, detail::data::foreground_color);
 }
 
 template <typename Char>
-FMT_CONSTEXPR ansi_color_escape<Char> make_background_color(
-    detail::color_type background) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR ansi_color_escape<Char> make_background_color(
+    detail::color_type background) GAIA_FMT_NOEXCEPT {
   return ansi_color_escape<Char>(background, detail::data::background_color);
 }
 
 template <typename Char>
-FMT_CONSTEXPR ansi_color_escape<Char> make_emphasis(emphasis em) FMT_NOEXCEPT {
+GAIA_FMT_CONSTEXPR ansi_color_escape<Char> make_emphasis(emphasis em) GAIA_FMT_NOEXCEPT {
   return ansi_color_escape<Char>(em);
 }
 
 template <typename Char>
-inline void fputs(const Char* chars, FILE* stream) FMT_NOEXCEPT {
+inline void fputs(const Char* chars, FILE* stream) GAIA_FMT_NOEXCEPT {
   std::fputs(chars, stream);
 }
 
 template <>
-inline void fputs<wchar_t>(const wchar_t* chars, FILE* stream) FMT_NOEXCEPT {
+inline void fputs<wchar_t>(const wchar_t* chars, FILE* stream) GAIA_FMT_NOEXCEPT {
   std::fputws(chars, stream);
 }
 
-template <typename Char> inline void reset_color(FILE* stream) FMT_NOEXCEPT {
+template <typename Char> inline void reset_color(FILE* stream) GAIA_FMT_NOEXCEPT {
   fputs(detail::data::reset_color, stream);
 }
 
-template <> inline void reset_color<wchar_t>(FILE* stream) FMT_NOEXCEPT {
+template <> inline void reset_color<wchar_t>(FILE* stream) GAIA_FMT_NOEXCEPT {
   fputs(detail::data::wreset_color, stream);
 }
 
 template <typename Char>
-inline void reset_color(buffer<Char>& buffer) FMT_NOEXCEPT {
+inline void reset_color(buffer<Char>& buffer) GAIA_FMT_NOEXCEPT {
   const char* begin = data::reset_color;
   const char* end = begin + sizeof(data::reset_color) - 1;
   buffer.append(begin, end);
@@ -510,27 +510,27 @@ void vprint(std::FILE* f, const text_style& ts, const S& format,
 
   **Example**::
 
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
+    gaia_fmt::print(gaia_fmt::emphasis::bold | fg(gaia_fmt::color::red),
                "Elapsed time: {0:.2f} seconds", 1.23);
   \endrst
  */
 template <typename S, typename... Args,
-          FMT_ENABLE_IF(detail::is_string<S>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_string<S>::value)>
 void print(std::FILE* f, const text_style& ts, const S& format_str,
            const Args&... args) {
   vprint(f, ts, format_str,
-         fmt::make_args_checked<Args...>(format_str, args...));
+         gaia_fmt::make_args_checked<Args...>(format_str, args...));
 }
 
 /**
   Formats a string and prints it to stdout using ANSI escape sequences to
   specify text formatting.
   Example:
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
+    gaia_fmt::print(gaia_fmt::emphasis::bold | fg(gaia_fmt::color::red),
                "Elapsed time: {0:.2f} seconds", 1.23);
  */
 template <typename S, typename... Args,
-          FMT_ENABLE_IF(detail::is_string<S>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_string<S>::value)>
 void print(const text_style& ts, const S& format_str, const Args&... args) {
   return print(stdout, ts, format_str, args...);
 }
@@ -541,7 +541,7 @@ inline std::basic_string<Char> vformat(
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   basic_memory_buffer<Char> buf;
   detail::vformat_to(buf, ts, to_string_view(format_str), args);
-  return fmt::to_string(buf);
+  return gaia_fmt::to_string(buf);
 }
 
 /**
@@ -551,8 +551,8 @@ inline std::basic_string<Char> vformat(
 
   **Example**::
 
-    #include <fmt/color.h>
-    std::string message = fmt::format(fmt::emphasis::bold | fg(fmt::color::red),
+    #include <gaia_fmt/color.h>
+    std::string message = gaia_fmt::format(gaia_fmt::emphasis::bold | fg(gaia_fmt::color::red),
                                       "The answer is {}", 42);
   \endrst
 */
@@ -560,14 +560,14 @@ template <typename S, typename... Args, typename Char = char_t<S>>
 inline std::basic_string<Char> format(const text_style& ts, const S& format_str,
                                       const Args&... args) {
   return vformat(ts, to_string_view(format_str),
-                 fmt::make_args_checked<Args...>(format_str, args...));
+                 gaia_fmt::make_args_checked<Args...>(format_str, args...));
 }
 
 /**
   Formats a string with the given text_style and writes the output to ``out``.
  */
 template <typename OutputIt, typename Char,
-          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
 OutputIt vformat_to(
     OutputIt out, const text_style& ts, basic_string_view<Char> format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -584,8 +584,8 @@ OutputIt vformat_to(
   **Example**::
 
     std::vector<char> out;
-    fmt::format_to(std::back_inserter(out),
-                   fmt::emphasis::bold | fg(fmt::color::red), "{}", 42);
+    gaia_fmt::format_to(std::back_inserter(out),
+                   gaia_fmt::emphasis::bold | fg(gaia_fmt::color::red), "{}", 42);
   \endrst
 */
 template <typename OutputIt, typename S, typename... Args,
@@ -595,9 +595,9 @@ inline auto format_to(OutputIt out, const text_style& ts, const S& format_str,
                       Args&&... args) ->
     typename std::enable_if<enable, OutputIt>::type {
   return vformat_to(out, ts, to_string_view(format_str),
-                    fmt::make_args_checked<Args...>(format_str, args...));
+                    gaia_fmt::make_args_checked<Args...>(format_str, args...));
 }
 
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_COLOR_H_
+#endif  // GAIA_FMT_COLOR_H_

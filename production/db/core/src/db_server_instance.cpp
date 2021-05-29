@@ -90,12 +90,12 @@ std::string server_instance_config_t::generate_instance_name()
 
     std::string executable_name;
     std::ifstream("/proc/self/comm") >> executable_name;
-    std::string current_exe_path = fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
+    std::string current_exe_path = gaia_fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
 
     std::size_t path_hash = std::hash<std::string>{}(current_exe_path);
     std::string random_str = common::gen_random_str(c_random_suffix_size);
 
-    return fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
+    return gaia_fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
 }
 
 std::string server_instance_config_t::generate_data_dir(const std::string& instance_name)

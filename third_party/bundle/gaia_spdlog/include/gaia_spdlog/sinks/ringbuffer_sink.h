@@ -50,7 +50,7 @@ public:
         {
             memory_buf_t formatted;
             base_sink<Mutex>::formatter_->format(q_.at(i), formatted);
-            ret.push_back(fmt::to_string(formatted));
+            ret.push_back(gaia_fmt::to_string(formatted));
         }
         return ret;
     }

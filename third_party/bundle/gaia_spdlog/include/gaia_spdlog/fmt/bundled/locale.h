@@ -5,14 +5,14 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_LOCALE_H_
-#define FMT_LOCALE_H_
+#ifndef GAIA_FMT_LOCALE_H_
+#define GAIA_FMT_LOCALE_H_
 
 #include <locale>
 
 #include "format.h"
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 
 namespace detail {
 template <typename Char>
@@ -21,7 +21,7 @@ std::basic_string<Char> vformat(
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   basic_memory_buffer<Char> buffer;
   detail::vformat_to(buffer, format_str, args, detail::locale_ref(loc));
-  return fmt::to_string(buffer);
+  return gaia_fmt::to_string(buffer);
 }
 }  // namespace detail
 
@@ -36,12 +36,12 @@ template <typename S, typename... Args, typename Char = char_t<S>>
 inline std::basic_string<Char> format(const std::locale& loc,
                                       const S& format_str, Args&&... args) {
   return detail::vformat(loc, to_string_view(format_str),
-                         fmt::make_args_checked<Args...>(format_str, args...));
+                         gaia_fmt::make_args_checked<Args...>(format_str, args...));
 }
 
 template <typename S, typename OutputIt, typename... Args,
           typename Char = char_t<S>,
-          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
 inline OutputIt vformat_to(
     OutputIt out, const std::locale& loc, const S& format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -55,10 +55,10 @@ template <typename OutputIt, typename S, typename... Args,
 inline auto format_to(OutputIt out, const std::locale& loc,
                       const S& format_str, Args&&... args) ->
     typename std::enable_if<enable, OutputIt>::type {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return vformat_to(out, loc, to_string_view(format_str), vargs);
 }
 
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_LOCALE_H_
+#endif  // GAIA_FMT_LOCALE_H_

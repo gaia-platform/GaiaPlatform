@@ -73,60 +73,60 @@ public:
 
     void swap(gaia_spdlog::logger &other) GAIA_SPDLOG_NOEXCEPT;
 
-    // FormatString is a type derived from fmt::compile_string
-    template<typename FormatString, typename std::enable_if<fmt::is_compile_string<FormatString>::value, int>::type = 0, typename... Args>
-    void log(source_loc loc, level::level_enum lvl, const FormatString &fmt, Args&&...args)
+    // FormatString is a type derived from gaia_fmt::compile_string
+    template<typename FormatString, typename std::enable_if<gaia_fmt::is_compile_string<FormatString>::value, int>::type = 0, typename... Args>
+    void log(source_loc loc, level::level_enum lvl, const FormatString &gaia_fmt, Args&&...args)
     {
-        log_(loc, lvl, fmt, std::forward<Args>(args)...);
+        log_(loc, lvl, gaia_fmt, std::forward<Args>(args)...);
     }
 
-    // FormatString is NOT a type derived from fmt::compile_string but is a string_view_t or can be implicitly converted to one
+    // FormatString is NOT a type derived from gaia_fmt::compile_string but is a string_view_t or can be implicitly converted to one
     template<typename... Args>
-    void log(source_loc loc, level::level_enum lvl, string_view_t fmt, Args&&...args)
+    void log(source_loc loc, level::level_enum lvl, string_view_t gaia_fmt, Args&&...args)
     {
-        log_(loc, lvl, fmt, std::forward<Args>(args)...);
+        log_(loc, lvl, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void log(level::level_enum lvl, const FormatString &fmt, Args&&...args)
+    void log(level::level_enum lvl, const FormatString &gaia_fmt, Args&&...args)
     {
-        log(source_loc{}, lvl, fmt, std::forward<Args>(args)...);
+        log(source_loc{}, lvl, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void trace(const FormatString &fmt, Args&&...args)
+    void trace(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::trace, fmt, std::forward<Args>(args)...);
+        log(level::trace, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void debug(const FormatString &fmt, Args&&...args)
+    void debug(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::debug, fmt, std::forward<Args>(args)...);
+        log(level::debug, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void info(const FormatString &fmt, Args&&...args)
+    void info(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::info, fmt, std::forward<Args>(args)...);
+        log(level::info, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void warn(const FormatString &fmt, Args&&...args)
+    void warn(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::warn, fmt, std::forward<Args>(args)...);
+        log(level::warn, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void error(const FormatString &fmt, Args&&...args)
+    void error(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::err, fmt, std::forward<Args>(args)...);
+        log(level::err, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename FormatString, typename... Args>
-    void critical(const FormatString &fmt, Args&&...args)
+    void critical(const FormatString &gaia_fmt, Args&&...args)
     {
-        log(level::critical, fmt, std::forward<Args>(args)...);
+        log(level::critical, gaia_fmt, std::forward<Args>(args)...);
     }
 
     template<typename T>
@@ -135,9 +135,9 @@ public:
         log(source_loc{}, lvl, msg);
     }
 
-    // T can be statically converted to string_view and isn't a fmt::compile_string
+    // T can be statically converted to string_view and isn't a gaia_fmt::compile_string
     template<class T, typename std::enable_if<
-                          std::is_convertible<const T &, gaia_spdlog::string_view_t>::value && !fmt::is_compile_string<T>::value, int>::type = 0>
+                          std::is_convertible<const T &, gaia_spdlog::string_view_t>::value && !gaia_fmt::is_compile_string<T>::value, int>::type = 0>
     void log(source_loc loc, level::level_enum lvl, const T &msg)
     {
         log(loc, lvl, string_view_t{msg});
@@ -225,7 +225,7 @@ public:
 #else
 
     template<typename... Args>
-    void log(source_loc loc, level::level_enum lvl, wstring_view_t fmt, Args&&...args)
+    void log(source_loc loc, level::level_enum lvl, wstring_view_t gaia_fmt, Args&&...args)
     {
         bool log_enabled = should_log(lvl);
         bool traceback_enabled = tracer_.enabled();
@@ -236,8 +236,8 @@ public:
         GAIA_SPDLOG_TRY
         {
             // format to wmemory_buffer and convert to utf8
-            fmt::wmemory_buffer wbuf;
-            fmt::format_to(wbuf, fmt, std::forward<Args>(args)...);
+            gaia_fmt::wmemory_buffer wbuf;
+            gaia_fmt::format_to(wbuf, gaia_fmt, std::forward<Args>(args)...);
 
             memory_buf_t buf;
             details::os::wstr_to_utf8buf(wstring_view_t(wbuf.data(), wbuf.size()), buf);
@@ -326,7 +326,7 @@ protected:
 
     // common implementation for after templated public api has been resolved
     template<typename FormatString, typename... Args>
-    void log_(source_loc loc, level::level_enum lvl, const FormatString &fmt, Args&&...args)
+    void log_(source_loc loc, level::level_enum lvl, const FormatString &gaia_fmt, Args&&...args)
     {
         bool log_enabled = should_log(lvl);
         bool traceback_enabled = tracer_.enabled();
@@ -337,7 +337,7 @@ protected:
         GAIA_SPDLOG_TRY
         {
             memory_buf_t buf;
-            fmt::format_to(buf, fmt, std::forward<Args>(args)...);
+            gaia_fmt::format_to(buf, gaia_fmt, std::forward<Args>(args)...);
             details::log_msg log_msg(loc, name_, lvl, string_view_t(buf.data(), buf.size()));
             log_it_(log_msg, log_enabled, traceback_enabled);
         }

@@ -32,7 +32,7 @@ struct daily_filename_calculator
     {
         filename_t basename, ext;
         std::tie(basename, ext) = details::file_helper::split_by_extension(filename);
-        return fmt::format(
+        return gaia_fmt::format(
             GAIA_SPDLOG_FILENAME_T("{}_{:04d}-{:02d}-{:02d}{}"), basename, now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday, ext);
     }
 };
@@ -48,9 +48,9 @@ struct daily_filename_format_calculator
 {
     static filename_t calc_filename (const filename_t &filename, const tm &now_tm)
     {
-         // generate fmt datetime format string, e.g. {:%Y-%m-%d}.
-        filename_t fmt_filename = fmt::format(GAIA_SPDLOG_FILENAME_T ("{{:{}}}"), filename);
-        return fmt::format(fmt_filename, now_tm);
+         // generate gaia_fmt datetime format string, e.g. {:%Y-%m-%d}.
+        filename_t gaia_fmt_filename = gaia_fmt::format(GAIA_SPDLOG_FILENAME_T ("{{:{}}}"), filename);
+        return gaia_fmt::format(gaia_fmt_filename, now_tm);
     }
 };
 

@@ -55,7 +55,7 @@ class tcp_client
         ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, last_error,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf, (sizeof(buf) / sizeof(char)), NULL);
 
-        throw_spdlog_ex(fmt::format("tcp_sink - {}: {}", msg, buf));
+        throw_spdlog_ex(gaia_fmt::format("tcp_sink - {}: {}", msg, buf));
     }
 
 public:

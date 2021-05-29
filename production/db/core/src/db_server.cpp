@@ -623,10 +623,10 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_counters.create(fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_data.create(fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_id_index.create(fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_locators.create(gaia_fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_counters.create(gaia_fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_data.create(gaia_fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_id_index.create(gaia_fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
 
     init_memory_manager();
 

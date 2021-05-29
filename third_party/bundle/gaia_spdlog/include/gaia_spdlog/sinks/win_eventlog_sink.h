@@ -62,7 +62,7 @@ struct win32_error : public gaia_spdlog_ex
 
         if (format_message_succeeded && format_message_result)
         {
-            system_message = fmt::format(" ({})", format_message_result);
+            system_message = gaia_fmt::format(" ({})", format_message_result);
         }
 
         if (format_message_result)
@@ -70,7 +70,7 @@ struct win32_error : public gaia_spdlog_ex
             LocalFree((HLOCAL)format_message_result);
         }
 
-        return fmt::format("{}: {}{}", user_message, error_code, system_message);
+        return gaia_fmt::format("{}: {}{}", user_message, error_code, system_message);
     }
 
     explicit win32_error(std::string const &func_name, DWORD error = GetLastError())

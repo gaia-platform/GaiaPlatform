@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_CORE_H_
-#define FMT_CORE_H_
+#ifndef GAIA_FMT_CORE_H_
+#define GAIA_FMT_CORE_H_
 
 #include <cstdio>  // std::FILE
 #include <cstring>
@@ -17,242 +17,242 @@
 #include <type_traits>
 #include <vector>
 
-// The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMT_VERSION 70103
+// The gaia_fmt library version in the form major * 10000 + minor * 100 + patch.
+#define GAIA_FMT_VERSION 70103
 
 #ifdef __clang__
-#  define FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
+#  define GAIA_FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
 #else
-#  define FMT_CLANG_VERSION 0
+#  define GAIA_FMT_CLANG_VERSION 0
 #endif
 
 #if defined(__GNUC__) && !defined(__clang__)
-#  define FMT_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+#  define GAIA_FMT_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
 #else
-#  define FMT_GCC_VERSION 0
+#  define GAIA_FMT_GCC_VERSION 0
 #endif
 
 #if defined(__INTEL_COMPILER)
-#  define FMT_ICC_VERSION __INTEL_COMPILER
+#  define GAIA_FMT_ICC_VERSION __INTEL_COMPILER
 #else
-#  define FMT_ICC_VERSION 0
+#  define GAIA_FMT_ICC_VERSION 0
 #endif
 
 #if __cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)
-#  define FMT_HAS_GXX_CXX11 FMT_GCC_VERSION
+#  define GAIA_FMT_HAS_GXX_CXX11 GAIA_FMT_GCC_VERSION
 #else
-#  define FMT_HAS_GXX_CXX11 0
+#  define GAIA_FMT_HAS_GXX_CXX11 0
 #endif
 
 #ifdef __NVCC__
-#  define FMT_NVCC __NVCC__
+#  define GAIA_FMT_NVCC __NVCC__
 #else
-#  define FMT_NVCC 0
+#  define GAIA_FMT_NVCC 0
 #endif
 
 #ifdef _MSC_VER
-#  define FMT_MSC_VER _MSC_VER
-#  define FMT_SUPPRESS_MSC_WARNING(n) __pragma(warning(suppress : n))
+#  define GAIA_FMT_MSC_VER _MSC_VER
+#  define GAIA_FMT_SUPPRESS_MSC_WARNING(n) __pragma(warning(suppress : n))
 #else
-#  define FMT_MSC_VER 0
-#  define FMT_SUPPRESS_MSC_WARNING(n)
+#  define GAIA_FMT_MSC_VER 0
+#  define GAIA_FMT_SUPPRESS_MSC_WARNING(n)
 #endif
 
 #ifdef __has_feature
-#  define FMT_HAS_FEATURE(x) __has_feature(x)
+#  define GAIA_FMT_HAS_FEATURE(x) __has_feature(x)
 #else
-#  define FMT_HAS_FEATURE(x) 0
+#  define GAIA_FMT_HAS_FEATURE(x) 0
 #endif
 
 #if defined(__has_include) && !defined(__INTELLISENSE__) && \
-    (!FMT_ICC_VERSION || FMT_ICC_VERSION >= 1600)
-#  define FMT_HAS_INCLUDE(x) __has_include(x)
+    (!GAIA_FMT_ICC_VERSION || GAIA_FMT_ICC_VERSION >= 1600)
+#  define GAIA_FMT_HAS_INCLUDE(x) __has_include(x)
 #else
-#  define FMT_HAS_INCLUDE(x) 0
+#  define GAIA_FMT_HAS_INCLUDE(x) 0
 #endif
 
 #ifdef __has_cpp_attribute
-#  define FMT_HAS_CPP_ATTRIBUTE(x) __has_cpp_attribute(x)
+#  define GAIA_FMT_HAS_CPP_ATTRIBUTE(x) __has_cpp_attribute(x)
 #else
-#  define FMT_HAS_CPP_ATTRIBUTE(x) 0
+#  define GAIA_FMT_HAS_CPP_ATTRIBUTE(x) 0
 #endif
 
-#define FMT_HAS_CPP14_ATTRIBUTE(attribute) \
-  (__cplusplus >= 201402L && FMT_HAS_CPP_ATTRIBUTE(attribute))
+#define GAIA_FMT_HAS_CPP14_ATTRIBUTE(attribute) \
+  (__cplusplus >= 201402L && GAIA_FMT_HAS_CPP_ATTRIBUTE(attribute))
 
-#define FMT_HAS_CPP17_ATTRIBUTE(attribute) \
-  (__cplusplus >= 201703L && FMT_HAS_CPP_ATTRIBUTE(attribute))
+#define GAIA_FMT_HAS_CPP17_ATTRIBUTE(attribute) \
+  (__cplusplus >= 201703L && GAIA_FMT_HAS_CPP_ATTRIBUTE(attribute))
 
 // Check if relaxed C++14 constexpr is supported.
 // GCC doesn't allow throw in constexpr until version 6 (bug 67371).
-#ifndef FMT_USE_CONSTEXPR
-#  define FMT_USE_CONSTEXPR                                           \
-    (FMT_HAS_FEATURE(cxx_relaxed_constexpr) || FMT_MSC_VER >= 1910 || \
-     (FMT_GCC_VERSION >= 600 && __cplusplus >= 201402L)) &&           \
-        !FMT_NVCC && !FMT_ICC_VERSION
+#ifndef GAIA_FMT_USE_CONSTEXPR
+#  define GAIA_FMT_USE_CONSTEXPR                                           \
+    (GAIA_FMT_HAS_FEATURE(cxx_relaxed_constexpr) || GAIA_FMT_MSC_VER >= 1910 || \
+     (GAIA_FMT_GCC_VERSION >= 600 && __cplusplus >= 201402L)) &&           \
+        !GAIA_FMT_NVCC && !GAIA_FMT_ICC_VERSION
 #endif
-#if FMT_USE_CONSTEXPR
-#  define FMT_CONSTEXPR constexpr
-#  define FMT_CONSTEXPR_DECL constexpr
+#if GAIA_FMT_USE_CONSTEXPR
+#  define GAIA_FMT_CONSTEXPR constexpr
+#  define GAIA_FMT_CONSTEXPR_DECL constexpr
 #else
-#  define FMT_CONSTEXPR inline
-#  define FMT_CONSTEXPR_DECL
+#  define GAIA_FMT_CONSTEXPR inline
+#  define GAIA_FMT_CONSTEXPR_DECL
 #endif
 
-#ifndef FMT_OVERRIDE
-#  if FMT_HAS_FEATURE(cxx_override_control) || \
-      (FMT_GCC_VERSION >= 408 && FMT_HAS_GXX_CXX11) || FMT_MSC_VER >= 1900
-#    define FMT_OVERRIDE override
+#ifndef GAIA_FMT_OVERRIDE
+#  if GAIA_FMT_HAS_FEATURE(cxx_override_control) || \
+      (GAIA_FMT_GCC_VERSION >= 408 && GAIA_FMT_HAS_GXX_CXX11) || GAIA_FMT_MSC_VER >= 1900
+#    define GAIA_FMT_OVERRIDE override
 #  else
-#    define FMT_OVERRIDE
+#    define GAIA_FMT_OVERRIDE
 #  endif
 #endif
 
 // Check if exceptions are disabled.
-#ifndef FMT_EXCEPTIONS
+#ifndef GAIA_FMT_EXCEPTIONS
 #  if (defined(__GNUC__) && !defined(__EXCEPTIONS)) || \
-      FMT_MSC_VER && !_HAS_EXCEPTIONS
-#    define FMT_EXCEPTIONS 0
+      GAIA_FMT_MSC_VER && !_HAS_EXCEPTIONS
+#    define GAIA_FMT_EXCEPTIONS 0
 #  else
-#    define FMT_EXCEPTIONS 1
+#    define GAIA_FMT_EXCEPTIONS 1
 #  endif
 #endif
 
-// Define FMT_USE_NOEXCEPT to make fmt use noexcept (C++11 feature).
-#ifndef FMT_USE_NOEXCEPT
-#  define FMT_USE_NOEXCEPT 0
+// Define GAIA_FMT_USE_NOEXCEPT to make gaia_fmt use noexcept (C++11 feature).
+#ifndef GAIA_FMT_USE_NOEXCEPT
+#  define GAIA_FMT_USE_NOEXCEPT 0
 #endif
 
-#if FMT_USE_NOEXCEPT || FMT_HAS_FEATURE(cxx_noexcept) || \
-    (FMT_GCC_VERSION >= 408 && FMT_HAS_GXX_CXX11) || FMT_MSC_VER >= 1900
-#  define FMT_DETECTED_NOEXCEPT noexcept
-#  define FMT_HAS_CXX11_NOEXCEPT 1
+#if GAIA_FMT_USE_NOEXCEPT || GAIA_FMT_HAS_FEATURE(cxx_noexcept) || \
+    (GAIA_FMT_GCC_VERSION >= 408 && GAIA_FMT_HAS_GXX_CXX11) || GAIA_FMT_MSC_VER >= 1900
+#  define GAIA_FMT_DETECTED_NOEXCEPT noexcept
+#  define GAIA_FMT_HAS_CXX11_NOEXCEPT 1
 #else
-#  define FMT_DETECTED_NOEXCEPT throw()
-#  define FMT_HAS_CXX11_NOEXCEPT 0
+#  define GAIA_FMT_DETECTED_NOEXCEPT throw()
+#  define GAIA_FMT_HAS_CXX11_NOEXCEPT 0
 #endif
 
-#ifndef FMT_NOEXCEPT
-#  if FMT_EXCEPTIONS || FMT_HAS_CXX11_NOEXCEPT
-#    define FMT_NOEXCEPT FMT_DETECTED_NOEXCEPT
+#ifndef GAIA_FMT_NOEXCEPT
+#  if GAIA_FMT_EXCEPTIONS || GAIA_FMT_HAS_CXX11_NOEXCEPT
+#    define GAIA_FMT_NOEXCEPT GAIA_FMT_DETECTED_NOEXCEPT
 #  else
-#    define FMT_NOEXCEPT
+#    define GAIA_FMT_NOEXCEPT
 #  endif
 #endif
 
 // [[noreturn]] is disabled on MSVC and NVCC because of bogus unreachable code
 // warnings.
-#if FMT_EXCEPTIONS && FMT_HAS_CPP_ATTRIBUTE(noreturn) && !FMT_MSC_VER && \
-    !FMT_NVCC
-#  define FMT_NORETURN [[noreturn]]
+#if GAIA_FMT_EXCEPTIONS && GAIA_FMT_HAS_CPP_ATTRIBUTE(noreturn) && !GAIA_FMT_MSC_VER && \
+    !GAIA_FMT_NVCC
+#  define GAIA_FMT_NORETURN [[noreturn]]
 #else
-#  define FMT_NORETURN
+#  define GAIA_FMT_NORETURN
 #endif
 
-#ifndef FMT_DEPRECATED
-#  if FMT_HAS_CPP14_ATTRIBUTE(deprecated) || FMT_MSC_VER >= 1900
-#    define FMT_DEPRECATED [[deprecated]]
+#ifndef GAIA_FMT_DEPRECATED
+#  if GAIA_FMT_HAS_CPP14_ATTRIBUTE(deprecated) || GAIA_FMT_MSC_VER >= 1900
+#    define GAIA_FMT_DEPRECATED [[deprecated]]
 #  else
 #    if (defined(__GNUC__) && !defined(__LCC__)) || defined(__clang__)
-#      define FMT_DEPRECATED __attribute__((deprecated))
-#    elif FMT_MSC_VER
-#      define FMT_DEPRECATED __declspec(deprecated)
+#      define GAIA_FMT_DEPRECATED __attribute__((deprecated))
+#    elif GAIA_FMT_MSC_VER
+#      define GAIA_FMT_DEPRECATED __declspec(deprecated)
 #    else
-#      define FMT_DEPRECATED /* deprecated */
+#      define GAIA_FMT_DEPRECATED /* deprecated */
 #    endif
 #  endif
 #endif
 
 // Workaround broken [[deprecated]] in the Intel, PGI and NVCC compilers.
-#if FMT_ICC_VERSION || defined(__PGI) || FMT_NVCC
-#  define FMT_DEPRECATED_ALIAS
+#if GAIA_FMT_ICC_VERSION || defined(__PGI) || GAIA_FMT_NVCC
+#  define GAIA_FMT_DEPRECATED_ALIAS
 #else
-#  define FMT_DEPRECATED_ALIAS FMT_DEPRECATED
+#  define GAIA_FMT_DEPRECATED_ALIAS GAIA_FMT_DEPRECATED
 #endif
 
-#ifndef FMT_INLINE
-#  if FMT_GCC_VERSION || FMT_CLANG_VERSION
-#    define FMT_INLINE inline __attribute__((always_inline))
+#ifndef GAIA_FMT_INLINE
+#  if GAIA_FMT_GCC_VERSION || GAIA_FMT_CLANG_VERSION
+#    define GAIA_FMT_INLINE inline __attribute__((always_inline))
 #  else
-#    define FMT_INLINE inline
+#    define GAIA_FMT_INLINE inline
 #  endif
 #endif
 
-#ifndef FMT_USE_INLINE_NAMESPACES
-#  if FMT_HAS_FEATURE(cxx_inline_namespaces) || FMT_GCC_VERSION >= 404 || \
-      (FMT_MSC_VER >= 1900 && !_MANAGED)
-#    define FMT_USE_INLINE_NAMESPACES 1
+#ifndef GAIA_FMT_USE_INLINE_NAMESPACES
+#  if GAIA_FMT_HAS_FEATURE(cxx_inline_namespaces) || GAIA_FMT_GCC_VERSION >= 404 || \
+      (GAIA_FMT_MSC_VER >= 1900 && !_MANAGED)
+#    define GAIA_FMT_USE_INLINE_NAMESPACES 1
 #  else
-#    define FMT_USE_INLINE_NAMESPACES 0
+#    define GAIA_FMT_USE_INLINE_NAMESPACES 0
 #  endif
 #endif
 
-#ifndef FMT_BEGIN_NAMESPACE
-#  if FMT_USE_INLINE_NAMESPACES
-#    define FMT_INLINE_NAMESPACE inline namespace
-#    define FMT_END_NAMESPACE \
+#ifndef GAIA_FMT_BEGIN_NAMESPACE
+#  if GAIA_FMT_USE_INLINE_NAMESPACES
+#    define GAIA_FMT_INLINE_NAMESPACE inline namespace
+#    define GAIA_FMT_END_NAMESPACE \
       }                       \
       }
 #  else
-#    define FMT_INLINE_NAMESPACE namespace
-#    define FMT_END_NAMESPACE \
+#    define GAIA_FMT_INLINE_NAMESPACE namespace
+#    define GAIA_FMT_END_NAMESPACE \
       }                       \
       using namespace v7;     \
       }
 #  endif
-#  define FMT_BEGIN_NAMESPACE \
-    namespace fmt {           \
-    FMT_INLINE_NAMESPACE v7 {
+#  define GAIA_FMT_BEGIN_NAMESPACE \
+    namespace gaia_fmt {           \
+    GAIA_FMT_INLINE_NAMESPACE v7 {
 #endif
 
-#if !defined(FMT_HEADER_ONLY) && defined(_WIN32)
-#  define FMT_CLASS_API FMT_SUPPRESS_MSC_WARNING(4275)
-#  ifdef FMT_EXPORT
-#    define FMT_API __declspec(dllexport)
-#    define FMT_EXTERN_TEMPLATE_API FMT_API
-#    define FMT_EXPORTED
-#  elif defined(FMT_SHARED)
-#    define FMT_API __declspec(dllimport)
-#    define FMT_EXTERN_TEMPLATE_API FMT_API
+#if !defined(GAIA_FMT_HEADER_ONLY) && defined(_WIN32)
+#  define GAIA_FMT_CLASS_API GAIA_FMT_SUPPRESS_MSC_WARNING(4275)
+#  ifdef GAIA_FMT_EXPORT
+#    define GAIA_FMT_API __declspec(dllexport)
+#    define GAIA_FMT_EXTERN_TEMPLATE_API GAIA_FMT_API
+#    define GAIA_FMT_EXPORTED
+#  elif defined(GAIA_FMT_SHARED)
+#    define GAIA_FMT_API __declspec(dllimport)
+#    define GAIA_FMT_EXTERN_TEMPLATE_API GAIA_FMT_API
 #  endif
 #else
-#  define FMT_CLASS_API
+#  define GAIA_FMT_CLASS_API
 #endif
-#ifndef FMT_API
-#  define FMT_API
+#ifndef GAIA_FMT_API
+#  define GAIA_FMT_API
 #endif
-#ifndef FMT_EXTERN_TEMPLATE_API
-#  define FMT_EXTERN_TEMPLATE_API
+#ifndef GAIA_FMT_EXTERN_TEMPLATE_API
+#  define GAIA_FMT_EXTERN_TEMPLATE_API
 #endif
-#ifndef FMT_INSTANTIATION_DEF_API
-#  define FMT_INSTANTIATION_DEF_API FMT_API
+#ifndef GAIA_FMT_INSTANTIATION_DEF_API
+#  define GAIA_FMT_INSTANTIATION_DEF_API GAIA_FMT_API
 #endif
 
-#ifndef FMT_HEADER_ONLY
-#  define FMT_EXTERN extern
+#ifndef GAIA_FMT_HEADER_ONLY
+#  define GAIA_FMT_EXTERN extern
 #else
-#  define FMT_EXTERN
+#  define GAIA_FMT_EXTERN
 #endif
 
 // libc++ supports string_view in pre-c++17.
-#if (FMT_HAS_INCLUDE(<string_view>) &&                       \
+#if (GAIA_FMT_HAS_INCLUDE(<string_view>) &&                       \
      (__cplusplus > 201402L || defined(_LIBCPP_VERSION))) || \
     (defined(_MSVC_LANG) && _MSVC_LANG > 201402L && _MSC_VER >= 1910)
 #  include <string_view>
-#  define FMT_USE_STRING_VIEW
-#elif FMT_HAS_INCLUDE("experimental/string_view") && __cplusplus >= 201402L
+#  define GAIA_FMT_USE_STRING_VIEW
+#elif GAIA_FMT_HAS_INCLUDE("experimental/string_view") && __cplusplus >= 201402L
 #  include <experimental/string_view>
-#  define FMT_USE_EXPERIMENTAL_STRING_VIEW
+#  define GAIA_FMT_USE_EXPERIMENTAL_STRING_VIEW
 #endif
 
-#ifndef FMT_UNICODE
-#  define FMT_UNICODE !FMT_MSC_VER
+#ifndef GAIA_FMT_UNICODE
+#  define GAIA_FMT_UNICODE !GAIA_FMT_MSC_VER
 #endif
-#if FMT_UNICODE && FMT_MSC_VER
+#if GAIA_FMT_UNICODE && GAIA_FMT_MSC_VER
 #  pragma execution_character_set("utf-8")
 #endif
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 
 // Implementations of enable_if_t and other metafunctions for older systems.
 template <bool B, class T = void>
@@ -274,63 +274,63 @@ struct monostate {};
 // An enable_if helper to be used in template parameters which results in much
 // shorter symbols: https://godbolt.org/z/sWw4vP. Extra parentheses are needed
 // to workaround a bug in MSVC 2019 (see #1140 and #1186).
-#define FMT_ENABLE_IF(...) enable_if_t<(__VA_ARGS__), int> = 0
+#define GAIA_FMT_ENABLE_IF(...) enable_if_t<(__VA_ARGS__), int> = 0
 
 namespace detail {
 
 // A helper function to suppress "conditional expression is constant" warnings.
 template <typename T> constexpr T const_check(T value) { return value; }
 
-FMT_NORETURN FMT_API void assert_fail(const char* file, int line,
+GAIA_FMT_NORETURN GAIA_FMT_API void assert_fail(const char* file, int line,
                                       const char* message);
 
-#ifndef FMT_ASSERT
+#ifndef GAIA_FMT_ASSERT
 #  ifdef NDEBUG
-// FMT_ASSERT is not empty to avoid -Werror=empty-body.
-#    define FMT_ASSERT(condition, message) ((void)0)
+// GAIA_FMT_ASSERT is not empty to avoid -Werror=empty-body.
+#    define GAIA_FMT_ASSERT(condition, message) ((void)0)
 #  else
-#    define FMT_ASSERT(condition, message)                                    \
+#    define GAIA_FMT_ASSERT(condition, message)                                    \
       ((condition) /* void() fails with -Winvalid-constexpr on clang 4.0.1 */ \
            ? (void)0                                                          \
-           : ::fmt::detail::assert_fail(__FILE__, __LINE__, (message)))
+           : ::gaia_fmt::detail::assert_fail(__FILE__, __LINE__, (message)))
 #  endif
 #endif
 
-#if defined(FMT_USE_STRING_VIEW)
+#if defined(GAIA_FMT_USE_STRING_VIEW)
 template <typename Char> using std_string_view = std::basic_string_view<Char>;
-#elif defined(FMT_USE_EXPERIMENTAL_STRING_VIEW)
+#elif defined(GAIA_FMT_USE_EXPERIMENTAL_STRING_VIEW)
 template <typename Char>
 using std_string_view = std::experimental::basic_string_view<Char>;
 #else
 template <typename T> struct std_string_view {};
 #endif
 
-#ifdef FMT_USE_INT128
+#ifdef GAIA_FMT_USE_INT128
 // Do nothing.
-#elif defined(__SIZEOF_INT128__) && !FMT_NVCC && \
-    !(FMT_CLANG_VERSION && FMT_MSC_VER)
-#  define FMT_USE_INT128 1
+#elif defined(__SIZEOF_INT128__) && !GAIA_FMT_NVCC && \
+    !(GAIA_FMT_CLANG_VERSION && GAIA_FMT_MSC_VER)
+#  define GAIA_FMT_USE_INT128 1
 using int128_t = __int128_t;
 using uint128_t = __uint128_t;
 #else
-#  define FMT_USE_INT128 0
+#  define GAIA_FMT_USE_INT128 0
 #endif
-#if !FMT_USE_INT128
+#if !GAIA_FMT_USE_INT128
 struct int128_t {};
 struct uint128_t {};
 #endif
 
 // Casts a nonnegative integer to unsigned.
 template <typename Int>
-FMT_CONSTEXPR typename std::make_unsigned<Int>::type to_unsigned(Int value) {
-  FMT_ASSERT(value >= 0, "negative value");
+GAIA_FMT_CONSTEXPR typename std::make_unsigned<Int>::type to_unsigned(Int value) {
+  GAIA_FMT_ASSERT(value >= 0, "negative value");
   return static_cast<typename std::make_unsigned<Int>::type>(value);
 }
 
-FMT_SUPPRESS_MSC_WARNING(4566) constexpr unsigned char micro[] = "\u00B5";
+GAIA_FMT_SUPPRESS_MSC_WARNING(4566) constexpr unsigned char micro[] = "\u00B5";
 
 template <typename Char> constexpr bool is_unicode() {
-  return FMT_UNICODE || sizeof(Char) != 1 ||
+  return GAIA_FMT_UNICODE || sizeof(Char) != 1 ||
          (sizeof(micro) == 3 && micro[0] == 0xC2 && micro[1] == 0xB5);
 }
 
@@ -341,13 +341,13 @@ enum char8_type : unsigned char {};
 #endif
 }  // namespace detail
 
-#ifdef FMT_USE_INTERNAL
+#ifdef GAIA_FMT_USE_INTERNAL
 namespace internal = detail;  // DEPRECATED
 #endif
 
 /**
   An implementation of ``std::basic_string_view`` for pre-C++17. It provides a
-  subset of the API. ``fmt::basic_string_view`` is used for format strings even
+  subset of the API. ``gaia_fmt::basic_string_view`` is used for format strings even
   if ``std::string_view`` is available to prevent issues when a library is
   compiled with a different ``-std`` option than the client code (which is not
   recommended).
@@ -361,10 +361,10 @@ template <typename Char> class basic_string_view {
   using value_type = Char;
   using iterator = const Char*;
 
-  constexpr basic_string_view() FMT_NOEXCEPT : data_(nullptr), size_(0) {}
+  constexpr basic_string_view() GAIA_FMT_NOEXCEPT : data_(nullptr), size_(0) {}
 
   /** Constructs a string reference object from a C string and a size. */
-  constexpr basic_string_view(const Char* s, size_t count) FMT_NOEXCEPT
+  constexpr basic_string_view(const Char* s, size_t count) GAIA_FMT_NOEXCEPT
       : data_(s),
         size_(count) {}
 
@@ -375,21 +375,21 @@ template <typename Char> class basic_string_view {
     \endrst
    */
 #if __cplusplus >= 201703L  // C++17's char_traits::length() is constexpr.
-  FMT_CONSTEXPR
+  GAIA_FMT_CONSTEXPR
 #endif
   basic_string_view(const Char* s)
       : data_(s), size_(std::char_traits<Char>::length(s)) {}
 
   /** Constructs a string reference from a ``std::basic_string`` object. */
   template <typename Traits, typename Alloc>
-  FMT_CONSTEXPR basic_string_view(
-      const std::basic_string<Char, Traits, Alloc>& s) FMT_NOEXCEPT
+  GAIA_FMT_CONSTEXPR basic_string_view(
+      const std::basic_string<Char, Traits, Alloc>& s) GAIA_FMT_NOEXCEPT
       : data_(s.data()),
         size_(s.size()) {}
 
-  template <typename S, FMT_ENABLE_IF(std::is_same<
+  template <typename S, GAIA_FMT_ENABLE_IF(std::is_same<
                                       S, detail::std_string_view<Char>>::value)>
-  FMT_CONSTEXPR basic_string_view(S s) FMT_NOEXCEPT : data_(s.data()),
+  GAIA_FMT_CONSTEXPR basic_string_view(S s) GAIA_FMT_NOEXCEPT : data_(s.data()),
                                                       size_(s.size()) {}
 
   /** Returns a pointer to the string data. */
@@ -403,7 +403,7 @@ template <typename Char> class basic_string_view {
 
   constexpr const Char& operator[](size_t pos) const { return data_[pos]; }
 
-  FMT_CONSTEXPR void remove_prefix(size_t n) {
+  GAIA_FMT_CONSTEXPR void remove_prefix(size_t n) {
     data_ += n;
     size_ -= n;
   }
@@ -451,7 +451,7 @@ template <> struct is_char<char32_t> : std::true_type {};
 /**
   \rst
   Returns a string view of `s`. In order to add custom string type support to
-  {fmt} provide an overload of `to_string_view` for it in the same namespace as
+  {gaia_fmt} provide an overload of `to_string_view` for it in the same namespace as
   the type for the argument-dependent lookup to work.
 
   **Example**::
@@ -461,10 +461,10 @@ template <> struct is_char<char32_t> : std::true_type {};
       return {s.data(), s.length()};
     }
     }
-    std::string message = fmt::format(my_string("The answer is {}"), 42);
+    std::string message = gaia_fmt::format(my_string("The answer is {}"), 42);
   \endrst
  */
-template <typename Char, FMT_ENABLE_IF(is_char<Char>::value)>
+template <typename Char, GAIA_FMT_ENABLE_IF(is_char<Char>::value)>
 inline basic_string_view<Char> to_string_view(const Char* s) {
   return s;
 }
@@ -481,28 +481,28 @@ inline basic_string_view<Char> to_string_view(basic_string_view<Char> s) {
 }
 
 template <typename Char,
-          FMT_ENABLE_IF(!std::is_empty<detail::std_string_view<Char>>::value)>
+          GAIA_FMT_ENABLE_IF(!std::is_empty<detail::std_string_view<Char>>::value)>
 inline basic_string_view<Char> to_string_view(detail::std_string_view<Char> s) {
   return s;
 }
 
-// A base class for compile-time strings. It is defined in the fmt namespace to
-// make formatting functions visible via ADL, e.g. format(FMT_STRING("{}"), 42).
+// A base class for compile-time strings. It is defined in the gaia_fmt namespace to
+// make formatting functions visible via ADL, e.g. format(GAIA_FMT_STRING("{}"), 42).
 struct compile_string {};
 
 template <typename S>
 struct is_compile_string : std::is_base_of<compile_string, S> {};
 
-template <typename S, FMT_ENABLE_IF(is_compile_string<S>::value)>
+template <typename S, GAIA_FMT_ENABLE_IF(is_compile_string<S>::value)>
 constexpr basic_string_view<typename S::char_type> to_string_view(const S& s) {
   return s;
 }
 
 namespace detail {
 void to_string_view(...);
-using fmt::v7::to_string_view;
+using gaia_fmt::v7::to_string_view;
 
-// Specifies whether S is a string type convertible to fmt::basic_string_view.
+// Specifies whether S is a string type convertible to gaia_fmt::basic_string_view.
 // It should be a constexpr function but MSVC 2017 fails to compile it in
 // enable_if and MSVC 2015 fails to compile it as an alias template.
 template <typename S>
@@ -516,15 +516,15 @@ template <typename S> struct char_t_impl<S, enable_if_t<is_string<S>::value>> {
 };
 
 // Reports a compile-time error if S is not a valid format string.
-template <typename..., typename S, FMT_ENABLE_IF(!is_compile_string<S>::value)>
-FMT_INLINE void check_format_string(const S&) {
-#ifdef FMT_ENFORCE_COMPILE_STRING
+template <typename..., typename S, GAIA_FMT_ENABLE_IF(!is_compile_string<S>::value)>
+GAIA_FMT_INLINE void check_format_string(const S&) {
+#ifdef GAIA_FMT_ENFORCE_COMPILE_STRING
   static_assert(is_compile_string<S>::value,
-                "FMT_ENFORCE_COMPILE_STRING requires all format strings to use "
-                "FMT_STRING.");
+                "GAIA_FMT_ENFORCE_COMPILE_STRING requires all format strings to use "
+                "GAIA_FMT_STRING.");
 #endif
 }
-template <typename..., typename S, FMT_ENABLE_IF(is_compile_string<S>::value)>
+template <typename..., typename S, GAIA_FMT_ENABLE_IF(is_compile_string<S>::value)>
 void check_format_string(S);
 
 struct error_handler {
@@ -532,7 +532,7 @@ struct error_handler {
   constexpr error_handler(const error_handler&) = default;
 
   // This function is intentionally not constexpr to give a compile-time error.
-  FMT_NORETURN FMT_API void on_error(const char* message);
+  GAIA_FMT_NORETURN GAIA_FMT_API void on_error(const char* message);
 };
 }  // namespace detail
 
@@ -574,15 +574,15 @@ class basic_format_parse_context : private ErrorHandler {
     Returns an iterator to the beginning of the format string range being
     parsed.
    */
-  constexpr iterator begin() const FMT_NOEXCEPT { return format_str_.begin(); }
+  constexpr iterator begin() const GAIA_FMT_NOEXCEPT { return format_str_.begin(); }
 
   /**
     Returns an iterator past the end of the format string range being parsed.
    */
-  constexpr iterator end() const FMT_NOEXCEPT { return format_str_.end(); }
+  constexpr iterator end() const GAIA_FMT_NOEXCEPT { return format_str_.end(); }
 
   /** Advances the begin iterator to ``it``. */
-  FMT_CONSTEXPR void advance_to(iterator it) {
+  GAIA_FMT_CONSTEXPR void advance_to(iterator it) {
     format_str_.remove_prefix(detail::to_unsigned(it - begin()));
   }
 
@@ -590,7 +590,7 @@ class basic_format_parse_context : private ErrorHandler {
     Reports an error if using the manual argument indexing; otherwise returns
     the next argument index and switches to the automatic indexing.
    */
-  FMT_CONSTEXPR int next_arg_id() {
+  GAIA_FMT_CONSTEXPR int next_arg_id() {
     // Don't check if the argument id is valid to avoid overhead and because it
     // will be checked during formatting anyway.
     if (next_arg_id_ >= 0) return next_arg_id_++;
@@ -602,16 +602,16 @@ class basic_format_parse_context : private ErrorHandler {
     Reports an error if using the automatic argument indexing; otherwise
     switches to the manual indexing.
    */
-  FMT_CONSTEXPR void check_arg_id(int) {
+  GAIA_FMT_CONSTEXPR void check_arg_id(int) {
     if (next_arg_id_ > 0)
       on_error("cannot switch from automatic to manual argument indexing");
     else
       next_arg_id_ = -1;
   }
 
-  FMT_CONSTEXPR void check_arg_id(basic_string_view<Char>) {}
+  GAIA_FMT_CONSTEXPR void check_arg_id(basic_string_view<Char>) {}
 
-  FMT_CONSTEXPR void on_error(const char* message) {
+  GAIA_FMT_CONSTEXPR void on_error(const char* message) {
     ErrorHandler::on_error(message);
   }
 
@@ -659,7 +659,7 @@ inline Container& get_container(std::back_insert_iterator<Container> it) {
 /**
   \rst
   A contiguous memory buffer with an optional growing ability. It is an internal
-  class and shouldn't be used directly, only via `~fmt::basic_memory_buffer`.
+  class and shouldn't be used directly, only via `~gaia_fmt::basic_memory_buffer`.
   \endrst
  */
 template <typename T> class buffer {
@@ -670,10 +670,10 @@ template <typename T> class buffer {
 
  protected:
   // Don't initialize ptr_ since it is not accessed to save a few cycles.
-  FMT_SUPPRESS_MSC_WARNING(26495)
-  buffer(size_t sz) FMT_NOEXCEPT : size_(sz), capacity_(sz) {}
+  GAIA_FMT_SUPPRESS_MSC_WARNING(26495)
+  buffer(size_t sz) GAIA_FMT_NOEXCEPT : size_(sz), capacity_(sz) {}
 
-  buffer(T* p = nullptr, size_t sz = 0, size_t cap = 0) FMT_NOEXCEPT
+  buffer(T* p = nullptr, size_t sz = 0, size_t cap = 0) GAIA_FMT_NOEXCEPT
       : ptr_(p),
         size_(sz),
         capacity_(cap) {}
@@ -681,7 +681,7 @@ template <typename T> class buffer {
   ~buffer() = default;
 
   /** Sets the buffer data and capacity. */
-  void set(T* buf_data, size_t buf_capacity) FMT_NOEXCEPT {
+  void set(T* buf_data, size_t buf_capacity) GAIA_FMT_NOEXCEPT {
     ptr_ = buf_data;
     capacity_ = buf_capacity;
   }
@@ -696,23 +696,23 @@ template <typename T> class buffer {
   buffer(const buffer&) = delete;
   void operator=(const buffer&) = delete;
 
-  T* begin() FMT_NOEXCEPT { return ptr_; }
-  T* end() FMT_NOEXCEPT { return ptr_ + size_; }
+  T* begin() GAIA_FMT_NOEXCEPT { return ptr_; }
+  T* end() GAIA_FMT_NOEXCEPT { return ptr_ + size_; }
 
-  const T* begin() const FMT_NOEXCEPT { return ptr_; }
-  const T* end() const FMT_NOEXCEPT { return ptr_ + size_; }
+  const T* begin() const GAIA_FMT_NOEXCEPT { return ptr_; }
+  const T* end() const GAIA_FMT_NOEXCEPT { return ptr_ + size_; }
 
   /** Returns the size of this buffer. */
-  size_t size() const FMT_NOEXCEPT { return size_; }
+  size_t size() const GAIA_FMT_NOEXCEPT { return size_; }
 
   /** Returns the capacity of this buffer. */
-  size_t capacity() const FMT_NOEXCEPT { return capacity_; }
+  size_t capacity() const GAIA_FMT_NOEXCEPT { return capacity_; }
 
   /** Returns a pointer to the buffer data. */
-  T* data() FMT_NOEXCEPT { return ptr_; }
+  T* data() GAIA_FMT_NOEXCEPT { return ptr_; }
 
   /** Returns a pointer to the buffer data. */
-  const T* data() const FMT_NOEXCEPT { return ptr_; }
+  const T* data() const GAIA_FMT_NOEXCEPT { return ptr_; }
 
   /** Clears this buffer. */
   void clear() { size_ = 0; }
@@ -776,7 +776,7 @@ class iterator_buffer final : public Traits, public buffer<T> {
   T data_[buffer_size];
 
  protected:
-  void grow(size_t) final FMT_OVERRIDE {
+  void grow(size_t) final GAIA_FMT_OVERRIDE {
     if (this->size() == buffer_size) flush();
   }
   void flush();
@@ -797,7 +797,7 @@ class iterator_buffer final : public Traits, public buffer<T> {
 
 template <typename T> class iterator_buffer<T*, T> final : public buffer<T> {
  protected:
-  void grow(size_t) final FMT_OVERRIDE {}
+  void grow(size_t) final GAIA_FMT_OVERRIDE {}
 
  public:
   explicit iterator_buffer(T* out, size_t = 0) : buffer<T>(out, 0, ~size_t()) {}
@@ -815,7 +815,7 @@ class iterator_buffer<std::back_insert_iterator<Container>,
   Container& container_;
 
  protected:
-  void grow(size_t capacity) final FMT_OVERRIDE {
+  void grow(size_t capacity) final GAIA_FMT_OVERRIDE {
     container_.resize(capacity);
     this->set(&container_[0], capacity);
   }
@@ -838,7 +838,7 @@ template <typename T = char> class counting_buffer final : public buffer<T> {
   size_t count_ = 0;
 
  protected:
-  void grow(size_t) final FMT_OVERRIDE {
+  void grow(size_t) final GAIA_FMT_OVERRIDE {
     if (this->size() != buffer_size) return;
     count_ += this->size();
     this->clear();
@@ -935,9 +935,9 @@ struct arg_data<T, Char, NUM_ARGS, 0> {
   T args_[NUM_ARGS != 0 ? NUM_ARGS : +1];
 
   template <typename... U>
-  FMT_INLINE arg_data(const U&... init) : args_{init...} {}
-  FMT_INLINE const T* args() const { return args_; }
-  FMT_INLINE std::nullptr_t named_args() { return nullptr; }
+  GAIA_FMT_INLINE arg_data(const U&... init) : args_{init...} {}
+  GAIA_FMT_INLINE const T* args() const { return args_; }
+  GAIA_FMT_INLINE std::nullptr_t named_args() { return nullptr; }
 };
 
 template <typename Char>
@@ -958,7 +958,7 @@ void init_named_args(named_arg_info<Char>* named_args, int arg_count,
 }
 
 template <typename... Args>
-FMT_INLINE void init_named_args(std::nullptr_t, int, int, const Args&...) {}
+GAIA_FMT_INLINE void init_named_args(std::nullptr_t, int, int, const Args&...) {}
 
 template <typename T> struct is_named_arg : std::false_type {};
 
@@ -1001,25 +1001,25 @@ enum class type {
 template <typename T, typename Char>
 struct type_constant : std::integral_constant<type, type::custom_type> {};
 
-#define FMT_TYPE_CONSTANT(Type, constant) \
+#define GAIA_FMT_TYPE_CONSTANT(Type, constant) \
   template <typename Char>                \
   struct type_constant<Type, Char>        \
       : std::integral_constant<type, type::constant> {}
 
-FMT_TYPE_CONSTANT(int, int_type);
-FMT_TYPE_CONSTANT(unsigned, uint_type);
-FMT_TYPE_CONSTANT(long long, long_long_type);
-FMT_TYPE_CONSTANT(unsigned long long, ulong_long_type);
-FMT_TYPE_CONSTANT(int128_t, int128_type);
-FMT_TYPE_CONSTANT(uint128_t, uint128_type);
-FMT_TYPE_CONSTANT(bool, bool_type);
-FMT_TYPE_CONSTANT(Char, char_type);
-FMT_TYPE_CONSTANT(float, float_type);
-FMT_TYPE_CONSTANT(double, double_type);
-FMT_TYPE_CONSTANT(long double, long_double_type);
-FMT_TYPE_CONSTANT(const Char*, cstring_type);
-FMT_TYPE_CONSTANT(basic_string_view<Char>, string_type);
-FMT_TYPE_CONSTANT(const void*, pointer_type);
+GAIA_FMT_TYPE_CONSTANT(int, int_type);
+GAIA_FMT_TYPE_CONSTANT(unsigned, uint_type);
+GAIA_FMT_TYPE_CONSTANT(long long, long_long_type);
+GAIA_FMT_TYPE_CONSTANT(unsigned long long, ulong_long_type);
+GAIA_FMT_TYPE_CONSTANT(int128_t, int128_type);
+GAIA_FMT_TYPE_CONSTANT(uint128_t, uint128_type);
+GAIA_FMT_TYPE_CONSTANT(bool, bool_type);
+GAIA_FMT_TYPE_CONSTANT(Char, char_type);
+GAIA_FMT_TYPE_CONSTANT(float, float_type);
+GAIA_FMT_TYPE_CONSTANT(double, double_type);
+GAIA_FMT_TYPE_CONSTANT(long double, long_double_type);
+GAIA_FMT_TYPE_CONSTANT(const Char*, cstring_type);
+GAIA_FMT_TYPE_CONSTANT(basic_string_view<Char>, string_type);
+GAIA_FMT_TYPE_CONSTANT(const void*, pointer_type);
 
 constexpr bool is_integral_type(type t) {
   return t > type::none_type && t <= type::last_integer_type;
@@ -1068,27 +1068,27 @@ template <typename Context> class value {
     named_arg_value<char_type> named_args;
   };
 
-  constexpr FMT_INLINE value(int val = 0) : int_value(val) {}
-  constexpr FMT_INLINE value(unsigned val) : uint_value(val) {}
-  FMT_INLINE value(long long val) : long_long_value(val) {}
-  FMT_INLINE value(unsigned long long val) : ulong_long_value(val) {}
-  FMT_INLINE value(int128_t val) : int128_value(val) {}
-  FMT_INLINE value(uint128_t val) : uint128_value(val) {}
-  FMT_INLINE value(float val) : float_value(val) {}
-  FMT_INLINE value(double val) : double_value(val) {}
-  FMT_INLINE value(long double val) : long_double_value(val) {}
-  FMT_INLINE value(bool val) : bool_value(val) {}
-  FMT_INLINE value(char_type val) : char_value(val) {}
-  FMT_INLINE value(const char_type* val) { string.data = val; }
-  FMT_INLINE value(basic_string_view<char_type> val) {
+  constexpr GAIA_FMT_INLINE value(int val = 0) : int_value(val) {}
+  constexpr GAIA_FMT_INLINE value(unsigned val) : uint_value(val) {}
+  GAIA_FMT_INLINE value(long long val) : long_long_value(val) {}
+  GAIA_FMT_INLINE value(unsigned long long val) : ulong_long_value(val) {}
+  GAIA_FMT_INLINE value(int128_t val) : int128_value(val) {}
+  GAIA_FMT_INLINE value(uint128_t val) : uint128_value(val) {}
+  GAIA_FMT_INLINE value(float val) : float_value(val) {}
+  GAIA_FMT_INLINE value(double val) : double_value(val) {}
+  GAIA_FMT_INLINE value(long double val) : long_double_value(val) {}
+  GAIA_FMT_INLINE value(bool val) : bool_value(val) {}
+  GAIA_FMT_INLINE value(char_type val) : char_value(val) {}
+  GAIA_FMT_INLINE value(const char_type* val) { string.data = val; }
+  GAIA_FMT_INLINE value(basic_string_view<char_type> val) {
     string.data = val.data();
     string.size = val.size();
   }
-  FMT_INLINE value(const void* val) : pointer(val) {}
-  FMT_INLINE value(const named_arg_info<char_type>* args, size_t size)
+  GAIA_FMT_INLINE value(const void* val) : pointer(val) {}
+  GAIA_FMT_INLINE value(const named_arg_info<char_type>* args, size_t size)
       : named_args{args, size} {}
 
-  template <typename T> FMT_INLINE value(const T& val) {
+  template <typename T> GAIA_FMT_INLINE value(const T& val) {
     custom.value = &val;
     // Get the formatter type through the context to allow different contexts
     // have different extension points, e.g. `formatter<T>` for `format` and
@@ -1112,7 +1112,7 @@ template <typename Context> class value {
 };
 
 template <typename Context, typename T>
-FMT_CONSTEXPR basic_format_arg<Context> make_arg(const T& value);
+GAIA_FMT_CONSTEXPR basic_format_arg<Context> make_arg(const T& value);
 
 // To minimize the number of types we need to deal with, long is translated
 // either to int or to long long depending on its size.
@@ -1126,79 +1126,79 @@ struct unformattable {};
 template <typename Context> struct arg_mapper {
   using char_type = typename Context::char_type;
 
-  FMT_CONSTEXPR int map(signed char val) { return val; }
-  FMT_CONSTEXPR unsigned map(unsigned char val) { return val; }
-  FMT_CONSTEXPR int map(short val) { return val; }
-  FMT_CONSTEXPR unsigned map(unsigned short val) { return val; }
-  FMT_CONSTEXPR int map(int val) { return val; }
-  FMT_CONSTEXPR unsigned map(unsigned val) { return val; }
-  FMT_CONSTEXPR long_type map(long val) { return val; }
-  FMT_CONSTEXPR ulong_type map(unsigned long val) { return val; }
-  FMT_CONSTEXPR long long map(long long val) { return val; }
-  FMT_CONSTEXPR unsigned long long map(unsigned long long val) { return val; }
-  FMT_CONSTEXPR int128_t map(int128_t val) { return val; }
-  FMT_CONSTEXPR uint128_t map(uint128_t val) { return val; }
-  FMT_CONSTEXPR bool map(bool val) { return val; }
+  GAIA_FMT_CONSTEXPR int map(signed char val) { return val; }
+  GAIA_FMT_CONSTEXPR unsigned map(unsigned char val) { return val; }
+  GAIA_FMT_CONSTEXPR int map(short val) { return val; }
+  GAIA_FMT_CONSTEXPR unsigned map(unsigned short val) { return val; }
+  GAIA_FMT_CONSTEXPR int map(int val) { return val; }
+  GAIA_FMT_CONSTEXPR unsigned map(unsigned val) { return val; }
+  GAIA_FMT_CONSTEXPR long_type map(long val) { return val; }
+  GAIA_FMT_CONSTEXPR ulong_type map(unsigned long val) { return val; }
+  GAIA_FMT_CONSTEXPR long long map(long long val) { return val; }
+  GAIA_FMT_CONSTEXPR unsigned long long map(unsigned long long val) { return val; }
+  GAIA_FMT_CONSTEXPR int128_t map(int128_t val) { return val; }
+  GAIA_FMT_CONSTEXPR uint128_t map(uint128_t val) { return val; }
+  GAIA_FMT_CONSTEXPR bool map(bool val) { return val; }
 
-  template <typename T, FMT_ENABLE_IF(is_char<T>::value)>
-  FMT_CONSTEXPR char_type map(T val) {
+  template <typename T, GAIA_FMT_ENABLE_IF(is_char<T>::value)>
+  GAIA_FMT_CONSTEXPR char_type map(T val) {
     static_assert(
         std::is_same<T, char>::value || std::is_same<T, char_type>::value,
         "mixing character types is disallowed");
     return val;
   }
 
-  FMT_CONSTEXPR float map(float val) { return val; }
-  FMT_CONSTEXPR double map(double val) { return val; }
-  FMT_CONSTEXPR long double map(long double val) { return val; }
+  GAIA_FMT_CONSTEXPR float map(float val) { return val; }
+  GAIA_FMT_CONSTEXPR double map(double val) { return val; }
+  GAIA_FMT_CONSTEXPR long double map(long double val) { return val; }
 
-  FMT_CONSTEXPR const char_type* map(char_type* val) { return val; }
-  FMT_CONSTEXPR const char_type* map(const char_type* val) { return val; }
-  template <typename T, FMT_ENABLE_IF(is_string<T>::value)>
-  FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
+  GAIA_FMT_CONSTEXPR const char_type* map(char_type* val) { return val; }
+  GAIA_FMT_CONSTEXPR const char_type* map(const char_type* val) { return val; }
+  template <typename T, GAIA_FMT_ENABLE_IF(is_string<T>::value)>
+  GAIA_FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
     static_assert(std::is_same<char_type, char_t<T>>::value,
                   "mixing character types is disallowed");
     return to_string_view(val);
   }
   template <typename T,
-            FMT_ENABLE_IF(
+            GAIA_FMT_ENABLE_IF(
                 std::is_constructible<basic_string_view<char_type>, T>::value &&
                 !is_string<T>::value && !has_formatter<T, Context>::value &&
                 !has_fallback_formatter<T, Context>::value)>
-  FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
+  GAIA_FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
     return basic_string_view<char_type>(val);
   }
   template <
       typename T,
-      FMT_ENABLE_IF(
+      GAIA_FMT_ENABLE_IF(
           std::is_constructible<std_string_view<char_type>, T>::value &&
           !std::is_constructible<basic_string_view<char_type>, T>::value &&
           !is_string<T>::value && !has_formatter<T, Context>::value &&
           !has_fallback_formatter<T, Context>::value)>
-  FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
+  GAIA_FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
     return std_string_view<char_type>(val);
   }
-  FMT_CONSTEXPR const char* map(const signed char* val) {
+  GAIA_FMT_CONSTEXPR const char* map(const signed char* val) {
     static_assert(std::is_same<char_type, char>::value, "invalid string type");
     return reinterpret_cast<const char*>(val);
   }
-  FMT_CONSTEXPR const char* map(const unsigned char* val) {
+  GAIA_FMT_CONSTEXPR const char* map(const unsigned char* val) {
     static_assert(std::is_same<char_type, char>::value, "invalid string type");
     return reinterpret_cast<const char*>(val);
   }
-  FMT_CONSTEXPR const char* map(signed char* val) {
+  GAIA_FMT_CONSTEXPR const char* map(signed char* val) {
     const auto* const_val = val;
     return map(const_val);
   }
-  FMT_CONSTEXPR const char* map(unsigned char* val) {
+  GAIA_FMT_CONSTEXPR const char* map(unsigned char* val) {
     const auto* const_val = val;
     return map(const_val);
   }
 
-  FMT_CONSTEXPR const void* map(void* val) { return val; }
-  FMT_CONSTEXPR const void* map(const void* val) { return val; }
-  FMT_CONSTEXPR const void* map(std::nullptr_t val) { return val; }
-  template <typename T> FMT_CONSTEXPR int map(const T*) {
+  GAIA_FMT_CONSTEXPR const void* map(void* val) { return val; }
+  GAIA_FMT_CONSTEXPR const void* map(const void* val) { return val; }
+  GAIA_FMT_CONSTEXPR const void* map(std::nullptr_t val) { return val; }
+  template <typename T> GAIA_FMT_CONSTEXPR int map(const T*) {
     // Formatting of arbitrary pointers is disallowed. If you want to output
     // a pointer cast it to "void *" or "const void *". In particular, this
     // forbids formatting of "[const] volatile char *" which is printed as bool
@@ -1208,24 +1208,24 @@ template <typename Context> struct arg_mapper {
   }
 
   template <typename T,
-            FMT_ENABLE_IF(std::is_enum<T>::value &&
+            GAIA_FMT_ENABLE_IF(std::is_enum<T>::value &&
                           !has_formatter<T, Context>::value &&
                           !has_fallback_formatter<T, Context>::value)>
-  FMT_CONSTEXPR auto map(const T& val)
+  GAIA_FMT_CONSTEXPR auto map(const T& val)
       -> decltype(std::declval<arg_mapper>().map(
           static_cast<typename std::underlying_type<T>::type>(val))) {
     return map(static_cast<typename std::underlying_type<T>::type>(val));
   }
   template <typename T,
-            FMT_ENABLE_IF(!is_string<T>::value && !is_char<T>::value &&
+            GAIA_FMT_ENABLE_IF(!is_string<T>::value && !is_char<T>::value &&
                           (has_formatter<T, Context>::value ||
                            has_fallback_formatter<T, Context>::value))>
-  FMT_CONSTEXPR const T& map(const T& val) {
+  GAIA_FMT_CONSTEXPR const T& map(const T& val) {
     return val;
   }
 
   template <typename T>
-  FMT_CONSTEXPR auto map(const named_arg<char_type, T>& val)
+  GAIA_FMT_CONSTEXPR auto map(const named_arg<char_type, T>& val)
       -> decltype(std::declval<arg_mapper>().map(val.value)) {
     return map(val.value);
   }
@@ -1254,11 +1254,11 @@ template <typename Context> class basic_format_arg {
   detail::type type_;
 
   template <typename ContextType, typename T>
-  friend FMT_CONSTEXPR basic_format_arg<ContextType> detail::make_arg(
+  friend GAIA_FMT_CONSTEXPR basic_format_arg<ContextType> detail::make_arg(
       const T& value);
 
   template <typename Visitor, typename Ctx>
-  friend FMT_CONSTEXPR auto visit_format_arg(Visitor&& vis,
+  friend GAIA_FMT_CONSTEXPR auto visit_format_arg(Visitor&& vis,
                                              const basic_format_arg<Ctx>& arg)
       -> decltype(vis(0));
 
@@ -1289,7 +1289,7 @@ template <typename Context> class basic_format_arg {
 
   constexpr basic_format_arg() : type_(detail::type::none_type) {}
 
-  constexpr explicit operator bool() const FMT_NOEXCEPT {
+  constexpr explicit operator bool() const GAIA_FMT_NOEXCEPT {
     return type_ != detail::type::none_type;
   }
 
@@ -1307,7 +1307,7 @@ template <typename Context> class basic_format_arg {
   \endrst
  */
 template <typename Visitor, typename Context>
-FMT_CONSTEXPR_DECL FMT_INLINE auto visit_format_arg(
+GAIA_FMT_CONSTEXPR_DECL GAIA_FMT_INLINE auto visit_format_arg(
     Visitor&& vis, const basic_format_arg<Context>& arg) -> decltype(vis(0)) {
   using char_type = typename Context::char_type;
   switch (arg.type_) {
@@ -1321,7 +1321,7 @@ FMT_CONSTEXPR_DECL FMT_INLINE auto visit_format_arg(
     return vis(arg.value_.long_long_value);
   case detail::type::ulong_long_type:
     return vis(arg.value_.ulong_long_value);
-#if FMT_USE_INT128
+#if GAIA_FMT_USE_INT128
   case detail::type::int128_type:
     return vis(arg.value_.int128_value);
   case detail::type::uint128_type:
@@ -1397,7 +1397,7 @@ class locale_ref {
   locale_ref() : locale_(nullptr) {}
   template <typename Locale> explicit locale_ref(const Locale& loc);
 
-  explicit operator bool() const FMT_NOEXCEPT { return locale_ != nullptr; }
+  explicit operator bool() const GAIA_FMT_NOEXCEPT { return locale_ != nullptr; }
 
   template <typename Locale> Locale get() const;
 };
@@ -1411,7 +1411,7 @@ constexpr unsigned long long encode_types() {
 }
 
 template <typename Context, typename T>
-FMT_CONSTEXPR basic_format_arg<Context> make_arg(const T& value) {
+GAIA_FMT_CONSTEXPR basic_format_arg<Context> make_arg(const T& value) {
   basic_format_arg<Context> arg;
   arg.type_ = mapped_type_constant<T, Context>::value;
   arg.value_ = arg_mapper<Context>().map(value);
@@ -1422,7 +1422,7 @@ template <typename T> int check(unformattable) {
   static_assert(
       formattable<T>(),
       "Cannot format an argument. To make type T formattable provide a "
-      "formatter<T> specialization: https://fmt.dev/latest/api.html#udt");
+      "formatter<T> specialization: https://gaia_fmt.dev/latest/api.html#udt");
   return 0;
 }
 template <typename T, typename U> inline const U& check(const U& val) {
@@ -1433,13 +1433,13 @@ template <typename T, typename U> inline const U& check(const U& val) {
 // a fallback formatter in one translation unit and an implicit conversion in
 // another (not recommended).
 template <bool IS_PACKED, typename Context, type, typename T,
-          FMT_ENABLE_IF(IS_PACKED)>
+          GAIA_FMT_ENABLE_IF(IS_PACKED)>
 inline value<Context> make_arg(const T& val) {
   return check<T>(arg_mapper<Context>().map(val));
 }
 
 template <bool IS_PACKED, typename Context, type, typename T,
-          FMT_ENABLE_IF(!IS_PACKED)>
+          GAIA_FMT_ENABLE_IF(!IS_PACKED)>
 inline basic_format_arg<Context> make_arg(const T& value) {
   return make_arg<Context>(value);
 }
@@ -1466,10 +1466,10 @@ class dynamic_arg_list {
     T value;
 
     template <typename Arg>
-    FMT_CONSTEXPR typed_node(const Arg& arg) : value(arg) {}
+    GAIA_FMT_CONSTEXPR typed_node(const Arg& arg) : value(arg) {}
 
     template <typename Char>
-    FMT_CONSTEXPR typed_node(const basic_string_view<Char>& arg)
+    GAIA_FMT_CONSTEXPR typed_node(const basic_string_view<Char>& arg)
         : value(arg.data(), arg.size()) {}
   };
 
@@ -1540,19 +1540,19 @@ using format_context = buffer_context<char>;
 using wformat_context = buffer_context<wchar_t>;
 
 // Workaround an alias issue: https://stackoverflow.com/q/62767544/471164.
-#define FMT_BUFFER_CONTEXT(Char) \
+#define GAIA_FMT_BUFFER_CONTEXT(Char) \
   basic_format_context<detail::buffer_appender<Char>, Char>
 
 /**
   \rst
   An array of references to arguments. It can be implicitly converted into
-  `~fmt::basic_format_args` for passing into type-erased formatting functions
-  such as `~fmt::vformat`.
+  `~gaia_fmt::basic_format_args` for passing into type-erased formatting functions
+  such as `~gaia_fmt::vformat`.
   \endrst
  */
 template <typename Context, typename... Args>
 class format_arg_store
-#if FMT_GCC_VERSION && FMT_GCC_VERSION < 409
+#if GAIA_FMT_GCC_VERSION && GAIA_FMT_GCC_VERSION < 409
     // Workaround a GCC template argument substitution bug.
     : public basic_format_args<Context>
 #endif
@@ -1581,7 +1581,7 @@ class format_arg_store
  public:
   format_arg_store(const Args&... args)
       :
-#if FMT_GCC_VERSION && FMT_GCC_VERSION < 409
+#if GAIA_FMT_GCC_VERSION && GAIA_FMT_GCC_VERSION < 409
         basic_format_args<Context>(*this),
 #endif
         data_{detail::make_arg<
@@ -1593,10 +1593,10 @@ class format_arg_store
 
 /**
   \rst
-  Constructs a `~fmt::format_arg_store` object that contains references to
-  arguments and can be implicitly converted to `~fmt::format_args`. `Context`
-  can be omitted in which case it defaults to `~fmt::context`.
-  See `~fmt::arg` for lifetime considerations.
+  Constructs a `~gaia_fmt::format_arg_store` object that contains references to
+  arguments and can be implicitly converted to `~gaia_fmt::format_args`. `Context`
+  can be omitted in which case it defaults to `~gaia_fmt::context`.
+  See `~gaia_fmt::arg` for lifetime considerations.
   \endrst
  */
 template <typename Context = format_context, typename... Args>
@@ -1607,8 +1607,8 @@ inline format_arg_store<Context, Args...> make_format_args(
 
 /**
   \rst
-  Constructs a `~fmt::format_arg_store` object that contains references
-  to arguments and can be implicitly converted to `~fmt::format_args`.
+  Constructs a `~gaia_fmt::format_arg_store` object that contains references
+  to arguments and can be implicitly converted to `~gaia_fmt::format_args`.
   If ``format_str`` is a compile-time string then `make_args_checked` checks
   its validity at compile time.
   \endrst
@@ -1633,7 +1633,7 @@ inline auto make_args_checked(const S& format_str,
 
   **Example**::
 
-    fmt::print("Elapsed time: {s:.2f} seconds", fmt::arg("s", 1.23));
+    gaia_fmt::print("Elapsed time: {s:.2f} seconds", gaia_fmt::arg("s", 1.23));
   \endrst
  */
 template <typename Char, typename T>
@@ -1644,17 +1644,17 @@ inline detail::named_arg<Char, T> arg(const Char* name, const T& arg) {
 
 /**
   \rst
-  A dynamic version of `fmt::format_arg_store`.
+  A dynamic version of `gaia_fmt::format_arg_store`.
   It's equipped with a storage to potentially temporary objects which lifetimes
   could be shorter than the format arguments object.
 
-  It can be implicitly converted into `~fmt::basic_format_args` for passing
-  into type-erased formatting functions such as `~fmt::vformat`.
+  It can be implicitly converted into `~gaia_fmt::basic_format_args` for passing
+  into type-erased formatting functions such as `~gaia_fmt::vformat`.
   \endrst
  */
 template <typename Context>
 class dynamic_format_arg_store
-#if FMT_GCC_VERSION && FMT_GCC_VERSION < 409
+#if GAIA_FMT_GCC_VERSION && GAIA_FMT_GCC_VERSION < 409
     // Workaround a GCC template argument substitution bug.
     : public basic_format_args<Context>
 #endif
@@ -1733,11 +1733,11 @@ class dynamic_format_arg_store
 
     **Example**::
 
-      fmt::dynamic_format_arg_store<fmt::format_context> store;
+      gaia_fmt::dynamic_format_arg_store<gaia_fmt::format_context> store;
       store.push_back(42);
       store.push_back("abc");
       store.push_back(1.5f);
-      std::string result = fmt::vformat("{} and {} and {}", store);
+      std::string result = gaia_fmt::vformat("{} and {} and {}", store);
     \endrst
   */
   template <typename T> void push_back(const T& arg) {
@@ -1755,17 +1755,17 @@ class dynamic_format_arg_store
 
     **Example**::
 
-      fmt::dynamic_format_arg_store<fmt::format_context> store;
+      gaia_fmt::dynamic_format_arg_store<gaia_fmt::format_context> store;
       char str[] = "1234567890";
       store.push_back(std::cref(str));
       int a1_val{42};
-      auto a1 = fmt::arg("a1_", a1_val);
+      auto a1 = gaia_fmt::arg("a1_", a1_val);
       store.push_back(std::cref(a1));
 
       // Changing str affects the output but only for string and custom types.
       str[0] = 'X';
 
-      std::string result = fmt::vformat("{} and {a1_}");
+      std::string result = gaia_fmt::vformat("{} and {a1_}");
       assert(result == "X234567890 and 42");
     \endrst
   */
@@ -1788,9 +1788,9 @@ class dynamic_format_arg_store
         dynamic_args_.push<std::basic_string<char_type>>(arg.name).c_str();
     if (detail::const_check(need_copy<T>::value)) {
       emplace_arg(
-          fmt::arg(arg_name, dynamic_args_.push<stored_type<T>>(arg.value)));
+          gaia_fmt::arg(arg_name, dynamic_args_.push<stored_type<T>>(arg.value)));
     } else {
-      emplace_arg(fmt::arg(arg_name, arg.value));
+      emplace_arg(gaia_fmt::arg(arg_name, arg.value));
     }
   }
 
@@ -1808,7 +1808,7 @@ class dynamic_format_arg_store
     \endrst
   */
   void reserve(size_t new_cap, size_t new_cap_named) {
-    FMT_ASSERT(new_cap >= new_cap_named,
+    GAIA_FMT_ASSERT(new_cap >= new_cap_named,
                "Set of arguments includes set of named arguments");
     data_.reserve(new_cap);
     named_info_.reserve(new_cap_named);
@@ -1868,20 +1868,20 @@ template <typename Context> class basic_format_args {
 
   /**
    \rst
-   Constructs a `basic_format_args` object from `~fmt::format_arg_store`.
+   Constructs a `basic_format_args` object from `~gaia_fmt::format_arg_store`.
    \endrst
    */
   template <typename... Args>
-  FMT_INLINE basic_format_args(const format_arg_store<Context, Args...>& store)
+  GAIA_FMT_INLINE basic_format_args(const format_arg_store<Context, Args...>& store)
       : basic_format_args(store.desc, store.data_.args()) {}
 
   /**
    \rst
    Constructs a `basic_format_args` object from
-   `~fmt::dynamic_format_arg_store`.
+   `~gaia_fmt::dynamic_format_arg_store`.
    \endrst
    */
-  FMT_INLINE basic_format_args(const dynamic_format_arg_store<Context>& store)
+  GAIA_FMT_INLINE basic_format_args(const dynamic_format_arg_store<Context>& store)
       : basic_format_args(store.get_types(), store.data()) {}
 
   /**
@@ -1929,7 +1929,7 @@ template <typename Context> class basic_format_args {
   }
 };
 
-#ifdef FMT_ARM_ABI_COMPATIBILITY
+#ifdef GAIA_FMT_ARM_ABI_COMPATIBILITY
 /** An alias to ``basic_format_args<format_context>``. */
 // Separate types would result in shorter symbols but break ABI compatibility
 // between clang and gcc on ARM (#1919).
@@ -1940,7 +1940,7 @@ using wformat_args = basic_format_args<wformat_context>;
 // It is a separate type rather than an alias to make symbols readable.
 struct format_args : basic_format_args<format_context> {
   template <typename... Args>
-  FMT_INLINE format_args(const Args&... args) : basic_format_args(args...) {}
+  GAIA_FMT_INLINE format_args(const Args&... args) : basic_format_args(args...) {}
 };
 struct wformat_args : basic_format_args<wformat_context> {
   using basic_format_args::basic_format_args;
@@ -1949,24 +1949,24 @@ struct wformat_args : basic_format_args<wformat_context> {
 
 namespace detail {
 
-template <typename Char, FMT_ENABLE_IF(!std::is_same<Char, char>::value)>
+template <typename Char, GAIA_FMT_ENABLE_IF(!std::is_same<Char, char>::value)>
 std::basic_string<Char> vformat(
     basic_string_view<Char> format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args);
 
-FMT_API std::string vformat(string_view format_str, format_args args);
+GAIA_FMT_API std::string vformat(string_view format_str, format_args args);
 
 template <typename Char>
 void vformat_to(
     buffer<Char>& buf, basic_string_view<Char> format_str,
-    basic_format_args<FMT_BUFFER_CONTEXT(type_identity_t<Char>)> args,
+    basic_format_args<GAIA_FMT_BUFFER_CONTEXT(type_identity_t<Char>)> args,
     detail::locale_ref loc = {});
 
 template <typename Char, typename Args,
-          FMT_ENABLE_IF(!std::is_same<Char, char>::value)>
+          GAIA_FMT_ENABLE_IF(!std::is_same<Char, char>::value)>
 inline void vprint_mojibake(std::FILE*, basic_string_view<Char>, const Args&) {}
 
-FMT_API void vprint_mojibake(std::FILE*, string_view, format_args);
+GAIA_FMT_API void vprint_mojibake(std::FILE*, string_view, format_args);
 #ifndef _WIN32
 inline void vprint_mojibake(std::FILE*, string_view, format_args) {}
 #endif
@@ -1993,15 +1993,15 @@ auto vformat_to(OutputIt out, const S& format_str,
  **Example**::
 
    std::vector<char> out;
-   fmt::format_to(std::back_inserter(out), "{}", 42);
+   gaia_fmt::format_to(std::back_inserter(out), "{}", 42);
  \endrst
  */
-// We cannot use FMT_ENABLE_IF because of a bug in gcc 8.3.
+// We cannot use GAIA_FMT_ENABLE_IF because of a bug in gcc 8.3.
 template <typename OutputIt, typename S, typename... Args,
           bool enable = detail::is_output_iterator<OutputIt, char_t<S>>::value>
 inline auto format_to(OutputIt out, const S& format_str, Args&&... args) ->
     typename std::enable_if<enable, OutputIt>::type {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return vformat_to(out, to_string_view(format_str), vargs);
 }
 
@@ -2013,7 +2013,7 @@ template <typename OutputIt> struct format_to_n_result {
 };
 
 template <typename OutputIt, typename Char, typename... Args,
-          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
 inline format_to_n_result<OutputIt> vformat_to_n(
     OutputIt out, size_t n, basic_string_view<Char> format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -2035,7 +2035,7 @@ template <typename OutputIt, typename S, typename... Args,
 inline auto format_to_n(OutputIt out, size_t n, const S& format_str,
                         const Args&... args) ->
     typename std::enable_if<enable, format_to_n_result<OutputIt>>::type {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return vformat_to_n(out, n, to_string_view(format_str), vargs);
 }
 
@@ -2045,14 +2045,14 @@ inline auto format_to_n(OutputIt out, size_t n, const S& format_str,
  */
 template <typename... Args>
 inline size_t formatted_size(string_view format_str, Args&&... args) {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   detail::counting_buffer<> buf;
   detail::vformat_to(buf, format_str, vargs);
   return buf.count();
 }
 
 template <typename S, typename Char = char_t<S>>
-FMT_INLINE std::basic_string<Char> vformat(
+GAIA_FMT_INLINE std::basic_string<Char> vformat(
     const S& format_str,
     basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   return detail::vformat(to_string_view(format_str), args);
@@ -2064,35 +2064,35 @@ FMT_INLINE std::basic_string<Char> vformat(
 
   **Example**::
 
-    #include <fmt/core.h>
-    std::string message = fmt::format("The answer is {}", 42);
+    #include <gaia_fmt/core.h>
+    std::string message = gaia_fmt::format("The answer is {}", 42);
   \endrst
 */
 // Pass char_t as a default template parameter instead of using
 // std::basic_string<char_t<S>> to reduce the symbol size.
 template <typename S, typename... Args, typename Char = char_t<S>>
-FMT_INLINE std::basic_string<Char> format(const S& format_str, Args&&... args) {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+GAIA_FMT_INLINE std::basic_string<Char> format(const S& format_str, Args&&... args) {
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return detail::vformat(to_string_view(format_str), vargs);
 }
 
-FMT_API void vprint(string_view, format_args);
-FMT_API void vprint(std::FILE*, string_view, format_args);
+GAIA_FMT_API void vprint(string_view, format_args);
+GAIA_FMT_API void vprint(std::FILE*, string_view, format_args);
 
 /**
   \rst
   Formats ``args`` according to specifications in ``format_str`` and writes the
   output to the file ``f``. Strings are assumed to be Unicode-encoded unless the
-  ``FMT_UNICODE`` macro is set to 0.
+  ``GAIA_FMT_UNICODE`` macro is set to 0.
 
   **Example**::
 
-    fmt::print(stderr, "Don't {}!", "panic");
+    gaia_fmt::print(stderr, "Don't {}!", "panic");
   \endrst
  */
 template <typename S, typename... Args, typename Char = char_t<S>>
 inline void print(std::FILE* f, const S& format_str, Args&&... args) {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return detail::is_unicode<Char>()
              ? vprint(f, to_string_view(format_str), vargs)
              : detail::vprint_mojibake(f, to_string_view(format_str), vargs);
@@ -2102,21 +2102,21 @@ inline void print(std::FILE* f, const S& format_str, Args&&... args) {
   \rst
   Formats ``args`` according to specifications in ``format_str`` and writes
   the output to ``stdout``. Strings are assumed to be Unicode-encoded unless
-  the ``FMT_UNICODE`` macro is set to 0.
+  the ``GAIA_FMT_UNICODE`` macro is set to 0.
 
   **Example**::
 
-    fmt::print("Elapsed time: {0:.2f} seconds", 1.23);
+    gaia_fmt::print("Elapsed time: {0:.2f} seconds", 1.23);
   \endrst
  */
 template <typename S, typename... Args, typename Char = char_t<S>>
 inline void print(const S& format_str, Args&&... args) {
-  const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
+  const auto& vargs = gaia_fmt::make_args_checked<Args...>(format_str, args...);
   return detail::is_unicode<Char>()
              ? vprint(to_string_view(format_str), vargs)
              : detail::vprint_mojibake(stdout, to_string_view(format_str),
                                        vargs);
 }
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_CORE_H_
+#endif  // GAIA_FMT_CORE_H_

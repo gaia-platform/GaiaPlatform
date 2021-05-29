@@ -64,7 +64,7 @@ public:
     template<typename T>
     static unsigned int count_digits(T n)
     {
-        return fmt_helper::count_digits(n);
+        return gaia_fmt_helper::count_digits(n);
     }
 
     ~scoped_padder()
@@ -83,7 +83,7 @@ public:
 private:
     void pad_it(long count)
     {
-        fmt_helper::append_string_view(string_view_t(spaces_.data(), static_cast<size_t>(count)), dest_);
+        gaia_fmt_helper::append_string_view(string_view_t(spaces_.data(), static_cast<size_t>(count)), dest_);
     }
 
     const padding_info &padinfo_;
@@ -114,7 +114,7 @@ public:
     void format(const details::log_msg &msg, const std::tm &, memory_buf_t &dest) override
     {
         ScopedPadder p(msg.logger_name.size(), padinfo_, dest);
-        fmt_helper::append_string_view(msg.logger_name, dest);
+        gaia_fmt_helper::append_string_view(msg.logger_name, dest);
     }
 };
 
@@ -131,7 +131,7 @@ public:
     {
         const string_view_t &level_name = level::to_string_view(msg.level);
         ScopedPadder p(level_name.size(), padinfo_, dest);
-        fmt_helper::append_string_view(level_name, dest);
+        gaia_fmt_helper::append_string_view(level_name, dest);
     }
 };
 
@@ -148,7 +148,7 @@ public:
     {
         string_view_t level_name{level::to_short_c_str(msg.level)};
         ScopedPadder p(level_name.size(), padinfo_, dest);
-        fmt_helper::append_string_view(level_name, dest);
+        gaia_fmt_helper::append_string_view(level_name, dest);
     }
 };
 
@@ -181,7 +181,7 @@ public:
     {
         string_view_t field_value{days[static_cast<size_t>(tm_time.tm_wday)]};
         ScopedPadder p(field_value.size(), padinfo_, dest);
-        fmt_helper::append_string_view(field_value, dest);
+        gaia_fmt_helper::append_string_view(field_value, dest);
     }
 };
 
@@ -200,7 +200,7 @@ public:
     {
         string_view_t field_value{full_days[static_cast<size_t>(tm_time.tm_wday)]};
         ScopedPadder p(field_value.size(), padinfo_, dest);
-        fmt_helper::append_string_view(field_value, dest);
+        gaia_fmt_helper::append_string_view(field_value, dest);
     }
 };
 
@@ -219,7 +219,7 @@ public:
     {
         string_view_t field_value{months[static_cast<size_t>(tm_time.tm_mon)]};
         ScopedPadder p(field_value.size(), padinfo_, dest);
-        fmt_helper::append_string_view(field_value, dest);
+        gaia_fmt_helper::append_string_view(field_value, dest);
     }
 };
 
@@ -239,7 +239,7 @@ public:
     {
         string_view_t field_value{full_months[static_cast<size_t>(tm_time.tm_mon)]};
         ScopedPadder p(field_value.size(), padinfo_, dest);
-        fmt_helper::append_string_view(field_value, dest);
+        gaia_fmt_helper::append_string_view(field_value, dest);
     }
 };
 
@@ -257,21 +257,21 @@ public:
         const size_t field_size = 24;
         ScopedPadder p(field_size, padinfo_, dest);
 
-        fmt_helper::append_string_view(days[static_cast<size_t>(tm_time.tm_wday)], dest);
+        gaia_fmt_helper::append_string_view(days[static_cast<size_t>(tm_time.tm_wday)], dest);
         dest.push_back(' ');
-        fmt_helper::append_string_view(months[static_cast<size_t>(tm_time.tm_mon)], dest);
+        gaia_fmt_helper::append_string_view(months[static_cast<size_t>(tm_time.tm_mon)], dest);
         dest.push_back(' ');
-        fmt_helper::append_int(tm_time.tm_mday, dest);
+        gaia_fmt_helper::append_int(tm_time.tm_mday, dest);
         dest.push_back(' ');
         // time
 
-        fmt_helper::pad2(tm_time.tm_hour, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_hour, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_min, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_min, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_sec, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_sec, dest);
         dest.push_back(' ');
-        fmt_helper::append_int(tm_time.tm_year + 1900, dest);
+        gaia_fmt_helper::append_int(tm_time.tm_year + 1900, dest);
     }
 };
 
@@ -288,7 +288,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_year % 100, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_year % 100, dest);
     }
 };
 
@@ -306,11 +306,11 @@ public:
         const size_t field_size = 10;
         ScopedPadder p(field_size, padinfo_, dest);
 
-        fmt_helper::pad2(tm_time.tm_mon + 1, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_mon + 1, dest);
         dest.push_back('/');
-        fmt_helper::pad2(tm_time.tm_mday, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_mday, dest);
         dest.push_back('/');
-        fmt_helper::pad2(tm_time.tm_year % 100, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_year % 100, dest);
     }
 };
 
@@ -327,7 +327,7 @@ public:
     {
         const size_t field_size = 4;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::append_int(tm_time.tm_year + 1900, dest);
+        gaia_fmt_helper::append_int(tm_time.tm_year + 1900, dest);
     }
 };
 
@@ -344,7 +344,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_mon + 1, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_mon + 1, dest);
     }
 };
 
@@ -361,7 +361,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_mday, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_mday, dest);
     }
 };
 
@@ -378,7 +378,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_hour, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_hour, dest);
     }
 };
 
@@ -395,7 +395,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(to12h(tm_time), dest);
+        gaia_fmt_helper::pad2(to12h(tm_time), dest);
     }
 };
 
@@ -412,7 +412,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_min, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_min, dest);
     }
 };
 
@@ -429,7 +429,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad2(tm_time.tm_sec, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_sec, dest);
     }
 };
 
@@ -444,10 +444,10 @@ public:
 
     void format(const details::log_msg &msg, const std::tm &, memory_buf_t &dest) override
     {
-        auto millis = fmt_helper::time_fraction<std::chrono::milliseconds>(msg.time);
+        auto millis = gaia_fmt_helper::time_fraction<std::chrono::milliseconds>(msg.time);
         const size_t field_size = 3;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad3(static_cast<uint32_t>(millis.count()), dest);
+        gaia_fmt_helper::pad3(static_cast<uint32_t>(millis.count()), dest);
     }
 };
 
@@ -462,11 +462,11 @@ public:
 
     void format(const details::log_msg &msg, const std::tm &, memory_buf_t &dest) override
     {
-        auto micros = fmt_helper::time_fraction<std::chrono::microseconds>(msg.time);
+        auto micros = gaia_fmt_helper::time_fraction<std::chrono::microseconds>(msg.time);
 
         const size_t field_size = 6;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad6(static_cast<size_t>(micros.count()), dest);
+        gaia_fmt_helper::pad6(static_cast<size_t>(micros.count()), dest);
     }
 };
 
@@ -481,10 +481,10 @@ public:
 
     void format(const details::log_msg &msg, const std::tm &, memory_buf_t &dest) override
     {
-        auto ns = fmt_helper::time_fraction<std::chrono::nanoseconds>(msg.time);
+        auto ns = gaia_fmt_helper::time_fraction<std::chrono::nanoseconds>(msg.time);
         const size_t field_size = 9;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::pad9(static_cast<size_t>(ns.count()), dest);
+        gaia_fmt_helper::pad9(static_cast<size_t>(ns.count()), dest);
     }
 };
 
@@ -503,7 +503,7 @@ public:
         ScopedPadder p(field_size, padinfo_, dest);
         auto duration = msg.time.time_since_epoch();
         auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
-        fmt_helper::append_int(seconds, dest);
+        gaia_fmt_helper::append_int(seconds, dest);
     }
 };
 
@@ -520,7 +520,7 @@ public:
     {
         const size_t field_size = 2;
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::append_string_view(ampm(tm_time), dest);
+        gaia_fmt_helper::append_string_view(ampm(tm_time), dest);
     }
 };
 
@@ -538,13 +538,13 @@ public:
         const size_t field_size = 11;
         ScopedPadder p(field_size, padinfo_, dest);
 
-        fmt_helper::pad2(to12h(tm_time), dest);
+        gaia_fmt_helper::pad2(to12h(tm_time), dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_min, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_min, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_sec, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_sec, dest);
         dest.push_back(' ');
-        fmt_helper::append_string_view(ampm(tm_time), dest);
+        gaia_fmt_helper::append_string_view(ampm(tm_time), dest);
     }
 };
 
@@ -562,9 +562,9 @@ public:
         const size_t field_size = 5;
         ScopedPadder p(field_size, padinfo_, dest);
 
-        fmt_helper::pad2(tm_time.tm_hour, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_hour, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_min, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_min, dest);
     }
 };
 
@@ -582,11 +582,11 @@ public:
         const size_t field_size = 8;
         ScopedPadder p(field_size, padinfo_, dest);
 
-        fmt_helper::pad2(tm_time.tm_hour, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_hour, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_min, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_min, dest);
         dest.push_back(':');
-        fmt_helper::pad2(tm_time.tm_sec, dest);
+        gaia_fmt_helper::pad2(tm_time.tm_sec, dest);
     }
 };
 
@@ -620,9 +620,9 @@ public:
             dest.push_back('+');
         }
 
-        fmt_helper::pad2(total_minutes / 60, dest); // hours
+        gaia_fmt_helper::pad2(total_minutes / 60, dest); // hours
         dest.push_back(':');
-        fmt_helper::pad2(total_minutes % 60, dest); // minutes
+        gaia_fmt_helper::pad2(total_minutes % 60, dest); // minutes
     }
 
 private:
@@ -654,7 +654,7 @@ public:
     {
         const auto field_size = ScopedPadder::count_digits(msg.thread_id);
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::append_int(msg.thread_id, dest);
+        gaia_fmt_helper::append_int(msg.thread_id, dest);
     }
 };
 
@@ -672,7 +672,7 @@ public:
         const auto pid = static_cast<uint32_t>(details::os::pid());
         auto field_size = ScopedPadder::count_digits(pid);
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::append_int(pid, dest);
+        gaia_fmt_helper::append_int(pid, dest);
     }
 };
 
@@ -687,7 +687,7 @@ public:
     void format(const details::log_msg &msg, const std::tm &, memory_buf_t &dest) override
     {
         ScopedPadder p(msg.payload.size(), padinfo_, dest);
-        fmt_helper::append_string_view(msg.payload, dest);
+        gaia_fmt_helper::append_string_view(msg.payload, dest);
     }
 };
 
@@ -719,7 +719,7 @@ public:
     }
     void format(const details::log_msg &, const std::tm &, memory_buf_t &dest) override
     {
-        fmt_helper::append_string_view(str_, dest);
+        gaia_fmt_helper::append_string_view(str_, dest);
     }
 
 private:
@@ -781,9 +781,9 @@ public:
         }
 
         ScopedPadder p(text_size, padinfo_, dest);
-        fmt_helper::append_string_view(msg.source.filename, dest);
+        gaia_fmt_helper::append_string_view(msg.source.filename, dest);
         dest.push_back(':');
-        fmt_helper::append_int(msg.source.line, dest);
+        gaia_fmt_helper::append_int(msg.source.line, dest);
     }
 };
 
@@ -804,7 +804,7 @@ public:
         }
         size_t text_size = padinfo_.enabled() ? std::char_traits<char>::length(msg.source.filename) : 0;
         ScopedPadder p(text_size, padinfo_, dest);
-        fmt_helper::append_string_view(msg.source.filename, dest);
+        gaia_fmt_helper::append_string_view(msg.source.filename, dest);
     }
 };
 
@@ -851,7 +851,7 @@ public:
         auto filename = basename(msg.source.filename);
         size_t text_size = padinfo_.enabled() ? std::char_traits<char>::length(filename) : 0;
         ScopedPadder p(text_size, padinfo_, dest);
-        fmt_helper::append_string_view(filename, dest);
+        gaia_fmt_helper::append_string_view(filename, dest);
     }
 };
 
@@ -872,7 +872,7 @@ public:
 
         auto field_size = ScopedPadder::count_digits(msg.source.line);
         ScopedPadder p(field_size, padinfo_, dest);
-        fmt_helper::append_int(msg.source.line, dest);
+        gaia_fmt_helper::append_int(msg.source.line, dest);
     }
 };
 
@@ -893,7 +893,7 @@ public:
         }
         size_t text_size = padinfo_.enabled() ? std::char_traits<char>::length(msg.source.funcname) : 0;
         ScopedPadder p(text_size, padinfo_, dest);
-        fmt_helper::append_string_view(msg.source.funcname, dest);
+        gaia_fmt_helper::append_string_view(msg.source.funcname, dest);
     }
 };
 
@@ -917,7 +917,7 @@ public:
         auto delta_count = static_cast<size_t>(delta_units.count());
         auto n_digits = static_cast<size_t>(ScopedPadder::count_digits(delta_count));
         ScopedPadder p(n_digits, padinfo_, dest);
-        fmt_helper::append_int(delta_count, dest);
+        gaia_fmt_helper::append_int(delta_count, dest);
     }
 
 private:
@@ -947,30 +947,30 @@ public:
         {
             cached_datetime_.clear();
             cached_datetime_.push_back('[');
-            fmt_helper::append_int(tm_time.tm_year + 1900, cached_datetime_);
+            gaia_fmt_helper::append_int(tm_time.tm_year + 1900, cached_datetime_);
             cached_datetime_.push_back('-');
 
-            fmt_helper::pad2(tm_time.tm_mon + 1, cached_datetime_);
+            gaia_fmt_helper::pad2(tm_time.tm_mon + 1, cached_datetime_);
             cached_datetime_.push_back('-');
 
-            fmt_helper::pad2(tm_time.tm_mday, cached_datetime_);
+            gaia_fmt_helper::pad2(tm_time.tm_mday, cached_datetime_);
             cached_datetime_.push_back(' ');
 
-            fmt_helper::pad2(tm_time.tm_hour, cached_datetime_);
+            gaia_fmt_helper::pad2(tm_time.tm_hour, cached_datetime_);
             cached_datetime_.push_back(':');
 
-            fmt_helper::pad2(tm_time.tm_min, cached_datetime_);
+            gaia_fmt_helper::pad2(tm_time.tm_min, cached_datetime_);
             cached_datetime_.push_back(':');
 
-            fmt_helper::pad2(tm_time.tm_sec, cached_datetime_);
+            gaia_fmt_helper::pad2(tm_time.tm_sec, cached_datetime_);
             cached_datetime_.push_back('.');
 
             cache_timestamp_ = secs;
         }
         dest.append(cached_datetime_.begin(), cached_datetime_.end());
 
-        auto millis = fmt_helper::time_fraction<milliseconds>(msg.time);
-        fmt_helper::pad3(static_cast<uint32_t>(millis.count()), dest);
+        auto millis = gaia_fmt_helper::time_fraction<milliseconds>(msg.time);
+        gaia_fmt_helper::pad3(static_cast<uint32_t>(millis.count()), dest);
         dest.push_back(']');
         dest.push_back(' ');
 
@@ -978,7 +978,7 @@ public:
         if (msg.logger_name.size() > 0)
         {
             dest.push_back('[');
-            fmt_helper::append_string_view(msg.logger_name, dest);
+            gaia_fmt_helper::append_string_view(msg.logger_name, dest);
             dest.push_back(']');
             dest.push_back(' ');
         }
@@ -986,8 +986,8 @@ public:
         dest.push_back('[');
         // wrap the level name with color
         msg.color_range_start = dest.size();
-        // fmt_helper::append_string_view(level::to_c_str(msg.level), dest);
-        fmt_helper::append_string_view(level::to_string_view(msg.level), dest);
+        // gaia_fmt_helper::append_string_view(level::to_c_str(msg.level), dest);
+        gaia_fmt_helper::append_string_view(level::to_string_view(msg.level), dest);
         msg.color_range_end = dest.size();
         dest.push_back(']');
         dest.push_back(' ');
@@ -997,14 +997,14 @@ public:
         {
             dest.push_back('[');
             const char *filename = details::short_filename_formatter<details::null_scoped_padder>::basename(msg.source.filename);
-            fmt_helper::append_string_view(filename, dest);
+            gaia_fmt_helper::append_string_view(filename, dest);
             dest.push_back(':');
-            fmt_helper::append_int(msg.source.line, dest);
+            gaia_fmt_helper::append_int(msg.source.line, dest);
             dest.push_back(']');
             dest.push_back(' ');
         }
-        // fmt_helper::append_string_view(msg.msg(), dest);
-        fmt_helper::append_string_view(msg.payload, dest);
+        // gaia_fmt_helper::append_string_view(msg.msg(), dest);
+        gaia_fmt_helper::append_string_view(msg.payload, dest);
     }
 
 private:
@@ -1061,7 +1061,7 @@ GAIA_SPDLOG_INLINE void pattern_formatter::format(const details::log_msg &msg, m
         f->format(msg, cached_tm_, dest);
     }
     // write eol
-    details::fmt_helper::append_string_view(eol_, dest);
+    details::gaia_fmt_helper::append_string_view(eol_, dest);
 }
 
 GAIA_SPDLOG_INLINE void pattern_formatter::set_pattern(std::string pattern)

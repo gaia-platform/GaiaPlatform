@@ -67,8 +67,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
-// Uncomment to use your own copy of the fmt library instead of gaia_spdlog's copy.
-// In this case gaia_spdlog will try to include <fmt/format.h> so set your -I flag
+// Uncomment to use your own copy of the gaia_fmt library instead of gaia_spdlog's copy.
+// In this case gaia_spdlog will try to include <gaia_fmt/format.h> so set your -I flag
 // accordingly.
 //
 // #define GAIA_SPDLOG_FMT_EXTERNAL

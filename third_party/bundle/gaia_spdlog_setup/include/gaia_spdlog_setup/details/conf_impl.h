@@ -6,12 +6,12 @@
 
 #pragma once
 
-#ifndef FMT_HEADER_ONLY
-#define FMT_HEADER_ONLY
+#ifndef GAIA_FMT_HEADER_ONLY
+#define GAIA_FMT_HEADER_ONLY
 #endif
 
 #include "third_party/cpptoml.h"
-#if defined(SPDLOG_SETUP_CPPTOML_EXTERNAL)
+#if defined(GAIA_SPDLOG_SETUP_CPPTOML_EXTERNAL)
 #include "cpptoml.h"
 #endif
 #include "setup_error.h"
@@ -253,7 +253,7 @@ inline auto file_exists(const std::string &file_path) noexcept -> bool {
 
 inline void create_dirs_impl(const std::string &dir_path) {
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
 #ifdef _WIN32
     // check for both empty and drive letter
@@ -317,7 +317,7 @@ inline void write_to_config_file(
     const cpptoml::table &config, const std::string &toml_path) {
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::ofstream;
@@ -337,7 +337,7 @@ void read_template_file_into_stringstream(
     std::stringstream &toml_ss, const std::string &file_path, Ps &&... ps) {
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::exception;
@@ -552,7 +552,7 @@ auto add_msg_on_err(Fn &&fn, ErrFn &&add_msg_on_err_fn) ->
 
 inline auto parse_max_size(const std::string &max_size_str) -> uint64_t {
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::exception;
@@ -606,7 +606,7 @@ inline auto parse_max_size(const std::string &max_size_str) -> uint64_t {
 
 inline auto sink_type_from_str(const std::string &type) -> sink_type {
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::string;
@@ -629,7 +629,7 @@ inline auto sink_type_from_str(const std::string &type) -> sink_type {
         {"daily_file_sink_mt", sink_type::DailyFileSinkMt},
         {"null_sink_st", sink_type::NullSinkSt},
         {"null_sink_mt", sink_type::NullSinkMt},
-#ifdef SPDLOG_ENABLE_SYSLOG
+#ifdef GAIA_SPDLOG_ENABLE_SYSLOG
         {"syslog_sink_st", sink_type::SyslogSinkSt},
         {"syslog_sink_mt", sink_type::SyslogSinkMt},
 #endif
@@ -662,7 +662,7 @@ inline auto level_from_str(const std::string &level)
     -> gaia_spdlog::level::level_enum {
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // gaia_spdlog
     namespace lv = gaia_spdlog::level;
@@ -688,7 +688,7 @@ inline auto level_from_str(const std::string &level)
 
 inline auto level_to_str(const gaia_spdlog::level::level_enum level) -> std::string {
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // gaia_spdlog
     namespace lv = gaia_spdlog::level;
@@ -738,7 +738,7 @@ auto setup_basic_file_sink(const std::shared_ptr<cpptoml::table> &sink_table)
     using names::TRUNCATE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::make_shared;
@@ -771,7 +771,7 @@ auto setup_rotating_file_sink(const std::shared_ptr<cpptoml::table> &sink_table)
     using names::MAX_SIZE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::make_shared;
@@ -816,7 +816,7 @@ auto setup_daily_file_sink(const std::shared_ptr<cpptoml::table> &sink_table)
     using names::ROTATION_MINUTE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::make_shared;
@@ -850,7 +850,7 @@ auto setup_daily_file_sink(const std::shared_ptr<cpptoml::table> &sink_table)
         base_filename, rotation_hour, rotation_minute);
 }
 
-#ifdef SPDLOG_ENABLE_SYSLOG
+#ifdef GAIA_SPDLOG_ENABLE_SYSLOG
 
 template <class SyslogSink>
 auto setup_syslog_sink(const std::shared_ptr<cpptoml::table> &sink_table)
@@ -861,7 +861,7 @@ auto setup_syslog_sink(const std::shared_ptr<cpptoml::table> &sink_table)
     using names::SYSLOG_OPTION;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::make_shared;
@@ -891,7 +891,7 @@ inline auto sink_from_sink_type(
     -> std::shared_ptr<gaia_spdlog::sinks::sink> {
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // gaia_spdlog
     using gaia_spdlog::sinks::basic_file_sink_mt;
@@ -977,7 +977,7 @@ inline auto sink_from_sink_type(
     case sink_type::NullSinkMt:
         return make_shared<null_sink_mt>();
 
-#ifdef SPDLOG_ENABLE_SYSLOG
+#ifdef GAIA_SPDLOG_ENABLE_SYSLOG
     case sink_type::SyslogSinkSt:
         return setup_syslog_sink<syslog_sink_st>(sink_table);
 
@@ -1037,7 +1037,7 @@ inline auto setup_sink(const std::shared_ptr<cpptoml::table> &sink_table)
     using names::TYPE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::move;
@@ -1062,7 +1062,7 @@ inline auto setup_sinks(const std::shared_ptr<cpptoml::table> &config)
     using names::SINK_TABLE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::move;
@@ -1104,7 +1104,7 @@ inline auto setup_patterns(const std::shared_ptr<cpptoml::table> &config)
     using names::VALUE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::move;
@@ -1146,7 +1146,7 @@ setup_thread_pools(const std::shared_ptr<cpptoml::table> &config) -> std::
     using names::THREAD_POOL_TABLE;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // gaia_spdlog
     using gaia_spdlog::init_thread_pool;
@@ -1241,7 +1241,7 @@ inline auto setup_async_logger(
                     return find_value_from_map(
                         thread_pools_map,
                         thread_pool_name,
-                        fmt::format(
+                        gaia_fmt::format(
                             "Unable to find thread pool '{}' for logger '{}'",
                             thread_pool_name,
                             name));
@@ -1258,7 +1258,7 @@ inline auto setup_async_logger(
                     return find_value_from_map(
                         ASYNC_OVERFLOW_POLICY_MAP,
                         async_overflow_policy_raw,
-                        fmt::format(
+                        gaia_fmt::format(
                             "Invalid async overflow policy type given '{}' for logger '{}'",
                             async_overflow_policy_raw,
                             name)
@@ -1285,7 +1285,7 @@ inline auto setup_logger(
     const cpptoml::option<std::string> &global_pattern_opt)
     -> std::shared_ptr<gaia_spdlog::logger> {
 
-    using fmt::format;
+    using gaia_fmt::format;
     using names::PATTERN;
     using std::exception;
     using std::string;
@@ -1293,13 +1293,13 @@ inline auto setup_logger(
     const auto name = value_from_table<std::string>(
         logger_table,
         names::NAME,
-        fmt::format(
+        gaia_fmt::format(
             "One of the loggers does not have a '{}' field", names::NAME));
 
     const auto sinks = array_from_table<std::string>(
         logger_table,
         names::SINKS,
-        fmt::format(
+        gaia_fmt::format(
             "Logger '{}' does not have a '{}' field of sink names",
             name,
             names::SINKS));
@@ -1311,7 +1311,7 @@ inline auto setup_logger(
         auto sink = find_value_from_map(
             sinks_map,
             sink_name,
-            fmt::format(
+            gaia_fmt::format(
                 "Unable to find sink '{}' for logger '{}'", sink_name, name));
 
         logger_sinks.push_back(move(sink));
@@ -1324,7 +1324,7 @@ inline auto setup_logger(
         sync_raw_opt ? find_value_from_map(
                            SYNC_MAP,
                            *sync_raw_opt,
-                           fmt::format(
+                           gaia_fmt::format(
                                "Invalid sync type given '{}' for logger '{}'",
                                *sync_raw_opt,
                                name))

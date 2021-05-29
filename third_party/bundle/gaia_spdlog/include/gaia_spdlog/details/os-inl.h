@@ -371,7 +371,7 @@ GAIA_SPDLOG_INLINE std::string filename_to_str(const filename_t &filename)
 {
     memory_buf_t buf;
     wstr_to_utf8buf(filename, buf);
-    return fmt::to_string(buf);
+    return gaia_fmt::to_string(buf);
 }
 #else
 GAIA_SPDLOG_INLINE std::string filename_to_str(const filename_t &filename)
@@ -466,7 +466,7 @@ GAIA_SPDLOG_INLINE void wstr_to_utf8buf(wstring_view_t wstr, memory_buf_t &targe
         }
     }
 
-    throw_spdlog_ex(fmt::format("WideCharToMultiByte failed. Last error: {}", ::GetLastError()));
+    throw_spdlog_ex(gaia_fmt::format("WideCharToMultiByte failed. Last error: {}", ::GetLastError()));
 }
 
 GAIA_SPDLOG_INLINE void utf8_to_wstrbuf(string_view_t str, wmemory_buf_t &target)
@@ -501,7 +501,7 @@ GAIA_SPDLOG_INLINE void utf8_to_wstrbuf(string_view_t str, wmemory_buf_t &target
         }
     }
 
-    throw_spdlog_ex(fmt::format("MultiByteToWideChar failed. Last error: {}", ::GetLastError()));
+    throw_spdlog_ex(gaia_fmt::format("MultiByteToWideChar failed. Last error: {}", ::GetLastError()));
 }
 #endif // (defined(GAIA_SPDLOG_WCHAR_TO_UTF8_SUPPORT) || defined(GAIA_SPDLOG_WCHAR_FILENAMES)) && defined(_WIN32)
 

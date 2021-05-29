@@ -100,10 +100,10 @@ using log_clock = std::chrono::system_clock;
 using sink_ptr = std::shared_ptr<sinks::sink>;
 using sinks_init_list = std::initializer_list<sink_ptr>;
 using err_handler = std::function<void(const std::string &err_msg)>;
-using string_view_t = fmt::basic_string_view<char>;
-using wstring_view_t = fmt::basic_string_view<wchar_t>;
-using memory_buf_t = fmt::basic_memory_buffer<char, 250>;
-using wmemory_buf_t = fmt::basic_memory_buffer<wchar_t, 250>;
+using string_view_t = gaia_fmt::basic_string_view<char>;
+using wstring_view_t = gaia_fmt::basic_string_view<wchar_t>;
+using memory_buf_t = gaia_fmt::basic_memory_buffer<char, 250>;
+using wmemory_buf_t = gaia_fmt::basic_memory_buffer<wchar_t, 250>;
 
 #ifdef GAIA_SPDLOG_WCHAR_TO_UTF8_SUPPORT
 #ifndef _WIN32

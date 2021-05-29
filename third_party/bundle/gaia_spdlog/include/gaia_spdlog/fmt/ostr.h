@@ -5,16 +5,16 @@
 
 #pragma once
 //
-// include bundled or external copy of fmtlib's ostream support
+// include bundled or external copy of gaia_fmtlib's ostream support
 //
 
 #if !defined(GAIA_SPDLOG_FMT_EXTERNAL)
 #ifdef GAIA_SPDLOG_HEADER_ONLY
-#ifndef FMT_HEADER_ONLY
-#define FMT_HEADER_ONLY
+#ifndef GAIA_FMT_HEADER_ONLY
+#define GAIA_FMT_HEADER_ONLY
 #endif
 #endif
 #include <gaia_spdlog/fmt/bundled/ostream.h>
 #else
-#include <fmt/ostream.h>
+#include <gaia_fmt/ostream.h>
 #endif

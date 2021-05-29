@@ -6,7 +6,7 @@ libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
 Name: lib@PROJECT_NAME@
 Description: Fast C++ logging library.
 URL: https://github.com/gabime/@PROJECT_NAME@
-Version: @SPDLOG_VERSION@
+Version: @GAIA_SPDLOG_VERSION@
 CFlags: -I${includedir} @PKG_CONFIG_DEFINES@
 Libs: -L${libdir} -lspdlog -pthread
 Requires: @PKG_CONFIG_REQUIRES@

@@ -37,7 +37,7 @@ inline auto render(
     const std::string &tmpl,
     const std::unordered_map<std::string, std::string> &m) -> std::string {
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::stringstream;

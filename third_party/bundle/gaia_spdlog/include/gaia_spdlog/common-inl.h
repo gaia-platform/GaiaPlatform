@@ -60,8 +60,8 @@ GAIA_SPDLOG_INLINE gaia_spdlog_ex::gaia_spdlog_ex(std::string msg)
 GAIA_SPDLOG_INLINE gaia_spdlog_ex::gaia_spdlog_ex(const std::string &msg, int last_errno)
 {
     memory_buf_t outbuf;
-    fmt::format_system_error(outbuf, last_errno, msg);
-    msg_ = fmt::to_string(outbuf);
+    gaia_fmt::format_system_error(outbuf, last_errno, msg);
+    msg_ = gaia_fmt::to_string(outbuf);
 }
 
 GAIA_SPDLOG_INLINE const char *gaia_spdlog_ex::what() const GAIA_SPDLOG_NOEXCEPT

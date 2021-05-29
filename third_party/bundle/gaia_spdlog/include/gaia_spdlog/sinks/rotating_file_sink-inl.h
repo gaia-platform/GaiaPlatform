@@ -50,7 +50,7 @@ GAIA_SPDLOG_INLINE filename_t rotating_file_sink<Mutex>::calc_filename(const fil
 
     filename_t basename, ext;
     std::tie(basename, ext) = details::file_helper::split_by_extension(filename);
-    return fmt::format(GAIA_SPDLOG_FILENAME_T("{}.{}{}"), basename, index, ext);
+    return gaia_fmt::format(GAIA_SPDLOG_FILENAME_T("{}.{}{}"), basename, index, ext);
 }
 
 template<typename Mutex>

@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_CHRONO_H_
-#define FMT_CHRONO_H_
+#ifndef GAIA_FMT_CHRONO_H_
+#define GAIA_FMT_CHRONO_H_
 
 #include <chrono>
 #include <ctime>
@@ -16,27 +16,27 @@
 #include "format.h"
 #include "locale.h"
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 
 // Enable safe chrono durations, unless explicitly disabled.
-#ifndef FMT_SAFE_DURATION_CAST
-#  define FMT_SAFE_DURATION_CAST 1
+#ifndef GAIA_FMT_SAFE_DURATION_CAST
+#  define GAIA_FMT_SAFE_DURATION_CAST 1
 #endif
-#if FMT_SAFE_DURATION_CAST
+#if GAIA_FMT_SAFE_DURATION_CAST
 
 // For conversion between std::chrono::durations without undefined
 // behaviour or erroneous results.
-// This is a stripped down version of duration_cast, for inclusion in fmt.
+// This is a stripped down version of duration_cast, for inclusion in gaia_fmt.
 // See https://github.com/pauldreik/safe_duration_cast
 //
 // Copyright Paul Dreik 2019
 namespace safe_duration_cast {
 
 template <typename To, typename From,
-          FMT_ENABLE_IF(!std::is_same<From, To>::value &&
+          GAIA_FMT_ENABLE_IF(!std::is_same<From, To>::value &&
                         std::numeric_limits<From>::is_signed ==
                             std::numeric_limits<To>::is_signed)>
-FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
+GAIA_FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   ec = 0;
   using F = std::numeric_limits<From>;
   using T = std::numeric_limits<To>;
@@ -62,10 +62,10 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
  * can't be converted to To without loss, ec is set.
  */
 template <typename To, typename From,
-          FMT_ENABLE_IF(!std::is_same<From, To>::value &&
+          GAIA_FMT_ENABLE_IF(!std::is_same<From, To>::value &&
                         std::numeric_limits<From>::is_signed !=
                             std::numeric_limits<To>::is_signed)>
-FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
+GAIA_FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   ec = 0;
   using F = std::numeric_limits<From>;
   using T = std::numeric_limits<To>;
@@ -74,7 +74,7 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
 
   if (detail::const_check(F::is_signed && !T::is_signed)) {
     // From may be negative, not allowed!
-    if (fmt::detail::is_negative(from)) {
+    if (gaia_fmt::detail::is_negative(from)) {
       ec = 1;
       return {};
     }
@@ -95,8 +95,8 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
 }
 
 template <typename To, typename From,
-          FMT_ENABLE_IF(std::is_same<From, To>::value)>
-FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
+          GAIA_FMT_ENABLE_IF(std::is_same<From, To>::value)>
+GAIA_FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   ec = 0;
   return from;
 }  // function
@@ -116,8 +116,8 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
  */
 // clang-format on
 template <typename To, typename From,
-          FMT_ENABLE_IF(!std::is_same<From, To>::value)>
-FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
+          GAIA_FMT_ENABLE_IF(!std::is_same<From, To>::value)>
+GAIA_FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
   ec = 0;
   using T = std::numeric_limits<To>;
   static_assert(std::is_floating_point<From>::value, "From must be floating");
@@ -138,8 +138,8 @@ FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
 }  // function
 
 template <typename To, typename From,
-          FMT_ENABLE_IF(std::is_same<From, To>::value)>
-FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
+          GAIA_FMT_ENABLE_IF(std::is_same<From, To>::value)>
+GAIA_FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
   ec = 0;
   static_assert(std::is_floating_point<From>::value, "From must be floating");
   return from;
@@ -149,8 +149,8 @@ FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
  * safe duration cast between integral durations
  */
 template <typename To, typename FromRep, typename FromPeriod,
-          FMT_ENABLE_IF(std::is_integral<FromRep>::value),
-          FMT_ENABLE_IF(std::is_integral<typename To::rep>::value)>
+          GAIA_FMT_ENABLE_IF(std::is_integral<FromRep>::value),
+          GAIA_FMT_ENABLE_IF(std::is_integral<typename To::rep>::value)>
 To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
                       int& ec) {
   using From = std::chrono::duration<FromRep, FromPeriod>;
@@ -200,8 +200,8 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
  * safe duration_cast between floating point durations
  */
 template <typename To, typename FromRep, typename FromPeriod,
-          FMT_ENABLE_IF(std::is_floating_point<FromRep>::value),
-          FMT_ENABLE_IF(std::is_floating_point<typename To::rep>::value)>
+          GAIA_FMT_ENABLE_IF(std::is_floating_point<FromRep>::value),
+          GAIA_FMT_ENABLE_IF(std::is_floating_point<typename To::rep>::value)>
 To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
                       int& ec) {
   using From = std::chrono::duration<FromRep, FromPeriod>;
@@ -278,11 +278,11 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
 #endif
 
 // Prevents expansion of a preceding token as a function-style macro.
-// Usage: f FMT_NOMACRO()
-#define FMT_NOMACRO
+// Usage: f GAIA_FMT_NOMACRO()
+#define GAIA_FMT_NOMACRO
 
 namespace detail {
-inline null<> localtime_r FMT_NOMACRO(...) { return null<>(); }
+inline null<> localtime_r GAIA_FMT_NOMACRO(...) { return null<>(); }
 inline null<> localtime_s(...) { return null<>(); }
 inline null<> gmtime_r(...) { return null<>(); }
 inline null<> gmtime_s(...) { return null<>(); }
@@ -297,22 +297,22 @@ inline std::tm localtime(std::time_t time) {
     dispatcher(std::time_t t) : time_(t) {}
 
     bool run() {
-      using namespace fmt::detail;
+      using namespace gaia_fmt::detail;
       return handle(localtime_r(&time_, &tm_));
     }
 
     bool handle(std::tm* tm) { return tm != nullptr; }
 
     bool handle(detail::null<>) {
-      using namespace fmt::detail;
+      using namespace gaia_fmt::detail;
       return fallback(localtime_s(&tm_, &time_));
     }
 
     bool fallback(int res) { return res == 0; }
 
-#if !FMT_MSC_VER
+#if !GAIA_FMT_MSC_VER
     bool fallback(detail::null<>) {
-      using namespace fmt::detail;
+      using namespace gaia_fmt::detail;
       std::tm* tm = std::localtime(&time_);
       if (tm) tm_ = *tm;
       return tm != nullptr;
@@ -321,7 +321,7 @@ inline std::tm localtime(std::time_t time) {
   };
   dispatcher lt(time);
   // Too big time values may be unsupported.
-  if (!lt.run()) FMT_THROW(format_error("time_t value out of range"));
+  if (!lt.run()) GAIA_FMT_THROW(format_error("time_t value out of range"));
   return lt.tm_;
 }
 
@@ -339,20 +339,20 @@ inline std::tm gmtime(std::time_t time) {
     dispatcher(std::time_t t) : time_(t) {}
 
     bool run() {
-      using namespace fmt::detail;
+      using namespace gaia_fmt::detail;
       return handle(gmtime_r(&time_, &tm_));
     }
 
     bool handle(std::tm* tm) { return tm != nullptr; }
 
     bool handle(detail::null<>) {
-      using namespace fmt::detail;
+      using namespace gaia_fmt::detail;
       return fallback(gmtime_s(&tm_, &time_));
     }
 
     bool fallback(int res) { return res == 0; }
 
-#if !FMT_MSC_VER
+#if !GAIA_FMT_MSC_VER
     bool fallback(detail::null<>) {
       std::tm* tm = std::gmtime(&time_);
       if (tm) tm_ = *tm;
@@ -362,7 +362,7 @@ inline std::tm gmtime(std::time_t time) {
   };
   dispatcher gt(time);
   // Too big time values may be unsupported.
-  if (!gt.run()) FMT_THROW(format_error("time_t value out of range"));
+  if (!gt.run()) GAIA_FMT_THROW(format_error("time_t value out of range"));
   return gt.tm_;
 }
 
@@ -422,7 +422,7 @@ template <typename Char> struct formatter<std::tm, Char> {
         // If the buffer is 256 times larger than the format string, assume
         // that `strftime` gives an empty result. There doesn't seem to be a
         // better way to distinguish the two cases:
-        // https://github.com/fmtlib/fmt/issues/367
+        // https://github.com/gaia_fmtlib/gaia_fmt/issues/367
         break;
       }
       const size_t MIN_GROWTH = 10;
@@ -435,30 +435,30 @@ template <typename Char> struct formatter<std::tm, Char> {
 };
 
 namespace detail {
-template <typename Period> FMT_CONSTEXPR const char* get_units() {
+template <typename Period> GAIA_FMT_CONSTEXPR const char* get_units() {
   return nullptr;
 }
-template <> FMT_CONSTEXPR const char* get_units<std::atto>() { return "as"; }
-template <> FMT_CONSTEXPR const char* get_units<std::femto>() { return "fs"; }
-template <> FMT_CONSTEXPR const char* get_units<std::pico>() { return "ps"; }
-template <> FMT_CONSTEXPR const char* get_units<std::nano>() { return "ns"; }
-template <> FMT_CONSTEXPR const char* get_units<std::micro>() { return "µs"; }
-template <> FMT_CONSTEXPR const char* get_units<std::milli>() { return "ms"; }
-template <> FMT_CONSTEXPR const char* get_units<std::centi>() { return "cs"; }
-template <> FMT_CONSTEXPR const char* get_units<std::deci>() { return "ds"; }
-template <> FMT_CONSTEXPR const char* get_units<std::ratio<1>>() { return "s"; }
-template <> FMT_CONSTEXPR const char* get_units<std::deca>() { return "das"; }
-template <> FMT_CONSTEXPR const char* get_units<std::hecto>() { return "hs"; }
-template <> FMT_CONSTEXPR const char* get_units<std::kilo>() { return "ks"; }
-template <> FMT_CONSTEXPR const char* get_units<std::mega>() { return "Ms"; }
-template <> FMT_CONSTEXPR const char* get_units<std::giga>() { return "Gs"; }
-template <> FMT_CONSTEXPR const char* get_units<std::tera>() { return "Ts"; }
-template <> FMT_CONSTEXPR const char* get_units<std::peta>() { return "Ps"; }
-template <> FMT_CONSTEXPR const char* get_units<std::exa>() { return "Es"; }
-template <> FMT_CONSTEXPR const char* get_units<std::ratio<60>>() {
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::atto>() { return "as"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::femto>() { return "fs"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::pico>() { return "ps"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::nano>() { return "ns"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::micro>() { return "µs"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::milli>() { return "ms"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::centi>() { return "cs"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::deci>() { return "ds"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::ratio<1>>() { return "s"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::deca>() { return "das"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::hecto>() { return "hs"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::kilo>() { return "ks"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::mega>() { return "Ms"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::giga>() { return "Gs"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::tera>() { return "Ts"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::peta>() { return "Ps"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::exa>() { return "Es"; }
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::ratio<60>>() {
   return "m";
 }
-template <> FMT_CONSTEXPR const char* get_units<std::ratio<3600>>() {
+template <> GAIA_FMT_CONSTEXPR const char* get_units<std::ratio<3600>>() {
   return "h";
 }
 
@@ -470,7 +470,7 @@ enum class numeric_system {
 
 // Parses a put_time-like format string and invokes handler actions.
 template <typename Char, typename Handler>
-FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
+GAIA_FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
                                               const Char* end,
                                               Handler&& handler) {
   auto ptr = begin;
@@ -483,7 +483,7 @@ FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
     }
     if (begin != ptr) handler.on_text(begin, ptr);
     ++ptr;  // consume '%'
-    if (ptr == end) FMT_THROW(format_error("invalid format"));
+    if (ptr == end) GAIA_FMT_THROW(format_error("invalid format"));
     c = *ptr++;
     switch (c) {
     case '%':
@@ -574,7 +574,7 @@ FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
       break;
     // Alternative representation:
     case 'E': {
-      if (ptr == end) FMT_THROW(format_error("invalid format"));
+      if (ptr == end) GAIA_FMT_THROW(format_error("invalid format"));
       c = *ptr++;
       switch (c) {
       case 'c':
@@ -587,12 +587,12 @@ FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
         handler.on_loc_time(numeric_system::alternative);
         break;
       default:
-        FMT_THROW(format_error("invalid format"));
+        GAIA_FMT_THROW(format_error("invalid format"));
       }
       break;
     }
     case 'O':
-      if (ptr == end) FMT_THROW(format_error("invalid format"));
+      if (ptr == end) GAIA_FMT_THROW(format_error("invalid format"));
       c = *ptr++;
       switch (c) {
       case 'w':
@@ -614,11 +614,11 @@ FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
         handler.on_second(numeric_system::alternative);
         break;
       default:
-        FMT_THROW(format_error("invalid format"));
+        GAIA_FMT_THROW(format_error("invalid format"));
       }
       break;
     default:
-      FMT_THROW(format_error("invalid format"));
+      GAIA_FMT_THROW(format_error("invalid format"));
     }
     begin = ptr;
   }
@@ -627,73 +627,73 @@ FMT_CONSTEXPR const Char* parse_chrono_format(const Char* begin,
 }
 
 struct chrono_format_checker {
-  FMT_NORETURN void report_no_date() { FMT_THROW(format_error("no date")); }
+  GAIA_FMT_NORETURN void report_no_date() { GAIA_FMT_THROW(format_error("no date")); }
 
   template <typename Char> void on_text(const Char*, const Char*) {}
-  FMT_NORETURN void on_abbr_weekday() { report_no_date(); }
-  FMT_NORETURN void on_full_weekday() { report_no_date(); }
-  FMT_NORETURN void on_dec0_weekday(numeric_system) { report_no_date(); }
-  FMT_NORETURN void on_dec1_weekday(numeric_system) { report_no_date(); }
-  FMT_NORETURN void on_abbr_month() { report_no_date(); }
-  FMT_NORETURN void on_full_month() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_abbr_weekday() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_full_weekday() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_dec0_weekday(numeric_system) { report_no_date(); }
+  GAIA_FMT_NORETURN void on_dec1_weekday(numeric_system) { report_no_date(); }
+  GAIA_FMT_NORETURN void on_abbr_month() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_full_month() { report_no_date(); }
   void on_24_hour(numeric_system) {}
   void on_12_hour(numeric_system) {}
   void on_minute(numeric_system) {}
   void on_second(numeric_system) {}
-  FMT_NORETURN void on_datetime(numeric_system) { report_no_date(); }
-  FMT_NORETURN void on_loc_date(numeric_system) { report_no_date(); }
-  FMT_NORETURN void on_loc_time(numeric_system) { report_no_date(); }
-  FMT_NORETURN void on_us_date() { report_no_date(); }
-  FMT_NORETURN void on_iso_date() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_datetime(numeric_system) { report_no_date(); }
+  GAIA_FMT_NORETURN void on_loc_date(numeric_system) { report_no_date(); }
+  GAIA_FMT_NORETURN void on_loc_time(numeric_system) { report_no_date(); }
+  GAIA_FMT_NORETURN void on_us_date() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_iso_date() { report_no_date(); }
   void on_12_hour_time() {}
   void on_24_hour_time() {}
   void on_iso_time() {}
   void on_am_pm() {}
   void on_duration_value() {}
   void on_duration_unit() {}
-  FMT_NORETURN void on_utc_offset() { report_no_date(); }
-  FMT_NORETURN void on_tz_name() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_utc_offset() { report_no_date(); }
+  GAIA_FMT_NORETURN void on_tz_name() { report_no_date(); }
 };
 
-template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline bool isnan(T) {
   return false;
 }
-template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline bool isnan(T value) {
   return std::isnan(value);
 }
 
-template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline bool isfinite(T) {
   return true;
 }
-template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline bool isfinite(T value) {
   return std::isfinite(value);
 }
 
 // Converts value to int and checks that it's in the range [0, upper).
-template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline int to_nonnegative_int(T value, int upper) {
-  FMT_ASSERT(value >= 0 && value <= upper, "invalid value");
+  GAIA_FMT_ASSERT(value >= 0 && value <= upper, "invalid value");
   (void)upper;
   return static_cast<int>(value);
 }
-template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(!std::is_integral<T>::value)>
 inline int to_nonnegative_int(T value, int upper) {
-  FMT_ASSERT(
+  GAIA_FMT_ASSERT(
       std::isnan(value) || (value >= 0 && value <= static_cast<T>(upper)),
       "invalid value");
   (void)upper;
   return static_cast<int>(value);
 }
 
-template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline T mod(T x, int y) {
   return x % static_cast<T>(y);
 }
-template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+template <typename T, GAIA_FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline T mod(T x, int y) {
   return std::fmod(x, static_cast<T>(y));
 }
@@ -709,33 +709,33 @@ template <typename T> struct make_unsigned_or_unchanged<T, true> {
   using type = typename std::make_unsigned<T>::type;
 };
 
-#if FMT_SAFE_DURATION_CAST
+#if GAIA_FMT_SAFE_DURATION_CAST
 // throwing version of safe_duration_cast
 template <typename To, typename FromRep, typename FromPeriod>
-To fmt_safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from) {
+To gaia_fmt_safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from) {
   int ec;
   To to = safe_duration_cast::safe_duration_cast<To>(from, ec);
-  if (ec) FMT_THROW(format_error("cannot format duration"));
+  if (ec) GAIA_FMT_THROW(format_error("cannot format duration"));
   return to;
 }
 #endif
 
 template <typename Rep, typename Period,
-          FMT_ENABLE_IF(std::is_integral<Rep>::value)>
+          GAIA_FMT_ENABLE_IF(std::is_integral<Rep>::value)>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
   // this may overflow and/or the result may not fit in the
   // target type.
-#if FMT_SAFE_DURATION_CAST
+#if GAIA_FMT_SAFE_DURATION_CAST
   using CommonSecondsType =
       typename std::common_type<decltype(d), std::chrono::seconds>::type;
-  const auto d_as_common = fmt_safe_duration_cast<CommonSecondsType>(d);
+  const auto d_as_common = gaia_fmt_safe_duration_cast<CommonSecondsType>(d);
   const auto d_as_whole_seconds =
-      fmt_safe_duration_cast<std::chrono::seconds>(d_as_common);
+      gaia_fmt_safe_duration_cast<std::chrono::seconds>(d_as_common);
   // this conversion should be nonproblematic
   const auto diff = d_as_common - d_as_whole_seconds;
   const auto ms =
-      fmt_safe_duration_cast<std::chrono::duration<Rep, std::milli>>(diff);
+      gaia_fmt_safe_duration_cast<std::chrono::duration<Rep, std::milli>>(diff);
   return ms;
 #else
   auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
@@ -744,7 +744,7 @@ inline std::chrono::duration<Rep, std::milli> get_milliseconds(
 }
 
 template <typename Rep, typename Period,
-          FMT_ENABLE_IF(std::is_floating_point<Rep>::value)>
+          GAIA_FMT_ENABLE_IF(std::is_floating_point<Rep>::value)>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
   using common_type = typename std::common_type<Rep, std::intmax_t>::type;
@@ -817,10 +817,10 @@ struct chrono_formatter {
 
     // this may overflow and/or the result may not fit in the
     // target type.
-#if FMT_SAFE_DURATION_CAST
+#if GAIA_FMT_SAFE_DURATION_CAST
     // might need checked conversion (rep!=Rep)
     auto tmpval = std::chrono::duration<rep, Period>(val);
-    s = fmt_safe_duration_cast<seconds>(tmpval);
+    s = gaia_fmt_safe_duration_cast<seconds>(tmpval);
 #else
     s = std::chrono::duration_cast<seconds>(
         std::chrono::duration<rep, Period>(val));
@@ -946,11 +946,11 @@ struct chrono_formatter {
 
     if (ns == numeric_system::standard) {
       write(second(), 2);
-#if FMT_SAFE_DURATION_CAST
+#if GAIA_FMT_SAFE_DURATION_CAST
       // convert rep->Rep
       using duration_rep = std::chrono::duration<rep, Period>;
       using duration_Rep = std::chrono::duration<Rep, Period>;
-      auto tmpval = fmt_safe_duration_cast<duration_Rep>(duration_rep{val});
+      auto tmpval = gaia_fmt_safe_duration_cast<duration_Rep>(duration_rep{val});
 #else
       auto tmpval = std::chrono::duration<Rep, Period>(val);
 #endif
@@ -1023,21 +1023,21 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
     basic_format_parse_context<Char>& context;
     basic_string_view<Char> format_str;
 
-    template <typename Id> FMT_CONSTEXPR arg_ref_type make_arg_ref(Id arg_id) {
+    template <typename Id> GAIA_FMT_CONSTEXPR arg_ref_type make_arg_ref(Id arg_id) {
       context.check_arg_id(arg_id);
       return arg_ref_type(arg_id);
     }
 
-    FMT_CONSTEXPR arg_ref_type make_arg_ref(basic_string_view<Char> arg_id) {
+    GAIA_FMT_CONSTEXPR arg_ref_type make_arg_ref(basic_string_view<Char> arg_id) {
       context.check_arg_id(arg_id);
       return arg_ref_type(arg_id);
     }
 
-    FMT_CONSTEXPR arg_ref_type make_arg_ref(detail::auto_id) {
+    GAIA_FMT_CONSTEXPR arg_ref_type make_arg_ref(detail::auto_id) {
       return arg_ref_type(context.next_arg_id());
     }
 
-    void on_error(const char* msg) { FMT_THROW(format_error(msg)); }
+    void on_error(const char* msg) { GAIA_FMT_THROW(format_error(msg)); }
     void on_fill(basic_string_view<Char> fill) { f.specs.fill = fill; }
     void on_align(align_t align) { f.specs.align = align; }
     void on_width(int width) { f.specs.width = width; }
@@ -1059,7 +1059,7 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
     iterator end;
   };
 
-  FMT_CONSTEXPR parse_range do_parse(basic_format_parse_context<Char>& ctx) {
+  GAIA_FMT_CONSTEXPR parse_range do_parse(basic_format_parse_context<Char>& ctx) {
     auto begin = ctx.begin(), end = ctx.end();
     if (begin == end || *begin == '}') return {begin, begin};
     spec_handler handler{*this, ctx, format_str};
@@ -1080,7 +1080,7 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
  public:
   formatter() : precision(-1) {}
 
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
+  GAIA_FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
       -> decltype(ctx.begin()) {
     auto range = do_parse(ctx);
     format_str = basic_string_view<Char>(
@@ -1113,6 +1113,6 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
   }
 };
 
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_CHRONO_H_
+#endif  // GAIA_FMT_CHRONO_H_

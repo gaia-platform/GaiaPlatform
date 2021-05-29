@@ -16,7 +16,7 @@
 // gaia_spdlog::info("Elapsed: {:.6} seconds", sw);  =>  "Elapsed 0.005163 seconds"
 //
 //
-// If other units are needed (e.g. millis instead of double), include "fmt/chrono.h" and use "duration_cast<..>(sw.elapsed())":
+// If other units are needed (e.g. millis instead of double), include "gaia_fmt/chrono.h" and use "duration_cast<..>(sw.elapsed())":
 //
 // #include <gaia_spdlog/fmt/chrono.h>
 //..
@@ -47,8 +47,8 @@ public:
 };
 } // namespace gaia_spdlog
 
-// Support for fmt formatting  (e.g. "{:012.9}" or just "{}")
-namespace fmt {
+// Support for gaia_fmt formatting  (e.g. "{:012.9}" or just "{}")
+namespace gaia_fmt {
 template<>
 struct formatter<gaia_spdlog::stopwatch> : formatter<double>
 {
@@ -58,4 +58,4 @@ struct formatter<gaia_spdlog::stopwatch> : formatter<double>
         return formatter<double>::format(sw.elapsed().count(), ctx);
     }
 };
-} // namespace fmt
+} // namespace gaia_fmt

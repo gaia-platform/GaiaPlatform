@@ -5,15 +5,15 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_PRINTF_H_
-#define FMT_PRINTF_H_
+#ifndef GAIA_FMT_PRINTF_H_
+#define GAIA_FMT_PRINTF_H_
 
 #include <algorithm>  // std::max
 #include <limits>     // std::numeric_limits
 
 #include "ostream.h"
 
-FMT_BEGIN_NAMESPACE
+GAIA_FMT_BEGIN_NAMESPACE
 namespace detail {
 
 // Checks if a value fits in int - used to avoid warnings about comparing
@@ -36,16 +36,16 @@ template <> struct int_checker<true> {
 
 class printf_precision_handler {
  public:
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
   int operator()(T value) {
     if (!int_checker<std::numeric_limits<T>::is_signed>::fits_in_int(value))
-      FMT_THROW(format_error("number is too big"));
+      GAIA_FMT_THROW(format_error("number is too big"));
     return (std::max)(static_cast<int>(value), 0);
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(!std::is_integral<T>::value)>
   int operator()(T) {
-    FMT_THROW(format_error("precision is not integer"));
+    GAIA_FMT_THROW(format_error("precision is not integer"));
     return 0;
   }
 };
@@ -53,12 +53,12 @@ class printf_precision_handler {
 // An argument visitor that returns true iff arg is a zero integer.
 class is_zero_int {
  public:
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
   bool operator()(T value) {
     return value == 0;
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(!std::is_integral<T>::value)>
   bool operator()(T) {
     return false;
   }
@@ -83,7 +83,7 @@ template <typename T, typename Context> class arg_converter {
     if (type_ != 's') operator()<bool>(value);
   }
 
-  template <typename U, FMT_ENABLE_IF(std::is_integral<U>::value)>
+  template <typename U, GAIA_FMT_ENABLE_IF(std::is_integral<U>::value)>
   void operator()(U value) {
     bool is_signed = type_ == 'd' || type_ == 'i';
     using target_type = conditional_t<std::is_same<T, void>::value, U, T>;
@@ -110,7 +110,7 @@ template <typename T, typename Context> class arg_converter {
     }
   }
 
-  template <typename U, FMT_ENABLE_IF(!std::is_integral<U>::value)>
+  template <typename U, GAIA_FMT_ENABLE_IF(!std::is_integral<U>::value)>
   void operator()(U) {}  // No conversion needed for non-integral types.
 };
 
@@ -131,13 +131,13 @@ template <typename Context> class char_converter {
  public:
   explicit char_converter(basic_format_arg<Context>& arg) : arg_(arg) {}
 
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
   void operator()(T value) {
     arg_ = detail::make_arg<Context>(
         static_cast<typename Context::char_type>(value));
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(!std::is_integral<T>::value)>
   void operator()(T) {}  // No conversion needed for non-integral types.
 };
 
@@ -159,7 +159,7 @@ template <typename Char> class printf_width_handler {
  public:
   explicit printf_width_handler(format_specs& specs) : specs_(specs) {}
 
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(std::is_integral<T>::value)>
   unsigned operator()(T value) {
     auto width = static_cast<uint32_or_64_or_128_t<T>>(value);
     if (detail::is_negative(value)) {
@@ -167,13 +167,13 @@ template <typename Char> class printf_width_handler {
       width = 0 - width;
     }
     unsigned int_max = max_value<int>();
-    if (width > int_max) FMT_THROW(format_error("number is too big"));
+    if (width > int_max) GAIA_FMT_THROW(format_error("number is too big"));
     return static_cast<unsigned>(width);
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(!std::is_integral<T>::value)>
   unsigned operator()(T) {
-    FMT_THROW(format_error("width is not integer"));
+    GAIA_FMT_THROW(format_error("width is not integer"));
     return 0;
   }
 };
@@ -187,7 +187,7 @@ void vprintf(buffer<Char>& buf, basic_string_view<Char> format,
 
 // For printing into memory_buffer.
 template <typename Char, typename Context>
-FMT_DEPRECATED void printf(detail::buffer<Char>& buf,
+GAIA_FMT_DEPRECATED void printf(detail::buffer<Char>& buf,
                            basic_string_view<Char> format,
                            basic_format_args<Context> args) {
   return detail::vprintf(buf, format, args);
@@ -240,26 +240,26 @@ class printf_arg_formatter : public detail::arg_formatter_base<OutputIt, Char> {
   printf_arg_formatter(iterator iter, format_specs& specs, context_type& ctx)
       : base(iter, &specs, detail::locale_ref()), context_(ctx) {}
 
-  template <typename T, FMT_ENABLE_IF(fmt::detail::is_integral<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(gaia_fmt::detail::is_integral<T>::value)>
   iterator operator()(T value) {
     // MSVC2013 fails to compile separate overloads for bool and char_type so
     // use std::is_same instead.
     if (std::is_same<T, bool>::value) {
-      format_specs& fmt_specs = *this->specs();
-      if (fmt_specs.type != 's') return base::operator()(value ? 1 : 0);
-      fmt_specs.type = 0;
+      format_specs& gaia_fmt_specs = *this->specs();
+      if (gaia_fmt_specs.type != 's') return base::operator()(value ? 1 : 0);
+      gaia_fmt_specs.type = 0;
       this->write(value != 0);
     } else if (std::is_same<T, char_type>::value) {
-      format_specs& fmt_specs = *this->specs();
-      if (fmt_specs.type && fmt_specs.type != 'c')
+      format_specs& gaia_fmt_specs = *this->specs();
+      if (gaia_fmt_specs.type && gaia_fmt_specs.type != 'c')
         return (*this)(static_cast<int>(value));
-      fmt_specs.sign = sign::none;
-      fmt_specs.alt = false;
-      fmt_specs.fill[0] = ' ';  // Ignore '0' flag for char types.
+      gaia_fmt_specs.sign = sign::none;
+      gaia_fmt_specs.alt = false;
+      gaia_fmt_specs.fill[0] = ' ';  // Ignore '0' flag for char types.
       // align::numeric needs to be overwritten here since the '0' flag is
       // ignored for non-numeric types
-      if (fmt_specs.align == align::none || fmt_specs.align == align::numeric)
-        fmt_specs.align = align::right;
+      if (gaia_fmt_specs.align == align::none || gaia_fmt_specs.align == align::numeric)
+        gaia_fmt_specs.align = align::right;
       return base::operator()(value);
     } else {
       return base::operator()(value);
@@ -267,7 +267,7 @@ class printf_arg_formatter : public detail::arg_formatter_base<OutputIt, Char> {
     return this->out();
   }
 
-  template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+  template <typename T, GAIA_FMT_ENABLE_IF(std::is_floating_point<T>::value)>
   iterator operator()(T value) {
     return base::operator()(value);
   }
@@ -379,7 +379,7 @@ template <typename OutputIt, typename Char> class basic_printf_context {
 
   parse_context_type& parse_context() { return parse_ctx_; }
 
-  FMT_CONSTEXPR void on_error(const char* message) {
+  GAIA_FMT_CONSTEXPR void on_error(const char* message) {
     parse_ctx_.on_error(message);
   }
 
@@ -572,7 +572,7 @@ OutputIt basic_printf_context<OutputIt, Char>::format() {
     }
 
     // Parse type.
-    if (it == end) FMT_THROW(format_error("invalid format string"));
+    if (it == end) GAIA_FMT_THROW(format_error("invalid format string"));
     specs.type = static_cast<char>(*it++);
     if (arg.is_integral()) {
       // Normalize type.
@@ -608,8 +608,8 @@ using wprintf_args = basic_format_args<wprintf_context>;
 
 /**
   \rst
-  Constructs an `~fmt::format_arg_store` object that contains references to
-  arguments and can be implicitly converted to `~fmt::printf_args`.
+  Constructs an `~gaia_fmt::format_arg_store` object that contains references to
+  arguments and can be implicitly converted to `~gaia_fmt::printf_args`.
   \endrst
  */
 template <typename... Args>
@@ -620,8 +620,8 @@ inline format_arg_store<printf_context, Args...> make_printf_args(
 
 /**
   \rst
-  Constructs an `~fmt::format_arg_store` object that contains references to
-  arguments and can be implicitly converted to `~fmt::wprintf_args`.
+  Constructs an `~gaia_fmt::format_arg_store` object that contains references to
+  arguments and can be implicitly converted to `~gaia_fmt::wprintf_args`.
   \endrst
  */
 template <typename... Args>
@@ -645,7 +645,7 @@ inline std::basic_string<Char> vsprintf(
 
   **Example**::
 
-    std::string message = fmt::sprintf("The answer is %d", 42);
+    std::string message = gaia_fmt::sprintf("The answer is %d", 42);
   \endrst
 */
 template <typename S, typename... Args,
@@ -673,7 +673,7 @@ inline int vfprintf(
 
   **Example**::
 
-    fmt::fprintf(stderr, "Don't %s!", "panic");
+    gaia_fmt::fprintf(stderr, "Don't %s!", "panic");
   \endrst
  */
 template <typename S, typename... Args,
@@ -697,11 +697,11 @@ inline int vprintf(
 
   **Example**::
 
-    fmt::printf("Elapsed time: %.2f seconds", 1.23);
+    gaia_fmt::printf("Elapsed time: %.2f seconds", 1.23);
   \endrst
  */
 template <typename S, typename... Args,
-          FMT_ENABLE_IF(detail::is_string<S>::value)>
+          GAIA_FMT_ENABLE_IF(detail::is_string<S>::value)>
 inline int printf(const S& format_str, const Args&... args) {
   using context = basic_printf_context_t<char_t<S>>;
   return vprintf(to_string_view(format_str),
@@ -736,7 +736,7 @@ typename ArgFormatter::iterator vprintf(
 
   **Example**::
 
-    fmt::fprintf(cerr, "Don't %s!", "panic");
+    gaia_fmt::fprintf(cerr, "Don't %s!", "panic");
   \endrst
  */
 template <typename S, typename... Args, typename Char = char_t<S>>
@@ -746,6 +746,6 @@ inline int fprintf(std::basic_ostream<Char>& os, const S& format_str,
   return vfprintf(os, to_string_view(format_str),
                   make_format_args<context>(args...));
 }
-FMT_END_NAMESPACE
+GAIA_FMT_END_NAMESPACE
 
-#endif  // FMT_PRINTF_H_
+#endif  // GAIA_FMT_PRINTF_H_

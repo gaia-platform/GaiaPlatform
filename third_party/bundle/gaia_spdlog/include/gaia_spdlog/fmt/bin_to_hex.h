@@ -75,7 +75,7 @@ inline details::dump_info<It> to_hex(const It range_begin, const It range_end, s
 
 } // namespace gaia_spdlog
 
-namespace fmt {
+namespace gaia_fmt {
 
 template<typename T>
 struct formatter<gaia_spdlog::details::dump_info<T>>
@@ -130,7 +130,7 @@ struct formatter<gaia_spdlog::details::dump_info<T>>
         GAIA_SPDLOG_CONSTEXPR const char *hex_lower = "0123456789abcdef";
         const char *hex_chars = use_uppercase ? hex_upper : hex_lower;
 
-#if FMT_VERSION < 60000
+#if GAIA_FMT_VERSION < 60000
         auto inserter = ctx.begin();
 #else
         auto inserter = ctx.out();
@@ -209,8 +209,8 @@ struct formatter<gaia_spdlog::details::dump_info<T>>
 
         if (put_positions)
         {
-            fmt::format_to(inserter, "{:<04X}: ", pos);
+            gaia_fmt::format_to(inserter, "{:<04X}: ", pos);
         }
     }
 };
-} // namespace fmt
+} // namespace gaia_fmt

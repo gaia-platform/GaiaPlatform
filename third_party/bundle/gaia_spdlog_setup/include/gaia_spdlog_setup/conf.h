@@ -225,7 +225,7 @@ inline void save_logger_to_file(
     using details::names::NAME;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::exception;
@@ -303,7 +303,7 @@ inline auto delete_logger_in_file(
     using details::names::NAME;
 
     // fmt
-    using fmt::format;
+    using gaia_fmt::format;
 
     // std
     using std::exception;
