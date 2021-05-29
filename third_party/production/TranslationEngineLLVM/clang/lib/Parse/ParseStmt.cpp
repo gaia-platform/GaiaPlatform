@@ -178,7 +178,16 @@ Retry:
     Token Next = NextToken();
     if (Next.is(tok::colon)) { // C99 6.8.1: labeled-statement
       // identifier ':' statement
-      return ParseLabeledStatement(Attrs);
+      if (!getLangOpts().Gaia || !Actions.getCurScope()->isInRulesetScope() ||
+        GetLookAheadToken(2).isNot(tok::identifier))
+      {
+        return ParseLabeledStatement(Attrs);
+      }
+      else
+      {
+        ConsumeToken();
+        ConsumeToken();
+      }
     }
 
     // Look up the identifier, and typo-correct it to a keyword if it's not
@@ -207,6 +216,15 @@ Retry:
   }
 
   default: {
+    if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
+    {
+      if (Tok.is(tok::slash) && NextToken().is(tok::identifier) &&
+        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
+      {
+        ConsumeToken();
+        goto Retry;
+      }
+    }
     if ((getLangOpts().CPlusPlus || getLangOpts().MicrosoftExt ||
          Allowed == ACK_Any) &&
         isDeclarationStatement()) {
@@ -1184,11 +1202,13 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   // Parse the condition.
   StmtResult InitStmt;
   Sema::ConditionResult Cond;
-  if (ParseParenExprOrCondition(&InitStmt, Cond, IfLoc,
+  {
+    ExtendedExplicitPathScopeMonitor monitor(Actions);
+    if (ParseParenExprOrCondition(&InitStmt, Cond, IfLoc,
                                 IsConstexpr ? Sema::ConditionKind::ConstexprIf
                                             : Sema::ConditionKind::Boolean))
-    return StmtError();
-
+      return StmtError();
+  }
   llvm::Optional<bool> ConstexprCondition;
   if (IsConstexpr)
     ConstexprCondition = Cond.getKnownValue();
@@ -1234,34 +1254,89 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   SourceLocation ElseStmtLoc;
   StmtResult ElseStmt;
 
-  if (Tok.is(tok::kw_else)) {
-    if (TrailingElseLoc)
-      *TrailingElseLoc = Tok.getLocation();
+  SourceLocation NoMatchLoc;
+  SourceLocation NoMatchStmtLoc;
+  StmtResult NoMatchStmt;
 
-    ElseLoc = ConsumeToken();
-    ElseStmtLoc = Tok.getLocation();
+  if (Tok.isOneOf(tok::kw_else, tok::kw_nomatch))
+  {
+    if (Tok.is(tok::kw_else))
+    {
+      if (TrailingElseLoc)
+        *TrailingElseLoc = Tok.getLocation();
 
-    // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
-    // there is no compound stmt.  C90 does not have this clause.  We only do
-    // this if the body isn't a compound statement to avoid push/pop in common
-    // cases.
-    //
-    // C++ 6.4p1:
-    // The substatement in a selection-statement (each substatement, in the else
-    // form of the if statement) implicitly defines a local scope.
-    //
-    ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
+      ElseLoc = ConsumeToken();
+      ElseStmtLoc = Tok.getLocation();
+
+      // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
+      // there is no compound stmt.  C90 does not have this clause.  We only do
+      // this if the body isn't a compound statement to avoid push/pop in common
+      // cases.
+      //
+      // C++ 6.4p1:
+      // The substatement in a selection-statement (each substatement, in the else
+      // form of the if statement) implicitly defines a local scope.
+      //
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
                           Tok.is(tok::l_brace));
 
-    EnterExpressionEvaluationContext PotentiallyDiscarded(
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
         Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
         Sema::ExpressionEvaluationContextRecord::EK_Other,
         /*ShouldEnter=*/ConstexprCondition && *ConstexprCondition);
-    ElseStmt = ParseStatement();
+      ElseStmt = ParseStatement();
 
-    // Pop the 'else' scope if needed.
-    InnerScope.Exit();
-  } else if (Tok.is(tok::code_completion)) {
+      // Pop the 'else' scope if needed.
+      InnerScope.Exit();
+    }
+    if (Tok.is(tok::kw_nomatch))
+    {
+      // Remove tags that may have been declared in the if
+      SourceLocation startLocation = IfLoc;
+      SourceLocation endLocation ;
+      if (ElseStmt.get() != nullptr)
+      {
+        endLocation = ElseStmt.get()->getEndLoc();
+      }
+      else
+      {
+        endLocation = ThenStmt.get()->getEndLoc();
+      }
+
+      if (!Actions.RemoveTagData(SourceRange(startLocation, endLocation)))
+      {
+        Diag(startLocation, diag::err_nomatch_without_navigation);
+        return StmtError();
+      }
+
+      if (TrailingElseLoc)
+        *TrailingElseLoc = Tok.getLocation();
+
+      NoMatchLoc = ConsumeToken();
+      NoMatchStmtLoc = Tok.getLocation();
+
+      // C99 6.8.4p3 - In C99, the body of the if statement is a scope, even if
+      // there is no compound stmt.  C90 does not have this clause.  We only do
+      // this if the body isn't a compound statement to avoid push/pop in common
+      // cases.
+      //
+      // C++ 6.4p1:
+      // The substatement in a selection-statement (each substatement, in the else
+      // form of the if statement) implicitly defines a local scope.
+      //
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXX,
+                          Tok.is(tok::l_brace));
+
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
+        Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
+        Sema::ExpressionEvaluationContextRecord::EK_Other,
+        /*ShouldEnter=*/ConstexprCondition && *ConstexprCondition);
+      NoMatchStmt = ParseStatement();
+
+      // Pop the 'else' scope if needed.
+      InnerScope.Exit();
+    }
+  }else if (Tok.is(tok::code_completion)) {
     Actions.CodeCompleteAfterIf(getCurScope());
     cutOffParsing();
     return StmtError();
@@ -1274,9 +1349,15 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   // If the then or else stmt is invalid and the other is valid (and present),
   // make turn the invalid one into a null stmt to avoid dropping the other
   // part.  If both are invalid, return error.
-  if ((ThenStmt.isInvalid() && ElseStmt.isInvalid()) ||
-      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr) ||
-      (ThenStmt.get() == nullptr && ElseStmt.isInvalid())) {
+  if (
+      (ThenStmt.isInvalid() && ElseStmt.isInvalid() && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.get() == nullptr && ElseStmt.isInvalid() && NoMatchStmt.isInvalid()) ||
+      (ThenStmt.isInvalid() && ElseStmt.isInvalid() && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.isInvalid() && ElseStmt.get() == nullptr && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.get() == nullptr && ElseStmt.isInvalid() && NoMatchStmt.get() == nullptr) ||
+      (ThenStmt.get() == nullptr && ElseStmt.get() == nullptr && NoMatchStmt.isInvalid())
+     ) {
     // Both invalid, or one is invalid and other is non-present: return error.
     return StmtError();
   }
@@ -1286,9 +1367,11 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     ThenStmt = Actions.ActOnNullStmt(ThenStmtLoc);
   if (ElseStmt.isInvalid())
     ElseStmt = Actions.ActOnNullStmt(ElseStmtLoc);
+  if (NoMatchStmt.isInvalid())
+    NoMatchStmt = Actions.ActOnNullStmt(NoMatchStmtLoc);
 
   return Actions.ActOnIfStmt(IfLoc, IsConstexpr, InitStmt.get(), Cond,
-                             ThenStmt.get(), ElseLoc, ElseStmt.get());
+                             ThenStmt.get(), ElseLoc, ElseStmt.get(), NoMatchLoc, NoMatchStmt.get());
 }
 
 /// ParseSwitchStatement
@@ -1327,10 +1410,12 @@ StmtResult Parser::ParseSwitchStatement(SourceLocation *TrailingElseLoc) {
   // Parse the condition.
   StmtResult InitStmt;
   Sema::ConditionResult Cond;
-  if (ParseParenExprOrCondition(&InitStmt, Cond, SwitchLoc,
+  {
+    ExtendedExplicitPathScopeMonitor monitor(Actions);
+    if (ParseParenExprOrCondition(&InitStmt, Cond, SwitchLoc,
                                 Sema::ConditionKind::Switch))
-    return StmtError();
-
+      return StmtError();
+  }
   StmtResult Switch =
       Actions.ActOnStartOfSwitchStmt(SwitchLoc, InitStmt.get(), Cond);
 
@@ -1415,9 +1500,12 @@ StmtResult Parser::ParseWhileStatement(SourceLocation *TrailingElseLoc) {
 
   // Parse the condition.
   Sema::ConditionResult Cond;
-  if (ParseParenExprOrCondition(nullptr, Cond, WhileLoc,
+  {
+    ExtendedExplicitPathScopeMonitor monitor(Actions);
+    if (ParseParenExprOrCondition(nullptr, Cond, WhileLoc,
                                 Sema::ConditionKind::Boolean))
-    return StmtError();
+      return StmtError();
+  }
 
   // C99 6.8.5p5 - In C99, the body of the while statement is a scope, even if
   // there is no compound stmt.  C90 does not have this clause.  We only do this
@@ -1622,221 +1710,224 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   SourceLocation EmptyInitStmtSemiLoc;
 
   // Parse the first part of the for specifier.
-  if (Tok.is(tok::semi)) {  // for (;
-    ProhibitAttributes(attrs);
-    // no first part, eat the ';'.
-    SourceLocation SemiLoc = Tok.getLocation();
-    if (!Tok.hasLeadingEmptyMacro() && !SemiLoc.isMacroID())
-      EmptyInitStmtSemiLoc = SemiLoc;
-    ConsumeToken();
-  } else if (getLangOpts().CPlusPlus && Tok.is(tok::identifier) &&
+  {
+    ExtendedExplicitPathScopeMonitor monitor(Actions);
+    if (Tok.is(tok::semi)) {  // for (;
+      ProhibitAttributes(attrs);
+      // no first part, eat the ';'.
+      SourceLocation SemiLoc = Tok.getLocation();
+      if (!Tok.hasLeadingEmptyMacro() && !SemiLoc.isMacroID())
+        EmptyInitStmtSemiLoc = SemiLoc;
+      ConsumeToken();
+    } else if (getLangOpts().CPlusPlus && Tok.is(tok::identifier) &&
              isForRangeIdentifier()) {
-    ProhibitAttributes(attrs);
-    IdentifierInfo *Name = Tok.getIdentifierInfo();
-    SourceLocation Loc = ConsumeToken();
-    MaybeParseCXX11Attributes(attrs);
+      ProhibitAttributes(attrs);
+      IdentifierInfo *Name = Tok.getIdentifierInfo();
+      SourceLocation Loc = ConsumeToken();
+      MaybeParseCXX11Attributes(attrs);
 
-    ForRangeInfo.ColonLoc = ConsumeToken();
-    if (Tok.is(tok::l_brace))
-      ForRangeInfo.RangeExpr = ParseBraceInitializer();
-    else
-      ForRangeInfo.RangeExpr = ParseExpression();
+      ForRangeInfo.ColonLoc = ConsumeToken();
+      if (Tok.is(tok::l_brace))
+        ForRangeInfo.RangeExpr = ParseBraceInitializer();
+      else
+        ForRangeInfo.RangeExpr = ParseExpression();
 
-    Diag(Loc, diag::err_for_range_identifier)
-      << ((getLangOpts().CPlusPlus11 && !getLangOpts().CPlusPlus17)
+      Diag(Loc, diag::err_for_range_identifier)
+        << ((getLangOpts().CPlusPlus11 && !getLangOpts().CPlusPlus17)
               ? FixItHint::CreateInsertion(Loc, "auto &&")
               : FixItHint());
 
-    ForRangeInfo.LoopVar = Actions.ActOnCXXForRangeIdentifier(
+      ForRangeInfo.LoopVar = Actions.ActOnCXXForRangeIdentifier(
         getCurScope(), Loc, Name, attrs, attrs.Range.getEnd());
-  } else if (isForInitDeclaration()) {  // for (int X = 4;
-    ParenBraceBracketBalancer BalancerRAIIObj(*this);
+    } else if (isForInitDeclaration()) {  // for (int X = 4;
+      ParenBraceBracketBalancer BalancerRAIIObj(*this);
 
-    // Parse declaration, which eats the ';'.
-    if (!C99orCXXorObjC) {   // Use of C99-style for loops in C90 mode?
-      Diag(Tok, diag::ext_c99_variable_decl_in_for_loop);
-      Diag(Tok, diag::warn_gcc_variable_decl_in_for_loop);
-    }
+      // Parse declaration, which eats the ';'.
+      if (!C99orCXXorObjC) {   // Use of C99-style for loops in C90 mode?
+        Diag(Tok, diag::ext_c99_variable_decl_in_for_loop);
+        Diag(Tok, diag::warn_gcc_variable_decl_in_for_loop);
+      }
 
-    // In C++0x, "for (T NS:a" might not be a typo for ::
-    bool MightBeForRangeStmt = getLangOpts().CPlusPlus;
-    ColonProtectionRAIIObject ColonProtection(*this, MightBeForRangeStmt);
+      // In C++0x, "for (T NS:a" might not be a typo for ::
+      bool MightBeForRangeStmt = getLangOpts().CPlusPlus;
+      ColonProtectionRAIIObject ColonProtection(*this, MightBeForRangeStmt);
 
-    SourceLocation DeclStart = Tok.getLocation(), DeclEnd;
-    DeclGroupPtrTy DG = ParseSimpleDeclaration(
+      SourceLocation DeclStart = Tok.getLocation(), DeclEnd;
+      DeclGroupPtrTy DG = ParseSimpleDeclaration(
         DeclaratorContext::ForContext, DeclEnd, attrs, false,
         MightBeForRangeStmt ? &ForRangeInfo : nullptr);
-    FirstPart = Actions.ActOnDeclStmt(DG, DeclStart, Tok.getLocation());
-    if (ForRangeInfo.ParsedForRangeDecl()) {
-      Diag(ForRangeInfo.ColonLoc, getLangOpts().CPlusPlus11 ?
+      FirstPart = Actions.ActOnDeclStmt(DG, DeclStart, Tok.getLocation());
+      if (ForRangeInfo.ParsedForRangeDecl()) {
+        Diag(ForRangeInfo.ColonLoc, getLangOpts().CPlusPlus11 ?
            diag::warn_cxx98_compat_for_range : diag::ext_for_range);
-      ForRangeInfo.LoopVar = FirstPart;
-      FirstPart = StmtResult();
-    } else if (Tok.is(tok::semi)) {  // for (int x = 4;
-      ConsumeToken();
-    } else if ((ForEach = isTokIdentifier_in())) {
-      Actions.ActOnForEachDeclStmt(DG);
-      // ObjC: for (id x in expr)
-      ConsumeToken(); // consume 'in'
+        ForRangeInfo.LoopVar = FirstPart;
+        FirstPart = StmtResult();
+      } else if (Tok.is(tok::semi)) {  // for (int x = 4;
+        ConsumeToken();
+      } else if ((ForEach = isTokIdentifier_in())) {
+        Actions.ActOnForEachDeclStmt(DG);
+        // ObjC: for (id x in expr)
+        ConsumeToken(); // consume 'in'
 
-      if (Tok.is(tok::code_completion)) {
-        Actions.CodeCompleteObjCForCollection(getCurScope(), DG);
-        cutOffParsing();
-        return StmtError();
-      }
-      Collection = ParseExpression();
-    } else {
-      Diag(Tok, diag::err_expected_semi_for);
-    }
-  } else {
-    ProhibitAttributes(attrs);
-    Value = Actions.CorrectDelayedTyposInExpr(ParseExpression());
-
-    ForEach = isTokIdentifier_in();
-
-    // Turn the expression into a stmt.
-    if (!Value.isInvalid()) {
-      if (ForEach)
-        FirstPart = Actions.ActOnForEachLValueExpr(Value.get());
-      else
-        FirstPart = Actions.ActOnExprStmt(Value);
-    }
-
-    if (Tok.is(tok::semi)) {
-      ConsumeToken();
-    } else if (ForEach) {
-      ConsumeToken(); // consume 'in'
-
-      if (Tok.is(tok::code_completion)) {
-        Actions.CodeCompleteObjCForCollection(getCurScope(), nullptr);
-        cutOffParsing();
-        return StmtError();
-      }
-      Collection = ParseExpression();
-    } else if (getLangOpts().CPlusPlus11 && Tok.is(tok::colon) && FirstPart.get()) {
-      // User tried to write the reasonable, but ill-formed, for-range-statement
-      //   for (expr : expr) { ... }
-      Diag(Tok, diag::err_for_range_expected_decl)
-        << FirstPart.get()->getSourceRange();
-      SkipUntil(tok::r_paren, StopBeforeMatch);
-      SecondPart = Sema::ConditionError();
-    } else {
-      if (!Value.isInvalid()) {
-        Diag(Tok, diag::err_expected_semi_for);
+        if (Tok.is(tok::code_completion)) {
+          Actions.CodeCompleteObjCForCollection(getCurScope(), DG);
+          cutOffParsing();
+          return StmtError();
+        }
+        Collection = ParseExpression();
       } else {
-        // Skip until semicolon or rparen, don't consume it.
-        SkipUntil(tok::r_paren, StopAtSemi | StopBeforeMatch);
-        if (Tok.is(tok::semi))
-          ConsumeToken();
+        Diag(Tok, diag::err_expected_semi_for);
+      }
+    } else {
+      ProhibitAttributes(attrs);
+      Value = Actions.CorrectDelayedTyposInExpr(ParseExpression());
+
+      ForEach = isTokIdentifier_in();
+
+      // Turn the expression into a stmt.
+      if (!Value.isInvalid()) {
+        if (ForEach)
+          FirstPart = Actions.ActOnForEachLValueExpr(Value.get());
+        else
+          FirstPart = Actions.ActOnExprStmt(Value);
+      }
+
+      if (Tok.is(tok::semi)) {
+        ConsumeToken();
+      } else if (ForEach) {
+        ConsumeToken(); // consume 'in'
+
+        if (Tok.is(tok::code_completion)) {
+          Actions.CodeCompleteObjCForCollection(getCurScope(), nullptr);
+          cutOffParsing();
+          return StmtError();
+        }
+        Collection = ParseExpression();
+      } else if (getLangOpts().CPlusPlus11 && Tok.is(tok::colon) && FirstPart.get()) {
+        // User tried to write the reasonable, but ill-formed, for-range-statement
+        //   for (expr : expr) { ... }
+        Diag(Tok, diag::err_for_range_expected_decl)
+          << FirstPart.get()->getSourceRange();
+        SkipUntil(tok::r_paren, StopBeforeMatch);
+        SecondPart = Sema::ConditionError();
+      } else {
+        if (!Value.isInvalid()) {
+          Diag(Tok, diag::err_expected_semi_for);
+        } else {
+          // Skip until semicolon or rparen, don't consume it.
+          SkipUntil(tok::r_paren, StopAtSemi | StopBeforeMatch);
+          if (Tok.is(tok::semi))
+            ConsumeToken();
+        }
       }
     }
-  }
 
-  // Parse the second part of the for specifier.
-  getCurScope()->AddFlags(Scope::BreakScope | Scope::ContinueScope);
-  if (!ForEach && !ForRangeInfo.ParsedForRangeDecl() &&
-      !SecondPart.isInvalid()) {
     // Parse the second part of the for specifier.
-    if (Tok.is(tok::semi)) {  // for (...;;
-      // no second part.
-    } else if (Tok.is(tok::r_paren)) {
-      // missing both semicolons.
-    } else {
-      if (getLangOpts().CPlusPlus) {
-        // C++2a: We've parsed an init-statement; we might have a
-        // for-range-declaration next.
-        bool MightBeForRangeStmt = !ForRangeInfo.ParsedForRangeDecl();
-        ColonProtectionRAIIObject ColonProtection(*this, MightBeForRangeStmt);
-        SecondPart =
+    getCurScope()->AddFlags(Scope::BreakScope | Scope::ContinueScope);
+    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl() &&
+      !SecondPart.isInvalid()) {
+      // Parse the second part of the for specifier.
+      if (Tok.is(tok::semi)) {  // for (...;;
+        // no second part.
+      } else if (Tok.is(tok::r_paren)) {
+        // missing both semicolons.
+      } else {
+        if (getLangOpts().CPlusPlus) {
+          // C++2a: We've parsed an init-statement; we might have a
+          // for-range-declaration next.
+          bool MightBeForRangeStmt = !ForRangeInfo.ParsedForRangeDecl();
+          ColonProtectionRAIIObject ColonProtection(*this, MightBeForRangeStmt);
+          SecondPart =
             ParseCXXCondition(nullptr, ForLoc, Sema::ConditionKind::Boolean,
                               MightBeForRangeStmt ? &ForRangeInfo : nullptr);
 
-        if (ForRangeInfo.ParsedForRangeDecl()) {
-          Diag(FirstPart.get() ? FirstPart.get()->getBeginLoc()
+          if (ForRangeInfo.ParsedForRangeDecl()) {
+            Diag(FirstPart.get() ? FirstPart.get()->getBeginLoc()
                                : ForRangeInfo.ColonLoc,
                getLangOpts().CPlusPlus2a
                    ? diag::warn_cxx17_compat_for_range_init_stmt
                    : diag::ext_for_range_init_stmt)
               << (FirstPart.get() ? FirstPart.get()->getSourceRange()
                                   : SourceRange());
-          if (EmptyInitStmtSemiLoc.isValid()) {
-            Diag(EmptyInitStmtSemiLoc, diag::warn_empty_init_statement)
+            if (EmptyInitStmtSemiLoc.isValid()) {
+              Diag(EmptyInitStmtSemiLoc, diag::warn_empty_init_statement)
                 << /*for-loop*/ 2
                 << FixItHint::CreateRemoval(EmptyInitStmtSemiLoc);
+            }
           }
-        }
-      } else {
-        ExprResult SecondExpr = ParseExpression();
-        if (SecondExpr.isInvalid())
-          SecondPart = Sema::ConditionError();
-        else
-          SecondPart =
+        } else {
+          ExprResult SecondExpr = ParseExpression();
+          if (SecondExpr.isInvalid())
+            SecondPart = Sema::ConditionError();
+          else
+            SecondPart =
               Actions.ActOnCondition(getCurScope(), ForLoc, SecondExpr.get(),
                                      Sema::ConditionKind::Boolean);
+        }
       }
     }
-  }
 
-  // Parse the third part of the for statement.
-  if (!ForEach && !ForRangeInfo.ParsedForRangeDecl()) {
-    if (Tok.isNot(tok::semi)) {
-      if (!SecondPart.isInvalid())
-        Diag(Tok, diag::err_expected_semi_for);
-      else
-        // Skip until semicolon or rparen, don't consume it.
-        SkipUntil(tok::r_paren, StopAtSemi | StopBeforeMatch);
+    // Parse the third part of the for statement.
+    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl()) {
+      if (Tok.isNot(tok::semi)) {
+        if (!SecondPart.isInvalid())
+          Diag(Tok, diag::err_expected_semi_for);
+        else
+          // Skip until semicolon or rparen, don't consume it.
+          SkipUntil(tok::r_paren, StopAtSemi | StopBeforeMatch);
+      }
+
+      if (Tok.is(tok::semi)) {
+        ConsumeToken();
+      }
+
+      if (Tok.isNot(tok::r_paren)) {   // for (...;...;)
+        ExprResult Third = ParseExpression();
+        // FIXME: The C++11 standard doesn't actually say that this is a
+        // discarded-value expression, but it clearly should be.
+        ThirdPart = Actions.MakeFullDiscardedValueExpr(Third.get());
+      }
     }
+    // Match the ')'.
+    T.consumeClose();
 
-    if (Tok.is(tok::semi)) {
-      ConsumeToken();
-    }
-
-    if (Tok.isNot(tok::r_paren)) {   // for (...;...;)
-      ExprResult Third = ParseExpression();
-      // FIXME: The C++11 standard doesn't actually say that this is a
-      // discarded-value expression, but it clearly should be.
-      ThirdPart = Actions.MakeFullDiscardedValueExpr(Third.get());
+    // C++ Coroutines [stmt.iter]:
+    //   'co_await' can only be used for a range-based for statement.
+    if (CoawaitLoc.isValid() && !ForRangeInfo.ParsedForRangeDecl()) {
+      Diag(CoawaitLoc, diag::err_for_co_await_not_range_for);
+      CoawaitLoc = SourceLocation();
     }
   }
-  // Match the ')'.
-  T.consumeClose();
-
-  // C++ Coroutines [stmt.iter]:
-  //   'co_await' can only be used for a range-based for statement.
-  if (CoawaitLoc.isValid() && !ForRangeInfo.ParsedForRangeDecl()) {
-    Diag(CoawaitLoc, diag::err_for_co_await_not_range_for);
-    CoawaitLoc = SourceLocation();
-  }
-
   // We need to perform most of the semantic analysis for a C++0x for-range
   // statememt before parsing the body, in order to be able to deduce the type
   // of an auto-typed loop variable.
   StmtResult ForRangeStmt;
   StmtResult ForEachStmt;
-
-  if (ForRangeInfo.ParsedForRangeDecl()) {
-    ExprResult CorrectedRange =
+  {
+    ExtendedExplicitPathScopeMonitor monitor(Actions);
+    if (ForRangeInfo.ParsedForRangeDecl()) {
+      ExprResult CorrectedRange =
         Actions.CorrectDelayedTyposInExpr(ForRangeInfo.RangeExpr.get());
-    ForRangeStmt = Actions.ActOnCXXForRangeStmt(
+      ForRangeStmt = Actions.ActOnCXXForRangeStmt(
         getCurScope(), ForLoc, CoawaitLoc, FirstPart.get(),
         ForRangeInfo.LoopVar.get(), ForRangeInfo.ColonLoc, CorrectedRange.get(),
         T.getCloseLocation(), Sema::BFRK_Build);
 
-  // Similarly, we need to do the semantic analysis for a for-range
-  // statement immediately in order to close over temporaries correctly.
-  } else if (ForEach) {
-    ForEachStmt = Actions.ActOnObjCForCollectionStmt(ForLoc,
+    // Similarly, we need to do the semantic analysis for a for-range
+    // statement immediately in order to close over temporaries correctly.
+    } else if (ForEach) {
+      ForEachStmt = Actions.ActOnObjCForCollectionStmt(ForLoc,
                                                      FirstPart.get(),
                                                      Collection.get(),
                                                      T.getCloseLocation());
-  } else {
-    // In OpenMP loop region loop control variable must be captured and be
-    // private. Perform analysis of first part (if any).
-    if (getLangOpts().OpenMP && FirstPart.isUsable()) {
-      Actions.ActOnOpenMPLoopInitialization(ForLoc, FirstPart.get());
+    } else {
+      // In OpenMP loop region loop control variable must be captured and be
+      // private. Perform analysis of first part (if any).
+      if (getLangOpts().OpenMP && FirstPart.isUsable()) {
+        Actions.ActOnOpenMPLoopInitialization(ForLoc, FirstPart.get());
+      }
     }
   }
-
   // C99 6.8.5p5 - In C99, the body of the for statement is a scope, even if
   // there is no compound stmt.  C90 does not have this clause.  We only do this
   // if the body isn't a compound statement to avoid push/pop in common cases.

@@ -617,7 +617,7 @@ static string generate_edc_struct(
 
     code += "private:";
     code.IncrementIdentLevel();
-    code += "friend struct edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+    code += "friend class edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
 
     // Finishing brace.

@@ -10,6 +10,7 @@
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "db_shared_data.hpp"
@@ -28,12 +29,12 @@ class client_t
     friend class gaia_ptr_t;
 
     /**
-     * @throws no_open_transaction if there is no active transaction.
+     * @throws no_open_transaction if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
-     * @throws no_active_session if there is no active session.
+     * @throws no_open_session if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
@@ -44,7 +45,7 @@ class client_t
         size_t size);
 
 public:
-    static inline bool is_transaction_active();
+    static inline bool is_transaction_open();
 
     /**
      * Called by the rules engine only during initialization and
@@ -56,7 +57,7 @@ public:
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.
-    static void begin_session();
+    static void begin_session(config::session_options_t session_options);
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
@@ -75,6 +76,8 @@ private:
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
 
     // These fields have session lifetime.
+    thread_local static inline config::session_options_t s_session_options;
+
     thread_local static inline int s_fd_locators = -1;
 
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
@@ -118,7 +121,7 @@ private:
 
     static void apply_txn_log(int log_fd);
 
-    static int get_session_socket();
+    static int get_session_socket(const std::string& socket_name);
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
 
@@ -130,6 +133,9 @@ private:
 
     static std::function<std::optional<int>()>
     get_fd_stream_generator_for_socket(int stream_socket);
+
+    static std::function<std::optional<common::gaia_id_t>()>
+    augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
 
     /**
      *  Check if an event should be generated for a given type.

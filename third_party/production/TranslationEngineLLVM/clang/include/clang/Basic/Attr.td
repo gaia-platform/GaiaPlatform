@@ -3242,5 +3242,33 @@ def GaiaExplicitPath : Attr {
   let Spellings = [Keyword<"GaiaExplicitPath">];
   let Subjects = SubjectList<[Var]>;
   let Documentation = [Undocumented];
-  let Args = [StringArgument<"path">, UnsignedArgument<"pathStart">, UnsignedArgument<"pathEnd">];
+  let Args = [ StringArgument<"path">,
+    UnsignedArgument<"pathStart">, UnsignedArgument<"pathEnd">,
+    VariadicStringArgument<"pathComponents">];
+}
+
+def GaiaExplicitPathTagKeys : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathTagKeys">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapKeys">];
+}
+def GaiaExplicitPathTagValues : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathTagValues">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapValues">];
+}
+
+def GaiaExplicitPathDefinedTagKeys : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathDefinedTagKeys">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapKeys">];
+}
+def GaiaExplicitPathDefinedTagValues : Attr {
+  let Spellings = [Keyword<"GaiaExplicitPathDefinedTagValues">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+  let Args = [VariadicStringArgument<"tagMapValues">];
 }

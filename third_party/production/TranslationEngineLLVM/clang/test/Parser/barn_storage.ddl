@@ -1,3 +1,7 @@
+CREATE DATABASE if not exists incubator;
+
+USE incubator;
+
 CREATE TABLE if not exists animal (
     name STRING,
     breed STRING,

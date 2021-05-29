@@ -34,11 +34,8 @@ namespace direct_access
 //
 // @tparam T_class the Extended Data Class
 template <typename T_class>
-class edc_iterator_t
+class edc_iterator_t : protected edc_db_t
 {
-    T_class m_obj;
-    std::function<bool(const T_class&)> m_filter_fn;
-
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_class;
@@ -56,15 +53,20 @@ public:
     bool operator!=(const edc_iterator_t& rhs) const;
     reference operator*();
     pointer operator->();
+
+private:
+    T_class m_obj;
+    std::function<bool(const T_class&)> m_filter_fn;
 };
 
 // A edc_container_t is all objects of the same Extended Data Class in the database.
 //
-// @tparam T_container the type identifier of Extended Data Class
+// @tparam container_type_id the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
-template <gaia::common::gaia_type_t T_container, typename T_class>
-struct edc_container_t : edc_db_t
+template <gaia::common::gaia_type_t container_type_id, typename T_class>
+class edc_container_t : protected edc_db_t
 {
+public:
     // This constructor will be used by the where() method to create a filtered container.
     explicit edc_container_t(std::function<bool(const T_class&)> filter_function)
         : m_filter_fn(filter_function){};
@@ -76,7 +78,7 @@ struct edc_container_t : edc_db_t
 
     size_t size() const;
 
-    static edc_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
+    static edc_container_t<container_type_id, T_class> where(std::function<bool(const T_class&)>);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
@@ -89,12 +91,8 @@ private:
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 template <typename T_child>
-class edc_set_iterator_t
+class edc_set_iterator_t : protected edc_db_t
 {
-    T_child m_child_obj;
-    std::function<bool(const T_child&)> m_filter_fn;
-    size_t m_next_offset;
-
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_child;
@@ -112,6 +110,11 @@ public:
     edc_set_iterator_t<T_child> operator++(int);
     bool operator==(const edc_set_iterator_t& rhs) const;
     bool operator!=(const edc_set_iterator_t& rhs) const;
+
+private:
+    T_child m_child_obj;
+    std::function<bool(const T_child&)> m_filter_fn;
+    size_t m_next_offset;
 };
 
 // A reference_chain_container_t is defined within each EDC that is a parent in
@@ -129,13 +132,8 @@ public:
 //
 // @tparam T_child the Extended Data Class that is in the child position in the set
 template <typename T_child>
-class reference_chain_container_t : edc_db_t
+class reference_chain_container_t : protected edc_db_t
 {
-    gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
-    std::function<bool(const T_child&)> m_filter_fn{};
-    size_t m_child_offset;
-    size_t m_next_offset;
-
 public:
     // This constructor will be used by the where() method to create a filtered container.
     explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t child_offset, size_t next_offset)
@@ -167,6 +165,12 @@ public:
     void clear();
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
+
+private:
+    gaia::common::gaia_id_t m_parent_id{gaia::common::c_invalid_gaia_id};
+    std::function<bool(const T_child&)> m_filter_fn{};
+    size_t m_child_offset;
+    size_t m_next_offset;
 };
 
 template <typename T_class>

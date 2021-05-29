@@ -536,9 +536,28 @@ public:
 
 StmtResult
 Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
-                  ConditionResult Cond,
-                  Stmt *thenStmt, SourceLocation ElseLoc,
-                  Stmt *elseStmt) {
+                  ConditionResult Cond, Stmt *thenStmt,
+                  SourceLocation ElseLoc, Stmt *elseStmt,
+                  SourceLocation NoMatchLoc, Stmt* NoMatchStmt) {
+  if (getLangOpts().Gaia)
+  {
+    SourceLocation startLocation = IfLoc;
+    SourceLocation endLocation ;
+    if (elseStmt != nullptr)
+    {
+      endLocation = elseStmt->getEndLoc();
+    }
+    else
+    {
+      endLocation = thenStmt->getEndLoc();
+    }
+    if (NoMatchStmt != nullptr && endLocation < NoMatchStmt->getEndLoc())
+    {
+      endLocation = NoMatchStmt->getEndLoc();
+    }
+    RemoveTagData(SourceRange(startLocation, endLocation));
+  }
+
   if (Cond.isInvalid())
     Cond = ConditionResult(
         *this, nullptr,
@@ -553,18 +572,18 @@ Sema::ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr, Stmt *InitStmt,
       !Diags.isIgnored(diag::warn_comma_operator, CondExpr->getExprLoc()))
     CommaVisitor(*this).Visit(CondExpr);
 
-  if (!elseStmt)
+  if (!elseStmt && !NoMatchStmt)
     DiagnoseEmptyStmtBody(CondExpr->getEndLoc(), thenStmt,
                           diag::warn_empty_if_body);
 
   return BuildIfStmt(IfLoc, IsConstexpr, InitStmt, Cond, thenStmt, ElseLoc,
-                     elseStmt);
+                     elseStmt, NoMatchLoc, NoMatchStmt);
 }
 
 StmtResult Sema::BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                              Stmt *InitStmt, ConditionResult Cond,
                              Stmt *thenStmt, SourceLocation ElseLoc,
-                             Stmt *elseStmt) {
+                             Stmt *elseStmt, SourceLocation NoMatchLoc, Stmt* NoMatchStmt) {
   if (Cond.isInvalid())
     return StmtError();
 
@@ -575,7 +594,7 @@ StmtResult Sema::BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
   DiagnoseUnusedExprResult(elseStmt);
 
   return IfStmt::Create(Context, IfLoc, IsConstexpr, InitStmt, Cond.get().first,
-                        Cond.get().second, thenStmt, ElseLoc, elseStmt);
+                        Cond.get().second, thenStmt, ElseLoc, elseStmt, NoMatchLoc, NoMatchStmt);
 }
 
 namespace {
@@ -825,6 +844,21 @@ StmtResult
 Sema::ActOnFinishSwitchStmt(SourceLocation SwitchLoc, Stmt *Switch,
                             Stmt *BodyStmt) {
   SwitchStmt *SS = cast<SwitchStmt>(Switch);
+  if (getLangOpts().Gaia)
+  {
+    SourceLocation startLocation = SwitchLoc;
+    SourceLocation endLocation ;
+    if (BodyStmt != nullptr)
+    {
+      endLocation = BodyStmt->getEndLoc();
+    }
+    else
+    {
+      endLocation = SS->getEndLoc();
+    }
+    RemoveTagData(SourceRange(startLocation, endLocation));
+  }
+
   bool CaseListIsIncomplete = getCurFunction()->SwitchStack.back().getInt();
   assert(SS == getCurFunction()->SwitchStack.back().getPointer() &&
          "switch stack missing push/pop!");
@@ -1291,6 +1325,10 @@ Sema::DiagnoseAssignmentEnum(QualType DstType, QualType SrcType,
 
 StmtResult Sema::ActOnWhileStmt(SourceLocation WhileLoc, ConditionResult Cond,
                                 Stmt *Body) {
+  if (getLangOpts().Gaia)
+  {
+    RemoveTagData(SourceRange(WhileLoc, Body->getEndLoc()));
+  }
   if (Cond.isInvalid())
     return StmtError();
 
@@ -1744,6 +1782,11 @@ StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
                               Stmt *First, ConditionResult Second,
                               FullExprArg third, SourceLocation RParenLoc,
                               Stmt *Body) {
+  if (getLangOpts().Gaia)
+  {
+    RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
+  }
+
   if (Second.isInvalid())
     return StmtError();
 

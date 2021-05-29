@@ -12,46 +12,78 @@
 
 namespace gaia
 {
-
+/**
+ * \addtogroup Gaia
+ * @{
+ */
 namespace db
 {
+/**
+ * \addtogroup Db
+ * @{
+ */
 
+/**
+ * \brief A session already exists on this thread.
+ *
+ *  Only one session at a time can exist on a thread.
+ */
 class session_exists : public common::gaia_exception
 {
 public:
     session_exists()
     {
-        m_message = "Close the current session before creating a new one.";
+        m_message = "Close the current session before opening a new one.";
     }
 };
 
-class no_active_session : public common::gaia_exception
+/**
+ * \brief No session exists on this thread.
+ *
+ *  A transaction can only be opened from a thread with an open session.
+ */
+class no_open_session : public common::gaia_exception
 {
 public:
-    no_active_session()
+    no_open_session()
     {
-        m_message = "Create a session before performing data access.";
+        m_message = "Open a session before performing data access.";
     }
 };
 
+/**
+ * \brief A transaction is already in progress in this session.
+ *
+ *  Only one transaction at a time can exist within a session.
+ */
 class transaction_in_progress : public common::gaia_exception
 {
 public:
     transaction_in_progress()
     {
-        m_message = "Commit or roll back the current transaction before beginning a new transaction.";
+        m_message = "Commit or roll back the current transaction before opening a new transaction.";
     }
 };
 
+/**
+ * \brief No transaction is open in this session.
+ *
+ *  Data can only be accessed from an open transaction.
+ */
 class no_open_transaction : public common::gaia_exception
 {
 public:
     no_open_transaction()
     {
-        m_message = "Begin a transaction before performing data access.";
+        m_message = "Open a transaction before performing data access.";
     }
 };
 
+/**
+ * \brief The transaction conflicts with another transaction.
+ *
+ *  If two transactions modify the same data at the same time, one of them must abort.
+ */
 class transaction_update_conflict : public common::gaia_exception
 {
 public:
@@ -61,15 +93,25 @@ public:
     }
 };
 
+/**
+ * \brief The transaction attempted to update too many objects.
+ *
+ *  A transaction can create, update, or delete at most 2^20 objects.
+ */
 class transaction_object_limit_exceeded : public common::gaia_exception
 {
 public:
     transaction_object_limit_exceeded()
     {
-        m_message = "Transaction attempted to update more objects than the system limit.";
+        m_message = "Transaction attempted to update too many objects.";
     }
 };
 
+/**
+ * \brief The transaction attempted to create an object with an existing ID.
+ *
+ *  A transaction must create a new object using an ID that has not been assigned to another object.
+ */
 class duplicate_id : public common::gaia_exception
 {
 public:
@@ -81,19 +123,43 @@ public:
     }
 };
 
-class oom : public common::gaia_exception
+/**
+ * \brief The transaction tried to create more objects than fit into memory.
+ *
+ *  The memory used to store objects cannot exceed the configured physical memory limit.
+ */
+class out_of_memory : public common::gaia_exception
 {
 public:
-    oom()
+    out_of_memory()
     {
         m_message = "Out of memory.";
     }
 };
 
-class invalid_node_id : public common::gaia_exception
+/**
+ * \brief The transaction tried to create more objects than are permitted in the system.
+ *
+ *  The system cannot contain more than 2^32 objects.
+ */
+class system_object_limit_exceeded : public common::gaia_exception
 {
 public:
-    explicit invalid_node_id(common::gaia_id_t id)
+    system_object_limit_exceeded()
+    {
+        m_message = "System object limit exceeded.";
+    }
+};
+
+/**
+ * \brief The transaction referenced an object ID that does not exist.
+ *
+ *  An object can only reference existing objects.
+ */
+class invalid_object_id : public common::gaia_exception
+{
+public:
+    explicit invalid_object_id(common::gaia_id_t id)
     {
         std::stringstream strs;
         strs << "Cannot find a node with ID '" << id << "'.";
@@ -101,41 +167,45 @@ public:
     }
 };
 
-class invalid_id_value : public common::gaia_exception
+/**
+ * \brief The transaction attempted to delete an object that is referenced by another object.
+ *
+ *  Objects that are still referenced by existing objects cannot be deleted.
+ */
+class object_still_referenced : public common::gaia_exception
 {
 public:
-    explicit invalid_id_value(common::gaia_id_t id)
-    {
-        std::stringstream strs;
-        strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
-        m_message = strs.str();
-    }
-};
-
-class node_not_disconnected : public common::gaia_exception
-{
-public:
-    node_not_disconnected(common::gaia_id_t id, common::gaia_type_t object_type)
+    object_still_referenced(common::gaia_id_t id, common::gaia_type_t object_type)
     {
         std::stringstream msg;
         msg
             << "Cannot delete object '" << id << "', type '" << object_type
-            << "', because it is still connected to another object.";
+            << "', because it is still referenced by another object.";
         m_message = msg.str();
     }
 };
 
-class payload_size_too_large : public common::gaia_exception
+/**
+ * \brief The transaction attempted to create or update an object that is too large.
+ *
+ *  An object cannot be larger than 64 KB.
+ */
+class object_too_large : public common::gaia_exception
 {
 public:
-    payload_size_too_large(size_t total_len, uint16_t max_len)
+    object_too_large(size_t total_len, uint16_t max_len)
     {
         std::stringstream msg;
-        msg << "Payload size " << total_len << " exceeds maximum payload size limit " << max_len << ".";
+        msg << "Object size " << total_len << " exceeds maximum size " << max_len << ".";
         m_message = msg.str();
     }
 };
 
+/**
+ * \brief The transaction attempted to create an object with an unknown type.
+ *
+ *  An object's type must exist in the catalog.
+ */
 class invalid_type : public common::gaia_exception
 {
 public:
@@ -156,12 +226,68 @@ public:
     }
 };
 
-bool is_transaction_active();
+/**
+ * \brief Returns true if a transaction is open in this session.
+ *
+ * \return true if a transaction has been opened in this session, false otherwise.
+ */
+bool is_transaction_open();
+
+/**
+ * \brief Opens a new database session.
+ *
+ * Opening a session creates a connection to the database server and allocates
+ * session-owned resources on both the client and the server.
+ *
+ * \exception gaia::db::session_exists a session is already open in this thread.
+ */
 void begin_session();
+
+/**
+ * \brief Closes the current database session.
+ *
+ * Closing a session terminates the connection to the database server and
+ * releases session-owned resources on both the client and the server.
+ *
+ * \exception gaia::db::no_open_session no session is open in this thread.
+ */
 void end_session();
+
+/**
+ * \brief Opens a new database transaction.
+ *
+ * Gaia supports one open transaction per session.
+ * Opening a transaction creates a snapshot of the database for this session.
+ * Objects can only be created, updated, or deleted from within a transaction.
+ * To terminate the transaction and commit its changes, call commit_transaction().
+ * To terminate the transaction without committing its changes, call rollback_transaction().
+ *
+ * \exception gaia::db::no_open_session open a session before opening a transaction.
+ * \exception gaia::db::transaction_in_progress a transaction is already open in this session.
+ */
 void begin_transaction();
+
+/**
+ * \brief Terminates the current transaction in this session.
+ *
+ * No changes made by this transaction will be visible to any other transactions.
+ *
+ * \exception gaia::db::no_open_transaction no transaction is open in this session.
+ */
 void rollback_transaction();
+
+/**
+ * \brief Commits the current transaction's changes.
+ *
+ * The transaction is submitted to the server for validation.
+ * If the server doesn't validate the transaction, it aborts the transaction.
+ *
+ * \exception gaia::db::no_open_transaction no transaction is open in this session.
+ * \exception gaia::db::transaction_update_conflict transaction conflicts with another transaction.
+ */
 void commit_transaction();
 
+/*@}*/
 } // namespace db
+/*@}*/
 } // namespace gaia

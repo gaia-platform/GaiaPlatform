@@ -28,7 +28,8 @@ class persistent_store_manager
 {
 
 public:
-    persistent_store_manager();
+    persistent_store_manager(
+        gaia::db::counters_t* counters, gaia::db::locators_t* locators, std::string data_dir);
     ~persistent_store_manager();
 
     /**
@@ -81,13 +82,11 @@ public:
      */
     void destroy_persistent_store();
 
-    static constexpr char c_data_dir_command_flag[] = "--data-dir";
-    static std::string s_data_dir_path;
-
 private:
     gaia::db::counters_t* m_counters = nullptr;
     gaia::db::locators_t* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
+    std::string m_data_dir_path;
 };
 
 } // namespace db

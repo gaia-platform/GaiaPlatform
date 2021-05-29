@@ -69,6 +69,18 @@ namespace llvm {
   struct InlineAsmIdentifierInfo;
 }
 
+namespace std
+{
+    template<> struct hash<clang::SourceLocation>
+    {
+        std::size_t operator()(clang::SourceLocation const& location) const noexcept
+        {
+            return std::hash<unsigned int>{}(location.getRawEncoding());
+        }
+    };
+} // namespace std
+
+
 namespace clang {
   class ADLResult;
   class ASTConsumer;
@@ -3762,11 +3774,13 @@ public:
   StmtResult ActOnIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc = SourceLocation(), Stmt* NoMatchStmt = nullptr);
   StmtResult BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
                          Stmt *InitStmt,
                          ConditionResult Cond, Stmt *ThenVal,
-                         SourceLocation ElseLoc, Stmt *ElseVal);
+                         SourceLocation ElseLoc, Stmt *ElseVal,
+                         SourceLocation NoMatchLoc, Stmt* NoMatchStmt);
   StmtResult ActOnStartOfSwitchStmt(SourceLocation SwitchLoc,
                                     Stmt *InitStmt,
                                     ConditionResult Cond);
@@ -4604,6 +4618,10 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
   bool GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath);
+  bool IsInExtendedExplicitPathScope() const { return isInExtendedExplicitPathScope;}
+  void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
+  void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
+  bool RemoveTagData(SourceRange range);
 private:
 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
@@ -4616,12 +4634,16 @@ private:
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
+  StringRef ConvertString(const std::string& str, SourceLocation loc);
+  bool does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc);
 
   struct ExplicitPathData_t
   {
     SourceLocation startLocation;
     SourceLocation endLocation;
     std::string explicitPath;
+    std::vector<std::string> path;
+    std::unordered_map<std::string, std::string> tagMap;
   };
 
   struct TableLinkData_t
@@ -4632,9 +4654,12 @@ private:
 
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 
-  std::unordered_map<unsigned, ExplicitPathData_t>  explicitPathData;
+  std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
-  std::map<unsigned, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
+  std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
+
+  std::map<SourceLocation, std::unordered_map<std::string, std::string>> extendedExplicitPathTagMapping;
+  bool isInExtendedExplicitPathScope;
 
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value

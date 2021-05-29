@@ -1,4 +1,4 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s --
 
 ruleset test16
 {

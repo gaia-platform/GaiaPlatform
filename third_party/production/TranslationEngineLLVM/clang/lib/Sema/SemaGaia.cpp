@@ -1,4 +1,4 @@
-//===--- ParseGaia.cpp - Gaia Extensions Parser -----------------------===//
+//===--- SemaGaia.cpp - Gaia Extensions Parser -----------------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Gaia Extensions parsing of the Parser
+// This file implements the Gaia Extensions semantic checks for Sema
 // interface.
 //
 //===----------------------------------------------------------------------===//
@@ -92,6 +92,21 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
     return returnType;
 }
 
+StringRef Sema::ConvertString(const string& str, SourceLocation loc)
+{
+    string literalString = string("\"") + str + string("\"");
+    Token Toks[1];
+    Toks[0].startToken();
+    Toks[0].setKind(tok::string_literal);
+    Toks[0].setLocation(loc);
+    Toks[0].setLiteralData(literalString.data());
+    Toks[0].setLength(literalString.size());
+
+    StringLiteral *literal =
+        cast<StringLiteral>(ActOnStringLiteral(Toks, nullptr).get());
+    return literal->getString();
+}
+
 class DBMonitor
 {
     public:
@@ -108,14 +123,47 @@ class DBMonitor
         }
 };
 
+
+bool Sema::does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc)
+{
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    if (tagMapping.empty())
+    {
+        return false;
+    }
+    for (const auto& path_component : path)
+    {
+        string tableName;
+        size_t dotPosition = path_component.find('.');
+        if (dotPosition != string::npos)
+        {
+            tableName = path_component.substr(0, dotPosition);
+        }
+        else
+        {
+            tableName = path_component;
+        }
+        if (tagMapping.find(tableName) != tagMapping.end())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
 {
     size_t searchStartPosition = 0;
     unordered_map<string, string> tagMap;
     vector<string> path;
-    if (pathString.front() == '/')
+    bool is_absolute = pathString.front() == '/';
+    if (pathString.front() == '/' || pathString.front() == '@')
     {
         searchStartPosition = 1;
+    }
+    if (pathString.rfind("/@") == 0)
+    {
+        searchStartPosition = 2;
     }
     string tag;
     size_t tagPosition = 0, arrowPosition = 0;
@@ -152,9 +200,19 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 return "";
             }
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            string tableName;
+            size_t dotPosition = table.find('.');
+            if (dotPosition != string::npos)
+            {
+                tableName = table.substr(0, dotPosition);
+            }
+            else
+            {
+                tableName = table;
+            }
             if (!tag.empty())
             {
-                tagMap[tag] = table;
+                tagMap[tag] = tableName;
                 tag.clear();
             }
             path.push_back(table);
@@ -170,37 +228,51 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         Diag(loc, diag::err_invalid_explicit_path);
         return "";
     }
+    if (!tag.empty())
+    {
+        string tableName;
+        size_t dotPosition = table.find('.');
+        if (dotPosition != string::npos)
+        {
+            tableName = table.substr(0, dotPosition);
+        }
+        else
+        {
+            tableName = table;
+        }
+        tagMap[tag] = tableName;
+    }
     path.push_back(table);
 
     // If explicit path has one component only, this component will be checked at later stage
     // Therefore there is no need to perform more checks here.
-    if (path.size() > 1)
+    if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty() || does_path_includes_tags(path, loc))
     {
         unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
         for (auto tagEntry: tagMap)
         {
-            string tableName;
-            size_t dotPosition = tagEntry.second.find('.');
-            if (dotPosition != string::npos)
-            {
-                tableName = tagEntry.second.substr(0, dotPosition);
-            }
-            else
-            {
-                tableName = tagEntry.second;
-            }
-            auto tableDescription = tableData.find(tableName);
+            auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tableName;
+                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
                 return "";
             }
         }
 
+        unordered_set<string> duplicate_component_check_set;
         string previousTable, previousField;
         for (string pathComponent : path)
         {
+            if (duplicate_component_check_set.find(pathComponent) != duplicate_component_check_set.end())
+            {
+                Diag(loc, diag::err_invalid_explicit_path);
+                return "";
+            }
+            else
+            {
+                duplicate_component_check_set.insert(pathComponent);
+            }
             string tableName, fieldName;
             size_t dotPosition = pathComponent.find('.');
             if (dotPosition != string::npos)
@@ -213,9 +285,23 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 tableName = pathComponent;
             }
             auto tagMappingIterator = tagMapping.find(tableName);
+            auto tagMapIterator = tagMap.find(tableName);
             if (tagMappingIterator != tagMapping.end() ||
-                tagMap.find(tableName) != tagMap.end())
+                tagMapIterator != tagMap.end())
             {
+                if (tagMappingIterator != tagMapping.end() && is_absolute)
+                {
+                    Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
+                    return "";
+                }
+
+                if (tagMappingIterator != tagMapping.end() &&
+                    pathComponent != path.front() && pathComponent != path.back())
+                {
+                    Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
+                    return "";
+                }
+
                 if (pathComponent != path.front())
                 {
                     Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
@@ -223,11 +309,11 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 }
                 if (tagMappingIterator != tagMapping.end())
                 {
-                    tableName = tagMapping[tableName];
+                    tableName = tagMappingIterator->second;
                 }
                 else
                 {
-                    tableName = tagMap[tableName];
+                    tableName = tagMapIterator->second;
                 }
             }
             auto tableDescription = tableData.find(tableName);
@@ -283,16 +369,21 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             previousField = fieldName;
             previousTable = tableName;
         }
+        explicitPathData[loc].path = path;
+        explicitPathData[loc].tagMap = tagMap;
     }
     else
     {
         RemoveExplicitPathData(loc);
     }
+    explicitPathTagMapping[loc] = tagMap;
 
-    explicitPathTagMapping[loc.getRawEncoding()] = tagMap;
+    if (IsInExtendedExplicitPathScope())
+    {
+        extendedExplicitPathTagMapping[loc] = tagMap;
+    }
 
     return path.back();
-
 }
 
 unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
@@ -544,6 +635,10 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
     }
 
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
@@ -606,6 +701,10 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
 {
     DeclContext *context = getCurFunctionDecl();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
@@ -796,7 +895,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
 
     for (const auto& explicitPathTagMapIterator : explicitPathTagMapping)
     {
-        const auto &tagMap = explicitPathTagMapIterator.second;
+        const auto& tagMap = explicitPathTagMapIterator.second;
         for (const auto& tagMapIterator : tagMap)
         {
             if (retVal.find(tagMapIterator.first) != retVal.end())
@@ -810,6 +909,27 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
             }
         }
     }
+
+    for (const auto& explicitPathTagMapIterator : extendedExplicitPathTagMapping)
+    {
+        const auto& tagMap = explicitPathTagMapIterator.second;
+        for (const auto& tagMapIterator : tagMap)
+        {
+            if (explicitPathTagMapping.find(explicitPathTagMapIterator.first) == explicitPathTagMapping.end())
+            {
+                if (retVal.find(tagMapIterator.first) != retVal.end())
+                {
+                    Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
+                    return std::unordered_map<std::string, std::string>();
+                }
+                else
+                {
+                    retVal[tagMapIterator.first] = tagMapIterator.second;
+                }
+            }
+        }
+    }
+
     return retVal;
 }
 
@@ -818,6 +938,7 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
+
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
@@ -837,7 +958,6 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
         return nullptr;
     }
     DeclContext *context  = getCurFunctionDecl();
-
     VarDecl *varDecl = VarDecl::Create(Context, context, loc, loc,
                             II, qualType, Context.getTrivialTypeSourceInfo(qualType, loc), SC_None);
     varDecl->setLexicalDeclContext(context);
@@ -848,12 +968,53 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
 
     SourceLocation startLocation,endLocation;
     std::string path;
+
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
     {
-        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
-            startLocation.getRawEncoding(), endLocation.getRawEncoding()));
-    }
+        std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+        SmallVector<StringRef, 4> argPathComponents, argTagKeys, argTagTables,
+            argDefinedTagKeys, argDefinedTagTables;
+        for (auto pathComponentsIterator : explicitPathData[loc].path)
+        {
+            argPathComponents.push_back(ConvertString(pathComponentsIterator, loc));
+        }
 
+        for (auto tagsIterator : explicitPathData[loc].tagMap)
+        {
+            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
+            argDefinedTagKeys.push_back(ConvertString(tagsIterator.second, loc));
+            argDefinedTagTables.push_back(ConvertString(tagsIterator.first, loc));
+        }
+
+        for (auto tagsIterator : explicitPathTagMapping[loc])
+        {
+            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
+        }
+        for (auto tagsIterator : extendedExplicitPathTagMapping[loc])
+        {
+            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
+        }
+        for (auto tagsIterator : tagMapping)
+        {
+            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagTables.push_back(ConvertString(tagsIterator.second, loc));
+        }
+
+        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
+            startLocation.getRawEncoding(), endLocation.getRawEncoding(),
+            argPathComponents.data(), argPathComponents.size()));
+        varDecl->addAttr(GaiaExplicitPathTagKeysAttr::CreateImplicit(Context,
+            argTagKeys.data(), argTagKeys.size()));
+        varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context,
+            argTagTables.data(), argTagTables.size()));
+        varDecl->addAttr(GaiaExplicitPathDefinedTagKeysAttr::CreateImplicit(Context,
+            argDefinedTagKeys.data(), argDefinedTagKeys.size()));
+        varDecl->addAttr(GaiaExplicitPathDefinedTagValuesAttr::CreateImplicit(Context,
+            argDefinedTagTables.data(), argDefinedTagTables.size()));
+    }
     context->addDecl(varDecl);
 
     return varDecl;
@@ -896,21 +1057,18 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 
 void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
 {
-    ExplicitPathData_t data;
-    data.startLocation = startLocation;
-    data.endLocation = endLocation;
-    data.explicitPath = explicitPath;
-    explicitPathData.emplace(location.getRawEncoding(), data);
+    explicitPathData[location] = {startLocation, endLocation, explicitPath,
+        std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)
 {
-    explicitPathData.erase(location.getRawEncoding());
+    explicitPathData.erase(location);
 }
 
 bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
 {
-    auto data = explicitPathData.find(location.getRawEncoding());
+    auto data = explicitPathData.find(location);
     if (data == explicitPathData.end())
     {
         return false;
@@ -918,5 +1076,21 @@ bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLoc
     startLocation = data->second.startLocation;
     endLocation = data->second.endLocation;
     explicitPath = data->second.explicitPath;
+    return true;
+}
+
+bool Sema::RemoveTagData(SourceRange range)
+{
+    if (range.isValid())
+    {
+        auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(range.getBegin());
+        auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(range.getEnd());
+        if (startLocationIterator == extendedExplicitPathTagMapping.end() &&
+            endLocationIterator == extendedExplicitPathTagMapping.end())
+        {
+            return false;
+        }
+        extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
+    }
     return true;
 }

@@ -1,0 +1,419 @@
+// RUN: %gaiat %s --
+
+#include "tags_test.h"
+
+// #define TEST_FAILURES
+
+#ifdef TEST_FAILURES
+ruleset test1
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        for (/I:incubator)
+        {
+            temp += I.max_temp;
+        }
+    }
+}
+#endif
+
+#ifdef TEST_FAILURES
+ruleset test2
+{
+    {
+        float temp = 0;
+        for (incubator)
+        {
+            temp += @max_temp;
+        }
+    }
+}
+#endif
+
+#ifdef TEST_FAILURES
+ruleset test3
+{
+    {
+        float temp = 0;
+        for (I:incubator) if (I.min_temp < 50.0)
+        {
+            temp += @max_temp;
+        }
+    }
+}
+#endif
+
+ruleset test4
+{
+    {
+        float temp = 0;
+        if (incubator.min_temp < 50.0)
+        {
+            temp += @max_temp;
+        }
+    }
+}
+
+ruleset test5
+{
+    {
+        float temp = 0;
+        if (incubator.min_temp < 50.0)
+        {
+            temp += @sensor.value;
+        }
+    }
+}
+
+ruleset test6
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (incubator.min_temp < 50.0)
+        {
+            temp += sensor.value;
+        }
+    }
+}
+
+ruleset test7
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (incubator.min_temp < 50.0)
+        {
+            temp += sensor.value;
+        }
+        else
+        {
+            temp -= sensor.value;
+        }
+    }
+}
+
+// Questionable code generation on this one.
+ruleset test8
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (sensor->incubator->actuator.value > 0.0)
+        {
+            temp += sensor.value;
+        }
+        else
+        {
+            temp -= sensor.value;
+        }
+    }
+}
+
+ruleset test9
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (sensor->incubator->actuator.value > 0.0)
+        {
+            temp += sensor.value;
+        }
+// GAIAPLAT-947
+        else
+        {
+            temp -= sensor.value;
+        }
+        nomatch
+        {
+            temp += 10.0;
+        }
+    }
+}
+
+ruleset test10
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (S:sensor->I:incubator->A:actuator.value > 0.0)
+        {
+            temp += S.value + I.min_temp + A.value;
+        }
+        else
+        {
+            temp -= I.max_temp - A.value - S.value;
+        }
+    }
+}
+
+ruleset test11
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+        {
+            temp += S.value + I.min_temp + A.value;
+        }
+    }
+}
+
+ruleset test12
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+        {
+            while (A->II:incubator->SS:sensor.value < 100.0)
+            {
+                temp += S.value + II.min_temp + A.value;
+            }
+        }
+    }
+}
+
+ruleset test13
+{
+    OnInsert(farmer)
+    {
+        float temp = 0;
+        while (farmer->incubator->raised->animal->feeding->yield->crop.acres)
+        {
+            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
+            {
+                temp += 1.0;
+            }
+        }
+    }
+}
+
+ruleset test14
+{
+    {
+        float temp = 0;
+        while (@farmer->incubator->raised->animal->feeding->yield->crop.acres)
+        {
+            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
+            {
+                temp += 1.0;
+            }
+        }
+    }
+}
+
+ruleset test15
+{
+    {
+        int total_acres;
+        if (/@F:farmer.acreage > 10)
+        {
+            total_acres = 10;
+        }
+        else if (/farmer.acreage < 5)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres = F.acreage;
+        }
+    }
+}
+
+ruleset test16
+{
+    {
+        int total_acres;
+        if (/@F:farmer.acreage > 10)
+        {
+            total_acres = 10;
+        }
+        else if (F->yield->crop.acres < 5)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres = F.acreage;
+        }
+    }
+}
+
+int strcmp(const char*, const char*);
+
+ruleset test17
+{
+    {
+        int total_acres;
+        if (@farmer->Y:yield->feeding.portion > 10)
+        {
+            total_acres = 10;
+        }
+        else if (strcmp(Y->farmer->raised.birthdate, "20140530") == 0)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres += Y->feeding.portion;
+        }
+    }
+}
+
+ruleset test18
+{
+    OnInsert(isolated)
+    {
+        int answer;
+        if (/incubator->actuator.value > 0.5)
+        {
+            answer = 10;
+        }
+        else if (/farmer->yield.bushels > 10)
+        {
+            answer = 5;
+        }
+        else if (/raised->animal.age < 3)
+        {
+            answer += /feeding.portion;
+        }
+    }
+}
+
+ruleset test19
+{
+    OnInsert(isolated)
+    {
+        int answer;
+        if (/incubator->actuator.value > 0.5)
+        {
+            answer = 10;
+        }
+        else if (/farmer->yield.bushels > 10)
+        {
+            answer = 5;
+        }
+        else if (/raised->animal.age < 3)
+        {
+            answer += /feeding.portion;
+        }
+        nomatch
+        {
+            answer = 15;
+        }
+#ifdef TEST_FAILURES
+        nomatch
+        {
+            answer = 30;
+        }
+        nomatch
+        {
+            answer = 20;
+        }
+#endif
+    }
+}
+
+ruleset test20
+{
+    OnInsert(incubator)
+    {
+        // Single-cardinality reference in 'for' loop.
+        for (int i = 0; i < farmer.acreage; i++)
+        {
+            farmer.acreage++;
+        }
+    }
+}
+
+ruleset test21
+{
+    OnInsert(incubator)
+    {
+        // Multiple-cardinality reference in 'for' loop.
+        // Reference a tag in the loop.
+        for (float f = 0.0; f < S:sensor.value; f += 1.3)
+        {
+            S.timestamp++;
+        }
+    }
+}
+
+ruleset test22
+{
+    OnInsert(incubator)
+    {
+        // Stupidly complex rule.
+        long tot_acres = 0;
+        long tot_feed = 0;
+        long tot_age = 0;
+        for (int i = 0; i < /F:farmer->R:raised->A:animal->FE:feeding->Y:yield->C:crop.acres; i++)
+        {
+            tot_acres = crop.acres;
+            while (A->FE2:feeding.portion > 0)
+            {
+                tot_feed += FE2.portion;
+            }
+            tot_age += Y->feeding->animal.age;
+        }
+    }
+}
+
+ruleset test23
+{
+    OnInsert(incubator)
+    {
+        // Convoluted if/nomatch with no braces.
+        bool here = false;
+        if (incubator.max_temp > 99.0)
+            if (actuator.value < 97.3)
+                if (sensor.value > 82.1)
+                    here = true;
+                nomatch
+                    here = false;
+            else
+                here = false;
+            nomatch
+                here = true;
+        nomatch
+            here = false;
+    }
+}
+
+ruleset test24
+{
+    OnInsert(feeding)
+    {
+        // Another convoluted set or queries.
+        // Note that the translated code is not yet correct.
+        long some_number = 0;
+        long i = 0;
+        for (i += farmer.acreage; i < farmer->yield->feeding.portion; i += /crop.acres)
+        {
+            some_number += i;
+        }
+    }
+}
+
+ruleset test25
+{
+    OnInsert(feeding)
+    {
+        // Note that the translated code is not yet correct.
+        farmer->incubator->raised.birthdate += crop->yield->feeding.portion;
+    }
+}
+
+void sprintf(char*, const char*, const char*, float, float);
+
+ruleset test26
+{
+    OnInsert(feeding)
+    {
+        char str[200];
+        sprintf(str, "%ld,%f,%f", I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+    }
+}

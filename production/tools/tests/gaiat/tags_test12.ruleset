@@ -1,4 +1,5 @@
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: echo "Cannot have more than one attribute for OnChange." | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 

@@ -5,14 +5,9 @@
 
 #pragma once
 
-#include <string.h>
-
-#include <sstream>
 #include <string>
 
 #include "gaia/exception.hpp"
-
-#include "memory_types.hpp"
 
 namespace gaia
 {

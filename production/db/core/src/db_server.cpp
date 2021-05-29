@@ -9,19 +9,17 @@
 
 #include <csignal>
 
-#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <shared_mutex>
 #include <thread>
 #include <unordered_set>
 
+#include "spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
-#include <sys/file.h>
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
@@ -36,6 +34,7 @@
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 
 using namespace std;
@@ -44,9 +43,12 @@ using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::db::storage;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
+
+using persistence_mode_t = server_config_t::persistence_mode_t;
 
 static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
 static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
@@ -621,10 +623,10 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(c_gaia_mem_locators);
-    s_shared_counters.create(c_gaia_mem_counters);
-    s_shared_data.create(c_gaia_mem_data);
-    s_shared_id_index.create(c_gaia_mem_id_index);
+    s_shared_locators.create(fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_counters.create(fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_data.create(fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_id_index.create(fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
 
     init_memory_manager();
 
@@ -691,14 +693,14 @@ address_offset_t server_t::allocate_object(
 void server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
-    if (!(s_persistence_mode == persistence_mode_t::e_disabled))
+    if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>();
-            if (s_persistence_mode == persistence_mode_t::e_reinitialized_on_startup)
+            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_server_conf.data_dir());
+            if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
             }
@@ -709,7 +711,7 @@ void server_t::recover_db()
 
     // If persistence is disabled after recovery, then destroy the RocksDB
     // instance.
-    if (s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)
+    if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
     {
         rdb.reset();
     }
@@ -745,7 +747,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
     signal_eventfd(s_server_shutdown_eventfd);
 }
 
-void server_t::init_listening_socket()
+void server_t::init_listening_socket(const std::string& socket_name)
 {
     // Launch a connection-based listening Unix socket on a well-known address.
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
@@ -767,12 +769,12 @@ void server_t::init_listening_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    static_assert(sizeof(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
+    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], c_db_server_socket_name, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], socket_name.c_str(), sizeof(server_addr.sun_path) - 1);
 
     // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but
@@ -872,7 +874,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
     }
 }
 
-void server_t::client_dispatch_handler()
+void server_t::client_dispatch_handler(const std::string& socket_name)
 {
     // Register session cleanup handler first, so we can execute it last.
     auto session_cleanup = make_scope_guard([]() {
@@ -886,7 +888,7 @@ void server_t::client_dispatch_handler()
     });
 
     // Start listening for incoming client connections.
-    init_listening_socket();
+    init_listening_socket(socket_name);
     // We close the listening socket before waiting for session threads to exit,
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
@@ -1385,35 +1387,39 @@ void server_t::start_stream_producer(int stream_socket, std::function<std::optio
 
 std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    gaia_locator_t locator = 0;
+    record_iterator_t iterator;
+    bool is_initialized = false;
 
-    // Fix end of locator segment for length of scan, because it can change during scan.
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
-
-    return [=]() mutable -> std::optional<gaia_id_t> {
-        // REVIEW: Now that the locator segment is no longer locked, we have no
-        // transactional guarantees when reading from it. We need to either have
-        // server-side transactions (which would use the same begin timestamp as
-        // the client), or non-transactional structures mapping types to all IDs
-        // or locators ever allocated for that type, so we didn't have to read
-        // an object version to determine the type of an ID or locator. Given
-        // such a non-transactional index, the client could post-filter results
-        // from the server for locators which were unset or deleted in its
-        // transactional view. For now, this API is just a prototype anyway and
-        // not strictly necessary (the client can do the same naive scan of all
-        // objects in its view for their type), so we'll leave it unfixed
-        // pending the introduction of efficient non-transactional "containers"
-        // or type indexes.
-        while (++locator && locator <= last_locator)
+    return [type, iterator, is_initialized]() mutable -> std::optional<gaia_id_t> {
+        // The initialization of the record_list iterator should be done by the same thread
+        // that executes the iteration.
+        if (!is_initialized)
         {
-            db_object_t* obj = locator_to_ptr(locator);
-            if (obj && obj->type == type)
+            shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(type);
+            record_list->start(iterator);
+            is_initialized = true;
+        }
+
+        // Find the next valid record locator.
+        while (!iterator.at_end())
+        {
+            gaia_locator_t locator = record_list_t::get_record_data(iterator).locator;
+            ASSERT_INVARIANT(
+                locator != c_invalid_gaia_locator, "An invalid locator value was returned from record list iteration!");
+
+            db_object_t* db_object = locator_to_ptr(locator);
+
+            // Whether we found a record or not, we need to advance the iterator.
+            record_list_t::move_next(iterator);
+
+            // If the record was found, return its id.
+            if (db_object)
             {
-                return obj->id;
+                return db_object->id;
             }
         }
 
-        // Signal end of iteration.
+        // Signal end of scan.
         return std::nullopt;
     };
 }
@@ -1861,6 +1867,20 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             ? txn_log->log_records[i].new_offset
             : txn_log->log_records[i].old_offset;
 
+        // If we're gc-ing the old version of an object that is being deleted,
+        // then request the deletion of its locator from the corresponding record list.
+        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset == c_invalid_gaia_offset)
+        {
+            // Get the old object data to extract its type.
+            db_object_t* db_object = offset_to_ptr(txn_log->log_records[i].old_offset);
+
+            // Retrieve the record_list_t instance corresponding to the type.
+            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+
+            // Request the deletion of the record corresponding to the object.
+            record_list->request_deletion(txn_log->log_records[i].locator);
+        }
+
         if (offset_to_free && s_object_deallocator_fn)
         {
             // TODO: If a chunk gets freed as a result of this deallocation,
@@ -2137,8 +2157,8 @@ void server_t::gc_applied_txn_logs()
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
             // deallocated while they're being persisted).
-            bool is_persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
-                && (s_persistence_mode != persistence_mode_t::e_disabled_after_recovery);
+            bool is_persistence_enabled = (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
+                && (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled_after_recovery);
 
             if (is_persistence_enabled && !txn_metadata_t::is_txn_durable(ts))
             {
@@ -2270,12 +2290,39 @@ void server_t::txn_rollback()
     }
 }
 
+void server_t::perform_pre_commit_work_for_txn()
+{
+    // Process the txn log.
+    for (size_t i = 0; i < s_log->record_count; ++i)
+    {
+        txn_log_t::log_record_t* lr = &(s_log->log_records[i]);
+
+        // In case of insertions, we want to update the record list for the object's type.
+        // We do this after updating the shared locator view, so we can access the new object's data.
+        if (lr->old_offset == c_invalid_gaia_offset)
+        {
+            gaia_locator_t locator = lr->locator;
+            gaia_offset_t offset = lr->new_offset;
+
+            ASSERT_INVARIANT(
+                offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+
+            db_object_t* db_object = offset_to_ptr(offset);
+            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+            record_list->add(locator);
+        }
+    }
+}
+
 // Before this method is called, we have already received the log fd from the client
 // and mmapped it.
 // This method returns true for a commit decision and false for an abort decision.
 bool server_t::txn_commit()
 {
     ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
+
+    // Perform pre-commit work.
+    perform_pre_commit_work_for_txn();
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
@@ -2328,10 +2375,10 @@ bool server_t::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server_t::run(persistence_mode_t persistence_mode)
+void server_t::run(server_config_t server_conf)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_persistence_mode = persistence_mode;
+    s_server_conf = server_conf;
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2363,7 +2410,7 @@ void server_t::run(persistence_mode_t persistence_mode)
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         // Launch thread to listen for client connections and create session threads.
-        std::thread client_dispatch_thread(client_dispatch_handler);
+        std::thread client_dispatch_thread(client_dispatch_handler, server_conf.instance_name());
 
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
@@ -2380,8 +2427,8 @@ void server_t::run(persistence_mode_t persistence_mode)
         // data would disappear on reset, only to reappear when the database is
         // restarted and recovers from the persistent store.
         if (!(caught_signal == SIGHUP
-              && (s_persistence_mode == persistence_mode_t::e_disabled
-                  || s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)))
+              && (server_conf.persistence_mode() == persistence_mode_t::e_disabled
+                  || server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)))
         {
             if (caught_signal == SIGHUP)
             {

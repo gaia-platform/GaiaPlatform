@@ -12,6 +12,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <thread>
+#include <utility>
 
 #include "flatbuffers/flatbuffers.h"
 
@@ -36,6 +37,47 @@ public:
     }
 };
 
+/**
+ * Encapsulates the server_t configuration.
+ */
+class server_config_t
+{
+    friend class server_t;
+
+public:
+    enum class persistence_mode_t : uint8_t
+    {
+        e_default,
+        e_disabled,
+        e_disabled_after_recovery,
+        e_reinitialized_on_startup,
+    };
+
+    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
+
+public:
+    server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
+        : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir))
+    {
+    }
+
+    inline persistence_mode_t persistence_mode();
+    inline const std::string& instance_name();
+    inline const std::string& data_dir();
+
+private:
+    // Dummy constructor to allow server_t initialization.
+    server_config_t()
+        : m_persistence_mode(c_default_persistence_mode)
+    {
+    }
+
+private:
+    persistence_mode_t m_persistence_mode;
+    std::string m_instance_name;
+    std::string m_data_dir;
+};
+
 class server_t
 {
     friend gaia::db::locators_t* gaia::db::get_locators();
@@ -48,23 +90,12 @@ class server_t
         size_t size);
 
 public:
-    enum class persistence_mode_t : uint8_t
-    {
-        e_default,
-        e_disabled,
-        e_disabled_after_recovery,
-        e_reinitialized_on_startup,
-    };
-
-    static void run(persistence_mode_t persistence_mode = persistence_mode_t::e_default);
-
+    static void run(server_config_t server_conf);
     static void register_object_deallocator(std::function<void(gaia_offset_t)>);
 
-    static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
-    static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
-    static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
-
 private:
+    static inline server_config_t s_server_conf{};
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
@@ -95,8 +126,6 @@ private:
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
-
-    static inline persistence_mode_t s_persistence_mode{persistence_mode_t::e_default};
 
     static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
@@ -197,8 +226,6 @@ private:
 
     static void init_memory_manager();
 
-    static void free_uncommitted_allocations(messages::session_event_t txn_status);
-
     static void init_shared_memory();
 
     static void recover_db();
@@ -207,11 +234,11 @@ private:
 
     static void signal_handler(sigset_t sigset, int& signum);
 
-    static void init_listening_socket();
+    static void init_listening_socket(const std::string& socket_name);
 
     static bool authenticate_client_socket(int socket);
 
-    static void client_dispatch_handler();
+    static void client_dispatch_handler(const std::string& socket_name);
 
     static void session_handler(int session_socket);
 
@@ -251,11 +278,11 @@ private:
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
+    static void perform_pre_commit_work_for_txn();
+
     static bool validate_txn(gaia_txn_id_t commit_ts);
 
     static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
-
-    static bool advance_last_applied_txn_commit_ts(gaia_txn_id_t commit_ts);
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
@@ -307,6 +334,8 @@ private:
         bool m_auto_close_fd{true};
     };
 };
+
+#include "db_server.inc"
 
 } // namespace db
 } // namespace gaia

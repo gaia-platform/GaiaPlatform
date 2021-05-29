@@ -1270,6 +1270,8 @@ def err_duplicate_tag_defined: Error<
   "Tag '%0' is already defined.">;
 def err_tag_not_allowed: Error<
   "Tag not allowed in a Table attribute.">;
+def err_nomatch_without_navigation : Error<
+    "A non-declarative 'if' statement may not use nomatch.">;
 }
 
 } // end of Parser diagnostics

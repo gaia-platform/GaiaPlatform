@@ -4136,6 +4136,18 @@ AST_MATCHER_P(IfStmt, hasElse, internal::Matcher<Stmt>, InnerMatcher) {
   return (Else != nullptr && InnerMatcher.matches(*Else, Finder, Builder));
 }
 
+/// Matches the NoMatch-statement of an if statement.
+///
+/// Examples matches the if statement
+///   (matcher = ifStmt(hasNoMatch(cxxBoolLiteral(equals(true)))))
+/// \code
+///   if (false) false; nomatch true;
+/// \endcode
+AST_MATCHER_P(IfStmt, hasNoMatch, internal::Matcher<Stmt>, InnerMatcher) {
+  const Stmt *const NoMatch = Node.getNoMatch();
+  return (NoMatch != nullptr && InnerMatcher.matches(*NoMatch, Finder, Builder));
+}
+
 /// Matches if a node equals a previously bound node.
 ///
 /// Matches a node if it equals the node previously bound to \p ID.

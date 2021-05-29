@@ -3192,16 +3192,24 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
     case tok::kw_decltype:
     case tok::identifier: {
       if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
-        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace))
+        && getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace)
+        && NextToken().is(tok::l_paren))
       {
         IdentifierInfo *Id = Tok.getIdentifierInfo();
         if (Id != nullptr)
         {
-          if (Id->getName().equals(c_on_update_rule_attribute) ||
-            Id->getName().equals(c_on_insert_rule_attribute) ||
-            Id->getName().equals(c_on_change_rule_attribute))
+          StringRef name = Id->getName();
+          if (name.equals(c_on_update_rule_attribute) ||
+            name.equals(c_on_insert_rule_attribute) ||
+            name.equals(c_on_change_rule_attribute))
           {
             goto DoneWithDeclSpec;
+          }
+          else
+          {
+            Diag(Tok, diag::err_invalid_Gaia_rule_attribute);
+            SkipUntil(tok::l_brace, StopBeforeMatch | StopAtCodeCompletion);
+            continue;
           }
         }
       }
@@ -5589,9 +5597,10 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
         IdentifierInfo *Id = Tok.getIdentifierInfo();
         if (Id != nullptr)
         {
-          if (Id->getName().equals(c_on_update_rule_attribute) ||
-            Id->getName().equals(c_on_insert_rule_attribute) ||
-            Id->getName().equals(c_on_change_rule_attribute))
+          StringRef name = Id->getName();
+          if (name.equals(c_on_update_rule_attribute) ||
+            name.equals(c_on_insert_rule_attribute) ||
+            name.equals(c_on_change_rule_attribute))
           {
             ParseRule(D);
             return;

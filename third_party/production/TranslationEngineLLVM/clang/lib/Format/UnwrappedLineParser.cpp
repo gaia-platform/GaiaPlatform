@@ -1731,6 +1731,23 @@ void UnwrappedLineParser::parseIfThenElse() {
         addUnwrappedLine();
       --Line->Level;
     }
+  }
+  if (FormatTok->Tok.is(tok::kw_nomatch)) {
+    nextToken();
+    if (FormatTok->Tok.is(tok::l_brace)) {
+      CompoundStatementIndenter Indenter(this, Style, Line->Level);
+      parseBlock(/*MustBeDeclaration=*/false);
+      addUnwrappedLine();
+    } else if (FormatTok->Tok.is(tok::kw_if)) {
+      parseIfThenElse();
+    } else {
+      addUnwrappedLine();
+      ++Line->Level;
+      parseStructuralElement();
+      if (FormatTok->is(tok::eof))
+        addUnwrappedLine();
+      --Line->Level;
+    }
   } else if (NeedsUnwrappedLine) {
     addUnwrappedLine();
   }

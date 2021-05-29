@@ -252,10 +252,10 @@ ruleset test30
 
 ruleset test31
 {
-  OnDelete(incubator) // expected-error {{unknown type name 'OnDelete'}}
+  OnDelete(incubator) // expected-error {{Invalid Gaia rule attribute}}
   {
 
-  }// expected-error {{expected ';' after top level declarator}}
+  } // {{expected ';' after top level declarator}}
 }
 
 ruleset test32
@@ -681,10 +681,10 @@ ruleset test93
 
 ruleset test94
 {
-    Onward(incubator) // expected-error {{unknown type name 'Onward'}}
+    Onward(incubator) // expected-error {{Invalid Gaia rule attribute}}
     {
         incubator.min_temp = 0.0;
-    } // expected-error {{expected ';' after top level declarator}}
+    }
 }
 
 ruleset test95
@@ -803,7 +803,7 @@ ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
 ruleset test110 Table{actuator} // expected-error {{expected '{'}}
 { // expected-error {{expected unqualified-id}}
     {
-        actuator.value=.5; 
+        actuator.value=.5;
     }
 }
 
@@ -824,8 +824,7 @@ ruleset test121 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{
 #endif
 
 // GAIAPLAT-827
-#ifdef TEST_FAILURES
-ruleset test101
+ruleset test122
 {
     OnChange(sensor.value)
     {
@@ -835,33 +834,129 @@ ruleset test101
         }
     }
 }
-#endif
+
+// GAIAPLAT-947
+ruleset test123
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        else
+        {
+            i = 2;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+ruleset test124
+{
+    OnInsert(incubator)
+    {
+        int i = 0;
+        if (sensor.value > 99.0)
+        {
+            i = 1;
+        }
+        nomatch
+        {
+            i = 3;
+        }
+    }
+}
+
+// GAIAPLAT-948
+ruleset test125
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++)
+        {
+            i++;
+        }
+        if (i < 5) // expected-error {{A non-declarative 'if' statement may not use nomatch.}}
+        {
+            i = 1;
+        }
+        nomatch   // expected-error {{expected expression}}
+        {
+            i = 3;
+        }
+    }
+}
+
+// GAIAPLAT-808
+// The I.min_temp doesn't use the tag from the 'if'.
+ruleset test126
+{
+    OnChange(I:incubator)
+    {
+        if (/I:incubator.max_temp == 100.0) // expected-error {{Tag 'I' is already defined.}}
+                                            // expected-error@-1  {{use of undeclared identifier 'I'}}
+        {
+            I.min_temp ++;
+        }
+    }
+}
+
+// GAIAPLAT-922
+ruleset test127
+{
+    OnChange(actuator)
+    {
+        if (/I:incubator.max_temp == 100.0)
+        {
+            I:incubator.min_temp ++; // expected-error {{Tag 'I' is already defined.}}
+                                     // expected-error@-1  {{use of undeclared identifier 'incubator'}}
+        }
+
+    }
+}
+
+// GAIAPLAT-808
+ruleset test128
+{
+    OnChange(actuator)
+    {
+        if (/I:incubator.max_temp == 100.0)
+        {
+            I.min_temp ++;
+        }
+        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog.}}
+                      // expected-error@-1  {{use of undeclared identifier 'I'}}
+    }
+}
 
 // GAIAPLAT-821
-#ifdef TEST_FAILURES
-ruleset testE1
+ruleset test129
 {
     OnUpdate(incubator)
     {
-        if (/@incubator) {
+        if (/@incubator.min_temp) {
             int i = 0;
         }
     }
 }
-#endif
 
 // GAIAPLAT-821
-#ifdef TEST_FAILURES
-ruleset testE2
+ruleset test130
 {
     {
         min_temp += @incubator->sensor.value;
     }
 }
-#endif
 
 // GAIAPLAT-822
-ruleset testE3
+ruleset test131
 {
     {
         if (farmer->yield.bushels)
@@ -871,7 +966,7 @@ ruleset testE3
 
 // GAIAPLAT-877
 #ifdef TEST_FAILURES
-ruleset testE4
+ruleset test132
 {
     OnInsert(animal)
     {
@@ -883,11 +978,21 @@ ruleset testE4
 // GAIAPLAT-878
 // GAIAPLAT-913
 #ifdef TEST_FAILURES
-ruleset test105
+ruleset test133
 {
     OnInsert(animal)
     {
         animal->feeding = 5;
+    }
+}
+#endif
+
+// GAIAPLAT-803
+#ifdef TEST_FAILURES
+ruleset test134
+{
+    {
+        @animal.age = 4;
     }
 }
 #endif

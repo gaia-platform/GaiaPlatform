@@ -29,8 +29,8 @@ using namespace clang;
 
 void Parser::ConsumeInvalidRuleset()
 {
-    while(!SkipUntil(tok::l_brace));
-    while(!SkipUntil(tok::r_brace));
+    while(!SkipUntil(tok::l_brace) && Tok.getKind() != tok::eof);
+    while(!SkipUntil(tok::r_brace) && Tok.getKind() != tok::eof);
 }
 
 static std::string RandomString(std::string::size_type length)
@@ -68,7 +68,17 @@ std::string Parser::GetExplicitNavigationPath()
     }
 
     SourceLocation startLocation, endLocation;
-    if (previousPreviousToken.is(tok::slash))
+    if (previousPreviousToken.is(tok::at))
+    {
+        returnValue = "@";
+        startLocation = previousPreviousToken.getLocation();
+        if (getPreviousToken(previousPreviousToken).is(tok::slash))
+        {
+            returnValue = "/@";
+            startLocation = getPreviousToken(previousPreviousToken).getLocation();
+        }
+    }
+    else if (previousPreviousToken.is(tok::slash))
     {
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
@@ -80,6 +90,22 @@ std::string Parser::GetExplicitNavigationPath()
         {
             returnValue = tagToken.getIdentifierInfo()->getName().str() + ":";
             startLocation = tagToken.getLocation();
+            if (getPreviousToken(tagToken).is(tok::slash))
+            {
+                returnValue = "/" + returnValue;
+                startLocation = getPreviousToken(tagToken).getLocation();
+            }
+            else if (getPreviousToken(tagToken).is(tok::at))
+            {
+                tagToken = getPreviousToken(tagToken);
+                returnValue = "@" + returnValue;
+                startLocation = tagToken.getLocation();
+                if (getPreviousToken(tagToken).is(tok::slash))
+                {
+                    returnValue = "/" + returnValue;;
+                    startLocation = getPreviousToken(tagToken).getLocation();
+                }
+            }
         }
     }
     else
@@ -448,7 +474,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
     assert(Tok.is(tok::kw_ruleset) && "Not a ruleset!");
 
     ParsedAttributesWithRange attrs(AttrFactory);
-    SourceLocation rulesetLoc = ConsumeToken();  // eat the 'rulespace'.
+    SourceLocation rulesetLoc = ConsumeToken();  // eat the 'ruleset'.
 
     if (Tok.isNot(tok::identifier))
     {

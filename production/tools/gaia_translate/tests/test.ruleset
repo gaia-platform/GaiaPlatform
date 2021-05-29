@@ -61,7 +61,7 @@ ruleset test2
 {
 }
 
-void use_string(const char* name)
+void use_string(const char*)
 {
 
 }
@@ -75,7 +75,6 @@ ruleset test3
     }
 }
 
-#ifdef TEST_FAILURES
 ruleset testE13
 {
     OnInsert(sensor)
@@ -85,11 +84,39 @@ ruleset testE13
     }
 }
 
+#if 0
+// This rule interferes with 'ruleset set' rules
 ruleset test21
 {
     OnInsert(I:incubator)
     {
         I->actuator.value += 1.0;
+    }
+}
+#endif
+
+void use_float(float)
+{
+}
+
+ruleset testE21
+{
+    OnUpdate(incubator)
+    {
+        if (I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
+
+#if 0
+// This rule interferes with 'ruleset set' rules
+ruleset test15
+{
+    OnChange(incubator)
+    {
+        S:sensor.value = S.value * 1.01;
     }
 }
 #endif
