@@ -67,7 +67,6 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
         }
 
-
         if (first_component)
         {
             if (path_data.is_absolute_path)
@@ -93,24 +92,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                if (path_data.path_components.size() == 1)
-                {
-                    return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
-                }
-                else
-                {
-                    unordered_map<string, string> path_tags;
-                    if (!path_data.variable_name.empty() && path_data.tag_table_map.find(path_data.variable_name) != path_data.tag_table_map.end())
-                    {
-                        path_tags[path_data.variable_name] = path_data.tag_table_map[path_data.variable_name];
-                    }
-                    if (path_data.tag_table_map.find(table) != path_data.tag_table_map.end())
-                    {
-                        path_tags[table] = path_data.tag_table_map[table];
-                        table = path_data.tag_table_map[table];
-                    }
-                    return_value = generate_navigation_code(anchor_table, {table}, path_data.tag_table_map, last_variable_name);
-                }
+                return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
             }
             first_component = false;
         }
@@ -124,7 +106,6 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         source_table_type = table;
         source_table = last_variable_name;
         source_field = field;
-
     }
 
     return return_value;

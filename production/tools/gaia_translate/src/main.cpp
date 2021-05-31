@@ -48,12 +48,16 @@ std::string g_current_ruleset;
 bool g_is_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
-const int c_declaration_to_ruleset_offset = -2;
+constexpr int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
+
+constexpr int c_nomatch_offset_start = -16;
+constexpr int c_nomatch_offset_end = -11;
+
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -183,6 +187,11 @@ string get_table_from_expression(const string& expression)
 bool is_path_segment_contained_in_another_path(const vector<explicit_path_data_t>& path, const explicit_path_data_t& path_segment)
 {
     unordered_set<string> tag_container, table_container;
+
+    if (!path_segment.defined_tags.empty())
+    {
+        return false;
+    }
 
     for (const auto& path_iterator : path)
     {
@@ -584,6 +593,16 @@ void generate_table_subscription(const string& table, const string& field_subscr
         {
             for (const auto& data_iterator : explicit_path_data_iterator.second)
             {
+                SourceRange nomatch_range;
+                for (const auto& nomatch_source_range : g_nomatch_location)
+                {
+                    if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
+                    {
+                        nomatch_range = nomatch_source_range;
+                        break;
+                    }
+                }
+
                 navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                     table, data_iterator);
                 if (navigation_code.prefix.empty())
@@ -592,12 +611,30 @@ void generate_table_subscription(const string& table, const string& field_subscr
                     return;
                 }
 
-                rewriter.InsertTextBefore(
-                    explicit_path_data_iterator.first.getBegin(),
-                    navigation_code.prefix);
-                rewriter.InsertTextAfter(
-                    explicit_path_data_iterator.first.getEnd(),
-                    navigation_code.postfix);
+                if (nomatch_range.isValid())
+                {
+                    string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                    string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
+                    rewriter.InsertTextBefore(
+                        explicit_path_data_iterator.first.getBegin(),
+                        nomatch_prefix + navigation_code.prefix);
+                    rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                    rewriter.ReplaceText(
+                        SourceRange(nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_start),
+                            nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_end)),
+                        navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
+
+                    rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
+                }
+                else
+                {
+                    rewriter.InsertTextBefore(
+                        explicit_path_data_iterator.first.getBegin(),
+                        navigation_code.prefix);
+                    rewriter.InsertTextAfter(
+                        explicit_path_data_iterator.first.getEnd(),
+                        navigation_code.postfix);
+                }
             }
         }
     }
@@ -628,6 +665,16 @@ void generate_table_subscription(const string& table, const string& field_subscr
         {
             for (const auto& data_iterator : explicit_path_data_iterator.second)
             {
+                SourceRange nomatch_range;
+                for (const auto& nomatch_source_range : g_nomatch_location)
+                {
+                    if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
+                    {
+                        nomatch_range = nomatch_source_range;
+                        break;
+                    }
+                }
+
                 navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                     table, data_iterator);
                 if (navigation_code.prefix.empty())
@@ -635,12 +682,30 @@ void generate_table_subscription(const string& table, const string& field_subscr
                     g_is_generation_error = true;
                     return;
                 }
-                copy_rewriter.InsertTextBefore(
-                    explicit_path_data_iterator.first.getBegin(),
-                    navigation_code.prefix);
-                copy_rewriter.InsertTextAfter(
-                    explicit_path_data_iterator.first.getEnd(),
-                    navigation_code.postfix);
+                if (nomatch_range.isValid())
+                {
+                    string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                    string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
+                    copy_rewriter.InsertTextBefore(
+                        explicit_path_data_iterator.first.getBegin(),
+                        nomatch_prefix + navigation_code.prefix);
+                    copy_rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                    copy_rewriter.ReplaceText(
+                        SourceRange(nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_start),
+                            nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_end)),
+                        navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
+
+                    copy_rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
+                }
+                else
+                {
+                    copy_rewriter.InsertTextBefore(
+                        explicit_path_data_iterator.first.getBegin(),
+                        navigation_code.prefix);
+                    copy_rewriter.InsertTextAfter(
+                        explicit_path_data_iterator.first.getEnd(),
+                        navigation_code.postfix);
+                }
             }
         }
 
@@ -954,19 +1019,16 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
         {
             auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
-            if (check_call_expression(context, *expression))
-            {
-                return get_expression_source_range(context, *expression, return_value, rewriter);
-            }
-            else
-            {
-                return return_value;
-            }
+            return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
@@ -977,20 +1039,36 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
         }
         else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(expression->getInit()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(expression->getInc()->getSourceRange(), return_value) ||
+                is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()) ||
+                is_range_contained_in_another_range(return_value, expression->getInit()->getSourceRange()) ||
+                is_range_contained_in_another_range(return_value, expression->getInc()->getSourceRange()))
+            {
+                auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
@@ -1019,7 +1097,38 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
     return return_value;
 }
 
-void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, const explicit_path_data_t& data, const SourceRange& source_range, Rewriter& rewriter)
+bool is_expression_from_body(ASTContext* context, const Stmt& node)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (const auto* expression = node_parents_iterator.get<IfStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
+        {
+            return !(is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange()) ||
+                is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange()) ||
+                is_range_contained_in_another_range(expression->getInc()->getSourceRange(), node.getSourceRange()));
+        }
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
+        {
+            return is_expression_from_body(context, *expression);
+        }
+    }
+    return false;
+}
+
+void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, explicit_path_data_t data, const SourceRange& source_range, Rewriter& rewriter)
 {
     if (node == nullptr || data.path_components.empty())
     {
@@ -1027,16 +1136,6 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     }
     vector<explicit_path_data_t> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
-    for (const auto& nomatch_source_range : g_nomatch_location)
-    {
-        if (is_range_contained_in_another_range(nomatch_source_range, source_range))
-        {
-            path_data.push_back(data);
-            g_expression_explicit_path_data[expression_source_range] = path_data;
-            expression_source_range = source_range;
-            break;
-        }
-    }
     if (expression_source_range.isInvalid())
     {
         return;
@@ -1044,15 +1143,25 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
 
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
-        if (expression_explicit_path_data_iterator.first == expression_source_range ||
-            is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
+        if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
         {
-            if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+
+            if (!is_expression_from_body(context, *node))
             {
+                if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+                {
+                    return;
+                }
+                expression_explicit_path_data_iterator.second.push_back(data);
                 return;
             }
-            expression_explicit_path_data_iterator.second.push_back(data);
-            return;
+            else
+            {
+                for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
+                {
+                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
+                }
+            }
         }
     }
     path_data.push_back(data);
@@ -1233,7 +1342,7 @@ public:
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
                 {
-                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                    variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                     explicit_path_present = false;
                     expression_source_range
                         = SourceRange(
@@ -1368,6 +1477,7 @@ public:
 
                         if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
                         {
+                            variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                             explicit_path_present = false;
                             set_source_range.setBegin(member_expression->getBeginLoc());
                             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -1606,7 +1716,7 @@ public:
                         variable_name = declaration_expression->getNameInfo().getAsString();
                         if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
                         {
-                            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                            variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                             explicit_path_present = false;
                             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
                         }
