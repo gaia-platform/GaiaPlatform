@@ -41,15 +41,9 @@ set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_SYSTEM_PRIVATE_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PARSER_GENERATED})
-add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
-  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
-  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
 
-# Recovery tests. Not to be run with ctest.
-add_executable(test_recovery "tests/test_recovery.cpp")
-target_include_directories(test_recovery PRIVATE "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}")
-add_dependencies(test_recovery "generate_addr_book_headers")
-target_link_libraries(test_recovery PRIVATE rt gaia_system gaia_schema_loader gtest_main)
-set_target_properties(test_recovery PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(test_recovery PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-set_target_properties(test_recovery PROPERTIES CXX_CLANG_TIDY "")
+add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
+  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
+
+add_gtest(test_recovery "tests/test_recovery.cpp"
+    "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")

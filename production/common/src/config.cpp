@@ -39,7 +39,7 @@ string get_conf_file_path(const char* user_file_path, const char* default_filena
 {
     string str;
 
-    if (user_file_path)
+    if (user_file_path && strlen(user_file_path) > 0)
     {
         if (file_exists(user_file_path))
         {

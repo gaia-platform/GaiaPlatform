@@ -8,7 +8,6 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/direct_access/edc_base.hpp"
 #include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
@@ -16,6 +15,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -63,6 +63,25 @@ protected:
     system_init_test()
         : db_catalog_test_base_t("", true)
     {
+    }
+
+    static void SetUpTestSuite()
+    {
+        gaia_log::initialize({});
+
+        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_conf.instance_name = c_default_instance_name;
+
+        s_server_instance = server_instance_t{server_conf};
+
+        // Make the instance name the default, so that calls to begin_session()
+        // will automatically connect to that instance.
+        config::session_options_t session_options;
+        session_options.db_instance_name = s_server_instance.instance_name();
+        config::set_default_session_options(session_options);
+
+        s_server_instance.start();
+        s_server_instance.wait_for_init();
     }
 };
 

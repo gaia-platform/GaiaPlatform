@@ -95,7 +95,7 @@ static string generate_fdw_ddl_field(const gaia_field_t& field)
 
 string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
 {
-    bool was_transaction_already_active = gaia::db::is_transaction_active();
+    bool was_transaction_already_active = gaia::db::is_transaction_open();
     if (!was_transaction_already_active)
     {
         gaia::db::begin_transaction();

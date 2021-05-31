@@ -5,7 +5,7 @@
 
 #pragma once
 
-inline bool client_t::is_transaction_active()
+inline bool client_t::is_transaction_open()
 {
     return (s_private_locators.is_set());
 }
@@ -28,7 +28,7 @@ inline bool client_t::is_valid_event(common::gaia_type_t type)
 
 inline void client_t::verify_txn_active()
 {
-    if (!is_transaction_active())
+    if (!is_transaction_open())
     {
         throw no_open_transaction();
     }
@@ -36,7 +36,7 @@ inline void client_t::verify_txn_active()
 
 inline void client_t::verify_no_txn()
 {
-    if (is_transaction_active())
+    if (is_transaction_open())
     {
         throw transaction_in_progress();
     }
@@ -46,7 +46,7 @@ inline void client_t::verify_session_active()
 {
     if (s_session_socket == -1)
     {
-        throw no_active_session();
+        throw no_open_session();
     }
 }
 

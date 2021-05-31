@@ -106,6 +106,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         source_table_type = table;
         source_table = last_variable_name;
         source_field = field;
+
     }
 
     return return_value;

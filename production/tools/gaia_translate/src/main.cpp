@@ -27,6 +27,7 @@
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
 
 #include "table_navigation.h"
 
@@ -1136,9 +1137,15 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     }
     vector<explicit_path_data_t> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
-    if (expression_source_range.isInvalid())
+    for (const auto& nomatch_source_range : g_nomatch_location)
     {
-        return;
+        if (is_range_contained_in_another_range(nomatch_source_range, source_range))
+        {
+            path_data.push_back(data);
+            g_expression_explicit_path_data[expression_source_range] = path_data;
+            expression_source_range = source_range;
+            break;
+        }
     }
 
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
@@ -2393,6 +2400,9 @@ int main(int argc, const char** argv)
     cl::list<std::string> source_files(
         cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
         cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+    cl::opt<std::string> instance_name(
+        "n", cl::desc("DB instance name"), cl::Optional,
+        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
 
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
@@ -2420,6 +2430,13 @@ int main(int argc, const char** argv)
     {
         cerr << "Translation Engine does not support more than one source ruleset." << endl;
         return EXIT_FAILURE;
+    }
+
+    if (!instance_name.empty())
+    {
+        gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
+        session_options.db_instance_name = instance_name.getValue();
+        gaia::db::config::set_default_session_options(session_options);
     }
 
     if (!compilation_database)

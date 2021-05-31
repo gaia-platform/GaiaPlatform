@@ -20,7 +20,10 @@
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
+#include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/db_server_instance.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "command.hpp"
 #include "gaia_parser.hpp"
@@ -182,21 +185,24 @@ string usage()
 {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -d|--db-name <dbname>    Specify the database name.\n"
-          "  -i|--interactive         Interactive prompt, as a REPL.\n"
-          "  -g|--generate            Generate direct access API header files.\n"
-          "  -o|--output <path>       Set the path to all generated files.\n"
+          "  -n|--instance-name <name> Specify the database instance name."
+          "                            If not specified will use "
+       << c_default_instance_name << "."
+       << "                            If 'rnd' is specified will use a "
+          "  -d|--db-name <dbname>     Specify the database name.\n"
+          "  -i|--interactive          Interactive prompt, as a REPL.\n"
+          "  -g|--generate             Generate direct access API header files.\n"
+          "  -o|--output <path>        Set the path to all generated files.\n"
 #ifdef DEBUG
-          "  -p|--parse-trace         Print parsing trace.\n"
-          "  -s|--scan-trace          Print scanning trace.\n"
-          "  -t|--db-server-path      Start the DB server (for testing purposes).\n"
-          "  --destroy-db             Destroy the persistent store.\n"
+          "  -p|--parse-trace          Print parsing trace.\n"
+          "  -s|--scan-trace           Print scanning trace.\n"
+          "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
 #endif
-          "  <ddl_file>               Process the DDLs in the file.\n"
-          "                           In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-          "                           The database will be created automatically.\n"
-          "  -h|--help                Print help information.\n"
-          "  -v|--version             Version information.\n";
+          "  <ddl_file>                Process the DDLs in the file.\n"
+          "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+          "                            The database will be created automatically.\n"
+          "  -h|--help                 Print help information.\n"
+          "  -v|--version              Version information.\n";
     return ss.str();
 }
 
@@ -230,13 +236,13 @@ int main(int argc, char* argv[])
 {
     gaia_log::initialize({});
 
-    server_t server;
+    server_instance_t server;
     string output_path;
+    string instance_name = c_default_instance_name;
     vector<string> db_names;
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
-    bool remove_persistent_store = false;
     const char* path_to_db_server = nullptr;
 
     // If no arguments are specified print the help.
@@ -299,6 +305,15 @@ int main(int argc, char* argv[])
             }
             db_names.push_back(db_name);
         }
+        else if (argv[i] == string("-n") || argv[i] == string("--instance-name"))
+        {
+            if (++i > argc - 1)
+            {
+                cerr << c_error_prompt << "Missing instance name." << endl;
+                exit(EXIT_FAILURE);
+            }
+            instance_name = argv[i];
+        }
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
             cout << usage() << endl;
@@ -309,10 +324,6 @@ int main(int argc, char* argv[])
             cout << version() << endl;
             exit(EXIT_SUCCESS);
         }
-        else if (argv[i] == string("--destroy-db"))
-        {
-            remove_persistent_store = true;
-        }
         else
         {
             ddl_filename = argv[i];
@@ -321,22 +332,23 @@ int main(int argc, char* argv[])
 
     if (path_to_db_server)
     {
-        server.set_path(path_to_db_server);
-        if (remove_persistent_store)
-        {
-            server.start();
-        }
-        else
-        {
-            server.start_and_retain_persistent_store();
-        }
+        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_conf.instance_name = instance_name;
+        server_conf.server_exec_path = string(path_to_db_server) + "/" + string(c_db_server_exec_name);
+
+        server = server_instance_t{server_conf};
+        server.start();
     }
+
+    gaia::db::config::session_options_t session_options;
+    session_options.db_instance_name = instance_name;
+    gaia::db::config::set_default_session_options(session_options);
 
     gaia::db::begin_session();
 
     const auto cleanup = scope_guard::make_scope_guard([&server]() {
         gaia::db::end_session();
-        if (server.server_started())
+        if (server.is_initialized())
         {
             server.stop();
         }

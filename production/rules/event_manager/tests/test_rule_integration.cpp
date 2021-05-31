@@ -18,13 +18,13 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
+#include "schema_loader.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -126,7 +126,7 @@ void rule_delete(const rule_context_t* context)
 {
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
-    EXPECT_THROW(d.delete_row(), invalid_node_id);
+    EXPECT_THROW(d.delete_row(), invalid_object_id);
     g_wait_for_count--;
 }
 
@@ -258,19 +258,16 @@ public:
 protected:
     static void SetUpTestSuite()
     {
+        db_test_base_t::SetUpTestSuite();
+
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        // NOTE: to run this test manually, you need to set the env variable DDL_FILE
-        // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
-        reset_server();
-        const char* ddl_file = getenv("DDL_FILE");
-        ASSERT_NE(ddl_file, nullptr) << "The DDL file must be specified via the env DDL_FILE";
         begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
-        load_catalog(ddl_file);
+        schema_loader_t::instance().load_schema("addr_book.ddl");
 
         event_manager_settings_t settings;
 
@@ -316,7 +313,7 @@ TEST_F(rule_integration_test, test_insert)
     // rule that was fired above.
     {
         auto_transaction_t txn(false);
-        address_t a = address_t::get_first();
+        address_t a = *(address_t::list().begin());
         EXPECT_STREQ(a.city(), c_city);
         EXPECT_STREQ(a.state(), c_state);
     }

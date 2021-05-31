@@ -26,6 +26,7 @@
 
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
+#include "schema_loader.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -68,13 +69,13 @@ extern "C" void handle_rule_exception()
 {
     // A transaction should not be active if we got here because the rules engine
     // should have aborted the transaction prior to getting in to the catch handler.
-    EXPECT_FALSE(gaia::db::is_transaction_active());
+    EXPECT_FALSE(gaia::db::is_transaction_open());
 
     try
     {
         throw;
     }
-    catch (const gaia::db::invalid_node_id&)
+    catch (const gaia::db::invalid_object_id&)
     {
         g_exception_counters[exception_type_t::invalid_node]++;
     }
@@ -103,14 +104,6 @@ void rule_std_exception(const rule_context_t*)
 void rule_non_std_exception(const rule_context_t*)
 {
     throw my_non_std_exception();
-}
-
-void rule_invalid_node_exception(const rule_context_t*)
-{
-
-    employee_t bad;
-    // Accessing this object should throw an exception because the employee does not exist in the database.
-    bad = bad.get_next();
 }
 
 void rule_conflict_exception(const rule_context_t* context)
@@ -142,12 +135,6 @@ void rule_conflict_exception(const rule_context_t* context)
 class rule_exception_test : public db_test_base_t
 {
 public:
-    void subscribe_invalid_node()
-    {
-        rule_binding_t rule{"ruleset", "rule_invalid_node", rule_invalid_node_exception};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
-    }
-
     void subscribe_conflict()
     {
         rule_binding_t binding{"ruleset", "rule_conflict", rule_conflict_exception};
@@ -202,19 +189,16 @@ public:
 protected:
     static void SetUpTestSuite()
     {
+        db_test_base_t::SetUpTestSuite();
+
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        // NOTE: to run this test manually, you need to set the env variable DDL_FILE
-        // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
-        reset_server();
-        const char* ddl_file = getenv("DDL_FILE");
-        ASSERT_NE(ddl_file, nullptr);
         begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
-        load_catalog(ddl_file);
+        schema_loader_t::instance().load_schema("addr_book.ddl");
 
         event_manager_settings_t settings;
 
@@ -266,20 +250,6 @@ TEST_F(rule_exception_test, test_non_std_exception)
     trigger_rule();
     gaia::rules::shutdown_rules_engine();
     verify_exception_counters(exception_type_t::non_standard, 1);
-
-    gaia::rules::initialize_rules_engine();
-}
-
-// Ensures the exception is caught by the rules engine and
-// doesn't escape to the test process.
-TEST_F(rule_exception_test, test_invalid_node_exception)
-{
-    init_exception_counters();
-
-    subscribe_invalid_node();
-    trigger_rule();
-    gaia::rules::shutdown_rules_engine();
-    verify_exception_counters(exception_type_t::invalid_node, 1);
 
     gaia::rules::initialize_rules_engine();
 }

@@ -18,13 +18,49 @@
 #include "payload_diff.hpp"
 
 using namespace gaia::common;
-using namespace gaia::db;
+using namespace gaia::common::iterators;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::triggers;
+
+namespace gaia
+{
+namespace db
+{
+
+gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
+{
+    m_locator = db_hash_map::find(id);
+}
+
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
+{
+    m_locator = locator;
+    client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
+}
 
 gaia_id_t gaia_ptr_t::generate_id()
 {
     return allocate_id();
+}
+
+db_object_t* gaia_ptr_t::to_ptr() const
+{
+    client_t::verify_txn_active();
+    return locator_to_ptr(m_locator);
+}
+
+gaia_offset_t gaia_ptr_t::to_offset() const
+{
+    client_t::verify_txn_active();
+    return locator_to_offset(m_locator);
+}
+
+void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
+{
+    if (client_t::is_valid_event(type))
+    {
+        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
+    }
 }
 
 gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* data)
@@ -51,7 +87,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_referen
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
@@ -96,7 +132,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& node)
     {
         if (references[i] != c_invalid_gaia_id)
         {
-            throw node_not_disconnected(node.id(), node.type());
+            throw object_still_referenced(node.id(), node.type());
         }
     }
     node.reset();
@@ -136,7 +172,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > db_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
     }
 
     // Updates m_locator to point to the new object.
@@ -177,70 +213,79 @@ gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
 
     if (!ptr.is(type))
     {
-        ptr.find_next(type);
+        ptr = ptr.find_next(type);
     }
 
     return ptr;
 }
 
-gaia_ptr_t gaia_ptr_t::find_next()
+gaia_ptr_t gaia_ptr_t::find_next() const
 {
     if (m_locator)
     {
-        find_next(to_ptr()->type);
+        return find_next(to_ptr()->type);
     }
 
     return *this;
 }
 
-void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
-{
-    if (client_t::is_valid_event(type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
-    }
-}
-
-gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
-{
-    m_locator = db_hash_map::find(id);
-}
-
-gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
-{
-    m_locator = locator;
-    client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
-}
-
-db_object_t* gaia_ptr_t::to_ptr() const
-{
-    client_t::verify_txn_active();
-    return locator_to_ptr(m_locator);
-}
-
-gaia_offset_t gaia_ptr_t::to_offset() const
-{
-    client_t::verify_txn_active();
-    return locator_to_offset(m_locator);
-}
-
-void gaia_ptr_t::find_next(gaia_type_t type)
+gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 {
     gaia::db::counters_t* counters = gaia::db::get_counters();
+    gaia_ptr_t next_ptr = *this;
+
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
+
     // Search for objects of this type within the range of used locators.
-    while (++m_locator && m_locator <= counters->last_locator)
+    while (++next_ptr.m_locator && next_ptr.m_locator <= counters->last_locator)
     {
-        if (is(type))
+        if (next_ptr.is(type))
         {
-            return;
+            return next_ptr;
         }
         __sync_synchronize();
     }
-    m_locator = c_invalid_gaia_locator;
+
+    // Mark end of search.
+    next_ptr.m_locator = c_invalid_gaia_locator;
+    return next_ptr;
+}
+
+// This trivial implementation is necessary to avoid calling into client_t code from the header file.
+std::function<std::optional<gaia_id_t>()>
+gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
+{
+    return client_t::get_id_generator_for_type(type);
+}
+
+generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iterator(
+    gaia_type_t type)
+{
+    // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
+    std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
+    std::function<std::optional<gaia_ptr_t>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr_t> {
+        std::optional<gaia_id_t> id_opt;
+        while ((id_opt = id_generator()))
+        {
+            gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
+            if (gaia_ptr)
+            {
+                return gaia_ptr;
+            }
+        }
+        return std::nullopt;
+    };
+
+    return generator_iterator_t(gaia_ptr_generator);
+}
+
+range_t<generator_iterator_t<gaia_ptr_t>> gaia_ptr_t::find_all_range(
+    gaia_type_t type)
+{
+    return range(find_all_iterator(type));
 }
 
 void gaia_ptr_t::reset()
@@ -254,13 +299,6 @@ void gaia_ptr_t::reset()
     }
     (*locators)[m_locator] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;
-}
-
-// This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::function<std::optional<gaia_id_t>()>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return client_t::get_id_generator_for_type(type);
 }
 
 void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
@@ -280,7 +318,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (!child_ptr)
     {
-        throw invalid_node_id(child_id);
+        throw invalid_object_id(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -350,7 +388,7 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -376,7 +414,7 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (!child_ptr)
     {
-        throw invalid_node_id(child_id);
+        throw invalid_object_id(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -451,7 +489,7 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_id);
+        throw invalid_object_id(parent_id);
     }
 
     // Remove reference.
@@ -474,7 +512,7 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
 
     if (!new_parent_ptr)
     {
-        throw invalid_node_id(new_parent_id);
+        throw invalid_object_id(new_parent_id);
     }
 
     // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods
@@ -500,3 +538,6 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
 
     new_parent_ptr.add_child_reference(id(), relationship->first_child_offset);
 }
+
+} // namespace db
+} // namespace gaia

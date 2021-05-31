@@ -29,8 +29,8 @@ using namespace clang;
 
 void Parser::ConsumeInvalidRuleset()
 {
-    while(!SkipUntil(tok::l_brace));
-    while(!SkipUntil(tok::r_brace));
+    while(!SkipUntil(tok::l_brace) && Tok.getKind() != tok::eof);
+    while(!SkipUntil(tok::r_brace) && Tok.getKind() != tok::eof);
 }
 
 static std::string RandomString(std::string::size_type length)

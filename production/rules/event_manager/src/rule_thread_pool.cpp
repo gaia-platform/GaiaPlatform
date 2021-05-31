@@ -200,7 +200,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 
             should_schedule = true;
             s_tls_can_enqueue = true;
-            if (gaia::db::is_transaction_active())
+            if (gaia::db::is_transaction_open())
             {
                 txn.commit();
             }

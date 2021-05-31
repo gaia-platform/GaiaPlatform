@@ -11,8 +11,6 @@
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "db_test_util.hpp"
-
 using namespace gaia::db;
 using namespace gaia::common;
 
@@ -330,23 +328,11 @@ void iterate_test_validate_iterations()
 {
     gaia_type_t first_test_type = gaia_type_t(c_first_test_type);
 
-    gaia_type_t type = 1;
-
-    std::cerr << std::endl;
-    std::cerr << "*** Iterating over nodes in type with predicate:" << std::endl;
-    type = 1;
-    for (auto node : gaia_ptr_t::find_all_range(
-             type, [](gaia_ptr_t ptr) { return ptr.id() == 1; }))
-    {
-        print_node(node);
-        EXPECT_EQ(node.id(), 1);
-    }
-
     size_t count, expected_count;
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over empty type:" << std::endl;
-    type = first_test_type - 1;
+    gaia_type_t type = first_test_type - 1;
     count = 0;
     expected_count = 0;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -537,7 +523,7 @@ TEST_F(db_client_test, create_large_object)
         num_refs = 51;
         std::cerr << std::endl;
         std::cerr << "*** Creating a too-large node (" << payload_size + sizeof(gaia_id_t) << " bytes):" << std::endl;
-        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), payload_size_too_large);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), object_too_large);
     }
     commit_transaction();
 }

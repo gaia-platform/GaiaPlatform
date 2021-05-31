@@ -17,7 +17,8 @@
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger_internal.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/db_server_instance.hpp"
 
 #include "db_test_util.hpp"
 #include "gaia_addr_book.h"
@@ -25,6 +26,7 @@
 #include "type_id_mapping.hpp"
 
 using namespace gaia::db;
+using namespace gaia::db::config;
 using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
@@ -36,20 +38,11 @@ using std::make_pair;
 using std::map;
 using std::string;
 
-// TODO (Mihir) - Run with ctest?
-// Sample usage:
-// test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/core"
-
 class recovery_test : public ::testing::Test
 {
 public:
     // Empty server path, enable persistence.
-    static inline server_t s_server{nullptr, false};
-
-    static void set_server_path(const char* server_path)
-    {
-        s_server.set_path(server_path);
-    }
+    static inline server_instance_t s_server{};
 
     // Write 16 records in a single transaction.
     static constexpr size_t c_load_batch_size = 16;
@@ -95,9 +88,31 @@ public:
     static void ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
 
 protected:
+    static void SetUpTestSuite()
+    {
+        gaia_log::initialize({});
+
+        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_conf.disable_persistence = false;
+        server_conf.data_dir = server_instance_config_t::generate_data_dir(server_conf.instance_name);
+        s_server = server_instance_t{server_conf};
+
+        session_options_t session_options;
+        session_options.db_instance_name = s_server.instance_name();
+        set_default_session_options(session_options);
+    }
+
+    static void TearDownTestSuite()
+    {
+        if (s_server.is_initialized())
+        {
+            s_server.stop();
+        }
+        s_server.delete_data_dir();
+    }
+
     void SetUp() override
     {
-        s_server.stop();
         s_server.start();
         begin_session();
         type_id_mapping_t::instance().clear();
@@ -110,6 +125,7 @@ protected:
     void TearDown() override
     {
         s_server.stop();
+        s_server.delete_data_dir();
     }
 
 private:
@@ -122,7 +138,7 @@ void recovery_test::validate_data()
 {
     size_t count = 0;
     begin_transaction();
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         auto it = s_employee_map.find(employee.gaia_id());
 
@@ -239,7 +255,9 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
             // Insert row.
             auto e = generate_employee_record();
             temp_employee_map.insert(
-                make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
+                make_pair(
+                    e.gaia_id(),
+                    employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
         }
         commit_transaction();
 
@@ -253,7 +271,8 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
         {
             cout << "Crash during load" << endl;
             end_session();
-            s_server.start_and_retain_persistent_store();
+            s_server.restart();
+
             begin_session();
             validate_data();
         }
@@ -272,7 +291,7 @@ int recovery_test::get_count()
 {
     int total_count = 0;
     begin_transaction();
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         total_count++;
     }
@@ -288,7 +307,7 @@ void recovery_test::delete_all(int initial_record_count)
 
     // Cache entries to delete.
     std::set<gaia_id_t> to_delete;
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
+    for (auto employee : employee_t::list())
     {
         total_count++;
         to_delete.insert(employee.gaia_id());
@@ -309,7 +328,7 @@ void recovery_test::delete_all(int initial_record_count)
             {
                 e.delete_row();
             }
-            catch (const node_not_disconnected& e)
+            catch (const object_still_referenced& e)
             {
                 continue;
             }
@@ -332,7 +351,7 @@ void recovery_test::delete_all(int initial_record_count)
 void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload)
 {
     int initial_record_count;
-    s_server.start_and_retain_persistent_store();
+    s_server.start();
     begin_session();
     initial_record_count = get_count();
     delete_all(initial_record_count);
@@ -343,7 +362,7 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
     // Restart server, modify & validate data.
     for (int i = 0; i < crash_validate_loop_count; i++)
     {
-        s_server.start_and_retain_persistent_store();
+        s_server.restart();
         begin_session();
         cout << "Count post recovery: " << get_count() << endl;
         validate_data();
@@ -354,23 +373,22 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
         end_session();
     }
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     delete_all(initial_record_count);
     end_session();
 
     // Validate all data deleted.
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     ASSERT_TRUE(get_count() == initial_record_count || get_count() == 0);
     end_session();
-    s_server.stop();
 }
 
 void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test()
 {
     gaia_id_t id;
-    s_server.start_and_retain_persistent_store();
+    s_server.start();
     begin_session();
     begin_transaction();
     auto e1 = generate_employee_record();
@@ -378,7 +396,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
     rollback_transaction();
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     begin_transaction();
     ASSERT_FALSE(employee_t::get(id));
@@ -395,7 +413,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
 void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn()
 {
     gaia_id_t id;
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     begin_transaction();
     auto e1 = generate_employee_record();
@@ -403,7 +421,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     rollback_transaction();
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     begin_transaction();
     ASSERT_FALSE(employee_t::get(id));
@@ -421,7 +439,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
 
 TEST_F(recovery_test, reference_update_test)
 {
-    s_server.start_and_retain_persistent_store();
+    s_server.start();
     begin_session();
     gaia_id_t address_id{c_invalid_gaia_id};
     {
@@ -468,13 +486,13 @@ TEST_F(recovery_test, reference_update_test)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     std::set<gaia_id_t> recovered_phone_ids;
     {
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
+        ASSERT_THROW(address_t::get(address_id).delete_row(), object_still_referenced);
         for (auto const& phone : address_t::get(address_id).phones())
         {
             recovered_phone_ids.insert(phone.gaia_id());
@@ -491,7 +509,7 @@ TEST_F(recovery_test, reference_update_test)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
     begin_session();
     begin_transaction();
     auto phone_list = address_t::get(address_id).phones();
@@ -507,7 +525,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     gaia_id_t parent_id;
     std::vector<gaia_id_t> children_ids{};
 
-    s_server.start_and_retain_persistent_store();
+    s_server.start();
     begin_session();
     {
         auto_transaction_t txn;
@@ -542,7 +560,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
 
     begin_session();
     {
@@ -551,7 +569,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         // Get the parent.
         gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(gaia_ptr_t::remove(parent), node_not_disconnected);
+        ASSERT_THROW(gaia_ptr_t::remove(parent), object_still_referenced);
 
         // Find the children.
         gaia_ptr_t first_child = gaia_ptr_t::open(parent.references()[c_first_patient_offset]);
@@ -588,7 +606,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
 
     begin_session();
     {
@@ -610,7 +628,7 @@ TEST_F(recovery_test, reference_update_test_new)
     gaia_id_t child_id;
     gaia_id_t new_parent_id;
 
-    s_server.start_and_retain_persistent_store();
+    s_server.start();
     begin_session();
     {
         auto_transaction_t txn;
@@ -635,7 +653,7 @@ TEST_F(recovery_test, reference_update_test_new)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
 
     begin_session();
     {
@@ -653,7 +671,7 @@ TEST_F(recovery_test, reference_update_test_new)
     }
     end_session();
 
-    s_server.start_and_retain_persistent_store();
+    s_server.restart();
 
     begin_session();
     {
@@ -696,20 +714,4 @@ TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
     // Writes will exist in both the WAL & SST files.
     // TODO - Test is switched off as it takes some time to run. Run on teamcity.
     load_modify_recover_test(load_size, 1, false);
-}
-
-int main(int argc, char** argv)
-{
-    gaia_log::initialize({});
-
-    if (argc != 2)
-    {
-        gaia_log::db().critical("You must specify the gaia_db_server path. eg:\n\n "
-                                " test_recovery \"production/build/db/core\"");
-        exit(1);
-    }
-
-    ::testing::InitGoogleTest(&argc, argv);
-    recovery_test::set_server_path(argv[1]);
-    return RUN_ALL_TESTS();
 }

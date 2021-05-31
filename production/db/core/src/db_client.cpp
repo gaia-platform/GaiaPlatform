@@ -13,6 +13,7 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
+#include <spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -287,7 +288,7 @@ void client_t::txn_cleanup()
     s_events.clear();
 }
 
-int client_t::get_session_socket()
+int client_t::get_session_socket(const std::string& socket_name)
 {
     // Unlike the session socket on the server, this socket must be blocking,
     // because we don't read within a multiplexing poll loop.
@@ -306,12 +307,12 @@ int client_t::get_session_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(strlen(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
+    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], c_db_server_socket_name, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], socket_name.c_str(), sizeof(server_addr.sun_path) - 1);
 
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -337,7 +338,7 @@ int client_t::get_session_socket()
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
-void client_t::begin_session()
+void client_t::begin_session(config::session_options_t session_options)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -353,9 +354,11 @@ void client_t::begin_session()
 
     ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
+    s_session_options = session_options;
+
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket();
+    s_session_socket = get_session_socket(s_session_options.db_instance_name);
 
     auto cleanup_session_socket = make_scope_guard([&]() {
         close_fd(s_session_socket);
@@ -440,12 +443,9 @@ void client_t::begin_transaction()
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
 
-    // Allocate a new log segment and map it in our own process.
-    std::stringstream mem_log_name;
-    mem_log_name << c_gaia_mem_txn_log << ':' << s_txn_id;
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
-    log.create(mem_log_name.str().c_str());
+    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_options.db_instance_name, s_txn_id).c_str());
 
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;

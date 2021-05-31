@@ -9,19 +9,17 @@
 
 #include <csignal>
 
-#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <shared_mutex>
 #include <thread>
 #include <unordered_set>
 
+#include "spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
-#include <sys/file.h>
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
@@ -49,6 +47,8 @@ using namespace gaia::db::storage;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
+
+using persistence_mode_t = server_config_t::persistence_mode_t;
 
 static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
 static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
@@ -623,10 +623,10 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(c_gaia_mem_locators);
-    s_shared_counters.create(c_gaia_mem_counters);
-    s_shared_data.create(c_gaia_mem_data);
-    s_shared_id_index.create(c_gaia_mem_id_index);
+    s_shared_locators.create(fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_counters.create(fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_data.create(fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
+    s_shared_id_index.create(fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
 
     init_memory_manager();
 
@@ -693,14 +693,14 @@ address_offset_t server_t::allocate_object(
 void server_t::recover_db()
 {
     // If persistence is disabled, then this is a no-op.
-    if (!(s_persistence_mode == persistence_mode_t::e_disabled))
+    if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>();
-            if (s_persistence_mode == persistence_mode_t::e_reinitialized_on_startup)
+            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_server_conf.data_dir());
+            if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
             }
@@ -711,7 +711,7 @@ void server_t::recover_db()
 
     // If persistence is disabled after recovery, then destroy the RocksDB
     // instance.
-    if (s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)
+    if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
     {
         rdb.reset();
     }
@@ -747,7 +747,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
     signal_eventfd(s_server_shutdown_eventfd);
 }
 
-void server_t::init_listening_socket()
+void server_t::init_listening_socket(const std::string& socket_name)
 {
     // Launch a connection-based listening Unix socket on a well-known address.
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
@@ -769,12 +769,12 @@ void server_t::init_listening_socket()
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    static_assert(sizeof(c_db_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
+    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], c_db_server_socket_name, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], socket_name.c_str(), sizeof(server_addr.sun_path) - 1);
 
     // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but
@@ -874,7 +874,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
     }
 }
 
-void server_t::client_dispatch_handler()
+void server_t::client_dispatch_handler(const std::string& socket_name)
 {
     // Register session cleanup handler first, so we can execute it last.
     auto session_cleanup = make_scope_guard([]() {
@@ -888,7 +888,7 @@ void server_t::client_dispatch_handler()
     });
 
     // Start listening for incoming client connections.
-    init_listening_socket();
+    init_listening_socket(socket_name);
     // We close the listening socket before waiting for session threads to exit,
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
@@ -2157,8 +2157,8 @@ void server_t::gc_applied_txn_logs()
             // If persistence is enabled, then we also need to check that
             // TXN_PERSISTENCE_COMPLETE is set (to avoid having redo versions
             // deallocated while they're being persisted).
-            bool is_persistence_enabled = (s_persistence_mode != persistence_mode_t::e_disabled)
-                && (s_persistence_mode != persistence_mode_t::e_disabled_after_recovery);
+            bool is_persistence_enabled = (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
+                && (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled_after_recovery);
 
             if (is_persistence_enabled && !txn_metadata_t::is_txn_durable(ts))
             {
@@ -2375,10 +2375,10 @@ bool server_t::txn_commit()
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server_t::run(persistence_mode_t persistence_mode)
+void server_t::run(server_config_t server_conf)
 {
     // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_persistence_mode = persistence_mode;
+    s_server_conf = server_conf;
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
@@ -2410,7 +2410,7 @@ void server_t::run(persistence_mode_t persistence_mode)
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         // Launch thread to listen for client connections and create session threads.
-        std::thread client_dispatch_thread(client_dispatch_handler);
+        std::thread client_dispatch_thread(client_dispatch_handler, server_conf.instance_name());
 
         // The client dispatch thread will only return after all sessions have been disconnected
         // and the listening socket has been closed.
@@ -2427,8 +2427,8 @@ void server_t::run(persistence_mode_t persistence_mode)
         // data would disappear on reset, only to reappear when the database is
         // restarted and recovers from the persistent store.
         if (!(caught_signal == SIGHUP
-              && (s_persistence_mode == persistence_mode_t::e_disabled
-                  || s_persistence_mode == persistence_mode_t::e_disabled_after_recovery)))
+              && (server_conf.persistence_mode() == persistence_mode_t::e_disabled
+                  || server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)))
         {
             if (caught_signal == SIGHUP)
             {

@@ -48,7 +48,7 @@ extern int32_t g_onupdate3_value;
 
 extern std::atomic<int32_t> g_insert_count;
 
-const int c_rule_execution_step_delay = 5000;
+const int c_rule_execution_step_delay = 10000;
 const int c_rule_execution_total_delay = 25000;
 
 /**
