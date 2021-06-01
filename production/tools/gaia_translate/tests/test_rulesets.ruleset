@@ -298,6 +298,7 @@ ruleset test_query_5
     OnUpdate(S:student)
     {
 #ifdef TEST_FAILURES
+// GAIAPLAT-989
         while (student->R:registration->C:course.hours > 0)
         {
             g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
