@@ -109,7 +109,7 @@ std::shared_ptr<edc_base_iterator_state_t> edc_db_t::initialize_iterator(gaia_ty
 
 gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
-    ASSERT_PRECONDITION(!!iterator_state, "Attempt to access unset iterator state!");
+    ASSERT_PRECONDITION(iterator_state, "Attempt to access unset iterator state!");
 
 #ifdef USE_LOCATOR_ITERATION
     gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
@@ -132,7 +132,7 @@ gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t
 
 bool edc_db_t::advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
-    ASSERT_PRECONDITION(!!iterator_state, "Attempt to advance unset iterator state!");
+    ASSERT_PRECONDITION(iterator_state, "Attempt to advance unset iterator state!");
 
 #ifdef USE_LOCATOR_ITERATION
     gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;

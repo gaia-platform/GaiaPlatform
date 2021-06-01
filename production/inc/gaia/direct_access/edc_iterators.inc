@@ -38,7 +38,7 @@ edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id)
 template <typename T_class>
 edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
 {
-    ASSERT_PRECONDITION(!!m_iterator_state, "Attempt to increment unset iterator state!");
+    ASSERT_PRECONDITION(m_iterator_state, "Attempt to increment unset iterator state!");
 
     if (!m_obj)
     {

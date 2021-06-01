@@ -39,9 +39,9 @@ public:
 
     // We implicitly construct from a std::function with the right signature.
     generator_iterator_t(
-        std::function<std::optional<T_output>()> g,
-        std::function<bool(T_output)> p = [](T_output) { return true; })
-        : m_generator(std::move(g)), m_predicate(std::move(p))
+        std::function<std::optional<T_output>()> generator,
+        std::function<bool(T_output)> predicate = [](T_output) { return true; })
+        : m_generator(std::move(generator)), m_predicate(std::move(predicate))
     {
         // We need to initialize the iterator to the first valid state.
         while ((m_state = m_generator()))
