@@ -10,6 +10,9 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
+// This macro enables us to easily switch between the cursor-based iteration and the locator-based iteration.
+// Currently, this is set manually, but in the future, this could get passed as a compilation flag from
+// the make files, so that we can compile this code differently for server and client.
 #undef USE_LOCATOR_ITERATION
 
 using namespace gaia::db;
