@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 
+#include <fstream>
 #include <memory>
 #include <random>
 #include <string>
@@ -17,9 +18,11 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
-#include "gaia_internal/db/db_test_helpers.hpp"
+#include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/db_server_instance.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
@@ -35,23 +38,35 @@ public:
         return m_client_manages_session;
     }
 
-private:
-    bool m_client_manages_session;
-    bool m_disable_persistence;
-
-protected:
-    static void SetUpTestSuite()
+    static server_instance_t& get_server_instance()
     {
-        gaia_log::initialize({});
+        return s_server_instance;
     }
 
-    explicit db_test_base_t(bool client_manages_session, bool disable_persistence = true)
-        : m_client_manages_session(client_manages_session), m_disable_persistence(disable_persistence)
+protected:
+    explicit db_test_base_t(bool client_manages_session)
+        : m_client_manages_session(client_manages_session), m_disable_persistence(true)
     {
     }
 
     db_test_base_t()
         : db_test_base_t(false){};
+
+    static void SetUpTestSuite()
+    {
+        gaia_log::initialize({});
+
+        s_server_instance = server_instance_t();
+
+        // Make the instance name the default, so that calls to begin_session()
+        // will automatically connect to that instance.
+        config::session_options_t session_options;
+        session_options.db_instance_name = s_server_instance.instance_name();
+        config::set_default_session_options(session_options);
+
+        s_server_instance.start();
+        s_server_instance.wait_for_init();
+    }
 
     // Since ctest always launches each gtest in a new process, there is no point
     // to defining separate SetUpTestSuite/TearDownTestSuite methods.  However, tests
@@ -67,7 +82,7 @@ protected:
         if (m_disable_persistence)
         {
             gaia_log::db().info("Resetting server before running test.");
-            reset_server();
+            s_server_instance.reset_server();
         }
         else
         {
@@ -86,6 +101,13 @@ protected:
             end_session();
         }
     }
+
+protected:
+    static inline server_instance_t s_server_instance{};
+
+private:
+    bool m_client_manages_session;
+    bool m_disable_persistence;
 };
 
 } // namespace db

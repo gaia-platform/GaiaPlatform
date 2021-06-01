@@ -26,7 +26,6 @@ public:
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
-    inline gaia_ptr_t operator++();
 
     static common::gaia_id_t generate_id();
 
@@ -61,7 +60,7 @@ public:
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
     static gaia_ptr_t find_first(common::gaia_type_t type);
-    gaia_ptr_t find_next();
+    gaia_ptr_t find_next() const;
 
     inline bool is_null() const;
 
@@ -71,6 +70,21 @@ public:
     inline size_t data_size() const;
     inline common::gaia_id_t* references() const;
     inline size_t num_references() const;
+
+    db_object_t* to_ptr() const;
+    gaia_offset_t to_offset() const;
+
+    /**
+     * Returns an iterator representing a server-side cursor over all objects of the given type.
+     */
+    static common::iterators::generator_iterator_t<gaia_ptr_t> find_all_iterator(
+        common::gaia_type_t type);
+
+    /**
+     * Returns a range representing a server-side cursor over all objects of the given type.
+     */
+    static common::iterators::range_t<common::iterators::generator_iterator_t<gaia_ptr_t>> find_all_range(
+        common::gaia_type_t type);
 
     /**
      * Adds a child reference to a parent object. All the pointers involved in the relationship
@@ -134,35 +148,18 @@ public:
      */
     void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
-    /**
-     * Returns an iterator representing a server-side cursor over all objects
-     * of the given type.
-     */
-    inline static auto find_all_iter(
-        common::gaia_type_t type,
-        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
-
-    inline static auto find_all_range(
-        common::gaia_type_t type,
-        std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; });
-
 protected:
     gaia_ptr_t(gaia_locator_t locator, gaia_offset_t offset);
 
     void allocate(size_t size);
 
-    db_object_t* to_ptr() const;
-    gaia_offset_t to_offset() const;
-
     inline bool is(common::gaia_type_t type) const;
 
-    void find_next(common::gaia_type_t type);
+    gaia_ptr_t find_next(common::gaia_type_t type) const;
 
     void reset();
 
 private:
-    gaia_locator_t m_locator = {c_invalid_gaia_locator};
-
     void clone_no_txn();
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
@@ -170,6 +167,9 @@ private:
     // This is just a trivial wrapper for a gaia::db::client API,
     // to avoid calling into SE client code from this header file.
     static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
+
+private:
+    gaia_locator_t m_locator{c_invalid_gaia_locator};
 };
 
 #include "gaia_ptr.inc"

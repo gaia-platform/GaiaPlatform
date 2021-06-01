@@ -3,14 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <cstdlib>
-
 #include "gtest/gtest.h"
 
 #include "gaia_internal/catalog/catalog.hpp"
 
 #include "gaia_parser.hpp"
-#include "yy_parser.hpp"
 
 using namespace std;
 using namespace gaia::catalog::ddl;

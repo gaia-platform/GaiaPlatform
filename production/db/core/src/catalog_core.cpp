@@ -13,6 +13,7 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
@@ -21,6 +22,7 @@
 #include "gaia_table_generated.h"
 
 using namespace gaia::common;
+using namespace gaia::common::iterators;
 
 namespace gaia
 {
@@ -126,11 +128,11 @@ table_list_t catalog_core_t::list_tables()
         }
         return std::nullopt;
     };
-    return gaia::common::iterators::range_from_generator(gaia_table_generator);
+    return range_from_generator(gaia_table_generator);
 }
 
 template <typename T_catalog_obj_view>
-common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
+range_t<generator_iterator_t<T_catalog_obj_view>>
 list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
     auto obj_ptr = id_to_ptr(table_id);
@@ -146,7 +148,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
         id = obj_ptr->references()[next_offset];
         return obj_view;
     };
-    return gaia::common::iterators::range_from_generator(generator);
+    return range_from_generator(generator);
 }
 
 field_list_t catalog_core_t::list_fields(gaia_id_t table_id)

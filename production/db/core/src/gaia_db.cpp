@@ -5,19 +5,21 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "db_client.hpp"
 
-bool gaia::db::is_transaction_active()
+bool gaia::db::is_transaction_open()
 {
-    return gaia::db::client_t::is_transaction_active();
+    return gaia::db::client_t::is_transaction_open();
 }
 
 void gaia::db::begin_session()
 {
-    gaia::db::client_t::begin_session();
+    config::session_options_t session_options = config::get_default_session_options();
+    gaia::db::client_t::begin_session(session_options);
 }
 
 void gaia::db::end_session()

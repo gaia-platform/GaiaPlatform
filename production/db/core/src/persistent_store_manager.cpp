@@ -6,6 +6,7 @@
 #include "persistent_store_manager.hpp"
 
 #include <iostream>
+#include <utility>
 
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
@@ -27,17 +28,14 @@ using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
-// There is no built-in path to the data directory - it must be specified by configuration
-// or command-line.
-string persistent_store_manager::s_data_dir_path{};
-
-persistent_store_manager::persistent_store_manager()
-    : m_counters(get_counters()), m_locators(get_locators())
+persistent_store_manager::persistent_store_manager(
+    gaia::db::counters_t* counters, gaia::db::locators_t* locators, std::string data_dir)
+    : m_counters(counters), m_locators(locators), m_data_dir_path(std::move(data_dir))
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
-    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(s_data_dir_path.c_str(), write_options, transaction_db_options);
+    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(m_data_dir_path, write_options, transaction_db_options);
 }
 
 persistent_store_manager::~persistent_store_manager()

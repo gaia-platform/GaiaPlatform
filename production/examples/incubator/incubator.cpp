@@ -118,7 +118,7 @@ void init_storage()
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
-    if (incubator_t::get_first())
+    if (incubator_t::list().size())
     {
         restore_default_values();
         tx.commit();

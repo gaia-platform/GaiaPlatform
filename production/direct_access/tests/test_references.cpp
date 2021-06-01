@@ -141,7 +141,7 @@ TEST_F(gaia_references_test, connect_id_member)
     e3.addresses().remove(aid3);
     address_t::delete_row(aid3);
     e3.delete_row();
-    EXPECT_THROW(address_t::delete_row(invalid_id), invalid_node_id);
+    EXPECT_THROW(address_t::delete_row(invalid_id), invalid_object_id);
     commit_transaction();
 }
 
@@ -312,7 +312,7 @@ TEST_F(gaia_references_test, connect_scan)
     auto eptr = create_hierarchy();
 
     // Removing a row involved in any set should be prevented.
-    EXPECT_THROW(eptr.delete_row(), node_not_disconnected);
+    EXPECT_THROW(eptr.delete_row(), object_still_referenced);
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
@@ -899,7 +899,7 @@ TEST_F(gaia_references_test, test_erase_invalid_child)
     employee_t employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
-    EXPECT_THROW(addr_list.erase(addr_list.end()), invalid_node_id);
+    EXPECT_THROW(addr_list.erase(addr_list.end()), invalid_object_id);
 
     ASSERT_EQ(c_num_addresses, std::distance(addr_list.begin(), addr_list.end()));
 

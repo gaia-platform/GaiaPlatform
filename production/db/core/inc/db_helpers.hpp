@@ -56,7 +56,7 @@ inline gaia_locator_t allocate_locator()
 
     if (counters->last_locator >= c_max_locators)
     {
-        throw oom();
+        throw system_object_limit_exceeded();
     }
 
     return __sync_add_and_fetch(&counters->last_locator, 1);

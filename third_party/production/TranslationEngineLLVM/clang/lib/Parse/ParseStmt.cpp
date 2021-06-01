@@ -1301,6 +1301,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
       else
       {
         endLocation = ThenStmt.get()->getEndLoc();
+        ElseStmt = Actions.ActOnNullStmt(ElseStmtLoc);
       }
 
       if (!Actions.RemoveTagData(SourceRange(startLocation, endLocation)))

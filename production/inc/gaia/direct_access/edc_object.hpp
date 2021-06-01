@@ -38,36 +38,34 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <typename T_type>
-class edc_vector_t;
-
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_writer_t;
+template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+class edc_writer_t;
 
 /**
  * The edc_object_t that must be specialized to operate on a flatbuffer type.
  *
- * @tparam T_gaia_type an integer (gaia_type_t) uniquely identifying the flatbuffer table type
+ * @tparam container_type_id an integer (gaia_type_t) uniquely identifying the flatbuffer table type
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
  */
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_object_t : edc_base_t
+template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+class edc_object_t : public edc_base_t
 {
+public:
+    /**
+     * This can be used for subscribing to rules when you don't
+     * have a specific instance of the type.
+     */
+    static gaia::common::gaia_type_t s_gaia_type;
+
 public:
     explicit edc_object_t(const char* gaia_typename);
 
     /**
      * Return a reference that is pre-populated with values from the row
      */
-    edc_writer_t<T_gaia_type, T_gaia, T_fb, T_obj> writer();
-
-    /**
-     * This can be used for subscribing to rules when you don't
-     * have a specific instance of the type.
-     */
-    static gaia::common::gaia_type_t s_gaia_type;
+    edc_writer_t<container_type_id, T_gaia, T_fb, T_obj> writer();
 
     /**
      * This can be used when you are passed a edc_base_t
@@ -75,25 +73,14 @@ public:
      */
     gaia::common::gaia_type_t gaia_type() override
     {
-        return T_gaia_type;
+        return container_type_id;
     }
 
     /**
-     * Ask for the first object of a flatbuffer type, T_gaia_type.
-     */
-    static T_gaia get_first();
-
-    /**
-     * Ask for the next object of a flatbuffer type. This call must follow a call to the
-     * static method get_first().
-     */
-    T_gaia get_next();
-
-    /**
      * Ask for a specific object based on its id. References to this method must be qualified
-     * by the T_gaia_type, and that type must match the type of the identified object.
+     * by the container_type_id, and that type must match the type of the identified object.
      *
-     * @param id the gaia_id_t of a specific database object, of type T_gaia_type
+     * @param id the gaia_id_t of a specific database object, of type container_type_id
      */
     static T_gaia get(gaia::common::gaia_id_t id);
 
@@ -137,7 +124,7 @@ public:
 protected:
     /**
      * This constructor supports creating new objects from existing
-     * nodes in the database.  It is called by our get_object below.
+     * objects in the database.  It is called by our get_object below.
      */
     edc_object_t(gaia::common::gaia_id_t id, const char* gaia_typename);
 
@@ -153,7 +140,7 @@ protected:
     const T_fb* row() const;
 
     /**
-     * Ensure the type requested by the gaia_id_t matches T_gaia_type. If the passed in
+     * Ensure the type requested by the gaia_id_t matches container_type_id. If the passed in
      * id does not exist in the database then return c_invalid_gaia_id.  If the id
      * does exist in the database and the type of the record matches then return the
      * passed in id.  If the type does not match then throw an edc_invalid_object_type
@@ -171,9 +158,12 @@ protected:
     };
 };
 
-template <gaia::common::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-struct edc_writer_t : public T_obj, edc_db_t
+template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+class edc_writer_t : public T_obj, protected edc_db_t
 {
+    friend edc_object_t<container_type_id, T_gaia, T_fb, T_obj>;
+
+public:
     edc_writer_t() = default;
 
     /**
@@ -194,8 +184,6 @@ private:
     {
         gaia::common::gaia_id_t id;
     } m_gaia;
-
-    friend edc_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
 };
 
 /*@}*/

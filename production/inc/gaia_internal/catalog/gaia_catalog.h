@@ -87,7 +87,7 @@ struct gaia_database_t : public gaia::direct_access::edc_object_t<c_gaia_type_ga
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
+    friend class edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
     explicit gaia_database_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_database_t") {}
 };
 
@@ -148,7 +148,7 @@ struct gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
+    friend class edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
     explicit gaia_table_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_table_t") {}
 };
 
@@ -210,7 +210,7 @@ struct gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
+    friend class edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
     explicit gaia_field_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_field_t") {}
 };
 
@@ -278,7 +278,7 @@ struct gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_typ
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
+    friend class edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
     explicit gaia_relationship_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_relationship_t") {}
 };
 
@@ -343,7 +343,7 @@ struct gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gai
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;
+    friend class edc_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;
     explicit gaia_ruleset_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_ruleset_t") {}
 };
 
@@ -389,7 +389,7 @@ struct gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_r
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
+    friend class edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
     explicit gaia_rule_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_rule_t") {}
 };
 
