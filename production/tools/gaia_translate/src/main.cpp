@@ -1137,15 +1137,9 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     }
     vector<explicit_path_data_t> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
-    for (const auto& nomatch_source_range : g_nomatch_location)
+    if (expression_source_range.isInvalid())
     {
-        if (is_range_contained_in_another_range(nomatch_source_range, source_range))
-        {
-            path_data.push_back(data);
-            g_expression_explicit_path_data[expression_source_range] = path_data;
-            expression_source_range = source_range;
-            break;
-        }
+        return;
     }
 
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
