@@ -90,7 +90,7 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
     constexpr size_t c_hash_seed = 0x9e3779b9;
 
     std::size_t hash_concat[c_hash_concat_buffer_elems] = {0};
-    std::string_view hash_view{reinterpret_cast<const char*>(hash_concat), std::size(hash_concat)};
+    std::string_view hash_view{reinterpret_cast<const char*>(hash_concat), sizeof(hash_concat)};
     std::size_t prev_hash = c_hash_seed;
 
     for (payload_types::data_holder_t data : key.m_key_values)

@@ -242,3 +242,20 @@ TEST(index, eq_range_range_index)
 
     ASSERT_EQ(count, 3);
 }
+
+TEST(index, key_hash_test)
+{
+    // Check compound keys with different orders are distributed differently
+    index_key_t k1(1, 0);
+    index_key_t k2(0, 1);
+
+    ASSERT_NE(index_key_hash{}(k1), index_key_hash{}(k2));
+
+    // Check zero and empty keys are distributed differently
+    index_key_t empty_key;
+    index_key_t zero_key(0);
+    index_key_t double_zero_key(0, 0);
+
+    ASSERT_NE(index_key_hash{}(empty_key), index_key_hash{}(zero_key));
+    ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
+}
