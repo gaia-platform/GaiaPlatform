@@ -33,7 +33,11 @@ public:
         ASSERT_PRECONDITION(!database_name.empty(), "A database name must be specified!");
     }
 
-    void generate(std::filesystem::path header_file, std::filesystem::path cpp_file);
+    void generate(std::filesystem::path output_dir, std::string base_file_name);
+
+public:
+    static constexpr char c_header_extension[] = ".h";
+    static constexpr char c_cpp_extension[] = ".cpp";
 
 private:
     std::string m_database_name;

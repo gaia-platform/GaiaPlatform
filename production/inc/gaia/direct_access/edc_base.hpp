@@ -5,9 +5,6 @@
 
 #pragma once
 
-#include <map>
-#include <memory>
-
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 

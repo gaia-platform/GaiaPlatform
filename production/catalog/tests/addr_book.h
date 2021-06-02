@@ -9,7 +9,6 @@
 #ifndef GAIA_GENERATED_addr_book_H_
 #define GAIA_GENERATED_addr_book_H_
 
-#include <iterator>
 #include <gaia/direct_access/edc_object.hpp>
 #include <gaia/direct_access/edc_iterators.hpp>
 #include <addr_book_generated.h>

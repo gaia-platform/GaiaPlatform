@@ -24,7 +24,7 @@ generation_error::generation_error(const std::string& message)
     m_message = message;
 }
 
-void gaia_edc_generator_t::generate(std::filesystem::path header_file, std::filesystem::path cpp_file)
+void gaia_edc_generator_t::generate(std::filesystem::path output_dir, std::string base_file_name)
 {
     auto database = gaia_database_t::list().where(gaia_database_expr::name == m_database_name);
 
@@ -34,6 +34,9 @@ void gaia_edc_generator_t::generate(std::filesystem::path header_file, std::file
     }
 
     edc_compilation_unit_writer_t file_writer{*database.begin()};
+
+    std::filesystem::path header_file = output_dir / (base_file_name + c_header_extension);
+    std::filesystem::path cpp_file = output_dir / (base_file_name + c_cpp_extension);
 
     std::ofstream header_out{header_file};
     header_out << file_writer.write_header();

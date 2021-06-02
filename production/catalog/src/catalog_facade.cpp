@@ -67,9 +67,9 @@ std::vector<field_facade_t> table_facade_t::fields() const
     return fields;
 }
 
-std::list<incoming_relationship_facade_t> table_facade_t::incoming_relationships() const
+std::vector<incoming_relationship_facade_t> table_facade_t::incoming_relationships() const
 {
-    auto relationships = std::list<incoming_relationship_facade_t>();
+    auto relationships = std::vector<incoming_relationship_facade_t>();
 
     for (const gaia_relationship_t& relationship : m_table.gaia_relationships_child())
     {
@@ -79,9 +79,9 @@ std::list<incoming_relationship_facade_t> table_facade_t::incoming_relationships
     return relationships;
 }
 
-std::list<outgoing_relationship_facade_t> table_facade_t::outgoing_relationships() const
+std::vector<outgoing_relationship_facade_t> table_facade_t::outgoing_relationships() const
 {
-    auto relationships = std::list<outgoing_relationship_facade_t>();
+    auto relationships = std::vector<outgoing_relationship_facade_t>();
 
     for (const gaia_relationship_t& relationship : m_table.gaia_relationships_parent())
     {

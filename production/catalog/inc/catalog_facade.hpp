@@ -6,10 +6,8 @@
 #pragma once
 
 #include <string>
-#include <utility>
 #include <vector>
 
-#include <gaia_internal/catalog/catalog.hpp>
 #include <gaia_internal/catalog/gaia_catalog.h>
 
 /*
@@ -54,8 +52,8 @@ public:
     std::string table_type() const;
     std::string class_name() const;
     std::vector<field_facade_t> fields() const;
-    std::list<incoming_relationship_facade_t> incoming_relationships() const;
-    std::list<outgoing_relationship_facade_t> outgoing_relationships() const;
+    std::vector<incoming_relationship_facade_t> incoming_relationships() const;
+    std::vector<outgoing_relationship_facade_t> outgoing_relationships() const;
     bool has_string_or_vector() const;
 
 private:

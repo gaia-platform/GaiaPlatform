@@ -7,6 +7,8 @@
 
 #include <flatbuffers/code_generators.h>
 
+#include <gaia_internal/catalog/catalog.hpp>
+
 namespace gaia
 {
 namespace catalog
@@ -93,7 +95,6 @@ std::string edc_compilation_unit_writer_t::generate_close_header_guard()
 std::string edc_compilation_unit_writer_t::generate_includes()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "#include <iterator>";
     code += "#include <gaia/direct_access/edc_object.hpp>";
     code += "#include <gaia/direct_access/edc_iterators.hpp>";
     code += "#include <{{DBNAME}}_generated.h>";
