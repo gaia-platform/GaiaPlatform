@@ -7,9 +7,9 @@
 
 #include <filesystem>
 
-#include "spdlog/async.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog_setup/conf.h"
+#include "gaia_spdlog/async.h"
+#include "gaia_spdlog/sinks/stdout_sinks.h"
+#include "gaia_spdlog_setup/conf.h"
 
 #include "gaia_internal/common/logger_spdlog.hpp"
 
@@ -41,12 +41,12 @@ bool logger_manager_t::init_logging(const string& config_path)
     if (!config_path.empty())
     {
         // This may throw if the configuration path is incorrect.
-        spdlog_setup::from_file(config_path);
+        gaia_spdlog_setup::from_file(config_path);
     }
 
-    if (!spdlog::thread_pool())
+    if (!gaia_spdlog::thread_pool())
     {
-        spdlog::init_thread_pool(spdlog_defaults::c_default_queue_size, spdlog_defaults::c_default_thread_count);
+        gaia_spdlog::init_thread_pool(spdlog_defaults::c_default_queue_size, spdlog_defaults::c_default_thread_count);
     }
 
     m_sys_logger = shared_ptr<logger_t>(new internal_logger_t(c_sys_logger));
@@ -81,7 +81,7 @@ bool logger_manager_t::stop_logging()
     m_rules_stats_logger = nullptr;
     m_app_logger = nullptr;
 
-    spdlog::shutdown();
+    gaia_spdlog::shutdown();
 
     m_is_log_initialized = false;
     return true;
@@ -94,27 +94,27 @@ void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path)
     fs::create_directories(parent);
 }
 
-shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name)
+shared_ptr<gaia_spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name)
 {
 
-    auto console_sink = make_shared<spdlog::sinks::stderr_sink_mt>();
+    auto console_sink = make_shared<gaia_spdlog::sinks::stderr_sink_mt>();
 
     // Keeping commented out on purpose. We need to decide what are meaningful default sinks.
 
     //    create_log_dir_if_not_exists(c_default_log_path);
-    //    auto file_sink = make_shared<spdlog::sinks::basic_file_sink_mt>(c_default_log_path, true);
+    //    auto file_sink = make_shared<gaia_spdlog::sinks::basic_file_sink_mt>(c_default_log_path, true);
     //
     //    string syslog_identifier = "gaia";
     //    int syslog_option = 0;
     //    int syslog_facility = LOG_USER;
-    //    auto syslog_sink = make_shared<spdlog::sinks::syslog_sink_mt>(syslog_identifier, syslog_option, syslog_facility);
+    //    auto syslog_sink = make_shared<gaia_spdlog::sinks::syslog_sink_mt>(syslog_identifier, syslog_option, syslog_facility);
 
-    spdlog::sinks_init_list sink_list{console_sink /* ,file_sink, syslog_sink*/};
+    gaia_spdlog::sinks_init_list sink_list{console_sink /* ,file_sink, syslog_sink*/};
 
     // It has to be a shared pointer. This is by design because the logger is shared with the logging thread.
-    auto logger = make_shared<spdlog::async_logger>(
+    auto logger = make_shared<gaia_spdlog::async_logger>(
         logger_name, sink_list.begin(), sink_list.end(),
-        spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+        gaia_spdlog::thread_pool(), gaia_spdlog::async_overflow_policy::block);
 
     logger->set_level(spdlog_defaults::c_default_level);
     logger->set_pattern(spdlog_defaults::c_default_pattern);

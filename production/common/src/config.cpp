@@ -5,6 +5,8 @@
 
 #include "gaia_internal/common/config.hpp"
 
+#include <cstring>
+
 using namespace std;
 namespace gaia
 {

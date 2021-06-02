@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "spdlog/sinks/basic_file_sink.h"
+#include "gaia_spdlog/sinks/basic_file_sink.h"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/logger_manager.hpp"
@@ -21,7 +21,7 @@ namespace gaia::common::logging
 //
 logger_t::logger_t(const string& logger_name)
 {
-    auto logger = spdlog::get(logger_name);
+    auto logger = gaia_spdlog::get(logger_name);
 
     if (logger)
     {

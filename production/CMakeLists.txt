@@ -80,6 +80,9 @@ set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
+set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
+set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
+
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
 
@@ -163,9 +166,9 @@ endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Spdlog.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog" gaia_spdlog)
 # Spdlog_setup.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_spdlog_setup)
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest
