@@ -447,7 +447,7 @@ struct gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_
     using expr = expr_<void>;
 
 private:
-    friend struct edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT>;
+    friend class edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT>;
     explicit gaia_index_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_index_t") {}
 };
 
