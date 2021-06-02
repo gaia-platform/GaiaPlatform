@@ -73,6 +73,7 @@ message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
@@ -157,7 +158,6 @@ add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 
 # Backward.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
