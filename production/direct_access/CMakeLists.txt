@@ -27,6 +27,7 @@ message(VERBOSE "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVAT
 add_library(gaia_direct STATIC
   src/edc_base.cpp
   src/auto_transaction.cpp
+  tests/gaia_addr_book.cpp
 )
 
 target_include_directories(gaia_direct PUBLIC ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES})

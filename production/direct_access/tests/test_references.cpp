@@ -990,7 +990,7 @@ TEST_F(gaia_references_test, test_circular_refernece)
 template <typename T>
 void print_bytes(const T& input, std::ostream& os = std::cout)
 {
-    const unsigned char* p = reinterpret_cast<const unsigned char*>(&input);
+    const auto* p = reinterpret_cast<const unsigned char*>(&input);
     os << std::hex << std::showbase;
     os << "[";
     for (unsigned int i = 0; i < sizeof(T); ++i)

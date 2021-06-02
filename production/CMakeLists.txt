@@ -43,7 +43,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Default compiler/linker flags.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
 set(GAIA_LINK_FLAGS "-pthread")
 
 # This is just for the RocksDB build.
@@ -60,7 +60,7 @@ endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -ftime-trace")
 
   if(ENABLE_ASAN)
     set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")

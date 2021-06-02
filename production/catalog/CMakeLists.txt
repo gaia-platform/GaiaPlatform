@@ -28,6 +28,9 @@ add_library(gaia_catalog STATIC
   src/fdw_ddl_generator.cpp
   src/catalog.cpp
   src/gaia_generate.cpp
+  src/gaia_generate2.cpp
+  src/code_generator.cpp
+  src/catalog_facade.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_catalog PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
@@ -60,6 +63,12 @@ add_gtest(test_fdw_ddl_generation
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
   "rt;gaia_system;gaia_catalog"
   gaia_catalog)
+
+add_gtest(test_edc_generation
+    "tests/test_edc_generation.cpp;tests/addr_book.cpp"
+    "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
+    "rt;gaia_system;gaia_catalog;gaia_db_catalog_test"
+    gaia_catalog)
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

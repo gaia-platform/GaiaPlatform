@@ -3,6 +3,8 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 
+#include <filesystem>
+#include <gaia_generate.hpp>
 #include <memory>
 #include <set>
 #include <vector>
@@ -91,7 +93,6 @@ public:
 
     std::string next_offset_value()
     {
-
         return to_string(m_relationship.next_child_offset());
     }
 };
@@ -625,7 +626,7 @@ static string generate_edc_struct(
     code += "};";
     code += "";
 
-    // Initialization of static EDC expressions.  For C++11 compliance we are not using
+    // Initialization of static EDC expressions. For C++11 compliance we are not using
     // inline variables which are available in C++17.
     for (const string& expr_init : expr_init_list)
     {

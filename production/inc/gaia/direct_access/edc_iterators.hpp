@@ -201,7 +201,7 @@ public:
 private:
     common::gaia_id_t m_gaia_id;
     alignas(alignof(edc_base_t)) char m_object[sizeof(edc_base_t)];
-    bool m_is_created;
+    bool m_is_created{false};
 };
 
 /*@}*/

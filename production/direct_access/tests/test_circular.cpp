@@ -50,23 +50,23 @@ TEST_F(gaia_circular_dependency_test, test_circular_refernece)
 
     a_obj.set_b(b_obj.gaia_id());
 
-    ASSERT_STREQ(a_obj.b().get().str_val(), "str2");
-    ASSERT_EQ(a_obj.b().get().num_val(), 3);
+    ASSERT_STREQ(a_obj.b().str_val(), "str2");
+    ASSERT_EQ(a_obj.b().num_val(), 3);
     ASSERT_STREQ(b_obj.a().str_val(), "str1");
     ASSERT_EQ(b_obj.a().num_val(), 2);
 
-    ASSERT_STREQ(a_obj.b()->str_val(), "str2");
-    ASSERT_EQ(a_obj.b()->num_val(), 3);
-    ASSERT_EQ(a_obj.b().get().num_val(), 3);
+    ASSERT_STREQ(a_obj.b().str_val(), "str2");
+    ASSERT_EQ(a_obj.b().num_val(), 3);
+    ASSERT_EQ(a_obj.b().num_val(), 3);
 }
 
-template <typename T>
-void print_bytes(const T& input, std::ostream& os = std::cout)
+template <typename T_type>
+void print_bytes(const T_type& input, std::ostream& os = std::cout)
 {
-    const unsigned char* p = reinterpret_cast<const unsigned char*>(&input);
+    const auto* p = reinterpret_cast<const unsigned char*>(&input);
     os << std::hex << std::showbase;
     os << "[";
-    for (unsigned int i = 0; i < sizeof(T); ++i)
+    for (unsigned int i = 0; i < sizeof(T_type); ++i)
         os << static_cast<int>(*(p++)) << " ";
     os << "]" << std::endl;
 }
