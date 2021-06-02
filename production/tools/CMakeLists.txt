@@ -6,8 +6,6 @@
 # Set the project name.
 project(tools)
 
-add_subdirectory(gaia_generate)
-
 if(BUILD_GAIA_RELEASE)
   add_subdirectory(gaia_translate)
 endif()
