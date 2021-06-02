@@ -155,13 +155,11 @@ ruleset test12
         {
             i = 1;
         }
-#ifdef TEST_FAILURES
 // GAIAPLAT-988
         nomatch
         {
             i = 2;
         }
-#endif
     }
 }
 

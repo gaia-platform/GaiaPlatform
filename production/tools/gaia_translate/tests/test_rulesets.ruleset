@@ -281,12 +281,10 @@ ruleset test_query_4
         {
             student.gpa *= 0.9;
         }
-#ifdef TEST_FAILURES
         nomatch
         {
             student.gpa = 0.0;
         }
-#endif
         g_onupdate_value = int(10*student.gpa);
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
@@ -317,4 +315,23 @@ g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
 
 ruleset test_query_6
 {
+    OnUpdate(student)
+    {
+        g_onupdate_value = 0;
+#ifdef TEST_FAILURES
+        if (student->registration->course.hours > 3)
+        {
+            g_onupdate_value += 1;
+        }
+        else
+        {
+            g_onupdate_value += 10;
+        }
+        nomatch {
+            g_onupdate_value = -1;;
+        }
+#endif
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
 }

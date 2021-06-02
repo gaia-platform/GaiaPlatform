@@ -1089,6 +1089,6 @@ ruleset test141
     {
         if (@incubator.min_temp < 97.0)
         {}
-        else (incubator.max_temp);
+        nomatch (incubator.max_temp);  // expected-warning {{expression result unused}}
     }
 }
