@@ -68,8 +68,8 @@ set(TEST_GAIA_GENERATE_INCLUDES
     ${PROJECT_SOURCE_DIR}/parser/inc
 )
 
-add_gtest(test_gaia_generate
-    "tests/test_gaia_generate.cpp"
+add_gtest(test_gaiac_generation
+    "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_GENERATE_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test"
     "generate_airport_headers" "")
