@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <thread>
 
 #include <gtest/gtest.h>
 #include <libexplain/execve.h>
@@ -54,8 +55,8 @@ protected:
                 throw_system_error("prctl() failed!");
             }
 
-            std::string gaia_db_instance_env = fmt::format("{}={}", c_instance_name_string_env, instance_name);
-            std::string gaia_db_data_dir_env = fmt::format("{}={}", c_data_dir_string_env, data_dir);
+            std::string gaia_db_instance_env = gaia_fmt::format("{}={}", c_instance_name_string_env, instance_name);
+            std::string gaia_db_data_dir_env = gaia_fmt::format("{}={}", c_data_dir_string_env, data_dir);
 
             char* argv[] = {nullptr};
 
@@ -109,7 +110,7 @@ TEST_F(db_server_env_test, instance_name_from_env)
     {
         try
         {
-            std::string gaia_db_instance_env = fmt::format("{}={}", c_instance_name_string_env, instance_name);
+            std::string gaia_db_instance_env = gaia_fmt::format("{}={}", c_instance_name_string_env, instance_name);
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
             ::putenv(const_cast<char*>(gaia_db_instance_env.c_str()));

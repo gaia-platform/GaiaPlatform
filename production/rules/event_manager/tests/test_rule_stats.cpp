@@ -9,8 +9,8 @@
 
 #include <iostream>
 
+#include "gaia_spdlog/sinks/ostream_sink.h"
 #include "gtest/gtest.h"
-#include "spdlog/sinks/ostream_sink.h"
 
 #include "gaia_internal/common/debug_logger.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
@@ -425,7 +425,7 @@ protected:
         // want to log without a prefix (i.e., no timestamp, pid, or tid).
         gaia_log::debug_logger_t* debug_logger = gaia_log::debug_logger_t::create("test_logger");
         auto spdlogger = debug_logger->get_spdlogger();
-        auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_st>(s_logger_output);
+        auto ostream_sink = std::make_shared<gaia_spdlog::sinks::ostream_sink_st>(s_logger_output);
         ostream_sink->set_pattern("%v");
         spdlogger->sinks().emplace_back(ostream_sink);
 

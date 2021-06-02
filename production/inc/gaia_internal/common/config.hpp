@@ -9,8 +9,6 @@
 #include <fstream>
 #include <string>
 
-#include "cpptoml.h"
-
 namespace gaia
 {
 namespace common

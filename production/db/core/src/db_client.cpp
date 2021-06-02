@@ -13,7 +13,7 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <spdlog/fmt/fmt.h>
+#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -445,7 +445,7 @@ void client_t::begin_transaction()
 
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
-    log.create(fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_options.db_instance_name, s_txn_id).c_str());
+    log.create(gaia_fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_options.db_instance_name, s_txn_id).c_str());
 
     // Update the log header with our begin timestamp.
     log.data()->begin_ts = s_txn_id;
