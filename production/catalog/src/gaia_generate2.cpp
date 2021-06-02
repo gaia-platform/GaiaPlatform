@@ -5,7 +5,7 @@
 
 #include <fstream>
 
-#include <spdlog/fmt/fmt.h>
+#include <gaia_spdlog/fmt/fmt.h>
 
 #include <gaia_internal/catalog/gaia_catalog.h>
 
@@ -30,7 +30,7 @@ void gaia_edc_generator_t::generate(std::filesystem::path output_dir, std::strin
 
     if (database.begin() == database.end())
     {
-        throw generation_error(fmt::format("Impossible to find database: ", m_database_name));
+        throw generation_error(gaia_fmt::format("Impossible to find database: ", m_database_name));
     }
 
     edc_compilation_unit_writer_t file_writer{*database.begin()};
