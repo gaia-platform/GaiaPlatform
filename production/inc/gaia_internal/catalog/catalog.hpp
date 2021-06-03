@@ -100,177 +100,6 @@ enum class relationship_cardinality_t : uint8_t
     many
 };
 
-namespace ddl
-{
-/**
- * \addtogroup ddl
- * @{
- *
- * Definitions for parse result bindings
- */
-
-enum class statement_type_t : uint8_t
-{
-    create,
-    drop,
-    alter,
-    use
-};
-
-struct statement_t
-{
-    explicit statement_t(statement_type_t type)
-        : m_type(type){};
-
-    [[nodiscard]] statement_type_t type() const
-    {
-        return m_type;
-    };
-
-    [[nodiscard]] bool is_type(statement_type_t type) const
-    {
-        return m_type == type;
-    };
-
-    virtual ~statement_t() = default;
-
-private:
-    statement_type_t m_type;
-};
-
-enum class field_type_t : uint8_t
-{
-    data,
-    reference
-};
-
-struct base_field_def_t
-{
-    base_field_def_t(std::string name, field_type_t field_type)
-        : name(move(name)), field_type(field_type)
-    {
-        ASSERT_PRECONDITION(!(this->name.empty()), "base_field_def_t::name must not be empty.");
-    }
-
-    std::string name;
-    field_type_t field_type;
-
-    virtual ~base_field_def_t() = default;
-};
-
-struct data_field_def_t : base_field_def_t
-{
-    data_field_def_t(std::string name, data_type_t type, uint16_t length)
-        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
-    {
-    }
-
-    data_type_t data_type;
-    uint16_t length;
-
-    bool active = false;
-};
-
-using composite_name_t = std::pair<std::string, std::string>;
-
-using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
-
-struct link_def_t
-{
-    std::string from_database;
-    std::string from_table;
-
-    std::string name;
-
-    std::string to_database;
-    std::string to_table;
-
-    relationship_cardinality_t cardinality;
-};
-
-enum class create_type_t : uint8_t
-{
-    create_database,
-    create_table,
-    create_relationship,
-    create_index,
-};
-
-struct use_statement_t : statement_t
-{
-    explicit use_statement_t(std::string name)
-        : statement_t(statement_type_t::use), name(std::move(name))
-    {
-    }
-
-    std::string name;
-};
-
-// TODO: refactoring create statements into sub types, pending index changes (create_index).
-struct create_statement_t : statement_t
-{
-    explicit create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::create), type(type)
-    {
-    }
-
-    create_statement_t(create_type_t type, std::string name)
-        : statement_t(statement_type_t::create), type(type), name(std::move(name))
-    {
-    }
-
-    create_type_t type;
-
-    std::string name;
-
-    std::string database;
-
-    field_def_list_t fields;
-
-    bool if_not_exists;
-
-    // A relationship is defined by a pair of links because we only allow
-    // bi-directional relationships.
-    std::pair<link_def_t, link_def_t> relationship;
-    bool unique_index;
-
-    index_type_t index_type;
-
-    std::string index_table;
-
-    std::vector<std::string> index_fields;
-};
-
-enum class drop_type_t : uint8_t
-{
-    drop_table,
-    drop_database,
-};
-
-struct drop_statement_t : statement_t
-{
-    explicit drop_statement_t(drop_type_t type)
-        : statement_t(statement_type_t::drop), type(type)
-    {
-    }
-
-    drop_statement_t(drop_type_t type, std::string name)
-        : statement_t(statement_type_t::drop), type(type), name(std::move(name))
-    {
-    }
-
-    drop_type_t type;
-
-    std::string name;
-
-    std::string database;
-
-    bool if_exists;
-};
-
-/*@}*/
-} // namespace ddl
-
 class forbidden_system_db_operation : public gaia::common::gaia_exception
 {
 public:
@@ -455,6 +284,177 @@ public:
         m_message = message.str();
     }
 };
+
+namespace ddl
+{
+/**
+ * \addtogroup ddl
+ * @{
+ *
+ * Definitions for parse result bindings
+ */
+
+enum class statement_type_t : uint8_t
+{
+    create,
+    drop,
+    alter,
+    use
+};
+
+struct statement_t
+{
+    explicit statement_t(statement_type_t type)
+        : m_type(type){};
+
+    [[nodiscard]] statement_type_t type() const
+    {
+        return m_type;
+    };
+
+    [[nodiscard]] bool is_type(statement_type_t type) const
+    {
+        return m_type == type;
+    };
+
+    virtual ~statement_t() = default;
+
+private:
+    statement_type_t m_type;
+};
+
+enum class field_type_t : uint8_t
+{
+    data,
+    reference
+};
+
+struct base_field_def_t
+{
+    base_field_def_t(std::string name, field_type_t field_type)
+        : name(move(name)), field_type(field_type)
+    {
+        ASSERT_PRECONDITION(!(this->name.empty()), "base_field_def_t::name must not be empty.");
+    }
+
+    std::string name;
+    field_type_t field_type;
+
+    virtual ~base_field_def_t() = default;
+};
+
+struct data_field_def_t : base_field_def_t
+{
+    data_field_def_t(std::string name, data_type_t type, uint16_t length)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
+    {
+    }
+
+    data_type_t data_type;
+    uint16_t length;
+
+    bool active = false;
+};
+
+using composite_name_t = std::pair<std::string, std::string>;
+
+using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
+
+struct link_def_t
+{
+    std::string from_database;
+    std::string from_table;
+
+    std::string name;
+
+    std::string to_database;
+    std::string to_table;
+
+    relationship_cardinality_t cardinality;
+};
+
+enum class create_type_t : uint8_t
+{
+    create_database,
+    create_table,
+    create_relationship,
+    create_index,
+};
+
+struct use_statement_t : statement_t
+{
+    explicit use_statement_t(std::string name)
+        : statement_t(statement_type_t::use), name(std::move(name))
+    {
+    }
+
+    std::string name;
+};
+
+// TODO: refactoring create statements into sub types, pending index changes (create_index).
+struct create_statement_t : statement_t
+{
+    explicit create_statement_t(create_type_t type)
+        : statement_t(statement_type_t::create), type(type)
+    {
+    }
+
+    create_statement_t(create_type_t type, std::string name)
+        : statement_t(statement_type_t::create), type(type), name(std::move(name))
+    {
+    }
+
+    create_type_t type;
+
+    std::string name;
+
+    std::string database;
+
+    field_def_list_t fields;
+
+    bool if_not_exists;
+
+    // A relationship is defined by a pair of links because we only allow
+    // bi-directional relationships.
+    std::pair<link_def_t, link_def_t> relationship;
+    bool unique_index;
+
+    index_type_t index_type;
+
+    std::string index_table;
+
+    std::vector<std::string> index_fields;
+};
+
+enum class drop_type_t : uint8_t
+{
+    drop_table,
+    drop_database,
+};
+
+struct drop_statement_t : statement_t
+{
+    explicit drop_statement_t(drop_type_t type)
+        : statement_t(statement_type_t::drop), type(type)
+    {
+    }
+
+    drop_statement_t(drop_type_t type, std::string name)
+        : statement_t(statement_type_t::drop), type(type), name(std::move(name))
+    {
+    }
+
+    drop_type_t type;
+
+    std::string name;
+
+    std::string database;
+
+    bool if_exists;
+};
+
+/*@}*/
+} // namespace ddl
 
 /**
  * Initialize the catalog.
