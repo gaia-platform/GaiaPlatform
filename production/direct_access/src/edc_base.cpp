@@ -65,33 +65,55 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 }
 
 //
+// Implementation of structs derived from edc_base_iterator_state_t
+//
+
+struct edc_generator_iterator_state_t : public edc_base_iterator_state_t
+{
+    ~edc_generator_iterator_state_t() override = default;
+
+    generator_iterator_t<gaia_ptr_t> iterator;
+};
+
+//
 // edc_db_t implementation
 //
 
-gaia_id_t edc_db_t::find_first(gaia_type_t container)
+std::shared_ptr<edc_base_iterator_state_t> edc_db_t::initialize_iterator(gaia_type_t container_type_id)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::find_first(container);
-    if (!gaia_ptr)
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state;
+    iterator_state.reset(new edc_generator_iterator_state_t());
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
+    iterator = gaia_ptr_t::find_all_iterator(container_type_id);
+    return iterator_state;
+}
+
+gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
+{
+    ASSERT_PRECONDITION(iterator_state, "Attempt to access unset iterator state!");
+
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
+    if (!iterator)
     {
         return c_invalid_gaia_id;
     }
-
+    gaia_ptr_t gaia_ptr = *iterator;
     return gaia_ptr.id();
 }
 
-gaia_id_t edc_db_t::find_next(gaia_id_t id)
+bool edc_db_t::advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
-    auto gaia_ptr = gaia_ptr_t(id);
-    gaia_id_t next_id = c_invalid_gaia_id;
-    if (gaia_ptr)
+    ASSERT_PRECONDITION(iterator_state, "Attempt to advance unset iterator state!");
+
+    generator_iterator_t<gaia_ptr_t>& iterator
+        = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
+    if (!iterator)
     {
-        gaia_ptr = gaia_ptr.find_next();
-        if (gaia_ptr)
-        {
-            next_id = gaia_ptr.id();
-        }
+        return false;
     }
-    return next_id;
+    return static_cast<bool>(++iterator);
 }
 
 // If the object exists, returns true and retrieves the container type of the object.
@@ -198,7 +220,7 @@ edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
     *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
 }
 
-gaia_id_t edc_base_t::id() const
+gaia_id_t edc_base_t::gaia_id() const
 {
     auto ptr = to_const_ptr<gaia_ptr_t>();
     if (*ptr)

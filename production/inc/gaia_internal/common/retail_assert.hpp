@@ -42,7 +42,7 @@ namespace common
 #ifdef DISABLE_ASSERT_PRECONDITION
 #define ASSERT_PRECONDITION(c, m)
 #else
-#define ASSERT_PRECONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#define ASSERT_PRECONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
 #endif
 
 // ASSERT_INVARIANT is meant for validating conditions that should hold internally,
@@ -53,7 +53,7 @@ namespace common
 #ifdef DISABLE_ASSERT_INVARIANT
 #define ASSERT_INVARIANT(c, m)
 #else
-#define ASSERT_INVARIANT(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#define ASSERT_INVARIANT(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
 #endif
 
 // ASSERT_POSTCONDITION is meant for validating conditions that should hold after a function
@@ -63,7 +63,7 @@ namespace common
 #ifdef DISABLE_ASSERT_POSTCONDITION
 #define ASSERT_POSTCONDITION(c, m)
 #else
-#define ASSERT_POSTCONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(c, m, __FILE__, __LINE__, __func__)
+#define ASSERT_POSTCONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
 #endif
 
 // ASSERT_UNREACHABLE is meant for validating that a section of code can never be reached.
