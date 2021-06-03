@@ -51,15 +51,6 @@ protected:
     static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
-
-private:
-    // Internal low-level interface for iterating over the objects of a given container.
-    // This interface uses the locator table, which makes it less efficient because
-    // it has to iterate over all entries in the database.
-    //
-    // This is private because this should not be called directly even by classes that inherit from edc_db_t.
-    static common::gaia_id_t find_first(common::gaia_type_t container);
-    static common::gaia_id_t find_next(common::gaia_id_t id);
 };
 
 /**

@@ -10,11 +10,6 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-// This macro enables us to easily switch between the cursor-based iteration and the locator-based iteration.
-// Currently, this is set manually, but in the future, this could get passed as a compilation flag from
-// the make files, so that we can compile this code differently for server and client.
-#undef USE_LOCATOR_ITERATION
-
 using namespace gaia::db;
 using namespace std;
 using namespace gaia::common;
@@ -73,13 +68,6 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
 // Implementation of structs derived from edc_base_iterator_state_t
 //
 
-struct edc_gaia_ptr_state_t : public edc_base_iterator_state_t
-{
-    ~edc_gaia_ptr_state_t() override = default;
-
-    gaia_ptr_t gaia_ptr;
-};
-
 struct edc_generator_iterator_state_t : public edc_base_iterator_state_t
 {
     ~edc_generator_iterator_state_t() override = default;
@@ -94,16 +82,10 @@ struct edc_generator_iterator_state_t : public edc_base_iterator_state_t
 std::shared_ptr<edc_base_iterator_state_t> edc_db_t::initialize_iterator(gaia_type_t container_type_id)
 {
     std::shared_ptr<edc_base_iterator_state_t> iterator_state;
-#ifdef USE_LOCATOR_ITERATION
-    iterator_state.reset(new edc_gaia_ptr_state_t());
-    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
-    gaia_ptr = gaia_ptr_t::find_first(container_type_id);
-#else
     iterator_state.reset(new edc_generator_iterator_state_t());
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     iterator = gaia_ptr_t::find_all_iterator(container_type_id);
-#endif
     return iterator_state;
 }
 
@@ -111,14 +93,6 @@ gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t
 {
     ASSERT_PRECONDITION(iterator_state, "Attempt to access unset iterator state!");
 
-#ifdef USE_LOCATOR_ITERATION
-    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
-    if (!gaia_ptr)
-    {
-        return c_invalid_gaia_id;
-    }
-    return gaia_ptr.id();
-#else
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     if (!iterator)
@@ -127,22 +101,12 @@ gaia_id_t edc_db_t::get_iterator_value(std::shared_ptr<edc_base_iterator_state_t
     }
     gaia_ptr_t gaia_ptr = *iterator;
     return gaia_ptr.id();
-#endif
 }
 
 bool edc_db_t::advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
 {
     ASSERT_PRECONDITION(iterator_state, "Attempt to advance unset iterator state!");
 
-#ifdef USE_LOCATOR_ITERATION
-    gaia_ptr_t& gaia_ptr = (reinterpret_cast<edc_gaia_ptr_state_t*>(iterator_state.get()))->gaia_ptr;
-    if (!gaia_ptr)
-    {
-        return false;
-    }
-    gaia_ptr = gaia_ptr.find_next();
-    return static_cast<bool>(gaia_ptr);
-#else
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     if (!iterator)
@@ -150,32 +114,6 @@ bool edc_db_t::advance_iterator(std::shared_ptr<edc_base_iterator_state_t> itera
         return false;
     }
     return static_cast<bool>(++iterator);
-#endif
-}
-
-gaia_id_t edc_db_t::find_first(gaia_type_t container)
-{
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::find_first(container);
-    if (!gaia_ptr)
-    {
-        return c_invalid_gaia_id;
-    }
-    return gaia_ptr.id();
-}
-
-gaia_id_t edc_db_t::find_next(gaia_id_t id)
-{
-    auto gaia_ptr = gaia_ptr_t(id);
-    gaia_id_t next_id = c_invalid_gaia_id;
-    if (gaia_ptr)
-    {
-        gaia_ptr = gaia_ptr.find_next();
-        if (gaia_ptr)
-        {
-            next_id = gaia_ptr.id();
-        }
-    }
-    return next_id;
 }
 
 // If the object exists, returns true and retrieves the container type of the object.
