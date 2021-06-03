@@ -39,7 +39,8 @@ set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_index.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
