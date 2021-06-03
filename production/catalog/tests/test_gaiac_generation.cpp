@@ -34,8 +34,11 @@ TEST_F(gaia_generate_test, use_create_table)
     fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
     create_table("airport_test", "airport", fields);
 
-    auto header_str = gaia_generate("airport_test");
-    EXPECT_NE(0, header_str.find("struct airport_t"));
+    auto header_str = generate_edc_header("airport_test");
+    EXPECT_NE(0, header_str.find("class airport_t"));
+
+    auto cpp_str = generate_edc_cpp("airport_test", "gaia_airport.h");
+    EXPECT_NE(0, header_str.find("trip_segment_t::insert_row"));
 }
 
 // Start from Gaia DDL to create an EDC header.
@@ -47,8 +50,11 @@ TEST_F(gaia_generate_test, parse_ddl)
     create_database("tmp_airport");
     execute(parser.statements);
 
-    auto header_str = gaia_generate("tmp_airport");
-    EXPECT_NE(0, header_str.find("struct tmp_airport_t"));
+    auto header_str = generate_edc_header("airport_test");
+    EXPECT_NE(0, header_str.find("class tmp_airport"));
+
+    auto cpp_str = generate_edc_cpp("airport_test", "gaia_airport.h");
+    EXPECT_NE(0, header_str.find("tmp_airport::insert_row"));
 }
 
 TEST_F(gaia_generate_test, airport_example)

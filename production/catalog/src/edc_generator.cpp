@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "code_generator.hpp"
+#include "edc_generator.hpp"
 
 #include <flatbuffers/code_generators.h>
 

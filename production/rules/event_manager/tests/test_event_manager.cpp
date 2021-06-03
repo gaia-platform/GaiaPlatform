@@ -10,13 +10,13 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/direct_access/edc_base.hpp"
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "event_manager_test_helpers.hpp"
-#include "gaia_event_log.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -553,6 +553,7 @@ public:
         }
     }
 
+    /*
     // event log table helpers
     uint64_t clear_event_log()
     {
@@ -587,6 +588,7 @@ public:
         EXPECT_FALSE((bool)entry);
         gaia::db::commit_transaction();
     }
+*/
 
 protected:
     static void SetUpTestSuite()
@@ -1240,7 +1242,7 @@ TEST_F(event_manager_test, forward_chain_field_rollback)
 
     uninstall_transaction_hooks();
 }
-*/
+
 
 // TODO[GAIAPLAT-308]: Event logging does not happen since we don't have trim.
 // The following two tests will only verify that there are no entries in the
@@ -1267,3 +1269,4 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
     verify_event_log_is_empty();
 }
+*/

@@ -35,7 +35,6 @@ add_library(gaia_rules STATIC
   src/event_manager_settings.cpp
 )
 
-add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_rules PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
@@ -75,8 +74,8 @@ set(TEST_RULE_INTEGRATION_INCLUDES
 
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
 
 add_gtest(test_rule_exceptions
   "tests/test_rule_exceptions.cpp;tests/event_manager_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")

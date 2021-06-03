@@ -125,3 +125,95 @@ function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
 
   gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare" ${OUTPUT_DIR})
 endfunction()
+
+# Creates a CMake target that loads the DDL_FILE into the Gaia database,
+# generates the EDC classes to access the database programmatically, and
+# build the EDC classes into a static libary.
+#
+# The generated files are placed under: ${OUTPUT_FOLDER}/gaia_${DDL_NAME}.h
+# where DDL_NAME is DDL_FILE with no extension.
+#
+# Args:
+# - DDL_FILE: [optional] the path to the .ddl file.
+#     If not provided will generate the EDC classes for DATABASE_NAME.
+# - OUTPUT_FOLDER: [optional] folder where the header files will be generated.
+#     If not provided the default value is ${GAIA_GENERATED_SCHEMAS}/${DATABASE_NAME}
+# - LIB_NAME: [optional] the name of the generated target.
+#     If not provided the default value is edc_${DDL_NAME}.
+# - DATABASE_NAME: [optional] name of the database the headers are generated from.
+#     If not provided the database name will be inferred as ${DDL_NAME}.
+#     This is a temporary workaround, until we improve gaiac.
+function(process_schema_internal)
+  set(options "")
+  set(oneValueArgs DDL_FILE OUTPUT_FOLDER LIB_NAME DATABASE_NAME INSTANCE_NAME)
+  set(multiValueArgs "")
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if(NOT DEFINED ARG_DDL_FILE AND NOT DEFINED ARG_DATABASE_NAME)
+      message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
+  endif()
+
+  # If the database name is not provided we infer it from the DDL file name.
+  if(NOT DEFINED ARG_DATABASE_NAME)
+    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
+    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
+    set(ARG_DATABASE_NAME ${DDL_NAME})
+    message(VERBOSE "DATABASE_NAME not provided, inferred database name: ${ARG_DATABASE_NAME}.")
+  endif()
+
+  if(NOT DEFINED ARG_OUTPUT_FOLDER)
+    set(ARG_OUTPUT_FOLDER ${GAIA_GENERATED_SCHEMAS}/${ARG_DATABASE_NAME})
+    message(VERBOSE "OUTPUT_FOLDER not provided, defaulted to: ${ARG_OUTPUT_FOLDER}.")
+  endif()
+
+  set(EDC_HEADER_FILE ${ARG_OUTPUT_FOLDER}/gaia_${ARG_DATABASE_NAME}.h)
+  set(EDC_CPP_FILE ${ARG_OUTPUT_FOLDER}/gaia_${ARG_DATABASE_NAME}.cpp)
+
+  message(VERBOSE "Adding target to generate EDC classes for database ${ARG_DATABASE_NAME}.")
+
+  string(RANDOM GAIAC_INSTANCE_NAME)
+
+  if (DEFINED ARG_DDL_FILE)
+    add_custom_command(
+        COMMENT "Generating EDC classes for file ${ARG_DDL_FILE} and database ${ARG_DATABASE_NAME}..."
+        OUTPUT ${EDC_HEADER_FILE}
+        OUTPUT ${EDC_CPP_FILE}
+        COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+        -t ${GAIA_PROD_BUILD}/db/core
+        -o ${ARG_OUTPUT_FOLDER}
+        -g ${ARG_DDL_FILE}
+        -d ${ARG_DATABASE_NAME}
+        -n ${GAIAC_INSTANCE_NAME}
+        DEPENDS ${ARG_DDL_FILE}
+        DEPENDS gaiac
+    )
+  else()
+    add_custom_command(
+        COMMENT "Generating EDC classes for database ${ARG_DATABASE_NAME}..."
+        OUTPUT ${EDC_HEADER_FILE}
+        OUTPUT ${EDC_CPP_FILE}
+        COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+        -t ${GAIA_PROD_BUILD}/db/core
+        -o ${ARG_OUTPUT_FOLDER}
+        -d ${ARG_DATABASE_NAME}
+        -n ${GAIAC_INSTANCE_NAME}
+        -g
+        DEPENDS gaiac
+    )
+  endif()
+
+  if(NOT DEFINED ARG_LIB_NAME)
+    set(ARG_LIB_NAME "edc_${ARG_DATABASE_NAME}")
+    message(VERBOSE "LIB_NAME not provided, defaulting to: ${ARG_LIB_NAME}.")
+  endif()
+
+  add_library(${ARG_LIB_NAME}
+      ${EDC_CPP_FILE})
+
+  set_target_properties(${ARG_LIB_NAME} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+  set_target_properties(${ARG_LIB_NAME} PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_FOLDER})
+  target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
+  target_link_libraries(${ARG_LIB_NAME} gaia_direct)
+endfunction()

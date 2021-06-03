@@ -27,10 +27,9 @@ add_library(gaia_catalog STATIC
   src/json_generator.cpp
   src/fdw_ddl_generator.cpp
   src/catalog.cpp
-  src/gaia_generate.cpp
-  src/gaia_generate2.cpp
-  src/code_generator.cpp
   src/catalog_facade.cpp
+  src/edc_generator.cpp
+  src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_catalog PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
@@ -64,12 +63,6 @@ add_gtest(test_fdw_ddl_generation
   "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
-add_gtest(test_edc_generation
-    "tests/test_edc_generation.cpp;tests/addr_book.cpp"
-    "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-    "rt;gaia_system;gaia_catalog;gaia_db_catalog_test"
-    gaia_catalog)
-
 set(TEST_GAIA_GENERATE_INCLUDES
     ${GAIA_CATALOG_PUBLIC_INCLUDES}
     ${GAIA_CATALOG_PRIVATE_INCLUDES}
@@ -80,8 +73,7 @@ set(TEST_GAIA_GENERATE_INCLUDES
 add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_GENERATE_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test"
-    "generate_airport_headers" "")
+    "rt;gaia_system;gaia_db_catalog_test;edc_airport")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

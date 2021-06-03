@@ -43,7 +43,7 @@ set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_PARSER_GENERATED})
 
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
-  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
+  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
 
 add_gtest(test_recovery "tests/test_recovery.cpp"
-    "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader" "generate_addr_book_headers" "")
+    "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")

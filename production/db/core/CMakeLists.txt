@@ -228,7 +228,7 @@ add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TE
 add_gtest(test_multiple_server_instances
     tests/test_multiple_server_instances.cpp
     "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
-    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt" "generate_addr_book_headers")
+    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;edc_addr_book")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

@@ -6,7 +6,9 @@
 # Set the project name.
 project(test_schemas)
 
-add_subdirectory(addr_book)
-add_subdirectory(airport)
-add_subdirectory(incubator)
-add_subdirectory(prerequisites)
+process_schema_internal(DDL_FILE "${PROJECT_SOURCE_DIR}/addr_book/addr_book.ddl")
+process_schema_internal(DDL_FILE "${PROJECT_SOURCE_DIR}/airport/airport.ddl")
+process_schema_internal(DDL_FILE "${PROJECT_SOURCE_DIR}/prerequisites/prerequisites.ddl")
+process_schema_internal(
+    DDL_FILE "${PROJECT_SOURCE_DIR}/incubator/incubator.ddl"
+    DATABASE_NAME barn_storage)

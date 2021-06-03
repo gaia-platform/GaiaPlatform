@@ -563,20 +563,30 @@ gaia::common::gaia_id_t create_relationship(
     bool throw_on_exist = true);
 
 /**
- * Generate the Extended Data Classes header file.
- *
- * @param dbname database name
- * @return generated source
- */
-std::string gaia_generate(const std::string& dbname);
-
-/**
  * Find the database id given its name
  *
  * @param dbname database name
  * @return database id (or INVALID_ID if the db name does not exist)
  */
 gaia::common::gaia_id_t find_db_id(const std::string& dbname);
+
+/**
+ * Generate the Extended Data Classes header file.
+ *
+ * @param dbname database name
+ * @return generated source
+ */
+std::string generate_edc_header(const std::string& dbname);
+
+/**
+ * Generate the Extended Data Classes implementation file.
+ *
+ * @param dbname database name
+ * @param header_file_name name of the corresponding header to
+ *        include at the beginning of the file
+ * @return generated source
+ */
+std::string generate_edc_cpp(const std::string& dbname, const std::string& header_file_name);
 
 /**
  * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.

@@ -52,6 +52,6 @@ configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
 add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
-add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_addr_book_headers")
+add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
 add_gtest(test_logging tests/test_logging.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_random tests/test_random.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
