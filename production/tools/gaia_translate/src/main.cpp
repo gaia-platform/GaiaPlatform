@@ -187,6 +187,38 @@ string get_table_from_expression(const string& expression)
     }
 }
 
+bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
+{
+    for (const auto& defined_tag_iterator : tag_map)
+    {
+        if (defined_tag_iterator.second == tag)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+{
+    string first_table = get_table_from_expression(path_segment.path_components.front());
+    for (auto& path_iterator : path)
+    {
+        if (is_tag_defined(path_iterator.defined_tags, first_table))
+        {
+            path_segment.skip_implicit_path_generation = true;
+            path.insert(path.begin(), path_segment);
+            return true;
+        }
+        if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
+        {
+            path_iterator.skip_implicit_path_generation = true;
+        }
+    }
+    return false;
+}
+
+
 bool is_path_segment_contained_in_another_path(const vector<explicit_path_data_t>& path, const explicit_path_data_t& path_segment)
 {
     unordered_set<string> tag_container, table_container;
@@ -431,18 +463,6 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     g_active_fields[table_name].insert(field_name);
     return true;
-}
-
-bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
-{
-    for (const auto& defined_tag_iterator : tag_map)
-    {
-        if (defined_tag_iterator.second == tag)
-        {
-            return true;
-        }
-    }
-    return false;
 }
 
 string get_table_name(const string& table, const unordered_map<string, string>& tag_map)
@@ -1124,6 +1144,10 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
             if (!is_expression_from_body(context, *node))
             {
                 if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+                {
+                    return;
+                }
+                if (optimize_path(expression_explicit_path_data_iterator.second, data))
                 {
                     return;
                 }

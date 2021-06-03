@@ -92,7 +92,10 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                if (!path_data.skip_implicit_path_generation)
+                {
+                    return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                }
             }
             first_component = false;
         }
