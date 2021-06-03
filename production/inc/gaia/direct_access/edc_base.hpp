@@ -22,6 +22,18 @@ namespace gaia
 namespace direct_access
 {
 
+class edc_ref_t
+{
+public:
+    edc_ref_t() = delete;
+    edc_ref_t(gaia::common::gaia_id_t parent);
+    void connect(gaia::common::gaia_id_t id);
+    void disconnect(gaia::common::gaia_id_t id);
+
+private:
+    gaia::common::gaia_id_t m_parent_id;
+};
+
 /**
  * Used by edc object, writer, and iterator classes.
  * Not for use outside the context of those classes.
@@ -39,6 +51,9 @@ protected:
     static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
+
+private:
+    friend class edc_ref_t;
 };
 
 /**

@@ -35,7 +35,6 @@ struct names_t;
 struct greetings_ref_t;
 struct names_ref_t;
 
-
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_names, names_t, internal::names, internal::namesT> names_writer;
 struct names_t : public gaia::direct_access::edc_object_t<c_gaia_type_names, names_t, internal::names, internal::namesT> {
     typedef gaia::direct_access::reference_chain_container_t<greetings_t> greetings_list_t;
@@ -68,15 +67,10 @@ private:
     friend class edc_object_t<c_gaia_type_names, names_t, internal::names, internal::namesT>;
 };
 
-struct names_ref_t : public names_t
+struct names_ref_t : public names_t, public direct_access::edc_ref_t
 {
-    names_ref_t();
+    names_ref_t() = delete;
     names_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t id);
-    void connect(gaia::common::gaia_id_t id);
-    void disconnect(gaia::common::gaia_id_t id);
-
-private:
-    gaia::common::gaia_id_t m_parent_id;
 };
 
 template<class unused_t> gaia::direct_access::expression_t<names_t, gaia::common::gaia_id_t> names_t::expr_<unused_t>::gaia_id{&names_t::gaia_id};
@@ -119,15 +113,10 @@ private:
     friend class edc_object_t<c_gaia_type_greetings, greetings_t, internal::greetings, internal::greetingsT>;
 };
 
-struct greetings_ref_t : public greetings_t
+struct greetings_ref_t : public greetings_t, public direct_access::edc_ref_t
 {
-    greetings_ref_t();
+    greetings_ref_t() = delete;
     greetings_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child);
-    void connect(gaia::common::gaia_id_t id);
-    void disconnect(gaia::common::gaia_id_t id);
-
-private:
-    gaia::common::gaia_id_t m_parent_id;
 };
 
 template<class unused_t> gaia::direct_access::expression_t<greetings_t, gaia::common::gaia_id_t> greetings_t::expr_<unused_t>::gaia_id{&greetings_t::gaia_id};

@@ -13,18 +13,8 @@ namespace hello
 {
 
 greetings_ref_t::greetings_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)
-    : greetings_t(child), m_parent_id(parent)
+    : greetings_t(child), direct_access::edc_ref_t(parent)
 {
-}
-
-void greetings_ref_t::connect(gaia::common::gaia_id_t id)
-{
-    edc_db_t::insert_child_reference(m_parent_id, id, 0);
-}
-
-void greetings_ref_t::disconnect(gaia::common::gaia_id_t id)
-{
-    edc_db_t::remove_child_reference(m_parent_id, id, 0);
 }
 
 greetings_ref_t names_t::greetings() const
@@ -33,18 +23,8 @@ greetings_ref_t names_t::greetings() const
 }
 
 names_ref_t::names_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)
-    : names_t(child), m_parent_id(parent)
+    : names_t(child), direct_access::edc_ref_t(parent)
 {
-}
-
-void names_ref_t::connect(gaia::common::gaia_id_t id)
-{
-    edc_db_t::insert_child_reference(m_parent_id, id, 0);
-}
-
-void names_ref_t::disconnect(gaia::common::gaia_id_t id)
-{
-    edc_db_t::remove_child_reference(m_parent_id, id, 0);
 }
 
 names_ref_t greetings_t::names() const
