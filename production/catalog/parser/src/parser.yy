@@ -29,15 +29,17 @@
     namespace ddl
     {
     class parser_t;
-    } // namespace ddl
-    } // namespace catalog
-    } // namespace gaia
+    }
+    }
+    }
 
     using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::base_field_def_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
     using cardinality_t = gaia::catalog::relationship_cardinality_t;
+    using index_type_t = gaia::catalog::index_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
+    using field_list_t = std::vector<std::string>;
 }
 
 // The parsing context.
@@ -62,6 +64,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE
+%token UNIQUE RANGE HASH INDEX ON
 
 // Symbols
 %token LPAREN "("
@@ -94,6 +97,9 @@
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
 %type <gaia::catalog::ddl::link_def_t> link_def
+%type <bool> opt_unique
+%type <index_type_t> opt_index_type
+%type <std::unique_ptr<field_list_t>> field_commalist
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -106,6 +112,8 @@
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
+%printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
+%printer { yyo << "filed_commalist[" << $$->size() << "]"; } field_commalist
 %printer { yyo << $$; } <*>
 
 %%
@@ -158,6 +166,15 @@ create_statement:
       $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $4);
       $$->relationship = std::make_pair($6, $8);
       $$->if_not_exists = $3;
+  }
+| CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $6);
+      $$->unique_index = $2;
+      $$->index_type = $3;
+      $$->if_not_exists = $5;
+      $$->database = $8.first;
+      $$->index_table = $8.second;
+      $$->index_fields = std::move(*$10);
   }
 ;
 
@@ -253,6 +270,25 @@ scalar_type:
 composite_name:
   IDENTIFIER { $$ = std::make_pair("", $1); }
 | IDENTIFIER "." IDENTIFIER { $$ = std::make_pair($1, $3); }
+;
+
+opt_unique: UNIQUE { $$ = true; } | { $$ = false; };
+
+opt_index_type:
+  RANGE { $$ = index_type_t::range; }
+| HASH { $$ = index_type_t::hash; }
+| { $$ = index_type_t::range; }
+;
+
+field_commalist:
+  IDENTIFIER {
+      $$ = std::make_unique<field_list_t>();
+      $$->emplace_back($1);
+  }
+| field_commalist "," IDENTIFIER {
+      $1->emplace_back($3);
+      $$ = std::move($1);
+  }
 ;
 
 %%
