@@ -1,5 +1,5 @@
 namespace gaia.db.catalog;
-table gaia_index{
+table gaia_index {
     name:string;
     unique:bool;
     type:uint8;
