@@ -23,26 +23,26 @@ namespace index
  */
 
 template <typename T_structure, typename T_index_it>
-class locking_iterator_t
+class index_iterator_t
 {
 public:
-    locking_iterator_t() = default;
-    locking_iterator_t(base_index_t* db_idx, T_index_it iter, T_index_it end_iter);
-    locking_iterator_t(const locking_iterator_t& other);
-    ~locking_iterator_t();
+    index_iterator_t() = default;
+    index_iterator_t(base_index_t* db_idx, T_index_it iter, T_index_it end_iter);
+    index_iterator_t(const index_iterator_t& other);
+    ~index_iterator_t();
 
-    locking_iterator_t& operator++();
+    index_iterator_t& operator++();
 
-    locking_iterator_t operator++(int);
+    index_iterator_t operator++(int);
 
-    locking_iterator_t& next_key() const;
+    index_iterator_t& next_key() const;
     const typename T_index_it::value_type& operator*() const;
 
     const typename T_index_it::value_type* operator->() const;
 
-    bool operator==(const locking_iterator_t& other) const;
+    bool operator==(const index_iterator_t& other) const;
 
-    bool operator!=(const locking_iterator_t& other) const;
+    bool operator!=(const index_iterator_t& other) const;
 
 private:
     base_index_t* m_db_idx{nullptr};

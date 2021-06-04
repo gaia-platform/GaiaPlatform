@@ -18,7 +18,7 @@ namespace index
 {
 
 using hash_type_t = std::unordered_multimap<index_key_t, index_record_t, index_key_hash>;
-using hash_index_iterator_t = locking_iterator_t<hash_type_t, hash_type_t::const_iterator>;
+using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_iterator>;
 
 /**
 * Actual hash index implementation.

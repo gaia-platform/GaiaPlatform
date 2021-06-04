@@ -20,7 +20,7 @@ namespace index
 {
 
 using range_type_t = std::multimap<index_key_t, index_record_t>;
-using range_index_iterator_t = locking_iterator_t<range_type_t, range_type_t::const_iterator>;
+using range_index_iterator_t = index_iterator_t<range_type_t, range_type_t::const_iterator>;
 
 /**
 * Actual range index implementation.
