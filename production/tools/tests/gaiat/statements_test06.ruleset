@@ -1,0 +1,13 @@
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test141
+{
+    {
+        if (@incubator.min_temp < 97.0)
+        {}
+        nomatch (incubator.max_temp);
+    }
+}
+                                
+
+// CHECK: expression result unused

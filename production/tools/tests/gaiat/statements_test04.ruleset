@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+int strcmp(const char*, const char*);
+
+ruleset test1
+{
+    OnInsert(feeding)
+    {
+        int i = strcmp(feeding.portion, "three");
+    }
+}
+
+// CHECK: no matching function for call to 'strcmp'

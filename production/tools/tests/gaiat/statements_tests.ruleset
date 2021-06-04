@@ -120,11 +120,12 @@ ruleset test9
         {
             temp += sensor.value;
         }
-// GAIAPLAT-947
+// GAIAPLAT-947 (fixed)
         else
         {
             temp -= sensor.value;
         }
+// GAIAPLAT-988
         nomatch
         {
             temp += 10.0;
@@ -300,11 +301,11 @@ ruleset test19
         {
             answer += /feeding.portion;
         }
+// GAIAPLAT-988
         nomatch
         {
             answer = 15;
         }
-#ifdef TEST_FAILURES
         nomatch
         {
             answer = 30;
@@ -313,7 +314,6 @@ ruleset test19
         {
             answer = 20;
         }
-#endif
     }
 }
 
@@ -372,6 +372,7 @@ ruleset test23
             if (actuator.value < 97.3)
                 if (sensor.value > 82.1)
                     here = true;
+// GAIAPLAT-988
                 nomatch
                     here = false;
             else
@@ -415,5 +416,40 @@ ruleset test26
     {
         char str[200];
         sprintf(str, "%ld,%f,%f", I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+    }
+}
+
+ruleset test27
+{
+    OnInsert(I:incubator)
+    {
+        if (incubator.max_temp > 99.8)
+        {
+            I.min_temp -= 1.0;
+        }
+        nomatch
+        {
+            I.min_temp = 97.0;
+        }
+    }
+}
+
+ruleset test28
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        if (incubator->raised->animal->feeding.portion > 1)
+        {
+            temp += sensor.value;
+        }
+        else
+        {
+            temp -= sensor.value;
+        }
+        nomatch
+        {
+            temp += 10.0;
+        }
     }
 }

@@ -199,11 +199,11 @@ ruleset test_query_1
     // Auto-sum of student hours.
     OnInsert(registration)
     {
-        age = 0;
-        // Both 'age' and 'hours' are single-cardinality implicit test_queries
+        total_hours = 0;
+        // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
-        age += hours;
-        g_oninsert_value = age;
+        total_hours += hours;
+        g_oninsert_value = total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -215,12 +215,10 @@ ruleset test_query_2
     // Auto-sum of student hours.
     OnInsert(registration)
     {
-        age = 0;
+        total_hours = 0;
         // Visit all courses in which the student is registered.
-#ifdef TEST_FAILURES
-        age += student->registration->course.hours;
-#endif
-        g_oninsert_value = age;
+        total_hours += student->registration->course.hours;
+        g_oninsert_value = total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -283,12 +281,10 @@ ruleset test_query_4
         {
             student.gpa *= 0.9;
         }
-#ifdef TEST_FAILURES
         nomatch
         {
             student.gpa = 0.0;
         }
-#endif
         g_onupdate_value = int(10*student.gpa);
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;

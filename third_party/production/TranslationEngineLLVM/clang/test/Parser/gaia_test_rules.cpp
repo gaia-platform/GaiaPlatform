@@ -936,7 +936,7 @@ ruleset test128
     }
 }
 
-// GAIAPLAT-821
+// GAIAPLAT-821 (fixed)
 ruleset test129
 {
     OnUpdate(incubator)
@@ -947,7 +947,7 @@ ruleset test129
     }
 }
 
-// GAIAPLAT-821
+// GAIAPLAT-821 (fixed)
 ruleset test130
 {
     {
@@ -996,3 +996,99 @@ ruleset test134
     }
 }
 #endif
+
+ruleset test135
+{
+    {
+        if (animal.age == 0)
+        nomatch // expected-error {{expected expression}}
+        {
+        }
+    }
+}
+
+ruleset test136
+{
+    {
+        while (/incubator) // expected-error {{value of type 'incubator__type' is not contextually convertible to 'bool'}}
+        {
+        }
+    }
+}
+
+ruleset test137
+{
+    {
+        while (@incubator->sensor.value)
+        {
+        }
+    }
+}
+
+ruleset test138
+{
+    {
+        while (sensor->incubator->farmer->yield->feeding.portion)
+        {
+        }
+    }
+}
+
+ruleset test139
+{
+    {
+        if (@incubator.max_temp > 99.9)
+        {
+            incubator.max_temp = 99.9;
+        }
+        nomatch
+        {
+            /incubator.max_temp = 99.9;
+        }
+        nomatch // expected-error {{expected expression}}
+        {
+            /incubator.min_temp = 97.0;
+        }
+    }
+}
+
+ruleset test140
+{
+    {
+        if (@incubator.max_temp > 99.9)
+        {
+            incubator.max_temp = 99.9;
+        }
+        else
+        {
+            if (@incubator.min_temp < 97.0)
+            {
+                incubator.min_temp = 97.0;
+            }
+            else
+            {
+                if (12 > 6 * 3)
+                {
+                    sensor.value += .03;
+                }
+            }
+            nomatch
+            {
+                /incubator.min_temp = 99.9;
+            }
+        }
+        nomatch
+        {
+            /incubator.max_temp = 99.9;
+        }
+    }
+}
+
+ruleset test141
+{
+    {
+        if (@incubator.min_temp < 97.0)
+        {}
+        nomatch (incubator.max_temp);  // expected-warning {{expression result unused}}
+    }
+}
