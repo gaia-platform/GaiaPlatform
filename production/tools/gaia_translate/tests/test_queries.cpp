@@ -402,11 +402,7 @@ TEST_F(test_queries_code, sum_of_all_hours)
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
-#ifdef TEST_FAILURES
     EXPECT_EQ(g_oninsert_value, 12) << "Incorrect sum";
-#else
-    EXPECT_EQ(g_oninsert_value, 0) << "Incorrect sum";
-#endif
 }
 
 TEST_F(test_queries_code, tag_define_use)
@@ -598,6 +594,33 @@ TEST_F(test_queries_code, nomatch_stmt2)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_stmt)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_6");
+
+    // @hours - active variable.
+    // Rule causes forward chanining, but terminates after 4 calls.
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto sw = student_1.writer();
+    sw.gpa = 3.5;
+    sw.update_row();
+
+    gaia::db::commit_transaction();
+
+#ifdef TEST_FAILURES
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    EXPECT_EQ(g_onupdate_value, 11) << "OnUpdate(registration) incorrect result";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+#endif
 }
 
 // Query tests:

@@ -1,0 +1,18 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    OnInsert(feeding)
+    {
+        if (portion == 5)
+        {
+            portion += 3;
+        }
+        nomarch
+        {
+            portion += 5;
+        }
+    }
+}
+
+// CHECK: Field 'nomarch' was not found in the catalog.
