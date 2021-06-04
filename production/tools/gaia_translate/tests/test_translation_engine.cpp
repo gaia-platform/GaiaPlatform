@@ -11,17 +11,21 @@
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_barn_storage.h"
+#include "test_rulesets.hpp"
 
 using namespace std;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
+using namespace rule_test_helpers;
 
-extern int g_rule_called;
-extern int g_insert_called;
-extern int g_update_called;
-extern int g_actuator_rule_called;
-const int c_g_rule_execution_delay = 50000;
+extern std::atomic<int32_t> g_rule_called;
+extern std::atomic<int32_t> g_insert_called;
+extern std::atomic<int32_t> g_update_sensor_value_called;
+extern std::atomic<int32_t> g_update_min_temp_called;
+extern std::atomic<int32_t> g_update_max_temp_called;
+extern std::atomic<int32_t> g_actuator_rule_called;
+
 const float c_g_incubator_min_temperature = 99.0;
 const float c_g_incubator_max_temperature = 102.0;
 const int c_g_expected_sensor_value = 6;
@@ -75,14 +79,12 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (g_rule_called == 0)
-    {
-        usleep(c_g_rule_execution_delay);
-    }
 
-    EXPECT_EQ(g_rule_called, 1);
+    EXPECT_TRUE(wait_for_rule(g_rule_called, 3));
+
     EXPECT_EQ(g_insert_called, 1);
-    EXPECT_EQ(g_update_called, 0);
+    EXPECT_EQ(g_update_max_temp_called, 2);
+    EXPECT_EQ(g_update_sensor_value_called, 0);
 
     gaia::db::begin_transaction();
 
@@ -110,18 +112,14 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
         w.value = c_g_expected_sensor_value;
         w.update_row();
     }
-
     gaia::db::commit_transaction();
 
-    while (g_rule_called == 1)
-    {
-        usleep(c_g_rule_execution_delay);
-    }
+    EXPECT_TRUE(wait_for_rule(g_rule_called, 7));
 
-    EXPECT_EQ(g_rule_called, 2);
     EXPECT_EQ(g_insert_called, 1);
-    EXPECT_EQ(g_update_called, 1);
-    EXPECT_EQ(g_actuator_rule_called, 0);
+    EXPECT_EQ(g_update_max_temp_called, 4);
+    EXPECT_EQ(g_update_sensor_value_called, 1);
+    EXPECT_EQ(g_actuator_rule_called, 1);
 
     gaia::db::begin_transaction();
 
@@ -144,13 +142,16 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     gaia::db::begin_transaction();
 
     auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
+    auto incubator = *(gaia::barn_storage::incubator_t::list().begin());
+    incubator.sensors().insert(s_id);
     gaia::db::commit_transaction();
 
-    usleep(c_g_rule_execution_delay * 5);
+    EXPECT_TRUE(wait_for_rule(g_rule_called, 10));
     gaia::db::begin_transaction();
+
     auto s = gaia::barn_storage::sensor_t::get(s_id);
+    s.incubator().sensors().remove(s);
     s.delete_row();
 
     gaia::db::commit_transaction();
-    usleep(c_g_rule_execution_delay * 5);
 }
