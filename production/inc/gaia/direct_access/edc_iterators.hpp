@@ -7,8 +7,6 @@
 
 #include "gaia/direct_access/edc_base.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
-
 namespace gaia
 {
 
