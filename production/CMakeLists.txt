@@ -24,7 +24,6 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia_build)
-include(gaia)
 include(GoogleTest)
 
 # Specify the C++ standard.
