@@ -80,7 +80,12 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
 
-    EXPECT_TRUE(wait_for_rule(g_rule_called, 3));
+    // Initializing storage inserts an incubator with a sensor and an actuator.  This calls:
+    // rule-4: OnChange(sensor.value) [insert]
+    // rule-2: OnUpdate(incubator.max_temp)
+    // rule-2: OnUpdate(incubator.max_temp)
+    const int32_t c_count_rules_called_1 = 3;
+    EXPECT_TRUE(wait_for_rule(g_rule_called, c_count_rules_called_1));
 
     EXPECT_EQ(g_insert_called, 1);
     EXPECT_EQ(g_update_max_temp_called, 2);
@@ -114,7 +119,13 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     }
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_rule_called, 7));
+    // Updating a sensor value calls:
+    // rule-4: OnChange(sensor.value) [update]
+    // rule-2: OnUpdate(incubator.max_temp)
+    // rule-2: OnUpdate(incubator.max_temp)
+    // rule-3: OnUpdate(actuator.value)
+    const int32_t c_count_rules_called_2 = c_count_rules_called_1 + 4;
+    EXPECT_TRUE(wait_for_rule(g_rule_called, c_count_rules_called_2));
 
     EXPECT_EQ(g_insert_called, 1);
     EXPECT_EQ(g_update_max_temp_called, 4);
@@ -146,7 +157,13 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     incubator.sensors().insert(s_id);
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_rule_called, 10));
+    // Inserting a new sensor calls:
+    // rule-4: OnChange(sensor.value) [insert]
+    // rule-2: OnUpdate(incubator.max_temp)
+    // rule-2: OnUpdate(incubator.max_temp)
+    const int32_t c_count_rules_called_3 = c_count_rules_called_2 + 3;
+    EXPECT_TRUE(wait_for_rule(g_rule_called, c_count_rules_called_3));
+
     gaia::db::begin_transaction();
 
     auto s = gaia::barn_storage::sensor_t::get(s_id);
