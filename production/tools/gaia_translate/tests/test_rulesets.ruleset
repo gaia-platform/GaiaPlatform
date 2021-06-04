@@ -297,16 +297,13 @@ ruleset test_query_4
 
 ruleset test_query_5
 {
-    OnUpdate(S:student)
+    OnUpdate(student)
     {
-#ifdef TEST_FAILURES
-        while (student->R:registration->C:course.hours > 0)
+// GAIAPLAT-989
+        while (S:student->R:registration->C:course.hours > 0)
         {
             g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
         }
-#else
-g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
-#endif
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }
@@ -318,4 +315,39 @@ g_string_value = "stu001reg002cou004 stu001reg001cou002 ";
 
 ruleset test_query_6
 {
+    OnUpdate(student)
+    {
+        if (strcmp(surname, "Richard") == 0)
+        {
+            g_string_value = std::string("found Richard");
+        }
+        else
+        {
+            g_string_value = std::string("failure");
+        }
+        nomatch
+        {
+            g_string_value = std::string("nomatch failure");
+        }
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
+
+    OnInsert(student)
+    {
+        if (student->registration->course.hours > 0)
+        {
+            g_string_value = std::string("found hours > 0");
+        }
+        else
+        {
+            g_string_value = std::string("found hours <= 0");
+        }
+        nomatch
+        {
+            g_string_value = std::string("nomatch success");
+        }
+        g_onupdate_result = test_error_result_t::e_none;
+        g_onupdate_called = true;
+    }
 }
