@@ -71,7 +71,7 @@ std::vector<incoming_relationship_facade_t> table_facade_t::incoming_relationshi
 {
     auto relationships = std::vector<incoming_relationship_facade_t>();
 
-    for (const gaia_relationship_t& relationship : m_table.gaia_relationships_child())
+    for (const gaia_relationship_t& relationship : m_table.incoming_relationships())
     {
         relationships.emplace_back(relationship);
     }
@@ -83,7 +83,7 @@ std::vector<outgoing_relationship_facade_t> table_facade_t::outgoing_relationshi
 {
     auto relationships = std::vector<outgoing_relationship_facade_t>();
 
-    for (const gaia_relationship_t& relationship : m_table.gaia_relationships_parent())
+    for (const gaia_relationship_t& relationship : m_table.outgoing_relationships())
     {
         relationships.emplace_back(relationship);
     }

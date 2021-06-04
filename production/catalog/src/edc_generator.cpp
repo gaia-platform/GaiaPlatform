@@ -97,7 +97,7 @@ std::string edc_compilation_unit_writer_t::generate_includes()
     flatbuffers::CodeWriter code = create_code_writer();
     code += "#include <gaia/direct_access/edc_object.hpp>";
     code += "#include <gaia/direct_access/edc_iterators.hpp>";
-    code += "#include <{{DBNAME}}_generated.h>";
+    code += "#include \"{{DBNAME}}_generated.h\"";
 
     return code.ToString();
 }
@@ -229,7 +229,7 @@ std::string class_writer_t::write_header()
 std::string class_writer_t::write_cpp()
 {
     flatbuffers::CodeWriter code(c_indent_string);
-    code += generate_cpp_section_comment();
+    code += generate_class_section_comment_cpp();
     code += generate_insert_cpp() + "\\";
     code += generate_list_accessor_cpp() + "\\";
     code += generate_fields_accessors_cpp() + "\\";
@@ -251,7 +251,7 @@ flatbuffers::CodeWriter class_writer_t::create_code_writer()
     return code;
 }
 
-std::string class_writer_t::generate_cpp_section_comment()
+std::string class_writer_t::generate_class_section_comment_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "//";

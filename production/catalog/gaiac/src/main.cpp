@@ -116,7 +116,7 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
 }
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
-void generate_edc_classes(const string& db_name, const filesystem::path& output_path)
+void generate_edc_code(const string& db_name, const filesystem::path& output_path)
 {
     filesystem::path header_path = output_path;
     header_path /= "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
@@ -144,7 +144,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
 {
     if (output_path.empty())
     {
-        cerr << "ERROR - No output path provided for EDC classes. " << endl;
+        cerr << "ERROR - No output path provided for EDC code. " << endl;
         exit(1);
     }
 
@@ -161,10 +161,10 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
         throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
     }
 
-    cout << "Generating EDC classes in: " << absolute_output_path << "." << endl;
+    cout << "Generating EDC code in: " << absolute_output_path << "." << endl;
 
     generate_fbs_headers(db_name, absolute_output_path);
-    generate_edc_classes(db_name, absolute_output_path);
+    generate_edc_code(db_name, absolute_output_path);
 }
 
 // Check if a database name is valid.
@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC class for the default global database if no database is given.
+                // Generate EDC code for the default global database if no database is given.
                 if (db_names.empty())
                 {
                     db_names.emplace_back("");

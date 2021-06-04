@@ -131,9 +131,9 @@ private:
     // We use them to compute offset field values of the "gaia_relationship" table .
     //
     // Find the next available offset in a container's parent relationships.
-    static common::reference_offset_t find_parent_available_offset(const gaia_table_t::gaia_relationships_parent_list_t& relationships);
+    static common::reference_offset_t find_parent_available_offset(const gaia_table_t::outgoing_relationships_list_t& relationships);
     // Find the next available offset in a container's child relationships.
-    static common::reference_offset_t find_child_available_offset(const gaia_table_t::gaia_relationships_child_list_t& relationships);
+    static common::reference_offset_t find_child_available_offset(const gaia_table_t::incoming_relationships_list_t& relationships);
     // Find the next available offset in the relationships of the given table.
     static common::reference_offset_t find_available_offset(gaia::common::gaia_id_t table);
 

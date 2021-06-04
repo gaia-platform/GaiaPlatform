@@ -11,7 +11,7 @@
 #include <gaia_internal/catalog/gaia_catalog.h>
 
 /*
- * Contains classes that make simpler to generate code from the
+ * Contains classes that make it simpler to generate code from the
  * catalog types. Each Catalog class has its own "facade".
  * Eg. gaia_table_t -> table_facade_t.
  */

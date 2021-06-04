@@ -135,7 +135,7 @@ endfunction()
 #
 # Args:
 # - DDL_FILE: [optional] the path to the .ddl file.
-#     If not provided will generate the EDC classes for DATABASE_NAME.
+#     If not provided will generate the EDC code for DATABASE_NAME.
 # - OUTPUT_FOLDER: [optional] folder where the header files will be generated.
 #     If not provided the default value is ${GAIA_GENERATED_CODE}/${DATABASE_NAME}
 # - LIB_NAME: [optional] the name of the generated target.
@@ -150,7 +150,7 @@ function(process_schema_internal)
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   if(NOT DEFINED ARG_DDL_FILE AND NOT DEFINED ARG_DATABASE_NAME)
-      message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
+    message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
   # If the database name is not provided we infer it from the DDL file name.
@@ -169,36 +169,36 @@ function(process_schema_internal)
   set(EDC_HEADER_FILE ${ARG_OUTPUT_FOLDER}/gaia_${ARG_DATABASE_NAME}.h)
   set(EDC_CPP_FILE ${ARG_OUTPUT_FOLDER}/gaia_${ARG_DATABASE_NAME}.cpp)
 
-  message(VERBOSE "Adding target to generate EDC classes for database ${ARG_DATABASE_NAME}.")
+  message(VERBOSE "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
 
   string(RANDOM GAIAC_INSTANCE_NAME)
 
   if (DEFINED ARG_DDL_FILE)
     add_custom_command(
-        COMMENT "Generating EDC classes for file ${ARG_DDL_FILE} and database ${ARG_DATABASE_NAME}..."
-        OUTPUT ${EDC_HEADER_FILE}
-        OUTPUT ${EDC_CPP_FILE}
-        COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+      COMMENT "Generating EDC code for file ${ARG_DDL_FILE} and database ${ARG_DATABASE_NAME}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
         -t ${GAIA_PROD_BUILD}/db/core
         -o ${ARG_OUTPUT_FOLDER}
         -g ${ARG_DDL_FILE}
         -d ${ARG_DATABASE_NAME}
         -n ${GAIAC_INSTANCE_NAME}
-        DEPENDS ${ARG_DDL_FILE}
-        DEPENDS gaiac
+      DEPENDS ${ARG_DDL_FILE}
+      DEPENDS gaiac
     )
   else()
     add_custom_command(
-        COMMENT "Generating EDC classes for database ${ARG_DATABASE_NAME}..."
-        OUTPUT ${EDC_HEADER_FILE}
-        OUTPUT ${EDC_CPP_FILE}
-        COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+      COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
         -t ${GAIA_PROD_BUILD}/db/core
         -o ${ARG_OUTPUT_FOLDER}
         -d ${ARG_DATABASE_NAME}
         -n ${GAIAC_INSTANCE_NAME}
         -g
-        DEPENDS gaiac
+      DEPENDS gaiac
     )
   endif()
 
@@ -208,7 +208,7 @@ function(process_schema_internal)
   endif()
 
   add_library(${ARG_LIB_NAME}
-      ${EDC_CPP_FILE})
+    ${EDC_CPP_FILE})
 
   set_target_properties(${ARG_LIB_NAME} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
   set_target_properties(${ARG_LIB_NAME} PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")

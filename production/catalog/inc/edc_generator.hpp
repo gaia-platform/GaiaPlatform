@@ -12,10 +12,10 @@
 #include "catalog_facade.hpp"
 
 //
-// Contain the classes the generates the header & cpp code
-// for EDC classes.
+// Contains the classes the generates the header & cpp code
+// for EDC.
 //
-// The methods that generates cpp are suffixed with _cpp, while
+// The methods that generate cpp are suffixed with _cpp, while
 // the methods that generate headers do not have any particular
 // suffix.
 //
@@ -29,7 +29,7 @@ namespace generate
 
 /**
  * Handles the generation of an EDC compilation unit, which is defined as
- * the header and cpp containing all the EDC classes for a given database.
+ * the header and cpp containing all the EDC code for a given database.
  */
 class edc_compilation_unit_writer_t
 {
@@ -79,7 +79,7 @@ private:
     void decrement_indent();
     std::string generate_method_params(std::vector<field_facade_t> fields);
 
-    std::string generate_cpp_section_comment();
+    std::string generate_class_section_comment_cpp();
     std::string generate_writer();
     std::string generate_class_definition();
     std::string generate_list_types();

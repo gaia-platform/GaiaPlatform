@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # Sets gaia variables. They can be overridden to customize the gaia behavior.
 #
-# The script searches for the 'gaia' library, if not found will try to
+# The script searches for the 'gaia' library, if not found it will try to
 # create it from the gaia installation folder. If not found it fails.
 #
 # - GAIA_ROOT: Gaia root directory. Default: /opt/gaia.
@@ -124,31 +124,31 @@ function(process_schema)
     set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
   endif()
 
-  message(STATUS "Adding target to generate EDC classes for database ${ARG_DATABASE_NAME}.")
+  message(STATUS "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
 
   if (DEFINED ARG_DDL_FILE)
     add_custom_command(
-        COMMENT "Generating EDC classes for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
-        OUTPUT ${EDC_HEADER_FILE}
-        OUTPUT ${EDC_CPP_FILE}
-        COMMAND ${GAIA_GAIAC_CMD}
+      COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_GAIAC_CMD}
         -o ${ARG_OUTPUT_DIR}
         -d ${ARG_DATABASE_NAME}
         ${ARG_INSTANCE_NAME}
         -g ${ARG_DDL_FILE}
-        DEPENDS ${ARG_DDL_FILE}
+      DEPENDS ${ARG_DDL_FILE}
     )
   else()
     add_custom_command(
-        COMMENT "Generating EDC classes for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
-        OUTPUT ${EDC_HEADER_FILE}
-        OUTPUT ${EDC_CPP_FILE}
-        COMMAND ${GAIA_GAIAC_CMD}
+      COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_GAIAC_CMD}
         -o ${ARG_OUTPUT_DIR}
         -d ${ARG_DATABASE_NAME}
         ${ARG_INSTANCE_NAME}
         -g
-        DEPENDS ${ARG_DDL_FILE}
+      DEPENDS ${ARG_DDL_FILE}
     )
   endif()
 
@@ -158,8 +158,8 @@ function(process_schema)
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
-      DEPENDS ${EDC_HEADER_FILE}
-      DEPENDS ${EDC_CPP_FILE}
+    DEPENDS ${EDC_HEADER_FILE}
+    DEPENDS ${EDC_CPP_FILE}
   )
 
   set(GAIA_EDC_GENERATION_TARGETS "${GAIA_EDC_GENERATION_TARGETS};${ARG_TARGET_NAME}" PARENT_SCOPE)
@@ -260,13 +260,11 @@ function(translate_ruleset)
   set(GAIA_RULES_TRANSLATED_CPP "${GAIA_RULES_TRANSLATED_CPP};${RULESET_CPP_PATH}" PARENT_SCOPE)
 endfunction()
 
-
 # Adds the gaia generated files (EDC and Rules) to the given target.
 #
 # This function works only if the code has been generated from
 # process_schema() and translate_ruleset() functions.
 function(target_add_gaia_generated_sources TARGET_NAME)
-
   # Adds EDC .cpp files
   foreach(CPP_FILE ${GAIA_EDC_GENERATED_CPP})
     message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
@@ -285,5 +283,4 @@ function(target_add_gaia_generated_sources TARGET_NAME)
     message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
   endforeach()
-
 endfunction()
