@@ -56,7 +56,10 @@ public:
     // Returns current state.
     T_output operator*() const
     {
-        return *m_state;
+        // If we de-reference m_state via *m_state, we can run into undefined behavior
+        // if m_state does not contain a value, so we'll use the value() method instead,
+        // which throws an exception in that case.
+        return m_state.value();
     }
 
     // Advance to the next valid state.
