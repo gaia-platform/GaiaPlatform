@@ -1,0 +1,33 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <iostream>
+#include <string>
+
+#include "gaia_hello.h"
+
+using namespace std;
+
+ruleset hello_ruleset
+{
+    // Rule 1: Whenever a name is inserted,
+    // insert a new greeting into the greetings table.
+    OnInsert(names)
+    {
+        // Form the greeting using the name.
+        string new_greeting;
+        new_greeting = "Hello " + string(names.name) + "!";
+
+        // Insert the greeting.
+        gaia::hello::greetings_t::insert_row(new_greeting.c_str());
+    }
+    // Rule 2: Whenever a greeting is inserted,
+    // output it to the console.
+    OnInsert(greetings)
+    {
+        // Output the greeting to the console.
+        cout << endl << greetings.greeting << endl;
+    }
+}

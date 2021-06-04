@@ -251,5 +251,23 @@ gaia_id_t* edc_base_t::references() const
     return to_const_ptr<gaia_ptr_t>()->references();
 }
 
+//
+// edc_ref_t implementation
+//
+edc_ref_t::edc_ref_t(gaia::common::gaia_id_t parent)
+    : m_parent_id(parent)
+{
+}
+
+void edc_ref_t::connect(gaia::common::gaia_id_t id)
+{
+    edc_db_t::insert_child_reference(m_parent_id, id, 0);
+}
+
+void edc_ref_t::disconnect(gaia::common::gaia_id_t id)
+{
+    edc_db_t::remove_child_reference(m_parent_id, id, 0);
+}
+
 } // namespace direct_access
 } // namespace gaia
