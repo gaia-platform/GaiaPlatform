@@ -50,10 +50,10 @@ TEST_F(gaia_generate_test, parse_ddl)
     create_database("tmp_airport");
     execute(parser.statements);
 
-    auto header_str = generate_edc_header("airport_test");
+    auto header_str = generate_edc_header(c_empty_db_name);
     EXPECT_NE(0, header_str.find("class tmp_airport"));
 
-    auto cpp_str = generate_edc_cpp("airport_test", "gaia_airport.h");
+    auto cpp_str = generate_edc_cpp(c_empty_db_name, "gaia_airport.h");
     EXPECT_NE(0, header_str.find("tmp_airport::insert_row"));
 }
 

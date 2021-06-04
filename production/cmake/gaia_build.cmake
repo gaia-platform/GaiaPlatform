@@ -137,7 +137,7 @@ endfunction()
 # - DDL_FILE: [optional] the path to the .ddl file.
 #     If not provided will generate the EDC classes for DATABASE_NAME.
 # - OUTPUT_FOLDER: [optional] folder where the header files will be generated.
-#     If not provided the default value is ${GAIA_GENERATED_SCHEMAS}/${DATABASE_NAME}
+#     If not provided the default value is ${GAIA_GENERATED_CODE}/${DATABASE_NAME}
 # - LIB_NAME: [optional] the name of the generated target.
 #     If not provided the default value is edc_${DDL_NAME}.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
@@ -162,7 +162,7 @@ function(process_schema_internal)
   endif()
 
   if(NOT DEFINED ARG_OUTPUT_FOLDER)
-    set(ARG_OUTPUT_FOLDER ${GAIA_GENERATED_SCHEMAS}/${ARG_DATABASE_NAME})
+    set(ARG_OUTPUT_FOLDER ${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME})
     message(VERBOSE "OUTPUT_FOLDER not provided, defaulted to: ${ARG_OUTPUT_FOLDER}.")
   endif()
 
