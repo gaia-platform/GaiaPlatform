@@ -71,6 +71,12 @@ comment ("--".*)
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
 "USE"          return yy::parser::make_USE(loc);
 
+"UNIQUE"     return yy::parser::make_UNIQUE(loc);
+"RANGE"      return yy::parser::make_RANGE(loc);
+"HASH"       return yy::parser::make_HASH(loc);
+"INDEX"      return yy::parser::make_INDEX(loc);
+"ON"         return yy::parser::make_ON(loc);
+
 "BOOL"       return yy::parser::make_BOOL(loc);
 "INT8"       return yy::parser::make_INT8(loc);
 "UINT8"      return yy::parser::make_UINT8(loc);

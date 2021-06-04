@@ -6,10 +6,13 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -18,6 +21,7 @@
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
+#include "gaia_index_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
 
@@ -104,6 +108,27 @@ namespace db
     return m_obj_ptr->references()[c_child_gaia_table_ref_offset];
 }
 
+[[nodiscard]] const char* index_view_t::name() const
+{
+    return catalog::Getgaia_index(m_obj_ptr->data())->name()->c_str();
+}
+
+[[nodiscard]] bool index_view_t::unique() const
+{
+    return catalog::Getgaia_index(m_obj_ptr->data())->unique();
+}
+
+[[nodiscard]] gaia::catalog::index_type_t index_view_t::type() const
+{
+    return static_cast<gaia::catalog::index_type_t>(
+        catalog::Getgaia_index(m_obj_ptr->data())->type());
+}
+
+[[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* index_view_t::fields() const
+{
+    return catalog::Getgaia_index(m_obj_ptr->data())->fields();
+}
+
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
     return table_view_t{id_to_ptr(table_id)};
@@ -111,23 +136,20 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 
 table_list_t catalog_core_t::list_tables()
 {
-    counters_t* counters = gaia::db::get_counters();
-    auto gaia_table_generator = [counters, locator = c_first_gaia_locator]() mutable -> std::optional<table_view_t> {
-        // We need an acquire barrier before reading `last_locator`. We can
-        // change this full barrier to an acquire barrier when we change to proper
-        // C++ atomic types.
-        __sync_synchronize();
-        while (locator <= counters->last_locator)
+    auto table_list = gaia::catalog::gaia_table_t::list();
+    auto it = table_list.begin();
+    auto end_it = table_list.end();
+    auto gaia_table_generator = [it, end_it]() mutable -> std::optional<table_view_t> {
+        while (it != end_it)
         {
-            auto ptr = locator_to_ptr(locator++);
-            if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
-            {
-                return table_view_t(ptr);
-            }
-            __sync_synchronize();
+            gaia_id_t id = it->gaia_id();
+            gaia_ptr_t gaia_ptr(id);
+            ++it;
+            return table_view_t(gaia_ptr.to_ptr());
         }
         return std::nullopt;
     };
+
     return range_from_generator(gaia_table_generator);
 }
 
@@ -171,6 +193,14 @@ relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
         table_id,
         c_gaia_table_first_child_gaia_relationship_offset,
         c_gaia_relationship_next_child_gaia_relationship_offset);
+}
+
+index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
+{
+    return list_catalog_obj_reference_chain<index_view_t>(
+        table_id,
+        c_gaia_table_first_gaia_index_offset,
+        c_gaia_index_next_gaia_index_offset);
 }
 
 } // namespace db

@@ -96,12 +96,6 @@ public:
     gaia::common::gaia_id_t* references() const override;
 
     /**
-     * This is the database's identification of this object. The id can be
-     * used to refer to this object later.
-     */
-    gaia::common::gaia_id_t gaia_id() const;
-
-    /**
      * Returns true if there is an an underlying database object.
      */
     explicit operator bool() const;

@@ -39,7 +39,8 @@ set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_index.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -68,6 +69,7 @@ target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES}
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_storage PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_storage PRIVATE gaia_common)
+set_property (TARGET gaia_storage PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ###############################################
 # Database-related code begins here.

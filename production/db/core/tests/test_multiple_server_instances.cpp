@@ -140,7 +140,7 @@ private:
     std::string m_instance_name;
 };
 
-TEST_F(DISABLED_multiple_server_instances_test, multiple_instacnes)
+TEST_F(DISABLED_multiple_server_instances_test, multiple_instances)
 {
     std::vector<server_instance_t> server_instances;
 

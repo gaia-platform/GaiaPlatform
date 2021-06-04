@@ -221,9 +221,9 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hank");
         employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hugo");
-        employee = *(++employee_iterator);
         EXPECT_STREQ(employee.name_first(), "Hubert");
+        employee = *(++employee_iterator);
+        EXPECT_STREQ(employee.name_first(), "Hugo");
         commit_transaction();
 
         end_session();

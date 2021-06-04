@@ -6,8 +6,12 @@
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/exception.hpp"
 
@@ -197,6 +201,26 @@ void ddl_executor_t::bootstrap_catalog()
             {c_catalog_db_name, "gaia_rule", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
             false);
     }
+    {
+        // create table gaia_index (
+        //     name string,
+        //     unique bool,
+        //     type uint8,
+        //     fields uint64[],
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_uint64, 0));
+        create_table_impl("catalog", "gaia_index", fields, true, false, static_cast<gaia_type_t>(catalog_table_type_t::gaia_index));
+
+        create_relationship(
+            "gaia_catalog_table_index",
+            {c_catalog_db_name, "gaia_table", "gaia_indexes", "catalog", "gaia_index", relationship_cardinality_t::many},
+            {c_catalog_db_name, "gaia_index", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            false);
+    }
 }
 
 void ddl_executor_t::create_system_tables()
@@ -298,6 +322,13 @@ gaia_id_t ddl_executor_t::create_table(
 gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
 {
     shared_lock lock(m_lock);
+
+    gaia_id_t db_id = find_db_id_no_lock(db);
+    if (db_id == c_invalid_gaia_id)
+    {
+        throw db_not_exists(db);
+    }
+
     string full_table_name = get_full_table_name(db, table);
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
@@ -310,13 +341,13 @@ gaia_id_t ddl_executor_t::create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
-    bool thrown_on_exists)
+    bool throw_on_exists)
 {
     shared_lock lock(m_lock);
 
     if (m_relationship_names.find(name) != m_relationship_names.end())
     {
-        if (thrown_on_exists)
+        if (throw_on_exists)
         {
             throw relationship_already_exists(name);
         }
@@ -785,6 +816,72 @@ void ddl_executor_t::switch_db_context(const string& db_name)
     }
 
     m_db_context = db_name;
+}
+
+gaia_id_t ddl_executor_t::create_index(
+    const std::string& index_name,
+    bool unique,
+    index_type_t type,
+    const std::string& db_name,
+    const std::string& table_name,
+    const std::vector<std::string>& field_names,
+    bool throw_on_exists)
+{
+    shared_lock lock(m_lock);
+
+    gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
+
+    auto_transaction_t txn(false);
+
+    for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
+    {
+        if (index.name() == index_name)
+        {
+            if (throw_on_exists)
+            {
+                throw index_already_exists(index_name);
+            }
+            else
+            {
+                return index.gaia_id();
+            }
+        }
+    }
+
+    std::unordered_map<std::string, gaia_id_t> index_table_fields;
+    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
+    {
+        index_table_fields[field.name()] = field.gaia_id();
+    }
+
+    std::unordered_set<std::string> field_name_set;
+    std::vector<gaia_id_t> index_field_ids;
+    for (const auto& name : field_names)
+    {
+        if (index_table_fields.find(name) == index_table_fields.end())
+        {
+            throw field_not_exists(name);
+        }
+        if (field_name_set.find(name) != field_name_set.end())
+        {
+            throw duplicate_field(name);
+        }
+        else
+        {
+            field_name_set.insert(name);
+        }
+        index_field_ids.push_back(index_table_fields.at(name));
+    }
+
+    gaia_id_t index_id = gaia_index_t::insert_row(
+        index_name.c_str(),
+        unique,
+        static_cast<uint8_t>(type),
+        index_field_ids);
+
+    gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+    txn.commit();
+    return index_id;
 }
 
 } // namespace catalog

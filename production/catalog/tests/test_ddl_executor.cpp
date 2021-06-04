@@ -10,8 +10,9 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/direct_access/auto_transaction.hpp"
+
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "catalog_tests_helper.hpp"
@@ -508,7 +509,76 @@ TEST_F(ddl_executor_test, create_self_relationships)
     txn.commit();
 }
 
-TEST_F(ddl_executor_test, multiple_relationship_same_table)
+TEST_F(ddl_executor_test, create_index)
+{
+    string test_table_name{"create_index_test"};
+    ddl::field_def_list_t test_table_fields;
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+
+    check_table_name(table_id, test_table_name);
+    string test_index_name{"test_index"};
+    gaia_id_t index_id = create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"});
+
+    auto_transaction_t txn(false);
+    ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
+    ASSERT_EQ(gaia_index_t::get(index_id).table().gaia_id(), table_id);
+    txn.commit();
+
+    ASSERT_THROW(
+        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}),
+        index_already_exists);
+
+    ASSERT_NO_THROW(create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}, false));
+}
+
+TEST_F(ddl_executor_test, create_index_duplicate_field)
+{
+    string test_table_name{"create_index_test"};
+    ddl::field_def_list_t test_table_fields;
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+    check_table_name(table_id, test_table_name);
+
+    string test_index_name{"test_index_dup"};
+    ASSERT_THROW(
+        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name", "name"}),
+        duplicate_field);
+}
+
+TEST_F(ddl_executor_test, list_indexes)
+{
+    // CREATE TABLE book(title STRING, author STRING, isbn STRING);
+    // CREATE INDEX title_idx ON book(title);
+    // CREATE INDEX author_idx ON book(author);
+    // CREATE UNIQUE HASH INDEX isbn_idx ON book(isbn);
+    gaia::catalog::ddl::field_def_list_t fields;
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("title", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("author", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("isbn", data_type_t::e_string, 1));
+    auto table_id = gaia::catalog::create_table("book", fields);
+    auto title_idx_id = gaia::catalog::create_index(
+        "title_idx", false, gaia::catalog::index_type_t::range, "", "book", {"title"});
+    auto author_idx_id = gaia::catalog::create_index(
+        "author_idx", false, gaia::catalog::index_type_t::range, "", "book", {"author"});
+    auto isbn_idx_id = gaia::catalog::create_index(
+        "isbn_idx", true, gaia::catalog::index_type_t::hash, "", "book", {"isbn"});
+
+    std::set<gaia_id_t> index_ids;
+    begin_transaction();
+    for (const auto& idx : gaia_table_t::get(table_id).gaia_indexes())
+    {
+        index_ids.insert(idx.gaia_id());
+    }
+    commit_transaction();
+
+    ASSERT_NE(index_ids.find(title_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(author_idx_id), index_ids.end());
+    ASSERT_NE(index_ids.find(isbn_idx_id), index_ids.end());
+}
+
+TEST_F(ddl_executor_test, metadata_init)
 {
 
     gaia_id_t doctor_table_id

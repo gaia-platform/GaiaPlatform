@@ -166,14 +166,14 @@ add_custom_target(generate_rulesets_rules ALL
 )
 
 add_gtest(test_tags_ruleset
-  "tests/test_tags.cpp;${RULESETS_OUT}"
+  "tests/test_tags.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
 )
 
 add_gtest(test_queries_ruleset
-  "tests/test_queries.cpp;${RULESETS_OUT}"
+  "tests/test_queries.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""

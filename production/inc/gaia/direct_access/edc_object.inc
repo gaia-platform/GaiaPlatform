@@ -35,12 +35,6 @@ edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::edc
 }
 
 template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::gaia_id() const
-{
-    return edc_base_t::id();
-}
-
-template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 const T_flatbuffer* edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::row() const
 {
     if (!edc_base_t::exists())
@@ -90,7 +84,7 @@ edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
     }
 
     auto writer = edc_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>();
-    writer.m_gaia.id = id();
+    writer.m_gaia.id = gaia_id();
     row()->UnPackTo(&writer);
     return writer;
 }
