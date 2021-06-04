@@ -162,8 +162,6 @@ install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION 
 
 # Place incubator example.
 set(GAIA_CMAKE "${CPACK_PACKAGING_INSTALL_PREFIX}/cmake/gaia.cmake")
-set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
-set(GAIA_LIB "/usr/local/lib/libgaia.so")
 configure_file(${GAIA_REPO}/production/examples/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
 # The following two commands will create a CMakeLists.txt appropriate for the SDK build environment
 # by substituting in the correct CMAKE VARS into the incubator CMakeLists text file.

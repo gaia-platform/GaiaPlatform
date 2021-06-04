@@ -48,8 +48,6 @@ add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCL
 add_gtest(test_iterators "tests/test_iterators.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
 add_gtest(test_incubator "tests/test_incubator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_barn_storage")
 add_gtest(test_expressions "tests/test_expressions.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
-add_gtest(test_circular "tests/test_circular.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
-
 
 option(BUILD_EXPR_PERF_TEST "Build EDC expression performance tests" OFF)
 
