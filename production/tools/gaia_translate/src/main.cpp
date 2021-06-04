@@ -56,10 +56,6 @@ bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
 
-constexpr int c_nomatch_offset_start = -16;
-constexpr int c_nomatch_offset_end = -11;
-
-
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
@@ -113,6 +109,7 @@ vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
 unordered_map<SourceRange, string> g_variable_declaration_location;
 unordered_set<SourceRange> g_variable_declaration_init_location;
+unordered_map<SourceRange, SourceLocation> g_nomatch_location_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -583,8 +580,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     nomatch_prefix + navigation_code.prefix);
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.ReplaceText(
-                    SourceRange(nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_start),
-                        nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_end)),
+                    SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getBegin().getLocWithOffset(-1)),
                         navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
 
                 rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
@@ -1841,6 +1837,7 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -1953,6 +1950,7 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -2208,7 +2206,9 @@ public:
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
-            g_nomatch_location.emplace_back(expression->getNoMatch()->getSourceRange());
+            SourceRange nomatch_location = expression->getNoMatch()->getSourceRange();
+            g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
+            g_nomatch_location.emplace_back(nomatch_location);
             std::sort(g_nomatch_location.begin(), g_nomatch_location.end(), compare_source_range);
         }
         else
