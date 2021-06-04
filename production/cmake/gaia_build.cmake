@@ -158,7 +158,7 @@ function(process_schema_internal)
     get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
     string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
     set(ARG_DATABASE_NAME ${DDL_NAME})
-    message(VERBOSE "DATABASE_NAME not provided, inferred database name: ${ARG_DATABASE_NAME}.")
+    message(VERBOSE "DATABASE_NAME not provided, using: ${ARG_DATABASE_NAME}.")
   endif()
 
   if(NOT DEFINED ARG_OUTPUT_FOLDER)
