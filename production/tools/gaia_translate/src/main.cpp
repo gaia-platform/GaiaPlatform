@@ -56,10 +56,6 @@ bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
 
-constexpr int c_nomatch_offset_start = -16;
-constexpr int c_nomatch_offset_end = -11;
-
-
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
@@ -111,6 +107,9 @@ struct rewriter_history_t
 
 vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
+unordered_map<SourceRange, string> g_variable_declaration_location;
+unordered_set<SourceRange> g_variable_declaration_init_location;
+unordered_map<SourceRange, SourceLocation> g_nomatch_location_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -184,6 +183,38 @@ string get_table_from_expression(const string& expression)
         return expression;
     }
 }
+
+bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
+{
+    for (const auto& defined_tag_iterator : tag_map)
+    {
+        if (defined_tag_iterator.second == tag)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+{
+    string first_table = get_table_from_expression(path_segment.path_components.front());
+    for (auto& path_iterator : path)
+    {
+        if (is_tag_defined(path_iterator.defined_tags, first_table))
+        {
+            path_segment.skip_implicit_path_generation = true;
+            path.insert(path.begin(), path_segment);
+            return true;
+        }
+        if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
+        {
+            path_iterator.skip_implicit_path_generation = true;
+        }
+    }
+    return false;
+}
+
 
 bool is_path_segment_contained_in_another_path(const vector<explicit_path_data_t>& path, const explicit_path_data_t& path_segment)
 {
@@ -431,6 +462,142 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
+string get_table_name(const string& table, const unordered_map<string, string>& tag_map)
+{
+    auto tag_iterator = tag_map.find(table);
+    if (tag_iterator == tag_map.end())
+    {
+        tag_iterator = g_attribute_tag_map.find(table);
+        if (tag_iterator != g_attribute_tag_map.end())
+        {
+            return tag_iterator->second;
+        }
+    }
+    else
+    {
+        return tag_iterator->second;
+    }
+
+    return table;
+}
+
+void generate_navigation(const string& anchor_table, Rewriter& rewriter)
+{
+    if (g_is_generation_error)
+    {
+        return;
+    }
+
+    for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
+    {
+        for (const auto& data_iterator : explicit_path_data_iterator.second)
+        {
+            string anchor_table_name = get_table_name(get_table_from_expression(anchor_table), data_iterator.tag_table_map);
+            SourceRange nomatch_range;
+            for (const auto& nomatch_source_range : g_nomatch_location)
+            {
+                if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
+                {
+                    nomatch_range = nomatch_source_range;
+                    break;
+                }
+            }
+
+            SourceRange variable_declaration_range;
+            for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
+            {
+                if (is_range_contained_in_another_range(explicit_path_data_iterator.first,variable_declaration_range_iterator.first))
+                {
+                    string variable_name = variable_declaration_range_iterator.second;
+                    if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end() ||
+                        g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end() ||
+                        is_tag_defined(data_iterator.defined_tags, variable_name))
+                    {
+                        cerr << "Local variable declaration '" << variable_name
+                            << "' hides a tag of the same name." << endl;
+                    }
+
+                    if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first) != g_variable_declaration_init_location.end())
+                    {
+                        string table_name = get_table_name(get_table_from_expression(data_iterator.path_components.front()), data_iterator.tag_table_map);
+
+                        if (data_iterator.path_components.size() == 1 && table_name == anchor_table_name && !data_iterator.is_absolute_path)
+                        {
+                            variable_declaration_range = variable_declaration_range_iterator.first;
+                        }
+                        else
+                        {
+                            cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                            g_is_generation_error = true;
+                            return;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
+                anchor_table, data_iterator);
+            if (navigation_code.prefix.empty())
+            {
+                g_is_generation_error = true;
+                return;
+            }
+            if (variable_declaration_range.isValid())
+            {
+                string declaration_code = rewriter.getRewrittenText(variable_declaration_range);
+                if (!declaration_code.empty())
+                {
+                    size_t start_position = declaration_code.find(data_iterator.variable_name);
+                    if (start_position != std::string::npos)
+                    {
+                        const auto& table_data = table_navigation_t::get_table_data();
+                        auto anchor_table_data_itr = table_data.find(anchor_table_name);
+
+                        if (anchor_table_data_itr == table_data.end())
+                        {
+                            return;
+                        }
+
+                        string replacement_code = string("gaia::")
+                            .append(anchor_table_data_itr->second.db_name)
+                            .append("::")
+                            .append(anchor_table_name)
+                            .append("_t::get(context->record)");
+
+                        declaration_code.replace(start_position, data_iterator.variable_name.length(), replacement_code);
+
+                        rewriter.ReplaceText(variable_declaration_range, declaration_code);
+                    }
+                }
+            }
+            else if (nomatch_range.isValid())
+            {
+                string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
+                rewriter.InsertTextBefore(
+                    explicit_path_data_iterator.first.getBegin(),
+                    nomatch_prefix + navigation_code.prefix);
+                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                rewriter.ReplaceText(
+                    SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getBegin().getLocWithOffset(-1)),
+                        navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
+
+                rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
+            }
+            else
+            {
+                rewriter.InsertTextBefore(
+                    explicit_path_data_iterator.first.getBegin(),
+                    navigation_code.prefix);
+                rewriter.InsertTextAfter(
+                    explicit_path_data_iterator.first.getEnd(),
+                    navigation_code.postfix);
+            }
+        }
+    }
+}
+
 void generate_table_subscription(const string& table, const string& field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
 {
     string common_subscription_code;
@@ -590,54 +757,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
         }
 
-        for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
-        {
-            for (const auto& data_iterator : explicit_path_data_iterator.second)
-            {
-                SourceRange nomatch_range;
-                for (const auto& nomatch_source_range : g_nomatch_location)
-                {
-                    if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
-                    {
-                        nomatch_range = nomatch_source_range;
-                        break;
-                    }
-                }
-
-                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                    table, data_iterator);
-                if (navigation_code.prefix.empty())
-                {
-                    g_is_generation_error = true;
-                    return;
-                }
-
-                if (nomatch_range.isValid())
-                {
-                    string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
-                    string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
-                    rewriter.InsertTextBefore(
-                        explicit_path_data_iterator.first.getBegin(),
-                        nomatch_prefix + navigation_code.prefix);
-                    rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
-                    rewriter.ReplaceText(
-                        SourceRange(nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_start),
-                            nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_end)),
-                        navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
-
-                    rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
-                }
-                else
-                {
-                    rewriter.InsertTextBefore(
-                        explicit_path_data_iterator.first.getBegin(),
-                        navigation_code.prefix);
-                    rewriter.InsertTextAfter(
-                        explicit_path_data_iterator.first.getEnd(),
-                        navigation_code.postfix);
-                }
-            }
-        }
+        generate_navigation(table, rewriter);
     }
     else
     {
@@ -662,53 +782,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             copy_rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
         }
 
-        for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
-        {
-            for (const auto& data_iterator : explicit_path_data_iterator.second)
-            {
-                SourceRange nomatch_range;
-                for (const auto& nomatch_source_range : g_nomatch_location)
-                {
-                    if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
-                    {
-                        nomatch_range = nomatch_source_range;
-                        break;
-                    }
-                }
-
-                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                    table, data_iterator);
-                if (navigation_code.prefix.empty())
-                {
-                    g_is_generation_error = true;
-                    return;
-                }
-                if (nomatch_range.isValid())
-                {
-                    string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
-                    string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
-                    copy_rewriter.InsertTextBefore(
-                        explicit_path_data_iterator.first.getBegin(),
-                        nomatch_prefix + navigation_code.prefix);
-                    copy_rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
-                    copy_rewriter.ReplaceText(
-                        SourceRange(nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_start),
-                            nomatch_range.getBegin().getLocWithOffset(c_nomatch_offset_end)),
-                        navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
-
-                    copy_rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
-                }
-                else
-                {
-                    copy_rewriter.InsertTextBefore(
-                        explicit_path_data_iterator.first.getBegin(),
-                        navigation_code.prefix);
-                    copy_rewriter.InsertTextAfter(
-                        explicit_path_data_iterator.first.getEnd(),
-                        navigation_code.postfix);
-                }
-            }
-        }
+        generate_navigation(table, copy_rewriter);
 
         if (g_rule_attribute_source_range.isValid())
         {
@@ -862,81 +936,6 @@ void generate_rules(Rewriter& rewriter)
     }
 }
 
-bool check_call_expression(ASTContext* context, const Stmt& node)
-{
-    auto node_parents = context->getParents(node);
-    for (const auto& node_parents_iterator : node_parents)
-    {
-        if (node_parents_iterator.get<CompoundStmt>())
-        {
-            return false;
-        }
-        else if (node_parents_iterator.get<FunctionDecl>())
-        {
-            return false;
-        }
-        else if (const auto* expression = node_parents_iterator.get<IfStmt>())
-        {
-            if (expression->getCond() == &node || expression->getConditionVariableDeclStmt() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
-        {
-            return true;
-        }
-        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
-        {
-            if (expression->getCond() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
-        {
-            if (expression->getCond() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
-        {
-            if (expression->getCond() == &node || expression->getInc() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<Stmt>())
-        {
-            return check_call_expression(context, *expression);
-        }
-    }
-    return false;
-}
-
-bool check_decl_expression(ASTContext* context, const Decl& node)
-{
-    auto node_parents = context->getParents(node);
-    return check_call_expression(context, *(node_parents[0].get<DeclStmt>()));
-}
-
 void update_expression_location(SourceRange& source, SourceLocation start, SourceLocation end)
 {
     if (source.isInvalid())
@@ -1078,17 +1077,8 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
             update_expression_location(return_value, declaration->getBeginLoc(), declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setEnd(declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(declaration->getBeginLoc());
-            if (check_decl_expression(context, *declaration))
-            {
-                auto node_parents = context->getParents(*declaration);
-                return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
-            }
-            else
-            {
-                cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
-                g_is_generation_error = true;
-                return SourceRange();
-            }
+            auto node_parents = context->getParents(*declaration);
+            return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<Stmt>())
         {
@@ -1150,6 +1140,10 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
             if (!is_expression_from_body(context, *node))
             {
                 if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+                {
+                    return;
+                }
+                if (optimize_path(expression_explicit_path_data_iterator.second, data))
                 {
                     return;
                 }
@@ -1843,6 +1837,9 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
+        g_variable_declaration_location.clear();
+        g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
@@ -1953,6 +1950,9 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
+        g_variable_declaration_location.clear();
+        g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
@@ -2024,6 +2024,11 @@ public:
     {
         validate_table_data();
         const auto* variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
+        const auto* variable_declaration_init = result.Nodes.getNodeAs<VarDecl>("varDeclarationInit");
+        if (variable_declaration_init != nullptr)
+        {
+            g_variable_declaration_init_location.insert(variable_declaration_init->getSourceRange());
+        }
         if (variable_declaration != nullptr)
         {
             const auto variable_name = variable_declaration->getNameAsString();
@@ -2033,6 +2038,8 @@ public:
                 {
                     return;
                 }
+
+                g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
 
                 if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
                 {
@@ -2199,10 +2206,9 @@ public:
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
-            g_nomatch_location.emplace_back(
-                SourceRange(
-                    expression->getNoMatch()->getBeginLoc(),
-                    expression->getNoMatch()->getEndLoc()));
+            SourceRange nomatch_location = expression->getNoMatch()->getSourceRange();
+            g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
+            g_nomatch_location.emplace_back(nomatch_location);
             std::sort(g_nomatch_location.begin(), g_nomatch_location.end(), compare_source_range);
         }
         else
@@ -2290,6 +2296,16 @@ public:
                   .bind("fieldUnaryOp");
         StatementMatcher if_no_match_matcher = ifStmt(hasNoMatch(anything())).bind("NoMatchIf");
 
+        DeclarationMatcher variable_declaration_init_matcher = varDecl(allOf(
+            hasAncestor(rule_matcher),
+            hasInitializer(anyOf(
+                hasDescendant(field_get_matcher),
+                hasDescendant(field_unary_operator_matcher),
+                hasDescendant(table_field_get_matcher),
+                hasDescendant(table_field_unary_operator_matcher)
+            )))).bind("varDeclarationInit");
+
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -2303,6 +2319,7 @@ public:
         m_matcher.addMatcher(table_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
+        m_matcher.addMatcher(variable_declaration_init_matcher, &m_variable_declaration_match_handler);
         m_matcher.addMatcher(ruleset_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(event_type_matcher, &m_rule_context_match_handler);

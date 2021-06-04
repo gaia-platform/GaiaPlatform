@@ -84,7 +84,6 @@ public:
 };
 
 // GAIAPLAT-911
-#ifdef TEST_FAILURES
 ruleset test7
 {
     OnChange(sensor)
@@ -97,7 +96,6 @@ ruleset test7
         }
     }
 }
-#endif
 
 ruleset test8
 {

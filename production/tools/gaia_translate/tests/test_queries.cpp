@@ -545,7 +545,55 @@ TEST_F(test_queries_code, while_stmt)
     EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
-    EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg001cou002 ") << "Incorrect result";
+    EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg002cou002 stu001reg001cou004 stu001reg001cou002 ") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_stmt)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_6");
+
+    // OnUpdate(student) will fire a rule with an if/else/nomatch.
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto sw = student_1.writer();
+    sw.gpa = 3.5;
+    sw.update_row();
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_string_value, "found Richard") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_stmt2)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_6");
+
+    // OnInsert(studet) will look for class hours, which don't exist - nomatch!
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
 TEST_F(test_queries_code, nomatch_stmt)
