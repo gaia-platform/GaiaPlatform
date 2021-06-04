@@ -803,7 +803,9 @@ TEST_F(gaia_references_test, set_filter)
     size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
-                                .where([&name_length](const employee_t& e) { return strlen(e.name_first()) == name_length; });
+                                .where([&name_length](const employee_t& e) {
+                                    return strlen(e.name_first()) == name_length;
+                                });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);

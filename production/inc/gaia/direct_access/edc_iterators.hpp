@@ -173,37 +173,6 @@ private:
     size_t m_next_offset;
 };
 
-template <typename T_class>
-class edc_reference_t
-{
-public:
-    edc_reference_t()
-        : m_gaia_id(common::c_invalid_gaia_id){};
-
-    explicit edc_reference_t(common::gaia_id_t m_gaia_id)
-        : m_gaia_id(m_gaia_id){};
-
-    T_class* operator->()
-    {
-        if (!m_is_created)
-        {
-            new (m_object) T_class(m_gaia_id);
-            m_is_created = true;
-        }
-        return reinterpret_cast<T_class*>(m_object);
-    }
-
-    const T_class get()
-    {
-        return T_class::get(m_gaia_id);
-    }
-
-private:
-    common::gaia_id_t m_gaia_id;
-    alignas(alignof(edc_base_t)) char m_object[sizeof(edc_base_t)];
-    bool m_is_created{false};
-};
-
 /*@}*/
 } // namespace direct_access
 /*@}*/
