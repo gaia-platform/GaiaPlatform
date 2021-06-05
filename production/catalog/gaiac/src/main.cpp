@@ -144,7 +144,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
 {
     if (output_path.empty())
     {
-        cerr << "ERROR - No output path provided for EDC code. " << endl;
+        cerr << "ERROR - No output location provided for the generated EDC files. " << endl;
         exit(1);
     }
 
