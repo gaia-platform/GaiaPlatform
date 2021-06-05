@@ -47,7 +47,7 @@ private:
     std::string generate_open_header_guard();
     std::string generate_close_header_guard();
     std::string generate_includes();
-    std::string generate_cpp_includes();
+    std::string generate_includes_cpp();
     std::string generate_open_namespace();
     std::string generate_close_namespace();
     std::string generate_constants();

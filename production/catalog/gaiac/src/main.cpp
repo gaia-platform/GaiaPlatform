@@ -204,7 +204,7 @@ string usage()
           "  -d|--db-name <dbname>     Specify the database name.\n"
           "  -i|--interactive          Interactive prompt, as a REPL.\n"
           "  -g|--generate             Generate direct access API header files.\n"
-          "  -o|--output <path>        Set the directory to all generated files.\n"
+          "  -o|--output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
           "  -p|--parse-trace          Print parsing trace.\n"
           "  -s|--scan-trace           Print scanning trace.\n"
