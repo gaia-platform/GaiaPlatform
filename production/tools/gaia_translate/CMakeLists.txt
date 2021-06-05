@@ -82,7 +82,7 @@ add_custom_target(generate_translation_rules ALL
 )
 
 add_gtest(test_translation_engine
-  "tests/test_translation_engine.cpp;${TRANSLATION_RULESET_OUT}"
+  "tests/test_translation_engine.cpp;tests/test_helpers.cpp;${TRANSLATION_RULESET_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_barn_storage"
   "generate_translation_rules" ""

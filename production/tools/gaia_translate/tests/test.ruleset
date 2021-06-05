@@ -2,11 +2,14 @@
 #include "gaia/events.hpp"
 
 // #define TEST_FAILURES
+#include <atomic>
 
-int g_rule_called = 0;
-int g_insert_called = 0;
-int g_update_called = 0;
-int g_actuator_rule_called = 0;
+std::atomic<int32_t> g_rule_called;
+std::atomic<int32_t> g_insert_called;
+std::atomic<int32_t> g_update_min_temp_called;
+std::atomic<int32_t> g_update_max_temp_called;
+std::atomic<int32_t> g_update_sensor_value_called;
+std::atomic<int32_t> g_actuator_rule_called;
 
 ruleset test
 {
@@ -25,14 +28,27 @@ ruleset test
         {
             actuator.value = 1000;
         }
-        g_update_called++;
+        g_update_min_temp_called++;
+        g_rule_called++;
+    }
+
+    OnUpdate(incubator.max_temp)
+    {
+        gaia_log::app().warn("[rule-2] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_update_max_temp_called++;
+        g_rule_called++;
+    }
+
+    OnUpdate(actuator.value)
+    {
+        gaia_log::app().warn("[rule-3] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_actuator_rule_called++;
         g_rule_called++;
     }
 
     OnChange(s:sensor.value)
     {
-        gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-
+        gaia_log::app().warn("[rule-4] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         max_temp = s.value + min_temp;
         max_temp = s.value + 4;
         if (actuator.value > 0)
@@ -51,7 +67,7 @@ ruleset test
             {
                 actuator.value = 1000;
             }
-            g_update_called++;
+            g_update_sensor_value_called++;
         }
         g_rule_called++;
     }

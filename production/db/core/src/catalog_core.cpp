@@ -12,7 +12,6 @@
 
 #include "gaia/common.hpp"
 
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -136,16 +135,17 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 
 table_list_t catalog_core_t::list_tables()
 {
-    auto table_list = gaia::catalog::gaia_table_t::list();
-    auto it = table_list.begin();
-    auto end_it = table_list.end();
-    auto gaia_table_generator = [it, end_it]() mutable -> std::optional<table_view_t> {
-        while (it != end_it)
+    auto gaia_ptr_iterator = gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
+
+    auto gaia_table_generator = [gaia_ptr_iterator]() mutable -> std::optional<table_view_t> {
+        if (gaia_ptr_iterator)
         {
-            gaia_id_t id = it->gaia_id();
-            gaia_ptr_t gaia_ptr(id);
-            ++it;
-            return table_view_t(gaia_ptr.to_ptr());
+            gaia_ptr_t gaia_ptr = *gaia_ptr_iterator;
+            if (gaia_ptr)
+            {
+                ++gaia_ptr_iterator;
+                return table_view_t(gaia_ptr.to_ptr());
+            }
         }
         return std::nullopt;
     };
