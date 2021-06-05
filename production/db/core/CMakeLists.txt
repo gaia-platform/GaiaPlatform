@@ -6,11 +6,6 @@
 # Set the project name.
 project(core)
 
-# We need pthreads support.
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads REQUIRED)
-
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
   "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
