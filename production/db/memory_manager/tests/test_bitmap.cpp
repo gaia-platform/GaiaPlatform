@@ -53,16 +53,17 @@ TEST(bitmap, find_first_unset_bit)
     bitmap[0] = bitmap[1] = bitmap[2] = 0;
     for (size_t i = 0; i < (c_bitmap_size - 1) * c_uint64_bit_count; ++i)
     {
-        if (i % c_uint64_bit_count != 0)
+        size_t bit_index_in_word = i % c_uint64_bit_count;
+        if (bit_index_in_word != 0)
         {
-            bitmap[i / c_uint64_bit_count] = (1ULL << i) - 1;
+            bitmap[i / c_uint64_bit_count] = (1ULL << bit_index_in_word) - 1;
         }
 
         ASSERT_EQ(i, find_first_unset_bit(bitmap, c_bitmap_size));
 
         // After we're done with a word, leave all bits set,
         // so the search will go into the next word.
-        if (i % c_uint64_bit_count == c_uint64_bit_count - 1)
+        if (bit_index_in_word == c_uint64_bit_count - 1)
         {
             bitmap[i / c_uint64_bit_count] = -1;
         }
@@ -124,14 +125,15 @@ TEST(bitmap, count_set_bits)
     bitmap[0] = bitmap[1] = bitmap[2] = 0;
     for (size_t i = 0; i < (c_bitmap_size - 1) * c_uint64_bit_count; ++i)
     {
-        if (i % c_uint64_bit_count != 0)
+        size_t bit_index_in_word = i % c_uint64_bit_count;
+        if (bit_index_in_word != 0)
         {
-            bitmap[i / c_uint64_bit_count] = (1ULL << i) - 1;
+            bitmap[i / c_uint64_bit_count] = (1ULL << bit_index_in_word) - 1;
         }
 
         ASSERT_EQ(i, count_set_bits(bitmap, c_bitmap_size));
 
-        if (i % c_uint64_bit_count == c_uint64_bit_count - 1)
+        if (bit_index_in_word == c_uint64_bit_count - 1)
         {
             bitmap[i / c_uint64_bit_count] = -1;
         }
