@@ -6,8 +6,10 @@
 # Set the project name.
 project(catalog_schema)
 
+# We name the library edc_catalog_discard because we create
+# an edc_catalog library inside the catalog sub directory.
 process_schema_internal(DATABASE_NAME catalog
-    LIB_NAME edc_catalog_discard
+  LIB_NAME edc_catalog_discard
 )
 
 # Instead of using edc_catalog as a static library to link against the project targets, we copy the source code into
