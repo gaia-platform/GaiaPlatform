@@ -75,13 +75,6 @@ struct hash<SourceRange>
 };
 } // namespace std
 
-bool compare_source_range(SourceRange x, SourceRange y)
-{
-    return x.getEnd().getRawEncoding() - x.getBegin().getRawEncoding() <
-        y.getEnd().getRawEncoding() - y.getBegin().getRawEncoding();
-}
-
-
 unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
 
 unordered_set<string> g_used_dbs;
@@ -118,6 +111,37 @@ static const char c_ident[] = "    ";
 static void print_version(raw_ostream& stream)
 {
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+}
+
+SourceRange get_statement_source_range(const Stmt* expression, const SourceManager& source_manager, const LangOptions& options)
+{
+    if (expression == nullptr)
+    {
+        return SourceRange();
+    }
+    SourceRange return_value = expression->getSourceRange();
+    if (dyn_cast<CompoundStmt>(expression) == nullptr)
+    {
+        return_value.setEnd(
+            Lexer::findLocationAfterToken(return_value.getEnd(),
+                tok::semi, source_manager, options, true).getLocWithOffset(-1));
+    }
+    return return_value;
+}
+
+SourceRange get_if_statement_source_range(const IfStmt* expression, const SourceManager& source_manager, const LangOptions& options)
+{
+    if (expression == nullptr)
+    {
+        return SourceRange();
+    }
+    SourceRange return_value = expression->getSourceRange();
+    SourceRange nomatch_source_range = get_statement_source_range(expression->getNoMatch(), source_manager, options);
+    if (nomatch_source_range.isValid())
+    {
+        return_value.setEnd(nomatch_source_range.getEnd());
+    }
+    return return_value;
 }
 
 void get_variable_name(string& variable_name, string& table_name, explicit_path_data_t& explicit_path_data)
@@ -496,7 +520,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             SourceRange nomatch_range;
             for (const auto& nomatch_source_range : g_nomatch_location)
             {
-                if (is_range_contained_in_another_range(explicit_path_data_iterator.first, nomatch_source_range))
+                if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
                 {
                     nomatch_range = nomatch_source_range;
                     break;
@@ -571,7 +595,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     }
                 }
             }
-            else if (nomatch_range.isValid())
+            if (nomatch_range.isValid())
             {
                 string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
                 string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
@@ -582,7 +606,6 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getBegin().getLocWithOffset(-1)),
                         navigation_code.postfix +  "\nif (!" + variable_name + ")\n");
-
                 rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
             }
             else
@@ -1026,8 +1049,8 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
             if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) ||
                 is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
             {
-                auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-                update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+                SourceRange if_source_range = get_if_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+                update_expression_location(return_value, if_source_range.getBegin(), if_source_range.getEnd());
             }
             return return_value;
         }
@@ -1119,6 +1142,63 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
     return false;
 }
 
+bool should_expression_location_be_merged(ASTContext* context, const Stmt& node, bool special_parent = false)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (const auto* expression = node_parents_iterator.get<IfStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
+        {
+            return should_expression_location_be_merged(context, *expression, special_parent);
+        }
+    }
+    return true;
+}
+
 void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, explicit_path_data_t data, const SourceRange& source_range, Rewriter& rewriter)
 {
     if (node == nullptr || data.path_components.empty())
@@ -1147,8 +1227,12 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
                 {
                     return;
                 }
-                expression_explicit_path_data_iterator.second.push_back(data);
-                return;
+                if (expression_explicit_path_data_iterator.first == expression_source_range ||
+                    should_expression_location_be_merged(context, *node))
+                {
+                    expression_explicit_path_data_iterator.second.push_back(data);
+                    return;
+                }
             }
             else
             {
@@ -2201,15 +2285,20 @@ private:
 class if_nomatch_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
+    explicit if_nomatch_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+
     void run(const MatchFinder::MatchResult& result) override
     {
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
-            SourceRange nomatch_location = expression->getNoMatch()->getSourceRange();
+            SourceRange nomatch_location = get_statement_source_range(expression->getNoMatch(),
+                m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
             g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
             g_nomatch_location.emplace_back(nomatch_location);
-            std::sort(g_nomatch_location.begin(), g_nomatch_location.end(), compare_source_range);
         }
         else
         {
@@ -2217,6 +2306,9 @@ public:
             g_is_generation_error = true;
         }
     }
+
+private:
+    Rewriter& m_rewriter;
 };
 
 
@@ -2231,18 +2323,31 @@ public:
         , m_field_unary_operator_match_handler(r)
         , m_rule_context_match_handler(r)
         , m_table_call_match_handler(r)
+        , m_if_nomatch_match_handler(r)
     {
-        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
-        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
-        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("event_type"))).bind("event_type");
-        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("gaia_type"))).bind("gaia_type");
-
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
             = functionDecl(allOf(
                                hasAncestor(ruleset_matcher),
                                hasAttr(attr::Rule)))
                   .bind("ruleDecl");
+        StatementMatcher ruleset_name_matcher = memberExpr(
+            hasAncestor(ruleset_matcher),
+            hasDescendant(gaiaRuleContextExpr()),
+            member(hasName("ruleset_name"))).bind("ruleset_name");
+        StatementMatcher rule_name_matcher = memberExpr(
+            hasAncestor(ruleset_matcher),
+            hasDescendant(gaiaRuleContextExpr()),
+            member(hasName("rule_name"))).bind("rule_name");
+        StatementMatcher event_type_matcher = memberExpr(
+            hasAncestor(ruleset_matcher),
+            hasDescendant(gaiaRuleContextExpr()),
+            member(hasName("event_type"))).bind("event_type");
+        StatementMatcher gaia_type_matcher = memberExpr(
+            hasAncestor(ruleset_matcher),
+            hasDescendant(gaiaRuleContextExpr()),
+            member(hasName("gaia_type"))).bind("gaia_type");
+
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
 
         StatementMatcher field_get_matcher
@@ -2254,21 +2359,30 @@ public:
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
         StatementMatcher table_call_matcher
-            = declRefExpr(allOf(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::FieldTable), hasAttr(attr::GaiaFieldValue)), unless(hasAttr(attr::GaiaFieldLValue)))), allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+            = declRefExpr(allOf(
+                to(varDecl(
+                    anyOf(
+                        hasAttr(attr::GaiaField),
+                        hasAttr(attr::FieldTable),
+                        hasAttr(attr::GaiaFieldValue)),
+                        unless(hasAttr(attr::GaiaFieldLValue)))),
+                allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
                   .bind("tableCall");
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(
+                      hasAncestor(ruleset_matcher),
                       isAssignmentOperator(),
                       hasLHS(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldSet");
         StatementMatcher field_unary_operator_matcher
             = unaryOperator(
-                  allOf(
-                      anyOf(
-                          hasOperatorName("++"),
-                          hasOperatorName("--")),
-                      hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
+                allOf(
+                    hasAncestor(ruleset_matcher),
+                    anyOf(
+                        hasOperatorName("++"),
+                        hasOperatorName("--")),
+                    hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldUnaryOp");
         StatementMatcher table_field_get_matcher
             = memberExpr(
@@ -2283,18 +2397,25 @@ public:
                           hasAttr(attr::GaiaFieldValue)))))))
                   .bind("tableFieldGet");
         StatementMatcher table_field_set_matcher
-            = binaryOperator(allOf(
-                                 isAssignmentOperator(),
-                                 hasLHS(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
+            = binaryOperator(
+                allOf(
+                    hasAncestor(ruleset_matcher),
+                    isAssignmentOperator(),
+                    hasLHS(
+                        memberExpr(
+                            member(hasAttr(attr::GaiaFieldLValue))))))
                   .bind("fieldSet");
         StatementMatcher table_field_unary_operator_matcher
             = unaryOperator(allOf(
-                                anyOf(
-                                    hasOperatorName("++"),
-                                    hasOperatorName("--")),
-                                hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
-                  .bind("fieldUnaryOp");
-        StatementMatcher if_no_match_matcher = ifStmt(hasNoMatch(anything())).bind("NoMatchIf");
+                hasAncestor(ruleset_matcher),
+                anyOf(
+                    hasOperatorName("++"),
+                    hasOperatorName("--")),
+                    hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
+            .bind("fieldUnaryOp");
+        StatementMatcher if_no_match_matcher = ifStmt(allOf(
+            hasAncestor(rule_matcher),
+            hasNoMatch(anything()))).bind("NoMatchIf");
 
         DeclarationMatcher variable_declaration_init_matcher = varDecl(allOf(
             hasAncestor(rule_matcher),
