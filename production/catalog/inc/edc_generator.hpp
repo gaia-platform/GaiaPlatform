@@ -51,7 +51,8 @@ private:
     std::string generate_open_namespace();
     std::string generate_close_namespace();
     std::string generate_constants();
-    std::string generate_forward_declarations();
+    std::string generate_edc_forward_declarations();
+    std::string generate_edc_ref_forward_declarations();
 
 private:
     database_facade_t m_database;
@@ -100,6 +101,8 @@ private:
     std::string generate_close_class_definition();
     std::string generate_expr_namespace();
     std::string generate_expr_instantiation_cpp();
+    std::string generate_ref_class();
+    std::string generate_ref_class_cpp();
 
 private:
     table_facade_t m_table;

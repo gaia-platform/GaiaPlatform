@@ -312,10 +312,23 @@ std::string outgoing_relationship_facade_t::next_offset() const
 std::string outgoing_relationship_facade_t::target_type() const
 {
     std::string type;
-    type.append(parent_table());
-    type.append("_t::");
-    type.append(field_name());
-    type.append("_list_t");
+    if (is_one_to_many())
+    {
+        type.append(parent_table());
+        type.append("_t::");
+        type.append(field_name());
+        type.append("_list_t");
+    }
+    else if (is_one_to_one())
+    {
+        type.append(child_table());
+        type.append("_ref_t");
+    }
+    else
+    {
+        ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+    }
+
     return type;
 }
 

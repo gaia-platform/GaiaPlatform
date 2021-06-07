@@ -26,7 +26,8 @@ std::string edc_compilation_unit_writer_t::write_header()
     code += generate_includes();
     code += generate_open_namespace();
     code += generate_constants();
-    code += generate_forward_declarations();
+    code += generate_edc_forward_declarations();
+    code += generate_edc_ref_forward_declarations();
 
     for (const table_facade_t& table : m_database.tables())
     {
@@ -185,7 +186,7 @@ std::string edc_compilation_unit_writer_t::generate_constants()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_forward_declarations()
+std::string edc_compilation_unit_writer_t::generate_edc_forward_declarations()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
@@ -194,6 +195,26 @@ std::string edc_compilation_unit_writer_t::generate_forward_declarations()
         code.SetValue("TABLE_NAME", table.table_name());
         code += "class {{TABLE_NAME}}_t;";
     }
+    std::string str = code.ToString();
+    return str;
+}
+
+std::string edc_compilation_unit_writer_t::generate_edc_ref_forward_declarations()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+
+    for (const auto& table : m_database.tables())
+    {
+        for (const auto& relationship : table.outgoing_relationships())
+        {
+            if (relationship.is_one_to_one())
+            {
+                code.SetValue("TABLE_NAME", relationship.child_table());
+                code += "class {{TABLE_NAME}}_ref_t;";
+            }
+        }
+    }
+
     std::string str = code.ToString();
     return str;
 }
@@ -220,9 +241,9 @@ std::string class_writer_t::write_header()
     code += generate_friend_declarations() + "\\";
     decrement_indent();
     code += generate_close_class_definition();
+    code += generate_ref_class();
     code += generate_expr_namespace();
     code += generate_expr_instantiation_cpp();
-
     return code.ToString();
 }
 
@@ -235,6 +256,7 @@ std::string class_writer_t::write_cpp()
     code += generate_fields_accessors_cpp() + "\\";
     code += generate_incoming_relationships_accessors_cpp() + "\\";
     code += generate_outgoing_relationships_accessors_cpp() + "\\";
+    code += generate_ref_class_cpp() + "\\";
     return code.ToString();
 }
 
@@ -284,11 +306,11 @@ std::string class_writer_t::generate_list_types()
         code.SetValue("FIELD_NAME", relationship.field_name());
         code.SetValue("CHILD_TABLE", relationship.child_table());
 
-        //        if (relationship.is_one_to_many())
-        //        {
-        code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
-                "{{FIELD_NAME}}_list_t;";
-        //        }
+        if (relationship.is_one_to_many())
+        {
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
+                    "{{FIELD_NAME}}_list_t;";
+        }
     }
     return code.ToString();
 }
@@ -449,8 +471,21 @@ std::string class_writer_t::generate_outgoing_relationships_accessors()
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : m_table.outgoing_relationships())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const;";
+        if (relationship.is_one_to_many())
+        {
+            code.SetValue("FIELD_NAME", relationship.field_name());
+            code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const;";
+        }
+        else if (relationship.is_one_to_one())
+        {
+            code.SetValue("FIELD_NAME", relationship.field_name());
+            code.SetValue("CHILD_TABLE", relationship.child_table());
+            code += "{{CHILD_TABLE}}_ref_t {{FIELD_NAME}}() const; ";
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+        }
     }
 
     return code.ToString();
@@ -468,32 +503,26 @@ std::string class_writer_t::generate_outgoing_relationships_accessors_cpp()
         code.SetValue("FIRST_OFFSET", relationship.first_offset());
         code.SetValue("NEXT_OFFSET", relationship.next_offset());
 
-        //        if (relationship.is_one_to_many())
-        //        {
-        code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
-        code.IncrementIdentLevel();
-        code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
-        code.DecrementIdentLevel();
-        code += "}";
-        //        }
-        //        else if (relationship.is_one_to_one())
-        //        {
-        //            code += "direct_access::edc_reference_t<{{CHILD_TABLE}}_t> {{FIELD_NAME}}() const {";
-        //            code.IncrementIdentLevel();
-        //            code += "return direct_access::edc_reference_t<{{CHILD_TABLE}}_t>{this->references()[{{FIRST_OFFSET}}]};";
-        //            code.DecrementIdentLevel();
-        //            code += "}";
-        //
-        //            code += "void set_{{FIELD_NAME}}(common::gaia_id_t child_id) {";
-        //            code.IncrementIdentLevel();
-        //            code += "insert_child_reference(gaia_id(), child_id, {{FIRST_OFFSET}});";
-        //            code.DecrementIdentLevel();
-        //            code += "}";
-        //        }
-        //        else
-        //        {
-        //            ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
-        //        }
+        if (relationship.is_one_to_many())
+        {
+            code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
+            code.IncrementIdentLevel();
+            code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
+            code.DecrementIdentLevel();
+            code += "}";
+        }
+        else if (relationship.is_one_to_one())
+        {
+            code += "{{CHILD_TABLE}}_ref_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
+            code.IncrementIdentLevel();
+            code += "return {{CHILD_TABLE}}_ref_t(gaia_id(), this->references()[{{FIRST_OFFSET}}]);";
+            code.DecrementIdentLevel();
+            code += "}";
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+        }
     }
 
     return code.ToString();
@@ -528,8 +557,11 @@ std::string class_writer_t::generate_expressions()
 
     for (auto& relationship : m_table.outgoing_relationships())
     {
+        //        if (relationship.is_one_to_many())
+        //        {
         expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
         code += expr_variable.first;
+        //        }
     }
 
     code.DecrementIdentLevel();
@@ -550,12 +582,13 @@ std::string class_writer_t::generate_friend_declarations()
     flatbuffers::CodeWriter code = create_code_writer();
     code += "friend class edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
+    code += "friend class {{TABLE_NAME}}_ref_t;";
     return code.ToString();
 }
 
 std::string class_writer_t::generate_close_class_definition()
 {
-    return "};";
+    return "};\n";
 }
 
 void class_writer_t::increment_indent()
@@ -650,6 +683,32 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
         expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
         code += expr_variable.second;
     }
+
+    return code.ToString();
+}
+
+std::string class_writer_t::generate_ref_class()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+
+    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, public direct_access::edc_ref_t {";
+    code += "public:";
+    code.IncrementIdentLevel();
+    code += "{{TABLE_NAME}}_ref_t() = delete;";
+    code += "{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child);";
+    code.DecrementIdentLevel();
+    code += "};";
+
+    return code.ToString();
+}
+
+std::string class_writer_t::generate_ref_class_cpp()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+    code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)";
+    code.IncrementIdentLevel();
+    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_ref_t(parent) {};";
+    code.DecrementIdentLevel();
 
     return code.ToString();
 }
