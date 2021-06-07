@@ -2504,11 +2504,13 @@ public:
         StatementMatcher if_no_match_matcher = ifStmt(hasNoMatch(anything())).bind("NoMatchIf");
 
         StatementMatcher declarative_while_matcher
-            = whileStmt(hasDescendant(declRefExpr(
-                            to(varDecl(anyOf(
-                                hasAttr(attr::GaiaField),
-                                hasAttr(attr::FieldTable),
-                                hasAttr(attr::GaiaFieldValue)))))))
+            = whileStmt(allOf(
+                            hasAncestor(rule_matcher),
+                            hasCondition(anyOf(
+                                hasDescendant(field_get_matcher),
+                                hasDescendant(field_unary_operator_matcher),
+                                hasDescendant(table_field_get_matcher),
+                                hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("DeclWhile");
 
         DeclarationMatcher variable_declaration_init_matcher
