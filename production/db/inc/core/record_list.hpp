@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/queue.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
@@ -91,6 +92,7 @@ protected:
 struct record_iterator_t
 {
     record_iterator_t();
+    record_iterator_t(record_iterator_t&&) noexcept;
     ~record_iterator_t();
 
     // These custom copy operations ensure that only uninitialized iterators can be copied,

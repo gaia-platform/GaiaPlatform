@@ -137,7 +137,7 @@ table_list_t catalog_core_t::list_tables()
 {
     auto gaia_ptr_iterator = gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
 
-    auto gaia_table_generator = [gaia_ptr_iterator]() mutable -> std::optional<table_view_t> {
+    auto gaia_table_generator = [gaia_ptr_iterator{std::move(gaia_ptr_iterator)}]() mutable -> std::optional<table_view_t> {
         if (gaia_ptr_iterator)
         {
             gaia_ptr_t gaia_ptr = *gaia_ptr_iterator;

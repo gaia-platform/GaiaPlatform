@@ -17,6 +17,32 @@ namespace gaia
 {
 namespace common
 {
+
+// Generator_t class for inheritance for "movable semantics" in lambda.
+template <typename T_output>
+class generator_t
+{
+public:
+    generator_t()
+        : m_function([]() { return std::nullopt; })
+    {
+    }
+    explicit generator_t(std::function<std::optional<T_output>()> generator_fn)
+        : m_function(std::move(generator_fn))
+    {
+    }
+
+    virtual std::optional<T_output> operator()()
+    {
+        return m_function();
+    }
+
+    virtual ~generator_t() = default;
+
+private:
+    std::function<std::optional<T_output>()> m_function;
+};
+
 namespace iterators
 {
 
@@ -31,17 +57,32 @@ class generator_iterator_t
 
 public:
     // Default all special member functions.
-    generator_iterator_t(generator_iterator_t&&) = default;
+    generator_iterator_t(generator_iterator_t&&) noexcept = default;
     generator_iterator_t(generator_iterator_t const&) = default;
     generator_iterator_t& operator=(generator_iterator_t&&) = default;
     generator_iterator_t& operator=(generator_iterator_t const&) = default;
     generator_iterator_t() = default;
 
     // We implicitly construct from a std::function with the right signature.
-    generator_iterator_t(
+    explicit generator_iterator_t(
         std::function<std::optional<T_output>()> generator,
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
-        : m_generator(std::move(generator)), m_predicate(std::move(predicate))
+        : m_generator(generator), m_predicate(std::move(predicate))
+    {
+        // We need to initialize the iterator to the first valid state.
+        while ((m_state = m_generator()))
+        {
+            if (m_predicate(*m_state))
+            {
+                break;
+            }
+        }
+    }
+
+    explicit generator_iterator_t(
+        generator_t<T_output>&& generator,
+        std::function<bool(T_output)> predicate = [](T_output) { return true; })
+        : m_generator(generator), m_predicate(std::move(predicate))
     {
         // We need to initialize the iterator to the first valid state.
         while ((m_state = m_generator()))
@@ -104,7 +145,7 @@ public:
 
 private:
     std::optional<T_output> m_state;
-    std::function<std::optional<T_output>()> m_generator;
+    generator_t<T_output> m_generator;
     std::function<bool(T_output)> m_predicate;
 };
 
@@ -114,12 +155,12 @@ struct range_t
     T_iter begin_it;
     T_iter end_it;
 
-    T_iter begin() const
+    const T_iter& begin() const
     {
         return begin_it;
     }
 
-    T_iter end() const
+    const T_iter& end() const
     {
         return end_it;
     }
@@ -138,7 +179,7 @@ range_t<T_iter> range(T_iter begin_it)
 }
 
 template <typename T_fn>
-auto range_from_generator(T_fn fn)
+auto range_from_generator(T_fn&& fn)
 {
     using T_val = std::decay_t<decltype(*fn())>;
     return range(generator_iterator_t<T_val>(std::move(fn)));

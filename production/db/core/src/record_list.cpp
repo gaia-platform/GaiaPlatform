@@ -138,6 +138,14 @@ record_iterator_t::record_iterator_t()
     current_index = 0;
 }
 
+record_iterator_t::record_iterator_t(record_iterator_t&& other) noexcept
+{
+    current_range = other.current_range;
+    current_index = other.current_index;
+    other.current_range = nullptr;
+    other.current_index = 0;
+}
+
 record_iterator_t::~record_iterator_t()
 {
     // Release the shared lock maintained on the current range.

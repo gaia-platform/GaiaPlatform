@@ -7,6 +7,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
@@ -66,7 +67,7 @@ public:
     static inline gaia_txn_id_t get_txn_id();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
+    static common::generator_t<common::gaia_id_t> get_id_generator_for_type(common::gaia_type_t type);
 
 private:
     // These fields have transaction lifetime.

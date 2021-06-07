@@ -21,7 +21,6 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -34,7 +33,6 @@
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 
 using namespace std;
@@ -503,7 +501,6 @@ void server_t::handle_request_stream(
         c_message_unexpected_request_data_type);
 
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-    auto id_generator = get_id_generator_for_type(type);
 
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
@@ -519,7 +516,7 @@ void server_t::handle_request_stream(
         close_fd(server_socket);
     });
 
-    start_stream_producer(server_socket, id_generator);
+    start_stream_producer(server_socket, get_id_generator_for_type(type));
 
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
@@ -1188,12 +1185,8 @@ void server_t::session_handler(int session_socket)
 
 template <typename T_element>
 void server_t::stream_producer_handler(
-    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn)
+    int stream_socket, int cancel_eventfd, generator_t<T_element>&& generator_fn)
 {
-    // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<T_element>::value, "Generator function must return an integer.");
-
-    // The session thread gave the producer thread ownership of this socket.
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // because we hold the only fd pointing to this socket.
@@ -1206,7 +1199,7 @@ void server_t::stream_producer_handler(
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
 
-    auto gen_iter = generator_iterator_t<T_element>(generator_fn);
+    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
 
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -1374,7 +1367,7 @@ void server_t::stream_producer_handler(
 }
 
 template <typename T_element>
-void server_t::start_stream_producer(int stream_socket, std::function<std::optional<T_element>()> generator_fn)
+void server_t::start_stream_producer(int stream_socket, generator_t<T_element>&& generator_fn)
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
@@ -1382,46 +1375,52 @@ void server_t::start_stream_producer(int stream_socket, std::function<std::optio
 
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
+        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, std::move(generator_fn));
 }
 
-std::function<std::optional<gaia_id_t>()> server_t::get_id_generator_for_type(gaia_type_t type)
+type_generator_t::type_generator_t(gaia_id_t type, record_iterator_t&& iterator)
+    : m_type(type), m_iterator(std::move(iterator))
+{
+}
+
+std::optional<gaia_id_t> type_generator_t::operator()()
+{
+    // The initialization of the record_list iterator should be done by the same thread
+    // that executes the iteration.
+    if (!m_is_initialized)
+    {
+        shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(m_type);
+        record_list->start(m_iterator);
+        m_is_initialized = true;
+    }
+
+    // Find the next valid record locator.
+    while (!m_iterator.at_end())
+    {
+        gaia_locator_t locator = record_list_t::get_record_data(m_iterator).locator;
+        ASSERT_INVARIANT(
+            locator != c_invalid_gaia_locator, "An invalid locator value was returned from record list iteration!");
+
+        db_object_t* db_object = locator_to_ptr(locator);
+
+        // Whether we found a record or not, we need to advance the iterator.
+        record_list_t::move_next(m_iterator);
+
+        // If the record was found, return its id.
+        if (db_object)
+        {
+            return db_object->id;
+        }
+    }
+
+    // Signal end of scan.
+    return std::nullopt;
+}
+
+generator_t<gaia_id_t> server_t::get_id_generator_for_type(gaia_type_t type)
 {
     record_iterator_t iterator;
-    bool is_initialized = false;
-
-    return [type, iterator, is_initialized]() mutable -> std::optional<gaia_id_t> {
-        // The initialization of the record_list iterator should be done by the same thread
-        // that executes the iteration.
-        if (!is_initialized)
-        {
-            shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(type);
-            record_list->start(iterator);
-            is_initialized = true;
-        }
-
-        // Find the next valid record locator.
-        while (!iterator.at_end())
-        {
-            gaia_locator_t locator = record_list_t::get_record_data(iterator).locator;
-            ASSERT_INVARIANT(
-                locator != c_invalid_gaia_locator, "An invalid locator value was returned from record list iteration!");
-
-            db_object_t* db_object = locator_to_ptr(locator);
-
-            // Whether we found a record or not, we need to advance the iterator.
-            record_list_t::move_next(iterator);
-
-            // If the record was found, return its id.
-            if (db_object)
-            {
-                return db_object->id;
-            }
-        }
-
-        // Signal end of scan.
-        return std::nullopt;
-    };
+    return type_generator_t(type, std::move(iterator));
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)

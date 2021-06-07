@@ -164,12 +164,20 @@ private:
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
-    // This is just a trivial wrapper for a gaia::db::client API,
-    // to avoid calling into SE client code from this header file.
-    static std::function<std::optional<common::gaia_id_t>()> get_id_generator_for_type(common::gaia_type_t type);
+    static common::generator_t<common::gaia_id_t> get_id_generator_for_type(common::gaia_type_t type);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
+};
+
+class gaia_ptr_generator_t : public common::generator_t<gaia_ptr_t>
+{
+public:
+    explicit gaia_ptr_generator_t(common::generator_t<common::gaia_id_t>&& id_generator);
+    std::optional<gaia_ptr_t> operator()() final;
+
+private:
+    generator_t<common::gaia_id_t> m_id_generator;
 };
 
 #include "gaia_ptr.inc"

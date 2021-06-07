@@ -255,31 +255,38 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 }
 
 // This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::function<std::optional<gaia_id_t>()>
+generator_t<gaia_id_t>
 gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
 {
     return client_t::get_id_generator_for_type(type);
 }
 
-generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iterator(
+gaia_ptr_generator_t::gaia_ptr_generator_t(generator_t<gaia_id_t>&& id_generator)
+    : m_id_generator(id_generator)
+{
+}
+
+std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
+{
+    std::optional<gaia_id_t> id_opt;
+    while ((id_opt = m_id_generator()))
+    {
+        gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
+        if (gaia_ptr)
+        {
+            return gaia_ptr;
+        }
+    }
+    return std::nullopt;
+}
+
+generator_iterator_t<gaia_ptr_t>
+gaia_ptr_t::find_all_iterator(
     gaia_type_t type)
 {
     // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
-    std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
-    std::function<std::optional<gaia_ptr_t>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr_t> {
-        std::optional<gaia_id_t> id_opt;
-        while ((id_opt = id_generator()))
-        {
-            gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
-            if (gaia_ptr)
-            {
-                return gaia_ptr;
-            }
-        }
-        return std::nullopt;
-    };
-
-    return generator_iterator_t(gaia_ptr_generator);
+    gaia_ptr_generator_t gaia_ptr_generator(get_id_generator_for_type(type));
+    return generator_iterator_t(std::move(gaia_ptr_generator));
 }
 
 range_t<generator_iterator_t<gaia_ptr_t>> gaia_ptr_t::find_all_range(
