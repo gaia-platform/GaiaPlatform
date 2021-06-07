@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Sets gaia variables. They can be overridden to customize the gaia behavior.
+# Sets Gaia variables. They can be overridden to customize the Gaia behavior.
 #
-# The script searches for the 'gaia' library, if not found it will try to
-# create it from the gaia installation folder. If not found it fails.
+# The script searches for the 'gaia' library. If it does not find it,
+# it tries to build it ${GAIA_LIB}. If ${GAIA_LIB} does not exist contain
+# libgaia.so the script exits with an error.
 #
 # - GAIA_ROOT: Gaia root directory. Default: /opt/gaia.
 # - GAIA_INC: Gaia include directory. Default: ${GAIA_ROOT}/include.
@@ -60,9 +61,9 @@ if (NOT DEFINED GAIA_DEFAULT_RULES_GENERATED_DIR)
   file(MAKE_DIRECTORY ${GAIA_DEFAULT_RULES_GENERATED_DIR})
 endif()
 
-# The following variables are used by the target_add_gaia_generated_sources() function
-# to add the generated sources to a user target. The functions process_schema() and
-# translate_ruleset() set the value of these variables after generating the code.
+# The target_add_gaia_generated_sources() function uses the following variables
+# to add the generated sources to a user target. The process_schema() and
+# translate_ruleset() functions set the value of these variables after generating the code.
 list(APPEND GAIA_EDC_GENERATION_TARGETS "")
 list(APPEND GAIA_EDC_GENERATED_HEADERS "")
 list(APPEND GAIA_EDC_GENERATED_CPP "")
@@ -80,20 +81,20 @@ endmacro()
 # Creates a CMake target that generates the EDC classes for a given Gaia database.
 # Optionally loads a DDL file into the database before the generation.
 #
-# The generated files are placed under: ${OUTPUT_DIR}/gaia_${DDL_NAME}.h/.cpp
+# The path for the generated files is as follows: ${OUTPUT_DIR}/gaia_${DDL_NAME}[.h|.cpp]
 # where DDL_NAME is DDL_FILE with no extension.
 #
 # Args:
 # - DATABASE_NAME: [optional] name of the database the code is generated from.
-#     If not provided the database name will be inferred as ${DDL_NAME}.
-#     This is a temporary workaround, until we improve gaiac.
-# - DDL_FILE: [optional] the path to the .ddl file.
-#     If not provided will generate the EDC classes for DATABASE_NAME.
-# - OUTPUT_DIR: [optional] folder where the header files will be generated.
-#     If not provided the default value is ${GAIA_DEFAULT_EDC_GENERATED_DIR}/${DATABASE_NAME}
+#     If not specified, the database name is inferred as ${DDL_NAME}.
+#     Changes to this functionality are under review.
+# - DDL_FILE: [optional] the path to the .ddl file to load into the database before the generation.
+# - OUTPUT_DIR: [optional] directory where the header files will be generated.
+#     If an output folder is not specified, the files are written to ${GAIA_DEFAULT_EDC_GENERATED_DIR}/${DATABASE_NAME}.
 # - INSTANCE_NAME: [optional] name of the database instance gaiac will connect to.
+#     If not specified it will try to connect to gaia_default_instance.
 # - TARGET_NAME: [optional] the name of the generated target.
-#     If not provided the default value is generate_${DDL_NAME}_edc.
+#     If not specified the default value is generate_${DDL_NAME}_edc.
 function(process_schema)
   set(options "")
   set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME)
@@ -104,17 +105,17 @@ function(process_schema)
     message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
-  # If the database name is not provided we infer it from the DDL file name.
+  # If the database name is not specified we infer it from the DDL file name.
   if(NOT DEFINED ARG_DATABASE_NAME)
     get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
     string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
     set(ARG_DATABASE_NAME ${DDL_NAME})
-    message(STATUS "DATABASE_NAME not provided, using: ${ARG_DATABASE_NAME}.")
+    message(STATUS "DATABASE_NAME not specified, using: ${ARG_DATABASE_NAME}.")
   endif()
 
   if(NOT DEFINED ARG_OUTPUT_DIR)
     set(ARG_OUTPUT_DIR ${GAIA_DEFAULT_EDC_GENERATED_DIR}/${ARG_DATABASE_NAME})
-    message(STATUS "OUTPUT_DIR not provided, using: ${ARG_OUTPUT_DIR}.")
+    message(STATUS "OUTPUT_DIR not specified, using: ${ARG_OUTPUT_DIR}.")
   endif()
 
   set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
@@ -154,7 +155,7 @@ function(process_schema)
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_edc")
-    message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}.")
+    message(STATUS "TARGET_NAME not specified, using default value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
@@ -167,10 +168,10 @@ function(process_schema)
   set(GAIA_EDC_GENERATED_CPP "${GAIA_EDC_GENERATED_CPP};${EDC_CPP_FILE}" PARENT_SCOPE)
 endfunction()
 
-# Creates a CMake target that translate the RULESET_FILE into a cpp file.
-# The generated cpp file is placed inside OUTPUT_DIR with the name
-# (${RULESET_NAME}_ruleset.cpp), where RULESET_NAME is RULESET_FILE with
-# no extension.
+# Creates a CMake target that translates the ruleset file specified by RULESET_FILE
+# and writes the translated rules as a cpp file.
+# The generated cpp file is written to the directory specified by OUTPUT_DIR with the
+# name ${RULESET_NAME}_ruleset.cpp, where RULESET_NAME is RULESET_FILE with no extension.
 #
 # This function tries to infer some of the gaiat parameters such as:
 # - The default C++ include path.
@@ -179,16 +180,18 @@ endfunction()
 #
 # Args:
 # - RULESET_FILE: the path to the .ruleset file.
-# - OUTPUT_DIR: [optional] folder where the header files will be generated.
-#     If not provided the default value is ${GAIA_DEFAULT_EDC_GENERATED_DIR}/${RULESET_NAME}
+# - OUTPUT_DIR: [optional] directory where the header files will be generated.
+#     If not specified the default value is ${GAIA_DEFAULT_EDC_GENERATED_DIR}/${RULESET_NAME}
 # - TARGET_NAME: [optional] the name of the generated target.
-#     If not provided the default value is translate_${RULESET_NAME}_ruleset.
+#     If not specified the default value is translate_${RULESET_NAME}_ruleset.
 # - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
 # - INSTANCE_NAME: [optional] name of the database instance gaiat will connect to.
-# - DEPENDS: [optional] optional list of targets this task depends on.
-#            Typically the translation has to depend on the generation of the
-#            schema headers.
-#            If not provided will depend on the targets listed in ${GAIA_EDC_GENERATION_TARGETS}
+#     If not specified it will try to connect to gaia_default_instance.
+# - DEPENDS: [optional] an optional list of targets on which this task depends.
+#     Typically, the translation depends on the successful generation of the
+#     schema headers.
+#     If not specified, translation will depend on the targets listed in
+#     ${GAIA_EDC_GENERATION_TARGETS}
 function(translate_ruleset)
   set(options "")
   set(oneValueArgs RULESET_FILE OUTPUT_DIR TARGET_NAME GAIAT_CMD)
@@ -202,14 +205,14 @@ function(translate_ruleset)
 
   if(NOT DEFINED ARG_OUTPUT_DIR)
     set(ARG_OUTPUT_DIR ${GAIA_DEFAULT_RULES_GENERATED_DIR}/${RULESET_NAME})
-    message(STATUS "OUTPUT_DIR not provided, using: ${ARG_OUTPUT_DIR}.")
+    message(STATUS "OUTPUT_DIR not specified, using: ${ARG_OUTPUT_DIR}.")
     file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
   endif()
 
   set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
   set(RULESET_CPP_PATH ${ARG_OUTPUT_DIR}/${RULESET_CPP_NAME})
 
-  message(STATUS "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}.")
+  message(STATUS "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}...")
 
   set(GAIAT_INCLUDE_PATH "")
 
@@ -222,7 +225,7 @@ function(translate_ruleset)
   # Add default Gaia path
   string(APPEND GAIAT_INCLUDE_PATH "-I;${GAIA_INC};")
 
-  # Add the output folder (which contains the DDL headers)
+  # Add the output directory (which contains the DDL headers)
 
   foreach(HEADER_FILE ${GAIA_EDC_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
@@ -250,7 +253,7 @@ function(translate_ruleset)
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "translate_${RULESET_NAME}_ruleset")
-    message(STATUS "TARGET_NAME not provided, using default value: ${ARG_TARGET_NAME}.")
+    message(STATUS "TARGET_NAME not specified, using default value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
@@ -260,10 +263,10 @@ function(translate_ruleset)
   set(GAIA_RULES_TRANSLATED_CPP "${GAIA_RULES_TRANSLATED_CPP};${RULESET_CPP_PATH}" PARENT_SCOPE)
 endfunction()
 
-# Adds the gaia generated files (EDC and Rules) to the given target.
+# Adds the Gaia generated files (EDC and Rules) to the given target.
 #
-# This function works only if the code has been generated from
-# process_schema() and translate_ruleset() functions.
+# This function depends on the output of the process_schema() and
+# translate_ruleset() functions.
 function(target_add_gaia_generated_sources TARGET_NAME)
   # Adds EDC .cpp files
   foreach(CPP_FILE ${GAIA_EDC_GENERATED_CPP})
@@ -271,7 +274,7 @@ function(target_add_gaia_generated_sources TARGET_NAME)
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
   endforeach()
 
-  # Adds EDC .h header folders
+  # Adds EDC .h header directories
   foreach(HEADER_FILE ${GAIA_EDC_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
     message(STATUS "Adding ${HEADER_DIR} to ${TARGET_NAME}...")

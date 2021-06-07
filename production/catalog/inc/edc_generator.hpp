@@ -47,12 +47,12 @@ private:
     std::string generate_open_header_guard();
     std::string generate_close_header_guard();
     std::string generate_includes();
-    std::string generate_cpp_includes();
+    std::string generate_includes_cpp();
     std::string generate_open_namespace();
     std::string generate_close_namespace();
     std::string generate_constants();
-    std::string generate_edc_forward_declarations();
-    std::string generate_edc_ref_forward_declarations();
+    std::string generate_forward_declarations();
+    std::string generate_ref_forward_declarations();
 
 private:
     database_facade_t m_database;

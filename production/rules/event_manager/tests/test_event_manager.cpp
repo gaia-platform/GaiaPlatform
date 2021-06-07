@@ -588,7 +588,7 @@ public:
         EXPECT_FALSE((bool)entry);
         gaia::db::commit_transaction();
     }
-*/
+    */
 
 protected:
     static void SetUpTestSuite()
