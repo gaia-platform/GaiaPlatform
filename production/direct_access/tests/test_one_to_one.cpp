@@ -22,33 +22,57 @@ protected:
     gaia_one_to_one_test()
         : db_catalog_test_base_t(std::string("one_to_one.ddl")){};
 
-    person_t create_person(const char* name, const char* surname)
+    template <class T_edc, typename... T_args>
+    T_edc create(T_args... args)
     {
-        return person_t::get(person_t::insert_row(name, surname));
-    }
-
-    student_t create_student(const person_t& person, const char* school)
-    {
-        student_t student = student_t::get(person_t::insert_row(school));
-        person.student().insert(student);
-        return student;
-    }
-
-    employee_t create_employee(const person_t& person, const char* company)
-    {
-        employee_t employee = employee_t::get(employee_t::insert_row(company));
-        person.employee().insert(employee);
-        return employee;
+        return T_edc::get(T_edc::insert_row(args...));
     }
 };
 
-TEST_F(gaia_one_to_one_test, one_to_one)
+TEST_F(gaia_one_to_one_test, one_to_one_with_id)
 {
     auto_transaction_t txn;
 
-    person_t john = create_person("John", "Wick");
-    person_t harry = create_person("Harry", "Potter");
+    person_t madeline_person = create<person_t>("Madeline", "Clark");
+    employee_t madeline_employee = create<employee_t>("Gaia Platform LLC");
 
-    student_t student = create_student(harry, "Hogwarts");
-    employee_t employee = create_employee(john, "Unclear");
+    ASSERT_FALSE(madeline_person.employee());
+    ASSERT_FALSE(madeline_employee.person());
+
+    // Test connect.
+    madeline_person.employee().connect(madeline_employee.gaia_id());
+
+    ASSERT_EQ(madeline_employee.person(), madeline_person);
+    ASSERT_STREQ(madeline_employee.person().name_first(), madeline_person.name_first());
+    ASSERT_STREQ(madeline_employee.person().name_last(), madeline_person.name_last());
+
+    ASSERT_EQ(madeline_person.employee(), madeline_employee);
+    ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
+
+    // Test disconnect.
+    madeline_person.employee().disconnect(madeline_employee.gaia_id());
+
+    ASSERT_FALSE(madeline_person.employee());
+    ASSERT_FALSE(madeline_employee.person());
 }
+
+//TEST_F(gaia_one_to_one_test, one_to_one)
+//{
+//    auto_transaction_t txn;
+//
+//    person_t madeline_person = create<person_t>("Madeline", "Clark");
+//    person_t joel_person = create<person_t>("Joel", "Phelps");
+//
+//    ASSERT_FALSE(madeline_person.employee());
+//    ASSERT_FALSE(joel_person.employee());
+//
+//    employee_t madeline_employee = create<employee_t>("Gaia Platform LLC");
+//    employee_t joel_employee = create<employee_t>("Bazza LLC");
+//
+//    ASSERT_FALSE(madeline_employee.person());
+//    ASSERT_FALSE(joel_employee.person());
+//
+//    madeline_person.employee().connect(madeline_employee.gaia_id());
+//    madeline_person.employee().connect(madeline_employee.gaia_id());
+//
+//}

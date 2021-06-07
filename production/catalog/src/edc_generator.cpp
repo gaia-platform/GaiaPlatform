@@ -26,7 +26,7 @@ std::string edc_compilation_unit_writer_t::write_header()
     code += generate_includes();
     code += generate_open_namespace();
     code += generate_constants();
-    code += generate_edc_forward_declarations();
+    code += generate_forward_declarations();
     code += generate_ref_forward_declarations();
 
     for (const table_facade_t& table : m_database.tables())
@@ -514,7 +514,7 @@ std::string class_writer_t::generate_outgoing_relationships_accessors_cpp()
         {
             code += "{{CHILD_TABLE}}_ref_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
             code.IncrementIdentLevel();
-            code += "return {{CHILD_TABLE}}_ref_t(gaia_id(), this->references()[{{FIRST_OFFSET}}]);";
+            code += "return {{CHILD_TABLE}}_ref_t(gaia_id(), this->references()[{{FIRST_OFFSET}}], {{FIRST_OFFSET}});";
             code.DecrementIdentLevel();
             code += "}";
         }
@@ -686,26 +686,25 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 std::string class_writer_t::generate_ref_class()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-
     code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, public direct_access::edc_ref_t {";
     code += "public:";
     code.IncrementIdentLevel();
     code += "{{TABLE_NAME}}_ref_t() = delete;";
-    code += "{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child);";
+    code += "{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, "
+            "gaia::common::reference_offset_t child_offset);";
     code.DecrementIdentLevel();
     code += "};";
-
     return code.ToString();
 }
 
 std::string class_writer_t::generate_ref_class_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)";
+    code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, "
+            "gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)";
     code.IncrementIdentLevel();
-    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_ref_t(parent) {};";
+    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_ref_t(parent, child_offset) {};";
     code.DecrementIdentLevel();
-
     return code.ToString();
 }
 

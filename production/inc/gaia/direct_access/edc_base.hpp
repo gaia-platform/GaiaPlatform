@@ -25,12 +25,13 @@ class edc_ref_t
 {
 public:
     edc_ref_t() = delete;
-    edc_ref_t(gaia::common::gaia_id_t parent);
-    void connect(gaia::common::gaia_id_t id);
-    void disconnect(gaia::common::gaia_id_t id);
+    edc_ref_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
+    void connect(common::gaia_id_t id);
+    void disconnect(common::gaia_id_t id);
 
 private:
-    gaia::common::gaia_id_t m_parent_id;
+    common::gaia_id_t m_parent_id;
+    common::reference_offset_t m_child_offset;
 };
 
 /**
