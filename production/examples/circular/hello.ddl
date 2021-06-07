@@ -17,7 +17,12 @@ create table if not exists greetings
     greeting string
 );
 
-create relationship if not exists names_greetings (
-   names.greetings -> greetings,
-   greetings.names -> names
+create relationship if not exists names_greetings_1 (
+   names.preferred_greeting -> greetings,
+   greetings.name_1 -> names
+);
+
+create relationship if not exists names_greetings_M (
+   names.greetings -> greetings[],
+   greetings.name_M -> names
 );

@@ -259,14 +259,22 @@ edc_ref_t::edc_ref_t(gaia_id_t parent, reference_offset_t child_offset)
 {
 }
 
-void edc_ref_t::connect(gaia_id_t id)
+void edc_ref_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
-    edc_db_t::insert_child_reference(m_parent_id, id, m_child_offset);
+    if (old_id != c_invalid_gaia_id && old_id == new_id)
+    {
+        return;
+    }
+    edc_ref_t::disconnect(old_id);
+    edc_db_t::insert_child_reference(m_parent_id, new_id, m_child_offset);
 }
 
 void edc_ref_t::disconnect(gaia_id_t id)
 {
-    edc_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
+    if (id != gaia::common::c_invalid_gaia_id)
+    {
+        edc_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
+    }
 }
 
 } // namespace direct_access

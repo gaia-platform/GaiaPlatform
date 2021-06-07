@@ -26,7 +26,7 @@ class edc_ref_t
 public:
     edc_ref_t() = delete;
     edc_ref_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
-    void connect(common::gaia_id_t id);
+    void connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
     void disconnect(common::gaia_id_t id);
 
 private:
@@ -42,6 +42,8 @@ private:
 struct edc_base_iterator_state_t
 {
     virtual ~edc_base_iterator_state_t() = default;
+    gaia::common::gaia_id_t m_parent_id;
+    size_t m_child_slot;
 };
 
 /**

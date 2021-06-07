@@ -12,24 +12,59 @@ namespace gaia
 namespace hello
 {
 
-greetings_ref_t::greetings_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)
-    : greetings_t(child), direct_access::edc_ref_t(parent)
+greetings_ref_t::greetings_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, size_t child_slot)
+    : greetings_t(child), direct_access::edc_ref_t(parent, child_slot)
 {
 }
 
-greetings_ref_t names_t::greetings() const
+void greetings_ref_t::connect(gaia::common::gaia_id_t id)
 {
-    return greetings_ref_t(gaia_id(), this->references()[0]);
+    edc_ref_t::connect(this->id(), id);
 }
 
-names_ref_t::names_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child)
-    : names_t(child), direct_access::edc_ref_t(parent)
+void greetings_ref_t::connect(const greetings_t& greeting)
+{
+    connect(greeting.gaia_id());
+}
+
+void greetings_ref_t::disconnect()
+{
+    edc_ref_t::disconnect(this->id());
+}
+
+greetings_ref_t names_t::preferred_greeting() const
+{
+    return greetings_ref_t(gaia_id(), this->references()[c_names_first_preferred_greeting], c_names_first_preferred_greeting);
+}
+
+names_ref_t::names_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, size_t child_slot)
+    : names_t(child), direct_access::edc_ref_t(parent, child_slot)
 {
 }
 
-names_ref_t greetings_t::names() const
+void names_ref_t::connect(gaia::common::gaia_id_t id)
 {
-    return names_ref_t(gaia_id(), this->references()[0]);
+    edc_ref_t::connect(this->id(), id);
+}
+
+void names_ref_t::connect(const names_t& name)
+{
+    connect(name.gaia_id());
+}
+
+void names_ref_t::disconnect()
+{
+    edc_ref_t::disconnect(this->id());
+}
+
+names_ref_t greetings_t::name_1() const
+{
+    return names_ref_t(gaia_id(), this->references()[c_greetings_parent_name_1], c_greetings_parent_name_1);
+}
+
+names_ref_t greetings_t::name_M() const
+{
+    return names_ref_t(gaia_id(), this->references()[c_greetings_parent_name_M], c_greetings_parent_name_M);
 }
 
 } // namespace hello
