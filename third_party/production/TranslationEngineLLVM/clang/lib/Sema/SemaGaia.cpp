@@ -39,6 +39,19 @@ static string fieldTableName;
 
 static const char ruleContextTypeName[] = "rule_context__type";
 
+static string get_table_from_expression(const string& expression)
+{
+    size_t dot_position = expression.find('.');
+    if (dot_position != string::npos)
+    {
+        return expression.substr(0, dot_position);
+    }
+    else
+    {
+        return expression;
+    }
+}
+
 static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
     // Clang complains if we add a default clause to a switch that covers all values of an enum,
@@ -133,17 +146,7 @@ bool Sema::does_path_includes_tags(const std::vector<std::string>& path, SourceL
     }
     for (const auto& path_component : path)
     {
-        string tableName;
-        size_t dotPosition = path_component.find('.');
-        if (dotPosition != string::npos)
-        {
-            tableName = path_component.substr(0, dotPosition);
-        }
-        else
-        {
-            tableName = path_component;
-        }
-        if (tagMapping.find(tableName) != tagMapping.end())
+        if (tagMapping.find(get_table_from_expression(path_component)) != tagMapping.end())
         {
             return true;
         }
@@ -200,19 +203,10 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 return "";
             }
             string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
-            string tableName;
-            size_t dotPosition = table.find('.');
-            if (dotPosition != string::npos)
-            {
-                tableName = table.substr(0, dotPosition);
-            }
-            else
-            {
-                tableName = table;
-            }
+
             if (!tag.empty())
             {
-                tagMap[tag] = tableName;
+                tagMap[tag] = get_table_from_expression(table);
                 tag.clear();
             }
             path.push_back(table);
@@ -230,17 +224,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     }
     if (!tag.empty())
     {
-        string tableName;
-        size_t dotPosition = table.find('.');
-        if (dotPosition != string::npos)
-        {
-            tableName = table.substr(0, dotPosition);
-        }
-        else
-        {
-            tableName = table;
-        }
-        tagMap[tag] = tableName;
+        tagMap[tag] = get_table_from_expression(table);
     }
     path.push_back(table);
 
@@ -471,10 +455,10 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
 
             TableLinkData_t link_data_1;
             link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.name();
+            link_data_1.field = relationship.to_parent_link_name();
             TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
-            link_data_n.field = relationship.name();
+            link_data_n.field = relationship.to_child_link_name();
 
             retVal.emplace(child_table.name(), link_data_1);
             retVal.emplace(parent_table.name(), link_data_n);

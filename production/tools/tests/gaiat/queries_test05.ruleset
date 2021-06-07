@@ -1,6 +1,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
-// GAIAPLAT-948
+// GAIAPLAT-948 (fixed)
 ruleset test124
 {
     OnInsert(incubator)
