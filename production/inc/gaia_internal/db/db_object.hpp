@@ -65,7 +65,7 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 
 // We need to ensure that the object header size is exactly what we
 // calculated above and not additionally padded.
-static_assert(offsetof(db_object_t, payload) == db_object_t::c_object_header_size);
+static_assert(offsetof(db_object_t, payload) == db_object_t::c_object_header_size, "Offset of payload field must be expected object header size!");
 
 // We need to 8-byte-align both the references array at the beginning of the
 // payload (since references are 8 bytes) and the serialized flatbuffer that
