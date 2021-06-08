@@ -22,22 +22,12 @@ namespace direct_access
 {
 
 /**
- * Represent the parent side of a 1:1 relationship. This class is not
- * meant to be used standalone but to be subclassed in the EDC generated
- * code.
+ * \addtogroup Direct
+ * @{
+ *
+ * Implementation of Extended Data Classes. This provides a direct access API
+ * for CRUD operations on the database.
  */
-class edc_base_reference_t
-{
-public:
-    edc_base_reference_t() = delete;
-    edc_base_reference_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
-    void connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
-    void disconnect(common::gaia_id_t id);
-
-private:
-    common::gaia_id_t m_parent_id;
-    common::reference_offset_t m_child_offset;
-};
 
 /**
  * Used by iterator class to maintain state of an iteration.
@@ -72,14 +62,6 @@ protected:
 private:
     friend class edc_base_reference_t;
 };
-
-/**
- * \addtogroup Direct
- * @{
- *
- * Implementation of Extended Data Classes. This provides a direct access API
- * for CRUD operations on the database.
- */
 
 /**
  * The edc_base_t class is a tag to mark extended data class objects as well as provide
@@ -134,6 +116,24 @@ protected:
      * Handle to the underlying database record. This handle should only be accessed via the to_ptr methods.
      */
     common::gaia_handle_t m_record;
+};
+
+/**
+ * Represent the parent side of a 1:1 relationship. This class is not
+ * meant to be used standalone but to be subclassed in the EDC generated
+ * code.
+ */
+class edc_base_reference_t
+{
+public:
+    edc_base_reference_t() = delete;
+    edc_base_reference_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
+    void connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
+    void disconnect(common::gaia_id_t id);
+
+private:
+    common::gaia_id_t m_parent_id;
+    common::reference_offset_t m_child_offset;
 };
 
 // Exception when get() argument does not match the class type.

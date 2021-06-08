@@ -13,7 +13,7 @@ namespace direct_access
 {
 
 // This class has been introduced to enable us to differentiate between
-// zero-length strings and null strings.  The C++ object api --gen-object-api
+// zero-length strings and null strings. The C++ object api --gen-object-api
 // represents strings as std::string by default and represents zero-length
 // strings as null values.  To use this type instead of std::string, we pass
 // the class name (gaia::direct_access::nullable_string_t) to the flatc compiler via

@@ -224,6 +224,9 @@ std::string class_writer_t::write_header()
     flatbuffers::CodeWriter code(c_indentation_string);
     code += generate_writer() + "\\";
     code += generate_class_definition() + "\\";
+    increment_indent();
+    code += generate_friend_declarations() + "\\";
+    decrement_indent();
     code += "public:";
     increment_indent();
     code += generate_list_types() + "\\";
@@ -238,7 +241,6 @@ std::string class_writer_t::write_header()
     code += "private:";
     increment_indent();
     code += generate_private_constructor() + "\\";
-    code += generate_friend_declarations() + "\\";
     decrement_indent();
     code += generate_close_class_definition();
     code += generate_ref_class();

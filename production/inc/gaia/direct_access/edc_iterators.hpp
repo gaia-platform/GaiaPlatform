@@ -27,15 +27,15 @@ namespace direct_access
  * linked lists called "sets".
  */
 
+template <gaia::common::gaia_type_t container_type_id, typename T_class>
+class edc_container_t;
+
 // C++17 compliant way when std::iterator is deprecated.
 //
 // A edc_iterator_t contains the methods that satisfy an iterator interface.
 // Only used from edc_container_t template, which defines the begin(), where() and end().
 //
 // @tparam T_class the Extended Data Class
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
-class edc_container_t;
-
 template <typename T_class>
 class edc_iterator_t : protected edc_db_t
 {
