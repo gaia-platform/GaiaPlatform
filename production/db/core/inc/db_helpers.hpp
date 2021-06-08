@@ -127,7 +127,7 @@ inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     data_t* data = gaia::db::get_data();
     return (offset != c_invalid_gaia_offset)
-        ? reinterpret_cast<db_object_t*>(data->objects + offset)
+        ? data->objects + offset
         : nullptr;
 }
 

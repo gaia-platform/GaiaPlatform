@@ -64,8 +64,10 @@ constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
-// that will fit into 256GB, or 2^38 / 2^6 = 2^32.
-constexpr size_t c_max_locators = 1ULL << 32;
+// that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
+// the fact that offsets are 32 bits, and that the first entry of the locators
+// array must be reserved, so we subtract 1.
+constexpr size_t c_max_locators = (1ULL << 32) - 1;
 
 // With 2^32 objects, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
@@ -80,9 +82,10 @@ constexpr size_t c_max_log_records = 1ULL << 20;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
+// The first entry of the array is reserved for the invalid locator value 0.
 // The elements are atomic because reads and writes to shared memory need to be
 // synchronized across threads/processes.
-typedef std::atomic<gaia_offset_t> locators_t[c_max_locators];
+typedef std::atomic<gaia_offset_t> locators_t[c_max_locators + 1];
 
 struct hash_node_t
 {
@@ -162,7 +165,8 @@ struct counters_t
 
 struct data_t
 {
-    db_object_t objects[c_max_locators];
+    // The first entry of the array is reserved for the invalid offset value 0.
+    db_object_t objects[c_max_locators + 1];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
