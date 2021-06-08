@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <gaia_internal/catalog/gaia_catalog.h>
+#include "gaia_internal/catalog/gaia_catalog.h"
 
 /*
  * Contains classes that make it simpler to generate code from the

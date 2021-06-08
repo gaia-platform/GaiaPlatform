@@ -3,8 +3,8 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 
-#include <gaia_internal/catalog/catalog.hpp>
-#include <gaia_internal/catalog/gaia_catalog.h>
+#include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
 
 #include "edc_generator.hpp"
 

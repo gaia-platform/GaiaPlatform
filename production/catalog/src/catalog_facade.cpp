@@ -5,7 +5,7 @@
 
 #include "catalog_facade.hpp"
 
-#include <gaia_internal/catalog/catalog.hpp>
+#include "gaia_internal/catalog/catalog.hpp"
 
 namespace gaia
 {
