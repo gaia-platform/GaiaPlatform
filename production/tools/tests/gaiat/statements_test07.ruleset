@@ -1,0 +1,18 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test07
+{
+    OnInsert(incubator)
+    {
+        if (I:incubator.max_temp > 99.8)
+        {
+            I.min_temp -= 1.0;
+        }
+        nomatch
+        {
+            I.min_temp = 97.0;
+        }
+    }
+}
+
+// CHECK: use of undeclared identifier 'I'

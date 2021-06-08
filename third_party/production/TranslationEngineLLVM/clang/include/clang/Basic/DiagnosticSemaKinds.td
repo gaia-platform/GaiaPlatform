@@ -9527,7 +9527,7 @@ def err_invalid_child_table : Error<
 def err_invalid_parent_table : Error<
     "Incorrect parent table in the relationship '%0'.">;
 def err_no_relations_table_in_path : Error<
-  "'%0' table in the explicit path has no relationship to '%1'">;
+  "'%0' table in the explicit path has no relationship to '%1'.">;
 def err_invalid_tag_defined: Error<
     "Tag refers to an invalid table '%0'.">;
 def err_ambiguous_tag_defined: Error<

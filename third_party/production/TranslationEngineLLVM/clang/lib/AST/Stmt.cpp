@@ -834,7 +834,8 @@ IfStmt::IfStmt(const ASTContext &Ctx, SourceLocation IL, bool IsConstexpr,
   setIfLoc(IL);
   if (HasElse)
     setElseLoc(EL);
-  setNoMatchLoc(NML);
+  if (HasNoMatch)
+    setNoMatchLoc(NML);
 }
 
 IfStmt::IfStmt(EmptyShell Empty, bool HasElse, bool HasVar, bool HasInit, bool HasNoMatch)
