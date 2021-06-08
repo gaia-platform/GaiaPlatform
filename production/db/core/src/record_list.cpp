@@ -147,6 +147,22 @@ record_iterator_t::~record_iterator_t()
     }
 }
 
+record_iterator_t::record_iterator_t(const record_iterator_t& other)
+{
+    ASSERT_PRECONDITION(other.current_range == nullptr, "An attempt was made to copy an initialized record_iterator!");
+    this->current_range = other.current_range;
+    this->current_index = other.current_index;
+}
+
+record_iterator_t& record_iterator_t::operator=(const record_iterator_t& other)
+{
+    ASSERT_PRECONDITION(this->current_range == nullptr, "An attempt was made to copy into an initialized record_iterator!");
+    ASSERT_PRECONDITION(other.current_range == nullptr, "An attempt was made to copy an initialized record_iterator!");
+    this->current_range = other.current_range;
+    this->current_index = other.current_index;
+    return *this;
+}
+
 record_list_t::record_list_t(size_t range_size)
 {
     clear();

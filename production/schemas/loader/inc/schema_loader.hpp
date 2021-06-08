@@ -58,7 +58,7 @@ public:
     void add_search_path(std::string path);
 
     /**
-     * Clear the mapping between the schema names and thir paths.
+     * Clear the mapping between the schema names and their paths.
      */
     void clear_schema_cache();
 

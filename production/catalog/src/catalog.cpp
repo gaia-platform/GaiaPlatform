@@ -123,7 +123,7 @@ vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& child_relationship :
-         gaia_table_t::get(table_id).gaia_relationships_child())
+         gaia_table_t::get(table_id).incoming_relationships())
     {
         relationships.push_back(child_relationship.gaia_id());
     }
@@ -136,7 +136,7 @@ vector<gaia_id_t> list_parent_relationships(gaia_id_t table_id)
     vector<gaia_id_t> relationships;
 
     for (const gaia_relationship_t& parent_relationship :
-         gaia_table_t::get(table_id).gaia_relationships_parent())
+         gaia_table_t::get(table_id).outgoing_relationships())
     {
         relationships.push_back(parent_relationship.gaia_id());
     }

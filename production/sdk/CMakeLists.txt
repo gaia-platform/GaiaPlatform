@@ -5,7 +5,7 @@
 
 project(sdk)
 
-include(gaia_build)
+include(gaia_internal)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
@@ -32,13 +32,12 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}
   ${FLATBUFFERS_INC}
-  ${GAIA_GENERATED_SCHEMAS}
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog" "generate_addr_book_headers")
-add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia" "generate_addr_book_headers")
+add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
+add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;edc_addr_book")
 
 
 # Set CPack variables required for building a DEB/RPM package.
@@ -162,8 +161,6 @@ install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION 
 
 # Place incubator example.
 set(GAIA_CMAKE "${CPACK_PACKAGING_INSTALL_PREFIX}/cmake/gaia.cmake")
-set(GAIA_INC "${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
-set(GAIA_LIB "/usr/local/lib/libgaia.so")
 configure_file(${GAIA_REPO}/production/examples/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
 # The following two commands will create a CMakeLists.txt appropriate for the SDK build environment
 # by substituting in the correct CMAKE VARS into the incubator CMakeLists text file.

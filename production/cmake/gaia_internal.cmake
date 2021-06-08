@@ -125,3 +125,96 @@ function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
 
   gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare" ${OUTPUT_DIR})
 endfunction()
+
+# Creates a CMake target that loads schema definition specified by DDL_FILE
+# into the Gaia database. It then generates the EDC code to access the
+# database programmatically, and build the EDC classes into a static library.
+#
+# The generated file is written to: ${OUTPUT_FOLDER}/gaia_${DDL_NAME}.h
+# where DDL_NAME is DDL_FILE with no extension.
+#
+# Args:
+# - DDL_FILE: [optional] the path to the .ddl file.
+#     If not specified, the function generates the EDC code for the database
+#     specified by DATABASE_NAME.
+# - OUTPUT_DIR: [optional] directory where the header files will be generated.
+#     If not specified the default value is ${GAIA_GENERATED_CODE}/${DATABASE_NAME}
+# - LIB_NAME: [optional] the name of the generated target.
+#     If not specified the default value is edc_${DDL_NAME}.
+# - DATABASE_NAME: [optional] name of the database the headers are generated from.
+#     If not specified the database name will be inferred as ${DDL_NAME}.
+#     This is a temporary workaround, until we improve gaiac.
+function(process_schema_internal)
+  set(options "")
+  set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME)
+  set(multiValueArgs "")
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if(NOT DEFINED ARG_DDL_FILE AND NOT DEFINED ARG_DATABASE_NAME)
+    message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
+  endif()
+
+  # If the database name is not specified we infer it from the DDL file name.
+  if(NOT DEFINED ARG_DATABASE_NAME)
+    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
+    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
+    set(ARG_DATABASE_NAME ${DDL_NAME})
+    message(VERBOSE "DATABASE_NAME not specified, using: ${ARG_DATABASE_NAME}.")
+  endif()
+
+  if(NOT DEFINED ARG_OUTPUT_DIR)
+    set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME})
+    message(VERBOSE "OUTPUT_DIR not specified, defaulted to: ${ARG_OUTPUT_DIR}.")
+  endif()
+
+  set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
+  set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+
+  message(VERBOSE "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
+
+  string(RANDOM GAIAC_INSTANCE_NAME)
+
+  if (DEFINED ARG_DDL_FILE)
+    add_custom_command(
+      COMMENT "Generating EDC code for file ${ARG_DDL_FILE} and database ${ARG_DATABASE_NAME}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+        -t ${GAIA_PROD_BUILD}/db/core
+        -o ${ARG_OUTPUT_DIR}
+        -g ${ARG_DDL_FILE}
+        -d ${ARG_DATABASE_NAME}
+        -n ${GAIAC_INSTANCE_NAME}
+      DEPENDS ${ARG_DDL_FILE}
+      DEPENDS gaiac
+    )
+  else()
+    add_custom_command(
+      COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME}..."
+      OUTPUT ${EDC_HEADER_FILE}
+      OUTPUT ${EDC_CPP_FILE}
+      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+        -t ${GAIA_PROD_BUILD}/db/core
+        -o ${ARG_OUTPUT_DIR}
+        -d ${ARG_DATABASE_NAME}
+        -n ${GAIAC_INSTANCE_NAME}
+        -g
+      DEPENDS gaiac
+    )
+  endif()
+
+  if(NOT DEFINED ARG_LIB_NAME)
+    set(ARG_LIB_NAME "edc_${ARG_DATABASE_NAME}")
+    message(VERBOSE "LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
+  endif()
+
+  add_library(${ARG_LIB_NAME}
+    ${EDC_CPP_FILE})
+
+  set_target_properties(${ARG_LIB_NAME} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+  set_target_properties(${ARG_LIB_NAME} PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
+  target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
+  target_link_libraries(${ARG_LIB_NAME} gaia_direct)
+endfunction()

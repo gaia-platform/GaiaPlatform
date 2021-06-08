@@ -10,7 +10,5 @@
 /# {SDK-SETUP:CXX_STANDARD}/ c set(CMAKE_CXX_STANDARD 17)
 # Insert SDK paths for include, lib, and tools.
 /# {SDK-SETUP:VARS}/ i include("${GAIA_CMAKE}")
-/# {SDK-SETUP:VARS}/ i set(GAIA_INC "${GAIA_INC}")
-/# {SDK-SETUP:VARS}/ i set(GAIA_LIB "${GAIA_LIB}")
 # Remove our marker in the cmake file
 /# {SDK-SETUP:VARS}/ d

@@ -32,7 +32,7 @@ gaia_relationship_t find_relationship(
     const gaia_table_t& table,
     const std::string& field_name)
 {
-    auto out_relationships = table.gaia_relationships_parent();
+    auto out_relationships = table.outgoing_relationships();
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
@@ -45,7 +45,7 @@ gaia_relationship_t find_relationship(
         return *it;
     }
 
-    auto in_relationships = table.gaia_relationships_child();
+    auto in_relationships = table.incoming_relationships();
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
@@ -261,7 +261,7 @@ TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
     auto_transaction_t txn;
     auto table = gaia_table_t::get(parent_table_id);
     EXPECT_TRUE(table);
-    ASSERT_EQ(1, table.gaia_relationships_parent().size());
+    ASSERT_EQ(1, table.outgoing_relationships().size());
     txn.commit();
 }
 
@@ -292,8 +292,8 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
     EXPECT_FALSE(gaia_table_t::get(child_table_id));
 
     // the relationship has been marked deprecated and the child has been unlinked.
-    ASSERT_EQ(1, parent_table.gaia_relationships_parent().size());
-    gaia_relationship_t relationship = *parent_table.gaia_relationships_parent().begin();
+    ASSERT_EQ(1, parent_table.outgoing_relationships().size());
+    gaia_relationship_t relationship = *parent_table.outgoing_relationships().begin();
     gaia_id_t relationship_id = relationship.gaia_id();
 
     ASSERT_TRUE(relationship.deprecated());
@@ -400,17 +400,17 @@ TEST_F(ddl_executor_test, create_relationships)
     gaia_table_t patient_table = gaia_table_t::get(patient_table_id);
 
     // Clinic appears twice as parent side of a relationship.
-    ASSERT_EQ(2, clinic_table.gaia_relationships_parent().size());
+    ASSERT_EQ(2, clinic_table.outgoing_relationships().size());
 
     // Doctor appears once as parent side of a relationship
     // and once as child side.
-    ASSERT_EQ(1, doctor_table.gaia_relationships_parent().size());
-    ASSERT_EQ(1, doctor_table.gaia_relationships_child().size());
+    ASSERT_EQ(1, doctor_table.outgoing_relationships().size());
+    ASSERT_EQ(1, doctor_table.incoming_relationships().size());
 
     // Patient never appear as parent side of a relationship
     // and twice as child side.
-    ASSERT_EQ(0, patient_table.gaia_relationships_parent().size());
-    ASSERT_EQ(2, patient_table.gaia_relationships_child().size());
+    ASSERT_EQ(0, patient_table.outgoing_relationships().size());
+    ASSERT_EQ(2, patient_table.incoming_relationships().size());
 
     // check
     // (clinic) 1 -[doctors]-> N (doctor)
@@ -488,11 +488,11 @@ TEST_F(ddl_executor_test, create_self_relationships)
     auto_transaction_t txn;
     gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
 
-    ASSERT_EQ(1, doctor_table.gaia_relationships_parent().size());
-    ASSERT_EQ(1, doctor_table.gaia_relationships_child().size());
+    ASSERT_EQ(1, doctor_table.outgoing_relationships().size());
+    ASSERT_EQ(1, doctor_table.incoming_relationships().size());
 
-    gaia_relationship_t parent_relationship = *doctor_table.gaia_relationships_parent().begin();
-    gaia_relationship_t child_relationship = *doctor_table.gaia_relationships_child().begin();
+    gaia_relationship_t parent_relationship = *doctor_table.outgoing_relationships().begin();
+    gaia_relationship_t child_relationship = *doctor_table.incoming_relationships().begin();
 
     ASSERT_EQ(parent_relationship, child_relationship);
 
@@ -607,10 +607,10 @@ TEST_F(ddl_executor_test, metadata_init)
     gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
     gaia_table_t patient_table = gaia_table_t::get(patient_table_id);
 
-    ASSERT_EQ(2, doctor_table.gaia_relationships_parent().size());
-    ASSERT_EQ(0, doctor_table.gaia_relationships_child().size());
-    ASSERT_EQ(0, patient_table.gaia_relationships_parent().size());
-    ASSERT_EQ(2, patient_table.gaia_relationships_child().size());
+    ASSERT_EQ(2, doctor_table.outgoing_relationships().size());
+    ASSERT_EQ(0, doctor_table.incoming_relationships().size());
+    ASSERT_EQ(0, patient_table.outgoing_relationships().size());
+    ASSERT_EQ(2, patient_table.incoming_relationships().size());
 
     gaia_relationship_t current_doctor_relationship = find_relationship(patient_table, "current_doctor");
     gaia_relationship_t past_doctor_relationship = find_relationship(patient_table, "past_doctor");
