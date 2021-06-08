@@ -63,8 +63,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
 
   if(ENABLE_ASAN)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all")
   endif()
 endif()
 
@@ -73,12 +73,16 @@ message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+
+set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
+set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
 
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
@@ -154,7 +158,6 @@ add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 
 # Backward.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -163,9 +166,9 @@ endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Spdlog.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog" gaia_spdlog)
 # Spdlog_setup.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_spdlog_setup)
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest

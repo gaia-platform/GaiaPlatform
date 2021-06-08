@@ -23,14 +23,26 @@ namespace direct_access
 {
 
 /**
+ * Used by iterator class to maintain state of an iteration.
+ *
+ * This is needed to ensure proper destruction of derived instances via the virtual destructor.
+ */
+struct edc_base_iterator_state_t
+{
+    virtual ~edc_base_iterator_state_t() = default;
+};
+
+/**
  * Used by edc object, writer, and iterator classes.
  * Not for use outside the context of those classes.
  */
 class edc_db_t
 {
 protected:
-    static common::gaia_id_t find_first(common::gaia_type_t container);
-    static common::gaia_id_t find_next(common::gaia_id_t id);
+    // Low-level interface for iterating over objects of a given container.
+    static std::shared_ptr<edc_base_iterator_state_t> initialize_iterator(common::gaia_type_t container_type_id);
+    static common::gaia_id_t get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
+    static bool advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
 
     static common::gaia_id_t get_reference(common::gaia_id_t id, size_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);
@@ -50,7 +62,7 @@ protected:
  */
 
 /**
- * The edc_base_t struct is a tag to mark extended data class objects as well as provide
+ * The edc_base_t class is a tag to mark extended data class objects as well as provide
  * non-template functionality.
  */
 class edc_base_t : protected edc_db_t
@@ -72,10 +84,15 @@ public:
     virtual common::gaia_type_t gaia_type() = 0;
     virtual ~edc_base_t() = default;
 
-    common::gaia_id_t id() const;
-    bool exists() const;
+    /**
+     * This is the database's identification of this object. The id can be
+     * used to refer to this object later.
+     */
+    common::gaia_id_t gaia_id() const;
 
 protected:
+    bool exists() const;
+
     bool equals(const edc_base_t& other) const;
     const char* data() const;
 

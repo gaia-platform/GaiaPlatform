@@ -30,10 +30,10 @@ test_error_result_t g_onupdate4_result;
 int32_t g_oninsert_value;
 int32_t g_oninsert2_value;
 int32_t g_oninsert3_value;
-int32_t g_onupdate_value;
 int32_t g_onupdate3_value;
 std::string g_string_value;
 
+std::atomic<int32_t> g_onupdate_value;
 std::atomic<int32_t> g_insert_count;
 
 ruleset test_tags
@@ -236,6 +236,14 @@ ruleset test_query_3
         g_oninsert_value = 0;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
+    }
+
+    OnUpdate(course.hours)
+    {
+        // When this rule is fired, we know that the commit for the
+        // insertion of a registration rule fired and can proceed with verifying
+        // the course hours in the test.
+        g_onupdate_called = true;
     }
 }
 

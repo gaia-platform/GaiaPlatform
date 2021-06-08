@@ -15,6 +15,7 @@ message(VERBOSE "GAIA_CATALOG_PUBLIC_INCLUDES=${GAIA_CATALOG_PUBLIC_INCLUDES}")
 set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/index
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
 )
@@ -60,6 +61,19 @@ add_gtest(test_fdw_ddl_generation
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
   "rt;gaia_system;gaia_catalog"
   gaia_catalog)
+
+set(TEST_GAIA_GENERATE_INCLUDES
+    ${GAIA_CATALOG_PUBLIC_INCLUDES}
+    ${GAIA_CATALOG_PRIVATE_INCLUDES}
+    ${GAIA_PROD_BUILD}/catalog/parser/generated
+    ${PROJECT_SOURCE_DIR}/parser/inc
+)
+
+add_gtest(test_gaiac_generation
+    "tests/test_gaiac_generation.cpp"
+    "${TEST_GAIA_GENERATE_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test"
+    "generate_airport_headers" "")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

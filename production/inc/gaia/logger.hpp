@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <spdlog/spdlog.h>
+#include <gaia_spdlog/spdlog.h>
 
 #include "gaia/exception.hpp"
 
@@ -123,7 +123,7 @@ public:
     }
 
 protected:
-    std::shared_ptr<spdlog::logger> m_spdlogger;
+    std::shared_ptr<gaia_spdlog::logger> m_spdlogger;
 
 private:
     /**

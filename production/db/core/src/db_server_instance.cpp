@@ -5,16 +5,19 @@
 
 #include "gaia_internal/db/db_server_instance.hpp"
 
+#include <unistd.h>
+
 #include <csignal>
 
 #include <filesystem>
 #include <iostream>
+#include <thread>
 
+#include <gaia_spdlog/fmt/fmt.h>
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
 #include <libexplain/kill.h>
 #include <libexplain/waitpid.h>
-#include <spdlog/fmt/fmt.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
 
@@ -87,12 +90,12 @@ std::string server_instance_config_t::generate_instance_name()
 
     std::string executable_name;
     std::ifstream("/proc/self/comm") >> executable_name;
-    std::string current_exe_path = fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
+    std::string current_exe_path = gaia_fmt::format("{}/{}", std::filesystem::current_path().string(), executable_name);
 
     std::size_t path_hash = std::hash<std::string>{}(current_exe_path);
     std::string random_str = common::gen_random_str(c_random_suffix_size);
 
-    return fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
+    return gaia_fmt::format("{}_{}_{}", executable_name, path_hash, random_str);
 }
 
 std::string server_instance_config_t::generate_data_dir(const std::string& instance_name)

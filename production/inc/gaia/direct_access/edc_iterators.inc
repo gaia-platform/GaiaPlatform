@@ -12,14 +12,25 @@ namespace direct_access
 // Implementation for edc_iterator_t.
 //
 template <typename T_class>
-edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id)
+edc_iterator_t<T_class>::edc_iterator_t(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
+    : m_iterator_state(iterator_state)
 {
+    gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
     m_obj = T_class::get(id);
 }
 
 template <typename T_class>
-edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function)
-    : m_filter_fn(filter_function)
+edc_iterator_t<T_class>::edc_iterator_t(
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state,
+    std::function<bool(const T_class&)> filter_function)
+    : m_iterator_state(iterator_state), m_filter_fn(filter_function)
+{
+    gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
+    m_obj = T_class::get(id);
+}
+
+template <typename T_class>
+edc_iterator_t<T_class>::edc_iterator_t(gaia::common::gaia_id_t id)
 {
     m_obj = T_class::get(id);
 }
@@ -32,26 +43,21 @@ edc_iterator_t<T_class>& edc_iterator_t<T_class>::operator++()
         return *this;
     }
 
-    if (m_filter_fn)
+    gaia::common::gaia_id_t id = m_obj.gaia_id();
+    while (id != gaia::common::c_invalid_gaia_id)
     {
-        gaia::common::gaia_id_t id = m_obj.id();
-        while (id != gaia::common::c_invalid_gaia_id)
-        {
-            id = edc_db_t::find_next(id);
-            m_obj = T_class::get(id);
+        edc_db_t::advance_iterator(m_iterator_state);
+        id = edc_db_t::get_iterator_value(m_iterator_state);
+        m_obj = T_class::get(id);
 
-            if (!m_obj.exists() || m_filter_fn(m_obj))
-            {
-                break;
-            }
-        }
-    }
-    else
-    {
-        if (m_obj && m_obj.exists())
+        // If we have an object and a filter function and the object doesn't satisfy the filter,
+        // then keep looking for another object that does.
+        if (m_obj && m_filter_fn && !m_filter_fn(m_obj))
         {
-            m_obj = T_class::get(edc_db_t::find_next(m_obj.id()));
+            continue;
         }
+
+        break;
     }
 
     return *this;
@@ -97,14 +103,18 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 template <gaia::common::gaia_type_t container_type_id, typename T_class>
 edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() const
 {
-    gaia::common::gaia_id_t id = edc_db_t::find_first(container_type_id);
-    while (id != common::c_invalid_gaia_id)
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state
+        = edc_db_t::initialize_iterator(container_type_id);
+
+    gaia::common::gaia_id_t id = common::c_invalid_gaia_id;
+    while ((id = edc_db_t::get_iterator_value(iterator_state)) != common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
         {
-            if (m_filter_fn(T_class::get(id)))
+            T_class obj = T_class::get(id);
+            if (obj && m_filter_fn(obj))
             {
-                return edc_iterator_t<T_class>(id, m_filter_fn);
+                return edc_iterator_t<T_class>(iterator_state, m_filter_fn);
             }
         }
         else
@@ -112,9 +122,10 @@ edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() con
             break;
         }
 
-        id = edc_db_t::find_next(id);
+        edc_db_t::advance_iterator(iterator_state);
     }
-    return edc_iterator_t<T_class>(id);
+
+    return edc_iterator_t<T_class>(iterator_state);
 }
 
 // The where() method constructs a edc_container_t with a std::function to be used for filtering.

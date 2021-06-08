@@ -23,6 +23,7 @@ using namespace gaia::prerequisites::registration_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
+using namespace rule_test_helpers;
 
 extern bool g_oninsert_called;
 extern bool g_oninsert2_called;
@@ -45,14 +46,11 @@ extern test_error_result_t g_onupdate4_result;
 extern int32_t g_oninsert_value;
 extern int32_t g_oninsert2_value;
 extern int32_t g_oninsert3_value;
-extern int32_t g_onupdate_value;
 extern int32_t g_onupdate3_value;
 extern string g_string_value;
 
+extern std::atomic<int32_t> g_onupdate_value;
 extern std::atomic<int32_t> g_insert_count;
-
-const int c_rule_execution_step_delay = 5000;
-const int c_rule_execution_total_delay = 25000;
 
 student_t student_1;
 student_t student_2;
@@ -127,21 +125,6 @@ protected:
         db_catalog_test_base_t::TearDown();
         unsubscribe_rules();
         gaia::rules::shutdown_rules_engine();
-    }
-
-    // Synchronize with the rules threads. Timeout quickly.
-    bool wait_for_rule(bool& rule_called)
-    {
-        int rule_delay;
-
-        for (rule_delay = 0;
-             !rule_called && rule_delay <= c_rule_execution_total_delay;
-             rule_delay += c_rule_execution_step_delay)
-        {
-            usleep(c_rule_execution_step_delay);
-        }
-
-        return rule_delay <= c_rule_execution_total_delay;
     }
 
     void populate_db()
@@ -285,11 +268,10 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-const int num_inserts = 4;
-const int sleep_max = 5;
-
 TEST_F(test_queries_code, new_registration)
 {
+    const int num_inserts = 4;
+
     populate_db();
 
     gaia::rules::initialize_rules_engine();
@@ -325,12 +307,8 @@ TEST_F(test_queries_code, new_registration)
 
     gaia::db::commit_transaction();
 
-    int32_t sleep_count = 0;
-    do
-    {
-        usleep(c_rule_execution_step_delay);
-    } while (g_insert_count < num_inserts && sleep_count++ < sleep_max);
-
+    EXPECT_TRUE(wait_for_rule(g_insert_count, num_inserts))
+        << "OnInsert(registration) not called '" << num_inserts << "'times.";
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 }
@@ -424,6 +402,7 @@ TEST_F(test_queries_code, tag_define_use)
     gaia::db::commit_transaction();
 
     EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(course.hours) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     // Examinine values. We know the answers already.
@@ -473,6 +452,8 @@ TEST_F(test_queries_code, if_stmt)
 
 TEST_F(test_queries_code, if_stmt2)
 {
+    const int num_updates = 5;
+
     populate_db();
 
     gaia::rules::initialize_rules_engine();
@@ -486,11 +467,12 @@ TEST_F(test_queries_code, if_stmt2)
     gaia::db::begin_transaction();
 
     auto cw = course_1.writer();
-    cw.hours = 5;
+    cw.hours = num_updates;
     cw.update_row();
 
     gaia::db::commit_transaction();
 
+    EXPECT_TRUE(wait_for_rule(g_onupdate_value, num_updates)) << "OnUpdate(course) not called '" << num_updates << "' times.";
     EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(course) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 

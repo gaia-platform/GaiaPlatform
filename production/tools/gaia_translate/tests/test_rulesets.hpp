@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <atomic>
+
 constexpr char c_status_pending[] = "pending";
 constexpr char c_status_eligible[] = "eligible";
 constexpr char c_grade_none[] = "";
@@ -20,3 +22,10 @@ enum class test_error_result_t
     e_tag_implicit_mismatch,
     e_tag_anchor_mismatch
 };
+
+// Test helpers
+namespace rule_test_helpers
+{
+bool wait_for_rule(bool& rule_called);
+bool wait_for_rule(std::atomic<int32_t>& count_times, int32_t expected_count);
+} // namespace rule_test_helpers

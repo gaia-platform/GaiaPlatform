@@ -29,16 +29,37 @@ class generator_iterator_t
     using reference = T_output;
     using iterator_category = std::input_iterator_tag;
 
-private:
-    std::optional<T_output> m_state;
-    std::function<std::optional<T_output>()> m_generator;
-    std::function<bool(T_output)> m_predicate;
-
 public:
+    // Default all special member functions.
+    generator_iterator_t(generator_iterator_t&&) = default;
+    generator_iterator_t(generator_iterator_t const&) = default;
+    generator_iterator_t& operator=(generator_iterator_t&&) = default;
+    generator_iterator_t& operator=(generator_iterator_t const&) = default;
+    generator_iterator_t() = default;
+
+    // We implicitly construct from a std::function with the right signature.
+    generator_iterator_t(
+        std::function<std::optional<T_output>()> generator,
+        std::function<bool(T_output)> predicate = [](T_output) { return true; })
+        : m_generator(std::move(generator)), m_predicate(std::move(predicate))
+    {
+        // We need to initialize the iterator to the first valid state.
+        while ((m_state = m_generator()))
+        {
+            if (m_predicate(*m_state))
+            {
+                break;
+            }
+        }
+    }
+
     // Returns current state.
     T_output operator*() const
     {
-        return *m_state;
+        // If we de-reference m_state via *m_state, we can run into undefined behavior
+        // if m_state does not contain a value, so we'll use the value() method instead,
+        // which throws an exception in that case.
+        return m_state.value();
     }
 
     // Advance to the next valid state.
@@ -81,54 +102,39 @@ public:
         return m_state.has_value();
     }
 
-    // We implicitly construct from a std::function with the right signature.
-    generator_iterator_t(
-        std::function<std::optional<T_output>()> g,
-        std::function<bool(T_output)> p = [](T_output) { return true; })
-        : m_generator(std::move(g)), m_predicate(std::move(p))
-    {
-        // We need to initialize the iterator to the first valid state.
-        while ((m_state = m_generator()))
-        {
-            if (m_predicate(*m_state))
-            {
-                break;
-            }
-        }
-    }
-
-    // Default all special member functions.
-    generator_iterator_t(generator_iterator_t&&) = default;
-    generator_iterator_t(generator_iterator_t const&) = default;
-    generator_iterator_t& operator=(generator_iterator_t&&) = default;
-    generator_iterator_t& operator=(generator_iterator_t const&) = default;
-    generator_iterator_t() = default;
+private:
+    std::optional<T_output> m_state;
+    std::function<std::optional<T_output>()> m_generator;
+    std::function<bool(T_output)> m_predicate;
 };
 
 template <typename T_iter>
 struct range_t
 {
-    T_iter b, e;
+    T_iter begin_it;
+    T_iter end_it;
+
     T_iter begin() const
     {
-        return b;
+        return begin_it;
     }
+
     T_iter end() const
     {
-        return e;
+        return end_it;
     }
 };
 
 template <typename T_iter>
-range_t<T_iter> range(T_iter b, T_iter e)
+range_t<T_iter> range(T_iter begin_it, T_iter end_it)
 {
-    return {std::move(b), std::move(e)};
+    return {std::move(begin_it), std::move(end_it)};
 }
 
 template <typename T_iter>
-range_t<T_iter> range(T_iter b)
+range_t<T_iter> range(T_iter begin_it)
 {
-    return range(std::move(b), T_iter{});
+    return range(std::move(begin_it), T_iter{});
 }
 
 template <typename T_fn>
