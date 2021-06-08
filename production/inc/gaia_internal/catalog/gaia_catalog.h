@@ -71,7 +71,6 @@ class gaia_database_t;
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> gaia_index_writer;
 class gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> {
     friend class edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT>;
-    friend class gaia_index_ref_t;
 public:
     gaia_index_t() : edc_object_t("gaia_index_t") {}
     static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields);
@@ -116,7 +115,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_index_t, gaia_ta
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT> gaia_rule_writer;
 class gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT> {
     friend class edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
-    friend class gaia_rule_ref_t;
 public:
     gaia_rule_t() : edc_object_t("gaia_rule_t") {}
     static gaia::common::gaia_id_t insert_row(const char* name);
@@ -149,7 +147,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia_rul
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT> gaia_ruleset_writer;
 class gaia_ruleset_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT> {
     friend class edc_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;
-    friend class gaia_ruleset_ref_t;
 public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_rule_t> gaia_rules_list_t;
     gaia_ruleset_t() : edc_object_t("gaia_ruleset_t") {}
@@ -199,7 +196,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia_
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> gaia_relationship_writer;
 class gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> {
     friend class edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
-    friend class gaia_relationship_ref_t;
 public:
     gaia_relationship_t() : edc_object_t("gaia_relationship_t") {}
     static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset);
@@ -268,7 +264,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, 
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> gaia_field_writer;
 class gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> {
     friend class edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
-    friend class gaia_field_ref_t;
 public:
     gaia_field_t() : edc_object_t("gaia_field_t") {}
     static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active);
@@ -321,7 +316,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, gaia_ta
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> gaia_table_writer;
 class gaia_table_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> {
     friend class edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
-    friend class gaia_table_ref_t;
 public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_index_t> gaia_indexes_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> incoming_relationships_list_t;
@@ -390,7 +384,6 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_ta
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT> gaia_database_writer;
 class gaia_database_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT> {
     friend class edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
-    friend class gaia_database_ref_t;
 public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_table_t> gaia_tables_list_t;
     gaia_database_t() : edc_object_t("gaia_database_t") {}

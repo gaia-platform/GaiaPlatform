@@ -577,7 +577,10 @@ std::string class_writer_t::generate_friend_declarations()
     flatbuffers::CodeWriter code = create_code_writer();
     code += "friend class edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
-    code += "friend class {{TABLE_NAME}}_ref_t;";
+    if (m_table.needs_reference_class())
+    {
+        code += "friend class {{TABLE_NAME}}_ref_t;";
+    }
     return code.ToString();
 }
 
