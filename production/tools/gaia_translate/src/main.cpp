@@ -537,8 +537,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 {
                     string variable_name = variable_declaration_range_iterator.second;
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
-                        || g_attribute_tag_map.find(variable_name)
-                            != g_attribute_tag_map.end()
+                        || g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
                         cerr << "Local variable declaration '" << variable_name
@@ -592,11 +591,12 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                             return;
                         }
 
-                        string replacement_code = string("gaia::")
-                                                      .append(anchor_table_data_itr->second.db_name)
-                                                      .append("::")
-                                                      .append(anchor_table_name)
-                                                      .append("_t::get(context->record)");
+                        string replacement_code
+                            = string("gaia::")
+                                  .append(anchor_table_data_itr->second.db_name)
+                                  .append("::")
+                                  .append(anchor_table_name)
+                                  .append("_t::get(context->record)");
 
                         declaration_code.replace(start_position, data_iterator.variable_name.length(), replacement_code);
 
@@ -1266,7 +1266,8 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
-                if (expression_explicit_path_data_iterator.first == expression_source_range || should_expression_location_be_merged(context, *node))
+                if (expression_explicit_path_data_iterator.first == expression_source_range
+                    || should_expression_location_be_merged(context, *node))
                 {
                     expression_explicit_path_data_iterator.second.push_back(data);
                     return;
@@ -1934,10 +1935,11 @@ public:
                             {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
                              replace_string,
                              replace_text});
-                    auto offset = Lexer::MeasureTokenLength(
-                                      op->getEndLoc(),
-                                      m_rewriter.getSourceMgr(),
-                                      m_rewriter.getLangOpts())
+                    auto offset
+                        = Lexer::MeasureTokenLength(
+                              op->getEndLoc(),
+                              m_rewriter.getSourceMgr(),
+                              m_rewriter.getLangOpts())
                         + 1;
 
                     if (!explicit_path_present)
@@ -2508,26 +2510,30 @@ public:
                                hasAncestor(ruleset_matcher),
                                hasAttr(attr::Rule)))
                   .bind("ruleDecl");
-        StatementMatcher ruleset_name_matcher = memberExpr(
-                                                    hasAncestor(ruleset_matcher),
-                                                    hasDescendant(gaiaRuleContextExpr()),
-                                                    member(hasName("ruleset_name")))
-                                                    .bind("ruleset_name");
-        StatementMatcher rule_name_matcher = memberExpr(
-                                                 hasAncestor(ruleset_matcher),
-                                                 hasDescendant(gaiaRuleContextExpr()),
-                                                 member(hasName("rule_name")))
-                                                 .bind("rule_name");
-        StatementMatcher event_type_matcher = memberExpr(
-                                                  hasAncestor(ruleset_matcher),
-                                                  hasDescendant(gaiaRuleContextExpr()),
-                                                  member(hasName("event_type")))
-                                                  .bind("event_type");
-        StatementMatcher gaia_type_matcher = memberExpr(
-                                                 hasAncestor(ruleset_matcher),
-                                                 hasDescendant(gaiaRuleContextExpr()),
-                                                 member(hasName("gaia_type")))
-                                                 .bind("gaia_type");
+        StatementMatcher ruleset_name_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("ruleset_name")))
+                  .bind("ruleset_name");
+        StatementMatcher rule_name_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("rule_name")))
+                  .bind("rule_name");
+        StatementMatcher event_type_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("event_type")))
+                  .bind("event_type");
+        StatementMatcher gaia_type_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("gaia_type")))
+                  .bind("gaia_type");
 
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
 
@@ -2547,7 +2553,15 @@ public:
                                       hasAttr(attr::FieldTable),
                                       hasAttr(attr::GaiaFieldValue)),
                                   unless(hasAttr(attr::GaiaFieldLValue)))),
-                              allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+                              allOf(
+                                  unless(
+                                      hasAncestor(
+                                          memberExpr(
+                                              member(
+                                                  allOf(
+                                                      hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))),
+                                  anyOf(
+                                      hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
                   .bind("tableCall");
 
         StatementMatcher field_set_matcher
@@ -2596,10 +2610,11 @@ public:
                                 hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
                   .bind("fieldUnaryOp");
 
-        StatementMatcher if_no_match_matcher = ifStmt(allOf(
-                                                          hasAncestor(rule_matcher),
-                                                          hasNoMatch(anything())))
-                                                   .bind("NoMatchIf");
+        StatementMatcher if_no_match_matcher
+            = ifStmt(allOf(
+                         hasAncestor(rule_matcher),
+                         hasNoMatch(anything())))
+                  .bind("NoMatchIf");
 
         StatementMatcher declarative_while_matcher
             = whileStmt(allOf(
