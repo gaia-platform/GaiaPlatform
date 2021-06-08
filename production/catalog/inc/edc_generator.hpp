@@ -106,7 +106,7 @@ private:
 
 private:
     table_facade_t m_table;
-    uint32_t m_indent_level = 0;
+    size_t m_indent_level = 0;
 };
 
 } // namespace generate

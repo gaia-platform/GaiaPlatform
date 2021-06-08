@@ -264,7 +264,7 @@ flatbuffers::CodeWriter class_writer_t::create_code_writer()
     flatbuffers::CodeWriter code(c_indentation_string);
     code.SetValue("TABLE_NAME", m_table.table_name());
 
-    for (uint32_t i = 0; i < m_indent_level; i++)
+    for (size_t i = 0; i < m_indent_level; i++)
     {
         code.IncrementIdentLevel();
     }
@@ -738,7 +738,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code.DecrementIdentLevel();
     code += "}";
 
-    // connect(edc_class_t)
+    // connect(edc_class_ref_t)
     code += "void {{TABLE_NAME}}_ref_t::connect(const {{TABLE_NAME}}_t& object) {";
     code.IncrementIdentLevel();
     code += "connect(object.gaia_id());";
