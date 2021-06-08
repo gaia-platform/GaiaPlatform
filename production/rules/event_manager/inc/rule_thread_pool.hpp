@@ -15,7 +15,6 @@
 
 #include "gaia_internal/db/triggers.hpp"
 
-#include "gaia_event_log.h"
 #include "rule_stats_manager.hpp"
 
 namespace gaia

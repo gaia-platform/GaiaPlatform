@@ -12,7 +12,7 @@ set(GAIA_SCHEMAS_INC "${PROJECT_SOURCE_DIR}")
 #
 set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
-file(MAKE_DIRECTORY ${GAIA_GENERATED_SCHEMAS})
+file(MAKE_DIRECTORY ${GAIA_GENERATED_CODE})
 
 file(GLOB SCHEMA_FILES
   "${GAIA_REPO}/production/schemas/test/**/*.ddl"
