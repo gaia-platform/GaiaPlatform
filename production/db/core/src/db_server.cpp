@@ -598,6 +598,7 @@ void server_t::build_server_reply(
 void server_t::clear_shared_memory()
 {
     data_mapping_t::close(c_data_mappings);
+    s_local_snapshot_locators.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -784,6 +785,8 @@ void server_t::txn_internal_end()
 void server_t::create_local_snapshot(bool apply_logs)
 {
     ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+    bool manage_fd = false;
+    bool is_shared = false;
 
     if (apply_logs)
     {
@@ -791,7 +794,7 @@ void server_t::create_local_snapshot(bool apply_logs)
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
 
         // Open a private locator mmap for the current thread.
-        s_local_snapshot_locators.open(s_shared_locators.fd(), false);
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
 
         // Apply txn_logs for the snapshot.
         for (const auto& it : txn_log_fds)
@@ -817,7 +820,7 @@ void server_t::create_local_snapshot(bool apply_logs)
     }
     else
     {
-        s_local_snapshot_locators.open(s_shared_locators.fd(), false);
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
     }
 }
 
