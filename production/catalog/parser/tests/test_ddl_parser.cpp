@@ -406,3 +406,84 @@ TEST(catalog_ddl_parser_test, create_range_index)
     EXPECT_EQ(create_stmt->unique_index, false);
     EXPECT_EQ(create_stmt->index_type, index_type_t::range);
 }
+
+TEST(catalog_ddl_parser_test, create_one_to_one_relationship)
+{
+    parser_t parser;
+
+    const string ddl_one_to_one = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2,
+  d2.t2.link2 -> d1.t1
+);
+)";
+
+    ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    auto parent = create_stmt->relationship.first;
+    auto child = create_stmt->relationship.second;
+
+    ASSERT_EQ(parent.name, "link1");
+    ASSERT_EQ(parent.from_database, "d1");
+    ASSERT_EQ(parent.from_table, "t1");
+    ASSERT_EQ(parent.to_database, "d2");
+    ASSERT_EQ(parent.to_table, "t2");
+    ASSERT_EQ(parent.cardinality, cardinality_t::one);
+
+    ASSERT_EQ(child.name, "link2");
+    ASSERT_EQ(child.from_database, "d2");
+    ASSERT_EQ(child.from_table, "t2");
+    ASSERT_EQ(child.to_database, "d1");
+    ASSERT_EQ(child.to_table, "t1");
+    ASSERT_EQ(child.cardinality, cardinality_t::one);
+}
+
+TEST(catalog_ddl_parser_test, create_one_to_many_relationship)
+{
+    parser_t parser;
+
+    const string ddl_one_to_one = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1
+);
+)";
+
+    ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    auto parent = create_stmt->relationship.first;
+    auto child = create_stmt->relationship.second;
+
+    ASSERT_EQ(parent.name, "link1");
+    ASSERT_EQ(parent.from_database, "d1");
+    ASSERT_EQ(parent.from_table, "t1");
+    ASSERT_EQ(parent.to_database, "d2");
+    ASSERT_EQ(parent.to_table, "t2");
+    ASSERT_EQ(parent.cardinality, cardinality_t::many);
+
+    ASSERT_EQ(child.name, "link2");
+    ASSERT_EQ(child.from_database, "d2");
+    ASSERT_EQ(child.from_table, "t2");
+    ASSERT_EQ(child.to_database, "d1");
+    ASSERT_EQ(child.to_table, "t1");
+    ASSERT_EQ(child.cardinality, cardinality_t::one);
+}
+
+// TODO this test should fail. Currently, you cannot create a many to many relationship in one statement.
+TEST(catalog_ddl_parser_test, DISABLED_create_many_to_many_relationship_unsupported)
+{
+    parser_t parser;
+
+    const string ddl_one_to_one = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1[]
+);
+)";
+
+    ASSERT_THROW(parser.parse_line(ddl_one_to_one), parsing_error);
+}

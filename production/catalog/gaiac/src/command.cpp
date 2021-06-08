@@ -196,14 +196,14 @@ void describe_table(const string& name)
                  to_string(field.position()),
                  to_string(field.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_child())
+        for (auto& relationship : gaia_table_t::get(table_id).incoming_relationships())
         {
             output_child_references.add_row(
                 {relationship.to_parent_link_name(),
                  relationship.parent().name(),
                  to_string(relationship.gaia_id())});
         }
-        for (auto& relationship : gaia_table_t::get(table_id).gaia_relationships_parent())
+        for (auto& relationship : gaia_table_t::get(table_id).outgoing_relationships())
         {
             output_parent_references.add_row(
                 {relationship.to_parent_link_name(),

@@ -34,6 +34,7 @@ done
 excluded_files=(
     "gaia_catalog\.h"
     "catalog_generated\.h"
+    "gaia_catalog\.cpp"
 )
 
 # Runs clang-format only on files that:

@@ -23,26 +23,18 @@ set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
 set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
 
 # --- Generate EDC from DDL---
-process_schema(
-  DDL_FILE ${INCUBATOR_DDL}
-  OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
+process_schema(DDL_FILE ${INCUBATOR_DDL})
 
 # -- Translate ruleset into CPP --
-translate_ruleset(
-  RULESET_FILE ${INCUBATOR_RULESET}
-  OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
-  DEPENDS generate_incubator_headers)
-
-add_library(gaia SHARED IMPORTED GLOBAL)
-set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB})
+translate_ruleset(RULESET_FILE ${INCUBATOR_RULESET})
 
 add_executable(incubator
-  incubator.cpp
-  ${PROJECT_BINARY_DIR}/incubator_ruleset.cpp
+    incubator.cpp
 )
 
+target_add_gaia_generated_sources(incubator)
 add_dependencies(incubator translate_incubator_ruleset)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(incubator PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-target_include_directories(incubator PRIVATE ${GAIA_INC} ${PROJECT_BINARY_DIR})
+target_include_directories(incubator PRIVATE ${GAIA_INC})
 target_link_libraries(incubator PRIVATE gaia rt pthread)
