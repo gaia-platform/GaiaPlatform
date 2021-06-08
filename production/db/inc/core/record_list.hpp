@@ -90,16 +90,21 @@ protected:
 // An iterator's destructor will release any locks held during iteration.
 struct record_iterator_t
 {
+    record_iterator_t();
+    ~record_iterator_t();
+
+    // These custom copy operations ensure that only uninitialized iterators can be copied,
+    // by asserting in any other situation.
+    record_iterator_t(const record_iterator_t&);
+    record_iterator_t& operator=(const record_iterator_t&);
+
+    // Tells whether the iterator position represents the end of the iteration.
+    inline bool at_end();
+
     // The position of the iterator is represented
     // by the current range and the current index in the range.
     record_range_t* current_range;
     size_t current_index;
-
-    record_iterator_t();
-    ~record_iterator_t();
-
-    // Tells whether the iterator position represents the end of the iteration.
-    inline bool at_end();
 };
 
 // The implementation of a record list.
