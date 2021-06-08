@@ -125,22 +125,6 @@ ruleset test12
     }
 }
 
-// GAIAPLAT-914
-#ifdef TEST_FAILURES
-ruleset test13
-{
-    OnInsert(incubator)
-    {
-        // label:tag:table works for both label and tag.
-        LABEL:I:incubator->sensor.value = I.max_temp - 1.0;
-        if (actuator.value > 3.0)
-        {
-            goto LABEL;
-        }
-    }
-}
-#endif
-
 ruleset test14
 {
     OnInsert(incubator)
@@ -268,3 +252,12 @@ ruleset test22
     }
 }
 #endif
+
+ruleset test23
+{
+    OnChange(A:actuator.value, B:actuator.name)
+    {
+        use_float(A.value);
+        use_float(B.value);
+    }
+}

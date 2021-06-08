@@ -7,7 +7,7 @@
 
 #include <flatbuffers/code_generators.h>
 
-#include <gaia_internal/catalog/catalog.hpp>
+#include "gaia_internal/catalog/catalog.hpp"
 
 namespace gaia
 {

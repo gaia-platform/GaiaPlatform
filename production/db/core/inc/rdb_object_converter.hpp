@@ -117,7 +117,8 @@ public:
     inline void read_uint64(uint64_t& out)
     {
         const char* value_ptr = read(sizeof(uint64_t));
-        uint64_t value = *(reinterpret_cast<const uint64_t*>(value_ptr));
+        uint64_t value;
+        memcpy(&value, value_ptr, sizeof(uint64_t));
         // Convert to host byte order.
         out = be64toh(value);
     }
@@ -125,7 +126,8 @@ public:
     inline void read_uint32(uint32_t& out)
     {
         const char* value_ptr = read(sizeof(uint32_t));
-        uint32_t value = *(reinterpret_cast<const uint32_t*>(value_ptr));
+        uint32_t value;
+        memcpy(&value, value_ptr, sizeof(uint32_t));
         // Convert to host byte order.
         out = be32toh(value);
     }
@@ -133,7 +135,8 @@ public:
     inline void read_uint16(uint16_t& out)
     {
         const char* value_ptr = read(sizeof(uint16_t));
-        uint16_t value = *(reinterpret_cast<const uint16_t*>(value_ptr));
+        uint16_t value;
+        memcpy(&value, value_ptr, sizeof(uint16_t));
         // Convert to host byte order.
         out = be16toh(value);
     }

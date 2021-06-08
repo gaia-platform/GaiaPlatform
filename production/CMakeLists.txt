@@ -23,7 +23,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
-include(gaia_build)
+include(gaia_internal)
 include(GoogleTest)
 
 # Specify the C++ standard.
@@ -32,9 +32,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Ensure debug builds have the DEBUG flag defined.
 add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
-
-# Use the LLVM linker rather than GNU ld (required for UBSan).
-add_link_options("-fuse-ld=lld")
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -58,7 +55,6 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  set(LLVM_USE_LINKER "lld" CACHE STRING "")
 endif()
 
 # Debug build-specific options.
@@ -66,8 +62,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -ftime-trace")
 
   if(ENABLE_ASAN)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all")
   endif()
 endif()
 

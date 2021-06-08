@@ -12,7 +12,7 @@
 #include "catalog_facade.hpp"
 
 //
-// Contains the classes the generates the header & cpp code
+// Contains the classes that generate the header & cpp code
 // for EDC.
 //
 // The methods that generate cpp are suffixed with _cpp, while
@@ -106,7 +106,7 @@ private:
 
 private:
     table_facade_t m_table;
-    int m_indent_level = 0;
+    uint32_t m_indent_level = 0;
 };
 
 } // namespace generate

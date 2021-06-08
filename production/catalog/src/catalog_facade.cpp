@@ -5,7 +5,7 @@
 
 #include "catalog_facade.hpp"
 
-#include <gaia_internal/catalog/catalog.hpp>
+#include "gaia_internal/catalog/catalog.hpp"
 
 namespace gaia
 {
@@ -58,7 +58,8 @@ std::vector<field_facade_t> table_facade_t::fields() const
     // Direct access reference list API guarantees LIFO. As long as we only
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
-    // their positions.
+    // their positions. This is essential to correctly generate the insert()
+    // method.
     for (auto& field : m_table.gaia_fields())
     {
         fields.insert(fields.begin(), field_facade_t{field});

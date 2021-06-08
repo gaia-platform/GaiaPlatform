@@ -55,5 +55,5 @@ if(BUILD_EXPR_PERF_TEST)
   add_gtest(test_expressions_perf
       "tests/test_expressions_perf.cpp"
       "${DIRECT_ACCESS_TEST_INCLUDES}"
-      "rt;gaia_direct;gaia_db_catalog_test;edc_barn_storage")
+      "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
 endif()

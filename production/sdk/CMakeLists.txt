@@ -5,7 +5,7 @@
 
 project(sdk)
 
-include(gaia_build)
+include(gaia_internal)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
