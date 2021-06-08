@@ -96,10 +96,13 @@ private:
     friend class gaia_index_ref_t;
 };
 
-class gaia_index_ref_t : public gaia_index_t, public direct_access::edc_ref_t {
+class gaia_index_ref_t : public gaia_index_t, direct_access::edc_ref_t {
 public:
     gaia_index_ref_t() = delete;
     gaia_index_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_index_t& object);
 };
 
 namespace gaia_index_expr {
@@ -141,10 +144,13 @@ private:
     friend class gaia_rule_ref_t;
 };
 
-class gaia_rule_ref_t : public gaia_rule_t, public direct_access::edc_ref_t {
+class gaia_rule_ref_t : public gaia_rule_t, direct_access::edc_ref_t {
 public:
     gaia_rule_ref_t() = delete;
     gaia_rule_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_rule_t& object);
 };
 
 namespace gaia_rule_expr {
@@ -189,10 +195,13 @@ private:
     friend class gaia_ruleset_ref_t;
 };
 
-class gaia_ruleset_ref_t : public gaia_ruleset_t, public direct_access::edc_ref_t {
+class gaia_ruleset_ref_t : public gaia_ruleset_t, direct_access::edc_ref_t {
 public:
     gaia_ruleset_ref_t() = delete;
     gaia_ruleset_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_ruleset_t& object);
 };
 
 namespace gaia_ruleset_expr {
@@ -254,10 +263,13 @@ private:
     friend class gaia_relationship_ref_t;
 };
 
-class gaia_relationship_ref_t : public gaia_relationship_t, public direct_access::edc_ref_t {
+class gaia_relationship_ref_t : public gaia_relationship_t, direct_access::edc_ref_t {
 public:
     gaia_relationship_ref_t() = delete;
     gaia_relationship_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_relationship_t& object);
 };
 
 namespace gaia_relationship_expr {
@@ -321,10 +333,13 @@ private:
     friend class gaia_field_ref_t;
 };
 
-class gaia_field_ref_t : public gaia_field_t, public direct_access::edc_ref_t {
+class gaia_field_ref_t : public gaia_field_t, direct_access::edc_ref_t {
 public:
     gaia_field_ref_t() = delete;
     gaia_field_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_field_t& object);
 };
 
 namespace gaia_field_expr {
@@ -390,10 +405,13 @@ private:
     friend class gaia_table_ref_t;
 };
 
-class gaia_table_ref_t : public gaia_table_t, public direct_access::edc_ref_t {
+class gaia_table_ref_t : public gaia_table_t, direct_access::edc_ref_t {
 public:
     gaia_table_ref_t() = delete;
     gaia_table_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_table_t& object);
 };
 
 namespace gaia_table_expr {
@@ -446,10 +464,13 @@ private:
     friend class gaia_database_ref_t;
 };
 
-class gaia_database_ref_t : public gaia_database_t, public direct_access::edc_ref_t {
+class gaia_database_ref_t : public gaia_database_t, direct_access::edc_ref_t {
 public:
     gaia_database_ref_t() = delete;
     gaia_database_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_database_t& object);
 };
 
 namespace gaia_database_expr {

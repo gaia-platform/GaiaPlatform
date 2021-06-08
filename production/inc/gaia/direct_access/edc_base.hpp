@@ -21,6 +21,11 @@ namespace gaia
 namespace direct_access
 {
 
+/**
+ * Represent the parent side of a 1:1 relationship. This class is not
+ * meant to be used standalone but to be subclassed in the EDC generated
+ * code.
+ */
 class edc_ref_t
 {
 public:

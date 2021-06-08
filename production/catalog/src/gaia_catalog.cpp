@@ -40,6 +40,15 @@ gaia_table_t gaia_index_t::table() const {
 }
 gaia_index_ref_t::gaia_index_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_index_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_index_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_index_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_index_ref_t::connect(const gaia_index_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_rule_t.
@@ -61,6 +70,15 @@ gaia_ruleset_t gaia_rule_t::ruleset() const {
 }
 gaia_rule_ref_t::gaia_rule_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_rule_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_rule_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_rule_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_rule_ref_t::connect(const gaia_rule_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_ruleset_t.
@@ -94,6 +112,15 @@ gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const {
 }
 gaia_ruleset_ref_t::gaia_ruleset_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_ruleset_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_ruleset_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_ruleset_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_ruleset_ref_t::connect(const gaia_ruleset_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_relationship_t.
@@ -142,6 +169,15 @@ gaia_table_t gaia_relationship_t::parent() const {
 }
 gaia_relationship_ref_t::gaia_relationship_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_relationship_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_relationship_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_relationship_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_relationship_ref_t::connect(const gaia_relationship_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_field_t.
@@ -178,6 +214,15 @@ gaia_table_t gaia_field_t::table() const {
 }
 gaia_field_ref_t::gaia_field_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_field_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_field_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_field_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_field_ref_t::connect(const gaia_field_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_table_t.
@@ -223,6 +268,15 @@ gaia_table_t::gaia_fields_list_t gaia_table_t::gaia_fields() const {
 }
 gaia_table_ref_t::gaia_table_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_table_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_table_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_table_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_table_ref_t::connect(const gaia_table_t& object) {
+    connect(object.gaia_id());
+}
 
 //
 // Implementation of class gaia_database_t.
@@ -244,6 +298,15 @@ gaia_database_t::gaia_tables_list_t gaia_database_t::gaia_tables() const {
 }
 gaia_database_ref_t::gaia_database_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
     : gaia_database_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+void gaia_database_ref_t::disconnect() {
+    edc_ref_t::disconnect(this->gaia_id());
+}
+void gaia_database_ref_t::connect(gaia::common::gaia_id_t id) {
+    edc_ref_t::connect(this->gaia_id(), id);
+}
+void gaia_database_ref_t::connect(const gaia_database_t& object) {
+    connect(object.gaia_id());
+}
 
 }  // namespace catalog
 }  // namespace gaia

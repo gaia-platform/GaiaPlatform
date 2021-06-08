@@ -686,12 +686,16 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 std::string class_writer_t::generate_ref_class()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, public direct_access::edc_ref_t {";
+
+    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, direct_access::edc_ref_t {";
     code += "public:";
     code.IncrementIdentLevel();
     code += "{{TABLE_NAME}}_ref_t() = delete;";
     code += "{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, "
             "gaia::common::reference_offset_t child_offset);";
+    code += "void disconnect();";
+    code += "void connect(gaia::common::gaia_id_t id);";
+    code += "void connect(const {{TABLE_NAME}}_t& object);";
     code.DecrementIdentLevel();
     code += "};";
     return code.ToString();
@@ -700,11 +704,35 @@ std::string class_writer_t::generate_ref_class()
 std::string class_writer_t::generate_ref_class_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
+
+    // Constructor.
     code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, "
             "gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)";
     code.IncrementIdentLevel();
     code += ": {{TABLE_NAME}}_t(child), direct_access::edc_ref_t(parent, child_offset) {};";
     code.DecrementIdentLevel();
+
+    // disconnect()
+    code += "void {{TABLE_NAME}}_ref_t::disconnect() {";
+    code.IncrementIdentLevel();
+    code += "edc_ref_t::disconnect(this->gaia_id());";
+    code.DecrementIdentLevel();
+    code += "}";
+
+    // connect(gaia_id_t)
+    code += "void {{TABLE_NAME}}_ref_t::connect(gaia::common::gaia_id_t id) {";
+    code.IncrementIdentLevel();
+    code += "edc_ref_t::connect(this->gaia_id(), id);";
+    code.DecrementIdentLevel();
+    code += "}";
+
+    // connect(edc_class_t)
+    code += "void {{TABLE_NAME}}_ref_t::connect(const {{TABLE_NAME}}_t& object) {";
+    code.IncrementIdentLevel();
+    code += "connect(object.gaia_id());";
+    code.DecrementIdentLevel();
+    code += "}";
+
     return code.ToString();
 }
 
