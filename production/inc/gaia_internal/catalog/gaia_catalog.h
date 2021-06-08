@@ -96,7 +96,8 @@ private:
     friend class gaia_index_ref_t;
 };
 
-class gaia_index_ref_t : public gaia_index_t, direct_access::edc_ref_t {
+class gaia_index_ref_t : public gaia_index_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_index_ref_t() = delete;
     gaia_index_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -144,7 +145,8 @@ private:
     friend class gaia_rule_ref_t;
 };
 
-class gaia_rule_ref_t : public gaia_rule_t, direct_access::edc_ref_t {
+class gaia_rule_ref_t : public gaia_rule_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_rule_ref_t() = delete;
     gaia_rule_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -195,7 +197,8 @@ private:
     friend class gaia_ruleset_ref_t;
 };
 
-class gaia_ruleset_ref_t : public gaia_ruleset_t, direct_access::edc_ref_t {
+class gaia_ruleset_ref_t : public gaia_ruleset_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_ruleset_ref_t() = delete;
     gaia_ruleset_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -263,7 +266,8 @@ private:
     friend class gaia_relationship_ref_t;
 };
 
-class gaia_relationship_ref_t : public gaia_relationship_t, direct_access::edc_ref_t {
+class gaia_relationship_ref_t : public gaia_relationship_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_relationship_ref_t() = delete;
     gaia_relationship_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -333,7 +337,8 @@ private:
     friend class gaia_field_ref_t;
 };
 
-class gaia_field_ref_t : public gaia_field_t, direct_access::edc_ref_t {
+class gaia_field_ref_t : public gaia_field_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_field_ref_t() = delete;
     gaia_field_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -405,7 +410,8 @@ private:
     friend class gaia_table_ref_t;
 };
 
-class gaia_table_ref_t : public gaia_table_t, direct_access::edc_ref_t {
+class gaia_table_ref_t : public gaia_table_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_table_ref_t() = delete;
     gaia_table_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
@@ -464,7 +470,8 @@ private:
     friend class gaia_database_ref_t;
 };
 
-class gaia_database_ref_t : public gaia_database_t, direct_access::edc_ref_t {
+class gaia_database_ref_t : public gaia_database_t, direct_access::edc_base_reference_t
+{
 public:
     gaia_database_ref_t() = delete;
     gaia_database_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);

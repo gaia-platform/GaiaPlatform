@@ -252,24 +252,24 @@ gaia_id_t* edc_base_t::references() const
 }
 
 //
-// edc_ref_t implementation
+// edc_base_reference_t implementation
 //
-edc_ref_t::edc_ref_t(gaia_id_t parent, reference_offset_t child_offset)
+edc_base_reference_t::edc_base_reference_t(gaia_id_t parent, reference_offset_t child_offset)
     : m_parent_id(parent), m_child_offset(child_offset)
 {
 }
 
-void edc_ref_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
+void edc_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
     if (old_id != c_invalid_gaia_id && old_id == new_id)
     {
         return;
     }
-    edc_ref_t::disconnect(old_id);
+    edc_base_reference_t::disconnect(old_id);
     edc_db_t::insert_child_reference(m_parent_id, new_id, m_child_offset);
 }
 
-void edc_ref_t::disconnect(gaia_id_t id)
+void edc_base_reference_t::disconnect(gaia_id_t id)
 {
     if (id != gaia::common::c_invalid_gaia_id)
     {

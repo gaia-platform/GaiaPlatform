@@ -26,11 +26,11 @@ namespace direct_access
  * meant to be used standalone but to be subclassed in the EDC generated
  * code.
  */
-class edc_ref_t
+class edc_base_reference_t
 {
 public:
-    edc_ref_t() = delete;
-    edc_ref_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
+    edc_base_reference_t() = delete;
+    edc_base_reference_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
     void connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
     void disconnect(common::gaia_id_t id);
 
@@ -47,8 +47,6 @@ private:
 struct edc_base_iterator_state_t
 {
     virtual ~edc_base_iterator_state_t() = default;
-    gaia::common::gaia_id_t m_parent_id;
-    size_t m_child_slot;
 };
 
 /**
@@ -72,7 +70,7 @@ protected:
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
 
 private:
-    friend class edc_ref_t;
+    friend class edc_base_reference_t;
 };
 
 /**

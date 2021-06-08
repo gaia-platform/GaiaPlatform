@@ -39,12 +39,12 @@ gaia_table_t gaia_index_t::table() const {
     return gaia_table_t::get(this->references()[c_gaia_index_parent_table]);
 }
 gaia_index_ref_t::gaia_index_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_index_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_index_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_index_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_index_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_index_ref_t::connect(const gaia_index_t& object) {
     connect(object.gaia_id());
@@ -69,12 +69,12 @@ gaia_ruleset_t gaia_rule_t::ruleset() const {
     return gaia_ruleset_t::get(this->references()[c_gaia_rule_parent_ruleset]);
 }
 gaia_rule_ref_t::gaia_rule_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_rule_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_rule_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_rule_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_rule_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_rule_ref_t::connect(const gaia_rule_t& object) {
     connect(object.gaia_id());
@@ -111,12 +111,12 @@ gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const {
     return gaia_ruleset_t::gaia_rules_list_t(gaia_id(), c_gaia_ruleset_first_gaia_rules, c_gaia_rule_next_ruleset);
 }
 gaia_ruleset_ref_t::gaia_ruleset_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_ruleset_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_ruleset_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_ruleset_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_ruleset_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_ruleset_ref_t::connect(const gaia_ruleset_t& object) {
     connect(object.gaia_id());
@@ -168,12 +168,12 @@ gaia_table_t gaia_relationship_t::parent() const {
     return gaia_table_t::get(this->references()[c_gaia_relationship_parent_parent]);
 }
 gaia_relationship_ref_t::gaia_relationship_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_relationship_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_relationship_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_relationship_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_relationship_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_relationship_ref_t::connect(const gaia_relationship_t& object) {
     connect(object.gaia_id());
@@ -213,12 +213,12 @@ gaia_table_t gaia_field_t::table() const {
     return gaia_table_t::get(this->references()[c_gaia_field_parent_table]);
 }
 gaia_field_ref_t::gaia_field_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_field_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_field_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_field_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_field_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_field_ref_t::connect(const gaia_field_t& object) {
     connect(object.gaia_id());
@@ -267,12 +267,12 @@ gaia_table_t::gaia_fields_list_t gaia_table_t::gaia_fields() const {
     return gaia_table_t::gaia_fields_list_t(gaia_id(), c_gaia_table_first_gaia_fields, c_gaia_field_next_table);
 }
 gaia_table_ref_t::gaia_table_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_table_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_table_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_table_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_table_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_table_ref_t::connect(const gaia_table_t& object) {
     connect(object.gaia_id());
@@ -297,12 +297,12 @@ gaia_database_t::gaia_tables_list_t gaia_database_t::gaia_tables() const {
     return gaia_database_t::gaia_tables_list_t(gaia_id(), c_gaia_database_first_gaia_tables, c_gaia_table_next_database);
 }
 gaia_database_ref_t::gaia_database_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)
-    : gaia_database_t(child), direct_access::edc_ref_t(parent, child_offset) {};
+    : gaia_database_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};
 void gaia_database_ref_t::disconnect() {
-    edc_ref_t::disconnect(this->gaia_id());
+    edc_base_reference_t::disconnect(this->gaia_id());
 }
 void gaia_database_ref_t::connect(gaia::common::gaia_id_t id) {
-    edc_ref_t::connect(this->gaia_id(), id);
+    edc_base_reference_t::connect(this->gaia_id(), id);
 }
 void gaia_database_ref_t::connect(const gaia_database_t& object) {
     connect(object.gaia_id());

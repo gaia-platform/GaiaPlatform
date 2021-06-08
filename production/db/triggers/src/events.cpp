@@ -5,6 +5,8 @@
 
 #include "gaia/events.hpp"
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 namespace gaia
 {
 namespace db
@@ -29,6 +31,8 @@ const char* event_type_name(event_type_t event_type)
         return c_event_type_row_delete;
     case event_type_t::not_set:
         return c_event_type_not_set;
+    default:
+        ASSERT_UNREACHABLE("Unknown event type!");
     }
 }
 
