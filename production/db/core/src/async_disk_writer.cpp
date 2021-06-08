@@ -45,7 +45,7 @@ async_disk_writer_t::async_disk_writer_t(int validate_flush_efd, int signal_chec
     s_flush_efd = eventfd(1, 0);
     if (s_flush_efd == -1)
     {
-        const char* reason = ::explain_eventfd(1, 0);
+        const char* reason = "::explain_eventfd(1, 0)";
         throw_system_error(reason);
     }
 }

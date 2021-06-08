@@ -14,10 +14,11 @@
 #include <thread>
 
 #include <gaia_spdlog/fmt/fmt.h>
+/*
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
 #include <libexplain/kill.h>
-#include <libexplain/waitpid.h>
+#include <libexplain/waitpid.h>*/
 #include <sys/prctl.h>
 #include <sys/wait.h>
 
@@ -129,7 +130,7 @@ void server_instance_t::start(bool wait_for_init)
 
     if (m_server_pid < 0)
     {
-        const char* reason = ::explain_fork();
+        const char* reason = "::explain_fork()";
         common::throw_system_error(reason);
     }
     else if (m_server_pid == 0)
@@ -146,7 +147,7 @@ void server_instance_t::start(bool wait_for_init)
         if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-            const char* reason = ::explain_execve(command[0], const_cast<char**>(command.data()), nullptr);
+            const char* reason = "::explain_execve(command[0], const_cast<char**>(command.data()), nullptr)";
             common::throw_system_error(reason);
         }
     }
@@ -168,7 +169,7 @@ void server_instance_t::stop()
 
     if (::kill(m_server_pid, SIGKILL) == -1)
     {
-        const char* reason = ::explain_kill(m_server_pid, SIGKILL);
+        const char* reason = "::explain_kill(m_server_pid, SIGKILL)";
         gaia::common::throw_system_error(reason);
     }
 
@@ -179,7 +180,7 @@ void server_instance_t::stop()
 
     if (return_pid == -1)
     {
-        const char* reason = ::explain_waitpid(return_pid, &status, 0);
+        const char* reason = "::explain_waitpid(return_pid, &status, 0)";
         gaia::common::throw_system_error(reason);
     }
     else if (return_pid == 0)
