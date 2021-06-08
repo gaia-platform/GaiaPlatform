@@ -154,35 +154,35 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 ###############################################
 # PyBind11 wrapper for database.
 ###############################################
-find_package(pybind11 REQUIRED)
+#find_package(pybind11 REQUIRED)
 
-if(Python3_FOUND AND pybind11_FOUND)
-  pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
-  target_link_libraries(gaia_db_pybind PUBLIC gaia_build_options)
-  target_include_directories(gaia_db_pybind PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(gaia_db_pybind PRIVATE
-    "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
-    "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
-  target_include_directories(gaia_db_pybind SYSTEM PRIVATE "${GEN_DIR}")
-  target_link_libraries(gaia_db_pybind PRIVATE pybind11::module rt gaia_system gaia_db_client)
-
+#if(Python3_FOUND AND pybind11_FOUND)
+#  pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
+#  target_include_directories(gaia_db_pybind PRIVATE ${PROJECT_SOURCE_DIR})
+#  target_include_directories(gaia_db_pybind PRIVATE
+#    "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+#    "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+#  target_include_directories(gaia_db_pybind SYSTEM PRIVATE "${GEN_DIR}")
+#  target_link_libraries(gaia_db_pybind PRIVATE pybind11::module rt gaia_system gaia_db_client)
+#  set_property (TARGET gaia_db_pybind PROPERTY POSITION_INDEPENDENT_CODE ON)
   # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
-  target_compile_options(gaia_db_pybind PRIVATE -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation)
-
-  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
-    target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
-  endif()
+#  set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
+#    "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
+#  set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+#  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
+#    target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
+#  endif()
 
   # Python wrapper unit test.
   # This test is disabled for Debug builds.
   # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
-  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    configure_file(tests/test_db.py . COPYONLY)
-    add_test(
-      NAME test_db_pybind
-      COMMAND ${Python3_EXECUTABLE} test_db.py)
-  endif()
-endif()
+#  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+#    configure_file(tests/test_db.py . COPYONLY)
+#    add_test(
+#      NAME test_db_pybind
+#      COMMAND ${Python3_EXECUTABLE} test_db.py)
+#  endif()
+#endif()
 
 ###############################################
 # JNI wrapper for database.

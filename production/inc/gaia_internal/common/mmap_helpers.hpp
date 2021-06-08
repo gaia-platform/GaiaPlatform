@@ -6,9 +6,9 @@
 #pragma once
 
 #include <stdexcept>
-
+/*
 #include <libexplain/mmap.h>
-#include <libexplain/munmap.h>
+#include <libexplain/munmap.h>*/
 #include <sys/mman.h>
 
 #include "gaia/exception.hpp"
@@ -29,7 +29,7 @@ inline void map_fd_data(T*& addr, size_t length, int protection, int flags, int 
     if (mapping == MAP_FAILED)
     {
         int err = errno;
-        const char* reason = ::explain_mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
+        const char* reason = "::explain_mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset))";
         throw system_error(reason, err);
     }
     addr = static_cast<T*>(mapping);
@@ -46,7 +46,7 @@ inline void unmap_fd_data(T*& addr, size_t length)
         if (-1 == ::munmap(tmp, length))
         {
             int err = errno;
-            const char* reason = ::explain_munmap(tmp, length);
+            const char* reason = "::explain_munmap(tmp, length)";
             throw system_error(reason, err);
         }
     }

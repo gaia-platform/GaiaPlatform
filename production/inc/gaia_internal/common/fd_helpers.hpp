@@ -11,6 +11,7 @@
 #include <ostream>
 #include <stdexcept>
 
+/*
 #include <libexplain/close.h>
 #include <libexplain/dup.h>
 #include <libexplain/eventfd.h>
@@ -18,7 +19,7 @@
 #include <libexplain/ftruncate.h>
 #include <libexplain/pread.h>
 #include <libexplain/read.h>
-#include <libexplain/write.h>
+#include <libexplain/write.h>*/
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 
@@ -54,7 +55,7 @@ inline size_t get_fd_size(int fd)
     if (-1 == ::fstat(fd, &st))
     {
         int err = errno;
-        const char* reason = ::explain_fstat(fd, &st);
+        const char* reason = "yes";
         throw system_error(reason, err);
     }
     return st.st_size;
@@ -76,7 +77,7 @@ inline bool is_fd_regular_file(int fd)
     if (-1 == ::fstat(fd, &st))
     {
         int err = errno;
-        const char* reason = ::explain_fstat(fd, &st);
+        const char* reason = "yes";
         throw system_error(reason, err);
     }
     return S_ISREG(st.st_mode);
@@ -91,7 +92,7 @@ inline void close_fd(int& fd)
         if (-1 == ::close(tmp))
         {
             int err = errno;
-            const char* reason = ::explain_close(tmp);
+            const char* reason = "no";
             throw system_error(reason, err);
         }
     }
@@ -102,7 +103,7 @@ inline void truncate_fd(int fd, size_t length)
     if (-1 == ::ftruncate(fd, static_cast<off_t>(length)))
     {
         int err = errno;
-        const char* reason = ::explain_ftruncate(fd, static_cast<off_t>(length));
+        const char* reason = "::explain_ftruncate(fd, static_cast<off_t>(length))";
         throw system_error(reason, err);
     }
 }
@@ -113,7 +114,7 @@ inline int duplicate_fd(int fd)
     if (new_fd == -1)
     {
         int err = errno;
-        const char* reason = ::explain_dup(fd);
+        const char* reason = "::explain_dup(fd)";
         throw system_error(reason, err);
     }
     return new_fd;
@@ -127,7 +128,7 @@ inline size_t read_fd_at_offset(
     if (bytes_read_or_error == -1)
     {
         int err = errno;
-        const char* reason = ::explain_pread(fd, buffer, buffer_len, offset);
+        const char* reason = "::explain_pread(fd, buffer, buffer_len, offset)";
         throw system_error(reason, err);
     }
     size_t bytes_read = static_cast<size_t>(bytes_read_or_error);
@@ -163,7 +164,7 @@ inline int make_eventfd()
     if (eventfd == -1)
     {
         int err = errno;
-        const char* reason = ::explain_eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+        const char* reason = "::explain_eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE)";
         throw system_error(reason, err);
     }
     return eventfd;
@@ -181,7 +182,7 @@ inline void signal_eventfd(int eventfd)
     if (bytes_written == -1)
     {
         int err = errno;
-        const char* reason = ::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
+        const char* reason = "::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count))";
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
@@ -195,7 +196,7 @@ inline void consume_eventfd(int eventfd)
     if (bytes_read == -1)
     {
         int err = errno;
-        const char* reason = ::explain_read(eventfd, &val, sizeof(val));
+        const char* reason = "::explain_read(eventfd, &val, sizeof(val))";
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");

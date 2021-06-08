@@ -8,9 +8,10 @@
 #include <thread>
 
 #include <gtest/gtest.h>
+/*
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
-#include <libexplain/kill.h>
+#include <libexplain/kill.h>*/
 #include <sys/prctl.h>
 
 #include "gaia_internal/common/config.hpp"
@@ -42,7 +43,7 @@ protected:
 
         if (m_server_pid < 0)
         {
-            const char* reason = ::explain_fork();
+            const char* reason = "::explain_fork()";
             throw_system_error(reason);
         }
         else if (m_server_pid == 0)
@@ -73,7 +74,7 @@ protected:
             if (-1 == ::execve(gaia_db_server_path.c_str(), argv, envp))
             {
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-                const char* reason = ::explain_execve(gaia_db_server_path.c_str(), argv, envp);
+                const char* reason = "::explain_execve(gaia_db_server_path.c_str(), argv, envp)";
                 throw_system_error(reason);
             }
         }
@@ -83,7 +84,7 @@ protected:
     {
         if (-1 == ::kill(m_server_pid, SIGKILL))
         {
-            const char* reason = ::explain_kill(m_server_pid, SIGKILL);
+            const char* reason = "::explain_kill(m_server_pid, SIGKILL)";
             gaia::common::throw_system_error(reason);
         }
     }
