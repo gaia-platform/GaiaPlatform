@@ -1824,13 +1824,6 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
-
-    // We're using the otherwise-unused first entry of the "locators" array to
-    // track the last-applied commit_ts (purely for diagnostic purposes).
-    bool has_updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
-    ASSERT_POSTCONDITION(
-        has_updated_locators_view_version,
-        "Committed txn applied to shared locators view out of order!");
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)

@@ -9,12 +9,18 @@
 
 #include "gaia/common.hpp"
 
+#include "memory_types.hpp"
+
 namespace gaia
 {
 namespace db
 {
 
-struct db_object_t
+/**
+ * The type of a Gaia object, containing both object metadata (gaia_id,
+ * gaia_type) and user-defined data (references and flatbuffer payload).
+ */
+struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 {
     // Adjust this if db_object_t::payload_size ever changes size.
     static constexpr uint16_t c_max_payload_size = std::numeric_limits<uint16_t>::max();
@@ -32,7 +38,7 @@ struct db_object_t
     // and the serialized flatbuffer that follows it (since 8 bytes is the largest scalar data type size supported by
     // flatbuffers). Instead of forcing correct alignment via a compiler directive, we assert that the payload field is
     // correctly aligned, to avoid having the compiler silently insert padding if the field isn't naturally aligned.
-    char payload[0];
+    char payload[];
 
     [[nodiscard]] const char* data() const
     {
@@ -46,6 +52,7 @@ struct db_object_t
 };
 
 static_assert(offsetof(db_object_t, payload) % 8 == 0, "Payload must be 8-byte-aligned!");
+static_assert(sizeof(db_object_t) == alignof(db_object_t), "Size must be identical to alignment!");
 
 } // namespace db
 } // namespace gaia

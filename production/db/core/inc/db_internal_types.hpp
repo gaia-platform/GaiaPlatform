@@ -14,6 +14,7 @@
 
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
@@ -161,17 +162,7 @@ struct counters_t
 
 struct data_t
 {
-    // This array is actually an untyped array of bytes, but it's defined as an
-    // array of uint64_t just to enforce 8-byte alignment. Allocating
-    // (c_max_locators * 8) 8-byte words for this array means we reserve 64
-    // bytes on average for each object we allocate (or 1 cache line on every
-    // common architecture). Since any valid offset must be positive (zero is a
-    // reserved invalid value), the first word (at offset 0) is unused by data,
-    // so we use it to store the last offset allocated (minus 1 since all
-    // offsets are obtained by incrementing the counter by 1).
-    // NB: We now align all objects on a 64-byte boundary (for cache efficiency
-    // and to allow us to later switch to 32-bit offsets).
-    alignas(64) uint64_t objects[c_max_locators * 8];
+    db_object_t objects[c_max_locators];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
