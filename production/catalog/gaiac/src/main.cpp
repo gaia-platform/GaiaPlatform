@@ -118,11 +118,13 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
 void generate_edc_code(const string& db_name, const filesystem::path& output_path)
 {
+    string base_name = "gaia" + (db_name.empty() ? "" : "_" + db_name);
+
     filesystem::path header_path = output_path;
-    header_path /= "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
+    header_path /= base_name + ".h";
 
     filesystem::path cpp_path = output_path;
-    cpp_path /= "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".cpp";
+    cpp_path /= base_name + ".cpp";
 
     ofstream edc_header(header_path);
     ofstream edc_cpp(cpp_path);

@@ -14,6 +14,8 @@
  * Contains classes that make it simpler to generate code from the
  * catalog types. Each Catalog class has its own "facade".
  * Eg. gaia_table_t -> table_facade_t.
+ *
+ * The only user of this class is edc_generator.
  */
 
 namespace gaia

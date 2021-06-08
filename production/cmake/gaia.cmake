@@ -268,17 +268,17 @@ endfunction()
 # This function depends on the output of the process_schema() and
 # translate_ruleset() functions.
 function(target_add_gaia_generated_sources TARGET_NAME)
-  # Adds EDC .cpp files
-  foreach(CPP_FILE ${GAIA_EDC_GENERATED_CPP})
-    message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
-    target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
-  endforeach()
-
   # Adds EDC .h header directories
   foreach(HEADER_FILE ${GAIA_EDC_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
     message(STATUS "Adding ${HEADER_DIR} to ${TARGET_NAME}...")
     target_include_directories(${TARGET_NAME} PUBLIC ${HEADER_DIR})
+  endforeach()
+
+  # Adds EDC .cpp files
+  foreach(CPP_FILE ${GAIA_EDC_GENERATED_CPP})
+    message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
+    target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
   endforeach()
 
   # Adds Rules .cpp files
