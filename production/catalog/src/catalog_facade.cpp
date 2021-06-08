@@ -105,6 +105,18 @@ bool table_facade_t::has_string_or_vector() const
     return false;
 }
 
+bool table_facade_t::needs_reference_class() const
+{
+    for (const incoming_relationship_facade_t& relationship : incoming_relationships())
+    {
+        if (relationship.is_one_to_one())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string field_facade_t::field_name() const
 {
     return m_field.name();

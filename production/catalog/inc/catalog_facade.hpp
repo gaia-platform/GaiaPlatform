@@ -57,6 +57,7 @@ public:
     std::vector<incoming_relationship_facade_t> incoming_relationships() const;
     std::vector<outgoing_relationship_facade_t> outgoing_relationships() const;
     bool has_string_or_vector() const;
+    bool needs_reference_class() const;
 
 private:
     gaia_table_t m_table;

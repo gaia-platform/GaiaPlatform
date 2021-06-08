@@ -32,7 +32,7 @@ class edc_container_t;
 
 // C++17 compliant way when std::iterator is deprecated.
 //
-// A edc_iterator_t contains the methods that satisfy an iterator interface.
+// An edc_iterator_t contains the methods that satisfy an iterator interface.
 // Only used from edc_container_t template, which defines the begin(), where() and end().
 //
 // @tparam T_class the Extended Data Class

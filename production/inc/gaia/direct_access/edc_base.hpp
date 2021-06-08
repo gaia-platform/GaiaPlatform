@@ -45,6 +45,8 @@ struct edc_base_iterator_state_t
  */
 class edc_db_t
 {
+    friend class edc_base_reference_t;
+
 protected:
     // Low-level interface for iterating over objects of a given container.
     static std::shared_ptr<edc_base_iterator_state_t> initialize_iterator(common::gaia_type_t container_type_id);
@@ -58,9 +60,6 @@ protected:
     static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
-
-private:
-    friend class edc_base_reference_t;
 };
 
 /**

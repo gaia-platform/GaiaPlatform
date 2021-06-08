@@ -205,13 +205,10 @@ std::string edc_compilation_unit_writer_t::generate_ref_forward_declarations()
 
     for (const auto& table : m_database.tables())
     {
-        for (const auto& relationship : table.outgoing_relationships())
+        if (table.needs_reference_class())
         {
-            if (relationship.is_one_to_one())
-            {
-                code.SetValue("TABLE_NAME", relationship.child_table());
-                code += "class {{TABLE_NAME}}_ref_t;";
-            }
+            code.SetValue("TABLE_NAME", table.table_name());
+            code += "class {{TABLE_NAME}}_ref_t;";
         }
     }
 
@@ -267,7 +264,7 @@ flatbuffers::CodeWriter class_writer_t::create_code_writer()
     flatbuffers::CodeWriter code(c_indentation_string);
     code.SetValue("TABLE_NAME", m_table.table_name());
 
-    for (int i = 0; i < m_indent_level; i++)
+    for (uint32_t i = 0; i < m_indent_level; i++)
     {
         code.IncrementIdentLevel();
     }
@@ -687,6 +684,11 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 
 std::string class_writer_t::generate_ref_class()
 {
+    if (!m_table.needs_reference_class())
+    {
+        return "\\";
+    }
+
     flatbuffers::CodeWriter code = create_code_writer();
 
     code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, direct_access::edc_base_reference_t {";
@@ -705,6 +707,11 @@ std::string class_writer_t::generate_ref_class()
 
 std::string class_writer_t::generate_ref_class_cpp()
 {
+    if (!m_table.needs_reference_class())
+    {
+        return "\\";
+    }
+
     flatbuffers::CodeWriter code = create_code_writer();
 
     // Constructor.
