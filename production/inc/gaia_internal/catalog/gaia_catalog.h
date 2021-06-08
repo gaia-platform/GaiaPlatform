@@ -67,6 +67,7 @@ class gaia_field_t;
 class gaia_table_t;
 class gaia_database_t;
 
+
 typedef gaia::direct_access::edc_writer_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> gaia_index_writer;
 class gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> {
 public:
@@ -92,7 +93,18 @@ public:
 private:
     explicit gaia_index_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_index_t") {}
     friend class edc_object_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT>;
+    friend class gaia_index_ref_t;
 };
+
+class gaia_index_ref_t : public gaia_index_t, direct_access::edc_ref_t {
+public:
+    gaia_index_ref_t() = delete;
+    gaia_index_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_index_t& object);
+};
+
 namespace gaia_index_expr {
     static auto& gaia_id = gaia_index_t::expr::gaia_id;
     static auto& name = gaia_index_t::expr::name;
@@ -129,7 +141,18 @@ public:
 private:
     explicit gaia_rule_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_rule_t") {}
     friend class edc_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
+    friend class gaia_rule_ref_t;
 };
+
+class gaia_rule_ref_t : public gaia_rule_t, direct_access::edc_ref_t {
+public:
+    gaia_rule_ref_t() = delete;
+    gaia_rule_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_rule_t& object);
+};
+
 namespace gaia_rule_expr {
     static auto& gaia_id = gaia_rule_t::expr::gaia_id;
     static auto& name = gaia_rule_t::expr::name;
@@ -169,7 +192,18 @@ public:
 private:
     explicit gaia_ruleset_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_ruleset_t") {}
     friend class edc_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;
+    friend class gaia_ruleset_ref_t;
 };
+
+class gaia_ruleset_ref_t : public gaia_ruleset_t, direct_access::edc_ref_t {
+public:
+    gaia_ruleset_ref_t() = delete;
+    gaia_ruleset_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_ruleset_t& object);
+};
+
 namespace gaia_ruleset_expr {
     static auto& gaia_id = gaia_ruleset_t::expr::gaia_id;
     static auto& name = gaia_ruleset_t::expr::name;
@@ -226,7 +260,18 @@ public:
 private:
     explicit gaia_relationship_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_relationship_t") {}
     friend class edc_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
+    friend class gaia_relationship_ref_t;
 };
+
+class gaia_relationship_ref_t : public gaia_relationship_t, direct_access::edc_ref_t {
+public:
+    gaia_relationship_ref_t() = delete;
+    gaia_relationship_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_relationship_t& object);
+};
+
 namespace gaia_relationship_expr {
     static auto& gaia_id = gaia_relationship_t::expr::gaia_id;
     static auto& name = gaia_relationship_t::expr::name;
@@ -285,7 +330,18 @@ public:
 private:
     explicit gaia_field_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_field_t") {}
     friend class edc_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
+    friend class gaia_field_ref_t;
 };
+
+class gaia_field_ref_t : public gaia_field_t, direct_access::edc_ref_t {
+public:
+    gaia_field_ref_t() = delete;
+    gaia_field_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_field_t& object);
+};
+
 namespace gaia_field_expr {
     static auto& gaia_id = gaia_field_t::expr::gaia_id;
     static auto& name = gaia_field_t::expr::name;
@@ -346,7 +402,18 @@ public:
 private:
     explicit gaia_table_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_table_t") {}
     friend class edc_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
+    friend class gaia_table_ref_t;
 };
+
+class gaia_table_ref_t : public gaia_table_t, direct_access::edc_ref_t {
+public:
+    gaia_table_ref_t() = delete;
+    gaia_table_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_table_t& object);
+};
+
 namespace gaia_table_expr {
     static auto& gaia_id = gaia_table_t::expr::gaia_id;
     static auto& name = gaia_table_t::expr::name;
@@ -394,7 +461,18 @@ public:
 private:
     explicit gaia_database_t(gaia::common::gaia_id_t id) : edc_object_t(id, "gaia_database_t") {}
     friend class edc_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
+    friend class gaia_database_ref_t;
 };
+
+class gaia_database_ref_t : public gaia_database_t, direct_access::edc_ref_t {
+public:
+    gaia_database_ref_t() = delete;
+    gaia_database_ref_t(gaia::common::gaia_id_t parent, gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset);
+    void disconnect();
+    void connect(gaia::common::gaia_id_t id);
+    void connect(const gaia_database_t& object);
+};
+
 namespace gaia_database_expr {
     static auto& gaia_id = gaia_database_t::expr::gaia_id;
     static auto& name = gaia_database_t::expr::name;

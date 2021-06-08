@@ -22,6 +22,24 @@ namespace direct_access
 {
 
 /**
+ * Represent the parent side of a 1:1 relationship. This class is not
+ * meant to be used standalone but to be subclassed in the EDC generated
+ * code.
+ */
+class edc_ref_t
+{
+public:
+    edc_ref_t() = delete;
+    edc_ref_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
+    void connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
+    void disconnect(common::gaia_id_t id);
+
+private:
+    common::gaia_id_t m_parent_id;
+    common::reference_offset_t m_child_offset;
+};
+
+/**
  * Used by iterator class to maintain state of an iteration.
  *
  * This is needed to ensure proper destruction of derived instances via the virtual destructor.
@@ -29,6 +47,8 @@ namespace direct_access
 struct edc_base_iterator_state_t
 {
     virtual ~edc_base_iterator_state_t() = default;
+    gaia::common::gaia_id_t m_parent_id;
+    size_t m_child_slot;
 };
 
 /**
@@ -50,6 +70,9 @@ protected:
     static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
+
+private:
+    friend class edc_ref_t;
 };
 
 /**
