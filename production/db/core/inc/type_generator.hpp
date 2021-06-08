@@ -34,6 +34,7 @@ private:
     common::gaia_type_t m_type;
     storage::record_iterator_t m_iterator;
     bool m_is_initialized;
+    bool m_manage_local_snapshot;
 };
 
 } // namespace db
