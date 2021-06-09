@@ -45,7 +45,6 @@ private:
 
 namespace iterators
 {
-
 template <typename T_output>
 class generator_iterator_t
 {
@@ -67,35 +66,22 @@ public:
     explicit generator_iterator_t(
         std::function<std::optional<T_output>()> generator,
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
-        : m_generator(generator), m_predicate(std::move(predicate))
+        : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
         // We need to initialize the iterator to the first valid state.
-        while ((m_state = m_generator()))
-        {
-            if (m_predicate(*m_state))
-            {
-                break;
-            }
-        }
+        init_generator();
     }
 
     explicit generator_iterator_t(
-        generator_t<T_output>&& generator,
+        std::shared_ptr<generator_t<T_output>> generator,
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
-        : m_generator(generator), m_predicate(std::move(predicate))
+        : m_generator(std::move(generator)), m_predicate(std::move(predicate))
     {
-        // We need to initialize the iterator to the first valid state.
-        while ((m_state = m_generator()))
-        {
-            if (m_predicate(*m_state))
-            {
-                break;
-            }
-        }
+        init_generator();
     }
 
     // Returns current state.
-    T_output operator*() const
+    T_output& operator*()
     {
         // If we de-reference m_state via *m_state, we can run into undefined behavior
         // if m_state does not contain a value, so we'll use the value() method instead,
@@ -103,10 +89,15 @@ public:
         return m_state.value();
     }
 
+    T_output& operator->()
+    {
+        return m_state.value();
+    }
+
     // Advance to the next valid state.
     generator_iterator_t& operator++()
     {
-        while ((m_state = m_generator()))
+        while ((m_state = (*m_generator)()))
         {
             if (m_predicate(*m_state))
             {
@@ -132,7 +123,18 @@ public:
         }
         return false;
     }
+
+    friend bool operator==(generator_iterator_t const& lhs, std::nullopt_t const&) noexcept
+    {
+        return !lhs.m_state.has_value();
+    }
+
     friend bool operator!=(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bool operator!=(generator_iterator_t const& lhs, std::nullopt_t const& rhs) noexcept
     {
         return !(lhs == rhs);
     }
@@ -144,45 +146,50 @@ public:
     }
 
 private:
+    void init_generator()
+    {
+        // We need to initialize the iterator to the first valid state.
+        while ((m_state = (*m_generator)()))
+        {
+            if (m_predicate(*m_state))
+            {
+                break;
+            }
+        }
+    }
+
     std::optional<T_output> m_state;
-    generator_t<T_output> m_generator;
+    std::shared_ptr<generator_t<T_output>> m_generator;
     std::function<bool(T_output)> m_predicate;
 };
 
-template <typename T_iter>
-struct range_t
+template <typename T_output>
+struct generator_range_t
 {
-    T_iter begin_it;
-    T_iter end_it;
+    generator_iterator_t<T_output> begin_it;
 
-    const T_iter& begin() const
+    const generator_iterator_t<T_output>& begin() const
     {
         return begin_it;
     }
 
-    const T_iter& end() const
+    const std::nullopt_t end() const
     {
-        return end_it;
+        return std::nullopt;
     }
 };
 
-template <typename T_iter>
-range_t<T_iter> range(T_iter begin_it, T_iter end_it)
+template <typename T_output>
+auto range_from_generator_iterator(generator_iterator_t<T_output>&& generator)
 {
-    return {std::move(begin_it), std::move(end_it)};
-}
-
-template <typename T_iter>
-range_t<T_iter> range(T_iter begin_it)
-{
-    return range(std::move(begin_it), T_iter{});
+    return generator_range_t<T_output>{std::move(generator)};
 }
 
 template <typename T_fn>
 auto range_from_generator(T_fn&& fn)
 {
     using T_val = std::decay_t<decltype(*fn())>;
-    return range(generator_iterator_t<T_val>(std::move(fn)));
+    return range_from_generator_iterator<T_val>(generator_iterator_t<T_val>(std::move(fn)));
 }
 
 // Usage:

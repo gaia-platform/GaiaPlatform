@@ -1185,7 +1185,7 @@ void server_t::session_handler(int session_socket)
 
 template <typename T_element>
 void server_t::stream_producer_handler(
-    int stream_socket, int cancel_eventfd, generator_t<T_element>&& generator_fn)
+    int stream_socket, int cancel_eventfd, std::unique_ptr<generator_t<T_element>> generator_fn)
 {
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
@@ -1367,7 +1367,7 @@ void server_t::stream_producer_handler(
 }
 
 template <typename T_element>
-void server_t::start_stream_producer(int stream_socket, generator_t<T_element>&& generator_fn)
+void server_t::start_stream_producer(int stream_socket, std::unique_ptr<generator_t<T_element>> generator_fn)
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
@@ -1379,7 +1379,7 @@ void server_t::start_stream_producer(int stream_socket, generator_t<T_element>&&
 }
 
 type_generator_t::type_generator_t(gaia_id_t type, record_iterator_t&& iterator)
-    : m_type(type), m_iterator(std::move(iterator))
+    : m_type(type), m_iterator(std::move(iterator)), m_is_initialized(false)
 {
 }
 
@@ -1417,10 +1417,10 @@ std::optional<gaia_id_t> type_generator_t::operator()()
     return std::nullopt;
 }
 
-generator_t<gaia_id_t> server_t::get_id_generator_for_type(gaia_type_t type)
+std::unique_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
     record_iterator_t iterator;
-    return type_generator_t(type, std::move(iterator));
+    return std::make_unique<type_generator_t>(type, std::move(iterator));
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)

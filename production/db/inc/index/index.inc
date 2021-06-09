@@ -78,9 +78,9 @@ std::optional<index_record_t> index_generator_t<T_structure>::operator()()
 }
 
 template <typename T_structure, typename T_iterator>
-common::generator_t<index_record_t> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
+std::unique_ptr<common::generator_t<index_record_t>> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
 {
-    return index_generator_t<T_structure>(get_lock(), m_data, txn_id);
+    return std::make_unique<index_generator_t<T_structure>>(get_lock(), m_data, txn_id);
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.

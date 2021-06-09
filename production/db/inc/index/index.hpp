@@ -139,7 +139,7 @@ public:
     // RAII class for bulk index maintenance operations.
     index_writer_guard_t<T_structure> get_writer();
 
-    common::generator_t<index_record_t> generator(gaia_txn_id_t txn_id) override;
+    std::unique_ptr<common::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) override;
 
 protected:
     T_structure m_data;

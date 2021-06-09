@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
@@ -83,7 +85,7 @@ public:
     /**
      * Returns a range representing a server-side cursor over all objects of the given type.
      */
-    static common::iterators::range_t<common::iterators::generator_iterator_t<gaia_ptr_t>> find_all_range(
+    static common::iterators::generator_range_t<gaia_ptr_t> find_all_range(
         common::gaia_type_t type);
 
     /**
@@ -164,7 +166,7 @@ private:
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
-    static common::generator_t<common::gaia_id_t> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
@@ -173,11 +175,11 @@ private:
 class gaia_ptr_generator_t : public common::generator_t<gaia_ptr_t>
 {
 public:
-    explicit gaia_ptr_generator_t(common::generator_t<common::gaia_id_t>&& id_generator);
+    explicit gaia_ptr_generator_t(std::shared_ptr<generator_t<common::gaia_id_t>> id_generator);
     std::optional<gaia_ptr_t> operator()() final;
 
 private:
-    generator_t<common::gaia_id_t> m_id_generator;
+    std::shared_ptr<generator_t<common::gaia_id_t>> m_id_generator;
 };
 
 #include "gaia_ptr.inc"

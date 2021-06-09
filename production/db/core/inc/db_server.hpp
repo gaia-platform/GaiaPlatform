@@ -250,12 +250,12 @@ private:
 
     template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, common::generator_t<T_element>&& generator_fn);
+        int stream_socket, int cancel_eventfd, std::unique_ptr<common::generator_t<T_element>> generator_fn);
 
     template <typename T_element>
-    static void start_stream_producer(int stream_socket, common::generator_t<T_element>&& generator);
+    static void start_stream_producer(int stream_socket, std::unique_ptr<common::generator_t<T_element>> generator);
 
-    static common::generator_t<common::gaia_id_t> get_id_generator_for_type(common::gaia_type_t type);
+    static std::unique_ptr<common::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
@@ -349,7 +349,7 @@ public:
 private:
     common::gaia_type_t m_type;
     storage::record_iterator_t m_iterator;
-    bool m_is_initialized = false;
+    bool m_is_initialized;
 };
 
 #include "db_server.inc"
