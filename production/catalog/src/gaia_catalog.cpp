@@ -15,6 +15,10 @@ namespace catalog {
 // Implementation of class gaia_index_t.
 //
 
+const char* gaia_index_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_index_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_index_t::insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, &fields));
@@ -42,6 +46,10 @@ gaia_table_t gaia_index_t::table() const {
 // Implementation of class gaia_rule_t.
 //
 
+const char* gaia_rule_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_rule_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_rule_t::insert_row(const char* name) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_ruleDirect(b, name));
@@ -60,6 +68,10 @@ gaia_ruleset_t gaia_rule_t::ruleset() const {
 // Implementation of class gaia_ruleset_t.
 //
 
+const char* gaia_ruleset_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_ruleset_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, &table_ids, source_location, serial_stream));
@@ -90,6 +102,10 @@ gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const {
 // Implementation of class gaia_relationship_t.
 //
 
+const char* gaia_relationship_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_relationship_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
@@ -135,6 +151,10 @@ gaia_table_t gaia_relationship_t::parent() const {
 // Implementation of class gaia_field_t.
 //
 
+const char* gaia_field_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_field_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active));
@@ -168,6 +188,10 @@ gaia_table_t gaia_field_t::table() const {
 // Implementation of class gaia_table_t.
 //
 
+const char* gaia_table_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_table_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_table_t::insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, &binary_schema, &serialization_template));
@@ -210,6 +234,10 @@ gaia_table_t::gaia_fields_list_t gaia_table_t::gaia_fields() const {
 // Implementation of class gaia_database_t.
 //
 
+const char* gaia_database_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_database_t";
+    return gaia_typename;
+}
 gaia::common::gaia_id_t gaia_database_t::insert_row(const char* name) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
     b.Finish(internal::Creategaia_databaseDirect(b, name));

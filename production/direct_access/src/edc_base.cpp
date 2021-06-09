@@ -208,14 +208,7 @@ constexpr const T_ptr* edc_base_t::to_const_ptr() const
 template gaia_ptr_t* edc_base_t::to_ptr();
 template const gaia_ptr_t* edc_base_t::to_const_ptr() const;
 
-edc_base_t::edc_base_t(const char* gaia_typename)
-    : m_typename(gaia_typename)
-{
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t();
-}
-
-edc_base_t::edc_base_t(const char* gaia_typename, gaia_id_t id)
-    : m_typename(gaia_typename)
+edc_base_t::edc_base_t(gaia_id_t id)
 {
     *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
 }
@@ -259,22 +252,25 @@ edc_base_reference_t::edc_base_reference_t(gaia_id_t parent, reference_offset_t 
 {
 }
 
-void edc_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
+bool edc_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
     if (old_id != c_invalid_gaia_id && old_id == new_id)
     {
-        return;
+        return false;
     }
     edc_base_reference_t::disconnect(old_id);
     edc_db_t::insert_child_reference(m_parent_id, new_id, m_child_offset);
+    return true;
 }
 
-void edc_base_reference_t::disconnect(gaia_id_t id)
+bool edc_base_reference_t::disconnect(gaia_id_t id)
 {
-    if (id != gaia::common::c_invalid_gaia_id)
+    if (id == gaia::common::c_invalid_gaia_id)
     {
-        edc_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
+        return false;
     }
+    edc_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
+    return true;
 }
 
 } // namespace direct_access

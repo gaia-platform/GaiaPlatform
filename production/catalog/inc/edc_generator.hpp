@@ -87,6 +87,8 @@ private:
     std::string generate_public_constructor();
     std::string generate_insert();
     std::string generate_insert_cpp();
+    std::string generate_gaia_typename_accessor();
+    std::string generate_gaia_typename_accessor_cpp();
     std::string generate_list_accessor();
     std::string generate_list_accessor_cpp();
     std::string generate_fields_accessors();

@@ -41,7 +41,7 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
     ASSERT_FALSE(madeline_employee.person());
 
     // Test connect.
-    madeline_person.employee().connect(madeline_employee.gaia_id());
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee.gaia_id()));
 
     ASSERT_EQ(madeline_employee.person(), madeline_person);
     ASSERT_STREQ(madeline_employee.person().name_first(), madeline_person.name_first());
@@ -51,7 +51,7 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
     ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
 
     // Test disconnect.
-    madeline_person.employee().disconnect();
+    ASSERT_TRUE(madeline_person.employee().disconnect());
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -68,7 +68,7 @@ TEST_F(gaia_one_to_one_test, connect_with_edc_obj)
     ASSERT_FALSE(madeline_employee.person());
 
     // Test connect.
-    madeline_person.employee().connect(madeline_employee);
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee));
 
     ASSERT_EQ(madeline_employee.person(), madeline_person);
     ASSERT_STREQ(madeline_employee.person().name_first(), madeline_person.name_first());
@@ -78,7 +78,7 @@ TEST_F(gaia_one_to_one_test, connect_with_edc_obj)
     ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
 
     // Test disconnect.
-    madeline_person.employee().disconnect();
+    ASSERT_TRUE(madeline_person.employee().disconnect());
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -96,24 +96,44 @@ TEST_F(gaia_one_to_one_test, mutliple_disconnect_succeed)
     employee_t madeline_employee = create<employee_t>("Gaia Platform LLC");
     madeline_person.employee().connect(madeline_employee);
 
-    madeline_person.employee().disconnect();
-    madeline_person.employee().disconnect();
+    ASSERT_TRUE(madeline_person.employee().disconnect());
+    ASSERT_FALSE(madeline_person.employee().disconnect());
     ASSERT_FALSE(madeline_person.employee());
+
+    // Test on same ref_t object.
+    auto employee = madeline_person.employee();
+    employee.connect(madeline_employee);
+    ASSERT_TRUE(employee.disconnect());
+    ASSERT_THROW(employee.disconnect(), invalid_child);
+    ASSERT_FALSE(employee);
 }
 
 TEST_F(gaia_one_to_one_test, mutliple_connect_succeed)
 {
     auto_transaction_t txn;
 
+    std::cout << person_t::gaia_typename() << std::endl;
+
     person_t madeline_person = create<person_t>("Madeline", "Clark");
     employee_t madeline_employee1 = create<employee_t>("Gaia Platform LLC");
     employee_t madeline_employee2 = create<employee_t>("Bazza LLC");
 
-    madeline_person.employee().connect(madeline_employee1);
-    madeline_person.employee().connect(madeline_employee2);
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee1));
+    ASSERT_FALSE(madeline_person.employee().connect(madeline_employee1));
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee2));
 
     ASSERT_EQ(madeline_person.employee(), madeline_employee2);
+    ASSERT_NE(madeline_person.employee(), madeline_employee1);
+    ASSERT_FALSE(madeline_employee1.person());
     ASSERT_STREQ(madeline_person.employee().company(), madeline_employee2.company());
+
+    // Test on same ref_t object.
+    madeline_person.employee().disconnect();
+    auto employee = madeline_person.employee();
+    ASSERT_TRUE(employee.connect(madeline_employee1));
+    ASSERT_FALSE(employee.connect(madeline_employee1));
+    ASSERT_THROW(employee.disconnect(), invalid_child);
+    ASSERT_FALSE(employee);
 }
 
 TEST_F(gaia_one_to_one_test, connect_wrong_type_fail)
