@@ -56,6 +56,7 @@ list(APPEND CLANG_TEST_DEPS
   clang-refactor
   clang-diff
   hmaptool
+  gaiac
   )
 if(CLANG_ENABLE_STATIC_ANALYZER)
   list(APPEND CLANG_TEST_DEPS
