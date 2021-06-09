@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -16,6 +17,8 @@
 namespace gaia
 {
 namespace common
+{
+namespace iterators
 {
 
 // Generator_t class for inheritance for "movable semantics" in lambda.
@@ -27,6 +30,7 @@ public:
         : m_function([]() { return std::nullopt; })
     {
     }
+
     explicit generator_t(std::function<std::optional<T_output>()> generator_fn)
         : m_function(std::move(generator_fn))
     {
@@ -43,8 +47,6 @@ private:
     std::function<std::optional<T_output>()> m_function;
 };
 
-namespace iterators
-{
 template <typename T_output>
 class generator_iterator_t
 {
@@ -90,6 +92,17 @@ public:
     }
 
     T_output& operator->()
+    {
+        return m_state.value();
+    }
+
+    // const versions of the above
+    const T_output& operator*() const
+    {
+        return m_state.value();
+    }
+
+    const T_output& operator->() const
     {
         return m_state.value();
     }

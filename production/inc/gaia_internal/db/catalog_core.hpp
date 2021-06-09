@@ -155,7 +155,7 @@ struct catalog_core_t
     static index_list_t list_indexes(common::gaia_id_t table_id);
 };
 
-class table_generator_t : public common::generator_t<table_view_t>
+class table_generator_t : public common::iterators::generator_t<table_view_t>
 {
 public:
     explicit table_generator_t(common::iterators::generator_iterator_t<gaia_ptr_t>&& iterator);

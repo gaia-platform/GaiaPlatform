@@ -25,7 +25,6 @@
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "record_list_manager.hpp"
 
 namespace gaia
 {
@@ -250,12 +249,12 @@ private:
 
     template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, std::shared_ptr<common::generator_t<T_element>> generator_fn);
+        int stream_socket, int cancel_eventfd, std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
 
     template <typename T_element>
-    static void start_stream_producer(int stream_socket, std::shared_ptr<common::generator_t<T_element>> generator);
+    static void start_stream_producer(int stream_socket, std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::shared_ptr<common::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
@@ -336,20 +335,6 @@ private:
         int m_local_log_fd{-1};
         bool m_auto_close_fd{true};
     };
-};
-
-// 'Movable' type generator
-class type_generator_t : public common::generator_t<common::gaia_id_t>
-{
-public:
-    type_generator_t(common::gaia_id_t type, storage::record_iterator_t&& iterator);
-
-    std::optional<common::gaia_id_t> operator()() final;
-
-private:
-    common::gaia_type_t m_type;
-    storage::record_iterator_t m_iterator;
-    bool m_is_initialized;
 };
 
 #include "db_server.inc"

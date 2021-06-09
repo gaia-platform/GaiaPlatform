@@ -34,6 +34,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
+#include "type_generator.hpp"
 
 using namespace std;
 
@@ -1378,49 +1379,9 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
         stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, std::move(generator_fn));
 }
 
-type_generator_t::type_generator_t(gaia_id_t type, record_iterator_t&& iterator)
-    : m_type(type), m_iterator(std::move(iterator)), m_is_initialized(false)
-{
-}
-
-std::optional<gaia_id_t> type_generator_t::operator()()
-{
-    // The initialization of the record_list iterator should be done by the same thread
-    // that executes the iteration.
-    if (!m_is_initialized)
-    {
-        shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(m_type);
-        record_list->start(m_iterator);
-        m_is_initialized = true;
-    }
-
-    // Find the next valid record locator.
-    while (!m_iterator.at_end())
-    {
-        gaia_locator_t locator = record_list_t::get_record_data(m_iterator).locator;
-        ASSERT_INVARIANT(
-            locator != c_invalid_gaia_locator, "An invalid locator value was returned from record list iteration!");
-
-        db_object_t* db_object = locator_to_ptr(locator);
-
-        // Whether we found a record or not, we need to advance the iterator.
-        record_list_t::move_next(m_iterator);
-
-        // If the record was found, return its id.
-        if (db_object)
-        {
-            return db_object->id;
-        }
-    }
-
-    // Signal end of scan.
-    return std::nullopt;
-}
-
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    record_iterator_t iterator;
-    return std::make_shared<type_generator_t>(type, std::move(iterator));
+    return std::make_shared<type_generator_t>(type, record_iterator_t());
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)

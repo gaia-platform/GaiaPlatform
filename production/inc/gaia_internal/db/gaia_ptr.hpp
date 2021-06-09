@@ -166,20 +166,20 @@ private:
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
-    static std::shared_ptr<common::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
 };
 
-class gaia_ptr_generator_t : public common::generator_t<gaia_ptr_t>
+class gaia_ptr_generator_t : public common::iterators::generator_t<gaia_ptr_t>
 {
 public:
-    explicit gaia_ptr_generator_t(std::shared_ptr<generator_t<common::gaia_id_t>> id_generator);
+    explicit gaia_ptr_generator_t(std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> id_generator);
     std::optional<gaia_ptr_t> operator()() final;
 
 private:
-    std::shared_ptr<generator_t<common::gaia_id_t>> m_id_generator;
+    std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> m_id_generator;
 };
 
 #include "gaia_ptr.inc"

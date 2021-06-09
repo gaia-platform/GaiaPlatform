@@ -284,9 +284,7 @@ generator_iterator_t<gaia_ptr_t>
 gaia_ptr_t::find_all_iterator(
     gaia_type_t type)
 {
-    // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
-    gaia_ptr_generator_t gaia_ptr_generator(get_id_generator_for_type(type));
-    return generator_iterator_t<gaia_ptr_t>(std::move(gaia_ptr_generator));
+    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type)));
 }
 
 generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(
