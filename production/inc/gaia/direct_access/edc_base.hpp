@@ -68,6 +68,8 @@ protected:
  */
 class edc_base_t : protected edc_db_t
 {
+    friend class edc_base_reference_t;
+
 public:
     /**
      * The edc_base_t and edc_object_t shouldn't be instantiated directly. The
@@ -101,6 +103,9 @@ protected:
     constexpr T_ptr* to_ptr();
 
 private:
+    void set_record(common::gaia_id_t new_id);
+
+private:
     /**
      * Handle to the underlying database record. This handle should only be accessed via the to_ptr methods.
      */
@@ -116,15 +121,14 @@ class edc_base_reference_t
 {
 public:
     edc_base_reference_t() = delete;
-    edc_base_reference_t(common::gaia_id_t parent, common::reference_offset_t child_offset);
+    edc_base_reference_t(common::gaia_id_t parent, common::reference_offset_t child_offset, edc_base_t& child_reference);
     bool connect(gaia::common::gaia_id_t old_id, gaia::common::gaia_id_t new_id);
     bool disconnect(common::gaia_id_t id);
-
-    //    virtual void set_child_id(common::gaia_id_t id) = 0;
 
 private:
     common::gaia_id_t m_parent_id;
     common::reference_offset_t m_child_offset;
+    edc_base_t& m_child_reference;
 };
 
 // Exception when get() argument does not match the class type.

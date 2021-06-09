@@ -104,15 +104,13 @@ TEST_F(gaia_one_to_one_test, mutliple_disconnect_succeed)
     auto employee = madeline_person.employee();
     employee.connect(madeline_employee);
     ASSERT_TRUE(employee.disconnect());
-    ASSERT_THROW(employee.disconnect(), invalid_child);
+    ASSERT_FALSE(employee.disconnect());
     ASSERT_FALSE(employee);
 }
 
 TEST_F(gaia_one_to_one_test, mutliple_connect_succeed)
 {
     auto_transaction_t txn;
-
-    std::cout << person_t::gaia_typename() << std::endl;
 
     person_t madeline_person = create<person_t>("Madeline", "Clark");
     employee_t madeline_employee1 = create<employee_t>("Gaia Platform LLC");
@@ -132,7 +130,26 @@ TEST_F(gaia_one_to_one_test, mutliple_connect_succeed)
     auto employee = madeline_person.employee();
     ASSERT_TRUE(employee.connect(madeline_employee1));
     ASSERT_FALSE(employee.connect(madeline_employee1));
-    ASSERT_THROW(employee.disconnect(), invalid_child);
+    ASSERT_TRUE(employee.connect(madeline_employee2));
+    ASSERT_FALSE(madeline_employee1.person());
+    ASSERT_EQ(employee, madeline_employee2);
+    ASSERT_EQ(madeline_person.employee(), madeline_employee2);
+    employee.disconnect();
+    ASSERT_FALSE(employee);
+}
+
+TEST_F(gaia_one_to_one_test, test_out_of_sync_reference)
+{
+    auto_transaction_t txn;
+
+    person_t madeline_person = create<person_t>("Madeline", "Clark");
+    employee_t madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+
+    auto employee = madeline_person.employee();
+
+    madeline_person.employee().connect(madeline_employee1);
+
+    // The employee_ref_t reference is out of sync.
     ASSERT_FALSE(employee);
 }
 
@@ -153,7 +170,6 @@ TEST_F(gaia_one_to_one_test, connect_wrong_id_fail)
     auto_transaction_t txn;
 
     person_t madeline_person = create<person_t>("Madeline", "Clark");
-    person_t john_person = create<person_t>("John", "Doe");
 
     employee_t empty_employee;
 

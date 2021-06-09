@@ -742,7 +742,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, "
             "gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)";
     code.IncrementIdentLevel();
-    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_base_reference_t(parent, child_offset) {};";
+    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_base_reference_t(parent, child_offset, *this) {};";
     code.DecrementIdentLevel();
 
     // disconnect()
