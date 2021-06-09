@@ -618,6 +618,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 }
             }
 
+            if (data_iterator.skip_implicit_path_generation && data_iterator.path_components.size() == 1)
+            {
+                continue;
+            }
+
             navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                 anchor_table, data_iterator);
             if (navigation_code.prefix.empty())
@@ -1304,9 +1309,14 @@ void update_expression_explicit_path_data(
             }
             else
             {
+                string first_component = get_table_from_expression(data.path_components.front());
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
                     data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
+                    if (first_component == defined_tag_iterator.second)
+                    {
+                        data.skip_implicit_path_generation = true;
+                    }
                 }
             }
         }
