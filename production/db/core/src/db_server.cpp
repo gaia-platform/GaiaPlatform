@@ -33,6 +33,7 @@
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
 
@@ -1381,7 +1382,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return std::make_shared<type_generator_t>(type, record_iterator_t());
+    return std::make_shared<type_generator_t>(type);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)

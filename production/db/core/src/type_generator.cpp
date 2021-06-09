@@ -19,8 +19,8 @@ namespace gaia
 namespace db
 {
 
-type_generator_t::type_generator_t(gaia_type_t type, record_iterator_t&& iterator)
-    : m_type(type), m_iterator(std::move(iterator)), m_is_initialized(false)
+type_generator_t::type_generator_t(gaia_type_t type)
+    : m_type(type), m_iterator(), m_is_initialized(false)
 {
 }
 

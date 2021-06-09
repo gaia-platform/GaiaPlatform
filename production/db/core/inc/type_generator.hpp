@@ -21,9 +21,11 @@ namespace db
 class type_generator_t : public common::iterators::generator_t<common::gaia_id_t>
 {
 public:
-    type_generator_t(common::gaia_type_t type, storage::record_iterator_t&& iterator);
+    type_generator_t(common::gaia_type_t type);
 
     std::optional<common::gaia_id_t> operator()() final;
+
+    type_generator_t(const type_generator_t&) = delete;
 
 private:
     common::gaia_type_t m_type;
