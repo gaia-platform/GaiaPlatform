@@ -453,3 +453,62 @@ ruleset test28
         }
     }
 }
+
+ruleset test29
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        // Braces are omitted on purpose.
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+            temp += S.value + I.min_temp + A.value;
+    }
+}
+
+ruleset test30
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++)
+        {
+            max_temp += 1;
+        }
+        if (i < 5)
+        {
+            i = 1;
+        }
+    }
+}
+
+ruleset test31
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        // Testing while/declarative-while/while/if nesting.
+        while (*s++) {
+            while (/incubator.max_temp > 0) {
+                while(*s++) {
+                    if (*s == ' ') {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+ruleset test32
+{
+    OnInsert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        // Testing braceless delcarative statement inside while.
+        while (*s++)
+            max_temp += 1;
+    }
+}
