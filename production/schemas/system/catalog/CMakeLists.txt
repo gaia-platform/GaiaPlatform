@@ -9,7 +9,7 @@ project(catalog_schema)
 string(RANDOM GAIAC_CATALOG_INSTANCE_NAME)
 
 # We use a custom command to generate catalog EDC code because process_schema_internal()
-# creates dependencies on the generated code which causes this target to be automatically
+# creates dependencies on the generated code which would causes this target to be automatically
 # called.
 add_custom_command(
     COMMENT "Generating EDC code for database catalog..."
