@@ -365,7 +365,6 @@ ruleset test36
 }
 
 // GAIAPLAT-945
-#ifdef TEST_FAILURES
 ruleset test37
 {
     OnUpdate(min_temp)
@@ -373,4 +372,3 @@ ruleset test37
         sensor.value += sensor.incubator->incubator.min_temp;
     }
 }
-#endif

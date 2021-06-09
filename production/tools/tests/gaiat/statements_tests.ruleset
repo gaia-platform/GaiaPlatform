@@ -488,7 +488,7 @@ ruleset test31
     {
         const char* s = "just a string";
         int i = 0;
-        // Testing while/declarative-while/while/if nesting.$>%$<<$%<<%
+        // Testing while/declarative-while/while/if nesting.
         while (*s++) {
             while (/incubator.max_temp > 0) {
                 while(*s++) {
