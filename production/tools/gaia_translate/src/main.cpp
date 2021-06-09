@@ -546,12 +546,16 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
             {
+                string variable_name = variable_declaration_range_iterator.second;
+                if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
+                {
+                    cerr << "Local variable declaration '" << variable_name
+                        << "' hides a tag of the same name." << endl;
+                }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
                 {
-                    string variable_name = variable_declaration_range_iterator.second;
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
-                        || g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
                         cerr << "Local variable declaration '" << variable_name
@@ -2278,6 +2282,10 @@ class variable_declaration_match_handler_t : public MatchFinder::MatchCallback
 public:
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         validate_table_data();
         const auto* variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
         const auto* variable_declaration_init = result.Nodes.getNodeAs<VarDecl>("varDeclarationInit");
@@ -2290,11 +2298,6 @@ public:
             const auto variable_name = variable_declaration->getNameAsString();
             if (variable_name != "")
             {
-                if (g_is_generation_error)
-                {
-                    return;
-                }
-
                 g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
 
                 if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
