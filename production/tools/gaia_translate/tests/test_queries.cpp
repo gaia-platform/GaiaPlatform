@@ -504,7 +504,7 @@ TEST_F(test_queries_code, if_stmt3)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 }
 
-TEST_F(test_queries_code, DISABLED_while_stmt)
+TEST_F(test_queries_code, while_stmt)
 {
     populate_db();
 
