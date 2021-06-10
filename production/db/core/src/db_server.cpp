@@ -1236,6 +1236,7 @@ void server_t::stream_producer_handler(
 
     epoll_event events[2];
     bool producer_shutdown = false;
+    bool closed_write_socket = false;
 
     // The userspace buffer that we use to construct a batch datagram message.
     std::vector<T_element> batch_buffer;
@@ -1291,6 +1292,10 @@ void server_t::stream_producer_handler(
                 }
                 else if (ev.events & EPOLLOUT)
                 {
+                    ASSERT_INVARIANT(
+                        !closed_write_socket,
+                        "Socket still writable after calling shutdown(SHUT_WR)!");
+
                     ASSERT_INVARIANT(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
@@ -1350,6 +1355,25 @@ void server_t::stream_producer_handler(
                     if (!gen_iter)
                     {
                         ::shutdown(stream_socket, SHUT_WR);
+                        // Unintuitively, after we call shutdown(SHUT_WR), the
+                        // socket is always writable, because a write will never
+                        // block, but any write will return EPIPE. Therefore, we
+                        // unregister the socket for writable notifications
+                        // after we call shutdown(SHUT_WR). We should now only
+                        // be notified (with EPOLLHUP/EPOLLERR) when the client
+                        // closes the socket, so we can close our end of the
+                        // socket and terminate the thread.
+                        closed_write_socket = true;
+                        epoll_event ev = {0};
+                        // We're only interested in EPOLLHUP/EPOLLERR
+                        // notifications, and we don't need to register for
+                        // those.
+                        ev.events = 0;
+                        ev.data.fd = stream_socket;
+                        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_MOD, stream_socket, &ev))
+                        {
+                            throw_system_error(c_message_epoll_ctl_failed);
+                        }
                     }
                 }
                 else
