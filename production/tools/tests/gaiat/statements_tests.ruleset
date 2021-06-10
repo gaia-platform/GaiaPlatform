@@ -512,3 +512,42 @@ ruleset test32
             max_temp += 1;
     }
 }
+
+#ifdef TEST_FAILURE
+ruleset test33
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+#endif
+
+ruleset test34
+{
+    {
+        int total_acres;
+        if (/@F:farmer.acreage > 10)
+        {
+            total_acres = 10;
+        }
+        else if (/farmer.acreage < 5)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres = F.acreage;
+        }
+        nomatch
+        {
+            // This nomatch is for the inner 'if' so F is in scope
+            total_acres = F.acreage;
+        }
+    }
+}
