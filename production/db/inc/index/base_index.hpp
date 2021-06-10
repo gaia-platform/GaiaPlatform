@@ -76,7 +76,7 @@ public:
     bool operator==(const base_index_t& other) const;
 
     virtual void clear() = 0;
-    virtual std::unique_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
+    virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
 
 private:
     gaia::common::gaia_id_t m_index_id;

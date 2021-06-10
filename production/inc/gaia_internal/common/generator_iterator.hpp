@@ -91,9 +91,16 @@ public:
         return m_state.value();
     }
 
-    T_output& operator->()
+    T_output* operator->()
     {
-        return m_state.value();
+        if (m_state.has_value())
+        {
+            return &m_state.value();
+        }
+        else
+        {
+            return nullptr;
+        }
     }
 
     // const versions of the above
@@ -102,9 +109,16 @@ public:
         return m_state.value();
     }
 
-    const T_output& operator->() const
+    const T_output* operator->() const
     {
-        return m_state.value();
+        if (m_state.has_value())
+        {
+            return &m_state.value();
+        }
+        else
+        {
+            return nullptr;
+        }
     }
 
     // Advance to the next valid state.
