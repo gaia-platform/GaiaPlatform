@@ -252,8 +252,8 @@ void edc_base_t::set_record(common::gaia_id_t new_id)
 //
 // edc_base_reference_t implementation
 //
-edc_base_reference_t::edc_base_reference_t(gaia_id_t parent, reference_offset_t child_offset, edc_base_t& child_reference)
-    : m_parent_id(parent), m_child_offset(child_offset), m_child_reference(child_reference)
+edc_base_reference_t::edc_base_reference_t(gaia_id_t parent, reference_offset_t child_offset)
+    : m_parent_id(parent), m_child_offset(child_offset)
 {
 }
 
@@ -265,7 +265,6 @@ bool edc_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new
     }
     edc_base_reference_t::disconnect(old_id);
     edc_db_t::insert_child_reference(m_parent_id, new_id, m_child_offset);
-    m_child_reference.set_record(new_id);
     return true;
 }
 
@@ -276,7 +275,6 @@ bool edc_base_reference_t::disconnect(gaia_id_t id)
         return false;
     }
     edc_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
-    m_child_reference.set_record(c_invalid_gaia_id);
     return true;
 }
 
