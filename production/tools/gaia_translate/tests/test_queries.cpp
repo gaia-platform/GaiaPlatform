@@ -268,7 +268,7 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-TEST_F(test_queries_code, new_registration)
+TEST_F(test_queries_code, DISABLED_new_registration)
 {
     const int num_inserts = 4;
 
@@ -527,7 +527,7 @@ TEST_F(test_queries_code, while_stmt)
     EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
-    EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg002cou002 stu001reg001cou004 stu001reg001cou002 ") << "Incorrect result";
+    EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg001cou002 ") << "Incorrect result";
 }
 
 TEST_F(test_queries_code, nomatch_stmt)

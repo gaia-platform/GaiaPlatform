@@ -160,9 +160,3 @@ ruleset test12
         }
     }
 }
-
-// GAIAPLAT-946
-// Leave this at the end of the file.
-#ifdef TEST_FAILURES
-ruleset gen_infinite_loop
-#endif

@@ -43,7 +43,7 @@ endif()
 
 # Default compiler/linker flags.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
-set(GAIA_LINK_FLAGS "-pthread")
+set(GAIA_LINK_FLAGS " ")
 
 # This is just for the RocksDB build.
 set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
@@ -96,6 +96,11 @@ set(GAIA_GENERATED_CODE "${GAIA_PROD_BUILD}/gaia_generated")
 
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
+
+# We need pthreads support.
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
 
 message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)

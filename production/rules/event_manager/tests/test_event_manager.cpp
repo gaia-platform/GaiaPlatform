@@ -142,7 +142,7 @@ public:
     }
 
     explicit test_gaia_t(gaia_id_t record)
-        : edc_base_t("test_gaia_t"), m_id(record)
+        : edc_base_t(), m_id(record)
     {
     }
 
@@ -173,7 +173,7 @@ public:
     }
 
     explicit test_gaia_other_t(gaia_id_t record)
-        : edc_base_t("test_gaia_other_t"), m_id(record)
+        : edc_base_t(), m_id(record)
     {
     }
 
