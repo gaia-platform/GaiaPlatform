@@ -2179,6 +2179,7 @@ DEF_TRAVERSE_STMT(ObjCAtThrowStmt, {})
 DEF_TRAVERSE_STMT(ObjCAtTryStmt, {})
 DEF_TRAVERSE_STMT(ObjCForCollectionStmt, {})
 DEF_TRAVERSE_STMT(ObjCAutoreleasePoolStmt, {})
+DEF_TRAVERSE_STMT(GaiaForStmt, {})
 
 DEF_TRAVERSE_STMT(CXXForRangeStmt, {
   if (!getDerived().shouldVisitImplicitCode()) {
