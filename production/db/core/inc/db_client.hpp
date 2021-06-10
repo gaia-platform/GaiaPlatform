@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/mmap_helpers.hpp"
