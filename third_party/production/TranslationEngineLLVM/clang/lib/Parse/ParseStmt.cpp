@@ -1663,6 +1663,9 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   bool C99orCXXorObjC = getLangOpts().C99 || getLangOpts().CPlusPlus ||
     getLangOpts().ObjC;
+  bool isGaia = getLangOpts().Gaia && getCurScope()->isInRulesetScope();
+  bool isExplicitPath = false;
+  ExprResult explicitNavigationExpression;
 
   // C99 6.8.5p5 - In C99, the for statement is a block.  This is not
   // the case for C90.  Start the loop scope.
@@ -1713,7 +1716,44 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   // Parse the first part of the for specifier.
   {
     ExtendedExplicitPathScopeMonitor monitor(Actions);
-    if (Tok.is(tok::semi)) {  // for (;
+
+    if (isGaia && Tok.isOneOf(tok::slash, tok::at, tok::identifier))
+    {
+      RevertingTentativeParsingAction PA(*this);
+      if (Tok.isOneOf(tok::slash, tok::at))
+      {
+        isExplicitPath = true;
+        ConsumeToken();
+      }
+      // Check for /@
+      if (Tok.is(tok::at))
+      {
+        isExplicitPath = true;
+        ConsumeToken();
+      }
+      while (Tok.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
+      {
+        ConsumeToken();
+      }
+      if(Tok.is(tok::r_paren))
+      {
+        isExplicitPath = true;
+      }
+      else
+      {
+        isExplicitPath = false;
+      }
+    }
+    if (isExplicitPath)
+    {
+      explicitNavigationExpression = ParseExpression();
+      if (explicitNavigationExpression.get() == nullptr)
+      {
+        cutOffParsing();
+        return StmtError();
+      }
+    }
+    else if (Tok.is(tok::semi)) {  // for (;
       ProhibitAttributes(attrs);
       // no first part, eat the ';'.
       SourceLocation SemiLoc = Tok.getLocation();
@@ -1826,7 +1866,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     // Parse the second part of the for specifier.
     getCurScope()->AddFlags(Scope::BreakScope | Scope::ContinueScope);
     if (!ForEach && !ForRangeInfo.ParsedForRangeDecl() &&
-      !SecondPart.isInvalid()) {
+      !SecondPart.isInvalid() && !explicitNavigationExpression.get()) {
       // Parse the second part of the for specifier.
       if (Tok.is(tok::semi)) {  // for (...;;
         // no second part.
@@ -1869,7 +1909,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     }
 
     // Parse the third part of the for statement.
-    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl()) {
+    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl()&& !explicitNavigationExpression.get()) {
       if (Tok.isNot(tok::semi)) {
         if (!SecondPart.isInvalid())
           Diag(Tok, diag::err_expected_semi_for);
@@ -1968,6 +2008,12 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   if (ForRangeInfo.ParsedForRangeDecl())
     return Actions.FinishCXXForRangeStmt(ForRangeStmt.get(), Body.get());
+
+  if(explicitNavigationExpression.get())
+  {
+    return Actions.ActOnGaiaForStmt(ForLoc, T.getOpenLocation(),
+      explicitNavigationExpression.get(), T.getCloseLocation(), Body.get());
+  }
 
   return Actions.ActOnForStmt(ForLoc, T.getOpenLocation(), FirstPart.get(),
                               SecondPart, ThirdPart, T.getCloseLocation(),

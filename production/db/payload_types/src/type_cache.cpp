@@ -5,6 +5,8 @@
 
 #include "type_cache.hpp"
 
+#include <mutex>
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;

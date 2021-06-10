@@ -2342,6 +2342,49 @@ public:
   }
 };
 
+/// GaiaForStmt - This represents a 'for (path)' stmt.
+class GaiaForStmt : public Stmt {
+  enum { PATH, BODY, END_EXPR };
+  Stmt* SubExprs[END_EXPR]; // SubExprs[INIT] is an expression or declstmt.
+  SourceLocation LParenLoc, RParenLoc, GaiaForLoc;
+
+public:
+  GaiaForStmt(const ASTContext &C, Stmt *Path, Stmt *Body, SourceLocation FL, SourceLocation LP,
+          SourceLocation RP);
+
+  /// Build an empty for statement.
+  explicit GaiaForStmt(EmptyShell Empty) : Stmt(GaiaForStmtClass, Empty) {}
+
+  Stmt *getPath() { return SubExprs[PATH]; }
+
+  Stmt *getBody() { return SubExprs[BODY]; }
+
+  const Stmt *getPath() const { return SubExprs[PATH]; }
+  const Stmt *getBody() const { return SubExprs[BODY]; }
+
+  void setPath(Stmt *S) { SubExprs[PATH] = S; }
+  void setBody(Stmt *S) { SubExprs[BODY] = S; }
+
+  SourceLocation getForLoc() const { return GaiaForLoc; }
+  void setForLoc(SourceLocation L) { GaiaForLoc = L; }
+  SourceLocation getLParenLoc() const { return LParenLoc; }
+  void setLParenLoc(SourceLocation L) { LParenLoc = L; }
+  SourceLocation getRParenLoc() const { return RParenLoc; }
+  void setRParenLoc(SourceLocation L) { RParenLoc = L; }
+
+  SourceLocation getBeginLoc() const { return getForLoc(); }
+  SourceLocation getEndLoc() const { return getBody()->getEndLoc(); }
+
+  static bool classof(const Stmt *T) {
+    return T->getStmtClass() == GaiaForStmtClass;
+  }
+
+  // Iterators
+  child_range children() {
+    return child_range(&SubExprs[0], &SubExprs[0]+END_EXPR);
+  }
+};
+
 /// GotoStmt - This represents a direct goto.
 class GotoStmt : public Stmt {
   LabelDecl *Label;

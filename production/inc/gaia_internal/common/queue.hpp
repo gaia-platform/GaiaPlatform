@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <atomic>
+#include <mutex>
 #include <shared_mutex>
 
 #include "gaia_internal/common/retail_assert.hpp"

@@ -1335,6 +1335,15 @@ void ASTStmtReader::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
   S->setBody(Record.readSubStmt());
 }
 
+void ASTStmtReader::VisitGaiaForStmt(GaiaForStmt *S) {
+  VisitStmt(S);
+  S->setForLoc(ReadSourceLocation());
+  S->setLParenLoc(ReadSourceLocation());
+  S->setRParenLoc(ReadSourceLocation()) ;
+  S->setPath(Record.readSubStmt());
+  S->setBody(Record.readSubStmt());
+}
+
 void ASTStmtReader::VisitMSDependentExistsStmt(MSDependentExistsStmt *S) {
   VisitStmt(S);
   S->KeywordLoc = ReadSourceLocation();
@@ -2814,6 +2823,10 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
 
     case STMT_CXX_FOR_RANGE:
       S = new (Context) CXXForRangeStmt(Empty);
+      break;
+
+    case STMT_GAIA_FOR_STMT:
+      S = new (Context) GaiaForStmt(Empty);
       break;
 
     case STMT_MS_DEPENDENT_EXISTS:
