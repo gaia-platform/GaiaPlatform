@@ -1236,7 +1236,7 @@ void server_t::stream_producer_handler(
 
     epoll_event events[2];
     bool producer_shutdown = false;
-    bool closed_write_socket = false;
+    bool disabled_writable_notification = false;
 
     // The userspace buffer that we use to construct a batch datagram message.
     std::vector<T_element> batch_buffer;
@@ -1293,8 +1293,8 @@ void server_t::stream_producer_handler(
                 else if (ev.events & EPOLLOUT)
                 {
                     ASSERT_INVARIANT(
-                        !closed_write_socket,
-                        "Socket still writable after calling shutdown(SHUT_WR)!");
+                        !disabled_writable_notification,
+                        "Received write readiness notification on socket after deregistering from EPOLLOUT!");
 
                     ASSERT_INVARIANT(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
@@ -1363,7 +1363,6 @@ void server_t::stream_producer_handler(
                         // be notified (with EPOLLHUP/EPOLLERR) when the client
                         // closes the socket, so we can close our end of the
                         // socket and terminate the thread.
-                        closed_write_socket = true;
                         epoll_event ev = {0};
                         // We're only interested in EPOLLHUP/EPOLLERR
                         // notifications, and we don't need to register for
@@ -1374,6 +1373,7 @@ void server_t::stream_producer_handler(
                         {
                             throw_system_error(c_message_epoll_ctl_failed);
                         }
+                        disabled_writable_notification = true;
                     }
                 }
                 else
