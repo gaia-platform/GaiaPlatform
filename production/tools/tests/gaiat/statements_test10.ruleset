@@ -1,0 +1,27 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test35
+{
+    {
+        int total_acres;
+        if (/@F:farmer.acreage > 10)
+        {
+            total_acres = 10;
+        }
+        else if (Y:yield.bushels < 5)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres = Y.bushels / 20;
+        }
+        nomatch
+        {
+            // This nomatch is for the inner 'if' so Y is not in scope.
+            total_acres = Y.bushels / 5;
+        }
+    }
+}
+
+// CHECK: use of undeclared identifier 'Y'

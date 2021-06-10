@@ -301,10 +301,10 @@ ruleset test_query_4
 
 ruleset test_query_5
 {
-    OnUpdate(student)
+    OnUpdate(S:student)
     {
 // GAIAPLAT-989
-        while (S:student->R:registration->C:course.hours > 0)
+        while (student->R:registration->C:course.hours > 0)
         {
             g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
         }
@@ -353,5 +353,57 @@ ruleset test_query_6
         }
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
+    }
+}
+
+ruleset test_query_7
+{
+    OnInsert(registration)
+    {
+        if (student.total_hours == 0)
+        {
+            g_string_value = std::string("found total_hours == 0");
+        }
+        // Note that the registration is not connected to a course.
+        else if (course.hours > 0)
+        {
+            g_string_value = std::string("found hours > 0");
+        }
+        else
+        {
+            g_string_value = std::string("didn't find hours > 0");
+        }
+        nomatch
+        {
+            g_string_value = std::string("correct nomatch");
+        }
+        nomatch
+        {
+            g_string_value = std::string("incorrect nomatch");
+        }
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+ruleset test_query_8
+{
+    OnInsert(student)
+    {
+        // This student will have no registrations. The nomatch should execute.
+        if (strcmp(student->registration.grade, "F") == 0)
+        {
+            g_string_value = std::string("found grade 'F' > 0");
+        }
+        else
+        {
+            g_string_value = std::string("found grade != 'F'");
+        }
+        nomatch
+        {
+            g_string_value = std::string("nomatch success");
+        }
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
     }
 }
