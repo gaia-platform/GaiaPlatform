@@ -592,6 +592,7 @@ StmtResult Sema::BuildIfStmt(SourceLocation IfLoc, bool IsConstexpr,
 
   DiagnoseUnusedExprResult(thenStmt);
   DiagnoseUnusedExprResult(elseStmt);
+  DiagnoseUnusedExprResult(NoMatchStmt);
 
   return IfStmt::Create(Context, IfLoc, IsConstexpr, InitStmt, Cond.get().first,
                         Cond.get().second, thenStmt, ElseLoc, elseStmt, NoMatchLoc, NoMatchStmt);

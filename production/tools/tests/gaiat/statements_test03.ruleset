@@ -1,0 +1,11 @@
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    OnInsert(feeding)
+    {
+        portion = 3.5;
+    }
+}
+
+// CHECK: implicit conversion from 'double' to 'unsigned int' changes value from 3.5 to 3

@@ -53,20 +53,6 @@ protected:
     }
 };
 
-int count_addresses(const employee_t& e)
-{
-    int count = 0;
-    for (auto const& ap : e.addresses())
-    {
-        if (ap)
-        {
-            count++;
-        }
-    }
-
-    return count;
-}
-
 employee_t insert_records(size_t count)
 {
     employee_writer employee_writer;
@@ -103,7 +89,7 @@ TEST_F(gaia_references_test, connect)
 
     e3.addresses().insert(a3);
 
-    EXPECT_EQ(count_addresses(e3), 1);
+    EXPECT_EQ(e3.addresses().size(), 1);
 
     e3.addresses().remove(a3);
     a3.delete_row();

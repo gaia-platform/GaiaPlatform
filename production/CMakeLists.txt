@@ -23,8 +23,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
-include(gaia_build)
-include(gaia)
+include(gaia_internal)
 include(GoogleTest)
 
 # Specify the C++ standard.
@@ -33,9 +32,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Ensure debug builds have the DEBUG flag defined.
 add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
-
-# Use the LLVM linker rather than GNU ld (required for UBSan).
-add_link_options("-fuse-ld=lld")
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -46,7 +42,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Default compiler/linker flags.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
 
 # This is just for the RocksDB build.
@@ -59,12 +55,11 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  set(LLVM_USE_LINKER "lld" CACHE STRING "")
 endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -ftime-trace")
 
   if(ENABLE_ASAN)
     set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
@@ -97,7 +92,7 @@ set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
-set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
+set(GAIA_GENERATED_CODE "${GAIA_PROD_BUILD}/gaia_generated")
 
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")

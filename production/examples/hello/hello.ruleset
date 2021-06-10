@@ -17,8 +17,7 @@ ruleset hello_ruleset
     OnInsert(names)
     {
         // Form the greeting using the name.
-        string new_greeting;
-        new_greeting = "Hello " + string(names.name) + "!";
+        string new_greeting = "Hello " + string(names.name) + "!";
 
         // Insert the greeting.
         gaia::hello::greetings_t::insert_row(new_greeting.c_str());

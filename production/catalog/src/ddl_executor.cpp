@@ -146,21 +146,21 @@ void ddl_executor_t::bootstrap_catalog()
             c_catalog_db_name, "gaia_relationship",
             fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
         // create relationship gaia_catalog_relationship_parent (
-        //     catalog.gaia_table.gaia_relatinships_parent -> catalog.gaia_relationship,
+        //     catalog.gaia_table.outgoing_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.parent -> catalog.gaia_table
         // );
         create_relationship(
             "gaia_catalog_relationship_parent",
-            {c_catalog_db_name, "gaia_table", "gaia_relationships_parent", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {c_catalog_db_name, "gaia_table", "outgoing_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "parent", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
         // create relationship gaia_catalog_relationship_child (
-        //     catalog.gaia_table.gaia_relatinships_child -> catalog.gaia_relationship,
+        //     catalog.gaia_table.incoming_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.child -> catalog.gaia_table
         // );
         create_relationship(
             "gaia_catalog_relationship_child",
-            {c_catalog_db_name, "gaia_table", "gaia_relationships_child", "catalog", "gaia_relationship", relationship_cardinality_t::one},
+            {c_catalog_db_name, "gaia_table", "incoming_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "child", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
     }
@@ -407,8 +407,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     bool is_parent_required = false;
     bool is_deprecated = false;
 
-    gaia_id_t relationship_id = c_invalid_gaia_id;
-    relationship_id = gaia_relationship_t::insert_row(
+    gaia_id_t relationship_id = gaia_relationship_t::insert_row(
         name.c_str(),
         to_parent_link_name,
         to_child_link_name,
@@ -419,8 +418,8 @@ gaia_id_t ddl_executor_t::create_relationship(
         next_child_offset,
         parent_offset);
 
-    gaia_table_t::get(parent_table_id).gaia_relationships_parent().insert(relationship_id);
-    gaia_table_t::get(child_table_id).gaia_relationships_child().insert(relationship_id);
+    gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
+    gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
 
     txn.commit();
 
@@ -433,7 +432,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     if (relationship.parent())
     {
         relationship.parent()
-            .gaia_relationships_parent()
+            .outgoing_relationships()
             .remove(relationship);
     }
 
@@ -441,7 +440,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     if (relationship.child())
     {
         relationship.child()
-            .gaia_relationships_child()
+            .incoming_relationships()
             .remove(relationship);
     }
 
@@ -506,7 +505,7 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
 
             // Unlink the child side of the relationship.
             relationship.child()
-                .gaia_relationships_child()
+                .incoming_relationships()
                 .remove(relationship);
         }
         else
@@ -620,7 +619,7 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
     }
 }
 
-reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::gaia_relationships_parent_list_t& relationships)
+reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::outgoing_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -642,7 +641,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     return next_available_offset;
 }
 
-reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::gaia_relationships_child_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::incoming_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -668,8 +667,8 @@ reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t
 {
     gaia_table_t table = gaia_table_t::get(table_id);
     return std::max(
-        find_child_available_offset(table.gaia_relationships_child()),
-        find_parent_available_offset(table.gaia_relationships_parent()));
+        find_child_available_offset(table.incoming_relationships()),
+        find_parent_available_offset(table.outgoing_relationships()));
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(

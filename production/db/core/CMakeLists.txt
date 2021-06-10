@@ -93,7 +93,7 @@ target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_db_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -225,7 +225,7 @@ add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TE
 add_gtest(test_multiple_server_instances
     tests/test_multiple_server_instances.cpp
     "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
-    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt" "generate_addr_book_headers")
+    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;edc_addr_book")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

@@ -49,12 +49,13 @@ std::string g_current_ruleset;
 bool g_is_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
-const int c_declaration_to_ruleset_offset = -2;
+constexpr int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
+constexpr char c_if_stmt[] = "if";
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -74,13 +75,6 @@ struct hash<SourceRange>
     }
 };
 } // namespace std
-
-bool compare_source_range(SourceRange x, SourceRange y)
-{
-    return x.getEnd().getRawEncoding() - x.getBegin().getRawEncoding() <
-        y.getEnd().getRawEncoding() - y.getBegin().getRawEncoding();
-}
-
 
 unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
 
@@ -107,6 +101,9 @@ struct rewriter_history_t
 
 vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
+unordered_map<SourceRange, string> g_variable_declaration_location;
+unordered_set<SourceRange> g_variable_declaration_init_location;
+unordered_map<SourceRange, SourceLocation> g_nomatch_location_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -115,6 +112,50 @@ static const char c_ident[] = "    ";
 static void print_version(raw_ostream& stream)
 {
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+}
+
+SourceRange get_statement_source_range(const Stmt* expression, const SourceManager& source_manager, const LangOptions& options)
+{
+    if (expression == nullptr)
+    {
+        return SourceRange();
+    }
+    SourceRange return_value = expression->getSourceRange();
+    if (dyn_cast<CompoundStmt>(expression) == nullptr)
+    {
+        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(),
+                tok::semi, source_manager, options, true);
+        if (end_location.isValid())
+        {
+            return_value.setEnd(end_location.getLocWithOffset(-1));
+        }
+    }
+    return return_value;
+}
+
+SourceRange get_if_statement_source_range(const IfStmt* expression, const SourceManager& source_manager, const LangOptions& options)
+{
+    if (expression == nullptr)
+    {
+        return SourceRange();
+    }
+    SourceRange return_value = expression->getSourceRange();
+    SourceRange nomatch_source_range = get_statement_source_range(expression->getNoMatch(), source_manager, options);
+    SourceRange else_source_range = get_statement_source_range(expression->getElse(), source_manager, options);
+    SourceRange then_source_range = get_statement_source_range(expression->getThen(), source_manager, options);
+    if (nomatch_source_range.isValid())
+    {
+        return_value.setEnd(nomatch_source_range.getEnd());
+    }
+    else if (else_source_range.isValid())
+    {
+        return_value.setEnd(else_source_range.getEnd());
+    }
+    else
+    {
+        return_value.setEnd(then_source_range.getEnd());
+    }
+    return return_value;
 }
 
 void get_variable_name(string& variable_name, string& table_name, explicit_path_data_t& explicit_path_data)
@@ -181,9 +222,47 @@ string get_table_from_expression(const string& expression)
     }
 }
 
-bool is_path_segment_contained_in_another_path(const vector<explicit_path_data_t>& path, const explicit_path_data_t& path_segment)
+bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
+{
+    for (const auto& defined_tag_iterator : tag_map)
+    {
+        if (defined_tag_iterator.second == tag)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+{
+    string first_table = get_table_from_expression(path_segment.path_components.front());
+    for (auto& path_iterator : path)
+    {
+        if (is_tag_defined(path_iterator.defined_tags, first_table))
+        {
+            path_segment.skip_implicit_path_generation = true;
+            path.insert(path.begin(), path_segment);
+            return true;
+        }
+        if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
+        {
+            path_iterator.skip_implicit_path_generation = true;
+        }
+    }
+    return false;
+}
+
+bool is_path_segment_contained_in_another_path(
+    const vector<explicit_path_data_t>& path,
+    const explicit_path_data_t& path_segment)
 {
     unordered_set<string> tag_container, table_container;
+
+    if (!path_segment.defined_tags.empty())
+    {
+        return false;
+    }
 
     for (const auto& path_iterator : path)
     {
@@ -422,7 +501,163 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-void generate_table_subscription(const string& table, const string& field_subscription_code, int rule_count, bool subscribe_update, unordered_map<uint32_t, string>& rule_line_numbers, Rewriter& rewriter)
+string get_table_name(const string& table, const unordered_map<string, string>& tag_map)
+{
+    auto tag_iterator = tag_map.find(table);
+    if (tag_iterator == tag_map.end())
+    {
+        tag_iterator = g_attribute_tag_map.find(table);
+        if (tag_iterator != g_attribute_tag_map.end())
+        {
+            return tag_iterator->second;
+        }
+    }
+    else
+    {
+        return tag_iterator->second;
+    }
+
+    return table;
+}
+
+void generate_navigation(const string& anchor_table, Rewriter& rewriter)
+{
+    if (g_is_generation_error)
+    {
+        return;
+    }
+
+    for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
+    {
+        for (const auto& data_iterator : explicit_path_data_iterator.second)
+        {
+            string anchor_table_name = get_table_name(
+                get_table_from_expression(anchor_table), data_iterator.tag_table_map);
+            SourceRange nomatch_range;
+            for (const auto& nomatch_source_range : g_nomatch_location)
+            {
+                if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
+                {
+                    nomatch_range = nomatch_source_range;
+                    break;
+                }
+            }
+
+            SourceRange variable_declaration_range;
+            for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
+            {
+                if (is_range_contained_in_another_range(
+                        explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
+                {
+                    string variable_name = variable_declaration_range_iterator.second;
+                    if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
+                        || g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end()
+                        || is_tag_defined(data_iterator.defined_tags, variable_name))
+                    {
+                        cerr << "Local variable declaration '" << variable_name
+                             << "' hides a tag of the same name." << endl;
+                    }
+
+                    if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
+                        != g_variable_declaration_init_location.end())
+                    {
+                        string table_name = get_table_name(
+                            get_table_from_expression(
+                                data_iterator.path_components.front()),
+                            data_iterator.tag_table_map);
+
+                        if (data_iterator.path_components.size() == 1
+                            && table_name == anchor_table_name && !data_iterator.is_absolute_path)
+                        {
+                            auto declaration_source_range_size =
+                                variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size =
+                                variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
+                            if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
+                            {
+                                variable_declaration_range = variable_declaration_range_iterator.first;
+                            }
+                        }
+                        else
+                        {
+                            cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                            g_is_generation_error = true;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (variable_declaration_range.isValid())
+            {
+                string declaration_code = rewriter.getRewrittenText(variable_declaration_range);
+                if (!declaration_code.empty())
+                {
+                    size_t start_position = declaration_code.find(data_iterator.variable_name);
+                    if (start_position != std::string::npos)
+                    {
+                        const auto& table_data = table_navigation_t::get_table_data();
+                        auto anchor_table_data_itr = table_data.find(anchor_table_name);
+
+                        if (anchor_table_data_itr == table_data.end())
+                        {
+                            return;
+                        }
+
+                        string replacement_code
+                            = string("gaia::")
+                                  .append(anchor_table_data_itr->second.db_name)
+                                  .append("::")
+                                  .append(anchor_table_name)
+                                  .append("_t::get(context->record)");
+
+                        declaration_code.replace(start_position, data_iterator.variable_name.length(), replacement_code);
+                        rewriter.ReplaceText(variable_declaration_range, declaration_code);
+                        continue;
+                    }
+                }
+            }
+
+            navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
+                anchor_table, data_iterator);
+            if (navigation_code.prefix.empty())
+            {
+                g_is_generation_error = true;
+                return;
+            }
+
+            if (nomatch_range.isValid())
+            {
+                string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
+                rewriter.InsertTextBefore(
+                    explicit_path_data_iterator.first.getBegin(),
+                    nomatch_prefix + navigation_code.prefix);
+                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                rewriter.ReplaceText(
+                    SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
+                        navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+            }
+            else
+            {
+                rewriter.InsertTextBefore(
+                    explicit_path_data_iterator.first.getBegin(),
+                    navigation_code.prefix);
+                rewriter.InsertTextAfter(
+                    explicit_path_data_iterator.first.getEnd(),
+                    navigation_code.postfix);
+            }
+        }
+    }
+}
+
+void generate_table_subscription(
+    const string& table,
+    const string& field_subscription_code,
+    int rule_count,
+    bool subscribe_update,
+    unordered_map<uint32_t, string>& rule_line_numbers,
+    Rewriter& rewriter)
 {
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
@@ -488,11 +723,13 @@ void generate_table_subscription(const string& table, const string& field_subscr
             .append(table);
         if (subscribe_update)
         {
-            g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append(
+                "_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
         }
         else
         {
-            g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+            g_current_ruleset_subscription.append(
+                "_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         }
         g_current_ruleset_subscription
             .append(rule_name)
@@ -537,9 +774,9 @@ void generate_table_subscription(const string& table, const string& field_subscr
     }
 
     string function_prologue = string("\n")
-        .append(c_nolint_identifier_naming)
-        .append("\nvoid ")
-        .append(rule_name);
+                                   .append(c_nolint_identifier_naming)
+                                   .append("\nvoid ")
+                                   .append(rule_name);
     bool is_absoute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
@@ -570,7 +807,9 @@ void generate_table_subscription(const string& table, const string& field_subscr
     {
         if (g_is_rule_context_rule_name_referenced)
         {
-            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+            rewriter.InsertTextAfterToken(
+                g_current_rule_declaration->getLocation(),
+                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
         }
         if (g_rule_attribute_source_range.isValid())
         {
@@ -581,26 +820,7 @@ void generate_table_subscription(const string& table, const string& field_subscr
             rewriter.InsertText(g_current_rule_declaration->getLocation(), function_prologue);
         }
 
-        for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
-        {
-            for (const auto& data_iterator : explicit_path_data_iterator.second)
-            {
-                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                    table, data_iterator);
-                if (navigation_code.prefix.empty())
-                {
-                    g_is_generation_error = true;
-                    return;
-                }
-
-                rewriter.InsertTextBefore(
-                    explicit_path_data_iterator.first.getBegin(),
-                    navigation_code.prefix);
-                rewriter.InsertTextAfter(
-                    explicit_path_data_iterator.first.getEnd(),
-                    navigation_code.postfix);
-            }
-        }
+        generate_navigation(table, rewriter);
     }
     else
     {
@@ -622,37 +842,25 @@ void generate_table_subscription(const string& table, const string& field_subscr
         }
         if (g_is_rule_context_rule_name_referenced)
         {
-            copy_rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+            copy_rewriter.InsertTextAfterToken(
+                g_current_rule_declaration->getLocation(),
+                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
         }
 
-        for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
-        {
-            for (const auto& data_iterator : explicit_path_data_iterator.second)
-            {
-                navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                    table, data_iterator);
-                if (navigation_code.prefix.empty())
-                {
-                    g_is_generation_error = true;
-                    return;
-                }
-                copy_rewriter.InsertTextBefore(
-                    explicit_path_data_iterator.first.getBegin(),
-                    navigation_code.prefix);
-                copy_rewriter.InsertTextAfter(
-                    explicit_path_data_iterator.first.getEnd(),
-                    navigation_code.postfix);
-            }
-        }
+        generate_navigation(table, copy_rewriter);
 
         if (g_rule_attribute_source_range.isValid())
         {
             copy_rewriter.RemoveText(g_rule_attribute_source_range);
-            rewriter.InsertTextBefore(g_rule_attribute_source_range.getBegin(), function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
+            rewriter.InsertTextBefore(
+                g_rule_attribute_source_range.getBegin(),
+                function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
         }
         else
         {
-            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
+            rewriter.InsertTextBefore(
+                g_current_rule_declaration->getLocation(),
+                function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
         }
     }
 }
@@ -797,81 +1005,6 @@ void generate_rules(Rewriter& rewriter)
     }
 }
 
-bool check_call_expression(ASTContext* context, const Stmt& node)
-{
-    auto node_parents = context->getParents(node);
-    for (const auto& node_parents_iterator : node_parents)
-    {
-        if (node_parents_iterator.get<CompoundStmt>())
-        {
-            return false;
-        }
-        else if (node_parents_iterator.get<FunctionDecl>())
-        {
-            return false;
-        }
-        else if (const auto* expression = node_parents_iterator.get<IfStmt>())
-        {
-            if (expression->getCond() == &node || expression->getConditionVariableDeclStmt() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
-        {
-            return true;
-        }
-        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
-        {
-            if (expression->getCond() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
-        {
-            if (expression->getCond() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
-        {
-            if (expression->getCond() == &node || expression->getInc() == &node)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (const auto* expression = node_parents_iterator.get<Stmt>())
-        {
-            return check_call_expression(context, *expression);
-        }
-    }
-    return false;
-}
-
-bool check_decl_expression(ASTContext* context, const Decl& node)
-{
-    auto node_parents = context->getParents(node);
-    return check_call_expression(context, *(node_parents[0].get<DeclStmt>()));
-}
-
 void update_expression_location(SourceRange& source, SourceLocation start, SourceLocation end)
 {
     if (source.isInvalid())
@@ -892,7 +1025,7 @@ void update_expression_location(SourceRange& source, SourceLocation start, Sourc
     }
 }
 
-SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, const SourceRange& source_range, Rewriter& rewriter)
+SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, const SourceRange& source_range, Rewriter& rewriter)
 {
     SourceRange return_value(source_range.getBegin(), source_range.getEnd());
     if (g_is_generation_error)
@@ -955,19 +1088,16 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
         {
             auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
             update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
-            if (check_call_expression(context, *expression))
-            {
-                return get_expression_source_range(context, *expression, return_value, rewriter);
-            }
-            else
-            {
-                return return_value;
-            }
+            return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                SourceRange if_source_range = get_if_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+                update_expression_location(return_value, if_source_range.getBegin(), if_source_range.getEnd());
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<SwitchStmt>())
@@ -978,39 +1108,54 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
         }
         else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                auto offset
+                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(
+                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            {
+                auto offset
+                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(
+                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(expression->getInit()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(expression->getInc()->getSourceRange(), return_value)
+                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())
+                || is_range_contained_in_another_range(return_value, expression->getInit()->getSourceRange())
+                || is_range_contained_in_another_range(return_value, expression->getInc()->getSourceRange()))
+            {
+                auto offset
+                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                update_expression_location(
+                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            }
             return return_value;
         }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
-            auto offset = Lexer::MeasureTokenLength(declaration->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, declaration->getBeginLoc(), declaration->getEndLoc().getLocWithOffset(offset));
+            auto offset
+                = Lexer::MeasureTokenLength(declaration->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+            update_expression_location(
+                return_value, declaration->getBeginLoc(), declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setEnd(declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(declaration->getBeginLoc());
-            if (check_decl_expression(context, *declaration))
-            {
-                auto node_parents = context->getParents(*declaration);
-                return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
-            }
-            else
-            {
-                cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
-                g_is_generation_error = true;
-                return SourceRange();
-            }
+            auto node_parents = context->getParents(*declaration);
+            return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<Stmt>())
         {
@@ -1020,7 +1165,111 @@ SourceRange  get_expression_source_range(ASTContext* context, const Stmt& node, 
     return return_value;
 }
 
-void update_expression_explicit_path_data(ASTContext* context, const Stmt* node, const explicit_path_data_t& data, const SourceRange& source_range, Rewriter& rewriter)
+bool is_expression_from_body(ASTContext* context, const Stmt& node)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (const auto* expression = node_parents_iterator.get<IfStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
+        {
+            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
+        {
+            return !(
+                is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange())
+                || is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange())
+                || is_range_contained_in_another_range(expression->getInc()->getSourceRange(), node.getSourceRange()));
+        }
+        else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
+        {
+            auto node_parents = context->getParents(*declaration);
+            return is_expression_from_body(context, *(node_parents[0].get<DeclStmt>()));
+        }
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
+        {
+            return is_expression_from_body(context, *expression);
+        }
+    }
+    return false;
+}
+
+bool should_expression_location_be_merged(ASTContext* context, const Stmt& node, bool special_parent = false)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (const auto* expression = node_parents_iterator.get<IfStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<DoStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<ForStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
+        {
+            auto node_parents = context->getParents(*declaration);
+            return should_expression_location_be_merged(context, *(node_parents[0].get<DeclStmt>()));
+        }
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
+        {
+            return should_expression_location_be_merged(context, *expression, special_parent);
+        }
+    }
+    return true;
+}
+
+void update_expression_explicit_path_data(
+    ASTContext* context,
+    const Stmt* node,
+    explicit_path_data_t data,
+    const SourceRange& source_range,
+    Rewriter& rewriter)
 {
     if (node == nullptr || data.path_components.empty())
     {
@@ -1028,39 +1277,60 @@ void update_expression_explicit_path_data(ASTContext* context, const Stmt* node,
     }
     vector<explicit_path_data_t> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
-    for (const auto& nomatch_source_range : g_nomatch_location)
-    {
-        if (is_range_contained_in_another_range(nomatch_source_range, source_range))
-        {
-            path_data.push_back(data);
-            g_expression_explicit_path_data[expression_source_range] = path_data;
-            expression_source_range = source_range;
-            break;
-        }
-    }
     if (expression_source_range.isInvalid())
     {
         return;
     }
-
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
-        if (expression_explicit_path_data_iterator.first == expression_source_range ||
-            is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
+        if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
         {
-            if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+            if (!is_expression_from_body(context, *node))
             {
-                return;
+                if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
+                {
+                    return;
+                }
+                if (optimize_path(expression_explicit_path_data_iterator.second, data))
+                {
+                    return;
+                }
+                if (expression_explicit_path_data_iterator.first == expression_source_range
+                    || should_expression_location_be_merged(context, *node))
+                {
+                    expression_explicit_path_data_iterator.second.push_back(data);
+                    return;
+                }
             }
-            expression_explicit_path_data_iterator.second.push_back(data);
-            return;
+            else
+            {
+                for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
+                {
+                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
+                }
+            }
         }
     }
     path_data.push_back(data);
-    g_expression_explicit_path_data[expression_source_range] = path_data;
+
+    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
+    if (explicit_path_data_iterator == g_expression_explicit_path_data.end())
+    {
+        g_expression_explicit_path_data[expression_source_range] = path_data;
+    }
+    else
+    {
+        explicit_path_data_iterator->second.insert(explicit_path_data_iterator->second.end(), path_data.begin(), path_data.end());
+    }
 }
 
-void update_expression_used_tables(ASTContext* context, const Stmt* node, const string& table, const string& variable_name, const SourceRange& source_range, Rewriter& rewriter)
+void update_expression_used_tables(
+    ASTContext* context,
+    const Stmt* node,
+    const string& table,
+    const string& variable_name,
+    const SourceRange& source_range,
+    Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
     string table_name = get_table_from_expression(table);
@@ -1095,8 +1365,10 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         const GaiaExplicitPathTagKeysAttr* explicit_path_tag_key_attribute = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
         const GaiaExplicitPathTagValuesAttr* explicit_path_tag_value_attribute = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
 
-        const GaiaExplicitPathDefinedTagKeysAttr* explicit_path_defined_tag_key_attribute = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
-        const GaiaExplicitPathDefinedTagValuesAttr* explicit_path_defined_tag_value_attribute = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
+        const GaiaExplicitPathDefinedTagKeysAttr* explicit_path_defined_tag_key_attribute
+            = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
+        const GaiaExplicitPathDefinedTagValuesAttr* explicit_path_defined_tag_value_attribute
+            = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
 
         if (explicit_path_tag_key_attribute->tagMapKeys_size() != explicit_path_tag_value_attribute->tagMapValues_size())
         {
@@ -1115,7 +1387,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
             tag_map_values.push_back(tag_map_values_iterator);
         }
 
-        if(explicit_path_defined_tag_key_attribute != nullptr)
+        if (explicit_path_defined_tag_key_attribute != nullptr)
         {
             for (const auto& tag_map_keys_iterator : explicit_path_defined_tag_key_attribute->tagMapKeys())
             {
@@ -1203,7 +1475,7 @@ public:
             }
             else
             {
-                variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
                 expression_source_range.setEnd(expression->getEndLoc());
@@ -1234,7 +1506,7 @@ public:
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
                 {
-                    variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                    variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                     explicit_path_present = false;
                     expression_source_range
                         = SourceRange(
@@ -1244,7 +1516,7 @@ public:
                 }
                 else
                 {
-                    variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                    variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                     get_variable_name(variable_name, table_name, explicit_path_data);
                     update_used_dbs(explicit_path_data);
                     expression_source_range.setEnd(member_expression->getEndLoc());
@@ -1255,7 +1527,8 @@ public:
                     if (!explicit_path_present)
                     {
                         expression_source_range
-                            = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+                            = SourceRange(
+                                expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                     }
 
                     if (!validate_and_add_active_field(table_name, field_name, true))
@@ -1280,16 +1553,41 @@ public:
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             m_rewriter.ReplaceText(expression_source_range, variable_name + "." + field_name + "()");
             g_rewriter_history.push_back({expression_source_range, variable_name + "." + field_name + "()", replace_text});
-            auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+            auto offset
+                = Lexer::MeasureTokenLength(
+                      expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts())
+                + 1;
             if (!explicit_path_present)
             {
-                update_expression_used_tables(result.Context, expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
-                update_expression_used_tables(result.Context, member_expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_used_tables(
+                    result.Context,
+                    expression,
+                    table_name,
+                    variable_name,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
+                update_expression_used_tables(
+                    result.Context,
+                    member_expression,
+                    table_name,
+                    variable_name,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
             }
             else
             {
-                update_expression_explicit_path_data(result.Context, expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
-                update_expression_explicit_path_data(result.Context, member_expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                update_expression_explicit_path_data(
+                    result.Context,
+                    expression,
+                    explicit_path_data,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
+                update_expression_explicit_path_data(
+                    result.Context,
+                    member_expression,
+                    explicit_path_data,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
             }
         }
     }
@@ -1348,7 +1646,7 @@ public:
                         }
                         else
                         {
-                            variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                             get_variable_name(variable_name, table_name, explicit_path_data);
                             update_used_dbs(explicit_path_data);
                         }
@@ -1369,13 +1667,14 @@ public:
 
                         if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
                         {
+                            variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                             explicit_path_present = false;
                             set_source_range.setBegin(member_expression->getBeginLoc());
                             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
                         }
                         else
                         {
-                            variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                             get_variable_name(variable_name, table_name, explicit_path_data);
                             update_used_dbs(explicit_path_data);
                         }
@@ -1467,16 +1766,31 @@ public:
                     g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
                     m_rewriter.InsertTextAfterToken(
                         op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    g_rewriter_history.push_back({SourceRange(op->getEndLoc()), "; w.update_row(); return w." + field_name + ";}()", insert_text_after_token});
+                    g_rewriter_history
+                        .push_back(
+                            {SourceRange(op->getEndLoc()),
+                             "; w.update_row(); return w." + field_name + ";}()",
+                             insert_text_after_token});
 
                     auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name, variable_name, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(
+                            result.Context,
+                            op,
+                            table_name,
+                            variable_name,
+                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                            m_rewriter);
                     }
                     else
                     {
-                        update_expression_explicit_path_data(result.Context, op, explicit_path_data, SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_explicit_path_data(
+                            result.Context,
+                            op,
+                            explicit_path_data,
+                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                            m_rewriter);
                     }
                 }
                 else
@@ -1587,7 +1901,7 @@ public:
                         }
                         else
                         {
-                            variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                             get_variable_name(variable_name, table_name, explicit_path_data);
                             update_used_dbs(explicit_path_data);
                         }
@@ -1607,13 +1921,14 @@ public:
                         variable_name = declaration_expression->getNameInfo().getAsString();
                         if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
                         {
-                            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                            variable_name
+                                = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                             explicit_path_present = false;
                             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
                         }
                         else
                         {
-                            variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                             get_variable_name(variable_name, table_name, explicit_path_data);
                             update_used_dbs(explicit_path_data);
                         }
@@ -1653,12 +1968,27 @@ public:
                     m_rewriter.ReplaceText(
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
                         replace_string);
-                    g_rewriter_history.push_back({SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)), replace_string, replace_text});
-                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+                    g_rewriter_history
+                        .push_back(
+                            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+                             replace_string,
+                             replace_text});
+                    auto offset
+                        = Lexer::MeasureTokenLength(
+                              op->getEndLoc(),
+                              m_rewriter.getSourceMgr(),
+                              m_rewriter.getLangOpts())
+                        + 1;
 
                     if (!explicit_path_present)
                     {
-                        update_expression_used_tables(result.Context, op, table_name, variable_name, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_used_tables(
+                            result.Context,
+                            op,
+                            table_name,
+                            variable_name,
+                            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
+                            m_rewriter);
                     }
                     else
                     {
@@ -1666,7 +1996,12 @@ public:
                         {
                             offset += 1;
                         }
-                        update_expression_explicit_path_data(result.Context, op, explicit_path_data, SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)), m_rewriter);
+                        update_expression_explicit_path_data(
+                            result.Context,
+                            op,
+                            explicit_path_data,
+                            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
+                            m_rewriter);
                     }
                 }
                 else
@@ -1733,9 +2068,13 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
+        g_variable_declaration_location.clear();
+        g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
+
         if (update_attribute != nullptr)
         {
             g_rule_attribute_source_range = update_attribute->getRange();
@@ -1843,6 +2182,9 @@ public:
         g_attribute_tag_map.clear();
         g_rewriter_history.clear();
         g_nomatch_location.clear();
+        g_nomatch_location_map.clear();
+        g_variable_declaration_location.clear();
+        g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
@@ -1865,7 +2207,9 @@ public:
             {
                 if (r == g_current_ruleset)
                 {
-                    cerr << "Ruleset names must be unique - '" << g_current_ruleset << "' has been found multiple times." << endl;
+                    cerr << "Ruleset names must be unique - '"
+                         << g_current_ruleset
+                         << "' has been found multiple times." << endl;
                     g_is_generation_error = true;
                     return;
                 }
@@ -1882,8 +2226,13 @@ public:
                     SourceRange(
                         ruleset_declaration->getBeginLoc(),
                         ruleset_declaration->getEndLoc()),
-                    "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n");
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()), "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n", replace_text});
+                    "namespace " + g_current_ruleset
+                        + "\n{\n} // namespace " + g_current_ruleset + "\n");
+                g_rewriter_history
+                    .push_back(
+                        {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
+                         "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n",
+                         replace_text});
             }
             else
             {
@@ -1897,8 +2246,15 @@ public:
                 // Replace closing brace with namespace comment.
                 m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
 
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)), "namespace " + g_current_ruleset + "\n{\n", replace_text});
-                g_rewriter_history.push_back({SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset, replace_text});
+                g_rewriter_history
+                    .push_back(
+                        {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
+                         "namespace " + g_current_ruleset + "\n{\n",
+                         replace_text});
+                g_rewriter_history
+                    .push_back(
+                        {SourceRange(ruleset_declaration->getEndLoc()),
+                         "}// namespace " + g_current_ruleset, replace_text});
             }
         }
     }
@@ -1914,6 +2270,11 @@ public:
     {
         validate_table_data();
         const auto* variable_declaration = result.Nodes.getNodeAs<VarDecl>("varDeclaration");
+        const auto* variable_declaration_init = result.Nodes.getNodeAs<VarDecl>("varDeclarationInit");
+        if (variable_declaration_init != nullptr)
+        {
+            g_variable_declaration_init_location.insert(variable_declaration_init->getSourceRange());
+        }
         if (variable_declaration != nullptr)
         {
             const auto variable_name = variable_declaration->getNameAsString();
@@ -1923,6 +2284,8 @@ public:
                 {
                     return;
                 }
+
+                g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
 
                 if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
                 {
@@ -1969,7 +2332,10 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
                 "\"" + g_current_ruleset + "\"");
-            g_rewriter_history.push_back({SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()), "\"" + g_current_ruleset + "\"", replace_text});
+            g_rewriter_history
+                .push_back(
+                    {SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
+                     "\"" + g_current_ruleset + "\"", replace_text});
         }
 
         if (rule_expression != nullptr)
@@ -1978,7 +2344,10 @@ public:
                 SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
                 "gaia_rule_name");
             g_is_rule_context_rule_name_referenced = true;
-            g_rewriter_history.push_back({SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()), "gaia_rule_name", replace_text});
+            g_rewriter_history
+                .push_back(
+                    {SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
+                     "gaia_rule_name", replace_text});
         }
 
         if (event_expression != nullptr)
@@ -1986,7 +2355,9 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
                 "context->event_type");
-            g_rewriter_history.push_back({SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()), "context->event_type", replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
+                 "context->event_type", replace_text});
         }
 
         if (type_expression != nullptr)
@@ -1994,7 +2365,10 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
                 "context->gaia_type");
-            g_rewriter_history.push_back({SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()), "context->gaia_type", replace_text});
+            g_rewriter_history
+                .push_back(
+                    {SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
+                     "context->gaia_type", replace_text});
         }
     }
 
@@ -2042,10 +2416,11 @@ public:
             }
             else
             {
-                variable_name = get_table_from_expression (explicit_path_data.path_components.back());
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
-                expression_source_range = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
+                expression_source_range
+                    = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
             }
 
             if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -2058,14 +2433,26 @@ public:
             {
                 m_rewriter.ReplaceText(expression_source_range, variable_name);
                 g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
-                auto offset = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+                auto offset
+                    = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                 if (explicit_path_present)
                 {
-                    update_expression_explicit_path_data(result.Context, expression, explicit_path_data, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                    update_expression_explicit_path_data(
+                        result.Context,
+                        expression,
+                        explicit_path_data,
+                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                        m_rewriter);
                 }
                 else
                 {
-                    update_expression_used_tables(result.Context, expression, table_name, variable_name, SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)), m_rewriter);
+                    update_expression_used_tables(
+                        result.Context,
+                        expression,
+                        table_name,
+                        variable_name,
+                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                        m_rewriter);
                 }
             }
         }
@@ -2084,16 +2471,19 @@ private:
 class if_nomatch_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
+    explicit if_nomatch_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+
     void run(const MatchFinder::MatchResult& result) override
     {
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
-            g_nomatch_location.emplace_back(
-                SourceRange(
-                    expression->getNoMatch()->getBeginLoc(),
-                    expression->getNoMatch()->getEndLoc()));
-            std::sort(g_nomatch_location.begin(), g_nomatch_location.end(), compare_source_range);
+            SourceRange nomatch_location = get_statement_source_range(expression->getNoMatch(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+            g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
+            g_nomatch_location.emplace_back(nomatch_location);
         }
         else
         {
@@ -2101,8 +2491,42 @@ public:
             g_is_generation_error = true;
         }
     }
+
+private:
+    Rewriter& m_rewriter;
 };
 
+// AST handler that is called when a while has a declarative expression.
+class declarative_while_match_handler : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_while_match_handler(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<WhileStmt>("DeclWhile");
+        if (expression != nullptr)
+        {
+            // Find the SourceRange of the "while" statement.
+            SourceLocation while_begin_loc = expression->getBeginLoc();
+            auto offset = Lexer::MeasureTokenLength(while_begin_loc, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+            SourceRange while_source_range = SourceRange(while_begin_loc, while_begin_loc.getLocWithOffset(offset));
+
+            // Replace the text of the "while" with "if".
+            m_rewriter.ReplaceText(while_source_range, c_if_stmt);
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
@@ -2115,18 +2539,40 @@ public:
         , m_field_unary_operator_match_handler(r)
         , m_rule_context_match_handler(r)
         , m_table_call_match_handler(r)
+        , m_if_nomatch_match_handler(r)
+        , m_declarative_while_match_handler(r)
     {
-        StatementMatcher ruleset_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("ruleset_name"))).bind("ruleset_name");
-        StatementMatcher rule_name_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("rule_name"))).bind("rule_name");
-        StatementMatcher event_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("event_type"))).bind("event_type");
-        StatementMatcher gaia_type_matcher = memberExpr(hasDescendant(gaiaRuleContextExpr()), member(hasName("gaia_type"))).bind("gaia_type");
-
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
             = functionDecl(allOf(
                                hasAncestor(ruleset_matcher),
                                hasAttr(attr::Rule)))
                   .bind("ruleDecl");
+        StatementMatcher ruleset_name_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("ruleset_name")))
+                  .bind("ruleset_name");
+        StatementMatcher rule_name_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("rule_name")))
+                  .bind("rule_name");
+        StatementMatcher event_type_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("event_type")))
+                  .bind("event_type");
+        StatementMatcher gaia_type_matcher
+            = memberExpr(
+                  hasAncestor(ruleset_matcher),
+                  hasDescendant(gaiaRuleContextExpr()),
+                  member(hasName("gaia_type")))
+                  .bind("gaia_type");
+
         DeclarationMatcher variable_declaration_matcher = varDecl(hasAncestor(rule_matcher)).bind("varDeclaration");
 
         StatementMatcher field_get_matcher
@@ -2138,17 +2584,35 @@ public:
                               unless(hasAttr(attr::GaiaFieldLValue)))))
                   .bind("fieldGet");
         StatementMatcher table_call_matcher
-            = declRefExpr(allOf(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::FieldTable), hasAttr(attr::GaiaFieldValue)), unless(hasAttr(attr::GaiaFieldLValue)))), allOf(unless(hasAncestor(memberExpr(member(allOf(hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))), anyOf(hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
+            = declRefExpr(allOf(
+                              to(varDecl(
+                                  anyOf(
+                                      hasAttr(attr::GaiaField),
+                                      hasAttr(attr::FieldTable),
+                                      hasAttr(attr::GaiaFieldValue)),
+                                  unless(hasAttr(attr::GaiaFieldLValue)))),
+                              allOf(
+                                  unless(
+                                      hasAncestor(
+                                          memberExpr(
+                                              member(
+                                                  allOf(
+                                                      hasAttr(attr::GaiaField), unless(hasAttr(attr::GaiaFieldLValue))))))),
+                                  anyOf(
+                                      hasAncestor(callExpr()), hasAncestor(cxxMemberCallExpr())))))
                   .bind("tableCall");
+
         StatementMatcher field_set_matcher
             = binaryOperator(
                   allOf(
+                      hasAncestor(ruleset_matcher),
                       isAssignmentOperator(),
                       hasLHS(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldSet");
         StatementMatcher field_unary_operator_matcher
             = unaryOperator(
                   allOf(
+                      hasAncestor(ruleset_matcher),
                       anyOf(
                           hasOperatorName("++"),
                           hasOperatorName("--")),
@@ -2167,18 +2631,48 @@ public:
                           hasAttr(attr::GaiaFieldValue)))))))
                   .bind("tableFieldGet");
         StatementMatcher table_field_set_matcher
-            = binaryOperator(allOf(
-                                 isAssignmentOperator(),
-                                 hasLHS(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
+            = binaryOperator(
+                  allOf(
+                      hasAncestor(ruleset_matcher),
+                      isAssignmentOperator(),
+                      hasLHS(
+                          memberExpr(
+                              member(hasAttr(attr::GaiaFieldLValue))))))
                   .bind("fieldSet");
         StatementMatcher table_field_unary_operator_matcher
             = unaryOperator(allOf(
+                                hasAncestor(ruleset_matcher),
                                 anyOf(
                                     hasOperatorName("++"),
                                     hasOperatorName("--")),
                                 hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
                   .bind("fieldUnaryOp");
-        StatementMatcher if_no_match_matcher = ifStmt(hasNoMatch(anything())).bind("NoMatchIf");
+
+        StatementMatcher if_no_match_matcher
+            = ifStmt(allOf(
+                         hasAncestor(rule_matcher),
+                         hasNoMatch(anything())))
+                  .bind("NoMatchIf");
+
+        StatementMatcher declarative_while_matcher
+            = whileStmt(allOf(
+                            hasAncestor(rule_matcher),
+                            hasCondition(anyOf(
+                                hasDescendant(field_get_matcher),
+                                hasDescendant(field_unary_operator_matcher),
+                                hasDescendant(table_field_get_matcher),
+                                hasDescendant(table_field_unary_operator_matcher)))))
+                  .bind("DeclWhile");
+
+        DeclarationMatcher variable_declaration_init_matcher
+            = varDecl(allOf(
+                          hasAncestor(rule_matcher),
+                          hasInitializer(anyOf(
+                              hasDescendant(field_get_matcher),
+                              hasDescendant(field_unary_operator_matcher),
+                              hasDescendant(table_field_get_matcher),
+                              hasDescendant(table_field_unary_operator_matcher)))))
+                  .bind("varDeclarationInit");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
@@ -2193,12 +2687,14 @@ public:
         m_matcher.addMatcher(table_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
+        m_matcher.addMatcher(variable_declaration_init_matcher, &m_variable_declaration_match_handler);
         m_matcher.addMatcher(ruleset_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(rule_name_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(event_type_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(gaia_type_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(table_call_matcher, &m_table_call_match_handler);
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
+        m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -2217,6 +2713,7 @@ private:
     rule_context_rule_match_handler_t m_rule_context_match_handler;
     table_call_match_handler_t m_table_call_match_handler;
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
+    declarative_while_match_handler m_declarative_while_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

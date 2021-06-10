@@ -14,5 +14,3 @@ ruleset test21
 
 // GAIAPLAT-850
 // CHECK: Tag 'A' defined but not used.
-// GAIAPLAT-892
-// translator crash when I-> used instead of incubator->
