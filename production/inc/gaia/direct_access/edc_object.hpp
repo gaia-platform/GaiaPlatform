@@ -55,7 +55,7 @@ public:
     static gaia::common::gaia_type_t s_gaia_type;
 
 public:
-    explicit edc_object_t(const char* gaia_typename);
+    edc_object_t();
 
     /**
      * Return a reference that is pre-populated with values from the row
@@ -115,7 +115,7 @@ protected:
      * This constructor supports creating new objects from existing
      * objects in the database.  It is called by our get_object below.
      */
-    edc_object_t(gaia::common::gaia_id_t id, const char* gaia_typename);
+    edc_object_t(gaia::common::gaia_id_t id);
 
     /**
      * Insert a mutable flatbuffer into a newly created database object. This will be
