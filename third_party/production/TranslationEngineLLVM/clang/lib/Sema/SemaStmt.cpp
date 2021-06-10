@@ -1704,6 +1704,13 @@ namespace {
         Visit(End);
     }
 
+    void VisitGaiaForStmt(const GaiaForStmt *S) {
+      // Only visit the initialization of a for loop; the body
+      // has a different break/continue scope.
+      if (const Stmt *Path = S->getPath())
+        Visit(Path);
+    }
+
     void VisitObjCForCollectionStmt(const ObjCForCollectionStmt *S) {
       // Only visit the initialization of a for loop; the body
       // has a different break/continue scope.
@@ -1777,6 +1784,23 @@ void Sema::CheckBreakContinueBinding(Expr *E) {
     Diag(BCFinder.GetContinueLoc(), diag::warn_loop_ctrl_binds_to_inner)
         << "continue";
   }
+}
+
+StmtResult Sema::ActOnGaiaForStmt(SourceLocation ForLoc,
+                          SourceLocation LParenLoc,
+                          Stmt *Path,
+                          SourceLocation RParenLoc,
+                          Stmt *Body)
+{
+  RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
+
+  if (Path == nullptr)
+  {
+    return StmtError();
+  }
+
+  return new (Context)
+      GaiaForStmt(Context, Path, Body, ForLoc, LParenLoc, RParenLoc);
 }
 
 StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
