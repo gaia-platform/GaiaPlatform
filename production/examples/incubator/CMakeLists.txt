@@ -9,13 +9,23 @@
 project(incubator)
 
 # {SDK-SETUP:CXX_STANDARD} - Do not remove this line
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
-set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
-# Enable AddressSanitizer in debug mode.
-if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
+# We need pthreads support.
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
+# Default compiler/linker flags.
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3")
+set(GAIA_LINK_FLAGS " ")
+
+# Debug build-specific options.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
+  if(ENABLE_ASAN)
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all")
+  endif()
 endif()
 
 # {SDK-SETUP:VARS} - Do not remove this line
@@ -37,4 +47,4 @@ add_dependencies(incubator translate_incubator_ruleset)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(incubator PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_include_directories(incubator PRIVATE ${GAIA_INC})
-target_link_libraries(incubator PRIVATE gaia rt pthread)
+target_link_libraries(incubator PRIVATE gaia rt Threads::Threads)
