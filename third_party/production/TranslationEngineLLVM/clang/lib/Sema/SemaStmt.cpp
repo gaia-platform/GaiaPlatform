@@ -1796,7 +1796,7 @@ StmtResult Sema::ActOnGaiaForStmt(SourceLocation ForLoc,
 
   auto startLocationIterator = explicitPathTagMapping.lower_bound(ForLoc);
   auto endLocationIterator = explicitPathTagMapping.upper_bound(Body->getEndLoc());
-  if (startLocationIterator != explicitPathTagMapping.end() && endLocationIterator != explicitPathTagMapping.end())
+  if (startLocationIterator != explicitPathTagMapping.end() || endLocationIterator != explicitPathTagMapping.end())
   {
     explicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
   }
