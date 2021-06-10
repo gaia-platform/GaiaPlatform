@@ -6,8 +6,6 @@
 // NOTE: This is included included by edc_object.hpp as this is a template
 // implementation file.  Because the template specializations of edc_object_t are
 // created by user-defined schema, we don't know what they will be a priori.
-#include "edc_object.hpp"
-
 namespace gaia
 {
 namespace direct_access
