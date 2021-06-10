@@ -103,7 +103,7 @@ public:
         }
     }
 
-    // const versions of the above
+    // const versions of the above.
     const T_output& operator*() const
     {
         return m_state.value();
@@ -186,6 +186,8 @@ private:
     }
 
     std::optional<T_output> m_state;
+    // We need to use shared_ptr here to allow generator_iterator_t to be copyable.
+    // Non-copyable iterators cannot be used in range-based for loops.
     std::shared_ptr<generator_t<T_output>> m_generator;
     std::function<bool(T_output)> m_predicate;
 };

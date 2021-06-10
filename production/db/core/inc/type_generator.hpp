@@ -26,6 +26,7 @@ public:
     std::optional<common::gaia_id_t> operator()() final;
 
     type_generator_t(const type_generator_t&) = delete;
+    type_generator_t& operator=(const type_generator_t&) = delete;
 
 private:
     common::gaia_type_t m_type;

@@ -261,6 +261,8 @@ gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
     return client_t::get_id_generator_for_type(type);
 }
 
+// std::shared_ptr is used here to provide a uniform interface for both client and server side implementation of gaia_ptr.
+// Secondarily, std::move is more efficient than assigning the shared_ptr, so that's what we do here.
 gaia_ptr_generator_t::gaia_ptr_generator_t(std::shared_ptr<generator_t<gaia_id_t>> id_generator)
     : m_id_generator(std::move(id_generator))
 {
