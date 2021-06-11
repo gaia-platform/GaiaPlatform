@@ -204,7 +204,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
     return augmented_id_generator;
 }
 
-std::function<std::optional<gaia_id_t>()>
+std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
@@ -219,7 +219,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     // that will also return the elements that have been added by the client
     // in the current transaction, which the server does not yet know about.
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
-    return augmented_id_generator;
+    return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
 }
 
 static void build_client_request(
@@ -258,9 +258,11 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
+    s_private_locators.close();
     s_shared_counters.close();
     s_shared_data.close();
     s_shared_id_index.close();
+    s_log.close();
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.

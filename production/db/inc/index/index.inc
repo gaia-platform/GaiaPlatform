@@ -54,26 +54,33 @@ index_writer_guard_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
     return index_writer_guard_t<T_structure>(this, m_data);
 }
 
-template <typename T_structure, typename T_iterator>
-std::function<std::optional<index_record_t>()> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
+template <typename T_structure>
+index_generator_t<T_structure>::index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id)
+    : m_index_lock(mutex), m_it(data.cbegin()), m_end(data.cend()), m_txn_id(txn_id)
 {
-    std::unique_lock<std::recursive_mutex> lock(m_index_lock);
-    auto it = m_data.cbegin();
+}
 
-    return [end_iter = m_data.cend(), lock = {std::move(lock)}, it, txn_id]() mutable -> std::optional<index_record_t> {
-        while (it != end_iter)
+template <typename T_structure>
+std::optional<index_record_t> index_generator_t<T_structure>::operator()()
+{
+    while (m_it != m_end)
+    {
+        index_record_t record = m_it->second;
+        ++m_it;
+
+        if (record.txn_id <= m_txn_id)
         {
-            index_record_t record = it->second;
-            ++it;
-
-            if (record.txn_id <= txn_id)
-            {
-                return record;
-            }
+            return record;
         }
-        // Signal end of iteration.
-        return std::nullopt;
-    };
+    }
+    // Signal end of iteration.
+    return std::nullopt;
+}
+
+template <typename T_structure, typename T_iterator>
+std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
+{
+    return std::make_shared<index_generator_t<T_structure>>(get_lock(), m_data, txn_id);
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.
