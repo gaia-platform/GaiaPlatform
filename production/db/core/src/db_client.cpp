@@ -258,9 +258,11 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
+    s_private_locators.close();
     s_shared_counters.close();
     s_shared_data.close();
     s_shared_id_index.close();
+    s_log.close();
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
