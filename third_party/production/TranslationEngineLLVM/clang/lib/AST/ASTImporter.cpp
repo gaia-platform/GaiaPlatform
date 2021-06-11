@@ -6019,23 +6019,20 @@ ExpectedStmt ASTNodeImporter::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
 
 ExpectedStmt ASTNodeImporter::VisitGaiaForStmt(GaiaForStmt *S)
 {
-  auto Imp1 = importSeq(
-      S->getPath(), S->getBody());
+  auto Imp1 = importSeq(S->getPath(), S->getBody());
   if (!Imp1)
     return Imp1.takeError();
-  auto Imp2 = importSeq(
-      S->getForLoc(), S->getLParenLoc(), S->getRParenLoc());
+  auto Imp2 = importSeq(S->getForLoc(), S->getLParenLoc(), S->getRParenLoc());
   if (!Imp2)
     return Imp2.takeError();
 
   Stmt *ToPath, *ToBody;
-  std::tie(
-      ToPath, ToBody) = *Imp1;
+  std::tie(ToPath, ToBody) = *Imp1;
   SourceLocation ToForLoc, ToLParenLoc, ToRParenLoc;
   std::tie(ToForLoc, ToLParenLoc, ToRParenLoc) = *Imp2;
 
   return new (Importer.getToContext()) GaiaForStmt(Importer.getToContext(),
-      ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc);
+    ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc);
 }
 
 ExpectedStmt

@@ -6365,8 +6365,6 @@ AST_MATCHER(FunctionDecl, hasTrailingReturn) {
   return false;
 }
 
-
-
 } // namespace ast_matchers
 } // namespace clang
 
