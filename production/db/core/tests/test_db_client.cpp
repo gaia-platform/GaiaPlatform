@@ -121,7 +121,7 @@ protected:
     }
 };
 
-TEST_F(db_client_test, test_early_session_termination)
+TEST_F(db_client_test, early_session_termination)
 {
     // Test that closing the session after starting a transaction
     // does not generate any internal assertion failures
