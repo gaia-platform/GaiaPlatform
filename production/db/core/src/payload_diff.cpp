@@ -41,7 +41,7 @@ void compute_payload_diff(
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 
-    for (auto field_view : catalog_core_t::list_fields(type_record_id))
+    for (const auto& field_view : catalog_core_t::list_fields(type_record_id))
     {
         field_position_t field_position = field_view.position();
 

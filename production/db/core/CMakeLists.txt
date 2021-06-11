@@ -118,6 +118,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
+  src/type_generator.cpp
 )
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))

@@ -204,7 +204,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
     return augmented_id_generator;
 }
 
-std::function<std::optional<gaia_id_t>()>
+std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
@@ -219,7 +219,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     // that will also return the elements that have been added by the client
     // in the current transaction, which the server does not yet know about.
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
-    return augmented_id_generator;
+    return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
 }
 
 static void build_client_request(

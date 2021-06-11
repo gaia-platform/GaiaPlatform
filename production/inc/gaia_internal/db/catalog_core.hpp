@@ -16,6 +16,7 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 namespace gaia
 {
@@ -87,10 +88,10 @@ struct index_view_t : catalog_db_object_view_t
     [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* fields() const;
 };
 
-using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
-using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
-using relationship_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<relationship_view_t>>;
-using index_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<index_view_t>>;
+using field_list_t = common::iterators::generator_range_t<field_view_t>;
+using table_list_t = common::iterators::generator_range_t<table_view_t>;
+using relationship_list_t = common::iterators::generator_range_t<relationship_view_t>;
+using index_list_t = common::iterators::generator_range_t<index_view_t>;
 
 struct catalog_core_t
 {
@@ -152,6 +153,17 @@ struct catalog_core_t
     static relationship_list_t list_relationship_to(common::gaia_id_t table_id);
 
     static index_list_t list_indexes(common::gaia_id_t table_id);
+};
+
+class table_generator_t : public common::iterators::generator_t<table_view_t>
+{
+public:
+    explicit table_generator_t(common::iterators::generator_iterator_t<gaia_ptr_t>&& iterator);
+
+    std::optional<table_view_t> operator()() final;
+
+private:
+    common::iterators::generator_iterator_t<gaia_ptr_t> m_gaia_ptr_iterator;
 };
 
 } // namespace db
