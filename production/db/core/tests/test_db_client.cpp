@@ -121,6 +121,16 @@ protected:
     }
 };
 
+TEST_F(db_client_test, test_early_session_termination)
+{
+    // Test that closing the session after starting a transaction
+    // does not generate any internal assertion failures
+    // when attempting to reopen a session.
+    begin_transaction();
+    end_session();
+    begin_session();
+}
+
 TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
