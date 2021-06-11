@@ -73,7 +73,7 @@ static_assert(offsetof(db_object_t, payload) == db_object_t::c_object_header_siz
 // flatbuffers). Instead of forcing correct alignment via a compiler directive,
 // we assert that the payload field is correctly aligned, to avoid having the
 // compiler silently insert padding if the field isn't naturally aligned.
-static_assert(offsetof(db_object_t, payload) % 8 == 0, "Payload must be 8-byte-aligned!");
+static_assert(offsetof(db_object_t, payload) % sizeof(uint64_t) == 0, "Payload must be 8-byte-aligned!");
 
 // According to the standard, sizeof(T) is always a multiple of alignof(T).
 // We need this multiple to be 1 to simplify memory management.
