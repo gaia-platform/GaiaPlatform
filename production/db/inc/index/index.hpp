@@ -95,6 +95,20 @@ private:
     T_structure& m_data;
 };
 
+template <typename T_structure>
+class index_generator_t : public common::iterators::generator_t<index_record_t>
+{
+public:
+    index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id);
+    std::optional<index_record_t> operator()() final;
+
+private:
+    std::unique_lock<std::recursive_mutex> m_index_lock;
+    typename T_structure::const_iterator m_it;
+    typename T_structure::const_iterator m_end;
+    gaia_txn_id_t m_txn_id;
+};
+
 /**
  * Abstract in-memory index type:
  * T_structure is the underlying backing data structure of the index.
@@ -125,7 +139,7 @@ public:
     // RAII class for bulk index maintenance operations.
     index_writer_guard_t<T_structure> get_writer();
 
-    std::function<std::optional<index_record_t>()> generator(gaia_txn_id_t txn_id) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) override;
 
 protected:
     T_structure m_data;

@@ -18,6 +18,9 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/generator_iterator.hpp"
+
+#include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
@@ -246,13 +249,12 @@ private:
 
     template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn);
+        int stream_socket, int cancel_eventfd, std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
 
     template <typename T_element>
-    static void start_stream_producer(int stream_socket, std::function<std::optional<T_element>()> generator_fn);
+    static void start_stream_producer(int stream_socket, std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::function<std::optional<common::gaia_id_t>()>
-    get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
