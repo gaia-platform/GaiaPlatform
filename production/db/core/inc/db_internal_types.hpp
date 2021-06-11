@@ -22,6 +22,10 @@ namespace gaia
 namespace db
 {
 
+template <typename T>
+using aligned_storage_for_t =
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
 enum class gaia_operation_t : uint8_t
 {
     not_set = 0x0,
@@ -166,7 +170,7 @@ struct counters_t
 struct data_t
 {
     // The first entry of the array is reserved for the invalid offset value 0.
-    db_object_t objects[c_max_locators + 1];
+    aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
