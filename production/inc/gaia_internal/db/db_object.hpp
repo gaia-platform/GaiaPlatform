@@ -19,9 +19,11 @@ namespace db
 /**
  * The type of a Gaia object, containing both object metadata (gaia_id,
  * gaia_type) and user-defined data (references and flatbuffer payload).
+ *
  * For convenience in memory management, objects are always aligned to 64B.
  * The entire object (including both object metadata and user-defined data)
  * may have minimum size 16B and maximum size 64KB.
+ *
  * The object metadata occupies 16 bytes: 8 (id) + 4 (type) + 2 (payload_size)
  * + 2 (num_references) = 16.
  */
