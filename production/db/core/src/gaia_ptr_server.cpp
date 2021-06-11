@@ -11,6 +11,13 @@
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 
+/**
+ * Server-side implementation of gaia_ptr here.
+ *
+ * Unimplemented write-path methods will lead to linker errors when called in code.
+ *
+ */
+
 namespace gaia
 {
 namespace db

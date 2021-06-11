@@ -37,6 +37,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
 
     return create(id, type, num_references, data_size, data);
 }
+
 void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client_t::is_valid_event(type))
