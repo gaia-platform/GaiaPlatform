@@ -255,6 +255,7 @@ ruleset test27
         }
     }
 }
+
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
 #ifdef TEST_FAILURES
