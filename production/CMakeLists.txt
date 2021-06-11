@@ -41,6 +41,12 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache) # Less useful to do it for linking, see edit2
+endif(CCACHE_FOUND)
+
 # Default compiler/linker flags.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
