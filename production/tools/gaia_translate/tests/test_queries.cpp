@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <unistd.h>
-
 #include <atomic>
 
 #include "gtest/gtest.h"
