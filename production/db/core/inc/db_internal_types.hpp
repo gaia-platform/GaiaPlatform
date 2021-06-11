@@ -170,7 +170,9 @@ struct counters_t
 struct data_t
 {
     // We use std::aligned_storage to ensure that the backing array can only be
-    // accessed at the proper alignment (64 bytes).
+    // accessed at the proper alignment (64 bytes). An instance of db_object_t
+    // is always aligned to the beginning of an element of the array, but it may
+    // occupy multiple elements of the array.
     // The first entry of the array is reserved for the invalid offset value 0.
     aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
