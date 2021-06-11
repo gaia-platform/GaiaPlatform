@@ -1909,7 +1909,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     }
 
     // Parse the third part of the for statement.
-    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl()&& !explicitNavigationExpression.get()) {
+    if (!ForEach && !ForRangeInfo.ParsedForRangeDecl() && !explicitNavigationExpression.get()) {
       if (Tok.isNot(tok::semi)) {
         if (!SecondPart.isInvalid())
           Diag(Tok, diag::err_expected_semi_for);
