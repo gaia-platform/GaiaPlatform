@@ -391,7 +391,6 @@ struct use_statement_t : statement_t
     std::string name;
 };
 
-// TODO: refactoring create statements into sub types, pending index changes (create_index).
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
@@ -408,15 +407,50 @@ struct create_statement_t : statement_t
 
     std::string name;
 
+    bool if_not_exists;
+};
+
+struct create_database_t : create_statement_t
+{
+    explicit create_database_t(std::string name)
+        : create_statement_t(create_type_t::create_database, name)
+    {
+    }
+};
+
+struct create_table_t : create_statement_t
+{
+    explicit create_table_t(std::string name)
+        : create_statement_t(create_type_t::create_table, name)
+    {
+    }
+
     std::string database;
 
     field_def_list_t fields;
+};
 
-    bool if_not_exists;
+struct create_relationship_t : create_statement_t
+{
+    explicit create_relationship_t(std::string name)
+        : create_statement_t(create_type_t::create_relationship, name)
+    {
+    }
 
     // A relationship is defined by a pair of links because we only allow
     // bi-directional relationships.
     std::pair<link_def_t, link_def_t> relationship;
+};
+
+struct create_index_t : create_statement_t
+{
+    explicit create_index_t(std::string name)
+        : create_statement_t(create_type_t::create_index, name)
+    {
+    }
+
+    std::string database;
+
     bool unique_index;
 
     index_type_t index_type;

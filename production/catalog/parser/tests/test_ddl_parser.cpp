@@ -53,20 +53,23 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_EQ(create_stmt->fields.size(), 2);
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_EQ(create_table->fields.size(), 2);
 
     const data_field_def_t* field;
 
-    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::data);
-    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(0).get());
+    EXPECT_EQ(create_table->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(0).get());
     EXPECT_EQ(field->name, "c1");
     EXPECT_EQ(field->data_type, data_type_t::e_int32);
     EXPECT_EQ(field->length, 0);
     EXPECT_EQ(field->active, false);
 
-    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::data);
-    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(1).get());
+    EXPECT_EQ(create_table->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(1).get());
     EXPECT_EQ(field->name, "c2");
     EXPECT_EQ(field->data_type, data_type_t::e_double);
     EXPECT_EQ(field->length, 0);
@@ -123,20 +126,23 @@ TEST(catalog_ddl_parser_test, create_active_field)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_EQ(create_stmt->fields.size(), 2);
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_EQ(create_table->fields.size(), 2);
 
     const data_field_def_t* field;
 
-    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::data);
-    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(0).get());
+    EXPECT_EQ(create_table->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(0).get());
     EXPECT_EQ(field->name, "id");
     EXPECT_EQ(field->data_type, data_type_t::e_int32);
     EXPECT_EQ(field->length, 0);
     EXPECT_EQ(field->active, true);
 
-    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::data);
-    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(1).get());
+    EXPECT_EQ(create_table->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(1).get());
     EXPECT_EQ(field->name, "name");
     EXPECT_EQ(field->data_type, data_type_t::e_string);
     EXPECT_EQ(field->length, 1);
@@ -184,8 +190,11 @@ TEST(catalog_ddl_parser_test, create_table_in_database)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_EQ(create_stmt->database, "d");
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_EQ(create_table->database, "d");
 }
 
 TEST(catalog_ddl_parser_test, drop_database)
@@ -274,9 +283,12 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
-    EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_FALSE(create_stmt->if_not_exists);
-    EXPECT_EQ(create_stmt->fields.size(), 0);
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_FALSE(create_table->if_not_exists);
+    EXPECT_EQ(create_table->fields.size(), 0);
 }
 
 TEST(catalog_ddl_parser_test, create_relationship)
@@ -346,11 +358,14 @@ TEST(catalog_ddl_parser_test, create_index)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
-    EXPECT_EQ(create_stmt->name, "idx");
-    EXPECT_EQ(create_stmt->database, "d");
-    EXPECT_EQ(create_stmt->index_table, "t");
-    EXPECT_EQ(create_stmt->unique_index, false);
-    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+
+    auto create_index = dynamic_cast<create_index_t*>(create_stmt);
+
+    EXPECT_EQ(create_index->name, "idx");
+    EXPECT_EQ(create_index->database, "d");
+    EXPECT_EQ(create_index->index_table, "t");
+    EXPECT_EQ(create_index->unique_index, false);
+    EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
 TEST(catalog_ddl_parser_test, create_unique_index)
@@ -364,11 +379,14 @@ TEST(catalog_ddl_parser_test, create_unique_index)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
-    EXPECT_EQ(create_stmt->name, "idx");
-    EXPECT_EQ(create_stmt->database, "d");
-    EXPECT_EQ(create_stmt->index_table, "t");
-    EXPECT_EQ(create_stmt->unique_index, true);
-    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+
+    auto create_index = dynamic_cast<create_index_t*>(create_stmt);
+
+    EXPECT_EQ(create_index->name, "idx");
+    EXPECT_EQ(create_index->database, "d");
+    EXPECT_EQ(create_index->index_table, "t");
+    EXPECT_EQ(create_index->unique_index, true);
+    EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
 TEST(catalog_ddl_parser_test, create_hash_index)
@@ -382,11 +400,14 @@ TEST(catalog_ddl_parser_test, create_hash_index)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
-    EXPECT_EQ(create_stmt->name, "idx");
-    EXPECT_EQ(create_stmt->database, "d");
-    EXPECT_EQ(create_stmt->index_table, "t");
-    EXPECT_EQ(create_stmt->unique_index, true);
-    EXPECT_EQ(create_stmt->index_type, index_type_t::hash);
+
+    auto create_index = dynamic_cast<create_index_t*>(create_stmt);
+
+    EXPECT_EQ(create_index->name, "idx");
+    EXPECT_EQ(create_index->database, "d");
+    EXPECT_EQ(create_index->index_table, "t");
+    EXPECT_EQ(create_index->unique_index, true);
+    EXPECT_EQ(create_index->index_type, index_type_t::hash);
 }
 
 TEST(catalog_ddl_parser_test, create_range_index)
@@ -400,11 +421,14 @@ TEST(catalog_ddl_parser_test, create_range_index)
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
-    EXPECT_EQ(create_stmt->name, "idx");
-    EXPECT_EQ(create_stmt->database, "d");
-    EXPECT_EQ(create_stmt->index_table, "t");
-    EXPECT_EQ(create_stmt->unique_index, false);
-    EXPECT_EQ(create_stmt->index_type, index_type_t::range);
+
+    auto create_index = dynamic_cast<create_index_t*>(create_stmt);
+
+    EXPECT_EQ(create_index->name, "idx");
+    EXPECT_EQ(create_index->database, "d");
+    EXPECT_EQ(create_index->index_table, "t");
+    EXPECT_EQ(create_index->unique_index, false);
+    EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
 TEST(catalog_ddl_parser_test, create_one_to_one_relationship)
@@ -422,8 +446,10 @@ CREATE RELATIONSHIP r (
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
-    auto parent = create_stmt->relationship.first;
-    auto child = create_stmt->relationship.second;
+    auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
+
+    auto parent = create_rel->relationship.first;
+    auto child = create_rel->relationship.second;
 
     ASSERT_EQ(parent.name, "link1");
     ASSERT_EQ(parent.from_database, "d1");
@@ -455,8 +481,10 @@ CREATE RELATIONSHIP r (
     auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
-    auto parent = create_stmt->relationship.first;
-    auto child = create_stmt->relationship.second;
+    auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
+
+    auto parent = create_rel->relationship.first;
+    auto child = create_rel->relationship.second;
 
     ASSERT_EQ(parent.name, "link1");
     ASSERT_EQ(parent.from_database, "d1");
@@ -471,19 +499,4 @@ CREATE RELATIONSHIP r (
     ASSERT_EQ(child.to_database, "d1");
     ASSERT_EQ(child.to_table, "t1");
     ASSERT_EQ(child.cardinality, cardinality_t::one);
-}
-
-// TODO this test should fail. Currently, you cannot create a many to many relationship in one statement.
-TEST(catalog_ddl_parser_test, DISABLED_create_many_to_many_relationship_unsupported)
-{
-    parser_t parser;
-
-    const string ddl_one_to_one = R"(
-CREATE RELATIONSHIP r (
-  d1.t1.link1 -> d2.t2[],
-  d2.t2.link2 -> d1.t1[]
-);
-)";
-
-    ASSERT_THROW(parser.parse_line(ddl_one_to_one), parsing_error);
 }

@@ -84,6 +84,10 @@
 
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
+%type <std::unique_ptr<gaia::catalog::ddl::create_database_t>> create_database
+%type <std::unique_ptr<gaia::catalog::ddl::create_table_t>> create_table
+%type <std::unique_ptr<gaia::catalog::ddl::create_relationship_t>> create_relationship
+%type <std::unique_ptr<gaia::catalog::ddl::create_index_t>> create_index
 %type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
 %type <std::unique_ptr<gaia::catalog::ddl::use_statement_t>> use_statement
 
@@ -103,6 +107,10 @@
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
+%printer { yyo << "create_database:" << $$->name; } create_database
+%printer { yyo << "create_table:" << $$->name; } create_table
+%printer { yyo << "create_relatinship:" << $$->name; } create_relationship
+%printer { yyo << "create_index:" << $$->name; } create_index
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
@@ -149,12 +157,22 @@ statement:
 ;
 
 create_statement:
+  create_database { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_table { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_relationship { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_index { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+;
+
+create_database:
   CREATE DATABASE opt_if_not_exists IDENTIFIER {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_database, $4);
+      $$ = std::make_unique<create_database_t>($4);
       $$->if_not_exists = $3;
   }
-| CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_table, $4.second);
+;
+
+create_table:
+  CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
+      $$ = std::make_unique<create_table_t>($4.second);
       $$->if_not_exists = $3;
       $$->database = std::move($4.first);
       if ($6)
@@ -162,13 +180,19 @@ create_statement:
           $$->fields = std::move(*$6);
       }
   }
-| CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $4);
+;
+
+create_relationship:
+  CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
       $$->if_not_exists = $3;
   }
-| CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $6);
+;
+
+create_index:
+  CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_index_t>($6);
       $$->unique_index = $2;
       $$->index_type = $3;
       $$->if_not_exists = $5;
