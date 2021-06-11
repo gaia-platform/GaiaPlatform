@@ -407,3 +407,15 @@ ruleset test_query_8
         g_oninsert_called = true;
     }
 }
+
+ruleset test_query_9
+{
+    OnInsert(student)
+    {
+        char str[200];
+        sprintf(str, "%d%s%d ", S:student.total_hours, S->R:registration.grade, R->course.hours);
+        g_string_value = std::string(str);
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}

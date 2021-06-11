@@ -627,6 +627,35 @@ TEST_F(test_queries_code, nomatch_stmt4)
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
+TEST_F(test_queries_code, nomatch_function_query)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_9");
+
+    // OnInsert(student) will look for class hours, which don't exist - nomatch!
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto registration = registration_t::insert_row("reg00H", c_status_eligible, c_grade_c);
+    student.registrations().insert(registration);
+    course_1.registrations().insert(registration);
+    registration = registration_t::insert_row("reg00I", c_status_eligible, c_grade_d);
+    student.registrations().insert(registration);
+    course_2.registrations().insert(registration);
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_string_value, "4C3 ") << "Incorrect result";
+}
+
 // Query tests:
 //  - single-statement loop over records owned by anchor.
 //  - for loop over records owned by anchor.

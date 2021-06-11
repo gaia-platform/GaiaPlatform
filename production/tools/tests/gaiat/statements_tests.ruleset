@@ -4,7 +4,6 @@
 
 // #define TEST_FAILURES
 
-#ifdef TEST_FAILURES
 ruleset test1
 {
     OnInsert(incubator)
@@ -16,9 +15,7 @@ ruleset test1
         }
     }
 }
-#endif
 
-#ifdef TEST_FAILURES
 ruleset test2
 {
     {
@@ -29,9 +26,7 @@ ruleset test2
         }
     }
 }
-#endif
 
-#ifdef TEST_FAILURES
 ruleset test3
 {
     {
@@ -42,7 +37,6 @@ ruleset test3
         }
     }
 }
-#endif
 
 ruleset test4
 {
@@ -513,7 +507,7 @@ ruleset test32
     }
 }
 
-#ifdef TEST_FAILURE
+#ifdef TEST_FAILURES
 ruleset test33
 {
     OnInsert(incubator)
