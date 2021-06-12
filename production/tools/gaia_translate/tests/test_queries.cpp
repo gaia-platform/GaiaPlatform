@@ -268,7 +268,7 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-TEST_F(test_queries_code, DISABLED_new_registration)
+TEST_F(test_queries_code, new_registration)
 {
     const int num_inserts = 4;
 
