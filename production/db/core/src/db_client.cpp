@@ -434,7 +434,7 @@ void client_t::begin_transaction()
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    s_txn_id = txn_info->transaction_id();
+    s_txn_id = gaia_txn_id_t{txn_info->transaction_id()};
     ASSERT_INVARIANT(
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
@@ -479,7 +479,7 @@ void client_t::apply_txn_log(int log_fd)
     for (size_t i = 0; i < txn_log.data()->record_count; ++i)
     {
         const auto& lr = txn_log.data()->log_records[i];
-        (*s_private_locators.data())[lr.locator] = lr.new_offset;
+        (*s_private_locators.data())[to_integral(lr.locator)] = lr.new_offset;
     }
 }
 
@@ -565,7 +565,7 @@ void client_t::commit_transaction()
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    ASSERT_INVARIANT(txn_info->transaction_id() == to_integral(s_txn_id), "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger

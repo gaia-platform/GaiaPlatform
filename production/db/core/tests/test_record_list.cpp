@@ -18,16 +18,17 @@ using namespace gaia::db::storage;
 TEST(storage, record_list)
 {
     constexpr size_t c_range_size = 3;
-    constexpr gaia_locator_t c_starting_locator = 1000;
-    constexpr gaia_locator_t c_count_locators = 10;
-    constexpr gaia_locator_t c_new_locator = 88;
+    constexpr gaia_locator_t c_starting_locator{1000};
+    constexpr size_t c_count_locators = 10;
+    constexpr gaia_locator_t c_new_locator{88};
 
     record_list_t record_list(c_range_size);
 
     // Add some locator values to our list.
-    for (gaia_locator_t locator = c_starting_locator; locator < c_starting_locator + c_count_locators; locator++)
+
+    for (auto locator = to_integral(c_starting_locator); locator < to_integral(c_starting_locator) + c_count_locators; locator++)
     {
-        record_list.add(locator);
+        record_list.add(gaia_locator_t{locator});
     }
 
     // Start an iteration over the list.
@@ -36,7 +37,7 @@ TEST(storage, record_list)
     ASSERT_EQ(true, return_value);
     ASSERT_EQ(false, iterator.at_end());
 
-    gaia_locator_t expected_locator = c_starting_locator;
+    auto expected_locator = to_integral(c_starting_locator);
     record_range_t* current_range = iterator.current_range;
 
     // Iterate over the list and verify content and range changes.
@@ -44,15 +45,15 @@ TEST(storage, record_list)
     do
     {
         // Verify that ranges change as expected.
-        if (expected_locator > c_starting_locator
-            && (expected_locator - c_starting_locator) % c_range_size == 0)
+        if (expected_locator > to_integral(c_starting_locator)
+            && (expected_locator - to_integral(c_starting_locator)) % c_range_size == 0)
         {
             ASSERT_TRUE(iterator.current_range != current_range);
             current_range = iterator.current_range;
         }
 
         ASSERT_EQ(current_range, iterator.current_range);
-        ASSERT_EQ(expected_locator, record_list_t::get_record_data(iterator).locator);
+        ASSERT_EQ(expected_locator, to_integral(record_list_t::get_record_data(iterator).locator));
 
         if (expected_locator % 2 != 0)
         {
@@ -70,12 +71,12 @@ TEST(storage, record_list)
     ASSERT_EQ(true, return_value);
     ASSERT_EQ(false, iterator.at_end());
 
-    expected_locator = c_starting_locator;
+    expected_locator = to_integral(c_starting_locator);
 
     // Iterate over the list and verify content.
     do
     {
-        ASSERT_EQ(expected_locator, record_list_t::get_record_data(iterator).locator);
+        ASSERT_EQ(expected_locator, to_integral(record_list_t::get_record_data(iterator).locator));
 
         expected_locator += 2;
     } while (record_list_t::move_next(iterator));
@@ -94,7 +95,7 @@ TEST(storage, record_list)
     ASSERT_EQ(true, return_value);
     ASSERT_EQ(false, iterator.at_end());
 
-    expected_locator = c_starting_locator;
+    expected_locator = to_integral(c_starting_locator);
 
     // Iterate over the list and verify content.
     do
@@ -103,7 +104,7 @@ TEST(storage, record_list)
         gaia_locator_t current_locator = record_list_t::get_record_data(iterator).locator;
         if (current_locator != c_new_locator)
         {
-            ASSERT_EQ(expected_locator, current_locator);
+            ASSERT_EQ(expected_locator, to_integral(current_locator));
             expected_locator += 2;
         }
     } while (record_list_t::move_next(iterator));

@@ -58,7 +58,7 @@ std::string rdb_internal_t::begin_txn(const rocksdb::WriteOptions& options, cons
     auto duration = now.time_since_epoch();
     auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
     std::stringstream rdb_txn_name;
-    rdb_txn_name << txn_id << "." << nanoseconds.count();
+    rdb_txn_name << to_integral(txn_id) << "." << nanoseconds.count();
     ASSERT_PRECONDITION(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
     rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
     rocksdb::Status s = txn->SetName(rdb_txn_name.str());

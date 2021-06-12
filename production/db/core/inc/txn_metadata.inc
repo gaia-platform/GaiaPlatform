@@ -171,7 +171,7 @@ bool txn_metadata_t::compare_exchange_weak(txn_metadata_t& expected_metadata, co
         expected_metadata.m_ts == desired_metadata.m_ts,
         "Metadata timestamps differ in call to compare_exchange_weak()!");
 
-    return s_txn_metadata_map[expected_metadata.m_ts].compare_exchange_weak(
+    return s_txn_metadata_map[to_integral(expected_metadata.m_ts)].compare_exchange_weak(
         expected_metadata.m_value, desired_metadata.m_value);
 }
 
@@ -181,13 +181,13 @@ bool txn_metadata_t::compare_exchange_strong(txn_metadata_t& expected_metadata, 
         expected_metadata.m_ts == desired_metadata.m_ts,
         "Metadata timestamps differ in call to compare_exchange_strong()!");
 
-    return s_txn_metadata_map[expected_metadata.m_ts].compare_exchange_strong(
+    return s_txn_metadata_map[to_integral(expected_metadata.m_ts)].compare_exchange_strong(
         expected_metadata.m_value, desired_metadata.m_value);
 }
 
 void txn_metadata_t::check_ts_size(gaia_txn_id_t ts)
 {
-    ASSERT_PRECONDITION(ts < (1ULL << c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
+    ASSERT_PRECONDITION(to_integral(ts) < (1ULL << c_txn_ts_bits), "Timestamp values must fit in 42 bits!");
 }
 
 bool txn_metadata_t::is_uninitialized() const
@@ -268,7 +268,7 @@ uint64_t txn_metadata_t::get_status() const
 gaia_txn_id_t txn_metadata_t::get_timestamp() const
 {
     // The timestamp is in the low 42 bits of the txn metadata.
-    return (m_value & c_txn_ts_mask);
+    return gaia_txn_id_t{m_value & c_txn_ts_mask};
 }
 
 int txn_metadata_t::get_txn_log_fd() const

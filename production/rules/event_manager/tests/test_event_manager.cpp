@@ -14,6 +14,7 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "event_manager_test_helpers.hpp"
@@ -225,7 +226,7 @@ static field_position_list_t g_value{c_value};
 static field_position_list_t g_timestamp{c_timestamp};
 static field_position_list_t g_id{c_id};
 
-static constexpr gaia_txn_id_t dummy_txn_id = 0;
+static constexpr gaia_txn_id_t dummy_txn_id = c_invalid_gaia_txn_id;
 
 /**
  * Table Rule functions.

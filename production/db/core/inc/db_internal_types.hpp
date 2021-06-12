@@ -114,11 +114,11 @@ struct txn_log_t
         friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
         {
             os << "locator: "
-               << lr.locator
+               << to_integral(lr.locator)
                << "\told_offset: "
-               << lr.old_offset
+               << to_integral(lr.old_offset)
                << "\tnew_offset: "
-               << lr.new_offset
+               << to_integral(lr.new_offset)
                << "\tdeleted_id: "
                << lr.deleted_id
                << "\toperation: "
@@ -163,8 +163,8 @@ struct counters_t
     // segment, and the OS automatically zeroes new pages.
     common::gaia_id_t last_id;
     common::gaia_type_t last_type_id;
-    gaia_txn_id_t last_txn_id;
-    gaia_locator_t last_locator;
+    std::underlying_type_t<gaia_txn_id_t> last_txn_id;
+    std::underlying_type_t<gaia_locator_t> last_locator;
 };
 
 struct data_t

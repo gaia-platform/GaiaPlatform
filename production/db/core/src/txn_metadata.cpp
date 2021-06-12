@@ -126,7 +126,7 @@ bool txn_metadata_t::seal_uninitialized_ts(gaia_txn_id_t ts)
     txn_metadata_entry_t expected_metadata_entry = c_value_uninitialized;
     txn_metadata_entry_t sealed_metadata_entry = c_value_sealed;
 
-    bool has_sealed_metadata = s_txn_metadata_map[ts].compare_exchange_strong(
+    bool has_sealed_metadata = s_txn_metadata_map[to_integral(ts)].compare_exchange_strong(
         expected_metadata_entry, sealed_metadata_entry);
     // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior states, because only the
     // submitting thread can transition the txn to these states.
@@ -188,11 +188,11 @@ void txn_metadata_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_i
         = c_txn_status_submitted << c_txn_status_flags_shift;
 
     // A submitted begin_ts metadata has the commit_ts in its low bits.
-    txn_metadata_entry_t submitted_metadata_entry = (c_submitted_flags | commit_ts);
+    txn_metadata_entry_t submitted_metadata_entry = (c_submitted_flags | to_integral(commit_ts));
 
     // We don't need a CAS here because only the session thread can submit or terminate a txn,
     // and an active txn cannot be sealed.
-    s_txn_metadata_map[begin_ts] = submitted_metadata_entry;
+    s_txn_metadata_map[to_integral(begin_ts)] = submitted_metadata_entry;
 }
 
 // Sets the begin_ts metadata's status to TXN_TERMINATED.
@@ -209,7 +209,7 @@ void txn_metadata_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
 
     // We don't need a CAS here because only the session thread can submit or terminate a txn,
     // and an active txn cannot be sealed.
-    s_txn_metadata_map[begin_ts] = new_metadata_entry;
+    s_txn_metadata_map[to_integral(begin_ts)] = new_metadata_entry;
 }
 
 void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
@@ -309,7 +309,7 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
         expected_metadata_entry = c_value_uninitialized;
         // REVIEW: There should be an assert that expected_metadata_entry
         // can only have the "sealed" value if the CAS fails.
-    } while (!s_txn_metadata_map[begin_ts].compare_exchange_weak(
+    } while (!s_txn_metadata_map[to_integral(begin_ts)].compare_exchange_weak(
         expected_metadata_entry, c_begin_ts_metadata_entry));
 
     return begin_ts;
@@ -323,7 +323,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
     uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
     constexpr uint64_t c_shifted_status_flags
         = c_txn_status_validating << c_txn_status_flags_shift;
-    txn_metadata_entry_t commit_ts_metadata_entry = c_shifted_status_flags | shifted_log_fd | begin_ts;
+    txn_metadata_entry_t commit_ts_metadata_entry = c_shifted_status_flags | shifted_log_fd | to_integral(begin_ts);
 
     // We're possibly racing another beginning or committing txn that wants to
     // seal our commit_ts metadata. We use compare_exchange_weak() because we
@@ -339,7 +339,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
 
         // The commit_ts metadata must be uninitialized.
         expected_metadata_entry = c_value_uninitialized;
-    } while (!s_txn_metadata_map[commit_ts].compare_exchange_weak(
+    } while (!s_txn_metadata_map[to_integral(commit_ts)].compare_exchange_weak(
         expected_metadata_entry, commit_ts_metadata_entry));
 
     return commit_ts;
@@ -352,7 +352,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
     txn_metadata_t txn_metadata(ts);
     std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
 
-    std::cerr << "Transaction metadata for timestamp " << ts << ": " << metadata_bits << std::endl;
+    std::cerr << "Transaction metadata for timestamp " << to_integral(ts) << ": " << metadata_bits << std::endl;
 
     if (txn_metadata.is_uninitialized())
     {
@@ -377,7 +377,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
         txn_metadata_t txn_metadata(begin_ts);
         std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
         std::cerr
-            << "Timestamp metadata for commit_ts metadata's begin_ts " << begin_ts
+            << "Timestamp metadata for commit_ts metadata's begin_ts " << to_integral(begin_ts)
             << ": " << metadata_bits << std::endl;
         std::cerr << "Log fd for commit_ts metadata: " << get_txn_log_fd(ts) << std::endl;
     }
@@ -392,7 +392,7 @@ void txn_metadata_t::dump_txn_metadata(gaia_txn_id_t ts)
             txn_metadata_t txn_metadata(commit_ts);
             std::bitset<c_txn_metadata_bits> metadata_bits(txn_metadata.m_value);
             std::cerr
-                << "Timestamp metadata for begin_ts metadata's commit_ts " << commit_ts
+                << "Timestamp metadata for begin_ts metadata's commit_ts " << to_integral(commit_ts)
                 << ": " << metadata_bits << std::endl;
         }
     }
@@ -409,7 +409,7 @@ txn_metadata_t::txn_metadata_t(gaia_txn_id_t ts)
     ASSERT_PRECONDITION(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
     check_ts_size(m_ts);
 
-    m_value = s_txn_metadata_map[m_ts];
+    m_value = s_txn_metadata_map[to_integral(m_ts)];
 }
 
 const char* txn_metadata_t::status_to_str() const

@@ -111,11 +111,11 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
 std::ostream& operator<<(std::ostream& os, const index_record_t& record)
 {
     os << "locator: "
-       << record.locator
+       << to_integral(record.locator)
        << "\ttxn_id: "
-       << record.txn_id
+       << to_integral(record.txn_id)
        << "\toffset: "
-       << record.offset
+       << to_integral(record.offset)
        << "\tdeleted: "
        << record.deleted
        << std::endl;

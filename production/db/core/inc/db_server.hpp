@@ -222,7 +222,7 @@ private:
         messages::session_event_t event,
         messages::session_state_t old_state,
         messages::session_state_t new_state,
-        gaia_txn_id_t txn_id = 0,
+        gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
         size_t log_fd_count = 0);
 
     static void clear_shared_memory();

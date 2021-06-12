@@ -205,7 +205,7 @@ void server_t::handle_begin_txn(
     ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
-    validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
+    validate_txns_in_range(gaia_txn_id_t{to_integral(s_last_applied_commit_ts_upper_bound) + 1}, s_txn_id);
 
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
@@ -250,8 +250,10 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
     gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
-    for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
+    for (auto ts_idx = to_integral(begin_ts) - 1; ts_idx > to_integral(last_known_applied_commit_ts); --ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         if (txn_metadata_t::is_commit_ts(ts))
         {
             ASSERT_INVARIANT(
@@ -580,7 +582,7 @@ void server_t::build_server_reply(
     size_t log_fd_count)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fd_count);
+    const auto transaction_info = Createtransaction_info_t(builder, to_integral(txn_id), log_fd_count);
     server_reply = Createserver_reply_t(
         builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
@@ -1413,8 +1415,10 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
 {
     // Scan txn table entries from start_ts to end_ts.
     // Seal any uninitialized entries and validate any undecided txns.
-    for (gaia_txn_id_t ts = start_ts; ts < end_ts; ++ts)
+    for (auto ts_idx = to_integral(start_ts); ts_idx < to_integral(end_ts); ++ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         // Fence off any txns that have allocated a commit_ts between start_ts
         // and end_ts but have not yet registered a commit_ts metadata in the txn
         // table.
@@ -1572,8 +1576,10 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     do
     {
         has_found_new_committed_txn = false;
-        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+        for (auto ts_idx = to_integral(txn_metadata_t::get_begin_ts(commit_ts)) + 1; ts_idx < to_integral(commit_ts); ++ts_idx)
         {
+            gaia_txn_id_t ts{ts_idx};
+
             // Seal all uninitialized timestamps. This marks a "fence" after which
             // any submitted txns with commit timestamps in our conflict window must
             // already be registered under their commit_ts (they must retry with a
@@ -1656,8 +1662,10 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // Validate all undecided txns, from oldest to newest. If any validated txn
     // commits, test it immediately for conflicts. Also test any committed txns
     // for conflicts if they weren't tested in the first pass.
-    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+    for (auto ts_idx = to_integral(txn_metadata_t::get_begin_ts(commit_ts)) + 1; ts_idx < to_integral(commit_ts); ++ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         if (txn_metadata_t::is_commit_ts(ts))
         {
             // Validate any currently undecided txn.
@@ -1666,7 +1674,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                 // By hypothesis, there are no undecided txns with commit timestamps
                 // preceding the committing txn's begin timestamp.
                 ASSERT_INVARIANT(
-                    ts > s_txn_id,
+                    ts_idx > to_integral(s_txn_id),
                     c_message_preceding_txn_should_have_been_validated);
 
                 // Recursively validate the current undecided txn.
@@ -1763,7 +1771,7 @@ bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn
     {
         // NB: last_watermark_ts is an inout argument holding the previous value
         // on failure!
-        if (ts <= last_watermark_ts)
+        if (to_integral(ts) <= to_integral(last_watermark_ts))
         {
             return false;
         }
@@ -1807,7 +1815,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         // is idempotent and therefore a txn log can be re-applied over the same
         // txn's partially-applied log during snapshot reconstruction.
         txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
-        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
+        (*s_shared_locators.data())[to_integral(lr->locator)] = lr->new_offset;
     }
 }
 
@@ -1859,7 +1867,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             record_list->request_deletion(txn_log->log_records[i].locator);
         }
 
-        if (offset_to_free && s_object_deallocator_fn)
+        if (to_integral(offset_to_free) && s_object_deallocator_fn)
         {
             // TODO: If a chunk gets freed as a result of this deallocation,
             // we should mark the chunk as freed as well.
@@ -1994,8 +2002,10 @@ void server_t::apply_txn_logs_to_shared_view()
     // txn. Advance the pre-apply watermark before applying the txn log
     // of a committed txn, and advance the post-apply watermark after
     // applying the txn log.
-    for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
+    for (auto ts_idx = to_integral(last_applied_commit_ts_upper_bound) + 1; ts_idx <= to_integral(last_allocated_ts); ++ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
         //
@@ -2050,7 +2060,7 @@ void server_t::apply_txn_logs_to_shared_view()
 
         // The current timestamp in the scan is guaranteed to be positive due to
         // the loop precondition.
-        gaia_txn_id_t prev_ts = ts - 1;
+        gaia_txn_id_t prev_ts{to_integral(ts) - 1};
 
         // This thread must have observed both the pre- and post-apply
         // watermarks to be equal to the previous timestamp in the scan in order
@@ -2120,8 +2130,10 @@ void server_t::gc_applied_txn_logs()
     // flag is set if persistence is enabled). (If we fail to invalidate the log
     // fd, we abort the scan to avoid contention.) When GC is complete, set the
     // TXN_GC_COMPLETE flag on the txn metadata and continue.
-    for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
+    for (auto ts_idx = to_integral(last_freed_commit_ts_lower_bound) + 1; ts_idx <= to_integral(last_applied_commit_ts_lower_bound); ++ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");
@@ -2200,8 +2212,10 @@ void server_t::update_txn_table_safe_truncation_point()
     // advancing the post-GC watermark on any begin_ts, or any commit_ts that
     // has the TXN_GC_COMPLETE flag set. If TXN_GC_COMPLETE is unset on the
     // current commit_ts, abort the scan.
-    for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
+    for (auto ts_idx = to_integral(last_freed_commit_ts_lower_bound) + 1; ts_idx <= to_integral(last_applied_commit_ts_lower_bound); ++ts_idx)
     {
+        gaia_txn_id_t ts{ts_idx};
+
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");

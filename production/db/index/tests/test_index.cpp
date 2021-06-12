@@ -13,14 +13,14 @@ using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
 
 // Placeholder values for index records.
-constexpr gaia::db::gaia_txn_id_t c_fake_txn_id = 777;
-constexpr gaia::db::gaia_offset_t c_fake_offset = 0;
+constexpr gaia::db::gaia_txn_id_t c_fake_txn_id{777};
+constexpr gaia::db::gaia_offset_t c_fake_offset{0};
 
 index_record_t create_index_record()
 {
-    thread_local static gaia::db::gaia_locator_t locator = 0;
+    thread_local static auto locator = to_integral(gaia::db::c_invalid_gaia_locator);
 
-    return {c_fake_txn_id, c_fake_offset, locator++, false};
+    return {c_fake_txn_id, c_fake_offset, gaia::db::gaia_locator_t{locator++}, false};
 }
 
 TEST(index, empty_range_index)

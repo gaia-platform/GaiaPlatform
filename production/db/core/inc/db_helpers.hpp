@@ -41,7 +41,7 @@ inline common::gaia_type_t allocate_type()
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    gaia_txn_id_t txn_id = __sync_add_and_fetch(&counters->last_txn_id, 1);
+    gaia_txn_id_t txn_id{__sync_add_and_fetch(&counters->last_txn_id, 1)};
     return txn_id;
 }
 
@@ -59,7 +59,7 @@ inline gaia_locator_t allocate_locator()
         throw system_object_limit_exceeded();
     }
 
-    return __sync_add_and_fetch(&counters->last_locator, 1);
+    return gaia_locator_t{__sync_add_and_fetch(&counters->last_locator, 1)};
 }
 
 inline constexpr size_t get_gaia_alignment_unit()
@@ -74,7 +74,7 @@ inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t 
         return c_invalid_gaia_offset;
     }
 
-    return offset / get_gaia_alignment_unit();
+    return from_integral<gaia_offset_t>(offset / get_gaia_alignment_unit());
 }
 
 inline gaia::db::memory_manager::address_offset_t get_address_offset(gaia_offset_t offset)
@@ -84,7 +84,7 @@ inline gaia::db::memory_manager::address_offset_t get_address_offset(gaia_offset
         return gaia::db::memory_manager::c_invalid_address_offset;
     }
 
-    return offset * get_gaia_alignment_unit();
+    return to_integral(offset) * get_gaia_alignment_unit();
 }
 
 inline void update_locator(
@@ -97,7 +97,7 @@ inline void update_locator(
         throw no_open_transaction();
     }
 
-    (*locators)[locator] = get_gaia_offset(offset);
+    (*locators)[to_integral(locator)] = get_gaia_offset(offset);
 }
 
 inline bool locator_exists(gaia_locator_t locator)
@@ -111,15 +111,15 @@ inline bool locator_exists(gaia_locator_t locator)
     __sync_synchronize();
 
     return (locator != c_invalid_gaia_locator)
-        && (locator <= counters->last_locator)
-        && ((*locators)[locator] != c_invalid_gaia_offset);
+        && (to_integral(locator) <= counters->last_locator)
+        && ((*locators)[to_integral(locator)] != c_invalid_gaia_offset);
 }
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
     return locator_exists(locator)
-        ? (*locators)[locator].load()
+        ? (*locators)[to_integral(locator)].load()
         : c_invalid_gaia_offset;
 }
 
@@ -127,7 +127,7 @@ inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     data_t* data = gaia::db::get_data();
     return (offset != c_invalid_gaia_offset)
-        ? reinterpret_cast<db_object_t*>(&data->objects[offset])
+        ? reinterpret_cast<db_object_t*>(&data->objects[to_integral(offset)])
         : nullptr;
 }
 
@@ -141,7 +141,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 inline gaia_txn_id_t get_last_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    return counters->last_txn_id;
+    return gaia_txn_id_t{counters->last_txn_id};
 }
 
 } // namespace db

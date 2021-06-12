@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
@@ -32,9 +33,14 @@ gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
     m_locator = db_hash_map::find(id);
 }
 
-gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator)
 {
     m_locator = locator;
+}
+
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
+    : gaia_ptr_t::gaia_ptr_t(locator)
+{
     client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
 }
 
@@ -221,7 +227,7 @@ gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
 
 gaia_ptr_t gaia_ptr_t::find_next() const
 {
-    if (m_locator)
+    if (m_locator != c_invalid_gaia_locator)
     {
         return find_next(to_ptr()->type);
     }
@@ -240,8 +246,9 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     __sync_synchronize();
 
     // Search for objects of this type within the range of used locators.
-    while (++next_ptr.m_locator && next_ptr.m_locator <= counters->last_locator)
+    for (auto locator_idx = to_integral(next_ptr.m_locator) + 1; locator_idx <= counters->last_locator; ++locator_idx)
     {
+        next_ptr = gaia_ptr_t(gaia_locator_t{locator_idx});
         if (next_ptr.is(type))
         {
             return next_ptr;
@@ -304,7 +311,7 @@ void gaia_ptr_t::reset()
     {
         client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list, get_txn_id());
     }
-    (*locators)[m_locator] = c_invalid_gaia_offset;
+    (*locators)[to_integral(m_locator)] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;
 }
 
