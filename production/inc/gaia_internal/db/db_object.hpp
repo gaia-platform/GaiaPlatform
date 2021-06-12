@@ -29,17 +29,6 @@ namespace db
  */
 struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 {
-    // Because the type is explicitly aligned to a granularity larger than
-    // its nominal size, we cannot use sizeof() to compute the size of the
-    // object header! (We use an explicit value rather than offsetof(payload)
-    // so that we can assert that our expected header size is correct.)
-    static constexpr size_t c_object_header_size = 16;
-
-    // The entire object can have maximum size 64KB, so user-defined data can
-    // have minimum size 0 bytes (implying that the references array and the
-    // serialized flatbuffer are both empty), and maximum size 64KB - 16B.
-    static constexpr uint16_t c_max_payload_size = std::numeric_limits<uint16_t>::max() - c_object_header_size + 1;
-
     gaia::common::gaia_id_t id;
     gaia::common::gaia_type_t type;
 
@@ -65,9 +54,31 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     }
 };
 
-// We need to ensure that the object header size is exactly what we
-// calculated above and not additionally padded.
-static_assert(offsetof(db_object_t, payload) == db_object_t::c_object_header_size, "Offset of payload field must be expected object header size!");
+// Because the type is explicitly aligned to a granularity larger than
+// its nominal size, we cannot use sizeof() to compute the size of the
+// object header!
+constexpr size_t c_db_object_header_size = offsetof(db_object_t, payload);
+
+// We want to ensure that the object header size never changes accidentally.
+constexpr size_t c_db_object_expected_header_size = 16;
+
+// The entire object can have maximum size 64KB, so user-defined data can
+// have minimum size 0 bytes (implying that the references array and the
+// serialized flatbuffer are both empty), and maximum size 64KB - 16B.
+constexpr size_t c_db_object_max_size = static_cast<size_t>(std::numeric_limits<uint16_t>::max()) + 1;
+
+constexpr size_t c_db_object_max_payload_size = c_db_object_max_size - c_db_object_header_size;
+
+// Check for overflow.
+static_assert(c_db_object_max_payload_size <= std::numeric_limits<uint16_t>::max());
+
+// The object header size may change in the future, but we want to explicitly
+// assert that it is a specific value to catch any inadvertent changes.
+static_assert(c_db_object_header_size == c_db_object_expected_header_size, "Object header size must be 16 bytes!");
+
+// Due to our memory management requirements, we never want the object header
+// size to be larger than the object alignment.
+static_assert(c_db_object_header_size <= gaia::db::memory_manager::c_allocation_alignment, "Object header size must not exceed object alignment!");
 
 // We need to 8-byte-align both the references array at the beginning of the
 // payload (since references are 8 bytes) and the serialized flatbuffer that
@@ -75,11 +86,11 @@ static_assert(offsetof(db_object_t, payload) == db_object_t::c_object_header_siz
 // flatbuffers). Instead of forcing correct alignment via a compiler directive,
 // we assert that the payload field is correctly aligned, to avoid having the
 // compiler silently insert padding if the field isn't naturally aligned.
-static_assert(offsetof(db_object_t, payload) % sizeof(uint64_t) == 0, "Payload must be 8-byte-aligned!");
+static_assert(c_db_object_header_size % sizeof(uint64_t) == 0, "Payload must be 8-byte-aligned!");
 
 // According to the standard, sizeof(T) is always a multiple of alignof(T).
 // We need this multiple to be 1 to simplify memory management.
-static_assert(sizeof(db_object_t) == alignof(db_object_t), "Size must be identical to alignment!");
+static_assert(sizeof(db_object_t) == alignof(db_object_t), "Object size must be identical to object alignment!");
 
 } // namespace db
 } // namespace gaia
