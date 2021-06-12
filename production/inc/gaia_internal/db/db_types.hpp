@@ -29,7 +29,7 @@ constexpr gaia_txn_id_t c_invalid_gaia_txn_id = 0;
  * The type of a Gaia locator id.
  *
  * A locator is an array index in a global shared memory segment, whose entry
- * holds the offset of the corresponding gaia_se_object in the shared memory
+ * holds the offset of the corresponding db_object_t in the shared memory
  * data segment. Each gaia_id corresponds to a unique locator for the lifetime
  * of the server process.
  */
@@ -48,11 +48,11 @@ constexpr gaia_locator_t c_first_gaia_locator = c_invalid_gaia_locator + 1;
 /**
  * The type of a Gaia data offset.
  *
- * This represents the offset of a gaia_se_object in the global data shared
- * memory segment, which can be added to the local base address of the mapped
- * data segment to obtain a valid local pointer to the object.
+ * This represents the 64-byte-aligned offset of a db_object_t in the global
+ * data shared memory segment, which can be added to the local base address of
+ * the mapped data segment to obtain a valid local pointer to the object.
  */
-typedef uint64_t gaia_offset_t;
+typedef uint32_t gaia_offset_t;
 
 /**
  * The value of an invalid gaia_offset.

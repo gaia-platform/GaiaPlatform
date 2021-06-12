@@ -13,6 +13,8 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
+#include "memory_types.hpp"
+
 namespace gaia
 {
 namespace db
@@ -151,7 +153,7 @@ public:
     void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
 protected:
-    gaia_ptr_t(gaia_locator_t locator, gaia_offset_t offset);
+    gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);
 
     void allocate(size_t size);
 
