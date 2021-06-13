@@ -185,13 +185,49 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 // started by the rules engine, and log the event.
 void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 {
+    if (invocation.serial_stream == nullptr)
+    {
+        invoke_rule_inner(invocation);
+        return;
+    }
+
+    unique_lock execute_lk{invocation.serial_stream->execute_lk, defer_lock};
+    if (execute_lk.try_lock())
+    {
+        invoke_rule_inner(invocation);
+    }
+    else
+    {
+        unique_lock enqueue_lk{invocation.serial_stream->enqueue_lk};
+        invocation.serial_stream->invocations.push(invocation);
+        execute_lk.try_lock();
+    }
+
+    if (execute_lk)
+    {
+        unique_lock enqueue_lk{invocation.serial_stream->enqueue_lk};
+        while (!invocation.serial_stream->invocations.empty())
+        {
+            enqueue_lk.unlock();
+            do
+            {
+                invocation = invocation.serial_stream->invocations.front();
+                invocation.serial_stream->invocations.pop();
+                invoke_rule_inner(invocation);
+            } while (!invocation.serial_stream->invocations.empty());
+            enqueue_lk.lock();
+        }
+    }
+}
+
+void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
+{
     rule_invocation_t& rule_invocation = invocation.args;
     s_tls_can_enqueue = false;
     bool should_schedule = false;
     const char* rule_id = invocation.rule_id;
 
     m_stats_manager.inc_executed(rule_id);
-
     try
     {
         try

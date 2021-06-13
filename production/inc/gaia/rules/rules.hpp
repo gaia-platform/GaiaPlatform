@@ -79,6 +79,7 @@ struct rule_binding_t
         , rule_name(nullptr)
         , rule(nullptr)
         , line_number(0)
+        , serial_stream_name(nullptr)
     {
     }
 
@@ -86,11 +87,13 @@ struct rule_binding_t
         const char* a_ruleset_name,
         const char* a_rule_name,
         gaia_rule_fn a_rule,
-        uint32_t a_line_number = 0)
+        uint32_t a_line_number = 0,
+        const char* a_serial_stream_name = nullptr)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , rule(a_rule)
         , line_number(a_line_number)
+        , serial_stream_name(a_serial_stream_name)
     {
     }
 
@@ -98,6 +101,7 @@ struct rule_binding_t
     const char* rule_name;
     gaia_rule_fn rule;
     uint32_t line_number;
+    const char* serial_stream_name;
 };
 
 /**
@@ -113,6 +117,7 @@ struct subscription_t
         , event_type(db::triggers::event_type_t::not_set)
         , field(0)
         , line_number(0)
+        , serial_stream_name(nullptr)
     {
     }
 
@@ -122,13 +127,17 @@ struct subscription_t
         common::gaia_type_t a_gaia_type,
         db::triggers::event_type_t an_event_type,
         common::field_position_t a_field,
-        uint32_t a_line_number)
+        uint32_t a_line_number,
+        // XXX (cameron) remove default value. Did this to make tests happy without modifying.
+        // XXX (cameron) reorder after `a_rule_name'. Did this to make tests happy without modifying.
+        const char* a_serial_stream_name = nullptr)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , gaia_type(a_gaia_type)
         , event_type(an_event_type)
         , field(a_field)
         , line_number(a_line_number)
+        , serial_stream_name(a_serial_stream_name)
     {
     }
 
@@ -138,6 +147,8 @@ struct subscription_t
     db::triggers::event_type_t event_type;
     const common::field_position_t field;
     uint32_t line_number;
+    // XXX (cameron) reorder after `rule_name'. Did this to make tests happy without modifying.
+    const char* serial_stream_name;
 };
 
 /**

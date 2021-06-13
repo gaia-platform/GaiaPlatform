@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <queue>
+#include <shared_mutex>
 #include <thread>
 #include <variant>
 
@@ -35,12 +36,21 @@ public:
         db::gaia_txn_id_t src_txn_id;
     };
 
+    struct invocation_t;
+    struct serial_stream_t
+    {
+        std::mutex execute_lk;
+        std::mutex enqueue_lk;
+        std::queue<invocation_t> invocations;
+    };
+
     struct invocation_t
     {
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
         uint32_t num_retries{0};
+        std::shared_ptr<serial_stream_t> serial_stream{nullptr};
     };
 
     /**
@@ -97,9 +107,18 @@ public:
      */
     size_t get_num_threads();
 
+    // XXX cameron make these private references to a serial_stream_manager given at construction.
+    //  The serial_stream_manager might end up being owned by the event manager.
+    /**
+     * Serial streams that have active subscriptions, invocations, or both.
+     */
+    std::shared_mutex serial_streams_lk;
+    std::map<std::string, std::weak_ptr<serial_stream_t>> serial_streams;
+
 private:
     void rule_worker(int32_t& count_busy_workers);
     void invoke_rule(invocation_t& invocation);
+    void invoke_rule_inner(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
     void wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock);
 

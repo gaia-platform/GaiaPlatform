@@ -76,13 +76,15 @@ private:
     {
         static std::string make_key(const char* ruleset_name, const char* rule_name);
         _rule_binding_t(const rules::rule_binding_t& binding);
-        _rule_binding_t(const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule, uint32_t line_number);
+        _rule_binding_t(
+            const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule, uint32_t line_number, const char* serial_stream_name = nullptr);
 
         std::string ruleset_name;
         std::string rule_name;
         std::string log_rule_name;
         rules::gaia_rule_fn rule;
         uint32_t line_number;
+        std::string serial_stream_name;
     };
 
     // The rules engine must be initialized through an explicit call
@@ -111,6 +113,7 @@ private:
     {
         rule_list_t last_operation_rules; // rules bound to this operation
         fields_map_t fields_map; // referenced fields of this type
+        std::shared_ptr<rule_thread_pool_t::serial_stream_t> serial_stream; // serial stream associated with this operation
     };
 
     // Map the event type to the event binding.
@@ -136,6 +139,7 @@ private:
     // Commit trigger function pointer that the database calls
     // whenever a transaction is committed.
     gaia::db::triggers::commit_trigger_fn m_trigger_fn;
+    // XXX cameron add m_serial_stream_manager and pass reference to rule_thread_pool constructor.
 
 private:
     // Only internal static creation is allowed.
@@ -167,7 +171,8 @@ private:
     void enqueue_invocation(
         const db::triggers::trigger_event_t& event,
         const _rule_binding_t* rule_binding,
-        std::chrono::steady_clock::time_point& start_time);
+        std::chrono::steady_clock::time_point& start_time,
+        std::shared_ptr<rule_thread_pool_t::serial_stream_t>& serial_stream);
     void check_subscription(db::triggers::event_type_t event_type, const common::field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {

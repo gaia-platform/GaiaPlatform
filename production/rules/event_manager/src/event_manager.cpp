@@ -135,10 +135,10 @@ void event_manager_t::process_last_operation_events(
 {
     rule_list_t& rules = binding.last_operation_rules;
 
-    for (auto const& binding : rules)
+    for (auto const& rule_binding : rules)
     {
         gaia_log::rules().trace("Enqueue table event:'{}', txn_id:'{}', gaia_type:'{}', gaia_id:'{}'", event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
-        enqueue_invocation(event, binding, start_time);
+        enqueue_invocation(event, rule_binding, start_time, binding.serial_stream);
     }
 }
 
@@ -163,13 +163,13 @@ void event_manager_t::process_field_events(
             // referenced by at least one rule.  Schedule those rules
             // for invocation now.
             rule_list_t& rules = field_it->second;
-            for (auto const& binding : rules)
+            for (auto const& rule_binding : rules)
             {
                 gaia_log::rules().trace(
                     "Enqueue field event:'{}', txn_id:'{}', gaia_type:'{}', field_id:'{}', gaia_id:'{}'",
                     event_type_name(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
 
-                enqueue_invocation(event, binding, start_time);
+                enqueue_invocation(event, rule_binding, start_time, binding.serial_stream);
             }
         }
     }
@@ -223,7 +223,8 @@ void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_l
 void event_manager_t::enqueue_invocation(
     const trigger_event_t& event,
     const _rule_binding_t* rule_binding,
-    steady_clock::time_point& start_time)
+    steady_clock::time_point& start_time,
+    shared_ptr<rule_thread_pool_t::serial_stream_t>& serial_stream)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation{
         rule_binding->rule,
@@ -235,7 +236,9 @@ void event_manager_t::enqueue_invocation(
     rule_thread_pool_t::invocation_t invocation{
         std::move(rule_invocation),
         rule_binding->log_rule_name.c_str(),
-        start_time};
+        start_time,
+        0, // XXX Retry logic exists, but is not used due to this.
+        serial_stream};
     m_invocations->enqueue(invocation);
 }
 
@@ -255,7 +258,8 @@ void event_manager_t::check_subscription(event_type_t event_type, const field_po
 void event_manager_t::subscribe_rule(
     gaia_type_t gaia_type,
     event_type_t event_type,
-    const field_position_list_t& fields, const rule_binding_t& rule_binding)
+    const field_position_list_t& fields,
+    const rule_binding_t& rule_binding)
 {
     // If any of these checks fail then an exception is thrown.
     check_rule_binding(rule_binding);
@@ -314,6 +318,34 @@ void event_manager_t::subscribe_rule(
         // because no field reference fields were provided.
         rule_list_t& rules = event_binding.last_operation_rules;
         is_rule_subscribed = add_rule(rules, rule_binding);
+    }
+
+    if (rule_binding.serial_stream_name != nullptr && event_binding.serial_stream == nullptr)
+    {
+        shared_ptr<rule_thread_pool_t::serial_stream_t> serial_stream;
+        {
+            shared_lock sl{m_invocations->serial_streams_lk};
+            auto value = m_invocations->serial_streams.find({rule_binding.serial_stream_name});
+            if (value != m_invocations->serial_streams.end())
+            {
+                serial_stream = value->second.lock();
+            }
+        }
+        if (serial_stream == nullptr)
+        {
+            unique_lock ul{m_invocations->serial_streams_lk};
+            auto value = m_invocations->serial_streams.find({rule_binding.serial_stream_name});
+            if (value != m_invocations->serial_streams.end())
+            {
+                serial_stream = value->second.lock();
+            }
+            else
+            {
+                serial_stream = make_shared<decltype(serial_stream)::element_type>();
+                m_invocations->serial_streams.insert({rule_binding.serial_stream_name, serial_stream});
+            }
+        }
+        event_binding.serial_stream = move(serial_stream);
     }
 
     if (is_rule_subscribed)
@@ -472,7 +504,8 @@ void event_manager_t::add_subscriptions(
             rule->rule_name.c_str(),
             gaia_type, event_type,
             field,
-            rule->line_number));
+            rule->line_number,
+            rule->serial_stream_name.c_str()));
     }
 }
 
@@ -550,7 +583,12 @@ string event_manager_t::_rule_binding_t::make_key(const char* ruleset_name, cons
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(const rule_binding_t& binding)
-    : _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule, binding.line_number)
+    : _rule_binding_t(
+        binding.ruleset_name,
+        binding.rule_name,
+        binding.rule,
+        binding.line_number,
+        binding.serial_stream_name)
 {
 }
 
@@ -558,7 +596,8 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     const char* a_ruleset_name,
     const char* a_rule_name,
     gaia_rule_fn a_rule,
-    uint32_t a_line_number)
+    uint32_t a_line_number,
+    const char* a_serial_stream_name)
 {
     ruleset_name = a_ruleset_name;
     rule = a_rule;
@@ -576,6 +615,10 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
         rule_name = a_rule_name;
         log_rule_name.append("::");
         log_rule_name.append(rule_name);
+    }
+    if (a_serial_stream_name != nullptr)
+    {
+        serial_stream_name = a_serial_stream_name;
     }
 }
 
