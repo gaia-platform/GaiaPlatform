@@ -662,7 +662,7 @@ address_offset_t server_t::allocate_object(
 {
     ASSERT_PRECONDITION(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
 
-    address_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
+    address_offset_t object_offset = s_chunk_manager.allocate(size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk.
