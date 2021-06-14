@@ -500,3 +500,47 @@ CREATE RELATIONSHIP r (
     ASSERT_EQ(child.to_table, "t1");
     ASSERT_EQ(child.cardinality, cardinality_t::one);
 }
+
+TEST(catalog_ddl_parser_test, create_unique_field)
+{
+    parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id UINT64 UNIQUE, name STRING UNIQUE ACTIVE, ssn STRING ACTIVE UNIQUE);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_EQ(create_table->fields.size(), 3);
+
+    const data_field_def_t* field;
+
+    EXPECT_EQ(create_table->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(0).get());
+    EXPECT_EQ(field->name, "id");
+    EXPECT_EQ(field->data_type, data_type_t::e_uint64);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, false);
+    EXPECT_EQ(field->unique, true);
+
+    EXPECT_EQ(create_table->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(1).get());
+    EXPECT_EQ(field->name, "name");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, true);
+    EXPECT_EQ(field->unique, true);
+
+    EXPECT_EQ(create_table->fields.at(2)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(2).get());
+    EXPECT_EQ(field->name, "ssn");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, true);
+    EXPECT_EQ(field->unique, true);
+}

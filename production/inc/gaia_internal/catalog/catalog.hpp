@@ -6,6 +6,7 @@
 
 #include <limits>
 #include <memory>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -323,6 +324,40 @@ private:
     statement_type_t m_type;
 };
 
+enum class constraint_type_t : uint8_t
+{
+    active,
+    unique
+};
+
+struct constraint_t
+{
+    explicit constraint_t(constraint_type_t type)
+        : type(type)
+    {
+    }
+
+    constraint_type_t type;
+};
+
+struct active_constraint_t : constraint_t
+{
+    explicit active_constraint_t()
+        : constraint_t(constraint_type_t::active)
+    {
+    }
+};
+
+struct unique_constraint_t : constraint_t
+{
+    explicit unique_constraint_t()
+        : constraint_t(constraint_type_t::unique)
+    {
+    }
+};
+
+using constraint_list_t = std::vector<std::unique_ptr<constraint_t>>;
+
 enum class field_type_t : uint8_t
 {
     data,
@@ -350,10 +385,36 @@ struct data_field_def_t : base_field_def_t
     {
     }
 
+    data_field_def_t(
+        std::string name,
+        data_type_t type,
+        uint16_t length,
+        const std::optional<constraint_list_t>& opt_constraint_list)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
+    {
+        if (opt_constraint_list)
+        {
+            for (const auto& constraint : opt_constraint_list.value())
+            {
+                if (constraint->type == constraint_type_t::active)
+                {
+                    this->active = true;
+                }
+                else if (constraint->type == constraint_type_t::unique)
+                {
+                    this->unique = true;
+                }
+            }
+        }
+    }
+
     data_type_t data_type;
+
     uint16_t length;
 
     bool active = false;
+
+    bool unique = false;
 };
 
 using composite_name_t = std::pair<std::string, std::string>;
