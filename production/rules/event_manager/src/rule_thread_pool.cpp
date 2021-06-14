@@ -81,11 +81,9 @@ void rule_thread_pool_t::shutdown()
 
     unique_lock lock(m_lock, defer_lock);
 
-    // Wait for any scheduled rules to finish executing. Once the rule
-    // has finished, its worker thread will go into a wait state (not busy).
-    // Once all workers are not busy, then we can exit if there are no pending
-    // rule invocations.  If there are invocations left, then wait for them to
-    // be executed and check again.
+    // Wait for the currently executing rules "graph" to finish executing.  This will
+    // drain the work queues of any rules executing AND any rules that these rules
+    // may trigger.
     wait_for_rules_to_finish(lock);
 
     m_exit = true;
