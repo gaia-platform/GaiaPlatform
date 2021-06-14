@@ -258,7 +258,6 @@ ruleset test27
 
 // GAIAPLAT-809
 // the query in the 'for' isn't recognized
-#ifdef TEST_FAILURES
 ruleset test28
 {
     OnChange(actuator)
@@ -269,7 +268,6 @@ ruleset test28
         }
     }
 }
-#endif
 
 // GAIAPLAT-825 (fixed)
 ruleset test29

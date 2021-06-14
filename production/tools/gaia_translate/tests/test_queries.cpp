@@ -579,7 +579,7 @@ TEST_F(test_queries_code, nomatch_stmt2)
 }
 
 // Re-enable when GAIAPLAT-1005 is fixed.
-TEST_F(test_queries_code, DISABLED_nomatch_stmt3)
+TEST_F(test_queries_code, nomatch_stmt3)
 {
     populate_db();
 

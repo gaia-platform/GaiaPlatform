@@ -37,7 +37,7 @@ using namespace clang;
 
 static string fieldTableName;
 
-static const char ruleContextTypeName[] = "rule_context__type";
+static constexpr char ruleContextTypeName[] = "rule_context__type";
 
 static string get_table_from_expression(const string& expression)
 {

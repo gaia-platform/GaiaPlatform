@@ -507,7 +507,6 @@ ruleset test32
     }
 }
 
-#ifdef TEST_FAILURES
 ruleset test33
 {
     OnInsert(incubator)
@@ -520,7 +519,6 @@ ruleset test33
         while (sensor.value > 0.0);
     }
 }
-#endif
 
 ruleset test34
 {
