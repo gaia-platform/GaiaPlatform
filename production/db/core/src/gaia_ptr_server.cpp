@@ -14,8 +14,13 @@ using namespace gaia::common::iterators;
 /**
  * Server-side implementation of gaia_ptr here.
  *
- * Unimplemented write-path methods will lead to linker errors when called in code.
+ * The server implementation only implements the gaia_ptr methods sufficient for catalog access
+ * on the server side.
  *
+ * Additional methods are not implemented because they were not needed - attempting to
+ * call them will result in linker errors.
+ *
+ * Feel free to implement additional methods if there is a need to do so.
  */
 
 namespace gaia

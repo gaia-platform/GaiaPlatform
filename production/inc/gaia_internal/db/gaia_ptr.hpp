@@ -20,12 +20,7 @@ namespace db
 
 /**
 * gaia_ptr_t is implemented differently on the server and client-side.
-*
-* Only the read-path is implemented on the server-side for now.
-* This is to allow querying the catalog for indexes on the server side.
-*
-* Write path methods have not been ported to the server implementation,
-* using them would result in a linker error until they are implemented.
+* See their respective cpp files for differences.
 */
 class gaia_ptr_t
 {

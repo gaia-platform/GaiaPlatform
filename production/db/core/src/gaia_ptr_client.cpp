@@ -17,6 +17,10 @@ using namespace gaia::common::iterators;
 using namespace gaia::db::triggers;
 using namespace gaia::db::memory_manager;
 
+/**
+ * Client-side implementation of gaia_ptr here.
+ */
+
 namespace gaia
 {
 namespace db
