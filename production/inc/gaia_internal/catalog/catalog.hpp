@@ -89,7 +89,7 @@ enum class trim_action_type_t : uint8_t
 enum class index_type_t : uint8_t
 {
     hash,
-    range
+    range,
 };
 
 /*
@@ -98,7 +98,7 @@ enum class index_type_t : uint8_t
 enum class relationship_cardinality_t : uint8_t
 {
     one,
-    many
+    many,
 };
 
 class forbidden_system_db_operation : public gaia::common::gaia_exception
@@ -300,7 +300,7 @@ enum class statement_type_t : uint8_t
     create,
     drop,
     alter,
-    use
+    use,
 };
 
 struct statement_t
@@ -327,7 +327,7 @@ private:
 enum class constraint_type_t : uint8_t
 {
     active,
-    unique
+    unique,
 };
 
 struct constraint_t
@@ -361,7 +361,7 @@ using constraint_list_t = std::vector<std::unique_ptr<constraint_t>>;
 enum class field_type_t : uint8_t
 {
     data,
-    reference
+    reference,
 };
 
 struct base_field_def_t
@@ -394,6 +394,8 @@ struct data_field_def_t : base_field_def_t
     {
         if (opt_constraint_list)
         {
+            ASSERT_INVARIANT(opt_constraint_list.value().size() > 0, "The constraint list should not be empty.");
+
             for (const auto& constraint : opt_constraint_list.value())
             {
                 if (constraint->type == constraint_type_t::active)
