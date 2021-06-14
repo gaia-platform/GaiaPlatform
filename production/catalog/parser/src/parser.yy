@@ -40,6 +40,8 @@
     using index_type_t = gaia::catalog::index_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
     using field_list_t = std::vector<std::string>;
+    using constraint_t = gaia::catalog::ddl::constraint_t;
+    using constraint_list_t = gaia::catalog::ddl::constraint_list_t;
 }
 
 // The parsing context.
@@ -104,6 +106,9 @@
 %type <bool> opt_unique
 %type <index_type_t> opt_index_type
 %type <std::unique_ptr<field_list_t>> field_commalist
+%type <std::unique_ptr<constraint_t>> constraint_def
+%type <constraint_list_t> constraint_list
+%type <std::optional<constraint_list_t>> opt_constraint_list
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -122,6 +127,9 @@
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
 %printer { yyo << "filed_commalist[" << $$->size() << "]"; } field_commalist
+%printer { yyo << "constraint_def:" << static_cast<uint8_t>($$->type); } constraint_def
+%printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
+%printer { yyo << "opt_constraint_list"; } opt_constraint_list
 %printer { yyo << $$; } <*>
 
 %%
@@ -238,19 +246,40 @@ field_def:
 ;
 
 data_field_def:
-  IDENTIFIER scalar_type opt_array {
-      $$ = std::make_unique<data_field_def_t>($1, $2, $3);
+  IDENTIFIER scalar_type opt_array opt_constraint_list {
+      $$ = std::make_unique<data_field_def_t>($1, $2, $3, $4);
   }
-| IDENTIFIER scalar_type opt_array ACTIVE {
-      $$ = std::make_unique<data_field_def_t>($1, $2, $3);
-      $$->active = true;
+| IDENTIFIER STRING opt_constraint_list {
+      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1, $3);
   }
-| IDENTIFIER STRING {
-      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
+;
+
+constraint_list:
+  constraint_def {
+      $$ = constraint_list_t();
+      $$.push_back(std::move($1));
   }
-| IDENTIFIER STRING ACTIVE {
-      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
-      $$->active = true;
+| constraint_list constraint_def {
+      $1.push_back(std::move($2));
+      $$ = std::move($1);
+  }
+;
+
+constraint_def:
+  ACTIVE {
+      $$ = std::make_unique<active_constraint_t>();
+  }
+| UNIQUE {
+      $$ = std::make_unique<unique_constraint_t>();
+  }
+;
+
+opt_constraint_list:
+  constraint_list {
+      $$ = std::optional(std::move($1));
+  }
+| {
+      $$ = std::nullopt;
   }
 ;
 
