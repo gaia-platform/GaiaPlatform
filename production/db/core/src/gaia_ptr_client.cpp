@@ -310,7 +310,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
 {
     gaia_id_t id = gaia_ptr_t::generate_id();
 
-    auto& metadata = type_registry_t::instance().get(type);
+    const type_metadata_t& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
@@ -318,7 +318,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
 
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
-    auto& metadata = type_registry_t::instance().get(type);
+    const type_metadata_t& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
