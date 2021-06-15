@@ -17,10 +17,6 @@ using namespace gaia::common::iterators;
 using namespace gaia::db::triggers;
 using namespace gaia::db::memory_manager;
 
-/**
- * Client-side implementation of gaia_ptr here.
- */
-
 namespace gaia
 {
 namespace db
@@ -30,36 +26,6 @@ gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
 {
     m_locator = locator;
     client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
-}
-
-gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* data)
-{
-    gaia_id_t id = gaia_ptr_t::generate_id();
-
-    auto& metadata = type_registry_t::instance().get(type);
-    size_t num_references = metadata.num_references();
-
-    return create(id, type, num_references, data_size, data);
-}
-
-void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
-{
-    if (client_t::is_valid_event(type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
-    }
-}
-
-db_object_t* gaia_ptr_t::to_ptr() const
-{
-    client_t::verify_txn_active();
-    return locator_to_ptr(m_locator);
-}
-
-gaia_offset_t gaia_ptr_t::to_offset() const
-{
-    client_t::verify_txn_active();
-    return locator_to_offset(m_locator);
 }
 
 void gaia_ptr_t::reset()
@@ -73,144 +39,6 @@ void gaia_ptr_t::reset()
     }
     (*locators)[m_locator] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;
-}
-
-gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
-{
-    auto& metadata = type_registry_t::instance().get(type);
-    size_t num_references = metadata.num_references();
-
-    return create(id, type, num_references, data_size, data);
-}
-
-gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_references, size_t data_size, const void* data)
-{
-    size_t references_size = num_references * sizeof(gaia_id_t);
-    size_t total_payload_size = data_size + references_size;
-    if (total_payload_size > db_object_t::c_max_payload_size)
-    {
-        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
-    }
-
-    // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
-    //  the db_object_t should either be initialized before and passed in
-    //  or it should be initialized inside the constructor.
-    hash_node_t* hash_node = db_hash_map::insert(id);
-    size_t object_size = total_payload_size + sizeof(db_object_t);
-    hash_node->locator = allocate_locator();
-    address_offset_t offset = client_t::allocate_object(hash_node->locator, object_size);
-    gaia_ptr_t obj(hash_node->locator, offset);
-    db_object_t* obj_ptr = obj.to_ptr();
-    obj_ptr->id = id;
-    obj_ptr->type = type;
-    obj_ptr->num_references = num_references;
-    if (num_references)
-    {
-        memset(obj_ptr->payload, 0, references_size);
-    }
-    obj_ptr->payload_size = total_payload_size;
-    if (data)
-    {
-        memcpy(obj_ptr->payload + references_size, data, data_size);
-    }
-    else
-    {
-        ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
-    }
-
-    obj.create_insert_trigger(type, id);
-    return obj;
-}
-
-void gaia_ptr_t::remove(gaia_ptr_t& node)
-{
-    if (!node)
-    {
-        return;
-    }
-
-    const gaia_id_t* references = node.references();
-    for (size_t i = 0; i < node.num_references(); i++)
-    {
-        if (references[i] != c_invalid_gaia_id)
-        {
-            throw object_still_referenced(node.id(), node.type());
-        }
-    }
-    node.reset();
-}
-
-void gaia_ptr_t::clone_no_txn()
-{
-    db_object_t* old_this = to_ptr();
-    size_t new_size = sizeof(db_object_t) + old_this->payload_size;
-    client_t::allocate_object(m_locator, new_size);
-    db_object_t* new_this = to_ptr();
-    memcpy(new_this, old_this, new_size);
-}
-
-gaia_ptr_t& gaia_ptr_t::clone()
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
-
-    db_object_t* new_this = to_ptr();
-
-    if (client_t::is_valid_event(new_this->type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
-    }
-
-    return *this;
-}
-
-gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
-{
-    db_object_t* old_this = to_ptr();
-    gaia_offset_t old_offset = to_offset();
-
-    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
-    size_t total_payload_size = data_size + references_size;
-    if (total_payload_size > db_object_t::c_max_payload_size)
-    {
-        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
-    }
-
-    // Updates m_locator to point to the new object.
-    client_t::allocate_object(m_locator, sizeof(db_object_t) + total_payload_size);
-    db_object_t* new_this = to_ptr();
-
-    memcpy(new_this, old_this, sizeof(db_object_t));
-    new_this->payload_size = total_payload_size;
-    if (old_this->num_references > 0)
-    {
-        memcpy(new_this->payload, old_this->payload, references_size);
-    }
-    new_this->num_references = old_this->num_references;
-    memcpy(new_this->payload + references_size, data, data_size);
-
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-
-    if (client_t::is_valid_event(new_this->type))
-    {
-        field_position_list_t position_list;
-        auto new_data = reinterpret_cast<const uint8_t*>(data);
-        auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
-        const uint8_t* old_data_payload = old_data + references_size;
-
-        if (old_this->num_references)
-        {
-            old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
-        }
-
-        compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
-
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
-    }
-
-    return *this;
 }
 
 // This trivial implementation is necessary to avoid calling into client_t code from the header file.
@@ -457,5 +285,169 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
 
     new_parent_ptr.add_child_reference(id(), relationship->first_child_offset);
 }
+
+db_object_t* gaia_ptr_t::to_ptr() const
+{
+    client_t::verify_txn_active();
+    return locator_to_ptr(m_locator);
+}
+
+gaia_offset_t gaia_ptr_t::to_offset() const
+{
+    client_t::verify_txn_active();
+    return locator_to_offset(m_locator);
+}
+
+void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
+{
+    if (client_t::is_valid_event(type))
+    {
+        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
+    }
+}
+
+gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* data)
+{
+    gaia_id_t id = gaia_ptr_t::generate_id();
+
+    auto& metadata = type_registry_t::instance().get(type);
+    size_t num_references = metadata.num_references();
+
+    return create(id, type, num_references, data_size, data);
+}
+
+gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
+{
+    auto& metadata = type_registry_t::instance().get(type);
+    size_t num_references = metadata.num_references();
+
+    return create(id, type, num_references, data_size, data);
+}
+
+gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_references, size_t data_size, const void* data)
+{
+    size_t references_size = num_references * sizeof(gaia_id_t);
+    size_t total_payload_size = data_size + references_size;
+    if (total_payload_size > c_db_object_max_payload_size)
+    {
+        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
+    }
+
+    // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
+    //  the db_object_t should either be initialized before and passed in
+    //  or it should be initialized inside the constructor.
+    hash_node_t* hash_node = db_hash_map::insert(id);
+    size_t object_size = total_payload_size + c_db_object_header_size;
+    hash_node->locator = allocate_locator();
+    address_offset_t offset = client_t::allocate_object(hash_node->locator, object_size);
+    gaia_ptr_t obj(hash_node->locator, offset);
+    db_object_t* obj_ptr = obj.to_ptr();
+    obj_ptr->id = id;
+    obj_ptr->type = type;
+    obj_ptr->num_references = num_references;
+    if (num_references)
+    {
+        memset(obj_ptr->payload, 0, references_size);
+    }
+    obj_ptr->payload_size = total_payload_size;
+    if (data)
+    {
+        memcpy(obj_ptr->payload + references_size, data, data_size);
+    }
+    else
+    {
+        ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
+    }
+
+    obj.create_insert_trigger(type, id);
+    return obj;
+}
+
+void gaia_ptr_t::remove(gaia_ptr_t& node)
+{
+    if (!node)
+    {
+        return;
+    }
+
+    const gaia_id_t* references = node.references();
+    for (size_t i = 0; i < node.num_references(); i++)
+    {
+        if (references[i] != c_invalid_gaia_id)
+        {
+            throw object_still_referenced(node.id(), node.type());
+        }
+    }
+    node.reset();
+}
+
+void gaia_ptr_t::clone_no_txn()
+{
+    db_object_t* old_this = to_ptr();
+    size_t new_size = c_db_object_header_size + old_this->payload_size;
+    client_t::allocate_object(m_locator, new_size);
+    db_object_t* new_this = to_ptr();
+    memcpy(new_this, old_this, new_size);
+}
+
+gaia_ptr_t& gaia_ptr_t::clone()
+{
+    gaia_offset_t old_offset = to_offset();
+    clone_no_txn();
+
+    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
+
+    db_object_t* new_this = to_ptr();
+    if (client_t::is_valid_event(new_this->type))
+    {
+        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
+    }
+
+    return *this;
+}
+
+gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
+{
+    db_object_t* old_this = to_ptr();
+    gaia_offset_t old_offset = to_offset();
+
+    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
+    size_t total_payload_size = data_size + references_size;
+    if (total_payload_size > c_db_object_max_payload_size)
+    {
+        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
+    }
+
+    // Updates m_locator to point to the new object.
+    client_t::allocate_object(m_locator, c_db_object_header_size + total_payload_size);
+
+    db_object_t* new_this = to_ptr();
+
+    memcpy(new_this, old_this, c_db_object_header_size);
+    new_this->payload_size = total_payload_size;
+    if (old_this->num_references > 0)
+    {
+        memcpy(new_this->payload, old_this->payload, references_size);
+    }
+    new_this->num_references = old_this->num_references;
+    memcpy(new_this->payload + references_size, data, data_size);
+
+    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+
+    if (client_t::is_valid_event(new_this->type))
+    {
+        auto new_data = reinterpret_cast<const uint8_t*>(data);
+        auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
+        const uint8_t* old_data_payload = old_data + references_size;
+
+        // Compute field difference.
+        field_position_list_t position_list;
+        compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
+        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
+    }
+
+    return *this;
+}
+
 } // namespace db
 } // namespace gaia
