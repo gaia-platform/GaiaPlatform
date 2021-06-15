@@ -360,6 +360,13 @@ void StmtPrinter::VisitCXXForRangeStmt(CXXForRangeStmt *Node) {
   PrintControlledStmt(Node->getBody());
 }
 
+void StmtPrinter::VisitGaiaForStmt(GaiaForStmt *Node) {
+  Indent() << "for (";
+  PrintStmt(Node->getPath());
+  OS << ")";
+  PrintControlledStmt(Node->getBody());
+}
+
 void StmtPrinter::VisitMSDependentExistsStmt(MSDependentExistsStmt *Node) {
   Indent();
   if (Node->isIfExists())

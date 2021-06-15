@@ -1290,6 +1290,16 @@ void ASTStmtWriter::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
   Code = serialization::STMT_CXX_FOR_RANGE;
 }
 
+void ASTStmtWriter::VisitGaiaForStmt(GaiaForStmt *S) {
+  VisitStmt(S);
+  Record.AddSourceLocation(S->getForLoc());
+  Record.AddSourceLocation(S->getLParenLoc());
+  Record.AddSourceLocation(S->getRParenLoc());
+  Record.AddStmt(S->getPath());
+  Record.AddStmt(S->getBody());
+  Code = serialization::STMT_GAIA_FOR_STMT;
+}
+
 void ASTStmtWriter::VisitMSDependentExistsStmt(MSDependentExistsStmt *S) {
   VisitStmt(S);
   Record.AddSourceLocation(S->getKeywordLoc());

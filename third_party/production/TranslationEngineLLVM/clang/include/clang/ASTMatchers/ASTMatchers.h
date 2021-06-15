@@ -1890,6 +1890,18 @@ AST_MATCHER_P(ForStmt, hasLoopInit, internal::Matcher<Stmt>,
 extern const internal::VariadicDynCastAllOfMatcher<Stmt, CXXForRangeStmt>
     cxxForRangeStmt;
 
+/// Matches gaia for statements.
+///
+/// gaiaForStmt() matches 'for (incubator->sensor)'
+/// \code
+///   {
+///     for (incubator->sensor);
+///     for(int j = 0; j < 5; ++j);
+///   }
+/// \endcode
+extern const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaForStmt>
+    gaiaForStmt;
+
 /// Matches the initialization statement of a for loop.
 ///
 /// Example:
@@ -4249,6 +4261,7 @@ AST_POLYMORPHIC_MATCHER_P(hasBody,
                           AST_POLYMORPHIC_SUPPORTED_TYPES(DoStmt, ForStmt,
                                                           WhileStmt,
                                                           CXXForRangeStmt,
+                                                          GaiaForStmt,
                                                           FunctionDecl),
                           internal::Matcher<Stmt>, InnerMatcher) {
   const Stmt *const Statement = internal::GetBodyMatcher<NodeType>::get(Node);

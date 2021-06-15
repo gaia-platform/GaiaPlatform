@@ -187,6 +187,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(cxxTemporaryObjectExpr);
   REGISTER_MATCHER(cxxThisExpr);
   REGISTER_MATCHER(gaiaRuleContextExpr);
+  REGISTER_MATCHER(gaiaForStmt);
   REGISTER_MATCHER(cxxThrowExpr);
   REGISTER_MATCHER(cxxTryStmt);
   REGISTER_MATCHER(cxxUnresolvedConstructExpr);
