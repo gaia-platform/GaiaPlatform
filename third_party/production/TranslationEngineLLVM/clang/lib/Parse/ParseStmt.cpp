@@ -1664,7 +1664,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   bool C99orCXXorObjC = getLangOpts().C99 || getLangOpts().CPlusPlus ||
     getLangOpts().ObjC;
   bool isGaia = getLangOpts().Gaia && getCurScope()->isInRulesetScope();
-  bool isExplicitPath = false;
+  bool isDeclarativeStatement = false;
   ExprResult explicitNavigationExpression;
 
   // C99 6.8.5p5 - In C99, the for statement is a block.  This is not
@@ -1715,6 +1715,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   // Parse the first part of the for specifier.
   {
+    // Try to determine if a first expression is a declarative statement and it is the only expression in for statement.
     ExtendedExplicitPathScopeMonitor monitor(Actions);
 
     if (isGaia && Tok.isOneOf(tok::slash, tok::at, tok::identifier))
@@ -1722,13 +1723,13 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
       RevertingTentativeParsingAction PA(*this);
       if (Tok.isOneOf(tok::slash, tok::at))
       {
-        isExplicitPath = true;
+        isDeclarativeStatement = true;
         ConsumeToken();
       }
       // Check for /@
       if (Tok.is(tok::at))
       {
-        isExplicitPath = true;
+        isDeclarativeStatement = true;
         ConsumeToken();
       }
       while (Tok.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
@@ -1737,14 +1738,14 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
       }
       if(Tok.is(tok::r_paren))
       {
-        isExplicitPath = true;
+        isDeclarativeStatement = true;
       }
       else
       {
-        isExplicitPath = false;
+        isDeclarativeStatement = false;
       }
     }
-    if (isExplicitPath)
+    if (isDeclarativeStatement)
     {
       explicitNavigationExpression = ParseExpression();
       if (explicitNavigationExpression.get() == nullptr)
