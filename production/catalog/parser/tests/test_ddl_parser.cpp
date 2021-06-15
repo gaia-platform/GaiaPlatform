@@ -586,4 +586,33 @@ CREATE RELATIONSHIP r (
 
     ASSERT_EQ(create_rel->field_map->first.fields.front(), "c1");
     ASSERT_EQ(create_rel->field_map->second.fields.front(), "c2");
+
+    // Some negative test cases.
+    const string negative_1 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1), t2(c2), t3(c3)
+);
+)";
+
+    const string negative_2 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1), t2
+);
+)";
+
+    const string negative_3 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1)
+);
+)";
+
+    EXPECT_THROW(parser.parse_line(negative_1), parsing_error);
+    EXPECT_THROW(parser.parse_line(negative_2), parsing_error);
+    EXPECT_THROW(parser.parse_line(negative_3), parsing_error);
 }

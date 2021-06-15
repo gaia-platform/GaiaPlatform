@@ -119,7 +119,7 @@
 %printer { yyo << "create_index:" << $$->name; } create_index
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "use_statement:" << $$->name; } use_statement
-%printer { yyo << "filed_def:" << $$->name; } field_def
+%printer { yyo << "field_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
@@ -127,7 +127,7 @@
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
-%printer { yyo << "filed_commalist[" << $$.size() << "]"; } field_commalist
+%printer { yyo << "field_commalist[" << $$.size() << "]"; } field_commalist
 %printer { yyo << "constraint_def:" << static_cast<uint8_t>($$->type); } constraint_def
 %printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
 %printer { yyo << "opt_constraint_list"; } opt_constraint_list

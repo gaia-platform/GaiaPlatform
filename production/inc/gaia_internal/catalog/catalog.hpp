@@ -514,10 +514,9 @@ struct create_relationship_t : create_statement_t
     std::pair<link_def_t, link_def_t> relationship;
 
     // Track the optional mapping from one table's field(s) to the other table's
-    // field(s). The field map must be bijective or have 1:1 correspondence from
-    // one table to the other, and the field types must match. When defined, the
-    // relationship will be established using the fields instead of 'gaia_id's
-    // of the two tables.
+    // field(s). The field map must be bijective from one table to the other,
+    // and the field types must match. When defined, the relationship will be
+    // established using the fields instead of the two tables' `gaia_id`s.
     std::optional<table_field_map_t> field_map;
 };
 
