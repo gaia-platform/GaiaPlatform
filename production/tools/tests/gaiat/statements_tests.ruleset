@@ -4,7 +4,6 @@
 
 // #define TEST_FAILURES
 
-#ifdef TEST_FAILURES
 ruleset test1
 {
     OnInsert(incubator)
@@ -16,9 +15,7 @@ ruleset test1
         }
     }
 }
-#endif
 
-#ifdef TEST_FAILURES
 ruleset test2
 {
     {
@@ -29,9 +26,7 @@ ruleset test2
         }
     }
 }
-#endif
 
-#ifdef TEST_FAILURES
 ruleset test3
 {
     {
@@ -42,7 +37,6 @@ ruleset test3
         }
     }
 }
-#endif
 
 ruleset test4
 {
@@ -510,5 +504,42 @@ ruleset test32
         // Testing braceless delcarative statement inside while.
         while (*s++)
             max_temp += 1;
+    }
+}
+
+ruleset test33
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test34
+{
+    {
+        int total_acres;
+        if (/@F:farmer.acreage > 10)
+        {
+            total_acres = 10;
+        }
+        else if (/farmer.acreage < 5)
+        {
+            total_acres = 5;
+        }
+        else
+        {
+            total_acres = F.acreage;
+        }
+        nomatch
+        {
+            // This nomatch is for the inner 'if' so F is in scope
+            total_acres = F.acreage;
+        }
     }
 }

@@ -96,7 +96,7 @@ private:
     std::recursive_mutex m_init_lock;
 
     // Hash table of all rules registered with the system.
-    // The key is the rulset_name::rule_name.
+    // The key is the ruleset_name::rule_name.
     std::unordered_map<std::string, std::unique_ptr<_rule_binding_t>> m_rules;
 
     // List of rules that are invoked when an event is logged.
@@ -132,6 +132,10 @@ private:
     // This declaration comes last since worker threads can use any of the above
     // members, so the thread pool must be initialized last and destroyed first.
     std::unique_ptr<rule_thread_pool_t> m_invocations;
+
+    // Commit trigger function pointer that the database calls
+    // whenever a transaction is committed.
+    gaia::db::triggers::commit_trigger_fn m_trigger_fn;
 
 private:
     // Only internal static creation is allowed.

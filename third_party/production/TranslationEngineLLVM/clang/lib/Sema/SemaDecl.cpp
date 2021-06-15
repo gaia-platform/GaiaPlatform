@@ -1801,6 +1801,29 @@ static void CheckPoppedLabel(LabelDecl *L, Sema &S) {
 void Sema::ActOnPopScope(SourceLocation Loc, Scope *S) {
   S->mergeNRVOIntoParent();
 
+  // Remove declaraion that was injected earlier for declarative statements.
+  // Otherwise the declaration would trip the assertion
+  if (!(S->getFlags() & (Scope::DeclScope | Scope::TemplateParamScope)))
+  {
+    for (auto *declaration : S->decls())
+    {
+      NamedDecl *namedDeclaration = dyn_cast<NamedDecl>(declaration);
+      if (namedDeclaration != nullptr)
+      {
+        StringRef typeName = namedDeclaration->getIdentifier()->getName();
+        constexpr char gaiaTypeNameSuffix[] = "__type";
+        if (typeName.endswith(gaiaTypeNameSuffix))
+        {
+          std::unordered_set<std::string> tableData = getCatalogTableList(Loc);
+          if (tableData.find(typeName.take_front(typeName.size() - sizeof(gaiaTypeNameSuffix) + 1)) != tableData.end())
+          {
+            S->RemoveDecl(declaration);
+          }
+        }
+      }
+    }
+  }
+
   if (S->decl_empty()) return;
   assert((S->getFlags() & (Scope::DeclScope | Scope::TemplateParamScope)) &&
          "Scope shouldn't contain decls!");

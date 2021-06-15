@@ -254,3 +254,4 @@ def OMPTargetTeamsDistributeSimdDirective : DStmt<OMPLoopDirective>;
 
 // Gaia rule_context
 def GaiaRuleContextExpr : DStmt<Expr>;
+def GaiaForStmt : Stmt;

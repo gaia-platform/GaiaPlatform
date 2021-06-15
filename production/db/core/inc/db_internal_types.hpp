@@ -14,12 +14,17 @@
 
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
+
+template <typename T>
+using aligned_storage_for_t =
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
 enum class gaia_operation_t : uint8_t
 {
@@ -63,8 +68,10 @@ constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
-// that will fit into 256GB, or 2^38 / 2^6 = 2^32.
-constexpr size_t c_max_locators = 1ULL << 32;
+// that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
+// the fact that offsets are 32 bits, and that the first entry of the locators
+// array must be reserved, so we subtract 1.
+constexpr size_t c_max_locators = (1ULL << 32) - 1;
 
 // With 2^32 objects, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
@@ -79,9 +86,10 @@ constexpr size_t c_max_log_records = 1ULL << 20;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
+// The first entry of the array is reserved for the invalid locator value 0.
 // The elements are atomic because reads and writes to shared memory need to be
 // synchronized across threads/processes.
-typedef std::atomic<gaia_offset_t> locators_t[c_max_locators];
+typedef std::atomic<gaia_offset_t> locators_t[c_max_locators + 1];
 
 struct hash_node_t
 {
@@ -161,17 +169,12 @@ struct counters_t
 
 struct data_t
 {
-    // This array is actually an untyped array of bytes, but it's defined as an
-    // array of uint64_t just to enforce 8-byte alignment. Allocating
-    // (c_max_locators * 8) 8-byte words for this array means we reserve 64
-    // bytes on average for each object we allocate (or 1 cache line on every
-    // common architecture). Since any valid offset must be positive (zero is a
-    // reserved invalid value), the first word (at offset 0) is unused by data,
-    // so we use it to store the last offset allocated (minus 1 since all
-    // offsets are obtained by incrementing the counter by 1).
-    // NB: We now align all objects on a 64-byte boundary (for cache efficiency
-    // and to allow us to later switch to 32-bit offsets).
-    alignas(64) uint64_t objects[c_max_locators * 8];
+    // We use std::aligned_storage to ensure that the backing array can only be
+    // accessed at the proper alignment (64 bytes). An instance of db_object_t
+    // is always aligned to the beginning of an element of the array, but it may
+    // occupy multiple elements of the array.
+    // The first entry of the array is reserved for the invalid offset value 0.
+    aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We

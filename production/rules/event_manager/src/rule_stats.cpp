@@ -23,7 +23,7 @@ rule_stats_t::rule_stats_t(const char* a_rule_id)
     if (a_rule_id)
     {
         rule_id = a_rule_id;
-        // For pretting formatting, truncate long rule ids.
+        // Truncate long rule ids for pretty formatting.
         if (rule_id.length() > c_max_rule_id_len)
         {
             truncated_rule_id = rule_id.substr(0, c_max_rule_id_len);

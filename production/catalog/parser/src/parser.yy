@@ -40,6 +40,8 @@
     using index_type_t = gaia::catalog::index_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
     using field_list_t = std::vector<std::string>;
+    using constraint_t = gaia::catalog::ddl::constraint_t;
+    using constraint_list_t = gaia::catalog::ddl::constraint_list_t;
 }
 
 // The parsing context.
@@ -84,6 +86,10 @@
 
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
+%type <std::unique_ptr<gaia::catalog::ddl::create_database_t>> create_database
+%type <std::unique_ptr<gaia::catalog::ddl::create_table_t>> create_table
+%type <std::unique_ptr<gaia::catalog::ddl::create_relationship_t>> create_relationship
+%type <std::unique_ptr<gaia::catalog::ddl::create_index_t>> create_index
 %type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
 %type <std::unique_ptr<gaia::catalog::ddl::use_statement_t>> use_statement
 
@@ -100,9 +106,16 @@
 %type <bool> opt_unique
 %type <index_type_t> opt_index_type
 %type <std::unique_ptr<field_list_t>> field_commalist
+%type <std::unique_ptr<constraint_t>> constraint_def
+%type <constraint_list_t> constraint_list
+%type <std::optional<constraint_list_t>> opt_constraint_list
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
+%printer { yyo << "create_database:" << $$->name; } create_database
+%printer { yyo << "create_table:" << $$->name; } create_table
+%printer { yyo << "create_relatinship:" << $$->name; } create_relationship
+%printer { yyo << "create_index:" << $$->name; } create_index
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
@@ -114,6 +127,9 @@
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
 %printer { yyo << "filed_commalist[" << $$->size() << "]"; } field_commalist
+%printer { yyo << "constraint_def:" << static_cast<uint8_t>($$->type); } constraint_def
+%printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
+%printer { yyo << "opt_constraint_list"; } opt_constraint_list
 %printer { yyo << $$; } <*>
 
 %%
@@ -149,12 +165,22 @@ statement:
 ;
 
 create_statement:
+  create_database { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_table { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_relationship { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+| create_index { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+;
+
+create_database:
   CREATE DATABASE opt_if_not_exists IDENTIFIER {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_database, $4);
+      $$ = std::make_unique<create_database_t>($4);
       $$->if_not_exists = $3;
   }
-| CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_table, $4.second);
+;
+
+create_table:
+  CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
+      $$ = std::make_unique<create_table_t>($4.second);
       $$->if_not_exists = $3;
       $$->database = std::move($4.first);
       if ($6)
@@ -162,13 +188,19 @@ create_statement:
           $$->fields = std::move(*$6);
       }
   }
-| CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_relationship, $4);
+;
+
+create_relationship:
+  CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
       $$->if_not_exists = $3;
   }
-| CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
-      $$ = std::make_unique<create_statement_t>(create_type_t::create_index, $6);
+;
+
+create_index:
+  CREATE opt_unique opt_index_type INDEX opt_if_not_exists IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_index_t>($6);
       $$->unique_index = $2;
       $$->index_type = $3;
       $$->if_not_exists = $5;
@@ -214,19 +246,40 @@ field_def:
 ;
 
 data_field_def:
-  IDENTIFIER scalar_type opt_array {
-      $$ = std::make_unique<data_field_def_t>($1, $2, $3);
+  IDENTIFIER scalar_type opt_array opt_constraint_list {
+      $$ = std::make_unique<data_field_def_t>($1, $2, $3, $4);
   }
-| IDENTIFIER scalar_type opt_array ACTIVE {
-      $$ = std::make_unique<data_field_def_t>($1, $2, $3);
-      $$->active = true;
+| IDENTIFIER STRING opt_constraint_list {
+      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1, $3);
   }
-| IDENTIFIER STRING {
-      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
+;
+
+constraint_list:
+  constraint_def {
+      $$ = constraint_list_t();
+      $$.push_back(std::move($1));
   }
-| IDENTIFIER STRING ACTIVE {
-      $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1);
-      $$->active = true;
+| constraint_list constraint_def {
+      $1.push_back(std::move($2));
+      $$ = std::move($1);
+  }
+;
+
+constraint_def:
+  ACTIVE {
+      $$ = std::make_unique<active_constraint_t>();
+  }
+| UNIQUE {
+      $$ = std::make_unique<unique_constraint_t>();
+  }
+;
+
+opt_constraint_list:
+  constraint_list {
+      $$ = std::optional(std::move($1));
+  }
+| {
+      $$ = std::nullopt;
   }
 ;
 
