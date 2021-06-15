@@ -24,6 +24,11 @@ gaia::db::locators_t* gaia::db::get_locators()
     return gaia::db::client_t::s_private_locators.data();
 }
 
+gaia::db::locators_t* gaia::db::get_locators_for_allocator()
+{
+    return gaia::db::get_locators();
+}
+
 gaia::db::counters_t* gaia::db::get_counters()
 {
     // Since we don't use this accessor in the client itself, we can assert that

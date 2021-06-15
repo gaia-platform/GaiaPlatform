@@ -84,6 +84,7 @@ private:
 class server_t
 {
     friend gaia::db::locators_t* gaia::db::get_locators();
+    friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
@@ -117,6 +118,9 @@ private:
     // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
+
+    // Local snapshot
+    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
@@ -231,6 +235,9 @@ private:
 
     static void init_shared_memory();
 
+    static void create_local_snapshot(bool apply_logs);
+    static void clear_local_snapshot();
+
     static void recover_db();
 
     static sigset_t mask_signals();
@@ -291,6 +298,10 @@ private:
     static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
+
+    // Internal txn_id for db_startup
+    static gaia_txn_id_t txn_internal_begin();
+    static void txn_internal_end();
 
     class invalid_log_fd : public common::gaia_exception
     {

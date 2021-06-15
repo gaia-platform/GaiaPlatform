@@ -32,8 +32,14 @@ enum class gaia_operation_t : uint8_t
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone = 0x4
+    clone = 0x4,
+    noop = 0x5
 };
+
+inline bool is_logical_operation(gaia_operation_t op)
+{
+    return op == gaia_operation_t::noop || op == gaia_operation_t::not_set;
+}
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 {
@@ -66,6 +72,7 @@ constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
 constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
+constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
