@@ -77,3 +77,8 @@ gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
 {
     return gaia::db::client_t::allocate_object(locator, size);
 }
+
+gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
+{
+    return gaia::db::client_t::get_txn_id();
+}

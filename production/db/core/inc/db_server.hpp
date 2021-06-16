@@ -88,6 +88,7 @@ class server_t
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
