@@ -578,7 +578,6 @@ TEST_F(test_queries_code, nomatch_stmt2)
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
-// Re-enable when GAIAPLAT-1005 is fixed.
 TEST_F(test_queries_code, nomatch_stmt3)
 {
     populate_db();
