@@ -1801,13 +1801,8 @@ static void CheckPoppedLabel(LabelDecl *L, Sema &S) {
 void Sema::ActOnPopScope(SourceLocation Loc, Scope *S) {
   S->mergeNRVOIntoParent();
 
-<<<<<<< HEAD
   // Remove declaration that was injected earlier for declarative statements.
   // Otherwise the declaration would trip the assertion.
-=======
-  // Remove declaraion that was injected earlier for declarative statements.
-  // Otherwise the declaration would trip the assertion
->>>>>>> origin/master
   if (!(S->getFlags() & (Scope::DeclScope | Scope::TemplateParamScope)))
   {
     for (auto *declaration : S->decls())
