@@ -18,6 +18,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )

@@ -144,5 +144,12 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id;
 }
 
+inline index::db_index_t id_to_index(common::gaia_id_t index_id)
+{
+    auto it = get_indexes()->find(index_id);
+
+    return (it != get_indexes()->end()) ? it->second : nullptr;
+}
+
 } // namespace db
 } // namespace gaia

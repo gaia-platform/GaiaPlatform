@@ -47,3 +47,8 @@ gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
 {
     return gaia::db::server_t::allocate_object(locator, size);
 }
+
+gaia::db::index::indexes_t* gaia::db::get_indexes()
+{
+    return &gaia::db::server_t::s_shared_indexes;
+}
