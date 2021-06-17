@@ -2,8 +2,6 @@
 
 #include "tags_test.h"
 
-// #define TEST_FAILURES
-
 ruleset test1
 {
     OnInsert(incubator)
@@ -507,22 +505,7 @@ ruleset test32
     }
 }
 
-#ifdef TEST_FAILURES
 ruleset test33
-{
-    OnInsert(incubator)
-    {
-        int count = 0;
-        do
-        {
-            count += 1;
-        }
-        while (sensor.value > 0.0);
-    }
-}
-#endif
-
-ruleset test34
 {
     {
         int total_acres;
@@ -543,5 +526,83 @@ ruleset test34
             // This nomatch is for the inner 'if' so F is in scope
             total_acres = F.acreage;
         }
+    }
+}
+
+ruleset test34
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Do-while referencing a field inside while().
+        // The parent row of the sensors in the while() is the incubator row from OnInsert().
+        do
+        {
+            count += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test35
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Braceless do-while in one line.
+        do count += 1; while (sensor.value > 0.0);
+    }
+}
+
+ruleset test36
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Braceless do-while in two lines.
+        do count += 1;
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test37
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Do-while that does not reference any rows.
+        do
+        {
+            count += 1;
+        }
+        while (count < 10);
+    }
+}
+
+ruleset test38
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Do-while referencing a field inside while().
+        do
+        {
+            count += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test39
+{
+    {
+        int count = 0;
+        // Do-while referencing an active field inside while().
+        // There is no parent row for the row referenced inside while().
+        do
+        {
+            count += 1;
+        }
+        while (@animal.age < 10);
     }
 }
