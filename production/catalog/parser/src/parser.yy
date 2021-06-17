@@ -65,7 +65,7 @@
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT DOUBLE STRING
 
 // Word tokens
-%token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE
+%token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
 %token UNIQUE RANGE HASH INDEX ON
 
 // Symbols
@@ -105,10 +105,11 @@
 %type <gaia::catalog::ddl::link_def_t> link_def
 %type <bool> opt_unique
 %type <index_type_t> opt_index_type
-%type <std::unique_ptr<field_list_t>> field_commalist
+%type <field_list_t> field_commalist
 %type <std::unique_ptr<constraint_t>> constraint_def
 %type <constraint_list_t> constraint_list
 %type <std::optional<constraint_list_t>> opt_constraint_list
+%type <gaia::catalog::ddl::table_field_map_t> table_field_map
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -118,7 +119,7 @@
 %printer { yyo << "create_index:" << $$->name; } create_index
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "use_statement:" << $$->name; } use_statement
-%printer { yyo << "filed_def:" << $$->name; } field_def
+%printer { yyo << "field_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
@@ -126,10 +127,11 @@
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
-%printer { yyo << "filed_commalist[" << $$->size() << "]"; } field_commalist
+%printer { yyo << "field_commalist[" << $$.size() << "]"; } field_commalist
 %printer { yyo << "constraint_def:" << static_cast<uint8_t>($$->type); } constraint_def
 %printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
 %printer { yyo << "opt_constraint_list"; } opt_constraint_list
+%printer { yyo << "table_field_map:" << $$.first.table << "," << $$.second.table; } table_field_map
 %printer { yyo << $$; } <*>
 
 %%
@@ -196,6 +198,12 @@ create_relationship:
       $$->relationship = std::make_pair($6, $8);
       $$->if_not_exists = $3;
   }
+| CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def "," USING table_field_map")" {
+      $$ = std::make_unique<create_relationship_t>($4);
+      $$->relationship = std::make_pair($6, $8);
+      $$->if_not_exists = $3;
+      $$->field_map = $11;
+  }
 ;
 
 create_index:
@@ -206,7 +214,7 @@ create_index:
       $$->if_not_exists = $5;
       $$->database = $8.first;
       $$->index_table = $8.second;
-      $$->index_fields = std::move(*$10);
+      $$->index_fields = std::move($10);
   }
 ;
 
@@ -276,7 +284,7 @@ constraint_def:
 
 opt_constraint_list:
   constraint_list {
-      $$ = std::optional(std::move($1));
+      $$ = std::make_optional(std::move($1));
   }
 | {
       $$ = std::nullopt;
@@ -298,6 +306,14 @@ link_def:
       $$.to_database = $7.first;
       $$.to_table = $7.second;
       $$.cardinality = $8 ? cardinality_t::one : cardinality_t::many;
+  }
+;
+
+table_field_map:
+  composite_name "(" field_commalist ")" "," composite_name "(" field_commalist ")" {
+      $$ = std::make_pair<table_field_list_t, table_field_list_t>(
+          {$1.first, $1.second, std::move($3)},
+          {$6.first, $6.second, std::move($8)});
   }
 ;
 
@@ -335,12 +351,10 @@ opt_index_type:
 
 field_commalist:
   IDENTIFIER {
-      $$ = std::make_unique<field_list_t>();
-      $$->emplace_back($1);
+      $$ = { $1 };
   }
 | field_commalist "," IDENTIFIER {
-      $1->emplace_back($3);
-      $$ = std::move($1);
+      $1.emplace_back($3);
   }
 ;
 
