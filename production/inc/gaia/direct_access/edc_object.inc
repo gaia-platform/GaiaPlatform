@@ -22,15 +22,8 @@ namespace direct_access
 
 template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::edc_object_t(
-    const char* gaia_typename)
-    : edc_base_t(gaia_typename)
-{
-}
-
-template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::edc_object_t(
-    gaia::common::gaia_id_t id, const char* gaia_typename)
-    : edc_base_t(gaia_typename, id)
+    gaia::common::gaia_id_t id)
+    : edc_base_t(id)
 {
 }
 
@@ -107,8 +100,7 @@ gaia::common::gaia_id_t edc_object_t<container_type_id, T_class, T_flatbuffer, T
     // Make sure the types match.
     if (target_type != T_class::s_gaia_type)
     {
-        T_class expected = T_class::get(gaia::common::c_invalid_gaia_id);
-        throw edc_invalid_object_type(id, T_class::s_gaia_type, expected.gaia_typename(), target_type);
+        throw edc_invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
     }
 
     return id;
@@ -137,6 +129,9 @@ void edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
 {
     edc_base_t::delete_row(verify_type(id));
 }
+template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+edc_object_t<container_type_id, T_gaia, T_fb, T_obj>::edc_object_t()
+    : edc_base_t(){};
 
 template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 gaia::common::gaia_type_t edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::s_gaia_type

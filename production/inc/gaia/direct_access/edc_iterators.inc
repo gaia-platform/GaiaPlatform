@@ -280,8 +280,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
     {
-        T_child received = T_child::get(gaia::common::c_invalid_gaia_id);
-        throw edc_invalid_state(m_parent_id, child_id, received.gaia_typename());
+        throw edc_invalid_state(m_parent_id, child_id, T_child::gaia_typename());
     }
 
     edc_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);

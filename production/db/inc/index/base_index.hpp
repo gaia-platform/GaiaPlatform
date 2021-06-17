@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <ostream>
@@ -16,6 +17,7 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia
@@ -74,7 +76,7 @@ public:
     bool operator==(const base_index_t& other) const;
 
     virtual void clear() = 0;
-    virtual std::function<std::optional<index_record_t>()> generator(gaia_txn_id_t txn_id) = 0;
+    virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
 
 private:
     gaia::common::gaia_id_t m_index_id;

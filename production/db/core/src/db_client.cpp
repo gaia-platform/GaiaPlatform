@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 #include <functional>
-#include <iostream>
 #include <optional>
 #include <thread>
 
@@ -43,11 +42,6 @@ static const std::string c_message_unexpected_event_received = "Unexpected event
 static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
 static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
 static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
-
-static constexpr char c_event_type_not_set[] = "not_set";
-static constexpr char c_event_type_row_update[] = "row_update";
-static constexpr char c_event_type_row_insert[] = "row_insert";
-static constexpr char c_event_type_row_delete[] = "row_delete";
 
 int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
@@ -210,7 +204,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
     return augmented_id_generator;
 }
 
-std::function<std::optional<gaia_id_t>()>
+std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
@@ -225,7 +219,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     // that will also return the elements that have been added by the client
     // in the current transaction, which the server does not yet know about.
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
-    return augmented_id_generator;
+    return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
 }
 
 static void build_client_request(
@@ -264,9 +258,11 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
+    s_private_locators.close();
     s_shared_counters.close();
     s_shared_data.close();
     s_shared_id_index.close();
+    s_log.close();
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
@@ -623,7 +619,7 @@ address_offset_t client_t::allocate_object(
 {
     ASSERT_PRECONDITION(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
 
-    address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+    address_offset_t object_offset = s_chunk_manager.allocate(size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk. Allocate a new one!
@@ -641,7 +637,7 @@ address_offset_t client_t::allocate_object(
             chunk_address_offset);
 
         // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     }
 
     ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
@@ -693,19 +689,4 @@ void client_t::rollback_chunk_manager_allocations()
     ASSERT_POSTCONDITION(
         s_previous_chunk_managers.empty(),
         "List of previous chunk managers was not emptied by the end of rollback!");
-}
-
-const char* gaia::db::triggers::event_type_name(event_type_t event_type)
-{
-    switch (event_type)
-    {
-    case event_type_t::row_update:
-        return c_event_type_row_update;
-    case event_type_t::row_insert:
-        return c_event_type_row_insert;
-    case event_type_t::row_delete:
-        return c_event_type_row_delete;
-    case event_type_t::not_set:
-        return c_event_type_not_set;
-    }
 }

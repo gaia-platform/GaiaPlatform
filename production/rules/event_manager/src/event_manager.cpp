@@ -93,10 +93,10 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         m_rule_checker = make_unique<rule_checker_t>();
     }
 
-    auto fn = [](const trigger_event_list_t& event_list) {
+    m_trigger_fn = [](const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(event_list);
     };
-    set_commit_trigger(fn);
+    set_commit_trigger(m_trigger_fn);
 
     m_is_initialized = true;
 }
@@ -381,8 +381,29 @@ bool event_manager_t::unsubscribe_rule(
 void event_manager_t::unsubscribe_rules()
 {
     gaia_log::rules().debug("Unsubscribing all rules.");
+
+    // Because a rule may cause further invocations on commit which cause access of the
+    // rule subscriptions, we need to wait for the current rules graph to finish executing.
+    if (m_invocations)
+    {
+        m_invocations->wait_for_rules_to_finish();
+
+        // Detach the commit trigger so that any new events that come in do not try
+        // to look for rule subscriptions while we are removing them.
+        gaia::db::set_commit_trigger(nullptr);
+
+        // Since an invocation might have snuck in between the time we finished executing
+        // and the time we detached the commit trigger, wait for these to finish.
+        m_invocations->wait_for_rules_to_finish();
+    }
+
+    // Now it is safe to clear out the subscriptions and rule bindings.
     m_subscriptions.clear();
     m_rules.clear();
+
+    // Reset the commit trigger so we are ready to go on any new
+    // rule subscriptions.
+    gaia::db::set_commit_trigger(m_trigger_fn);
 }
 
 void event_manager_t::list_subscribed_rules(

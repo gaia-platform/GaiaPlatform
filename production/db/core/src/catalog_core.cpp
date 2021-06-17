@@ -15,7 +15,6 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_types.hpp"
-#include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
@@ -133,28 +132,34 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
     return table_view_t{id_to_ptr(table_id)};
 }
 
-table_list_t catalog_core_t::list_tables()
+table_generator_t::table_generator_t(generator_iterator_t<gaia_ptr_t>&& iterator)
+    : m_gaia_ptr_iterator(std::move(iterator))
 {
-    auto gaia_ptr_iterator = gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
+}
 
-    auto gaia_table_generator = [gaia_ptr_iterator]() mutable -> std::optional<table_view_t> {
-        if (gaia_ptr_iterator)
+std::optional<table_view_t> table_generator_t::operator()()
+{
+    if (m_gaia_ptr_iterator)
+    {
+        gaia_ptr_t gaia_ptr = *m_gaia_ptr_iterator;
+        if (gaia_ptr)
         {
-            gaia_ptr_t gaia_ptr = *gaia_ptr_iterator;
-            if (gaia_ptr)
-            {
-                ++gaia_ptr_iterator;
-                return table_view_t(gaia_ptr.to_ptr());
-            }
+            ++m_gaia_ptr_iterator;
+            return table_view_t(gaia_ptr.to_ptr());
         }
-        return std::nullopt;
-    };
+    }
+    return std::nullopt;
+}
 
-    return range_from_generator(gaia_table_generator);
+table_list_t
+catalog_core_t::list_tables()
+{
+    auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table)));
+    return range_from_generator(gaia_ptr_iterator);
 }
 
 template <typename T_catalog_obj_view>
-range_t<generator_iterator_t<T_catalog_obj_view>>
+generator_range_t<T_catalog_obj_view>
 list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
     auto obj_ptr = id_to_ptr(table_id);

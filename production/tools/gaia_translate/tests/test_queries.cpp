@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <unistd.h>
-
 #include <atomic>
 
 #include "gtest/gtest.h"
@@ -578,6 +576,10 @@ TEST_F(test_queries_code, nomatch_stmt2)
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
+<<<<<<< HEAD
+=======
+// Re-enable when GAIAPLAT-1005 is fixed.
+>>>>>>> origin/master
 TEST_F(test_queries_code, nomatch_stmt3)
 {
     populate_db();

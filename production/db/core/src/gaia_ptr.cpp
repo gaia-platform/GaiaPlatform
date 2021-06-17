@@ -85,16 +85,16 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_referen
 {
     size_t references_size = num_references * sizeof(gaia_id_t);
     size_t total_payload_size = data_size + references_size;
-    if (total_payload_size > db_object_t::c_max_payload_size)
+    if (total_payload_size > c_db_object_max_payload_size)
     {
-        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
     }
 
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
     hash_node_t* hash_node = db_hash_map::insert(id);
-    size_t object_size = total_payload_size + sizeof(db_object_t);
+    size_t object_size = total_payload_size + c_db_object_header_size;
     hash_node->locator = allocate_locator();
     address_offset_t offset = client_t::allocate_object(hash_node->locator, object_size);
     gaia_ptr_t obj(hash_node->locator, offset);
@@ -141,7 +141,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& node)
 void gaia_ptr_t::clone_no_txn()
 {
     db_object_t* old_this = to_ptr();
-    size_t new_size = sizeof(db_object_t) + old_this->payload_size;
+    size_t new_size = c_db_object_header_size + old_this->payload_size;
     client_t::allocate_object(m_locator, new_size);
     db_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
@@ -170,17 +170,17 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 
     size_t references_size = old_this->num_references * sizeof(gaia_id_t);
     size_t total_payload_size = data_size + references_size;
-    if (total_payload_size > db_object_t::c_max_payload_size)
+    if (total_payload_size > c_db_object_max_payload_size)
     {
-        throw object_too_large(total_payload_size, db_object_t::c_max_payload_size);
+        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
     }
 
     // Updates m_locator to point to the new object.
-    client_t::allocate_object(m_locator, sizeof(db_object_t) + total_payload_size);
+    client_t::allocate_object(m_locator, c_db_object_header_size + total_payload_size);
 
     db_object_t* new_this = to_ptr();
 
-    memcpy(new_this, old_this, sizeof(db_object_t));
+    memcpy(new_this, old_this, c_db_object_header_size);
     new_this->payload_size = total_payload_size;
     if (old_this->num_references > 0)
     {
@@ -255,37 +255,44 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 }
 
 // This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::function<std::optional<gaia_id_t>()>
+std::shared_ptr<generator_t<gaia_id_t>>
 gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
 {
     return client_t::get_id_generator_for_type(type);
 }
 
-generator_iterator_t<gaia_ptr_t> gaia_ptr_t::find_all_iterator(
-    gaia_type_t type)
+// std::shared_ptr is used here to provide a uniform interface for both client and server side implementation of gaia_ptr.
+// Secondarily, std::move is more efficient than assigning the shared_ptr, so that's what we do here.
+gaia_ptr_generator_t::gaia_ptr_generator_t(std::shared_ptr<generator_t<gaia_id_t>> id_generator)
+    : m_id_generator(std::move(id_generator))
 {
-    // Get the gaia_id generator and wrap it in a gaia_ptr_t generator.
-    std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
-    std::function<std::optional<gaia_ptr_t>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr_t> {
-        std::optional<gaia_id_t> id_opt;
-        while ((id_opt = id_generator()))
-        {
-            gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
-            if (gaia_ptr)
-            {
-                return gaia_ptr;
-            }
-        }
-        return std::nullopt;
-    };
-
-    return generator_iterator_t(gaia_ptr_generator);
 }
 
-range_t<generator_iterator_t<gaia_ptr_t>> gaia_ptr_t::find_all_range(
+std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
+{
+    std::optional<gaia_id_t> id_opt;
+    while ((id_opt = (*m_id_generator)()))
+    {
+        gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
+        if (gaia_ptr)
+        {
+            return gaia_ptr;
+        }
+    }
+    return std::nullopt;
+}
+
+generator_iterator_t<gaia_ptr_t>
+gaia_ptr_t::find_all_iterator(
     gaia_type_t type)
 {
-    return range(find_all_iterator(type));
+    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type)));
+}
+
+generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(
+    gaia_type_t type)
+{
+    return range_from_generator_iterator(find_all_iterator(type));
 }
 
 void gaia_ptr_t::reset()

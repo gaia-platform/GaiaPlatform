@@ -121,6 +121,16 @@ protected:
     }
 };
 
+TEST_F(db_client_test, early_session_termination)
+{
+    // Test that closing the session after starting a transaction
+    // does not generate any internal assertion failures
+    // when attempting to reopen a session.
+    begin_transaction();
+    end_session();
+    begin_session();
+}
+
 TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
@@ -511,11 +521,11 @@ TEST_F(db_client_test, create_large_object)
 {
     begin_transaction();
     {
-        uint8_t payload[db_object_t::c_max_payload_size];
+        uint8_t payload[c_db_object_max_payload_size];
 
         constexpr gaia_type_t node_type = 5;
         size_t num_refs = 50;
-        size_t payload_size = db_object_t::c_max_payload_size - (num_refs * sizeof(gaia_id_t));
+        size_t payload_size = c_db_object_max_payload_size - (num_refs * sizeof(gaia_id_t));
         std::cerr << std::endl;
         std::cerr << "*** Creating the largest node (" << payload_size << " bytes):" << std::endl;
         EXPECT_NE(gaia_ptr_t::create(gaia_ptr_t::generate_id(), node_type, num_refs, payload_size, payload), nullptr);
