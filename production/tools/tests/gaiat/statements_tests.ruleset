@@ -534,7 +534,7 @@ ruleset test34
     OnInsert(incubator)
     {
         int count = 0;
-        // Do-while referencing a field inside while().
+        // Declarative do-while referencing a field inside while().
         // The parent row of the sensors in the while() is the incubator row from OnInsert().
         do
         {
@@ -549,7 +549,7 @@ ruleset test35
     OnInsert(incubator)
     {
         int count = 0;
-        // Braceless do-while in one line.
+        // Braceless declarative do-while in one line.
         do count += 1; while (sensor.value > 0.0);
     }
 }
@@ -559,7 +559,7 @@ ruleset test36
     OnInsert(incubator)
     {
         int count = 0;
-        // Braceless do-while in two lines.
+        // Braceless declarative do-while in two lines.
         do count += 1;
         while (sensor.value > 0.0);
     }
@@ -570,7 +570,7 @@ ruleset test37
     OnInsert(incubator)
     {
         int count = 0;
-        // Do-while that does not reference any rows.
+        // Procedural do-while that does not reference any rows.
         do
         {
             count += 1;
@@ -584,7 +584,7 @@ ruleset test38
     OnInsert(incubator)
     {
         int count = 0;
-        // Do-while referencing a field inside while().
+        // Declarative do-while referencing a field inside while().
         do
         {
             count += 1;
@@ -595,14 +595,149 @@ ruleset test38
 
 ruleset test39
 {
+    // The consequences of the syntax in this rule are up for discussion.
     {
         int count = 0;
-        // Do-while referencing an active field inside while().
+        // Procedural do-while referencing an active field inside while().
         // There is no parent row for the row referenced inside while().
         do
         {
             count += 1;
         }
         while (@animal.age < 10);
+    }
+}
+
+ruleset test40
+{
+    OnInsert(A:animal)
+    {
+        int count = 0;
+        // Procedural do-while with a tag referenced in the do{} and while() closures,
+        // but the tag is initialized outside the do-while.
+        do
+        {
+            count += A.age;
+        }
+        while (A.age > 0);
+    }
+}
+
+ruleset test41
+{
+    OnInsert(A:animal)
+    {
+        int count = 0;
+        // Procedural do-while with a tag referenced inside the do{} closure
+        // but not the while() closure.
+        do
+        {
+            count += A.age;
+        }
+        while (count < 10);
+    }
+}
+
+ruleset test42
+{
+    OnUpdate(incubator)
+    {
+        int count = 0;
+        // Delcarative do-while with a tag initialized in an if() statement inside the do{} closure.
+        do
+        {
+            if (A:actuator.value > 0.0)
+            {
+                count += 1;
+            }
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test43
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Declarative do-while referencing a field inside while() using a full-table scan.
+        do
+        {
+            count += 1;
+        }
+        while (/sensor.value > 0.0);
+    }
+}
+
+ruleset test44
+{
+    // The consequences of the syntax in this rule are up for discussion.
+    {
+        int count = 0;
+        // Declarative (or procedural??) do-while with an active field in the while() closure, but
+        // it is marked as a full-table scan.
+        do
+        {
+            count += 1;
+        }
+        while (/@animal.age < 10);
+    }
+}
+
+ruleset test45
+{
+    OnInsert(incubator)
+    {
+        int count = 0;
+        // Declarative do-while referencing a field inside while() using a full-table scan.
+        do
+        {
+            count += 1;
+        }
+        while (/sensor.value > 0.0);
+    }
+}
+
+ruleset test46
+{
+    OnInsert(I:incubator)
+    {
+        int count_a = 0;
+        // Nested declarative do-while loops.
+        do
+        {
+            int count_b = 0;
+
+            do
+            {
+                int count_c = 0;
+
+                do
+                {
+                    count_c += 1;
+                } while (strcmp(raised.birthdate, "") != 0);
+
+                count_b += 1;
+            } while (actuator.value < 10);
+
+            count_a += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+ruleset test47
+{
+    OnInsert(I:incubator)
+    {
+        int count = 0;
+        // Nested braceless declarative do-while loops.
+        do
+            do
+                do
+                    count += 1;
+                while (strcmp(raised.birthdate, "") != 0);
+            while (actuator.value < 10);
+        while (sensor.value > 0.0);
     }
 }
