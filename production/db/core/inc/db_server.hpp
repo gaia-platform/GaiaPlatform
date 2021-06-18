@@ -114,7 +114,7 @@ private:
     static inline mapped_data_t<counters_t> s_shared_counters{};
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
-    static inline index::indexes_t s_shared_indexes{};
+    static inline index::indexes_t s_global_indexes{};
 
     // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;

@@ -50,5 +50,5 @@ gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
 
 gaia::db::index::indexes_t* gaia::db::get_indexes()
 {
-    return &gaia::db::server_t::s_shared_indexes;
+    return &gaia::db::server_t::s_global_indexes;
 }
