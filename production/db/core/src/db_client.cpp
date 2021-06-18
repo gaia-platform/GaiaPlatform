@@ -258,10 +258,7 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
-    for (auto data_mapping : s_data_mappings)
-    {
-        data_mapping.close();
-    }
+    data_mapping_t::close(s_data_mappings, std::size(s_data_mappings));
     s_log.close();
 
     // If the server has already closed its fd for the locator segment
@@ -342,11 +339,13 @@ void client_t::begin_session(config::session_options_t session_options)
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
 
-    // Assert relevant fd's and pointers are in clean state.
+    // Validate shared memory mapping definitions and assert that mappings are not made yet.
+    data_mapping_t::validate(s_data_mappings, std::size(s_data_mappings));
     for (auto data_mapping : s_data_mappings)
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
     }
+
     ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
     s_session_options = session_options;
@@ -367,10 +366,10 @@ void client_t::begin_session(config::session_options_t session_options)
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
     // Set up scope guards for the fds.
-    int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
-    int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
-    int fd_data = client_messenger.received_fd(client_messenger_t::c_index_data);
-    int fd_id_index = client_messenger.received_fd(client_messenger_t::c_index_id_index);
+    int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
+    int fd_counters = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::counters));
+    int fd_data = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::data));
+    int fd_id_index = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::id_index));
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
@@ -387,9 +386,7 @@ void client_t::begin_session(config::session_options_t session_options)
     session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
-    // Set up the shared-memory mappings (see notes in db_server.cpp).
-    // Fds must be added to the fd_list in the same order
-    // in which their corresponding mappings are specified in s_data_mappings.
+    // Set up the shared-memory mappings.
     size_t index_fd = 0;
     for (auto data_mapping : s_data_mappings)
     {

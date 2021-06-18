@@ -181,10 +181,7 @@ void server_t::handle_connect(
 
     // Collect fds.
     std::vector<int> fd_list;
-    for (auto data_mapping : c_data_mappings)
-    {
-        fd_list.push_back(data_mapping.fd());
-    }
+    data_mapping_t::collect_fds(c_data_mappings, std::size(c_data_mappings), fd_list);
 
     send_msg_with_fds(s_session_socket, fd_list, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -595,10 +592,7 @@ void server_t::build_server_reply(
 
 void server_t::clear_shared_memory()
 {
-    for (auto data_mapping : c_data_mappings)
-    {
-        data_mapping.close();
-    }
+    data_mapping_t::close(c_data_mappings, std::size(c_data_mappings));
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -614,6 +608,8 @@ void server_t::init_shared_memory()
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
+    // Validate shared memory mapping definitions and assert that mappings are not made yet.
+    data_mapping_t::validate(c_data_mappings, std::size(c_data_mappings));
     for (auto data_mapping : c_data_mappings)
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
@@ -628,10 +624,7 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    for (auto data_mapping : c_data_mappings)
-    {
-        data_mapping.create(s_server_conf.instance_name().c_str());
-    }
+    data_mapping_t::create(c_data_mappings, std::size(c_data_mappings), s_server_conf.instance_name().c_str());
 
     init_memory_manager();
 

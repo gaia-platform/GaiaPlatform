@@ -142,6 +142,17 @@ protected:
 // via the methods of this class.
 struct data_mapping_t
 {
+    enum class index_t
+    {
+        locators,
+        counters,
+        data,
+        id_index,
+
+        count_mappings
+    };
+
+    index_t mapping_index;
     base_mapped_data_t* mapped_data;
     const char* name_prefix;
 
@@ -149,11 +160,16 @@ struct data_mapping_t
     // If set to false, the mapping will have to be performed manually.
     bool enable_open;
 
-    inline void create(const char* server_instance_name);
-    inline void open(int fd);
-    inline void close();
-    inline int fd();
-    inline bool is_set();
+    inline void create(const char* server_instance_name) const;
+    inline void open(int fd) const;
+    inline void close() const;
+    inline int fd() const;
+    inline bool is_set() const;
+
+    inline static void validate(const data_mapping_t mappings[], size_t count_mappings);
+    inline static void create(const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name);
+    inline static void close(const data_mapping_t mappings[], size_t count_mappings);
+    inline static void collect_fds(const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list);
 };
 
 #include "mapped_data.inc"

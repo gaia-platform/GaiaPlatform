@@ -166,7 +166,7 @@ void mapped_data_t<T_data>::open_shared(int fd)
     open(fd, manage_fd, is_shared);
 }
 
-void data_mapping_t::create(const char* server_instance_name)
+void data_mapping_t::create(const char* server_instance_name) const
 {
     ASSERT_PRECONDITION(name_prefix != nullptr, "data_mapping_t::create() was called without a valid name prefix!");
 
@@ -174,7 +174,7 @@ void data_mapping_t::create(const char* server_instance_name)
     mapped_data->create(mapping_name.c_str());
 }
 
-void data_mapping_t::open(int fd)
+void data_mapping_t::open(int fd) const
 {
     if (enable_open)
     {
@@ -182,17 +182,56 @@ void data_mapping_t::open(int fd)
     }
 }
 
-void data_mapping_t::close()
+void data_mapping_t::close() const
 {
     mapped_data->close();
 }
 
-int data_mapping_t::fd()
+int data_mapping_t::fd() const
 {
     return mapped_data->fd();
 }
 
-bool data_mapping_t::is_set()
+bool data_mapping_t::is_set() const
 {
     return mapped_data->is_set();
+}
+
+void data_mapping_t::validate(const data_mapping_t mappings[], size_t count_mappings)
+{
+    ASSERT_INVARIANT(
+        count_mappings == static_cast<size_t>(index_t::count_mappings), "Mappings count does not match enum value!");
+
+    for (size_t i = 0; i < count_mappings; ++i)
+    {
+        ASSERT_INVARIANT(
+            i == static_cast<size_t>(mappings[i].mapping_index),
+            "Mapping definitions are not in the expected order!");
+    }
+}
+
+void data_mapping_t::create(const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name)
+{
+    for (size_t i = 0; i < count_mappings; ++i)
+    {
+        mappings[i].create(server_instance_name);
+    }
+}
+
+void data_mapping_t::close(const data_mapping_t mappings[], size_t count_mappings)
+{
+    for (size_t i = 0; i < count_mappings; ++i)
+    {
+        mappings[i].close();
+    }
+}
+
+void data_mapping_t::collect_fds(const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list)
+{
+    ASSERT_PRECONDITION(fd_list.empty(), "collect_fds() was called with a non empty fd list!");
+
+    for (size_t i = 0; i < count_mappings; ++i)
+    {
+        fd_list.push_back(mappings[i].fd());
+    }
 }
