@@ -25,8 +25,6 @@ target_include_directories(gaia_payload_types PUBLIC ${GAIA_PAYLOAD_TYPES_INCLUD
 set_target_properties(gaia_payload_types PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_payload_types PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_payload_types PRIVATE gaia_common flatbuffers)
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_payload_types PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Generate the flatbuffers files required by test_field_access.
 add_custom_command(

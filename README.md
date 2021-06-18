@@ -17,6 +17,7 @@ This repository is meant to be built with `clang-10`. To ensure `clang-10` use, 
 ```
 export CC=/usr/bin/clang-10
 export CXX=/usr/bin/clang++-10
+export LD=/usr/bin/ld.lld-10
 ```
 
 (As an aside, the upgrade from `clang-8` to `clang-10` was not driven because we needed features in `clang-10` but rather because the default clang version installed with `apt get install clang` on Ubuntu 20 will install version 10. If you need to continue to build with `clang-8` then that should work just fine.  Please be advised, however, that our TeamCity CI jobs for both Ubuntu 20 and Ubuntu 18.04 will use `clang-10` to build the product that we ship.)
