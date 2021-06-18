@@ -65,6 +65,7 @@ cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), c
 cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
+std::string g_current_ruleset_serial_stream;
 bool g_is_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
@@ -469,6 +470,16 @@ string generate_general_subscription_code()
     return return_value;
 }
 
+string get_serial_stream(const Decl* decl)
+{
+    const SerialStreamAttr* serial_attr = decl->getAttr<SerialStreamAttr>();
+    if (serial_attr != nullptr)
+    {
+        return serial_attr->getStream()->getName().str();
+    }
+    return "";
+}
+
 string get_table_name(const Decl* decl)
 {
     const FieldTableAttr* table_attr = decl->getAttr<FieldTableAttr>();
@@ -852,6 +863,14 @@ void generate_table_subscription(
 
     string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
 
+    string serial_stream = "nullptr";
+    if (!g_current_ruleset_serial_stream.empty())
+    {
+        serial_stream = "\"";
+        serial_stream.append(g_current_ruleset_serial_stream);
+        serial_stream.append("\"");
+    }
+
     // Declare a constant for the line number of the rule if this is the first
     // time we've seen this rule.  Note that we may see a rule multiple times if
     // the rule has multiple anchor rows.
@@ -887,6 +906,8 @@ void generate_table_subscription(
         .append(rule_name)
         .append(",")
         .append(rule_line_var)
+        .append(",")
+        .append(serial_stream)
         .append(");\n");
 
     g_current_ruleset_subscription += common_subscription_code;
@@ -2484,6 +2505,7 @@ public:
                 + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
         }
         g_current_ruleset = ruleset_declaration->getName().str();
+        g_current_ruleset_serial_stream = get_serial_stream(ruleset_declaration);
 
         // Make sure each new ruleset name is unique.
         for (const auto& r : g_rulesets)
