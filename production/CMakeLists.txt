@@ -31,7 +31,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Ensure debug builds have the DEBUG flag defined.
 add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
-# Ensure that PIE flags are actually passed to the linker.
+# Check that PIE flags are actually passed to the linker.
+# This ensures that our executables are ASLR-compatible.
 include(CheckPIESupported)
 check_pie_supported(OUTPUT_VARIABLE check_pie_error LANGUAGES CXX)
 if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
@@ -44,9 +45,13 @@ cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# We want everything in the build to use libc++, including third-party packages.
+# We want everything in the build to use libc++,
+# including third-party packages.
 add_compile_options(-stdlib=libc++)
 add_link_options(-stdlib=libc++)
+# We want everything in the build to use lld as the linker,
+# including third-party packages.
+add_link_options(-fuse-ld=lld)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -75,15 +80,20 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   # LLD/libc++ are necessary for MSan.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
   set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # This speeds up linking by separating debug info.
+    set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
+    # This makes debugger startup faster.
+    set(LLVM_USE_GDB_INDEX ON CACHE BOOL "")
+    # This saves the linker some work, but makes clang slower.
+    set(BUILD_SHARED_LIBS:BOOL ON CACHE BOOL "")
+  endif()
 endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -fno-omit-frame-pointer -fno-optimize-sibling-calls -ftime-trace")
-
-  if (BUILD_SHARED_LIBRARY AND RUN_TESTS)
-    message(FATAL_ERROR "Can't build shared library and run tests at same time")
-  endif()
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-limit-debug-info -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 
   # Enable ASan by default in debug builds.
   set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -101,7 +111,7 @@ if(DEFINED CACHE{SANITIZER})
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Clear the given value from the cache so subsequent runs don't fail.
     unset(SANITIZER CACHE)
-    message(FATAL_ERROR "The SANITIZER option can only be set in debug builds.\n")
+    message(FATAL_ERROR "The SANITIZER option can only be set in debug builds.")
   endif()
 
   # Extract allowed option values.
@@ -120,10 +130,15 @@ if(DEFINED CACHE{SANITIZER})
   add_compile_options(-fno-sanitize-recover=all)
   add_link_options(-fno-sanitize-recover=all)
 
-  # Enabling ASan always enables UBSan as well (they are compatible so we have no separate option for UBSan).
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
-    add_compile_options(-fsanitize=address -fsanitize=undefined)
-    add_link_options(-fsanitize=address -fsanitize=undefined)
+    # Enable ASan on all targets because libc++ requires it to prevent false positives.
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+
+    # Add UBSan as well as ASan to Gaia targets.
+    # (They are compatible so we have no separate option for UBSan.)
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=undefined")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=undefined")
   endif()
 endif()
 
@@ -267,6 +282,7 @@ add_subdirectory(tools)
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
+
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()

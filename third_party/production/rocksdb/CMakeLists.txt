@@ -60,8 +60,6 @@ option(WITH_WINDOWS_UTF8_FILENAMES "use UTF8 as characterset for opening files, 
 if (WITH_WINDOWS_UTF8_FILENAMES)
   add_definitions(-DROCKSDB_WINDOWS_UTF8_FILENAMES)
 endif()
-# We always want to enable the attributes selectively disabling UBSan.
-add_definitions(-DROCKSDB_UBSAN_RUN)
 
 # third-party/folly is only validated to work on Linux and Windows for now.
 # So only turn it on there by default.
