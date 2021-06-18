@@ -8,7 +8,9 @@
 #include <cstddef>
 
 #include <atomic>
+#include <memory>
 #include <ostream>
+#include <unordered_map>
 
 #include "gaia/common.hpp"
 
@@ -16,6 +18,8 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
+
+#include "base_index.hpp"
 
 namespace gaia
 {
@@ -185,5 +189,15 @@ struct id_index_t
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
+
+// These are types meant to access index types from the client/server.
+namespace index
+{
+
+typedef std::shared_ptr<base_index_t> db_index_t;
+typedef std::unordered_map<gaia::common::gaia_id_t, db_index_t> indexes_t;
+
+} // namespace index
+
 } // namespace db
 } // namespace gaia
