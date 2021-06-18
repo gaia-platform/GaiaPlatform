@@ -2,7 +2,8 @@
 
 ruleset test11
 {
-    ruleset test12 { // expected-error {{Rulesets can not be defined in ruleset scope.}}
+    ruleset test12
+    { // expected-error {{Rulesets can not be defined in ruleset scope.}}
         {
             min_temp += @value;
             max_temp += min_temp / 2;
@@ -41,13 +42,15 @@ ruleset test34
 
 ruleset test35
 {
-    OnUpdate { // expected-error {{expected '('}}
+    OnUpdate
+    { // expected-error {{expected '('}}
     }
 }
 
 ruleset test36
 {
-    OnUpdate() { // expected-error {{Invalid Gaia rule attribute.}}
+    OnUpdate()
+    { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
@@ -123,13 +126,15 @@ ruleset test57
 
 ruleset test58
 {
-    OnChange { // expected-error {{expected '('}}
+    OnChange
+    { // expected-error {{expected '('}}
     }
 }
 
 ruleset test59
 {
-    OnChange() { // expected-error {{Invalid Gaia rule attribute.}}
+    OnChange()
+    { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
@@ -211,7 +216,8 @@ ruleset test70
 
 ruleset test71
 {
-    OnInsert() { // expected-error {{Invalid Gaia rule attribute.}}
+    OnInsert()
+    { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
@@ -315,21 +321,24 @@ ruleset test104
 
 ruleset test106
 {
-    OnInsert(*incubator) { // expected-error {{expected identifier}}
+    OnInsert(*incubator) // expected-error {{expected identifier}}
+    {
         incubator.min_temp=98.9;
     }
 }
 
 ruleset test107
 {
-    OnInsert(do(min_temp)) { // expected-error {{expected identifier}}
+    OnInsert(do(min_temp)) // expected-error {{expected identifier}}
+    {
         age=5;
     }
 }
 
 ruleset test108
 {
-    OnInsert(age ? 3 : 4) { // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    OnInsert(age ? 3 : 4) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    {
         age=5;
     }
 }
