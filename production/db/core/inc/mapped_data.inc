@@ -6,19 +6,19 @@
 #pragma once
 
 template <typename T_data>
-base_mapped_data_t<T_data>::base_mapped_data_t()
+core_mapped_data_t<T_data>::core_mapped_data_t()
 {
     clear();
 }
 
 template <typename T_data>
-base_mapped_data_t<T_data>::~base_mapped_data_t()
+core_mapped_data_t<T_data>::~core_mapped_data_t()
 {
-    close();
+    close_internal();
 }
 
 template <typename T_data>
-void base_mapped_data_t<T_data>::clear()
+void core_mapped_data_t<T_data>::clear()
 {
     m_is_set = false;
     m_fd = -1;
@@ -27,14 +27,14 @@ void base_mapped_data_t<T_data>::clear()
 }
 
 template <typename T_data>
-void base_mapped_data_t<T_data>::reset(base_mapped_data_t<T_data>& other)
+void core_mapped_data_t<T_data>::reset(core_mapped_data_t<T_data>& other)
 {
     ASSERT_PRECONDITION(
         !m_is_set,
-        "A set base_mapped_data_t instance should not take ownership of another instance!");
+        "A set core_mapped_data_t instance should not take ownership of another instance!");
     ASSERT_PRECONDITION(
         other.m_is_set,
-        "An unset base_mapped_data_t instance should not take ownership of another unset instance!");
+        "An unset core_mapped_data_t instance should not take ownership of another unset instance!");
 
     m_is_set = other.m_is_set;
     m_fd = other.m_fd;
@@ -45,7 +45,13 @@ void base_mapped_data_t<T_data>::reset(base_mapped_data_t<T_data>& other)
 }
 
 template <typename T_data>
-void base_mapped_data_t<T_data>::close()
+void core_mapped_data_t<T_data>::close()
+{
+    close_internal();
+}
+
+template <typename T_data>
+void core_mapped_data_t<T_data>::close_internal()
 {
     common::unmap_fd_data(m_data, m_mapped_data_size);
     m_mapped_data_size = 0;
@@ -56,19 +62,19 @@ void base_mapped_data_t<T_data>::close()
 }
 
 template <typename T_data>
-T_data* base_mapped_data_t<T_data>::data()
+T_data* core_mapped_data_t<T_data>::data()
 {
     return m_data;
 }
 
 template <typename T_data>
-int base_mapped_data_t<T_data>::fd()
+int core_mapped_data_t<T_data>::fd()
 {
     return m_fd;
 }
 
 template <typename T_data>
-bool base_mapped_data_t<T_data>::is_set()
+bool core_mapped_data_t<T_data>::is_set()
 {
     return m_is_set;
 }
@@ -150,4 +156,33 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
     }
 
     this->m_is_set = true;
+}
+
+void data_mapping_t::create(const char* server_instance_name)
+{
+    ASSERT_PRECONDITION(name_prefix != nullptr, "data_mapping_t::create() was called without a valid name prefix!");
+
+    std::string mapping_name = std::string(name_prefix) + server_instance_name;
+    mapped_data->create(mapping_name.c_str());
+}
+
+void data_mapping_t::open(int fd)
+{
+    bool manage_fd = false;
+    mapped_data->open(fd, manage_fd);
+}
+
+void data_mapping_t::close()
+{
+    mapped_data->close();
+}
+
+int data_mapping_t::fd()
+{
+    return mapped_data->fd();
+}
+
+bool data_mapping_t::is_set()
+{
+    return mapped_data->is_set();
 }

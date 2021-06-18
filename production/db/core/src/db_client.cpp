@@ -259,9 +259,10 @@ void client_t::clear_shared_memory()
 
     // We closed our original fds for these data segments, so we only need to unmap them.
     s_private_locators.close();
-    s_shared_counters.close();
-    s_shared_data.close();
-    s_shared_id_index.close();
+    for (auto data_mapping : s_data_mappings)
+    {
+        data_mapping.close();
+    }
     s_log.close();
 
     // If the server has already closed its fd for the locator segment
@@ -344,10 +345,10 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Assert relevant fd's and pointers are in clean state.
     ASSERT_INVARIANT(!s_private_locators.is_set(), "Locators segment is already mapped!");
-    ASSERT_INVARIANT(!s_shared_counters.is_set(), "Counters segment is already mapped!");
-    ASSERT_INVARIANT(!s_shared_data.is_set(), "Data segment is already mapped!");
-    ASSERT_INVARIANT(!s_shared_id_index.is_set(), "ID index segment is already mapped!");
-
+    for (auto data_mapping : s_data_mappings)
+    {
+        ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
+    }
     ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
 
     s_session_options = session_options;
@@ -368,10 +369,12 @@ void client_t::begin_session(config::session_options_t session_options)
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
     int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
+
     int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
     int fd_data = client_messenger.received_fd(client_messenger_t::c_index_data);
     int fd_id_index = client_messenger.received_fd(client_messenger_t::c_index_id_index);
 
+    // Set up scope guards for the fds.
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
@@ -389,13 +392,17 @@ void client_t::begin_session(config::session_options_t session_options)
     ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings (see notes in db_server.cpp).
-    // The mapper objects will take ownership of the fds so we dismiss the guards first.
-    cleanup_fd_counters.dismiss();
-    s_shared_counters.open(fd_counters);
-    cleanup_fd_data.dismiss();
-    s_shared_data.open(fd_data);
-    cleanup_fd_id_index.dismiss();
-    s_shared_id_index.open(fd_id_index);
+    // Fds must be added to the fd_list in the same order
+    // in which their corresponding mappings are specified in s_data_mappings.
+    std::vector<int> fd_list;
+    fd_list.push_back(fd_counters);
+    fd_list.push_back(fd_data);
+    fd_list.push_back(fd_id_index);
+    size_t index_fd_list = 0;
+    for (auto data_mapping : s_data_mappings)
+    {
+        data_mapping.open(fd_list[index_fd_list++]);
+    }
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;

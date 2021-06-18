@@ -590,9 +590,11 @@ void server_t::build_server_reply(
 void server_t::clear_shared_memory()
 {
     s_shared_locators.close();
-    s_shared_counters.close();
-    s_shared_data.close();
-    s_shared_id_index.close();
+
+    for (auto data_mapping : c_data_mappings)
+    {
+        data_mapping.close();
+    }
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -609,9 +611,10 @@ void server_t::init_shared_memory()
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
     ASSERT_INVARIANT(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_data.is_set(), "Data memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
+    for (auto data_mapping : c_data_mappings)
+    {
+        ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
+    }
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -623,9 +626,10 @@ void server_t::init_shared_memory()
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
     s_shared_locators.create(gaia_fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_counters.create(gaia_fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_data.create(gaia_fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_id_index.create(gaia_fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
+    for (auto data_mapping : c_data_mappings)
+    {
+        data_mapping.create(s_server_conf.instance_name().c_str());
+    }
 
     init_memory_manager();
 

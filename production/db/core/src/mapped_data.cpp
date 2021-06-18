@@ -58,6 +58,11 @@ void mapped_log_t::open(int fd)
     this->m_is_set = true;
 }
 
+void mapped_log_t::open(int, bool)
+{
+    ASSERT_UNREACHABLE("This method should never be called on a mapped_log_t instance!");
+}
+
 void mapped_log_t::truncate_seal_and_close(int& fd, size_t& log_size)
 {
     ASSERT_PRECONDITION(

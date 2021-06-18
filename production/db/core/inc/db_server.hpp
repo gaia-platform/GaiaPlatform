@@ -173,6 +173,13 @@ private:
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
 private:
+    // A list of data mappings that we manage together.
+    static inline constexpr data_mapping_t c_data_mappings[] = {
+        {&s_shared_counters, c_gaia_mem_counters_prefix},
+        {&s_shared_data, c_gaia_mem_data_prefix},
+        {&s_shared_id_index, c_gaia_mem_id_index_prefix},
+    };
+
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
