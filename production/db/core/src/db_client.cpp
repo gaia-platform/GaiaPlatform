@@ -431,7 +431,8 @@ void client_t::begin_transaction()
         s_private_locators.close();
     });
     bool manage_fd = false;
-    s_private_locators.open(s_fd_locators, manage_fd);
+    bool is_shared = false;
+    s_private_locators.open(s_fd_locators, manage_fd, is_shared);
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);

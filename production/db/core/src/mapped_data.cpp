@@ -58,7 +58,7 @@ void mapped_log_t::open(int fd)
     this->m_is_set = true;
 }
 
-void mapped_log_t::open(int, bool)
+void mapped_log_t::open_shared(int)
 {
     ASSERT_UNREACHABLE("This method should never be called on a mapped_log_t instance!");
 }

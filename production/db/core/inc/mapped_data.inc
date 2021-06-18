@@ -120,7 +120,7 @@ void mapped_data_t<T_data>::create(const char* name)
 }
 
 template <typename T_data>
-void mapped_data_t<T_data>::open(int fd, bool manage_fd)
+void mapped_data_t<T_data>::open(int fd, bool manage_fd, bool is_shared)
 {
     ASSERT_PRECONDITION(
         !this->m_is_set,
@@ -138,7 +138,7 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
             this->m_data,
             this->m_mapped_data_size,
             PROT_READ | PROT_WRITE,
-            MAP_SHARED | MAP_NORESERVE,
+            (is_shared ? MAP_SHARED : MAP_PRIVATE) | MAP_NORESERVE,
             this->m_fd,
             0);
 
@@ -150,12 +150,20 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
             this->m_data,
             this->m_mapped_data_size,
             PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_NORESERVE,
+            (is_shared ? MAP_SHARED : MAP_PRIVATE) | MAP_NORESERVE,
             fd,
             0);
     }
 
     this->m_is_set = true;
+}
+
+template <typename T_data>
+void mapped_data_t<T_data>::open_shared(int fd)
+{
+    bool manage_fd = false;
+    bool is_shared = true;
+    open(fd, manage_fd, is_shared);
 }
 
 void data_mapping_t::create(const char* server_instance_name)
@@ -168,8 +176,7 @@ void data_mapping_t::create(const char* server_instance_name)
 
 void data_mapping_t::open(int fd)
 {
-    bool manage_fd = false;
-    mapped_data->open(fd, manage_fd);
+    mapped_data->open_shared(fd);
 }
 
 void data_mapping_t::close()

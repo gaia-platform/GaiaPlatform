@@ -15,14 +15,20 @@ namespace db
 {
 
 // Base class declaring a core management interface for mapped data classes.
+struct data_mapping_t;
 class base_mapped_data_t
 {
+    friend struct data_mapping_t;
+
 public:
     virtual void create(const char* name) = 0;
-    virtual void open(int fd, bool manage_fd) = 0;
     virtual void close() = 0;
     virtual int fd() = 0;
     virtual bool is_set() = 0;
+
+protected:
+    // This method is only meant to be called from data_mapping_t methods.
+    virtual void open_shared(int fd) = 0;
 };
 
 // Core class implementing common functionality for mapped data classes.
@@ -93,10 +99,11 @@ public:
     // manage_fd is used to indicate whether the fd should be managed
     // (i.e. closed at destruction time) by this class or not.
     //
-    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
-    // This is done for coding convenience because it suits current implementation,
-    // but could be changed in the future if we wish more control over this behavior.
-    void open(int fd, bool manage_fd) override;
+    // is_shared indicates the type of mapping: SHARED if true; PRIVATE otherwise.
+    void open(int fd, bool manage_fd, bool is_shared);
+
+protected:
+    void open_shared(int fd) override;
 };
 
 // This class is similar to mapped_data_t, but is specialized for operation on log data structures.
@@ -119,13 +126,15 @@ public:
 
     // Opens a memory-mapped log structure using a file descriptor.
     void open(int fd);
-    void open(int fd, bool manage_fd) override;
 
     // Truncates and seals a memory-mapped log structure.
     // Closes the mapped_log_t instance in the sense that it is left in an uninitialized state.
     // The file descriptor is *NOT* closed - its ownership is transferred to the caller.
     // Passes back the file descriptor and the size of the log.
     void truncate_seal_and_close(int& fd, size_t& log_size);
+
+protected:
+    void open_shared(int fd) override;
 };
 
 // Structure describing a data mapping.
