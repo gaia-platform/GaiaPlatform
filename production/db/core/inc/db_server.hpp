@@ -83,6 +83,8 @@ private:
 
 class server_t
 {
+    friend class gaia_ptr_t;
+
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
