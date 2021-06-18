@@ -6,6 +6,17 @@
 # Set the project name.
 project(catalog)
 
+# The catalog.cpp is generated. Look into schemas/system/catalog/CMakeLists.txt to re-generate the code.
+add_library(edc_catalog STATIC
+    src/gaia_catalog.cpp
+)
+
+target_include_directories(edc_catalog PRIVATE ${GAIA_INC})
+target_include_directories(edc_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
+target_include_directories(edc_catalog PUBLIC ${FLATBUFFERS_INC})
+target_link_libraries(edc_catalog gaia_direct)
+set_target_properties(edc_catalog PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 set(GAIA_CATALOG_PUBLIC_INCLUDES
   ${GAIA_INC}
 )
@@ -21,17 +32,6 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
 )
 
 message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}")
-
-# The catalog.cpp is generated. Look into schemas/system/catalog/CMakeLists.txt to re-generate the code.
-add_library(edc_catalog STATIC
-  src/gaia_catalog.cpp
-)
-
-target_include_directories(edc_catalog PRIVATE ${GAIA_INC})
-target_include_directories(edc_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
-target_include_directories(edc_catalog PUBLIC ${FLATBUFFERS_INC})
-target_link_libraries(edc_catalog gaia_direct)
-set_target_properties(edc_catalog PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(gaia_catalog STATIC
   src/ddl_executor.cpp

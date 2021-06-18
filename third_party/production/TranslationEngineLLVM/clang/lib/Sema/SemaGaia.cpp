@@ -16,28 +16,58 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "clang/AST/PrettyDeclStackTrace.h"
+#include "clang/Basic/DiagnosticSema.h"
+#include "clang/Sema/DeclSpec.h"
+#include "clang/Sema/GaiaCatalogFacade.hpp"
+#include "clang/Sema/Scope.h"
+#include "clang/Sema/Sema.h"
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-
-#include "clang/AST/PrettyDeclStackTrace.h"
-#include "clang/Basic/Attributes.h"
-#include "clang/Basic/PrettyStackTrace.h"
-#include "clang/Basic/DiagnosticSema.h"
-#include "clang/Sema/Sema.h"
-#include "clang/Sema/DeclSpec.h"
-#include "clang/Sema/Scope.h"
 
 using namespace gaia;
 using namespace std;
 using namespace clang;
+using namespace clang::gaia_catalog;
 
 static string fieldTableName;
 
+// A little ugly to put this here.
+static gaia_catalog::gaia_catalog_context_t gaia_context;
+
 static const char ruleContextTypeName[] = "rule_context__type";
+
+void printAmbiguousFieldReferenceDiagnostic(
+    Sema& sema,
+    SourceLocation loc,
+    const std::string& fieldName,
+    std::optional<table_facade_t> table,
+    std::vector<field_facade_t> fields,
+    std::vector<link_facade_t> links)
+{
+    sema.Diag(loc, diag::err_ambiguous_field_reference) << fieldName;
+
+    if (table)
+    {
+        sema.Diag(loc, diag::note_table_reference) << table->table_name();
+    }
+
+    for (auto& field : fields)
+    {
+        sema.Diag(loc, diag::note_field_reference) << field.table_name() << field.field_name();
+    }
+
+    for (auto& link : links)
+    {
+        sema.Diag(loc, diag::note_link_reference) << link.from_table() << link.field_name();
+    }
+}
 
 static string get_table_from_expression(const string& expression)
 {
@@ -52,50 +82,50 @@ static string get_table_from_expression(const string& expression)
     }
 }
 
-static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
+static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
 {
     // Clang complains if we add a default clause to a switch that covers all values of an enum,
     // so this code is written to avoid that.
     QualType returnType = context->VoidTy;
 
-    switch(dbType)
+    switch (dbType)
     {
-        case catalog::data_type_t::e_bool:
-            returnType = context->BoolTy;
-            break;
-        case catalog::data_type_t::e_int8:
-            returnType = context->SignedCharTy;
-            break;
-        case catalog::data_type_t::e_uint8:
-            returnType = context->UnsignedCharTy;
-            break;
-        case catalog::data_type_t::e_int16:
-            returnType = context->ShortTy;
-            break;
-        case catalog::data_type_t::e_uint16:
-            returnType = context->UnsignedShortTy;
-            break;
-        case catalog::data_type_t::e_int32:
-            returnType = context->IntTy;
-            break;
-        case catalog::data_type_t::e_uint32:
-            returnType = context->UnsignedIntTy;
-            break;
-        case catalog::data_type_t::e_int64:
-            returnType = context->LongLongTy;
-            break;
-        case catalog::data_type_t::e_uint64:
-            returnType = context->UnsignedLongLongTy;
-            break;
-        case catalog::data_type_t::e_float:
-            returnType = context->FloatTy;
-            break;
-        case catalog::data_type_t::e_double:
-            returnType = context->DoubleTy;
-            break;
-        case catalog::data_type_t::e_string:
-            returnType = context->getPointerType((context->CharTy).withConst());
-            break;
+    case catalog::data_type_t::e_bool:
+        returnType = context->BoolTy;
+        break;
+    case catalog::data_type_t::e_int8:
+        returnType = context->SignedCharTy;
+        break;
+    case catalog::data_type_t::e_uint8:
+        returnType = context->UnsignedCharTy;
+        break;
+    case catalog::data_type_t::e_int16:
+        returnType = context->ShortTy;
+        break;
+    case catalog::data_type_t::e_uint16:
+        returnType = context->UnsignedShortTy;
+        break;
+    case catalog::data_type_t::e_int32:
+        returnType = context->IntTy;
+        break;
+    case catalog::data_type_t::e_uint32:
+        returnType = context->UnsignedIntTy;
+        break;
+    case catalog::data_type_t::e_int64:
+        returnType = context->LongLongTy;
+        break;
+    case catalog::data_type_t::e_uint64:
+        returnType = context->UnsignedLongLongTy;
+        break;
+    case catalog::data_type_t::e_float:
+        returnType = context->FloatTy;
+        break;
+    case catalog::data_type_t::e_double:
+        returnType = context->DoubleTy;
+        break;
+    case catalog::data_type_t::e_string:
+        returnType = context->getPointerType((context->CharTy).withConst());
+        break;
     }
 
     // We should not be reaching this line with this value,
@@ -115,27 +145,9 @@ StringRef Sema::ConvertString(const string& str, SourceLocation loc)
     Toks[0].setLiteralData(literalString.data());
     Toks[0].setLength(literalString.size());
 
-    StringLiteral *literal =
-        cast<StringLiteral>(ActOnStringLiteral(Toks, nullptr).get());
+    StringLiteral* literal = cast<StringLiteral>(ActOnStringLiteral(Toks, nullptr).get());
     return literal->getString();
 }
-
-class DBMonitor
-{
-    public:
-        DBMonitor()
-        {
-            gaia::db::begin_session();
-            gaia::db::begin_transaction();
-        }
-
-        ~DBMonitor()
-        {
-            gaia::db::commit_transaction();
-            gaia::db::end_session();
-        }
-};
-
 
 bool Sema::does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc)
 {
@@ -234,7 +246,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
 
-        for (auto tagEntry: tagMap)
+        for (auto tagEntry : tagMap)
         {
             auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
@@ -270,8 +282,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             }
             auto tagMappingIterator = tagMapping.find(tableName);
             auto tagMapIterator = tagMap.find(tableName);
-            if (tagMappingIterator != tagMapping.end() ||
-                tagMapIterator != tagMap.end())
+            if (tagMappingIterator != tagMapping.end() || tagMapIterator != tagMap.end())
             {
                 if (tagMappingIterator != tagMapping.end() && is_absolute)
                 {
@@ -279,8 +290,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                     return "";
                 }
 
-                if (tagMappingIterator != tagMapping.end() &&
-                    pathComponent != path.front() && pathComponent != path.back())
+                if (tagMappingIterator != tagMapping.end() && pathComponent != path.front() && pathComponent != path.back())
                 {
                     Diag(loc, diag::err_incorrect_tag_use_in_path) << tableName;
                     return "";
@@ -311,8 +321,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 auto relatedTablesIterator = relationData.equal_range(previousTable);
 
-                if (relatedTablesIterator.first == relationData.end() &&
-                    relatedTablesIterator.second == relationData.end())
+                if (relatedTablesIterator.first == relationData.end() && relatedTablesIterator.second == relationData.end())
                 {
                     Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
                     return "";
@@ -375,9 +384,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
     unordered_map<string, unordered_map<string, QualType>> retVal;
     try
     {
-        DBMonitor monitor;
-
-        for(const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
+        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.table();
             if (!tbl)
@@ -395,7 +402,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
             retVal[tbl.name()] = fields;
         }
     }
-    catch (const exception &e)
+    catch (const exception& e)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_map<string, unordered_map<string, QualType>>();
@@ -405,12 +412,10 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
 
 unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
 {
-    unordered_set<string>  retVal;
+    unordered_set<string> retVal;
     try
     {
-        DBMonitor monitor;
-
-        for(const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
+        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t tbl = field.table();
             if (!tbl)
@@ -421,7 +426,7 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
             retVal.emplace(tbl.name());
         }
     }
-    catch (const exception &e)
+    catch (const exception& e)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_set<string>();
@@ -432,11 +437,9 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
 
 unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations(SourceLocation loc)
 {
-    unordered_multimap<string, Sema::TableLinkData_t>  retVal;
+    unordered_multimap<string, Sema::TableLinkData_t> retVal;
     try
     {
-        DBMonitor monitor;
-
         for (const auto& relationship : catalog::gaia_relationship_t::list())
         {
             catalog::gaia_table_t child_table = relationship.child();
@@ -464,7 +467,7 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
             retVal.emplace(parent_table.name(), link_data_n);
         }
     }
-    catch (const exception &e)
+    catch (const exception& e)
     {
         Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_multimap<string, Sema::TableLinkData_t>();
@@ -473,9 +476,9 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
     return retVal;
 }
 
-void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceLocation loc) const
+void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceLocation loc) const
 {
-    FieldDecl *Field = FieldDecl::Create(
+    FieldDecl* Field = FieldDecl::Create(
         Context, RD, loc, loc,
         name, type, /*TInfo=*/nullptr,
         /*BitWidth=*/nullptr, /*Mutable=*/false, ICIS_NoInit);
@@ -485,39 +488,30 @@ void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceL
     RD->addDecl(Field);
 }
 
-void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc)
+void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo* Params, unsigned NumParams, AttributeFactory& attrFactory, ParsedAttributes& attrs, Scope* S, RecordDecl* RD, SourceLocation loc)
 {
     DeclSpec DS(attrFactory);
-    const char *dummy;
+    const char* dummy;
     unsigned diagId;
 
     Declarator D(DS, DeclaratorContext::MemberContext);
     D.setFunctionDefinitionKind(FDK_Declaration);
-    D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy,
-        diagId, getPrintingPolicy());
+    D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy, diagId, getPrintingPolicy());
     ActOnAccessSpecifier(AS_public, loc, loc, attrs);
 
     D.SetIdentifier(name, loc);
 
     DS.Finish(*this, getPrintingPolicy());
 
-    D.AddTypeInfo(DeclaratorChunk::getFunction(
-        true, false, loc, Params,
-        NumParams, loc, loc,
-        true, loc,
-        /*MutableLoc=*/loc,
-        EST_None, SourceRange(), nullptr,
-        nullptr, 0, nullptr,
-        nullptr, None, loc,
-        loc, D, TypeResult(), &DS),
-        std::move(attrs), loc);
+    D.AddTypeInfo(DeclaratorChunk::getFunction(true, false, loc, Params, NumParams, loc, loc, true, loc,
+                                               /*MutableLoc=*/loc, EST_None, SourceRange(), nullptr, nullptr, 0, nullptr, nullptr, None, loc, loc, D, TypeResult(), &DS),
+                  std::move(attrs), loc);
 
     DeclarationNameInfo NameInfo = GetNameForDeclarator(D);
 
-    TypeSourceInfo *tInfo = GetTypeForDeclarator(D,S);
+    TypeSourceInfo* tInfo = GetTypeForDeclarator(D, S);
 
-    CXXMethodDecl *Ret = CXXMethodDecl::Create(
+    CXXMethodDecl* Ret = CXXMethodDecl::Create(
         Context, cast<CXXRecordDecl>(RD), SourceLocation(), NameInfo, tInfo->getType(),
         tInfo, SC_None, false, false, SourceLocation());
     Ret->setAccess(AS_public);
@@ -526,16 +520,14 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    RecordDecl *RD = Context.buildImplicitRecord(ruleContextTypeName);
+    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName);
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
-    Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
-    ActOnTagStartDefinition(&S,RD);
-    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
-        false, loc);
+    Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
+    ActOnTagStartDefinition(&S, RD);
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
-
 
     //insert fields
     addField(&Context.Idents.get("ruleset_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
@@ -543,17 +535,15 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
     addField(&Context.Idents.get("gaia_type"), Context.UnsignedIntTy.withConst(), RD, loc);
 
-    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
-        loc, loc, attrs);
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
 
     return Context.getTagDeclType(RD);
 }
 
-
-QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
+QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 {
-    DeclContext *context = getCurFunctionDecl();
+    DeclContext* context = getCurFunctionDecl();
     while (context)
     {
         if (isa<RulesetDecl>(context))
@@ -575,16 +565,16 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         typeName = tagMapping[tableName];
     }
     fieldTableName = typeName;
-    const Type *realType = nullptr;
+    const Type* realType = nullptr;
 
-    auto &types = Context.getTypes();
+    auto& types = Context.getTypes();
     for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
     {
-        const auto *type = types[typeIdx];
-        const RecordDecl *record = type->getAsRecordDecl();
+        const auto* type = types[typeIdx];
+        const RecordDecl* record = type->getAsRecordDecl();
         if (record != nullptr)
         {
-            const auto *id = record->getIdentifier();
+            const auto* id = record->getIdentifier();
             if (id != nullptr)
             {
                 // Check if EDC type is defined.
@@ -597,13 +587,13 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         }
     }
 
-    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr *attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
     if (attr != nullptr)
     {
         bool table_found = false;
-        for (const IdentifierInfo *id : attr->tables())
+        for (const IdentifierInfo* id : attr->tables())
         {
             if (id->getName().str() == typeName)
             {
@@ -618,33 +608,27 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         }
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    if (tableData.empty())
+    auto tableData = gaia_context.find_table(typeName);
+
+    if (!tableData)
     {
-        return Context.VoidTy;
-    }
-    auto tableDescription = tableData.find(typeName);
-    if (tableDescription == tableData.end())
-    {
-        Diag(loc,diag::err_invalid_table_name) << typeName;
+        Diag(loc, diag::err_invalid_table_name) << typeName;
         return Context.VoidTy;
     }
 
-    RecordDecl *RD = Context.buildImplicitRecord(typeName + "__type");
+    RecordDecl* RD = Context.buildImplicitRecord(typeName + "__type");
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
-    Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
-    ActOnTagStartDefinition(&S,RD);
-    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
-        false, loc);
+    Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
+    ActOnTagStartDefinition(&S, RD);
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
-
 
     if (realType != nullptr)
     {
         QualType R = Context.getFunctionType(
-            BuildReferenceType(QualType(realType,0), true, loc, DeclarationName()),
+            BuildReferenceType(QualType(realType, 0), true, loc, DeclarationName()),
             None, FunctionProtoType::ExtProtoInfo());
         CanQualType ClassType = Context.getCanonicalType(R);
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
@@ -658,60 +642,78 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         RD->addDecl(conversionFunctionDeclaration);
     }
 
-    for (const auto &f : tableDescription->second)
+    for (const auto& field : tableData->fields())
     {
-        string fieldName = f.first;
-        QualType fieldType = f.second;
+        QualType fieldType = field.field_type(Context);
+
         if (fieldType->isVoidType())
         {
-            Diag(loc,diag::err_invalid_field_type) << fieldName;
+            Diag(loc, diag::err_invalid_field_type) << field.field_name();
             return Context.VoidTy;
         }
-        addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
+
+        addField(&Context.Idents.get(field.field_name()), fieldType, RD, loc);
     }
 
     //insert fields and methods that are not part of the schema
     addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    // TODO this is weird, we have half API upper case and the other half lower case.
+    //   IMHO we should stick to lower/snake case as we do for all the other APIs.
+    //   The upper case is something David uses in his spec but, as himself said,
+    //   it is something we are not forced to follow.
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
-    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
-        loc, loc, attrs);
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
 
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
+QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
 {
-    DeclContext *context = getCurFunctionDecl();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    if (tableData.empty())
+    DeclContext* context = getCurFunctionDecl();
+
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    auto pair = tagMapping.find(fieldName);
+
+    // There is a tag, that hides the real field name.
+    if (pair != tagMapping.end())
     {
+        fieldName = pair->second;
+    }
+
+    if (!gaia_context.is_name_valid(fieldName))
+    {
+        Diag(loc, diag::err_unknown_field) << fieldName;
         return Context.VoidTy;
     }
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
-    if (tableData.find(fieldName) != tableData.end() || tagMapping.find(fieldName) != tagMapping.end())
+    if (gaia_context.is_name_unique(fieldName))
     {
-        for (auto iterator : tableData)
-        {
-            if (iterator.second.find(fieldName) != iterator.second.end())
-            {
-                Diag(loc,diag::err_ambiguous_field_name) << fieldName;
-                return Context.VoidTy;
-            }
-        }
-
-        if (tableData.find(fieldName) != tableData.end())
+        std::optional<table_facade_t> tableData = gaia_context.find_table(fieldName);
+        if (tableData)
         {
             return getTableType(fieldName, loc);
         }
-        else
+
+        std::vector<field_facade_t> fields = gaia_context.find_fields(fieldName);
+        if (!fields.empty())
         {
-            return getTableType(tagMapping[fieldName], loc);
+            return fields.front().field_type(Context);
         }
+
+        std::vector<link_facade_t> relationships = gaia_context.find_links(fieldName);
+        if (!relationships.empty())
+        {
+            return relationships.front().field_type(Context);
+        }
+
+        assert(false && "Field name should appear at least in one place.");
     }
 
+    // The name is not unique in the catalog. We look for a Table declaration
+    // at the beginning of the ruleset to determine if we can disambiguate it.
     while (context)
     {
         if (isa<RulesetDecl>(context))
@@ -726,59 +728,75 @@ QualType Sema::getFieldType (const std::string &fieldName, SourceLocation loc)
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
-    vector<string> tables;
-    RulesetDecl *rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr * attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
-    if (attr != nullptr)
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetTableAttr* tableAttr = rulesetDecl->getAttr<RulesetTableAttr>();
+
+    // There is no Table declaration, being the name non-unique it is an ambiguous reference.
+    if (tableAttr == nullptr)
     {
-        for (const IdentifierInfo * id : attr->tables())
-        {
-            tables.push_back(id->getName().str());
-        }
-    }
-    else
-    {
-        for (auto it : tableData)
-        {
-            tables.push_back(it.first);
-        }
+        printAmbiguousFieldReferenceDiagnostic(
+            *this,
+            loc,
+            fieldName,
+            gaia_context.find_table(fieldName),
+            gaia_context.find_fields(fieldName),
+            gaia_context.find_links(fieldName));
+
+        return Context.VoidTy;
     }
 
-    QualType retVal = Context.VoidTy;
-    for (string tableName : tables)
+    vector<string> table_names;
+
+    // Collect the tables defined in the Table attribute.
+    for (const IdentifierInfo* id : tableAttr->tables())
     {
-        auto tableDescription = tableData.find(tableName);
-        if (tableDescription == tableData.end())
+        std::optional<table_facade_t> table = gaia_context.find_table(id->getName().str());
+
+        if (!table)
         {
-            Diag(loc,diag::err_invalid_table_name) << tableName;
+            Diag(loc, diag::err_invalid_table_name) << id->getName().str();
             return Context.VoidTy;
         }
-        auto fieldDescription = tableDescription->second.find(fieldName);
-        if(fieldDescription != tableDescription->second.end())
-        {
-            if (fieldDescription->second->isVoidType())
-            {
-                Diag(loc, diag::err_invalid_field_type) << fieldName;
-                return Context.VoidTy;
-            }
-            if (retVal != Context.VoidTy)
-            {
-                Diag(loc, diag::err_duplicate_field) << fieldName;
-                return Context.VoidTy;
-            }
 
-            retVal = fieldDescription->second;
-            fieldTableName = tableName;
-        }
+        table_names.push_back(table->table_name());
     }
 
-    if (retVal == Context.VoidTy)
+    optional<table_facade_t> table = gaia_context.find_table(fieldName);
+    std::vector<field_facade_t> fields = gaia_context.find_fields_in_tables(table_names, fieldName);
+    std::vector<link_facade_t> relationships = gaia_context.find_relationships_in_tables(table_names, fieldName);
+
+    // We collect inside this vector all the types deriving from the fields and relationships.
+    // In order to be an unambiguous field reference this array must contain exactly one item.
+    std::vector<QualType> types;
+
+    if (std::find(table_names.begin(), table_names.end(), fieldName) != table_names.end())
     {
-        Diag(loc, diag::err_unknown_field) << fieldName;
+        types.push_back(getTableType(fieldName, loc));
     }
 
-    return retVal;
+    for (auto field : fields)
+    {
+        types.push_back(field.field_type(Context));
+    }
+
+    for (auto relationship : relationships)
+    {
+        types.push_back(relationship.field_type(Context));
+    }
+
+    assert(!types.empty() && "It is expected to exists at least one field or relationship");
+
+    if (types.size() > 1)
+    {
+        printAmbiguousFieldReferenceDiagnostic(
+            *this, loc, fieldName,
+            table, fields, relationships);
+
+        return Context.VoidTy;
+    }
+
+    return types.front();
 }
 
 static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
@@ -804,13 +822,13 @@ static bool parse_tagged_attribute(const string& attribute, string& table, strin
     return true;
 }
 
-std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext *context, SourceLocation loc)
+std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext* context, SourceLocation loc)
 {
     std::unordered_map<std::string, std::string> retVal;
-    const FunctionDecl *ruleContext = dyn_cast<FunctionDecl>(context);
+    const FunctionDecl* ruleContext = dyn_cast<FunctionDecl>(context);
     if (ruleContext == nullptr)
     {
-         return retVal;
+        return retVal;
     }
 
     const GaiaOnUpdateAttr* update_attribute = ruleContext->getAttr<GaiaOnUpdateAttr>();
@@ -917,7 +935,7 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const string& explicitPath)
+NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc, const string& explicitPath)
 {
     QualType qualType = Context.VoidTy;
 
@@ -941,16 +959,15 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     {
         return nullptr;
     }
-    DeclContext *context  = getCurFunctionDecl();
-    VarDecl *varDecl = VarDecl::Create(Context, context, loc, loc,
-                            II, qualType, Context.getTrivialTypeSourceInfo(qualType, loc), SC_None);
+    DeclContext* context = getCurFunctionDecl();
+    VarDecl* varDecl = VarDecl::Create(Context, context, loc, loc, II, qualType, Context.getTrivialTypeSourceInfo(qualType, loc), SC_None);
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
 
     varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
     varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
 
-    SourceLocation startLocation,endLocation;
+    SourceLocation startLocation, endLocation;
     std::string path;
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
@@ -987,30 +1004,22 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
 
-        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path,
-            startLocation.getRawEncoding(), endLocation.getRawEncoding(),
-            argPathComponents.data(), argPathComponents.size()));
-        varDecl->addAttr(GaiaExplicitPathTagKeysAttr::CreateImplicit(Context,
-            argTagKeys.data(), argTagKeys.size()));
-        varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context,
-            argTagTables.data(), argTagTables.size()));
-        varDecl->addAttr(GaiaExplicitPathDefinedTagKeysAttr::CreateImplicit(Context,
-            argDefinedTagKeys.data(), argDefinedTagKeys.size()));
-        varDecl->addAttr(GaiaExplicitPathDefinedTagValuesAttr::CreateImplicit(Context,
-            argDefinedTagTables.data(), argDefinedTagTables.size()));
+        varDecl->addAttr(GaiaExplicitPathAttr::CreateImplicit(Context, path, startLocation.getRawEncoding(), endLocation.getRawEncoding(), argPathComponents.data(), argPathComponents.size()));
+        varDecl->addAttr(GaiaExplicitPathTagKeysAttr::CreateImplicit(Context, argTagKeys.data(), argTagKeys.size()));
+        varDecl->addAttr(GaiaExplicitPathTagValuesAttr::CreateImplicit(Context, argTagTables.data(), argTagTables.size()));
+        varDecl->addAttr(GaiaExplicitPathDefinedTagKeysAttr::CreateImplicit(Context, argDefinedTagKeys.data(), argDefinedTagKeys.size()));
+        varDecl->addAttr(GaiaExplicitPathDefinedTagValuesAttr::CreateImplicit(Context, argDefinedTagTables.data(), argDefinedTagTables.size()));
     }
     context->addDecl(varDecl);
 
     return varDecl;
 }
 
-Decl *Sema::ActOnRulesetDefStart(Scope *S, SourceLocation RulesetLoc,
-    SourceLocation IdentLoc, IdentifierInfo *Ident, const ParsedAttributesView &AttrList )
+Decl* Sema::ActOnRulesetDefStart(Scope* S, SourceLocation RulesetLoc, SourceLocation IdentLoc, IdentifierInfo* Ident, const ParsedAttributesView& AttrList)
 {
-    Scope *declRegionScope = S->getParent();
+    Scope* declRegionScope = S->getParent();
 
-    RulesetDecl *ruleset = RulesetDecl::Create(Context, CurContext,
-        RulesetLoc, IdentLoc, Ident);
+    RulesetDecl* ruleset = RulesetDecl::Create(Context, CurContext, RulesetLoc, IdentLoc, Ident);
 
     ProcessDeclAttributeList(declRegionScope, ruleset, AttrList);
 
@@ -1020,9 +1029,9 @@ Decl *Sema::ActOnRulesetDefStart(Scope *S, SourceLocation RulesetLoc,
     return ruleset;
 }
 
-void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
+void Sema::ActOnRulesetDefFinish(Decl* Dcl, SourceLocation RBrace)
 {
-    RulesetDecl *ruleset = dyn_cast_or_null<RulesetDecl>(Dcl);
+    RulesetDecl* ruleset = dyn_cast_or_null<RulesetDecl>(Dcl);
     assert(ruleset && "Invalid parameter, expected RulesetDecl");
     ruleset->setRBraceLoc(RBrace);
     PopDeclContext();
@@ -1030,19 +1039,18 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
 
 ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 {
-  QualType ruleContextType = getRuleContextType(Loc);
-  if (ruleContextType.isNull())
-  {
-    return Diag(Loc, diag::err_invalid_rule_context_internal_error);
-  }
+    QualType ruleContextType = getRuleContextType(Loc);
+    if (ruleContextType.isNull())
+    {
+        return Diag(Loc, diag::err_invalid_rule_context_internal_error);
+    }
 
-  return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
+    return new (Context) GaiaRuleContextExpr(Loc, ruleContextType);
 }
 
-void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath)
+void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string& explicitPath)
 {
-    explicitPathData[location] = {startLocation, endLocation, explicitPath,
-        std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
+    explicitPathData[location] = {startLocation, endLocation, explicitPath, std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)
@@ -1050,7 +1058,7 @@ void Sema::RemoveExplicitPathData(SourceLocation location)
     explicitPathData.erase(location);
 }
 
-bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)
+bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation& startLocation, SourceLocation& endLocation, std::string& explicitPath)
 {
     auto data = explicitPathData.find(location);
     if (data == explicitPathData.end())
@@ -1069,8 +1077,7 @@ bool Sema::RemoveTagData(SourceRange range)
     {
         auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(range.getBegin());
         auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(range.getEnd());
-        if (startLocationIterator == extendedExplicitPathTagMapping.end() &&
-            endLocationIterator == extendedExplicitPathTagMapping.end())
+        if (startLocationIterator == extendedExplicitPathTagMapping.end() && endLocationIterator == extendedExplicitPathTagMapping.end())
         {
             return false;
         }

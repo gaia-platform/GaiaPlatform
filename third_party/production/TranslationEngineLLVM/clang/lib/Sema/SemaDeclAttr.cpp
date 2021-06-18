@@ -2040,6 +2040,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 static bool validateRuleAttribute(StringRef attribute,
     Sema &S, const ParsedAttr &AL)
 {
+
   auto tableData = S.getTableData(AL.getLoc());
   if (tableData.empty())
   {

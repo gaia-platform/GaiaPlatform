@@ -47,8 +47,11 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Default compiler/linker flags.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
-set(GAIA_LINK_FLAGS " ")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace -gsplit-dwarf")
+set(GAIA_LINK_FLAGS "-fuse-ld=lld -Wl,--gdb-index")
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl")
+set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=lld -Wl")
+set(CMAKE_CXX_FLAGS_INIT "-ggnu-pubnames")
 
 # This is just for the RocksDB build.
 set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
@@ -60,11 +63,14 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
+  set(LLVM_ENABLE_LLD ON CACHE BOOL "")
+  set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
+  set(LLVM_OPTIMIZED_TABLEGEN ON CACHE BOOL "")
 endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -ftime-trace")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -gsplit-dwarf -fno-limit-debug-info -ftime-trace")
 
   if(ENABLE_ASAN)
     set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
@@ -72,9 +78,22 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   endif()
 endif()
 
+# Release build with debug symbols.
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O2 -g -fno-limit-debug-info -ftime-trace")
+  if(BUILD_GAIA_LLVM_TESTS)
+    set(LLVM_PARALLEL_LINK_JOBS 1)
+    set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,--gdb-index")
+    set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=lld -Wl,--gdb-index")
+    set(CMAKE_CXX_FLAGS_INIT "-ggnu-pubnames")
+    add_compile_options(-ggnu-pubnames)
+  endif()
+endif()
+
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS_INIT=${CMAKE_CXX_FLAGS_INIT}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)

@@ -46,9 +46,29 @@
 #include <memory>
 #include <set>
 #include <system_error>
+
+#include "gaia/db/db.hpp"
+
 using namespace clang;
 using namespace clang::driver;
 using namespace llvm::opt;
+
+class db_monitor_t
+{
+public:
+    db_monitor_t()
+    {
+        gaia::db::begin_session();
+        gaia::db::begin_transaction();
+    }
+
+    ~db_monitor_t()
+    {
+        gaia::db::commit_transaction();
+        gaia::db::end_session();
+    }
+};
+
 
 std::string GetExecutablePath(const char *Argv0, bool CanonicalPrefixes) {
   if (!CanonicalPrefixes) {
@@ -305,6 +325,7 @@ static void SetInstallDir(SmallVectorImpl<const char *> &argv,
 }
 
 static int ExecuteCC1Tool(ArrayRef<const char *> argv, StringRef Tool) {
+  db_monitor_t db_monitor;
   void *GetExecutablePathVP = (void *)(intptr_t) GetExecutablePath;
   if (Tool == "")
     return cc1_main(argv.slice(2), argv[0], GetExecutablePathVP);

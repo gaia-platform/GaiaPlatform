@@ -9504,6 +9504,14 @@ def err_invalid_field_type : Error<
     "Field '%0' has incorrect type.">;
 def err_no_ruleset_for_rule : Error<
     "No ruleset was detected for rule.">;
+def err_ambiguous_field_reference : Error<
+    "Ambiguous reference to field '%0'.">;
+def note_table_reference : Note<
+    "Table: '%0'.">;
+def note_field_reference : Note<
+    "Field: '%0.%1'.">;
+def note_link_reference : Note<
+    "Link: '%0.%1'.">;
 def err_duplicate_field : Error<
     "Duplicate field '%0'.">;
 def err_unknown_field : Error<
@@ -9518,8 +9526,6 @@ def err_invalid_rule_context_internal_error : Error<
     "Internal error while generating 'rule_context'.">;
 def err_invalid_rule_attribute : Error<
     "Invalid Gaia rule attribute.">;
-def err_ambiguous_field_name : Error<
-    "'%0' is ambiguous because both a table and a field with this name exist in the catalog.">;
 def err_invalid_explicit_path : Error<
     "Invalid explicit path.">;
 def err_invalid_child_table : Error<
