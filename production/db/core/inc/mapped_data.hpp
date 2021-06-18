@@ -149,6 +149,8 @@ struct data_mapping_t
         data,
         id_index,
 
+        // This must be kept the last enum value.
+        // Any new entry should be added above it.
         count_mappings
     };
 
@@ -166,10 +168,14 @@ struct data_mapping_t
     inline int fd() const;
     inline bool is_set() const;
 
-    inline static void validate(const data_mapping_t mappings[], size_t count_mappings);
-    inline static void create(const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name);
-    inline static void close(const data_mapping_t mappings[], size_t count_mappings);
-    inline static void collect_fds(const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list);
+    inline static void validate(
+        const data_mapping_t mappings[], size_t count_mappings);
+    inline static void create(
+        const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name);
+    inline static void close(
+        const data_mapping_t mappings[], size_t count_mappings);
+    inline static void collect_fds(
+        const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list);
 };
 
 #include "mapped_data.inc"

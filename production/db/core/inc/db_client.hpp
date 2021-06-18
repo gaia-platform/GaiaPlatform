@@ -93,7 +93,7 @@ private:
     thread_local static inline int s_session_socket = -1;
 
     // A list of data mappings that we manage together.
-    // The order of declarations must be kept in sync with the similar array on server side!
+    // The order of declarations must be the order of data_mapping_t::index_t values!
     thread_local static inline data_mapping_t s_data_mappings[] = {
         {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix, false},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix, true},

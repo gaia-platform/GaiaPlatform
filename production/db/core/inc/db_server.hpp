@@ -174,7 +174,7 @@ private:
 
 private:
     // A list of data mappings that we manage together.
-    // The order of declarations must be kept in sync with the similar array on client side!
+    // The order of declarations must be the order of data_mapping_t::index_t values!
     static inline constexpr data_mapping_t c_data_mappings[] = {
         {data_mapping_t::index_t::locators, &s_shared_locators, c_gaia_mem_locators_prefix, false},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix, true},

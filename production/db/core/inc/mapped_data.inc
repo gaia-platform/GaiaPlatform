@@ -197,10 +197,12 @@ bool data_mapping_t::is_set() const
     return mapped_data->is_set();
 }
 
-void data_mapping_t::validate(const data_mapping_t mappings[], size_t count_mappings)
+void data_mapping_t::validate(
+    const data_mapping_t mappings[], size_t count_mappings)
 {
     ASSERT_INVARIANT(
-        count_mappings == static_cast<size_t>(index_t::count_mappings), "Mappings count does not match enum value!");
+        count_mappings == static_cast<size_t>(index_t::count_mappings),
+        "Mappings count does not match expected value!");
 
     for (size_t i = 0; i < count_mappings; ++i)
     {
@@ -210,7 +212,8 @@ void data_mapping_t::validate(const data_mapping_t mappings[], size_t count_mapp
     }
 }
 
-void data_mapping_t::create(const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name)
+void data_mapping_t::create(
+    const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name)
 {
     for (size_t i = 0; i < count_mappings; ++i)
     {
@@ -218,7 +221,8 @@ void data_mapping_t::create(const data_mapping_t mappings[], size_t count_mappin
     }
 }
 
-void data_mapping_t::close(const data_mapping_t mappings[], size_t count_mappings)
+void data_mapping_t::close(
+    const data_mapping_t mappings[], size_t count_mappings)
 {
     for (size_t i = 0; i < count_mappings; ++i)
     {
@@ -226,7 +230,8 @@ void data_mapping_t::close(const data_mapping_t mappings[], size_t count_mapping
     }
 }
 
-void data_mapping_t::collect_fds(const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list)
+void data_mapping_t::collect_fds(
+    const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list)
 {
     ASSERT_PRECONDITION(fd_list.empty(), "collect_fds() was called with a non empty fd list!");
 
