@@ -145,6 +145,10 @@ struct data_mapping_t
     base_mapped_data_t* mapped_data;
     const char* name_prefix;
 
+    // Tells whether to perform mapping (through open()) automatically.
+    // If set to false, the mapping will have to be performed manually.
+    bool enable_open;
+
     inline void create(const char* server_instance_name);
     inline void open(int fd);
     inline void close();

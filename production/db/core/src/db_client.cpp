@@ -258,7 +258,6 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
-    s_private_locators.close();
     for (auto data_mapping : s_data_mappings)
     {
         data_mapping.close();
@@ -344,7 +343,6 @@ void client_t::begin_session(config::session_options_t session_options)
     clear_shared_memory();
 
     // Assert relevant fd's and pointers are in clean state.
-    ASSERT_INVARIANT(!s_private_locators.is_set(), "Locators segment is already mapped!");
     for (auto data_mapping : s_data_mappings)
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
@@ -368,13 +366,11 @@ void client_t::begin_session(config::session_options_t session_options)
     client_messenger_t client_messenger;
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
+    // Set up scope guards for the fds.
     int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
-
     int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
     int fd_data = client_messenger.received_fd(client_messenger_t::c_index_data);
     int fd_id_index = client_messenger.received_fd(client_messenger_t::c_index_id_index);
-
-    // Set up scope guards for the fds.
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
@@ -394,14 +390,10 @@ void client_t::begin_session(config::session_options_t session_options)
     // Set up the shared-memory mappings (see notes in db_server.cpp).
     // Fds must be added to the fd_list in the same order
     // in which their corresponding mappings are specified in s_data_mappings.
-    std::vector<int> fd_list;
-    fd_list.push_back(fd_counters);
-    fd_list.push_back(fd_data);
-    fd_list.push_back(fd_id_index);
-    size_t index_fd_list = 0;
+    size_t index_fd = 0;
     for (auto data_mapping : s_data_mappings)
     {
-        data_mapping.open(fd_list[index_fd_list++]);
+        data_mapping.open(client_messenger.received_fd(index_fd++));
     }
 
     // Set up the private locator segment fd.

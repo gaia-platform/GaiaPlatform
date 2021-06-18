@@ -7,6 +7,7 @@
 
 #include <ostream>
 #include <stdexcept>
+#include <vector>
 
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -154,6 +155,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
 
     return bytes_written;
+}
+
+// A wrapper of send_msg_with_fds that accepts a vector for a list of fds.
+inline size_t send_msg_with_fds(int sock, std::vector<int> fd_list, void* data, size_t data_size)
+{
+    return send_msg_with_fds(sock, fd_list.data(), fd_list.size(), data, data_size);
 }
 
 inline size_t recv_msg_with_fds(

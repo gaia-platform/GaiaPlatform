@@ -179,8 +179,14 @@ void server_t::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
 
-    int send_fds[] = {s_shared_locators.fd(), s_shared_counters.fd(), s_shared_data.fd(), s_shared_id_index.fd()};
-    send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
+    // Collect fds.
+    std::vector<int> fd_list;
+    for (auto data_mapping : c_data_mappings)
+    {
+        fd_list.push_back(data_mapping.fd());
+    }
+
+    send_msg_with_fds(s_session_socket, fd_list, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::handle_begin_txn(
@@ -589,8 +595,6 @@ void server_t::build_server_reply(
 
 void server_t::clear_shared_memory()
 {
-    s_shared_locators.close();
-
     for (auto data_mapping : c_data_mappings)
     {
         data_mapping.close();
@@ -610,7 +614,6 @@ void server_t::init_shared_memory()
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
-    ASSERT_INVARIANT(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
     for (auto data_mapping : c_data_mappings)
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
@@ -625,7 +628,6 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(gaia_fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
     for (auto data_mapping : c_data_mappings)
     {
         data_mapping.create(s_server_conf.instance_name().c_str());

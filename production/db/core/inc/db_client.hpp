@@ -95,9 +95,10 @@ private:
     // A list of data mappings that we manage together.
     // The order of declarations must be kept in sync with the similar array on server side!
     thread_local static inline data_mapping_t s_data_mappings[] = {
-        {&s_shared_counters, c_gaia_mem_counters_prefix},
-        {&s_shared_data, c_gaia_mem_data_prefix},
-        {&s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {&s_private_locators, c_gaia_mem_locators_prefix, false},
+        {&s_shared_counters, c_gaia_mem_counters_prefix, true},
+        {&s_shared_data, c_gaia_mem_data_prefix, true},
+        {&s_shared_id_index, c_gaia_mem_id_index_prefix, true},
     };
 
     // s_events has transaction lifetime and is cleared after each transaction.

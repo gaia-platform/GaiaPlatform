@@ -176,7 +176,10 @@ void data_mapping_t::create(const char* server_instance_name)
 
 void data_mapping_t::open(int fd)
 {
-    mapped_data->open_shared(fd);
+    if (enable_open)
+    {
+        mapped_data->open_shared(fd);
+    }
 }
 
 void data_mapping_t::close()
