@@ -22,6 +22,10 @@ namespace gaia
 namespace db
 {
 
+/*
+* Client-side implementation of gaia_ptr_t here.
+*/
+
 gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
 {
     m_locator = locator;
