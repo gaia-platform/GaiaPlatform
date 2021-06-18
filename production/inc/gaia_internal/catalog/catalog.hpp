@@ -436,6 +436,15 @@ struct link_def_t
     relationship_cardinality_t cardinality;
 };
 
+struct table_field_list_t
+{
+    std::string database;
+    std::string table;
+    std::vector<std::string> fields;
+};
+
+using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;
+
 enum class create_type_t : uint8_t
 {
     create_database,
@@ -503,6 +512,12 @@ struct create_relationship_t : create_statement_t
     // A relationship is defined by a pair of links because we only allow
     // bi-directional relationships.
     std::pair<link_def_t, link_def_t> relationship;
+
+    // Track the optional mapping from one table's field(s) to the other table's
+    // field(s). The field map must be bijective from one table to the other,
+    // and the field types must match. When defined, the relationship will be
+    // established using the fields instead of the two tables' `gaia_id`s.
+    std::optional<table_field_map_t> field_map;
 };
 
 struct create_index_t : create_statement_t

@@ -83,12 +83,15 @@ private:
 
 class server_t
 {
+    friend class gaia_ptr_t;
+
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -115,6 +118,7 @@ private:
     static inline mapped_data_t<counters_t> s_shared_counters{};
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
+    static inline index::indexes_t s_global_indexes{};
 
     // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;

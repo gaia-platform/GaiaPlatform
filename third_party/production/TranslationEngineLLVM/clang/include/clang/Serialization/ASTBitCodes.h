@@ -1975,9 +1975,10 @@ namespace serialization {
       EXPR_COAWAIT,
       EXPR_COYIELD,
       EXPR_DEPENDENT_COAWAIT,
-      EXPR_GAIA_RULE_CONTEXT,        // Gaia rule_context expression
-      /// A GaiaForStmt record.
 
+      ///Gaia rule_context expression.
+      EXPR_GAIA_RULE_CONTEXT,
+      /// A GaiaForStmt record.
       STMT_GAIA_FOR_STMT,
     };
 

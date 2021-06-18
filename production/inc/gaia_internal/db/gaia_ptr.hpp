@@ -20,6 +20,10 @@ namespace gaia
 namespace db
 {
 
+/**
+* gaia_ptr_t is implemented differently on the server and client-side.
+* See their respective cpp files for differences.
+*/
 class gaia_ptr_t
 {
 public:

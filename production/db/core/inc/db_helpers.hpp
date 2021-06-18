@@ -150,6 +150,12 @@ inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
             (*locators)[lr.locator] = lr.new_offset;
         }
     }
+  
+inline index::db_index_t id_to_index(common::gaia_id_t index_id)
+{
+    auto it = get_indexes()->find(index_id);
+
+    return (it != get_indexes()->end()) ? it->second : nullptr;
 }
 
 } // namespace db

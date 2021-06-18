@@ -70,6 +70,7 @@ comment ("--".*)
 "RELATIONSHIP" return yy::parser::make_RELATIONSHIP(loc);
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
 "USE"          return yy::parser::make_USE(loc);
+"USING"        return yy::parser::make_USING(loc);
 
 "UNIQUE"     return yy::parser::make_UNIQUE(loc);
 "RANGE"      return yy::parser::make_RANGE(loc);

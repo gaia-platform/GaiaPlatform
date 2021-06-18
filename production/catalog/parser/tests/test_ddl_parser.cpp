@@ -544,3 +544,75 @@ TEST(catalog_ddl_parser_test, create_unique_field)
     EXPECT_EQ(field->active, true);
     EXPECT_EQ(field->unique, true);
 }
+
+TEST(catalog_ddl_parser_test, create_relationship_using_fields)
+{
+    parser_t parser;
+
+    const string create_relationship_ddl = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1), t2(c2)
+);
+)";
+
+    ASSERT_NO_THROW(parser.parse_line(create_relationship_ddl));
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
+
+    auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
+
+    auto parent = create_rel->relationship.first;
+    auto child = create_rel->relationship.second;
+
+    ASSERT_EQ(parent.name, "link1");
+    ASSERT_EQ(parent.from_database, "d1");
+    ASSERT_EQ(parent.from_table, "t1");
+    ASSERT_EQ(parent.to_database, "d2");
+    ASSERT_EQ(parent.to_table, "t2");
+    ASSERT_EQ(parent.cardinality, cardinality_t::many);
+
+    ASSERT_EQ(child.name, "link2");
+    ASSERT_EQ(child.from_database, "d2");
+    ASSERT_EQ(child.from_table, "t2");
+    ASSERT_EQ(child.to_database, "d1");
+    ASSERT_EQ(child.to_table, "t1");
+    ASSERT_EQ(child.cardinality, cardinality_t::one);
+
+    ASSERT_TRUE(create_rel->field_map);
+    ASSERT_EQ(create_rel->field_map->first.table, "t1");
+    ASSERT_EQ(create_rel->field_map->second.table, "t2");
+
+    ASSERT_EQ(create_rel->field_map->first.fields.front(), "c1");
+    ASSERT_EQ(create_rel->field_map->second.fields.front(), "c2");
+
+    // Some negative test cases.
+    const string negative_1 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1), t2(c2), t3(c3)
+);
+)";
+
+    const string negative_2 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1), t2
+);
+)";
+
+    const string negative_3 = R"(
+CREATE RELATIONSHIP r (
+  d1.t1.link1 -> d2.t2[],
+  d2.t2.link2 -> d1.t1,
+  USING t1(c1)
+);
+)";
+
+    EXPECT_THROW(parser.parse_line(negative_1), parsing_error);
+    EXPECT_THROW(parser.parse_line(negative_2), parsing_error);
+    EXPECT_THROW(parser.parse_line(negative_3), parsing_error);
+}

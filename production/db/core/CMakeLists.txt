@@ -18,6 +18,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
@@ -73,6 +74,7 @@ add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
+  src/gaia_ptr_client.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
   src/mapped_data.cpp
@@ -119,7 +121,8 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
   src/type_generator.cpp
-)
+  src/gaia_ptr.cpp
+  src/gaia_ptr_server.cpp)
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
