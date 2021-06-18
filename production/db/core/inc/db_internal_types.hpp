@@ -193,8 +193,10 @@ struct id_index_t
 // These are types meant to access index types from the client/server.
 namespace index
 {
+
 typedef std::shared_ptr<base_index_t> db_index_t;
 typedef std::unordered_map<gaia::common::gaia_id_t, db_index_t> indexes_t;
+
 } // namespace index
 
 } // namespace db
