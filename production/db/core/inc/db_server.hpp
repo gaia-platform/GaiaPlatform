@@ -174,6 +174,7 @@ private:
 
 private:
     // A list of data mappings that we manage together.
+    // The order of declarations must be kept in sync with the similar array on client side!
     static inline constexpr data_mapping_t c_data_mappings[] = {
         {&s_shared_counters, c_gaia_mem_counters_prefix},
         {&s_shared_data, c_gaia_mem_data_prefix},

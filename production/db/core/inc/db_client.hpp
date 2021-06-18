@@ -93,6 +93,7 @@ private:
     thread_local static inline int s_session_socket = -1;
 
     // A list of data mappings that we manage together.
+    // The order of declarations must be kept in sync with the similar array on server side!
     thread_local static inline data_mapping_t s_data_mappings[] = {
         {&s_shared_counters, c_gaia_mem_counters_prefix},
         {&s_shared_data, c_gaia_mem_data_prefix},
