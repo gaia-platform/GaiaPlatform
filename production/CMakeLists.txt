@@ -92,7 +92,10 @@ endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-limit-debug-info -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  # Don't omit debug symbols from any built binaries.
+  add_compile_options(-fno-limit-debug-info)
+
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
   set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 
   # Enable ASan by default in debug builds.
@@ -282,7 +285,6 @@ add_subdirectory(tools)
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
-
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
