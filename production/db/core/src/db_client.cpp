@@ -366,31 +366,36 @@ void client_t::begin_session(config::session_options_t session_options)
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
 
     // Set up scope guards for the fds.
+    // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
+    // The other fds are not needed, so they'll get their own scope guard to clean them up.
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
-    int fd_counters = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::counters));
-    int fd_data = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::data));
-    int fd_id_index = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::id_index));
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
-    auto cleanup_fd_counters = make_scope_guard([&]() {
-        close_fd(fd_counters);
-    });
-    auto cleanup_fd_data = make_scope_guard([&]() {
-        close_fd(fd_data);
-    });
-    auto cleanup_fd_id_index = make_scope_guard([&]() {
-        close_fd(fd_id_index);
+    auto cleanup_fd_others = make_scope_guard([&]() {
+        for (auto data_mapping : s_data_mappings)
+        {
+            if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
+            {
+                int fd = client_messenger.received_fd(static_cast<size_t>(data_mapping.mapping_index));
+                close_fd(fd);
+            }
+        }
     });
 
     session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings.
+    // The locators mapping will be performed manually, so skip its information in the mapping table.
     size_t index_fd = 0;
     for (auto data_mapping : s_data_mappings)
     {
-        data_mapping.open(client_messenger.received_fd(index_fd++));
+        if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
+        {
+            data_mapping.open(client_messenger.received_fd(index_fd));
+        }
+        ++index_fd;
     }
 
     // Set up the private locator segment fd.
