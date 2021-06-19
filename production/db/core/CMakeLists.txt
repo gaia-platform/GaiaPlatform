@@ -162,7 +162,7 @@ if(Python3_FOUND AND pybind11_FOUND)
   set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-  if(CACHE{SANITIZER} STREQUAL "ASAN")
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
   endif()
 
@@ -192,7 +192,7 @@ if(JAVA_FOUND AND JNI_FOUND)
   set_target_properties(gaia_db_jni PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(gaia_db_jni PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-  if(CACHE{SANITIZER} STREQUAL "ASAN")
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_jni PRIVATE "-shared-libasan")
   endif()
 endif()

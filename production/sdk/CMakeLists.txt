@@ -20,7 +20,7 @@ target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )
 
-if(CACHE{SANITIZER} STREQUAL "ASAN")
+if("$CACHE{SANITIZER}" STREQUAL "ASAN")
   target_link_options(gaia PRIVATE "-shared-libasan")
 endif()
 
