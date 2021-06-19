@@ -25,9 +25,6 @@ set_target_properties(gaia_index PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}
 set_target_properties(gaia_index PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_index PRIVATE gaia_common gaia_payload_types)
 
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_index PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 set (INDEX_TEST_INCLUDES
   ${GAIA_INDEX_INCLUDES}
   ${GAIA_GENERATED_SCHEMAS}
