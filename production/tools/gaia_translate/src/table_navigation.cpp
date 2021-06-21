@@ -581,3 +581,47 @@ void table_navigation_t::ensure_initialization()
         m_is_initialized = true;
     }
 }
+
+vector<string> table_navigation_t::get_table_fields(const string& table)
+{
+    vector<string> return_value;
+    auto table_data = get_table_data();
+    if (table_data.empty())
+    {
+        return return_value;
+    }
+    const auto table_iterator = table_data.find(table);
+    if (table_iterator == table_data.end())
+    {
+        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        return return_value;
+    }
+
+    return_value.resize(table_iterator->second.field_data.size());
+    try
+    {
+        db_monitor_t monitor;
+
+        for(const catalog::gaia_field_t &field : catalog::gaia_field_t::list())
+        {
+            catalog::gaia_table_t field_table = field.table();
+            if (!field_table)
+            {
+                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
+                return vector<string>();
+            }
+            if (table == field_table.name())
+            {
+                return_value.at(field.position()) = field.name();
+            }
+        }
+    }
+    catch (const exception& e)
+    {
+        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
+
+        return vector<string>();
+    }
+
+    return return_value;
+}
