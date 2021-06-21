@@ -180,10 +180,15 @@ void server_t::handle_connect(
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
 
     // Collect fds.
-    std::vector<int> fd_list;
-    data_mapping_t::collect_fds(c_data_mappings, std::size(c_data_mappings), fd_list);
+    int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
+    data_mapping_t::collect_fds(c_data_mappings, fd_list);
 
-    send_msg_with_fds(s_session_socket, fd_list, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(
+        s_session_socket,
+        &fd_list[0],
+        static_cast<size_t>(data_mapping_t::index_t::count_mappings),
+        builder.GetBufferPointer(),
+        builder.GetSize());
 }
 
 void server_t::handle_begin_txn(
@@ -592,7 +597,7 @@ void server_t::build_server_reply(
 
 void server_t::clear_shared_memory()
 {
-    data_mapping_t::close(c_data_mappings, std::size(c_data_mappings));
+    data_mapping_t::close(c_data_mappings);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -624,7 +629,7 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    data_mapping_t::create(c_data_mappings, std::size(c_data_mappings), s_server_conf.instance_name().c_str());
+    data_mapping_t::create(c_data_mappings, s_server_conf.instance_name().c_str());
 
     init_memory_manager();
 

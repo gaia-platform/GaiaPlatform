@@ -212,8 +212,9 @@ void data_mapping_t::validate(
 }
 
 void data_mapping_t::create(
-    const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name)
+    const data_mapping_t mappings[], const char* server_instance_name)
 {
+    size_t count_mappings = static_cast<size_t>(index_t::count_mappings);
     for (size_t i = 0; i < count_mappings; ++i)
     {
         mappings[i].create(server_instance_name);
@@ -221,8 +222,9 @@ void data_mapping_t::create(
 }
 
 void data_mapping_t::close(
-    const data_mapping_t mappings[], size_t count_mappings)
+    const data_mapping_t mappings[])
 {
+    size_t count_mappings = static_cast<size_t>(index_t::count_mappings);
     for (size_t i = 0; i < count_mappings; ++i)
     {
         mappings[i].close();
@@ -230,12 +232,11 @@ void data_mapping_t::close(
 }
 
 void data_mapping_t::collect_fds(
-    const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list)
+    const data_mapping_t mappings[], int fd_list[])
 {
-    ASSERT_PRECONDITION(fd_list.empty(), "collect_fds() was called with a non empty fd list!");
-
+    size_t count_mappings = static_cast<size_t>(index_t::count_mappings);
     for (size_t i = 0; i < count_mappings; ++i)
     {
-        fd_list.push_back(mappings[i].fd());
+        fd_list[i] = mappings[i].fd();
     }
 }

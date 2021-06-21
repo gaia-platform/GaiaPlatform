@@ -166,12 +166,16 @@ struct data_mapping_t
 
     inline static void validate(
         const data_mapping_t mappings[], size_t count_mappings);
+
+    // We don't pass the size of mappings in these methods,
+    // because that should be validated to be equal to index_t::count_mappings
+    // in the validate() method.
     inline static void create(
-        const data_mapping_t mappings[], size_t count_mappings, const char* server_instance_name);
+        const data_mapping_t mappings[], const char* server_instance_name);
     inline static void close(
-        const data_mapping_t mappings[], size_t count_mappings);
+        const data_mapping_t mappings[]);
     inline static void collect_fds(
-        const data_mapping_t mappings[], size_t count_mappings, std::vector<int>& fd_list);
+        const data_mapping_t mappings[], int fd_list[]);
 };
 
 #include "mapped_data.inc"

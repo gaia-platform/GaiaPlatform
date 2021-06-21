@@ -258,7 +258,7 @@ void client_t::clear_shared_memory()
     verify_no_session();
 
     // We closed our original fds for these data segments, so we only need to unmap them.
-    data_mapping_t::close(s_data_mappings, std::size(s_data_mappings));
+    data_mapping_t::close(s_data_mappings);
     s_log.close();
 
     // If the server has already closed its fd for the locator segment
