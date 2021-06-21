@@ -593,7 +593,7 @@ void server_t::clear_shared_memory()
     s_shared_counters.close();
     s_shared_data.close();
     s_shared_id_index.close();
-    clear_local_snapshot();
+    s_local_snapshot_locators.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -637,7 +637,7 @@ void server_t::init_shared_memory()
     recover_db();
 
     // Done with local snapshot.
-    clear_local_snapshot();
+    s_local_snapshot_locators.close();
 
     cleanup_memory.dismiss();
 }
@@ -723,8 +723,6 @@ void server_t::recover_db()
     }
 }
 
-// This method allocates a new begin_ts and initializes its entry in the txn
-// table.
 gaia_txn_id_t server_t::txn_internal_begin()
 {
     s_txn_id = txn_metadata_t::txn_begin();
@@ -779,23 +777,24 @@ void server_t::txn_internal_end()
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
-// Create a local snapshot from the shared locators
+// Create a thread- local snapshot from the shared locators.
 void server_t::create_local_snapshot(bool apply_logs)
 {
-    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot initialized.");
+    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
 
     if (apply_logs)
     {
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
 
+        // Open a private locator mmap for the current thread.
         s_local_snapshot_locators.open(s_shared_locators.fd(), false);
 
         // Apply txn_logs for the snapshot.
-        for (auto it = txn_log_fds.rbegin(); it != txn_log_fds.rend(); ++it)
+        for (const auto& it : txn_log_fds)
         {
             mapped_log_t txn_log;
-            txn_log.open(*it);
+            txn_log.open(it);
             apply_logs_to_locators(s_local_snapshot_locators.data(), txn_log.data());
         }
 
@@ -804,17 +803,19 @@ void server_t::create_local_snapshot(bool apply_logs)
         {
             apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
         }
+
+        // Now we need to close all the duplicated log fds in the buffer.
+        for (auto& fd : txn_log_fds)
+        {
+            // Each log fd should still be valid.
+            ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+            close_fd(fd);
+        }
     }
     else
     {
         s_local_snapshot_locators.open(s_shared_locators.fd(), false);
     }
-}
-
-// Clear local snapshot from shmem.
-void server_t::clear_local_snapshot()
-{
-    s_local_snapshot_locators.close();
 }
 
 sigset_t server_t::mask_signals()
@@ -1341,7 +1342,7 @@ void server_t::stream_producer_handler(
     // Create local snapshot. Review: snapshot should be at the requested txn_id.
     // This code should not be needed when the record list iterator moves to shared memory.
     create_local_snapshot(false);
-    auto cleanup_local_snapshot = make_scope_guard([]() { clear_local_snapshot(); });
+    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
 
     auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
 

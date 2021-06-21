@@ -16,7 +16,7 @@ gaia::db::locators_t* gaia::db::get_locators()
 
 gaia::db::locators_t* gaia::db::get_locators_for_allocator()
 {
-    // The local snapshot segment should always be mapped whenever any callers
+    // The shared locator segment should always be mapped whenever any callers
     // of this method are able to observe it.
     ASSERT_PRECONDITION(gaia::db::server_t::s_shared_locators.is_set(), "Invalid local snapshot!");
     return gaia::db::server_t::s_shared_locators.data();

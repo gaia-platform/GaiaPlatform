@@ -144,10 +144,13 @@ inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
 {
     for (size_t i = 0; i < logs->record_count; ++i)
     {
-        auto& lr = logs->log_records[i];
-        if (!is_logical_operation(lr.operation))
+        auto& record = logs->log_records[i];
+
+        ASSERT_INVARIANT(record.operation != gaia_operation_t::not_set, "Cannot apply log because operation is not set.");
+
+        if (!is_logical_operation(record.operation))
         {
-            (*locators)[lr.locator] = lr.new_offset;
+            (*locators)[record.locator] = record.new_offset;
         }
     }
 }

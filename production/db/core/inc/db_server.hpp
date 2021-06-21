@@ -124,7 +124,7 @@ private:
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
 
-    // Local snapshot
+    // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
@@ -241,7 +241,6 @@ private:
     static void init_shared_memory();
 
     static void create_local_snapshot(bool apply_logs);
-    static void clear_local_snapshot();
 
     static void recover_db();
 
@@ -304,8 +303,13 @@ private:
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
-    // Internal txn_id for db_startup
+    // Internal txn_id for server-side transactions.
+
+    // This method allocates a new begin_ts and initializes its entry in the txn
+    // table. Returns the allocated txn_id.
     static gaia_txn_id_t txn_internal_begin();
+
+    // This method commits the internal txn from txn_internal_begin() and resets the current thread state.
     static void txn_internal_end();
 
     class invalid_log_fd : public common::gaia_exception
