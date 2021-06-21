@@ -360,14 +360,15 @@ int main(int argc, char* argv[])
 
     gaia::db::begin_session();
 
-    const auto cleanup = scope_guard::make_scope_guard([&server]()
-                                                       {
-                                                           gaia::db::end_session();
-                                                           if (server.is_initialized())
-                                                           {
-                                                               server.stop();
-                                                           }
-                                                       });
+    const auto cleanup = scope_guard::make_scope_guard(
+        [&server]()
+        {
+            gaia::db::end_session();
+            if (server.is_initialized())
+            {
+                server.stop();
+            }
+        });
 
     if (mode == operate_mode_t::interactive)
     {
