@@ -741,3 +741,33 @@ ruleset test47
         while (sensor.value > 0.0);
     }
 }
+
+
+ruleset test48
+{
+    OnInsert(farmer)
+    {
+        int count = 0;
+        // Arbitrarily complex navigation in the while() closure of a do-while loop.
+        do
+        {
+            count++;
+        }
+        while (farmer->raised->animal->feeding->yield->crop.acres < 10);
+    }
+}
+
+ruleset test49
+{
+    OnInsert(incubator)
+    {
+        do
+        {
+            // Simple declarative for-loop inside the do{} closure.
+            for (int i = 0; i < farmer.acreage; i++)
+            {
+                farmer.acreage++;
+            }
+        } while (sensor.value > 0.0);
+    }
+}

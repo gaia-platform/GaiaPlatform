@@ -1,0 +1,17 @@
+// RUN: echo "expected 'while' in do/while loop" | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test11
+{
+    OnInsert(S:sensor)
+    {
+        int val = 0;
+        // do{} closure with no accompanying while().
+        do
+        {
+            val += S.value;
+        }
+    }
+}
+
+// CHECK: expected 'while' in do/while loop
