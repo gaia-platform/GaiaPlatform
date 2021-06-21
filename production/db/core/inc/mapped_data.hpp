@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "db_internal_types.hpp"
 
 namespace gaia
@@ -12,36 +14,57 @@ namespace gaia
 namespace db
 {
 
-// Base class abstracting common functionality for mapped_data_t and mapped_log_t classes.
-template <typename T_data>
+// Base class declaring a core management interface for mapped data classes.
+struct data_mapping_t;
 class base_mapped_data_t
 {
+    friend struct data_mapping_t;
+
 public:
-    base_mapped_data_t();
+    virtual void create(const char* name) = 0;
+    virtual void close() = 0;
+    virtual int fd() = 0;
+    virtual bool is_set() = 0;
+
+protected:
+    // This method is only meant to be called from data_mapping_t methods.
+    virtual void open_shared(int fd) = 0;
+};
+
+// Core class implementing common functionality for mapped data classes.
+template <typename T_data>
+class core_mapped_data_t : public base_mapped_data_t
+{
+public:
+    core_mapped_data_t();
 
     // Copy semantics is disabled and moves should be performed via reset().
-    base_mapped_data_t(const base_mapped_data_t& other) = delete;
-    base_mapped_data_t(base_mapped_data_t&& other) = delete;
-    base_mapped_data_t& operator=(const base_mapped_data_t& rhs) = delete;
-    base_mapped_data_t& operator=(base_mapped_data_t&& rhs) = delete;
+    core_mapped_data_t(const core_mapped_data_t& other) = delete;
+    core_mapped_data_t(core_mapped_data_t&& other) = delete;
+    core_mapped_data_t& operator=(const core_mapped_data_t& rhs) = delete;
+    core_mapped_data_t& operator=(core_mapped_data_t&& rhs) = delete;
 
-    ~base_mapped_data_t();
+    ~core_mapped_data_t();
 
     // Stops tracking any data and reverts back to uninitialized state.
     void clear();
 
     // Transfers data tracked by another instance into this instance.
-    void reset(base_mapped_data_t<T_data>& other);
+    void reset(core_mapped_data_t<T_data>& other);
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // Reverts back to uninitialized state.
     // This permits manual cleanup, before instance destruction time.
     // Can be called repeatedly.
-    void close();
+    void close() override;
 
     inline T_data* data();
-    inline int fd();
-    inline bool is_set();
+    inline int fd() override;
+    inline bool is_set() override;
+
+protected:
+    // Non-virtual internal implementation that can be safely called from destructor.
+    void close_internal();
 
 protected:
     bool m_is_set;
@@ -55,7 +78,7 @@ protected:
 // This class abstracts the server and client operations with memory-mapped data.
 // T indicates the type of data structure that is managed by an instance of this class.
 template <typename T_data>
-class mapped_data_t : public base_mapped_data_t<T_data>
+class mapped_data_t : public core_mapped_data_t<T_data>
 {
 public:
     mapped_data_t() = default;
@@ -69,22 +92,23 @@ public:
     ~mapped_data_t() = default;
 
     // Creates a memory-mapping for a data structure.
-    void create(const char* name);
+    void create(const char* name) override;
 
     // Opens a memory-mapped structure using a file descriptor.
     //
     // manage_fd is used to indicate whether the fd should be managed
     // (i.e. closed at destruction time) by this class or not.
     //
-    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
-    // This is done for coding convenience because it suits current implementation,
-    // but could be changed in the future if we wish more control over this behavior.
-    void open(int fd, bool manage_fd = true);
+    // is_shared indicates the type of mapping: SHARED if true; PRIVATE otherwise.
+    void open(int fd, bool manage_fd, bool is_shared);
+
+protected:
+    void open_shared(int fd) override;
 };
 
 // This class is similar to mapped_data_t, but is specialized for operation on log data structures.
 // There are enough differences from mapped_data_t to warrant a separate implementation.
-class mapped_log_t : public base_mapped_data_t<txn_log_t>
+class mapped_log_t : public core_mapped_data_t<txn_log_t>
 {
 public:
     mapped_log_t() = default;
@@ -98,7 +122,7 @@ public:
     ~mapped_log_t() = default;
 
     // Creates a memory-mapping for a log data structure.
-    void create(const char* name);
+    void create(const char* name) override;
 
     // Opens a memory-mapped log structure using a file descriptor.
     void open(int fd);
@@ -108,6 +132,50 @@ public:
     // The file descriptor is *NOT* closed - its ownership is transferred to the caller.
     // Passes back the file descriptor and the size of the log.
     void truncate_seal_and_close(int& fd, size_t& log_size);
+
+protected:
+    void open_shared(int fd) override;
+};
+
+// Structure describing a data mapping.
+// This is used to enable common handling of multiple mappings based on an array of such descriptions,
+// via the methods of this class.
+struct data_mapping_t
+{
+    enum class index_t
+    {
+        locators,
+        counters,
+        data,
+        id_index,
+
+        // This must be kept the last enum value.
+        // Any new entry should be added above it.
+        count_mappings
+    };
+
+    index_t mapping_index;
+    base_mapped_data_t* mapped_data;
+    const char* name_prefix;
+
+    inline void create(const char* server_instance_name) const;
+    inline void open(int fd) const;
+    inline void close() const;
+    inline int fd() const;
+    inline bool is_set() const;
+
+    inline static void validate(
+        const data_mapping_t mappings[], size_t count_mappings);
+
+    // We don't pass the size of mappings in these methods,
+    // because that should be validated to be equal to index_t::count_mappings
+    // in the validate() method.
+    inline static void create(
+        const data_mapping_t mappings[], const char* server_instance_name);
+    inline static void close(
+        const data_mapping_t mappings[]);
+    inline static void collect_fds(
+        const data_mapping_t mappings[], int fd_list[]);
 };
 
 #include "mapped_data.inc"
