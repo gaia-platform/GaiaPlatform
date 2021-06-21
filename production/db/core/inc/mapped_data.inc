@@ -168,6 +168,8 @@ void mapped_data_t<T_data>::open_shared(int fd)
 
 void data_mapping_t::create(const char* server_instance_name) const
 {
+    ASSERT_PRECONDITION(
+        server_instance_name != nullptr, "data_mapping_t::create() was called without a valid server instance name!");
     ASSERT_PRECONDITION(name_prefix != nullptr, "data_mapping_t::create() was called without a valid name prefix!");
 
     std::string mapping_name = std::string(name_prefix) + server_instance_name;
