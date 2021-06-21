@@ -9527,7 +9527,7 @@ def err_invalid_child_table : Error<
 def err_invalid_parent_table : Error<
     "Incorrect parent table in the relationship '%0'.">;
 def err_no_relations_table_in_path : Error<
-  "'%0' table in the explicit path has no relationship to '%1'.">;
+    "'%0' table in the explicit path has no relationship to '%1'.">;
 def err_invalid_tag_defined: Error<
     "Tag refers to an invalid table '%0'.">;
 def err_ambiguous_tag_defined: Error<
@@ -9536,4 +9536,14 @@ def err_tag_redefined : Error<
     "Tag '%0' is already defined.">;
 def err_incorrect_tag_use_in_path : Error<
     "Tag '%0' cannot be used in this context.">;
+def err_parameter_names_numbers_different_from_parameter: Error<
+    "The number of parameter names is not the same as number of parameters.">;
+def err_unknown_parameter_name : Error<
+    "Parameter name '%0' is not found in the catalog.">;
+def err_duplicate_parameter_name : Error<
+    "Parameter name '%0' has already been used.">;
+def err_argument_type_mismatch : Error<
+    "Cannot convert from '%0' to '%1' for parameter '%2'.">;
+def err_argument_type_not_supported : Error<
+    "Type '%0' is not supported.">;
 } // end of sema component.

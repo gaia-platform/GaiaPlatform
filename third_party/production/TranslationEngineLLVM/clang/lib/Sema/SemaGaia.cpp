@@ -486,7 +486,8 @@ void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceL
 }
 
 void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc)
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD,
+    SourceLocation loc, bool isVariadic)
 {
     DeclSpec DS(attrFactory);
     const char *dummy;
@@ -504,7 +505,7 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
 
     D.AddTypeInfo(DeclaratorChunk::getFunction(
         true, false, loc, Params,
-        NumParams, loc, loc,
+        NumParams, isVariadic ? loc : SourceLocation(), loc,
         true, loc,
         /*MutableLoc=*/loc,
         EST_None, SourceRange(), nullptr,
@@ -670,8 +671,8 @@ QualType Sema::getTableType (const std::string &tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    //insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
@@ -1048,6 +1049,15 @@ void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLoca
 void Sema::RemoveExplicitPathData(SourceLocation location)
 {
     explicitPathData.erase(location);
+}
+
+bool Sema::IsExpressionInjected(const Expr* expression) const
+{
+    if (expression == nullptr)
+    {
+        return false;
+    }
+    return injectedVariablesLocation.find(expression->getExprLoc()) != injectedVariablesLocation.end();
 }
 
 bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath)

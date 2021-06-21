@@ -593,3 +593,13 @@ void Parser::ParseRule(Declarator &D)
     }
     InjectRuleFunction(D, attrs);
 }
+
+bool Parser::isGaiaSpecialFunction(StringRef name) const
+{
+    if (name == "Insert")
+    {
+        return true;
+    }
+
+    return false;
+}
