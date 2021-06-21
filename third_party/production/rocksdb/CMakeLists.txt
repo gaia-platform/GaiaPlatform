@@ -60,6 +60,7 @@ option(WITH_WINDOWS_UTF8_FILENAMES "use UTF8 as characterset for opening files, 
 if (WITH_WINDOWS_UTF8_FILENAMES)
   add_definitions(-DROCKSDB_WINDOWS_UTF8_FILENAMES)
 endif()
+
 # third-party/folly is only validated to work on Linux and Windows for now.
 # So only turn it on there by default.
 if(CMAKE_SYSTEM_NAME MATCHES "Linux|Windows")
@@ -1166,5 +1167,3 @@ if(WITH_TOOLS)
   add_custom_target(tools
     DEPENDS ${tool_deps})
 endif()
-
-set_target_properties(rocksdb PROPERTIES POSITION_INDEPENDENT_CODE ON)

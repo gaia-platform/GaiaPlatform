@@ -110,12 +110,12 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
 
 std::ostream& operator<<(std::ostream& os, const index_record_t& record)
 {
-    os << "locator: "
-       << record.locator
-       << "\ttxn_id: "
+    os << "\ttxn_id: "
        << record.txn_id
        << "\toffset: "
        << record.offset
+       << "locator: "
+       << record.locator
        << "\tdeleted: "
        << record.deleted
        << std::endl;

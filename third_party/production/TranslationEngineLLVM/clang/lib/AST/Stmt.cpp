@@ -896,6 +896,15 @@ bool IfStmt::isObjCAvailabilityCheck() const {
   return isa<ObjCAvailabilityCheckExpr>(getCond());
 }
 
+GaiaForStmt::GaiaForStmt(const ASTContext &C, Stmt *Path, Stmt *Body,
+  SourceLocation FL, SourceLocation LP, SourceLocation RP)
+  : Stmt(GaiaForStmtClass), LParenLoc(LP), RParenLoc(RP)
+{
+  SubExprs[PATH] = Path;
+  SubExprs[BODY] = Body;
+  GaiaForLoc = FL;
+}
+
 ForStmt::ForStmt(const ASTContext &C, Stmt *Init, Expr *Cond, VarDecl *condVar,
                  Expr *Inc, Stmt *Body, SourceLocation FL, SourceLocation LP,
                  SourceLocation RP)

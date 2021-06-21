@@ -1,0 +1,17 @@
+// RUN: echo "Tag used before it is declared." | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test34
+{
+    OnInsert(incubator)
+    {
+        int val = 0;
+        do
+        {
+            val += S.value;
+        }
+        while (S:sensor.value > 0.0);
+    }
+}
+
+// CHECK: Tag used before it is declared.

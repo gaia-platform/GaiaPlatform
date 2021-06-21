@@ -30,7 +30,8 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             }
             if (create_stmt->type == ddl::create_type_t::create_table)
             {
-                create_table(create_stmt->database, create_stmt->name, create_stmt->fields, throw_on_exist);
+                auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(stmt.get());
+                create_table(create_table_stmt->database, create_table_stmt->name, create_table_stmt->fields, throw_on_exist);
             }
             else if (create_stmt->type == ddl::create_type_t::create_database)
             {
@@ -38,21 +39,23 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             }
             else if (create_stmt->type == ddl::create_type_t::create_relationship)
             {
+                auto create_relationship_stmt = dynamic_cast<ddl::create_relationship_t*>(stmt.get());
                 create_relationship(
-                    create_stmt->name,
-                    create_stmt->relationship.first,
-                    create_stmt->relationship.second,
+                    create_relationship_stmt->name,
+                    create_relationship_stmt->relationship.first,
+                    create_relationship_stmt->relationship.second,
                     throw_on_exist);
             }
             else if (create_stmt->type == ddl::create_type_t::create_index)
             {
+                auto create_index_stmt = dynamic_cast<ddl::create_index_t*>(stmt.get());
                 create_index(
-                    create_stmt->name,
-                    create_stmt->unique_index,
-                    create_stmt->index_type,
-                    create_stmt->database,
-                    create_stmt->index_table,
-                    create_stmt->index_fields,
+                    create_index_stmt->name,
+                    create_index_stmt->unique_index,
+                    create_index_stmt->index_type,
+                    create_index_stmt->database,
+                    create_index_stmt->index_table,
+                    create_index_stmt->index_fields,
                     throw_on_exist);
             }
             else if (stmt->is_type(ddl::statement_type_t::drop))

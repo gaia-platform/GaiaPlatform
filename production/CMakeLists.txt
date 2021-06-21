@@ -14,8 +14,6 @@ project(production VERSION 0.1.0)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
-option(ENABLE_ASAN "Enable ASan in debug builds" ON)
-
 option(ENABLE_STACKTRACE "Enable stack traces in debug builds" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
@@ -33,6 +31,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Ensure debug builds have the DEBUG flag defined.
 add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
+# Check that PIE flags are actually passed to the linker.
+# This ensures that our executables are ASLR-compatible.
+include(CheckPIESupported)
+check_pie_supported(OUTPUT_VARIABLE check_pie_error LANGUAGES CXX)
+if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+  message(FATAL_ERROR "PIE is not supported at link time: ${check_pie_error}")
+endif()
+# See https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083.
+# The NEW behavior under this policy is to pass the -pie flag to the linker if
+# POSITION_INDEPENDENT_CODE is set.
+cmake_policy(SET CMP0083 NEW)
+# Our shared libraries and executables must all be ASLR-compatible.
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+# We want everything in the build to use libc++,
+# including third-party packages.
+add_compile_options(-stdlib=libc++)
+add_link_options(-stdlib=libc++)
+# We want everything in the build to use lld as the linker,
+# including third-party packages.
+add_link_options(-fuse-ld=lld)
+
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
@@ -41,12 +61,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+endif(CCACHE_FOUND)
+
 # Default compiler/linker flags.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
-
-# This is just for the RocksDB build.
-set(FAIL_ON_WARNINGS OFF CACHE BOOL "")
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
@@ -55,15 +77,71 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
+  # LLD/libc++ are necessary for MSan.
+  set(LLVM_ENABLE_LLD ON CACHE BOOL "")
+  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # This speeds up linking by separating debug info.
+    set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
+    # This makes debugger startup faster.
+    set(LLVM_USE_GDB_INDEX ON CACHE BOOL "")
+    # This saves the linker some work, but makes clang slower.
+    set(BUILD_SHARED_LIBS:BOOL ON CACHE BOOL "")
+  endif()
 endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info -ftime-trace")
+  # Don't omit debug symbols from any built binaries.
+  add_compile_options(-fno-limit-debug-info)
 
-  if(ENABLE_ASAN)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
+
+  # Enable ASan by default in debug builds.
+  set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
+
+  # Explicitly list all legal values for SANITIZER.
+  # (This will eventually include ASAN, MSAN, TSAN.)
+  set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+endif()
+
+# Sanitizer-specific compiler/linker flags.
+if(DEFINED CACHE{SANITIZER})
+  message(VERBOSE "Sanitizer=$CACHE{SANITIZER}")
+
+  # Sanitizers can only be defined in debug builds.
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Clear the given value from the cache so subsequent runs don't fail.
+    unset(SANITIZER CACHE)
+    message(FATAL_ERROR "The SANITIZER option can only be set in debug builds.")
+  endif()
+
+  # Extract allowed option values.
+  get_property(SANITIZER_OPTIONS CACHE SANITIZER PROPERTY STRINGS)
+
+  # Check that value of the option is in the list of allowed values.
+  if(NOT "$CACHE{SANITIZER}" IN_LIST SANITIZER_OPTIONS)
+    # Clear a bad value from the cache so subsequent runs don't fail.
+    set(bad_sanitizer "$CACHE{SANITIZER}")
+    unset(SANITIZER CACHE)
+    message(FATAL_ERROR "Unrecognized value for SANITIZER option: ${bad_sanitizer}.\n"
+      "Allowed values: ${SANITIZER_OPTIONS}.")
+  endif()
+
+  # Set compiler/linker flags that apply to all sanitizers.
+  add_compile_options(-fno-sanitize-recover=all)
+  add_link_options(-fno-sanitize-recover=all)
+
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
+    # Enable ASan on all targets because libc++ requires it to prevent false positives.
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+
+    # Add UBSan as well as ASan to Gaia targets.
+    # (They are compatible so we have no separate option for UBSan.)
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=undefined")
+    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=undefined")
   endif()
 endif()
 
@@ -155,11 +233,12 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
+set(FAIL_ON_WARNINGS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
+
 # Flatbuffers.
-set(FLATBUFFERS_BUILD_TESTS OFF)
+set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
-set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
 
@@ -175,7 +254,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog" gaia_spdlog)
 add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_spdlog_setup)
 # Tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
-# Googletest
+# Googletest.
 add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...

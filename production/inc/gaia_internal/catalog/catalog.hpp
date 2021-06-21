@@ -6,6 +6,7 @@
 
 #include <limits>
 #include <memory>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -88,7 +89,7 @@ enum class trim_action_type_t : uint8_t
 enum class index_type_t : uint8_t
 {
     hash,
-    range
+    range,
 };
 
 /*
@@ -97,7 +98,7 @@ enum class index_type_t : uint8_t
 enum class relationship_cardinality_t : uint8_t
 {
     one,
-    many
+    many,
 };
 
 class forbidden_system_db_operation : public gaia::common::gaia_exception
@@ -299,7 +300,7 @@ enum class statement_type_t : uint8_t
     create,
     drop,
     alter,
-    use
+    use,
 };
 
 struct statement_t
@@ -323,10 +324,44 @@ private:
     statement_type_t m_type;
 };
 
+enum class constraint_type_t : uint8_t
+{
+    active,
+    unique,
+};
+
+struct constraint_t
+{
+    explicit constraint_t(constraint_type_t type)
+        : type(type)
+    {
+    }
+
+    constraint_type_t type;
+};
+
+struct active_constraint_t : constraint_t
+{
+    explicit active_constraint_t()
+        : constraint_t(constraint_type_t::active)
+    {
+    }
+};
+
+struct unique_constraint_t : constraint_t
+{
+    explicit unique_constraint_t()
+        : constraint_t(constraint_type_t::unique)
+    {
+    }
+};
+
+using constraint_list_t = std::vector<std::unique_ptr<constraint_t>>;
+
 enum class field_type_t : uint8_t
 {
     data,
-    reference
+    reference,
 };
 
 struct base_field_def_t
@@ -350,10 +385,38 @@ struct data_field_def_t : base_field_def_t
     {
     }
 
+    data_field_def_t(
+        std::string name,
+        data_type_t type,
+        uint16_t length,
+        const std::optional<constraint_list_t>& opt_constraint_list)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
+    {
+        if (opt_constraint_list)
+        {
+            ASSERT_INVARIANT(opt_constraint_list.value().size() > 0, "The constraint list should not be empty.");
+
+            for (const auto& constraint : opt_constraint_list.value())
+            {
+                if (constraint->type == constraint_type_t::active)
+                {
+                    this->active = true;
+                }
+                else if (constraint->type == constraint_type_t::unique)
+                {
+                    this->unique = true;
+                }
+            }
+        }
+    }
+
     data_type_t data_type;
+
     uint16_t length;
 
     bool active = false;
+
+    bool unique = false;
 };
 
 using composite_name_t = std::pair<std::string, std::string>;
@@ -373,6 +436,15 @@ struct link_def_t
     relationship_cardinality_t cardinality;
 };
 
+struct table_field_list_t
+{
+    std::string database;
+    std::string table;
+    std::vector<std::string> fields;
+};
+
+using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;
+
 enum class create_type_t : uint8_t
 {
     create_database,
@@ -391,7 +463,6 @@ struct use_statement_t : statement_t
     std::string name;
 };
 
-// TODO: refactoring create statements into sub types, pending index changes (create_index).
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
@@ -408,15 +479,56 @@ struct create_statement_t : statement_t
 
     std::string name;
 
+    bool if_not_exists;
+};
+
+struct create_database_t : create_statement_t
+{
+    explicit create_database_t(std::string name)
+        : create_statement_t(create_type_t::create_database, name)
+    {
+    }
+};
+
+struct create_table_t : create_statement_t
+{
+    explicit create_table_t(std::string name)
+        : create_statement_t(create_type_t::create_table, name)
+    {
+    }
+
     std::string database;
 
     field_def_list_t fields;
+};
 
-    bool if_not_exists;
+struct create_relationship_t : create_statement_t
+{
+    explicit create_relationship_t(std::string name)
+        : create_statement_t(create_type_t::create_relationship, name)
+    {
+    }
 
     // A relationship is defined by a pair of links because we only allow
     // bi-directional relationships.
     std::pair<link_def_t, link_def_t> relationship;
+
+    // Track the optional mapping from one table's field(s) to the other table's
+    // field(s). The field map must be bijective from one table to the other,
+    // and the field types must match. When defined, the relationship will be
+    // established using the fields instead of the two tables' `gaia_id`s.
+    std::optional<table_field_map_t> field_map;
+};
+
+struct create_index_t : create_statement_t
+{
+    explicit create_index_t(std::string name)
+        : create_statement_t(create_type_t::create_index, name)
+    {
+    }
+
+    std::string database;
+
     bool unique_index;
 
     index_type_t index_type;

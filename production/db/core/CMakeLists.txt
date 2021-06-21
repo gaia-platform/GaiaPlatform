@@ -18,6 +18,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
@@ -64,7 +65,6 @@ target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES}
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_storage PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_storage PRIVATE gaia_common)
-set_property (TARGET gaia_storage PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ###############################################
 # Database-related code begins here.
@@ -73,6 +73,7 @@ add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
+  src/gaia_ptr_client.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
   src/mapped_data.cpp
@@ -94,8 +95,6 @@ set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FL
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
 target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_db_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp
@@ -110,7 +109,6 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 target_link_libraries(rocks_wrapper rocksdb gaia_storage)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
@@ -119,7 +117,8 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
   src/type_generator.cpp
-)
+  src/gaia_ptr.cpp
+  src/gaia_ptr_server.cpp)
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
@@ -137,7 +136,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
@@ -165,8 +164,8 @@ if(Python3_FOUND AND pybind11_FOUND)
   # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
   set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
-  set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-  if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
   endif()
 
@@ -196,7 +195,7 @@ if(JAVA_FOUND AND JNI_FOUND)
   set_target_properties(gaia_db_jni PROPERTIES COMPILE_FLAGS
     "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(gaia_db_jni PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-  if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_jni PRIVATE "-shared-libasan")
   endif()
 endif()

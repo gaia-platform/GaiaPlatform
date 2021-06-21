@@ -35,7 +35,7 @@ void Parser::ConsumeInvalidRuleset()
 
 static std::string RandomString(std::string::size_type length)
 {
-    const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+    constexpr char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
         "abcdefghijklmnopqrstuvwxyz0123456789";
 
     std::random_device rd;

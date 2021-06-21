@@ -1310,6 +1310,14 @@ public:
                                   Inc, RParenLoc, Body);
   }
 
+  /// Build a new Gaiafor statement.
+  ///
+  /// By default, performs semantic analysis to build the new statement.
+  /// Subclasses may override this routine to provide different behavior.
+  StmtResult RebuildGaiaForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
+                            Stmt *Path, SourceLocation RParenLoc, Stmt *Body) {
+    return getSema().ActOnGaiaForStmt(ForLoc, LParenLoc, Path, RParenLoc, Body);
+  }
   /// Build a new goto statement.
   ///
   /// By default, performs semantic analysis to build the new statement.
@@ -7440,6 +7448,30 @@ StmtResult TreeTransform<Derived>::TransformCXXTryStmt(CXXTryStmt *S) {
   return getDerived().RebuildCXXTryStmt(S->getTryLoc(), TryBlock.get(),
                                         Handlers);
 }
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformGaiaForStmt(GaiaForStmt *S) {
+
+  // Transform the initialization statement
+  StmtResult Path = getDerived().TransformStmt(S->getPath());
+  if (Path.isInvalid())
+    return StmtError();
+
+  // Transform the body
+  StmtResult Body = getDerived().TransformStmt(S->getBody());
+  if (Body.isInvalid())
+    return StmtError();
+
+  if (!getDerived().AlwaysRebuild() &&
+      Path.get() == S->getPath() &&
+      Body.get() == S->getBody())
+    return S;
+
+  return getDerived().RebuildGaiaForStmt(S->getForLoc(), S->getLParenLoc(),
+                                     Path.get(), S->getRParenLoc(), Body.get());
+}
+
 
 template<typename Derived>
 StmtResult

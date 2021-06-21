@@ -616,6 +616,7 @@ namespace clang {
     ExpectedStmt VisitTypeTraitExpr(TypeTraitExpr *E);
     ExpectedStmt VisitCXXTypeidExpr(CXXTypeidExpr *E);
     ExpectedStmt VisitGaiaRuleContextExpr(GaiaRuleContextExpr *E);
+    ExpectedStmt VisitGaiaForStmt(GaiaForStmt *S);
 
     template<typename IIter, typename OIter>
     Error ImportArrayChecked(IIter Ibegin, IIter Iend, OIter Obegin) {
@@ -6014,6 +6015,24 @@ ExpectedStmt ASTNodeImporter::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
   return new (Importer.getToContext()) CXXForRangeStmt(
       ToInit, ToRangeStmt, ToBeginStmt, ToEndStmt, ToCond, ToInc, ToLoopVarStmt,
       ToBody, ToForLoc, ToCoawaitLoc, ToColonLoc, ToRParenLoc);
+}
+
+ExpectedStmt ASTNodeImporter::VisitGaiaForStmt(GaiaForStmt *S)
+{
+  auto Imp1 = importSeq(S->getPath(), S->getBody());
+  if (!Imp1)
+    return Imp1.takeError();
+  auto Imp2 = importSeq(S->getForLoc(), S->getLParenLoc(), S->getRParenLoc());
+  if (!Imp2)
+    return Imp2.takeError();
+
+  Stmt *ToPath, *ToBody;
+  std::tie(ToPath, ToBody) = *Imp1;
+  SourceLocation ToForLoc, ToLParenLoc, ToRParenLoc;
+  std::tie(ToForLoc, ToLParenLoc, ToRParenLoc) = *Imp2;
+
+  return new (Importer.getToContext()) GaiaForStmt(Importer.getToContext(),
+    ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc);
 }
 
 ExpectedStmt

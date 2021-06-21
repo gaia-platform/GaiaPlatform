@@ -34,13 +34,9 @@ target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 target_link_libraries(gaia_common cpptoml)
 target_link_libraries(gaia_common gaia_spdlog)
 target_link_libraries(gaia_common gaia_spdlog_setup)
-target_link_libraries(gaia_common stdc++fs)
 
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_common PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-
-# This static library must be compatible with linking in a shared library.
-set_property(TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The logging unit test needs a logger configuration file.
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")

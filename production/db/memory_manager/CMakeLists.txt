@@ -20,7 +20,6 @@ add_library(gaia_memory_manager STATIC
 target_include_directories(gaia_memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
 set_target_properties(gaia_memory_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_memory_manager PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-set_property (TARGET gaia_memory_manager PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(gaia_memory_manager PRIVATE gaia_common)
 
 # Our unit tests.
