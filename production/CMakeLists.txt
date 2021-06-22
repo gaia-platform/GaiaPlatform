@@ -115,15 +115,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 endif()
 
-# Debug build-specific options.
-if()
-  # Don't omit debug symbols from any built binaries.
-  add_compile_options(-fno-limit-debug-info)
-
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O2 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
-  set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
-endif()
-
 # Sanitizer-specific compiler/linker flags.
 if(DEFINED CACHE{SANITIZER})
   message(VERBOSE "Sanitizer=$CACHE{SANITIZER}")
