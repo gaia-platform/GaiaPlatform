@@ -496,22 +496,6 @@ void server_t::handle_request_stream(
         old_state == new_state,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // The only currently supported stream type is table scans.
-    // When we add more stream types, we should add a switch statement on data_type.
-    // It would be nice to delegate to a helper returning a different generator for each
-    // data_type, and then invoke start_stream_producer() with that generator, but in
-    // general each data_type corresponds to a generator with a different T_element_type,
-    // so we need to invoke start_stream_producer() separately for each data_type
-    // (because start_stream_producer() is templated on the generator's T_element_type).
-    // We should logically receive an object corresponding to the request_data_t union,
-    // but the FlatBuffers API doesn't have any object corresponding to a union.
-    auto request = static_cast<const client_request_t*>(event_data);
-    ASSERT_INVARIANT(
-        request->data_type() == request_data_t::table_scan,
-        c_message_unexpected_request_data_type);
-
-    auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
@@ -526,7 +510,32 @@ void server_t::handle_request_stream(
         close_fd(server_socket);
     });
 
-    start_stream_producer(server_socket, get_id_generator_for_type(type));
+    auto request = static_cast<const client_request_t*>(event_data);
+
+    switch (request->data_type())
+    {
+    case request_data_t::table_scan:
+    {
+        auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+        auto id_generator = get_id_generator_for_type(type);
+
+        start_stream_producer(server_socket, get_id_generator_for_type(type));
+
+        break;
+    }
+    case request_data_t::index_scan:
+    {
+        auto req = request->data_as_index_scan();
+        auto index_id = static_cast<gaia_id_t>(req->index_id());
+        auto txn_id = static_cast<gaia_txn_id_t>(req->txn_id());
+
+        start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+
+        break;
+    }
+    default:
+        ASSERT_UNREACHABLE(c_message_unexpected_request_data_type);
+    }
 
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
