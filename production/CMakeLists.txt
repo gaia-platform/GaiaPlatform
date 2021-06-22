@@ -80,7 +80,7 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   # LLD/libc++ are necessary for MSan.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
   set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
     # This makes debugger startup faster.
@@ -104,6 +104,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # Explicitly list all legal values for SANITIZER.
   # (This will eventually include ASAN, MSAN, TSAN.)
   set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+endif()
+
+# Release with DebugInfo build-specific options.
+if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  # Don't omit debug symbols from any built binaries.
+  add_compile_options(-fno-limit-debug-info)
+
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O2 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 endif()
 
 # Sanitizer-specific compiler/linker flags.
