@@ -37,6 +37,8 @@ enum class gaia_operation_t : uint8_t
     update = 0x2,
     remove = 0x3,
     clone = 0x4,
+    // NO OP - this log does nothing. Used at startup to create a sentinel log to allow for
+    // txn validation without any storage operations.
     noop = 0x5
 };
 
