@@ -62,9 +62,9 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&counters->last_locator, 1);
 }
 
-inline size_t get_gaia_alignment_unit()
+inline constexpr size_t get_gaia_alignment_unit()
 {
-    return sizeof(uint64_t);
+    return gaia::db::memory_manager::c_allocation_alignment;
 }
 
 inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
@@ -127,7 +127,7 @@ inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     data_t* data = gaia::db::get_data();
     return (offset != c_invalid_gaia_offset)
-        ? reinterpret_cast<db_object_t*>(data->objects + offset)
+        ? reinterpret_cast<db_object_t*>(&data->objects[offset])
         : nullptr;
 }
 
@@ -142,6 +142,13 @@ inline gaia_txn_id_t get_last_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
     return counters->last_txn_id;
+}
+
+inline index::db_index_t id_to_index(common::gaia_id_t index_id)
+{
+    auto it = get_indexes()->find(index_id);
+
+    return (it != get_indexes()->end()) ? it->second : nullptr;
 }
 
 } // namespace db

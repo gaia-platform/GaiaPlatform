@@ -8199,6 +8199,8 @@ bool isBodyLikeChildStmt(const Stmt *S, const Stmt *Parent) {
     return cast<ForStmt>(Parent)->getBody() == S;
   case Stmt::CXXForRangeStmtClass:
     return cast<CXXForRangeStmt>(Parent)->getBody() == S;
+  case Stmt::GaiaForStmtClass:
+    return cast<GaiaForStmt>(Parent)->getBody() == S;
   case Stmt::ObjCForCollectionStmtClass:
     return cast<ObjCForCollectionStmt>(Parent)->getBody() == S;
   case Stmt::CaseStmtClass:

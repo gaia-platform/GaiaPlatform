@@ -31,8 +31,6 @@ target_include_directories(gaia_system PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
 target_link_libraries(gaia_system PUBLIC gaia_catalog gaia_direct gaia_rules)
 set_target_properties(gaia_system PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_system PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The test needs gaia parser to load test DDLs.
 set(TEST_GAIA_SYSTEM_INCLUDES

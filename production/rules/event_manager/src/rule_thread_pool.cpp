@@ -44,21 +44,19 @@ rule_thread_pool_t::~rule_thread_pool_t()
     shutdown();
 }
 
-void rule_thread_pool_t::shutdown()
+void rule_thread_pool_t::wait_for_rules_to_finish()
 {
-    if (m_threads.size() == 0)
-    {
-        return;
-    }
-
-    // Wait for any scheduled rules to finish executing. Once the rule
-    // has finished, its worker thread will go into a wait state (not busy).
-    // Once all workers are not busy, then we can exit if there are no pending
-    // rule invocations.  If there are invocations left, then wait for them to
-    // be executed and check again.
-    auto start_shutdown_time = gaia::common::timer_t::get_time_point();
-
     unique_lock lock(m_lock, defer_lock);
+    wait_for_rules_to_finish(lock);
+    lock.unlock();
+}
+
+// NOTE:  Callers must unlock the passed in mutex.
+//
+// TODO[GAIAPLAT-1020]: Add a configuration setting to limit the time
+// we will wait for all rules to execute.
+void rule_thread_pool_t::wait_for_rules_to_finish(std::unique_lock<std::mutex>& lock)
+{
     while (true)
     {
         lock.lock();
@@ -70,6 +68,23 @@ void rule_thread_pool_t::shutdown()
         lock.unlock();
         std::this_thread::yield();
     }
+}
+
+void rule_thread_pool_t::shutdown()
+{
+    if (m_threads.size() == 0)
+    {
+        return;
+    }
+
+    auto start_shutdown_time = gaia::common::timer_t::get_time_point();
+
+    unique_lock lock(m_lock, defer_lock);
+
+    // Wait for the currently executing rules "graph" to finish executing.  This will
+    // drain the work queues of any rules executing AND any rules that these rules
+    // may trigger.
+    wait_for_rules_to_finish(lock);
 
     m_exit = true;
     lock.unlock();

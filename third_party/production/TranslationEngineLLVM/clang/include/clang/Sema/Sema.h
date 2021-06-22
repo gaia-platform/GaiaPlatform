@@ -3799,6 +3799,12 @@ public:
                           FullExprArg Third,
                           SourceLocation RParenLoc,
                           Stmt *Body);
+
+  StmtResult ActOnGaiaForStmt(SourceLocation ForLoc,
+                          SourceLocation LParenLoc,
+                          Stmt *Path,
+                          SourceLocation RParenLoc,
+                          Stmt *Body);
   ExprResult CheckObjCForCollectionOperand(SourceLocation forLoc,
                                            Expr *collection);
   StmtResult ActOnObjCForCollectionStmt(SourceLocation ForColLoc,

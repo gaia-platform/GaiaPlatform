@@ -4,8 +4,8 @@
 /////////////////////////////////////////////
 
 #pragma once
-#include <memory>
 
+#include <memory>
 #include <optional>
 
 #include "gaia/db/db.hpp"
@@ -43,6 +43,7 @@ class client_t
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
@@ -78,6 +79,7 @@ private:
     thread_local static inline mapped_log_t s_log{};
 
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
+    thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
 
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;

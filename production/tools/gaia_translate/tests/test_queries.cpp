@@ -143,8 +143,8 @@ protected:
         course_4 = course_t::get(course_t::insert_row("cou004", "sci101", 3));
         course_5 = course_t::get(course_t::insert_row("cou005", "math301", 5));
 
-        // These are gaia_id_t.
         reg_1 = registration_t::get(registration_t::insert_row("reg001", c_status_pending, c_grade_none));
+        // These are gaia_id_t.
         auto reg_2 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
         auto reg_3 = registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
         auto reg_4 = registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
@@ -266,7 +266,7 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-TEST_F(test_queries_code, DISABLED_new_registration)
+TEST_F(test_queries_code, new_registration)
 {
     const int num_inserts = 4;
 
@@ -562,7 +562,7 @@ TEST_F(test_queries_code, nomatch_stmt2)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_6");
 
-    // OnInsert(studet) will look for class hours, which don't exist - nomatch!
+    // OnInsert(student) will look for class hours, which don't exist - nomatch!
     g_string_value = "";
     gaia::db::begin_transaction();
 
@@ -574,6 +574,83 @@ TEST_F(test_queries_code, nomatch_stmt2)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_stmt3)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_7");
+
+    // OnInsert(registration) will look for class hours, which don't exist - nomatch!
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto registration = registration_t::insert_row("reg00H", c_status_eligible, c_grade_c);
+    student.registrations().insert(registration);
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnUpdate(registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_string_value, "correct nomatch") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_stmt4)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_8");
+
+    // OnInsert(student) will look for class hours, which don't exist - nomatch!
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnUpdate(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnUpdate failure";
+
+    EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, nomatch_function_query)
+{
+    populate_db();
+
+    gaia::rules::initialize_rules_engine();
+    // Use the second set of rules.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_9");
+
+    // OnInsert(student) will look for class hours, which don't exist - nomatch!
+    g_string_value = "";
+    gaia::db::begin_transaction();
+
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto registration = registration_t::insert_row("reg00H", c_status_eligible, c_grade_c);
+    student.registrations().insert(registration);
+    course_1.registrations().insert(registration);
+    registration = registration_t::insert_row("reg00I", c_status_eligible, c_grade_d);
+    student.registrations().insert(registration);
+    course_2.registrations().insert(registration);
+
+    gaia::db::commit_transaction();
+
+    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+
+    EXPECT_EQ(g_string_value, "4C3 ") << "Incorrect result";
 }
 
 // Query tests:

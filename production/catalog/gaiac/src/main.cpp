@@ -199,10 +199,10 @@ string usage()
 {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -n|--instance-name <name> Specify the database instance name."
+          "  -n|--instance-name <name> Specify the database instance name.\n"
           "                            If not specified will use "
-       << c_default_instance_name << "."
-       << "                            If 'rnd' is specified will use a "
+       << c_default_instance_name << ".\n"
+       << "                            If 'rnd' is specified will use a random name.\n"
           "  -d|--db-name <dbname>     Specify the database name.\n"
           "  -i|--interactive          Interactive prompt, as a REPL.\n"
           "  -g|--generate             Generate direct access API header files.\n"
@@ -360,13 +360,15 @@ int main(int argc, char* argv[])
 
     gaia::db::begin_session();
 
-    const auto cleanup = scope_guard::make_scope_guard([&server]() {
-        gaia::db::end_session();
-        if (server.is_initialized())
+    const auto cleanup = scope_guard::make_scope_guard(
+        [&server]()
         {
-            server.stop();
-        }
-    });
+            gaia::db::end_session();
+            if (server.is_initialized())
+            {
+                server.stop();
+            }
+        });
 
     if (mode == operate_mode_t::interactive)
     {

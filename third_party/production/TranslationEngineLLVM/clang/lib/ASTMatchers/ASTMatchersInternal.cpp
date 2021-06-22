@@ -697,6 +697,8 @@ const internal::VariadicDynCastAllOfMatcher<Stmt, IfStmt> ifStmt;
 const internal::VariadicDynCastAllOfMatcher<Stmt, ForStmt> forStmt;
 const internal::VariadicDynCastAllOfMatcher<Stmt, CXXForRangeStmt>
     cxxForRangeStmt;
+const internal::VariadicDynCastAllOfMatcher<Stmt, GaiaForStmt>
+    gaiaForStmt;
 const internal::VariadicDynCastAllOfMatcher<Stmt, WhileStmt> whileStmt;
 const internal::VariadicDynCastAllOfMatcher<Stmt, DoStmt> doStmt;
 const internal::VariadicDynCastAllOfMatcher<Stmt, BreakStmt> breakStmt;

@@ -662,7 +662,7 @@ address_offset_t server_t::allocate_object(
 {
     ASSERT_PRECONDITION(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
 
-    address_offset_t object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+    address_offset_t object_offset = s_chunk_manager.allocate(size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk.
@@ -679,7 +679,7 @@ address_offset_t server_t::allocate_object(
             chunk_address_offset);
 
         // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + sizeof(db_object_t));
+        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     }
 
     ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
@@ -1809,13 +1809,6 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
         (*s_shared_locators.data())[lr->locator] = lr->new_offset;
     }
-
-    // We're using the otherwise-unused first entry of the "locators" array to
-    // track the last-applied commit_ts (purely for diagnostic purposes).
-    bool has_updated_locators_view_version = advance_watermark((*s_shared_locators.data())[0], commit_ts);
-    ASSERT_POSTCONDITION(
-        has_updated_locators_view_version,
-        "Committed txn applied to shared locators view out of order!");
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)

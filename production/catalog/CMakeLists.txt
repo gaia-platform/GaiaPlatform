@@ -15,7 +15,6 @@ target_include_directories(edc_catalog PRIVATE ${GAIA_INC})
 target_include_directories(edc_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
 target_include_directories(edc_catalog PUBLIC ${FLATBUFFERS_INC})
 target_link_libraries(edc_catalog gaia_direct)
-set_target_properties(edc_catalog PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
   ${GAIA_INC}
@@ -49,7 +48,6 @@ set_target_properties(gaia_catalog PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
 target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers edc_catalog)
-set_property (TARGET gaia_catalog PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"

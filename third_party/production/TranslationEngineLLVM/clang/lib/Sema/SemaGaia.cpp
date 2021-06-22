@@ -45,7 +45,7 @@ static gaia_catalog::gaia_catalog_context_t get_gaia_context()
     return gaia_context;
 }
 
-static const char ruleContextTypeName[] = "rule_context__type";
+static constexpr char ruleContextTypeName[] = "rule_context__type";
 
 void printAmbiguousFieldReferenceDiagnostic(
     Sema& sema,

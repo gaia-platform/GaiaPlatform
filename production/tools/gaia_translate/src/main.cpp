@@ -2507,10 +2507,10 @@ private:
 };
 
 // AST handler that is called when a while has a declarative expression.
-class declarative_while_match_handler : public MatchFinder::MatchCallback
+class declarative_while_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    explicit declarative_while_match_handler(Rewriter& r)
+    explicit declarative_while_match_handler_t(Rewriter& r)
         : m_rewriter(r)
     {
     }
@@ -2538,6 +2538,32 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when a declarative for.
+class declarative_for_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_for_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
+        if (expression != nullptr)
+        {
+            m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -2551,6 +2577,7 @@ public:
         , m_table_call_match_handler(r)
         , m_if_nomatch_match_handler(r)
         , m_declarative_while_match_handler(r)
+        , m_declarative_for_match_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -2674,6 +2701,9 @@ public:
                                 hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("DeclWhile");
 
+        StatementMatcher declarative_for_matcher
+            = gaiaForStmt().bind("DeclFor");
+
         DeclarationMatcher variable_declaration_init_matcher
             = varDecl(allOf(
                           hasAncestor(rule_matcher),
@@ -2705,6 +2735,7 @@ public:
         m_matcher.addMatcher(table_call_matcher, &m_table_call_match_handler);
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
         m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
+        m_matcher.addMatcher(declarative_for_matcher, &m_declarative_for_match_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -2723,7 +2754,8 @@ private:
     rule_context_rule_match_handler_t m_rule_context_match_handler;
     table_call_match_handler_t m_table_call_match_handler;
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
-    declarative_while_match_handler m_declarative_while_match_handler;
+    declarative_while_match_handler_t m_declarative_while_match_handler;
+    declarative_for_match_handler_t m_declarative_for_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

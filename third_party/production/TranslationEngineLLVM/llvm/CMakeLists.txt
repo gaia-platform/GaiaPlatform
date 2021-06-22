@@ -437,6 +437,9 @@ set(LLVM_LIB_FUZZING_ENGINE "" CACHE PATH
 option(LLVM_USE_SPLIT_DWARF
   "Use -gsplit-dwarf when compiling llvm." OFF)
 
+option(LLVM_USE_GDB_INDEX
+  "Use -Wl,--gdb-index when compiling llvm." OFF)
+
 option(LLVM_POLLY_LINK_INTO_TOOLS "Statically link Polly into tools (if available)" ON)
 option(LLVM_POLLY_BUILD "Build LLVM with Polly" ON)
 
