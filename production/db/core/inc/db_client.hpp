@@ -71,8 +71,11 @@ public:
     static inline gaia_txn_id_t get_txn_id();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
-    static std::shared_ptr<common::iterators::generator_t<index::index_record_t>> get_record_generator_for_index(common::gaia_id_t id, gaia_txn_id_t txn_id);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
+    get_id_generator_for_type(common::gaia_type_t type);
+
+    static std::shared_ptr<common::iterators::generator_t<index::index_record_t>>
+    get_record_generator_for_index(common::gaia_id_t id, gaia_txn_id_t txn_id);
 
 private:
     // These fields have transaction lifetime.
@@ -145,7 +148,8 @@ private:
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
     template <typename T_element_type>
-    static std::function<std::optional<T_element_type>()> get_stream_generator_for_socket(int stream_socket);
+    static std::function<std::optional<T_element_type>()>
+    get_stream_generator_for_socket(int stream_socket);
 
     static std::function<std::optional<int>()>
     get_fd_stream_generator_for_socket(int stream_socket);
