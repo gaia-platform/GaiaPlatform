@@ -36,7 +36,8 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -49,7 +50,8 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -524,6 +526,7 @@ TEST_F(ddl_executor_test, create_index)
     auto_transaction_t txn(false);
     ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
     ASSERT_EQ(gaia_index_t::get(index_id).table().gaia_id(), table_id);
+    ASSERT_TRUE(gaia_table_t::get(table_id).gaia_fields().begin()->unique());
     txn.commit();
 
     ASSERT_THROW(
@@ -576,61 +579,4 @@ TEST_F(ddl_executor_test, list_indexes)
     ASSERT_NE(index_ids.find(title_idx_id), index_ids.end());
     ASSERT_NE(index_ids.find(author_idx_id), index_ids.end());
     ASSERT_NE(index_ids.find(isbn_idx_id), index_ids.end());
-}
-
-TEST_F(ddl_executor_test, metadata_init)
-{
-
-    gaia_id_t doctor_table_id
-        = table_builder_t::new_table("doctor")
-              .database("hospital")
-              .create();
-
-    gaia_id_t patient_table_id
-        = table_builder_t::new_table("patient")
-              .database("hospital")
-              .create();
-
-    gaia::catalog::create_relationship(
-        "patient_current_doctor",
-        {"hospital", "doctor", "current_patients", "hospital", "patient", gaia::catalog::relationship_cardinality_t::many},
-        {"hospital", "patient", "current_doctor", "hospital", "doctor", gaia::catalog::relationship_cardinality_t::one},
-        false);
-
-    gaia::catalog::create_relationship(
-        "patient_current_doctor",
-        {"hospital", "doctor", "past_patients", "hospital", "patient", gaia::catalog::relationship_cardinality_t::many},
-        {"hospital", "patient", "past_doctor", "hospital", "doctor", gaia::catalog::relationship_cardinality_t::one},
-        false);
-
-    auto_transaction_t txn;
-    gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
-    gaia_table_t patient_table = gaia_table_t::get(patient_table_id);
-
-    ASSERT_EQ(2, doctor_table.outgoing_relationships().size());
-    ASSERT_EQ(0, doctor_table.incoming_relationships().size());
-    ASSERT_EQ(0, patient_table.outgoing_relationships().size());
-    ASSERT_EQ(2, patient_table.incoming_relationships().size());
-
-    gaia_relationship_t current_doctor_relationship = find_relationship(patient_table, "current_doctor");
-    gaia_relationship_t past_doctor_relationship = find_relationship(patient_table, "past_doctor");
-
-    ASSERT_STREQ("current_patients", current_doctor_relationship.to_child_link_name());
-    ASSERT_STREQ("current_doctor", current_doctor_relationship.to_parent_link_name());
-    ASSERT_STREQ("past_patients", past_doctor_relationship.to_child_link_name());
-    ASSERT_STREQ("past_doctor", past_doctor_relationship.to_parent_link_name());
-
-    ASSERT_EQ(doctor_table, current_doctor_relationship.parent());
-    ASSERT_EQ(patient_table, current_doctor_relationship.child());
-    ASSERT_EQ(doctor_table, past_doctor_relationship.parent());
-    ASSERT_EQ(patient_table, past_doctor_relationship.child());
-
-    ASSERT_EQ(uint8_t{0}, current_doctor_relationship.first_child_offset());
-    ASSERT_EQ(uint8_t{0}, current_doctor_relationship.parent_offset());
-    ASSERT_EQ(uint8_t{1}, current_doctor_relationship.next_child_offset());
-    ASSERT_EQ(uint8_t{1}, past_doctor_relationship.first_child_offset());
-    ASSERT_EQ(uint8_t{2}, past_doctor_relationship.parent_offset());
-    ASSERT_EQ(uint8_t{3}, past_doctor_relationship.next_child_offset());
-
-    txn.commit();
 }

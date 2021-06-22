@@ -767,6 +767,16 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field->unique);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
+        // Create an unique range index for the unique field.
+        if (data_field->unique)
+        {
+            gaia_id_t index_id = gaia_index_t::insert_row(
+                string(table_name + '_' + field->name).c_str(),
+                true,
+                static_cast<uint8_t>(index_type_t::range),
+                {field_id});
+            gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+        }
         data_field_position++;
     }
     gaia::db::commit_transaction();
