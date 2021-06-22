@@ -123,8 +123,7 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr)
     {
-        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(),
-                tok::semi, source_manager, options, true);
+        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(), tok::semi, source_manager, options, true);
         if (end_location.isValid())
         {
             return_value.setEnd(end_location.getLocWithOffset(-1));
@@ -550,7 +549,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
                     cerr << "Local variable declaration '" << variable_name
-                        << "' hides a tag of the same name." << endl;
+                         << "' hides a tag of the same name." << endl;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -573,10 +572,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         if (data_iterator.path_components.size() == 1
                             && table_name == anchor_table_name && !data_iterator.is_absolute_path)
                         {
-                            auto declaration_source_range_size =
-                                variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
-                            auto min_declaration_source_range_size =
-                                variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
+                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
                             if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
                             {
                                 variable_declaration_range = variable_declaration_range_iterator.first;
@@ -645,7 +642,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
-                        navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+                    navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
             }
             else
             {
@@ -2842,8 +2839,15 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(*compilation_database, source_files);
 
+    gaia::db::begin_session();
+    gaia::db::begin_transaction();
+
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+
+    gaia::db::commit_transaction();
+    gaia::db::end_session();
+
     if (result == 0 && !g_is_generation_error)
     {
         return EXIT_SUCCESS;

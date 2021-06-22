@@ -70,21 +70,6 @@ public:
     // Function that generates variable name for navigation code variables.
     static string get_variable_name(const string& table, const unordered_map<string, string>& tags);
 private:
-    class db_monitor_t
-    {
-    public:
-        db_monitor_t()
-        {
-            gaia::db::begin_session();
-            gaia::db::begin_transaction();
-        }
-
-        ~db_monitor_t()
-        {
-            gaia::db::commit_transaction();
-            gaia::db::end_session();
-        }
-    };
 
     struct table_link_data_t
     {

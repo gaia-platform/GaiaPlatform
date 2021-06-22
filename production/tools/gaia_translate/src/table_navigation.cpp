@@ -46,7 +46,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         }
         if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
         {
-            last_variable_name =  path_data.variable_name;
+            last_variable_name = path_data.variable_name;
         }
         else
         {
@@ -63,7 +63,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                table =  path_data.tag_table_map[table];
+                table = path_data.tag_table_map[table];
             }
         }
 
@@ -109,15 +109,13 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         source_table_type = table;
         source_table = last_variable_name;
         source_field = field;
-
     }
 
     return return_value;
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables,
-    const unordered_map<string, string>& tags, string& last_variable_name)
+navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
 {
     ensure_initialization();
     navigation_code_data_t return_value;
@@ -285,8 +283,6 @@ void table_navigation_t::fill_table_data()
 {
     try
     {
-        db_monitor_t monitor;
-
         for (const auto& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t table = field.table();

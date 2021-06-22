@@ -39,7 +39,11 @@ using namespace clang::gaia_catalog;
 static string fieldTableName;
 
 // A little ugly to put this here.
-static gaia_catalog::gaia_catalog_context_t gaia_context;
+static gaia_catalog::gaia_catalog_context_t get_gaia_context()
+{
+    static gaia_catalog::gaia_catalog_context_t gaia_context;
+    return gaia_context;
+}
 
 static const char ruleContextTypeName[] = "rule_context__type";
 
@@ -541,6 +545,34 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
+QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc)
+{
+    // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
+    std::string linkTypeName;
+    linkTypeName
+        .append(from_table)
+        .append("_")
+        .append(linkName)
+        .append("__type");
+
+    RecordDecl* RD = Context.buildImplicitRecord(linkTypeName);
+    RD->setLexicalDeclContext(CurContext);
+    RD->startDefinition();
+    Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
+    ActOnTagStartDefinition(&S, RD);
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
+    AttributeFactory attrFactory;
+    ParsedAttributes attrs(attrFactory);
+
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
+    ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+
+    return Context.getTagDeclType(RD);
+}
+
 QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
@@ -608,7 +640,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         }
     }
 
-    auto tableData = gaia_context.find_table(typeName);
+    auto tableData = get_gaia_context().find_table(typeName);
 
     if (!tableData)
     {
@@ -655,6 +687,12 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(field.field_name()), fieldType, RD, loc);
     }
 
+    for (const auto& link : tableData->outgoing_links())
+    {
+        QualType linkType = getLinkType(link.field_name(), link.from_table(), loc);
+        addField(&Context.Idents.get(link.field_name()), linkType, RD, loc);
+    }
+
     //insert fields and methods that are not part of the schema
     addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
@@ -663,6 +701,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     //   The upper case is something David uses in his spec but, as himself said,
     //   it is something we are not forced to follow.
     addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
@@ -683,30 +722,33 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
         fieldName = pair->second;
     }
 
-    if (!gaia_context.is_name_valid(fieldName))
+    if (!get_gaia_context().is_name_valid(fieldName))
     {
         Diag(loc, diag::err_unknown_field) << fieldName;
         return Context.VoidTy;
     }
 
-    if (gaia_context.is_name_unique(fieldName))
+    if (get_gaia_context().is_name_unique(fieldName))
     {
-        std::optional<table_facade_t> tableData = gaia_context.find_table(fieldName);
+        std::optional<table_facade_t> tableData = get_gaia_context().find_table(fieldName);
         if (tableData)
         {
             return getTableType(fieldName, loc);
         }
 
-        std::vector<field_facade_t> fields = gaia_context.find_fields(fieldName);
+        std::vector<field_facade_t> fields = get_gaia_context().find_fields(fieldName);
         if (!fields.empty())
         {
+            fieldTableName = fields.front().table_name();
             return fields.front().field_type(Context);
         }
 
-        std::vector<link_facade_t> relationships = gaia_context.find_links(fieldName);
-        if (!relationships.empty())
+        std::vector<link_facade_t> links = get_gaia_context().find_links(fieldName);
+        if (!links.empty())
         {
-            return relationships.front().field_type(Context);
+            auto link = links.front();
+            fieldTableName = link.from_table();
+            return getLinkType(link.field_name(), link.from_table(), loc);
         }
 
         assert(false && "Field name should appear at least in one place.");
@@ -739,9 +781,9 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
             *this,
             loc,
             fieldName,
-            gaia_context.find_table(fieldName),
-            gaia_context.find_fields(fieldName),
-            gaia_context.find_links(fieldName));
+            get_gaia_context().find_table(fieldName),
+            get_gaia_context().find_fields(fieldName),
+            get_gaia_context().find_links(fieldName));
 
         return Context.VoidTy;
     }
@@ -751,7 +793,7 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
     // Collect the tables defined in the Table attribute.
     for (const IdentifierInfo* id : tableAttr->tables())
     {
-        std::optional<table_facade_t> table = gaia_context.find_table(id->getName().str());
+        std::optional<table_facade_t> table = get_gaia_context().find_table(id->getName().str());
 
         if (!table)
         {
@@ -762,9 +804,9 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
         table_names.push_back(table->table_name());
     }
 
-    optional<table_facade_t> table = gaia_context.find_table(fieldName);
-    std::vector<field_facade_t> fields = gaia_context.find_fields_in_tables(table_names, fieldName);
-    std::vector<link_facade_t> relationships = gaia_context.find_relationships_in_tables(table_names, fieldName);
+    optional<table_facade_t> table = get_gaia_context().find_table(fieldName);
+    std::vector<field_facade_t> fields = get_gaia_context().find_fields_in_tables(table_names, fieldName);
+    std::vector<link_facade_t> links = get_gaia_context().find_links_in_tables(table_names, fieldName);
 
     // We collect inside this vector all the types deriving from the fields and relationships.
     // In order to be an unambiguous field reference this array must contain exactly one item.
@@ -772,17 +814,20 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
 
     if (std::find(table_names.begin(), table_names.end(), fieldName) != table_names.end())
     {
+        fieldTableName = fieldName;
         types.push_back(getTableType(fieldName, loc));
     }
 
     for (auto field : fields)
     {
+        fieldTableName = field.table_name();
         types.push_back(field.field_type(Context));
     }
 
-    for (auto relationship : relationships)
+    for (auto link : links)
     {
-        types.push_back(relationship.field_type(Context));
+        fieldTableName = link.from_table();
+        types.push_back(getLinkType(link.field_name(), link.from_table(), loc));
     }
 
     assert(!types.empty() && "It is expected to exists at least one field or relationship");
@@ -791,7 +836,7 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
     {
         printAmbiguousFieldReferenceDiagnostic(
             *this, loc, fieldName,
-            table, fields, relationships);
+            table, fields, links);
 
         return Context.VoidTy;
     }

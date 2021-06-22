@@ -4631,6 +4631,7 @@ private:
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
