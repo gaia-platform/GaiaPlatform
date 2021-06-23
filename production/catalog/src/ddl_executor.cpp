@@ -895,7 +895,7 @@ gaia_id_t ddl_executor_t::create_index(
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
 
     // Creating an unique index on a single field automatically makes the field
-    // unique. Do nothing for multiple-filed index creation because we do not
+    // unique. Do nothing for multiple-field index creation because we do not
     // support unique constraints for composite keys at the moment.
     if (unique && index_field_ids.size() == 1)
     {
