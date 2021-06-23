@@ -978,7 +978,7 @@ void server_t::write_to_persistent_log(bool sync_writes)
                 auto ts = *itr;
                 if (txn_metadata_t::is_txn_decided(ts))
                 {
-                    // std::cout << "add decision" << std::endl;
+                    std::cout << "add decision" << std::endl;
                     updates_exist = true;
                     int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
                     ASSERT_INVARIANT(txn_log_fd != -1, c_message_uninitialized_fd_log);
@@ -1016,7 +1016,7 @@ void server_t::write_to_persistent_log(bool sync_writes)
                 }
                 else if (txn_metadata_t::is_txn_decided(ts))
                 {
-                    // std::cout << "add decision 2" << std::endl;
+                    std::cout << "add decision 2" << std::endl;
                     updates_exist = true;
                     seen_txn_set.insert(ts);
                     int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
@@ -1045,7 +1045,7 @@ void server_t::write_to_persistent_log(bool sync_writes)
     {
         if (txn_decisions.size() > 0)
         {
-            // std::cout << "create decision record" << std::endl;
+            std::cout << "create decision record" << std::endl;
             persistent_log_handler->create_decision_record(txn_decisions);
         }
 
@@ -1086,7 +1086,7 @@ void server_t::persistent_log_writer_handler()
     {
         // Block on shutdown or to receive a new write request.
         int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
-        // std::cout << "persistence received signal" << std::endl;
+        std::cout << "persistence received signal" << std::endl;
         if (ready_fd_count == -1)
         {
             if (errno == EINTR)
@@ -1136,19 +1136,19 @@ void server_t::persistent_log_writer_handler()
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
-                // std::cout << "signal log write efd" << std::endl;
+                std::cout << "signal log write efd" << std::endl;
                 write_to_persistent_log();
                 consume_eventfd(s_signal_log_write_eventfd, true);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
-                // std::cout << "signal decision efd" << std::endl;
+                std::cout << "signal decision efd" << std::endl;
                 write_to_persistent_log();
                 consume_eventfd(s_signal_decision_eventfd, true);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                // std::cout << "shutdown efd" << std::endl;
+                std::cout << "shutdown efd" << std::endl;
                 // Server shutdown; before shutdown finish persisting any pending writes before exiting.
                 flush_all_pending_writes();
                 shutdown = true;
@@ -2605,7 +2605,7 @@ bool server_t::txn_commit()
 
     // Signal to the persistence thread to write txn log to disk.
     eventfd_write(s_signal_log_write_eventfd, static_cast<eventfd_t>(commit_ts));
-    // std::cout << "signal log write validation" << std::endl;
+    std::cout << "signal log write validation" << std::endl;
 
     // This is only used for persistence.
     std::string txn_name;
@@ -2633,7 +2633,7 @@ bool server_t::txn_commit()
 
     // Use another decision fd to not lose events.
     eventfd_write(s_signal_decision_eventfd, static_cast<eventfd_t>(commit_ts));
-    // std::cout << "signal log write decision" << std::endl;
+    std::cout << "signal log write decision" << std::endl;
 
     // Persist the commit decision.
     // REVIEW: We can return a decision to the client asynchronously with the
@@ -2664,7 +2664,7 @@ bool server_t::txn_commit()
             return is_committed;
         }
         uint64_t val;
-        // std::cout << " READ SESSION unblock efd = " << s_session_unblock_eventfd << std::endl;
+        std::cout << " READ SESSION unblock efd = " << s_session_unblock_eventfd << std::endl;
         ssize_t bytes_read = ::read(s_session_unblock_eventfd, &val, sizeof(val));
         if (bytes_read == -1)
         {

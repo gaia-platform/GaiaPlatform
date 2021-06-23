@@ -140,6 +140,7 @@ persistent_log_file_offset_t persistent_log_handler_t::allocate_log_space(size_t
 
 void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decisions)
 {
+    ASSERT_PRECONDITION(!txn_decisions.empty(), "Decision record cannot have empty payload.");
     // Track decisions per batch.
     async_disk_writer->add_decisions_to_batch(txn_decisions);
 
@@ -165,7 +166,9 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     ASSERT_INVARIANT(txn_crc > 0, "CRC cannot be zero.");
     header.crc = txn_crc;
 
+    std::cout << "DECISION HDR" << std::endl;
     auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
+    std::cout << "DECISIONS" << std::endl;
     auto txn_decisions_ptr = async_disk_writer->copy_into_metadata_buffer(txn_decisions.data(), txn_decision_size, current_file->file_fd);
 
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
@@ -228,15 +231,19 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     ASSERT_INVARIANT(contiguous_offsets.size() % 2 == 0, "We expect a begin and end offset.");
 
-    // Finally make call.
-    create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
+    if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
+    {
+        std::cout << "CREATE TXN RECORD" << std::endl;
+        // Finally make call.
+        create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
+    }
 }
 
 void persistent_log_handler_t::map_commit_ts_to_session_unblock_fd(gaia_txn_id_t commit_ts, int session_unblock_fd)
 {
     ASSERT_INVARIANT(session_unblock_fd > 0, "incorrect session unblock fd");
     async_disk_writer->map_commit_ts_to_session_unblock_fd(commit_ts, session_unblock_fd);
-    // std::cout << "SAW FD = " << session_unblock_fd << std::endl;
+    std::cout << "SAW FD = " << session_unblock_fd << std::endl;
 }
 
 void persistent_log_handler_t::validate_flushed_batch()
@@ -255,6 +262,7 @@ void persistent_log_handler_t::create_txn_record(
     std::vector<gaia_offset_t>& contiguous_offsets,
     std::vector<gaia_id_t>& deleted_ids)
 {
+    ASSERT_PRECONDITION(!deleted_ids.empty() || (contiguous_offsets.size() % 2 == 0 && !contiguous_offsets.empty()), "Txn record cannot have empty payload.");
     std::vector<iovec> writes_to_submit;
 
     // Reserve iovec to store header for the log record.
@@ -307,6 +315,7 @@ void persistent_log_handler_t::create_txn_record(
     ASSERT_INVARIANT(txn_crc > 0, "CRC cannot be zero.");
     header.crc = txn_crc;
 
+    std::cout << "ADD HEADER" << std::endl;
     auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
 
     // Update the first iovec entry with the header information.
@@ -314,8 +323,12 @@ void persistent_log_handler_t::create_txn_record(
     writes_to_submit.at(0).iov_len = sizeof(record_header_t);
 
     // Allocate space for deleted writes in helper buffer.
-    auto deleted_id_ptr = async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, current_file->file_fd);
-    writes_to_submit.push_back({deleted_id_ptr, deleted_size});
+    std::cout << "ADD DEL IDS" << std::endl;
+    if (!deleted_ids.empty())
+    {
+        auto deleted_id_ptr = async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, current_file->file_fd);
+        writes_to_submit.push_back({deleted_id_ptr, deleted_size});
+    }
 
     async_disk_writer->construct_pwritev(writes_to_submit, current_file->file_fd, start_offset, current_file->current_offset, uring_op_t::PWRITEV_TXN);
 }
@@ -517,7 +530,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
 
         if (record_size != 0 && record->header.record_type == record_type_t::decision)
         {
-            // std::cout << "Obtained decision record" << std::endl;
+            std::cout << "Obtained decision record" << std::endl;
 
             // Decode decision record.
             auto payload_ptr = current_record_ptr + sizeof(record_header_t);
@@ -533,7 +546,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
         }
         else if (record_size != 0 && record->header.record_type == record_type_t::txn)
         {
-            // std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
+            std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
             txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
         }
         else
