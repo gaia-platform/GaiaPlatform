@@ -276,6 +276,7 @@ TEST_F(db_client_test, iterate_type)
              node_iter;
              node_iter = node_iter.find_next())
         {
+
             print_node(node_iter);
             EXPECT_EQ(node_iter.id(), id);
             id++;

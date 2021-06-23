@@ -469,6 +469,8 @@ void client_t::begin_transaction()
     s_log.reset(log);
 
     cleanup_private_locators.dismiss();
+
+    txn_log_update_chunks(s_chunk_manager.get_start_memory_offset());
 }
 
 void client_t::apply_txn_log(int log_fd)
@@ -537,6 +539,8 @@ void client_t::commit_transaction()
         rollback_transaction();
         return;
     }
+
+    s_log.data()->session_unblock_fd = 0;
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
@@ -626,6 +630,7 @@ address_offset_t client_t::allocate_object(
     {
         // We ran out of memory in the current chunk. Allocate a new one!
         address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
+        txn_log_update_chunks(chunk_address_offset);
         if (chunk_address_offset == c_invalid_address_offset)
         {
             throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
@@ -691,4 +696,10 @@ void client_t::rollback_chunk_manager_allocations()
     ASSERT_POSTCONDITION(
         s_previous_chunk_managers.empty(),
         "List of previous chunk managers was not emptied by the end of rollback!");
+}
+
+void client_t::txn_log_update_chunks(address_offset_t offset)
+{
+    auto& chunk = s_log.data()->chunks[s_log.data()->chunk_count++];
+    chunk = get_gaia_offset(offset);
 }

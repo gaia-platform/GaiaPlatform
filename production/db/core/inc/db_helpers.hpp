@@ -138,9 +138,13 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 
 // This is only meant for "fuzzy snapshots" of the current last_txn_id; there
 // are no memory barriers.
-inline gaia_txn_id_t get_last_txn_id()
+inline gaia_txn_id_t get_last_txn_id(bool sync = false)
 {
     counters_t* counters = gaia::db::get_counters();
+    if (sync)
+    {
+        __sync_synchronize();
+    }
     return counters->last_txn_id;
 }
 

@@ -285,7 +285,7 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
     // The newly allocated begin timestamp for the new txn.
     gaia_txn_id_t begin_ts;
 
-    // NB: expected_metadata is an inout argument holding the previous value on failure!
+    // NB: expected_metadata is an input argument holding the previous value on failure!
     txn_metadata_entry_t expected_metadata_entry;
 
     // The begin_ts metadata must have its status initialized to TXN_ACTIVE.

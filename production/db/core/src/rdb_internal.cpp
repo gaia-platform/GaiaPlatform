@@ -27,80 +27,42 @@ namespace db
 
 static const std::string c_message_rocksdb_not_initialized = "RocksDB database is not initialized.";
 
-void rdb_internal_t::open_txn_db(const rocksdb::Options& init_options, const rocksdb::TransactionDBOptions& opts)
+void rdb_internal_t::open_db(const rocksdb::Options& init_options)
 {
     // RocksDB throws an IOError (Lock on persistent dir) when trying to open (recover) twice on the same directory
     // while a process is already up.
     // The same error is also seen when reopening the db after a large volume of deletes
     // See https://github.com/facebook/rocksdb/issues/4421
-    rocksdb::TransactionDB* txn_db;
+    rocksdb::DB* db;
     rocksdb::Status s;
 
-    s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
+    s = rocksdb::DB::Open(init_options, m_data_dir, &db);
     if (s.ok())
     {
-        m_txn_db.reset(txn_db);
+        m_db.reset(db);
     }
     else
     {
         handle_rdb_error(s);
     }
-    ASSERT_POSTCONDITION(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
-}
-
-std::string rdb_internal_t::begin_txn(const rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id)
-{
-    // RocksDB supplies its own transaction id but expects a unique transaction name.
-    // We map gaia_txn_id to a RocksDB transaction name. Transaction id isn't
-    // persisted across server reboots currently so this is a temporary fix till we have
-    // a solution in place. Regardless, RocksDB transactions will go away in Persistence V2.
-    auto now = std::chrono::system_clock::now();
-    auto duration = now.time_since_epoch();
-    auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
-    std::stringstream rdb_txn_name;
-    rdb_txn_name << txn_id << "." << nanoseconds.count();
-    ASSERT_PRECONDITION(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
-    rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
-    rocksdb::Status s = txn->SetName(rdb_txn_name.str());
-    handle_rdb_error(s);
-    return rdb_txn_name.str();
-}
-
-void rdb_internal_t::prepare_wal_for_write(rocksdb::Transaction* txn)
-{
-    auto s = txn->Prepare();
-    handle_rdb_error(s);
-}
-
-void rdb_internal_t::rollback(const std::string& txn_name)
-{
-    auto txn = get_txn_by_name(txn_name);
-    auto s = txn->Rollback();
-    handle_rdb_error(s);
-}
-
-void rdb_internal_t::commit(const std::string& txn_name)
-{
-    auto txn = get_txn_by_name(txn_name);
-    auto s = txn->Commit();
-    handle_rdb_error(s);
+    ASSERT_POSTCONDITION(m_db != nullptr, c_message_rocksdb_not_initialized);
 }
 
 void rdb_internal_t::close()
 {
-    if (m_txn_db)
+    if (m_db)
     {
         // Although we could have best effort close(), lets
         // handle any returned failure.
-        auto s = m_txn_db->Close();
+        auto s = m_db->Close();
         handle_rdb_error(s);
     }
 }
 
 rocksdb::Iterator* rdb_internal_t::get_iterator()
 {
-    ASSERT_PRECONDITION(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
-    return m_txn_db->NewIterator(rocksdb::ReadOptions());
+    ASSERT_PRECONDITION(m_db != nullptr, c_message_rocksdb_not_initialized);
+    return m_db->NewIterator(rocksdb::ReadOptions());
 }
 
 void rdb_internal_t::destroy_persistent_store()
@@ -108,15 +70,44 @@ void rdb_internal_t::destroy_persistent_store()
     rocksdb::DestroyDB(m_data_dir, rocksdb::Options{});
 }
 
-bool rdb_internal_t::is_db_open()
+void rdb_internal_t::flush()
 {
-    return bool(m_txn_db);
+    rocksdb::FlushOptions options{};
+    m_db->Flush(options);
 }
 
-rocksdb::Transaction* rdb_internal_t::get_txn_by_name(const std::string& txn_name)
+void rdb_internal_t::put(const rocksdb::Slice& key, const rocksdb::Slice& value)
 {
-    ASSERT_PRECONDITION(m_txn_db != nullptr, c_message_rocksdb_not_initialized);
-    return m_txn_db->GetTransactionByName(txn_name);
+    m_db->Put(m_write_options, key, value);
+}
+
+void rdb_internal_t::remove(const rocksdb::Slice& key)
+{
+    m_db->Delete(m_write_options, key);
+}
+
+void rdb_internal_t::get(const rocksdb::Slice& key, rocksdb::Slice* value)
+{
+    std::string val;
+    rocksdb::Status status = m_db->Get(rocksdb::ReadOptions(), key, &val);
+    if (status.code() == rocksdb::Status::kOk)
+    {
+        *value = val;
+    }
+    else if (status.code() == rocksdb::Status::kNotFound)
+    {
+        // Not found.
+        *value = rocksdb::Slice();
+    }
+    else
+    {
+        handle_rdb_error(status);
+    }
+}
+
+bool rdb_internal_t::is_db_open()
+{
+    return bool(m_db);
 }
 
 void rdb_internal_t::handle_rdb_error(rocksdb::Status status)

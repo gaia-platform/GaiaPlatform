@@ -50,8 +50,8 @@ void mapped_log_t::open(int fd)
     common::map_fd_data(
         this->m_data,
         this->m_mapped_data_size,
-        PROT_READ,
-        MAP_PRIVATE,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
         fd,
         0);
 
@@ -82,7 +82,7 @@ void mapped_log_t::truncate_seal_and_close(int& fd, size_t& log_size)
     common::truncate_fd(this->m_fd, log_size);
 
     // Seal the txn log memfd for writes/resizing before sending it to the server.
-    if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
+    if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW))
     {
         common::throw_system_error(
             "fcntl(F_ADD_SEALS) failed in mapped_log_t::truncate_seal_and_close()!");

@@ -123,6 +123,8 @@ private:
 private:
     static void init_memory_manager();
 
+    static void txn_log_update_chunks(gaia::db::memory_manager::address_offset_t offset);
+
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,
         size_t size);

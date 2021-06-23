@@ -46,41 +46,42 @@ public:
      * Iterate over all elements in the LSM and call SE create API
      * for every key/value pair obtained (after deduping keys).
      */
-    void recover();
-
-    std::string begin_txn(gaia::db::gaia_txn_id_t txn_id);
+    void recover(gaia_txn_id_t latest_checkpointed_commit_ts);
 
     /**
-     * This method will serialize the transaction to the log.
-     * We expect writes to the RocksDB WAL to just work; this
-     * method will sigabrt otherwise.
+     * This API is only used during checkpointing & recovery.
      */
-    void prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name);
+    void put(gaia::db::db_object_t& object);
 
     /**
-     * This method will append a commit marker with the appropriate
-     * txn_id to the log, and will additionally insert entries
-     * into the RocksDB write buffer (which then writes KV's to disk on getting full)
-     *
-     * We expect writes to the RocksDB WAL to just work; this
-     * method will sigabrt otherwise. This also covers the case where writing
-     * to the log succeeds but writing to the RocksDB memory buffer fails for any reason -
-     * leading to incomplete buffer writes.
-     *
-     * The RocksDB commit API will additionally perform its own validation, but this codepath
-     * has been switched off so we don't expect any errors from the normal flow of execution.
+     * This API is only used during checkpointing & recovery.
      */
-    void append_wal_commit_marker(const std::string& txn_name);
+    void remove(gaia::common::gaia_id_t id_to_remove);
 
     /**
-     * Append a rollback marker to the log.
+     * Flush rocksdb memory buffer to disk as an SST file.
      */
-    void append_wal_rollback_marker(const std::string& txn_name);
+    void flush();
 
     /**
      * Destroy the persistent store.
      */
     void destroy_persistent_store();
+
+    /**
+     * Get custom key. Used to retain a gaia counter across restarts.
+     */
+    uint64_t get_value(const char* key);
+
+    /**
+     * Update custom key's value. Used to retain gaia counter across restarts.
+     */
+    void update_value(const char* key, uint64_t value_to_write);
+
+    static constexpr char c_data_dir_command_flag[] = "--data-dir";
+    static constexpr char c_last_checkpointed_commit_ts_key[] = "gaia_last_checkpointed_commit_ts_key";
+    static constexpr char c_last_processed_log_num_key[] = "gaia_last_processed_log_num_key";
+    static constexpr char c_persistent_store_dir_name[] = "/data";
 
 private:
     gaia::db::counters_t* m_counters = nullptr;

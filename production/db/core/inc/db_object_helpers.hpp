@@ -7,13 +7,18 @@
 
 #include <cstring>
 
+#include <map>
+
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 #include "db_hash_map.hpp"
 #include "db_internal_types.hpp"
+#include "memory_types.hpp"
+#include "persistence_types.hpp"
 
 namespace gaia
 {
@@ -70,6 +75,54 @@ inline db_object_t* id_to_ptr(common::gaia_id_t id)
         locator_exists(locator),
         "An invalid locator was returned by db_hash_map::find()!");
     return locator_to_ptr(locator);
+}
+
+inline void populate_unique_offsets(
+    read_record_t* record,
+    std::map<common::gaia_id_t, uint8_t*>* id_to_offset,
+    bool is_recovery)
+{
+    ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
+    auto payload_ptr = reinterpret_cast<uint8_t*>(record->payload);
+    auto end = reinterpret_cast<uint8_t*>(record) + record->header.payload_size - (sizeof(common::gaia_id_t) * record->header.count);
+
+    // Iterate records and find offsets to unique objects.
+    while (payload_ptr < end)
+    {
+        auto obj_ptr = reinterpret_cast<db_object_t*>(payload_ptr);
+
+        ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
+        ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
+
+        size_t allocation_size = ((obj_ptr->payload_size + 2 * sizeof(db_object_t) + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
+
+        ASSERT_INVARIANT(allocation_size > 0 && allocation_size % gaia::db::memory_manager::c_slot_size == 0, "Invalid allocation size.");
+
+        if (is_recovery)
+        {
+            auto locator = gaia::db::db_hash_map::find(obj_ptr->id);
+            if (locator_exists(locator))
+            {
+                // Move onto next gaia object.
+                payload_ptr += allocation_size;
+                continue;
+            }
+        }
+
+        if (id_to_offset->count(obj_ptr->id) == 0)
+        {
+            // Offset doesn't exist.
+            id_to_offset->insert(std::pair(obj_ptr->id, reinterpret_cast<uint8_t*>(payload_ptr)));
+        }
+        else
+        {
+            // Offset exists. Update it.
+            auto itr = id_to_offset->find(obj_ptr->id);
+            itr->second = reinterpret_cast<uint8_t*>(payload_ptr);
+        }
+
+        payload_ptr += allocation_size;
+    }
 }
 
 } // namespace db

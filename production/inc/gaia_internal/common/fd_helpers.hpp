@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <limits>
 #include <ostream>
 #include <stdexcept>
 
@@ -141,7 +142,7 @@ inline size_t read_fd_at_offset(
     return bytes_read;
 }
 
-inline int make_eventfd()
+inline int make_eventfd(int flags = EFD_NONBLOCK | EFD_SEMAPHORE)
 {
     // Create eventfd shutdown event.
     // Linux is non-POSIX-compliant and sometimes marks an fd as readable
@@ -159,35 +160,37 @@ inline int make_eventfd()
     // the largest possible value to the eventfd to ensure that it is never
     // decremented to zero, no matter how many threads read (and decrement) the
     // value.
-    int eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+    int eventfd = ::eventfd(0, flags);
     if (eventfd == -1)
     {
         int err = errno;
-        const char* reason = ::explain_eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+        const char* reason = ::explain_eventfd(0, flags);
         throw system_error(reason, err);
     }
     return eventfd;
 }
 
-inline void signal_eventfd(int eventfd)
+inline void signal_eventfd(int eventfd, uint64_t efd_value = 0)
 {
-    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
+
+    auto efd_counter_val = (efd_value > 0) ? efd_value : c_max_semaphore_count;
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     // Signal the eventfd by writing a nonzero value.
     // This value is large enough that no thread will
     // decrement it to zero, so every waiting thread
     // should see a nonzero value.
-    ssize_t bytes_written = ::write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
+    ssize_t bytes_written = ::write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
     if (bytes_written == -1)
     {
         int err = errno;
-        const char* reason = ::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
+        const char* reason = ::explain_write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
         throw system_error(reason, err);
     }
-    ASSERT_POSTCONDITION(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
+    ASSERT_POSTCONDITION(bytes_written == sizeof(efd_counter_val), "Failed to fully write data!");
 }
 
-inline void consume_eventfd(int eventfd)
+inline void consume_eventfd(int eventfd, bool skip_value_check = false, size_t val_to_expect = 1)
 {
     // We should always read the value 1 from a semaphore eventfd.
     uint64_t val;
@@ -199,7 +202,11 @@ inline void consume_eventfd(int eventfd)
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");
-    ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
+
+    if (!skip_value_check)
+    {
+        ASSERT_POSTCONDITION(val == val_to_expect, "Unexpected value!");
+    }
 }
 
 } // namespace common

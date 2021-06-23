@@ -435,9 +435,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     end_session();
 }
 
-// TODO (Mihir) Validate gaia_id is not recycled post crash.
-
-TEST_F(recovery_test, reference_update_test)
+TEST_F(recovery_test, single_write_and_recover_test)
 {
     s_server.start();
     begin_session();
@@ -517,6 +515,22 @@ TEST_F(recovery_test, reference_update_test)
     ASSERT_EQ(phone_list.begin(), phone_list.end());
     commit_transaction();
     end_session();
+}
+
+TEST_F(recovery_test, basic_correctness_test)
+{
+    // Basic correctness test.
+    ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
+    ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
+}
+
+TEST_F(recovery_test, load_and_recover_test)
+{
+    // Load & Recover test - with data size less than write buffer size;
+    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
+    // Sigkill server.
+    const uint64_t load_size = 0.1 * 1024 * 1024;
+    load_modify_recover_test(load_size, 2, true);
 }
 
 TEST_F(recovery_test, reference_create_delete_test_new)
@@ -691,21 +705,7 @@ TEST_F(recovery_test, reference_update_test_new)
     end_session();
 }
 
-TEST_F(recovery_test, basic_correctness_test)
-{
-    // Basic correctness test.
-    ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
-    ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
-}
-
-TEST_F(recovery_test, load_and_recover_test)
-{
-    // Load & Recover test - with data size less than write buffer size;
-    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
-    // Sigkill server.
-    const uint64_t load_size = 0.1 * 1024 * 1024;
-    load_modify_recover_test(load_size, 2, true);
-}
+// TODO (Mihir) Validate gaia_id is not recycled post crash.
 
 TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
 {
