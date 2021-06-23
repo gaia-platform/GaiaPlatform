@@ -33,11 +33,6 @@ public:
     // Constants for accessing fds in arrays of fds, for different server responses.
     static const int c_index_stream_socket = 0;
 
-    static const int c_index_locators = 0;
-    static const int c_index_counters = 1;
-    static const int c_index_data = 2;
-    static const int c_index_id_index = 3;
-
 public:
     client_messenger_t() = default;
     ~client_messenger_t() = default;

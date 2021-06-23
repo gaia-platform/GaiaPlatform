@@ -41,8 +41,6 @@ set_target_properties(gaia_rules PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_include_directories(gaia_rules PUBLIC ${GAIA_EVENT_MANAGER_PUBLIC_INCLUDES})
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES})
 target_link_libraries(gaia_rules PRIVATE gaia_direct gaia_catalog gaia_triggers)
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The rules integration and system init tests need gaia and logger configuration files.
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")

@@ -17,18 +17,17 @@
 /////////////////////////////////////////////
 
 #include "clang/AST/Decl.h"
+
 using namespace clang;
 
-
-
-RulesetDecl *RulesetDecl::Create(ASTContext &C, DeclContext *DC,
-    SourceLocation StartLoc, SourceLocation IdLoc, IdentifierInfo *Id)
+RulesetDecl* RulesetDecl::Create(
+    ASTContext& C, DeclContext* DC,
+    SourceLocation StartLoc, SourceLocation IdLoc, IdentifierInfo* Id)
 {
     return new (C, DC) RulesetDecl(C, DC, StartLoc, IdLoc, Id);
 }
 
-RulesetDecl *RulesetDecl::CreateDeserialized(ASTContext &C, unsigned ID)
+RulesetDecl* RulesetDecl::CreateDeserialized(ASTContext& C, unsigned ID)
 {
-    return new (C, ID) RulesetDecl(C, nullptr, SourceLocation(), SourceLocation(),
-        nullptr);
+    return new (C, ID) RulesetDecl(C, nullptr, SourceLocation(), SourceLocation(), nullptr);
 }

@@ -30,7 +30,7 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             }
             if (create_stmt->type == ddl::create_type_t::create_table)
             {
-                auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
+                auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(stmt.get());
                 create_table(create_table_stmt->database, create_table_stmt->name, create_table_stmt->fields, throw_on_exist);
             }
             else if (create_stmt->type == ddl::create_type_t::create_database)
@@ -39,7 +39,7 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             }
             else if (create_stmt->type == ddl::create_type_t::create_relationship)
             {
-                auto create_relationship_stmt = dynamic_cast<ddl::create_relationship_t*>(create_stmt);
+                auto create_relationship_stmt = dynamic_cast<ddl::create_relationship_t*>(stmt.get());
                 create_relationship(
                     create_relationship_stmt->name,
                     create_relationship_stmt->relationship.first,
@@ -48,7 +48,7 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             }
             else if (create_stmt->type == ddl::create_type_t::create_index)
             {
-                auto create_index_stmt = dynamic_cast<ddl::create_index_t*>(create_stmt);
+                auto create_index_stmt = dynamic_cast<ddl::create_index_t*>(stmt.get());
                 create_index(
                     create_index_stmt->name,
                     create_index_stmt->unique_index,
@@ -58,17 +58,17 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
                     create_index_stmt->index_fields,
                     throw_on_exist);
             }
-            else if (stmt->is_type(ddl::statement_type_t::drop))
+        }
+        else if (stmt->is_type(ddl::statement_type_t::drop))
+        {
+            auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
+            if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
-                if (drop_stmt->type == ddl::drop_type_t::drop_table)
-                {
-                    drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
-                }
-                else if (drop_stmt->type == ddl::drop_type_t::drop_database)
-                {
-                    drop_database(drop_stmt->name, !drop_stmt->if_exists);
-                }
+                drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
+            }
+            else if (drop_stmt->type == ddl::drop_type_t::drop_database)
+            {
+                drop_database(drop_stmt->name, !drop_stmt->if_exists);
             }
         }
         else if (stmt->is_type(ddl::statement_type_t::use))

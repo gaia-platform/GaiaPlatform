@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 

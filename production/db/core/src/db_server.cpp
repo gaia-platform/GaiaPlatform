@@ -179,8 +179,16 @@ void server_t::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
 
-    int send_fds[] = {s_shared_locators.fd(), s_shared_counters.fd(), s_shared_data.fd(), s_shared_id_index.fd()};
-    send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
+    // Collect fds.
+    int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
+    data_mapping_t::collect_fds(c_data_mappings, fd_list);
+
+    send_msg_with_fds(
+        s_session_socket,
+        &fd_list[0],
+        static_cast<size_t>(data_mapping_t::index_t::count_mappings),
+        builder.GetBufferPointer(),
+        builder.GetSize());
 }
 
 void server_t::handle_begin_txn(
@@ -589,11 +597,7 @@ void server_t::build_server_reply(
 
 void server_t::clear_shared_memory()
 {
-    s_shared_locators.close();
-    s_shared_counters.close();
-    s_shared_data.close();
-    s_shared_id_index.close();
-    s_local_snapshot_locators.close();
+    data_mapping_t::close(c_data_mappings);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -609,10 +613,12 @@ void server_t::init_shared_memory()
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
 
-    ASSERT_INVARIANT(!s_shared_locators.is_set(), "Locators memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_counters.is_set(), "Counters memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_data.is_set(), "Data memory should be unmapped!");
-    ASSERT_INVARIANT(!s_shared_id_index.is_set(), "ID index memory should be unmapped!");
+    // Validate shared memory mapping definitions and assert that mappings are not made yet.
+    data_mapping_t::validate(c_data_mappings, std::size(c_data_mappings));
+    for (auto data_mapping : c_data_mappings)
+    {
+        ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
+    }
 
     // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
     //
@@ -623,10 +629,7 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
-    s_shared_locators.create(gaia_fmt::format("{}{}", c_gaia_mem_locators_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_counters.create(gaia_fmt::format("{}{}", c_gaia_mem_counters_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_data.create(gaia_fmt::format("{}{}", c_gaia_mem_data_prefix, s_server_conf.instance_name()).c_str());
-    s_shared_id_index.create(gaia_fmt::format("{}{}", c_gaia_mem_id_index_prefix, s_server_conf.instance_name()).c_str());
+    data_mapping_t::create(c_data_mappings, s_server_conf.instance_name().c_str());
 
     init_memory_manager();
 

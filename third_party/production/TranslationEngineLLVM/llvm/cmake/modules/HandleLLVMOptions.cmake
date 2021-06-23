@@ -730,6 +730,13 @@ if(LLVM_USE_SPLIT_DWARF)
   add_definitions("-gsplit-dwarf")
 endif()
 
+# Turn on -Wl,--gdb-index if requested and supported
+if (LLVM_USE_GDB_INDEX AND
+    (LLVM_USE_LINKER STREQUAL "gold" OR LLVM_USE_LINKER STREQUAL "lld"))
+  append("-ggnu-pubnames" CMAKE_CXX_FLAGS)
+  append("-Wl,--gdb-index" CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
+endif()
+
 add_definitions( -D__STDC_CONSTANT_MACROS )
 add_definitions( -D__STDC_FORMAT_MACROS )
 add_definitions( -D__STDC_LIMIT_MACROS )
