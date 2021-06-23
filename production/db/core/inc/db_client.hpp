@@ -92,6 +92,15 @@ private:
 
     thread_local static inline int s_session_socket = -1;
 
+    // A list of data mappings that we manage together.
+    // The order of declarations must be the order of data_mapping_t::index_t values!
+    thread_local static inline data_mapping_t s_data_mappings[] = {
+        {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix},
+        {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
+        {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+        {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+    };
+
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};

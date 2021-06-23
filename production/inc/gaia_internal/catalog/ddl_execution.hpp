@@ -58,17 +58,17 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
                     create_index_stmt->index_fields,
                     throw_on_exist);
             }
-            else if (stmt->is_type(ddl::statement_type_t::drop))
+        }
+        else if (stmt->is_type(ddl::statement_type_t::drop))
+        {
+            auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
+            if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
-                if (drop_stmt->type == ddl::drop_type_t::drop_table)
-                {
-                    drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
-                }
-                else if (drop_stmt->type == ddl::drop_type_t::drop_database)
-                {
-                    drop_database(drop_stmt->name, !drop_stmt->if_exists);
-                }
+                drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
+            }
+            else if (drop_stmt->type == ddl::drop_type_t::drop_database)
+            {
+                drop_database(drop_stmt->name, !drop_stmt->if_exists);
             }
         }
         else if (stmt->is_type(ddl::statement_type_t::use))

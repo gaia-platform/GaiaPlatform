@@ -96,6 +96,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     position uint16,
         //     deprecated bool,
         //     active bool,
+        //     unique bool,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -104,6 +105,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("position", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_field", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
@@ -761,9 +763,20 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field->length,
             data_field_position,
             false,
-            data_field->active);
+            data_field->active,
+            data_field->unique);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
+        // Create an unique range index for the unique field.
+        if (data_field->unique)
+        {
+            gaia_id_t index_id = gaia_index_t::insert_row(
+                string(table_name + '_' + field->name).c_str(),
+                true,
+                static_cast<uint8_t>(index_type_t::range),
+                {field_id});
+            gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+        }
         data_field_position++;
     }
     gaia::db::commit_transaction();
@@ -880,6 +893,17 @@ gaia_id_t ddl_executor_t::create_index(
         index_field_ids);
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+
+    // Creating an unique index on a single field automatically makes the field
+    // unique. Do nothing for multiple-field index creation because we do not
+    // support unique constraints for composite keys at the moment.
+    if (unique && index_field_ids.size() == 1)
+    {
+        auto field_writer = gaia_field_t::get(index_field_ids.front()).writer();
+        field_writer.unique = true;
+        field_writer.update_row();
+    }
+
     txn.commit();
     return index_id;
 }

@@ -97,7 +97,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O0 -g3")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O0")
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -108,10 +108,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   endif()
 
   if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Og -g3")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Og")
   endif()
 
-  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
   set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 endif()
 

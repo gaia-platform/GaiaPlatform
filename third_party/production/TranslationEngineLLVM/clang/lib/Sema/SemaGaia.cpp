@@ -16,13 +16,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
+#include "clang/Basic/Attributes.h"
 #include "clang/Basic/DiagnosticSema.h"
+#include "clang/Basic/PrettyStackTrace.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/GaiaCatalogFacade.hpp"
 #include "clang/Sema/Scope.h"
@@ -709,10 +710,9 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
+QualType Sema::getFieldType(std::string  fieldName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
-
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     auto pair = tagMapping.find(fieldName);
 

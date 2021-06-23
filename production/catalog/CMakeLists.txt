@@ -73,16 +73,22 @@ add_gtest(test_fdw_ddl_generation
   "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
-set(TEST_GAIA_GENERATE_INCLUDES
+set(TEST_GAIA_EXECUTION_INCLUDES
     ${GAIA_CATALOG_PUBLIC_INCLUDES}
     ${GAIA_CATALOG_PRIVATE_INCLUDES}
     ${GAIA_PROD_BUILD}/catalog/parser/generated
     ${PROJECT_SOURCE_DIR}/parser/inc
 )
 
+add_gtest(test_ddl_execution
+  "tests/test_ddl_execution.cpp"
+  "${TEST_GAIA_EXECUTION_INCLUDES}"
+  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test"
+  gaia_catalog)
+
 add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
-    "${TEST_GAIA_GENERATE_INCLUDES}"
+    "${TEST_GAIA_EXECUTION_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;edc_airport")
 
 add_subdirectory(gaiac)
