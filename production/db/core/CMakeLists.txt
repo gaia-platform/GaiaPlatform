@@ -259,7 +259,7 @@ add_gtest(test_multiple_server_instances
 add_gtest(test_async_disk_writer
   tests/test_async_disk_writer.cpp
   "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_REPO}/production/db/core/inc;${GAIA_INC};${FLATBUFFERS_INC}"
-  "gaia_common;persistence;${LIB_EXPLAIN};${LIB_CAP}")
+  "gaia_common;persistence;${LIB_EXPLAIN};${LIB_CAP};${CMAKE_DL_LIBS}")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp
