@@ -897,7 +897,7 @@ gaia_id_t ddl_executor_t::create_index(
     // Creating an unique index on a single field automatically makes the field
     // unique. Do nothing for multiple-filed index creation because we do not
     // support unique constraints for composite keys at the moment.
-    if (index_field_ids.size() == 1)
+    if (unique && index_field_ids.size() == 1)
     {
         auto field_writer = gaia_field_t::get(index_field_ids.front()).writer();
         field_writer.unique = true;

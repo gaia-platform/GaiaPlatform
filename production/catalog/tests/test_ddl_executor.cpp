@@ -569,14 +569,24 @@ TEST_F(ddl_executor_test, list_indexes)
         "isbn_idx", true, gaia::catalog::index_type_t::hash, "", "book", {"isbn"});
 
     std::set<gaia_id_t> index_ids;
-    begin_transaction();
+    auto_transaction_t txn(false);
     for (const auto& idx : gaia_table_t::get(table_id).gaia_indexes())
     {
         index_ids.insert(idx.gaia_id());
     }
-    commit_transaction();
 
     ASSERT_NE(index_ids.find(title_idx_id), index_ids.end());
     ASSERT_NE(index_ids.find(author_idx_id), index_ids.end());
     ASSERT_NE(index_ids.find(isbn_idx_id), index_ids.end());
+
+    vector<bool> unique_settings;
+    transform(
+        gaia_table_t::get(table_id).gaia_fields().begin(),
+        gaia_table_t::get(table_id).gaia_fields().end(),
+        back_inserter(unique_settings),
+        [](const auto& field) -> bool
+        { return field.unique(); });
+
+    vector<bool> expected_unique_settings{true, false, false};
+    ASSERT_EQ(unique_settings, expected_unique_settings);
 }
