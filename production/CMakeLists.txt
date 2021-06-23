@@ -49,9 +49,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 # including third-party packages.
 add_compile_options(-stdlib=libc++)
 add_link_options(-stdlib=libc++)
-# We want everything in the build to use lld as the linker,
-# including third-party packages.
-add_link_options(-fuse-ld=lld)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -66,7 +63,7 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
 endif(CCACHE_FOUND)
 
-# Default compiler/linker flags.
+# Default compiler/linker flags for Gaia targets.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
 
@@ -95,7 +92,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # Don't omit debug symbols from any built binaries.
   add_compile_options(-fno-limit-debug-info)
 
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf")
   set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
 
   # Enable ASan by default in debug builds.

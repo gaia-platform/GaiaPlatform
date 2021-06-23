@@ -18,45 +18,45 @@ cmake_minimum_required(VERSION 3.16)
 # - GAIA_DEFAULT_RULES_GENERATED_DIR: The translate_ruleset() function puts the generated rules code
 #     in this directory if the OUTPUT_DIR param is not specified.
 
-if (NOT DEFINED GAIA_ROOT)
+if(NOT DEFINED GAIA_ROOT)
   set(GAIA_ROOT "/opt/gaia")
 endif()
 
-if (NOT DEFINED GAIA_INC)
+if(NOT DEFINED GAIA_INC)
   set(GAIA_INC "${GAIA_ROOT}/include")
 endif()
 
-if (NOT DEFINED GAIA_BIN)
+if(NOT DEFINED GAIA_BIN)
   set(GAIA_BIN "${GAIA_ROOT}/bin")
 endif()
 
-if (NOT DEFINED GAIA_LIB_DIR)
+if(NOT DEFINED GAIA_LIB_DIR)
   set(GAIA_LIB_DIR "${GAIA_ROOT}/lib")
 endif()
 
-if (NOT DEFINED GAIA_GAIAC_CMD)
+if(NOT DEFINED GAIA_GAIAC_CMD)
   set(GAIA_GAIAC_CMD "${GAIA_BIN}/gaiac")
 endif()
 
-if (NOT DEFINED GAIA_GAIAT_CMD)
+if(NOT DEFINED GAIA_GAIAT_CMD)
   set(GAIA_GAIAT_CMD "${GAIA_BIN}/gaiat")
 endif()
 
 find_library(GAIA_LIB gaia)
 if(NOT GAIA_LIB)
-  if (NOT EXISTS ${GAIA_LIB_DIR}/libgaia.so)
+  if(NOT EXISTS ${GAIA_LIB_DIR}/libgaia.so)
     message(FATAL_ERROR "${GAIA_LIB_DIR}/libgaia.so not found")
   endif()
   add_library(gaia SHARED IMPORTED GLOBAL)
   set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB_DIR}/libgaia.so)
 endif()
 
-if (NOT DEFINED GAIA_DEFAULT_EDC_GENERATED_DIR)
+if(NOT DEFINED GAIA_DEFAULT_EDC_GENERATED_DIR)
   set(GAIA_DEFAULT_EDC_GENERATED_DIR ${CMAKE_BINARY_DIR}/gaia_generated/edc)
   file(MAKE_DIRECTORY ${GAIA_DEFAULT_EDC_GENERATED_DIR})
 endif()
 
-if (NOT DEFINED GAIA_DEFAULT_RULES_GENERATED_DIR)
+if(NOT DEFINED GAIA_DEFAULT_RULES_GENERATED_DIR)
   set(GAIA_DEFAULT_RULES_GENERATED_DIR ${CMAKE_BINARY_DIR}/gaia_generated/rules)
   file(MAKE_DIRECTORY ${GAIA_DEFAULT_RULES_GENERATED_DIR})
 endif()
@@ -121,13 +121,13 @@ function(process_schema)
   set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
   set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
 
-  if (DEFINED ARG_INSTANCE_NAME)
+  if(DEFINED ARG_INSTANCE_NAME)
     set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
   endif()
 
   message(STATUS "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
 
-  if (DEFINED ARG_DDL_FILE)
+  if(DEFINED ARG_DDL_FILE)
     add_custom_command(
       COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
       OUTPUT ${EDC_HEADER_FILE}
@@ -233,7 +233,7 @@ function(translate_ruleset)
     string(APPEND GAIAT_INCLUDE_PATH "-I;${HEADER_DIR};")
   endforeach()
 
-  if (DEFINED ARG_INSTANCE_NAME)
+  if(DEFINED ARG_INSTANCE_NAME)
       set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
   endif()
 
