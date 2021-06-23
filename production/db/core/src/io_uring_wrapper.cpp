@@ -107,7 +107,7 @@ void io_uring_wrapper_t::close_all_files_in_batch()
     for (auto entry : file_fds)
     {
         int fd = entry.first;
-        std::cout << "FD = " << fd << std::endl;
+        // std::cout << "FD = " << fd << std::endl;
         auto cleanup = gaia::common::scope_guard::make_scope_guard([&]() { close_fd(fd); });
         ASSERT_INVARIANT(entry.second > 0, "Persistent log file size has to be greater than zero.");
         common::truncate_fd(fd, entry.second);

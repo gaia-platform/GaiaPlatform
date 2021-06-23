@@ -166,9 +166,9 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     ASSERT_INVARIANT(txn_crc > 0, "CRC cannot be zero.");
     header.crc = txn_crc;
 
-    std::cout << "DECISION HDR" << std::endl;
+    // std::cout << "DECISION HDR" << std::endl;
     auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
-    std::cout << "DECISIONS" << std::endl;
+    // std::cout << "DECISIONS" << std::endl;
     auto txn_decisions_ptr = async_disk_writer->copy_into_metadata_buffer(txn_decisions.data(), txn_decision_size, current_file->file_fd);
 
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
@@ -233,7 +233,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
-        std::cout << "CREATE TXN RECORD" << std::endl;
+        // std::cout << "CREATE TXN RECORD" << std::endl;
         // Finally make call.
         create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
     }
@@ -243,7 +243,7 @@ void persistent_log_handler_t::map_commit_ts_to_session_unblock_fd(gaia_txn_id_t
 {
     ASSERT_INVARIANT(session_unblock_fd > 0, "incorrect session unblock fd");
     async_disk_writer->map_commit_ts_to_session_unblock_fd(commit_ts, session_unblock_fd);
-    std::cout << "SAW FD = " << session_unblock_fd << std::endl;
+    // std::cout << "SAW FD = " << session_unblock_fd << std::endl;
 }
 
 void persistent_log_handler_t::validate_flushed_batch()
@@ -315,7 +315,7 @@ void persistent_log_handler_t::create_txn_record(
     ASSERT_INVARIANT(txn_crc > 0, "CRC cannot be zero.");
     header.crc = txn_crc;
 
-    std::cout << "ADD HEADER" << std::endl;
+    // std::cout << "ADD HEADER" << std::endl;
     auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
 
     // Update the first iovec entry with the header information.
@@ -323,7 +323,7 @@ void persistent_log_handler_t::create_txn_record(
     writes_to_submit.at(0).iov_len = sizeof(record_header_t);
 
     // Allocate space for deleted writes in helper buffer.
-    std::cout << "ADD DEL IDS" << std::endl;
+    // std::cout << "ADD DEL IDS" << std::endl;
     if (!deleted_ids.empty())
     {
         auto deleted_id_ptr = async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, current_file->file_fd);
@@ -361,6 +361,10 @@ void persistent_log_handler_t::recover_from_persistent_log(
         // The file name is just the log sequence number.
         log_files.push_back(std::stoi(file.path().filename()));
     }
+
+    std::cout << "RECOVERY: Number of logs" << log_files.size() << std::endl;
+
+    std::cout << "RECOVERY: Last processed" << last_processed_log_seq << std::endl;
 
     // Sort files in ascending order by file name.
     sort(log_files.begin(), log_files.end());
@@ -402,6 +406,8 @@ void persistent_log_handler_t::recover_from_persistent_log(
     {
         last_processed_log_seq = 0;
     }
+
+    std::cout << "==== RECOVERY DONE ====" << std::endl;
 }
 
 bool persistent_log_handler_t::write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode)
@@ -585,6 +591,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
     if (destination->header.crc == 0)
     {
+        std::cout << "HEADER CRC zero." << std::endl;
         if (it->recovery_mode == recovery_mode_t::fail_on_error)
         {
             throw write_ahead_log_error("Read log record with empty checksum value.");
@@ -617,6 +624,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
 
     if (crc != expected_crc)
     {
+        std::cout << "CRC mismatch." << std::endl;
         if (it->recovery_mode == recovery_mode_t::fail_on_error)
         {
             throw write_ahead_log_error("Record checksum match failed!");

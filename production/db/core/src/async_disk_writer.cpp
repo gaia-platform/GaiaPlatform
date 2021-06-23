@@ -112,7 +112,7 @@ void async_disk_writer_t::register_txn_durable_fn(std::function<void(gaia_txn_id
 // This function is only called post batch write completion.
 void async_disk_writer_t::perform_post_completion_maintenence()
 {
-    std::cout << "calling batch validation" << std::endl;
+    // std::cout << "calling batch validation" << std::endl;
     // Validate most recent async write batch.
     auto size_to_validate = in_flight_buffer->get_completion_count();
     for (size_t i = 0; i < size_to_validate; i++)
@@ -139,7 +139,7 @@ void async_disk_writer_t::perform_post_completion_maintenence()
     in_flight_buffer->close_all_files_in_batch();
 
     // Set durability flags.
-    std::cout << "validating batch decision size = " << in_flight_buffer->batch_decisions.size() << std::endl;
+    // std::cout << "validating batch decision size = " << in_flight_buffer->batch_decisions.size() << std::endl;
     for (auto entry : in_flight_buffer->batch_decisions)
     {
         s_txn_durable_fn(entry.first);
@@ -148,7 +148,7 @@ void async_disk_writer_t::perform_post_completion_maintenence()
 
         // Obtain session_unblock_efd to be able to signal it.
         // Signal to session threads so they can make progress.
-        std::cout << " Write SESSION unblock efd = " << itr->second << std::endl;
+        // std::cout << " Write SESSION unblock efd = " << itr->second << std::endl;
         signal_eventfd(itr->second, 1);
         ts_to_session_unblock_fd_map.erase(itr);
     }
@@ -198,11 +198,11 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
     // Additionally we supply a IOSQE_IO_LINK flag, so that the next operation in the queue is dependent on
     // the fsync operation.
     size_t in_prog_size = in_progress_buffer->count_unsubmitted_entries();
-    std::cout << "IN PROG SIZE DURING SUBMIT = " << in_prog_size << std::endl;
+    // std::cout << "IN PROG SIZE DURING SUBMIT = " << in_prog_size << std::endl;
     if (in_prog_size == 0)
     {
         // Nothing to submit; reset the flush efd that got burnt.
-        std::cout << "NOTHING TO SUBMIT - IN PROG DECISIONS = " << in_progress_buffer->batch_decisions.size() << std::endl;
+        // std::cout << "NOTHING TO SUBMIT - IN PROG DECISIONS = " << in_progress_buffer->batch_decisions.size() << std::endl;
         swap_buffers();
         signal_eventfd(flush_efd, 1);
         // signal_eventfd(validate_flush_efd, 1);
@@ -267,7 +267,7 @@ uint8_t* async_disk_writer_t::copy_into_metadata_buffer(void* source, size_t siz
     // Call submit synchronously once the metadata buffer is full.
     if (!metadata_buffer.has_enough_space(size))
     {
-        std::cout << "helper buffer ran out of space." << std::endl;
+        // std::cout << "helper buffer ran out of space." << std::endl;
         bool sync_submit = true;
         handle_submit(file_fd, sync_submit);
         metadata_buffer.clear();
@@ -288,12 +288,12 @@ size_t async_disk_writer_t::calculate_total_pwritev_size(const iovec* start, siz
     auto ptr = start;
 
     size_t to_return = 0;
-    std::cout << "IOVEC count = " << count << std::endl;
+    // std::cout << "IOVEC count = " << count << std::endl;
     for (size_t i = 1; i <= count; i++)
     {
         to_return += ptr->iov_len;
         ptr++;
-        std::cout << "Iter = " << i << std::endl;
+        // std::cout << "Iter = " << i << std::endl;
     }
     return to_return;
 }
@@ -306,7 +306,7 @@ void async_disk_writer_t::construct_pwritev(
     uring_op_t type)
 {
     auto required_size = sizeof(iovec) * writes_to_submit.size();
-    std::cout << "CONSTRUCT PWRITEV" << std::endl;
+    // std::cout << "CONSTRUCT PWRITEV" << std::endl;
     auto current_helper_ptr = copy_into_metadata_buffer(writes_to_submit.data(), required_size, file_fd);
 
     // Construct pwrites.

@@ -102,6 +102,7 @@ void persistent_store_manager::close()
 
 void persistent_store_manager::flush()
 {
+    std::cout << "FLUSHING MEMTABLE" << std::endl;
     m_rdb_internal->flush();
 }
 
@@ -110,6 +111,7 @@ void persistent_store_manager::update_value(const char* key, uint64_t value_to_w
     string_writer_t value;
     value.write_uint64(value_to_write);
     m_rdb_internal->put(key, value.to_slice());
+    std::cout << "UPDATE KEY " << std::endl;
 }
 
 void persistent_store_manager::put(gaia::db::db_object_t& object)
@@ -123,6 +125,7 @@ void persistent_store_manager::put(gaia::db::db_object_t& object)
         key.get_current_position() != 0 && value.get_current_position() != 0,
         "Failed to encode object.");
     m_rdb_internal->put(key.to_slice(), value.to_slice());
+    std::cout << "PUT KEY " << std::endl;
 }
 
 void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)
@@ -132,6 +135,7 @@ void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)
     key.write_uint64(id_to_remove);
     ASSERT_INVARIANT(key.get_current_position() != 0, "Failed to encode object.");
     m_rdb_internal->remove(key.to_slice());
+    std::cout << "REMOVE KEY" << std::endl;
 }
 
 /**
@@ -153,6 +157,7 @@ void persistent_store_manager::recover(gaia_txn_id_t latest_checkpointed_commit_
     gaia_id_t max_id = 0;
     gaia_type_t max_type_id = 0;
 
+    size_t count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         if (it->key().compare(c_last_checkpointed_commit_ts_key) == 0
@@ -171,12 +176,15 @@ void persistent_store_manager::recover(gaia_txn_id_t latest_checkpointed_commit_
         {
             max_id = recovered_object->id;
         }
+        count++;
     }
     // Check for any errors found during the scan
     m_rdb_internal->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
     m_counters->last_txn_id = latest_checkpointed_commit_ts;
+
+    std::cout << "OBJECTS RECOVERED = " << count << std::endl;
 
     // Ensure that other threads (with appropriate acquire barriers) immediately
     // observe the changed value. (This could be changed to a release barrier.)

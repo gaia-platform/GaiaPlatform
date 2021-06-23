@@ -103,7 +103,7 @@ public:
 private:
     static inline server_config_t s_server_conf{};
     // Todo: Make configurable.
-    static constexpr int64_t txn_group_timeout_ms = 5;
+    static constexpr int64_t txn_group_timeout_ms = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
