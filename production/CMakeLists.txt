@@ -91,19 +91,28 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
 endif()
 
 # Debug build-specific options.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   # Don't omit debug symbols from any built binaries.
   add_compile_options(-fno-limit-debug-info)
+  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
 
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O0 -g3")
+
+    # Enable ASan by default in debug builds.
+    set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
+
+    # Explicitly list all legal values for SANITIZER.
+    # (This will eventually include ASAN, MSAN, TSAN.)
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+  endif()
+
+  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Og -g3")
+  endif()
+
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -ftime-trace")
   set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
-
-  # Enable ASan by default in debug builds.
-  set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
-
-  # Explicitly list all legal values for SANITIZER.
-  # (This will eventually include ASAN, MSAN, TSAN.)
-  set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
 endif()
 
 # Sanitizer-specific compiler/linker flags.
@@ -146,8 +155,8 @@ if(DEFINED CACHE{SANITIZER})
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
-message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
+message(STATUS "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
+message(STATUS "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)

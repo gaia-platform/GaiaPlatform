@@ -34,7 +34,6 @@ TEST(random_test, gen_random_str)
     for (int i = c_min_str_len; i < c_max_str_len; ++i)
     {
         std::string rnd = gaia::common::gen_random_str(i);
-        std::cout << rnd << std::endl;
 
         ASSERT_EQ(rnd.size(), i);
 

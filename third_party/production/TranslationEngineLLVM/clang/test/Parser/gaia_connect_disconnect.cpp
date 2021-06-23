@@ -64,4 +64,3 @@ ruleset test_connect_disconnect_3
         farmer.incubators.Disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
     }
 }
-
