@@ -52,7 +52,7 @@ ruleset test96 : Table(farmer)
 ruleset test97 : Table(farmer)
 {
     {
-        if (farmer>-raised) // expected-error {{invalid operands to binary expression ('farmer__type' and 'int')}}
+        if (farmer>-raised) // expected-error {{invalid argument type 'farmer_raised__type' to unary expression}}
         {}
     }
 }
@@ -60,7 +60,7 @@ ruleset test97 : Table(farmer)
 ruleset test98 : Table(farmer)
 {
     {
-        if (farmer<-raised) // expected-error {{invalid operands to binary expression ('farmer__type' and 'int')}}
+        if (farmer<-raised) // expected-error {{invalid argument type 'farmer_raised__type' to unary expression}}
         {}
     }
 }
