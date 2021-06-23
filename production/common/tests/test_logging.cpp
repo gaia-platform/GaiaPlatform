@@ -60,3 +60,48 @@ TEST(logger_test, logger_api)
     // Sanity check that we are uninitialized now.
     verify_uninitialized_loggers();
 }
+
+void verify_log_levels(string log_config_path, bool trace_status, bool debug_status, bool info_status, bool warn_status, bool error_status, bool critical_status)
+{
+    gaia_log::initialize(log_config_path);
+
+    vector<gaia_log::logger_t> loggers = {
+        gaia_log::sys(),
+        gaia_log::catalog(),
+        gaia_log::rules(),
+        gaia_log::db(),
+        gaia_log::rules_stats(),
+        gaia_log::app()};
+
+    for (auto logger : loggers)
+    {
+        EXPECT_EQ(logger.trace(), trace_status);
+        EXPECT_EQ(logger.debug(), debug_status);
+        EXPECT_EQ(logger.info(), info_status);
+        EXPECT_EQ(logger.warn(), warn_status);
+        EXPECT_EQ(logger.error(), error_status);
+        EXPECT_EQ(logger.critical(), critical_status);
+    }
+
+    gaia_log::shutdown();
+}
+
+TEST(logger_test, is_log_level_enabled)
+{
+    // Trace is the deepest log level, so every log level must be active.
+    verify_log_levels("./logging_configs/log_trace.conf", true, true, true, true, true, true);
+
+    verify_log_levels("./logging_configs/log_debug.conf", false, true, true, true, true, true);
+
+    verify_log_levels("./logging_configs/log_info.conf", false, false, true, true, true, true);
+
+    verify_log_levels("./logging_configs/log_warn.conf", false, false, false, true, true, true);
+
+    verify_log_levels("./logging_configs/log_error.conf", false, false, false, false, true, true);
+
+    // Critical is the shallowest log level, so all other log levels must be inactive.
+    verify_log_levels("./logging_configs/log_critical.conf", false, false, false, false, false, true);
+
+    // All log levels should be inactive if the level is "off".
+    verify_log_levels("./logging_configs/log_off.conf", false, false, false, false, false, false);
+}

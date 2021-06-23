@@ -41,6 +41,19 @@ set_target_properties(gaia_common PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 # The logging unit test needs a logger configuration file.
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
+set(LOG_LEVEL_CONFIGS_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/tests/logging_configs")
+set(LOG_LEVEL_CONFIGS_BIN_DIR "${PROJECT_BINARY_DIR}/logging_configs")
+file(MAKE_DIRECTORY "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+
+# The logging_configs directory is for setting one log level per configuration file.
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_trace.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_debug.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_info.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_warn.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_error.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_critical.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+configure_file("${LOG_LEVEL_CONFIGS_SRC_DIR}/log_off.conf" "${LOG_LEVEL_CONFIGS_BIN_DIR}")
+
 # Populate the gaia_version file
 configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
 
