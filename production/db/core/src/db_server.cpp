@@ -517,7 +517,6 @@ void server_t::handle_request_stream(
     case request_data_t::table_scan:
     {
         auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-        auto id_generator = get_id_generator_for_type(type);
 
         start_stream_producer(server_socket, get_id_generator_for_type(type));
 
@@ -525,9 +524,9 @@ void server_t::handle_request_stream(
     }
     case request_data_t::index_scan:
     {
-        auto req = request->data_as_index_scan();
-        auto index_id = static_cast<gaia_id_t>(req->index_id());
-        auto txn_id = static_cast<gaia_txn_id_t>(req->txn_id());
+        auto request_data = request->data_as_index_scan();
+        auto index_id = static_cast<gaia_id_t>(request_data->index_id());
+        auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
 
         start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
 

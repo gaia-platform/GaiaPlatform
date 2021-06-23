@@ -73,9 +73,8 @@ public:
     // This returns a generator object for gaia_ids of a given type.
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
     get_id_generator_for_type(common::gaia_type_t type);
-
     static std::shared_ptr<common::iterators::generator_t<index::index_record_t>>
-    get_record_generator_for_index(common::gaia_id_t id, gaia_txn_id_t txn_id);
+    get_record_generator_for_index(common::gaia_id_t index_id, gaia_txn_id_t txn_id);
 
 private:
     // These fields have transaction lifetime.
@@ -143,7 +142,7 @@ private:
     static int get_session_socket(const std::string& socket_name);
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
-    static int get_cursor_socket_for_index(common::gaia_id_t index_id, gaia_txn_id_t txn_id);
+    static int get_record_cursor_socket_for_index(common::gaia_id_t index_id, gaia_txn_id_t txn_id);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.

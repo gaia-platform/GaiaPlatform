@@ -70,7 +70,7 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     return stream_socket;
 }
 
-int client_t::get_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id_t txn_id)
+int client_t::get_record_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id_t txn_id)
 {
     FlatBufferBuilder builder;
     auto index_scan_info = Createindex_scan_info_t(builder, index_id, txn_id);
@@ -248,9 +248,9 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 }
 
 std::shared_ptr<gaia::common::iterators::generator_t<index::index_record_t>>
-client_t::get_record_generator_for_index(gaia::common::gaia_id_t id, gaia_txn_id_t txn_id)
+client_t::get_record_generator_for_index(gaia::common::gaia_id_t index_id, gaia_txn_id_t txn_id)
 {
-    int stream_socket = get_cursor_socket_for_index(id, txn_id);
+    int stream_socket = get_record_cursor_socket_for_index(index_id, txn_id);
     auto cleanup_stream_socket = make_scope_guard([&]() {
         close_fd(stream_socket);
     });
