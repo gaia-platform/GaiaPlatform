@@ -12,19 +12,20 @@ GaiaPlatform - Main repository
 
 ## Environment requirements
 
-This repository is meant to be built with `clang-10`. To ensure `clang-10` use, add the following lines to your `.bashrc`.
+This repository is meant to be built with `clang-10`. To ensure `clang-10` use, add the following lines to your `.bashrc`:
 
 ```
 export CC=/usr/bin/clang-10
+export CPP=/usr/bin/clang-cpp-10
 export CXX=/usr/bin/clang++-10
 ```
 
 (As an aside, the upgrade from `clang-8` to `clang-10` was not driven because we needed features in `clang-10` but rather because the default clang version installed with `apt get install clang` on Ubuntu 20 will install version 10. If you need to continue to build with `clang-8` then that should work just fine.  Please be advised, however, that our TeamCity CI jobs for both Ubuntu 20 and Ubuntu 18.04 will use `clang-10` to build the product that we ship.)
 
-Additionally, the build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-10` executable. You can ensure this by either manually symlinking `/usr/bin/ld.lld` to the location of `ld.lld-10` on your system, or by running the following command on Debian-derived systems (such as Ubuntu), after installing the `lld-10` package:
+Additionally, the build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-10` executable. You can ensure this by installing the `lld-10` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
 
 ```
-sudo update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-10" 10
+export LDFLAGS=-fuse-ld=lld-10
 ```
 
 ## Folder structuring

@@ -7,11 +7,17 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-  && apt-get install -y clang-10 wget make \
+  && apt-get install -y \
+  wget \
+  make \
+  clang-10 \
+  lld-10 \
   && apt-get clean
 
 ENV CC=/usr/bin/clang-10
+ENV CPP=/usr/bin/clang-cpp-10
 ENV CXX=/usr/bin/clang++-10
+ENV LDFLAGS=-fuse-ld=lld-10
 
 # Install newer version of cmake than is available by default on Ubuntu 18.04.
 RUN mkdir ~/temp \

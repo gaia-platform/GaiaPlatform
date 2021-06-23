@@ -1,5 +1,5 @@
 [Unit]
-Description=Gaia Platform SE Server
+Description=Gaia Platform DB Server
 
 [Service]
 Type=simple
