@@ -153,7 +153,7 @@ void ddl_executor_t::bootstrap_catalog()
         // );
         create_relationship(
             "gaia_catalog_relationship_parent",
-            {c_catalog_db_name, "gaia_table", "outgoing_links", "catalog", "gaia_relationship", relationship_cardinality_t::many},
+            {c_catalog_db_name, "gaia_table", "outgoing_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "parent", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
         // create relationship gaia_catalog_relationship_child (
@@ -162,7 +162,7 @@ void ddl_executor_t::bootstrap_catalog()
         // );
         create_relationship(
             "gaia_catalog_relationship_child",
-            {c_catalog_db_name, "gaia_table", "incoming_links", "catalog", "gaia_relationship", relationship_cardinality_t::many},
+            {c_catalog_db_name, "gaia_table", "incoming_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "child", "catalog", "gaia_table", relationship_cardinality_t::one},
             false);
     }

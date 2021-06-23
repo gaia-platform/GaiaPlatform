@@ -17,11 +17,8 @@
 #include <gaia_internal/catalog/gaia_catalog.h>
 
 /*
- * Contains classes that make it simpler to generate code from the
- * catalog types. Each Catalog class has its own "facade".
- * Eg. gaia_table_t -> table_facade_t.
- *
- * The only user of this class is edc_generator.
+ * Contains classes that make it simpler to access the Catalog
+ * types. The only user of this class is the tranlsation engine.
  */
 
 namespace clang
@@ -39,8 +36,6 @@ public:
     explicit table_facade_t(gaia::catalog::gaia_table_t table);
 
     std::string table_name() const;
-    std::string table_type() const;
-    std::string class_name() const;
     std::vector<field_facade_t> fields() const;
     std::vector<link_facade_t> outgoing_links() const;
 
@@ -56,13 +51,9 @@ public:
     explicit field_facade_t(gaia::catalog::gaia_field_t field)
         : m_field(std::move(field)){};
 
-    //    static std::vector<field_facade_t> from_field(std::string field_name);
-
     std::string field_name() const;
     QualType field_type(ASTContext& context) const;
     std::string table_name() const;
-    bool is_string() const;
-    bool is_vector() const;
 
 private:
     gaia::catalog::gaia_field_t m_field;
@@ -84,6 +75,11 @@ protected:
     bool m_is_from_parent;
 };
 
+/*
+ * Provides simplified access to some catalog information. This class does also provide some indexing
+ * capability on top of the catalog. This can go away once we have actual indexes (it may also be a
+ * classic example of premature optimization).
+ */
 class gaia_catalog_context_t
 {
 public:

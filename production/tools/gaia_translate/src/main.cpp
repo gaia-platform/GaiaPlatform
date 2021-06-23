@@ -2871,6 +2871,7 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(*compilation_database, source_files);
 
+    // Run the entire translation process within a single transaction.
     gaia::db::begin_session();
     gaia::db::begin_transaction();
 

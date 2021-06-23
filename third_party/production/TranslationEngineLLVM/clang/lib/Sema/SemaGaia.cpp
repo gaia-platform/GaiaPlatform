@@ -48,6 +48,18 @@ static gaia_catalog::gaia_catalog_context_t get_gaia_context()
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
 
+/**
+ * When an ambiguous reference to a field is found prints a message in
+ * the that shows where the source of the ambiguity is (tables, fields, links):
+ *
+ * statements_tests.ruleset:12:15: error: Ambiguous reference to field 'incubator'.
+ *      if (incubator)
+ *          ^
+ * statements_tests.ruleset:12:15: note: Table: 'incubator'.
+ * statements_tests.ruleset:12:15: note: Link: 'sensor.incubator'.
+ * statements_tests.ruleset:12:15: note: Link: 'actuator.incubator'.
+ * statements_tests.ruleset:12:15: note: Link: 'raised.incubator'.
+ */
 void printAmbiguousFieldReferenceDiagnostic(
     Sema& sema,
     SourceLocation loc,
@@ -508,9 +520,17 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorC
 
     DS.Finish(*this, getPrintingPolicy());
 
-    D.AddTypeInfo(DeclaratorChunk::getFunction(true, false, loc, Params, NumParams, loc, loc, true, loc,
-                                               /*MutableLoc=*/loc, EST_None, SourceRange(), nullptr, nullptr, 0, nullptr, nullptr, None, loc, loc, D, TypeResult(), &DS),
-                  std::move(attrs), loc);
+    D.AddTypeInfo(
+        DeclaratorChunk::getFunction(
+            true, false, loc, Params,
+            NumParams, loc, loc,
+            true, loc,
+            /*MutableLoc=*/loc,
+            EST_None, SourceRange(), nullptr,
+            nullptr, 0, nullptr,
+            nullptr, None, loc,
+            loc, D, TypeResult(), &DS),
+        std::move(attrs), loc);
 
     DeclarationNameInfo NameInfo = GetNameForDeclarator(D);
 
@@ -549,6 +569,8 @@ QualType Sema::getRuleContextType(SourceLocation loc)
 QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
+    // The table name is necessary because there could me multiple links in multiple tables
+    // with the same name.
     std::string linkTypeName;
     linkTypeName
         .append(from_table)
@@ -710,7 +732,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType(std::string  fieldName, SourceLocation loc)
+QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);

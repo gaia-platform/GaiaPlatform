@@ -39,16 +39,6 @@ std::string table_facade_t::table_name() const
     return m_table.name();
 }
 
-std::string table_facade_t::table_type() const
-{
-    return std::to_string(m_table.type());
-}
-
-std::string table_facade_t::class_name() const
-{
-    return std::string(m_table.name()) + "_t";
-}
-
 std::vector<field_facade_t> table_facade_t::fields() const
 {
     return m_fields;
@@ -76,16 +66,6 @@ std::vector<link_facade_t> table_facade_t::outgoing_links() const
 std::string field_facade_t::field_name() const
 {
     return m_field.name();
-}
-
-bool field_facade_t::is_string() const
-{
-    return m_field.type() == static_cast<uint8_t>(::gaia::common::data_type_t::e_string);
-}
-
-bool field_facade_t::is_vector() const
-{
-    return m_field.repeated_count() != 1;
 }
 
 std::string field_facade_t::table_name() const
