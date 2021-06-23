@@ -15,6 +15,7 @@ RUN apt-get update \
   && apt-get clean
 
 ENV CC=/usr/bin/clang-10
+ENV CPP=/usr/bin/clang-cpp-10
 ENV CXX=/usr/bin/clang++-10
 ENV LDFLAGS=-fuse-ld=lld-10
 

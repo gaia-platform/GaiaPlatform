@@ -16,7 +16,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # Default compiler/linker flags.
-add_compile_options(-c -Wall -Wextra -stdlib=libc++ -ftime-trace)
+add_compile_options(-c -Wall -Wextra -stdlib=libc++)
 add_link_options(-stdlib=libc++)
 
 # Debug build-specific options.

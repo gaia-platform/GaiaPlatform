@@ -16,6 +16,7 @@ This repository is meant to be built with `clang-10`. To ensure `clang-10` use, 
 
 ```
 export CC=/usr/bin/clang-10
+export CPP=/usr/bin/clang-cpp-10
 export CXX=/usr/bin/clang++-10
 ```
 
