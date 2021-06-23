@@ -64,7 +64,7 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Default compiler/linker flags for Gaia targets.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3 -ftime-trace")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
 
 # LLVM and CLANG specific options.
@@ -77,7 +77,7 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   # LLD/libc++ are necessary for MSan.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
   set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
     # This makes debugger startup faster.
@@ -88,19 +88,30 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
 endif()
 
 # Debug build-specific options.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   # Don't omit debug symbols from any built binaries.
   add_compile_options(-fno-limit-debug-info)
 
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf")
-  set(GAIA_LINK_FLAGS "-Wl,--gdb-index")
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf")
+  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -Wl,--gdb-index")
 
-  # Enable ASan by default in debug builds.
-  set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O0")
 
-  # Explicitly list all legal values for SANITIZER.
-  # (This will eventually include ASAN, MSAN, TSAN.)
-  set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+    # Enable ASan by default in debug builds.
+    set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
+
+    # Explicitly list all legal values for SANITIZER.
+    # (This will eventually include ASAN, MSAN, TSAN.)
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+  endif()
+
+  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Og")
+  endif()
+else()
+  # Set the maximum optimization level for release builds.
+  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O3")
 endif()
 
 # Sanitizer-specific compiler/linker flags.

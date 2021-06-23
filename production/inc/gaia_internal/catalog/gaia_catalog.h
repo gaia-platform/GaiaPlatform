@@ -271,7 +271,7 @@ class gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_f
 public:
     gaia_field_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active);
+    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_field, gaia_field_t> list();
     const char* name() const;
     uint8_t type() const;
@@ -279,6 +279,7 @@ public:
     uint16_t position() const;
     bool deprecated() const;
     bool active() const;
+    bool unique() const;
     gaia_table_t table() const;
 
     template<class unused_t>
@@ -290,6 +291,7 @@ public:
         static gaia::direct_access::expression_t<gaia_field_t, uint16_t> position;
         static gaia::direct_access::expression_t<gaia_field_t, bool> deprecated;
         static gaia::direct_access::expression_t<gaia_field_t, bool> active;
+        static gaia::direct_access::expression_t<gaia_field_t, bool> unique;
         static gaia::direct_access::expression_t<gaia_field_t, gaia_table_t> table;
     };
     using expr = expr_<void>;
@@ -305,6 +307,7 @@ namespace gaia_field_expr {
     static auto& position = gaia_field_t::expr::position;
     static auto& deprecated = gaia_field_t::expr::deprecated;
     static auto& active = gaia_field_t::expr::active;
+    static auto& unique = gaia_field_t::expr::unique;
     static auto& table = gaia_field_t::expr::table;
 };
 
@@ -315,6 +318,7 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, uint16_
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, uint16_t> gaia_field_t::expr_<unused_t>::position{&gaia_field_t::position};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::deprecated{&gaia_field_t::deprecated};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::active{&gaia_field_t::active};
+template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::unique{&gaia_field_t::unique};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, gaia_table_t> gaia_field_t::expr_<unused_t>::table{&gaia_field_t::table};
 
 

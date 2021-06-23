@@ -1,0 +1,4 @@
+# Disable the LLVM clang format to use the gaia one.
+# The Gaia formatting rules should be used only on gaia-only files,
+# Mixed clang/gaia files should follow the LLVM style.
+BasedOnStyle: LLVM
