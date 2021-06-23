@@ -1339,11 +1339,6 @@ void server_t::stream_producer_handler(
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
 
-    // Create local snapshot. Review: snapshot should be at the requested txn_id.
-    // This code should not be needed when the record list iterator moves to shared memory.
-    create_local_snapshot(false);
-    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-
     auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
 
     while (!producer_shutdown)
