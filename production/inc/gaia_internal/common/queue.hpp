@@ -112,7 +112,7 @@ protected:
     mpsc_queue_node_t<T>* dequeue_internal();
 
 protected:
-    std::atomic<mpsc_queue_node_t<T>*> volatile m_head;
+    std::atomic<mpsc_queue_node_t<T>*> m_head;
     mpsc_queue_node_t<T>* m_tail;
 
     // The queue structure is guaranteed to never actually be empty
