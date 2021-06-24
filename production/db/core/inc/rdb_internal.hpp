@@ -46,7 +46,7 @@ public:
 
     void remove(const rocksdb::Slice& key);
 
-    void get(const rocksdb::Slice& key, rocksdb::Slice& value);
+    void get(const rocksdb::Slice& key, std::string& value);
 
 private:
     std::unique_ptr<rocksdb::DB> m_db;

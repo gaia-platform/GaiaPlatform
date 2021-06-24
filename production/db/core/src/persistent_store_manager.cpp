@@ -84,7 +84,7 @@ void persistent_store_manager::open()
 
 uint64_t persistent_store_manager::get_value(const std::string& key)
 {
-    rocksdb::Slice value;
+    std::string value;
     m_rdb_internal->get(key, value);
     gaia::db::persistence::string_reader_t value_reader(value);
 
@@ -111,27 +111,9 @@ void persistent_store_manager::flush()
 
 void persistent_store_manager::update_value(const std::string& key_to_write, uint64_t value_to_write)
 {
-    // string_writer_t key;
     string_writer_t value;
-    // key.write(key_to_write.c_str(), key_to_write.size());
-    std::string x = "hoo";
-    value.write(x.c_str(), x.size());
-    // string_reader_t reader(value.to_slice());
-    // uint64_t written;
-    // reader.read_uint64(written);
-    // ASSERT_INVARIANT(written == 100, "hi");
-    // ASSERT_INVARIANT(
-    //     key.get_current_position() != 0 && value.get_current_position() != 0,
-    //     "Failed to encode object.");
+    value.write_uint64(value_to_write);
     m_rdb_internal->put(key_to_write, value.to_slice());
-
-    auto to_return = rocksdb::Slice();
-    m_rdb_internal->get(key_to_write, to_return);
-    string_reader_t reader2(to_return);
-    uint64_t hello = 1;
-    auto y = reader2.read(x.size());
-    string s(y);
-    assert(s == x);
 }
 
 void persistent_store_manager::put(gaia::db::db_object_t& object)
