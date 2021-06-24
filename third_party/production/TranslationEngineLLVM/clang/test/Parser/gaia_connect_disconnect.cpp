@@ -31,11 +31,16 @@ ruleset test_connect_disconnect_1
     }
 }
 
-ruleset test_connect_disconnect_2
+ruleset test_connect_disconnect_invalid_syntax
 {
-    // We do not check the parameters passed to connect/disconnect at parse time
-    // because we don't have access to the EDC types.
-    // The check happens inside gaiat. This test just show this behavior.
+    // This is an invalid syntax. Connect()/Disconnect() are supposed to
+    // take EDC instances as parameters. We can't enforce this constraint
+    // in clang because we don't have access to the EDC types. The check
+    // will likely happen inside gaiat.
+    //
+    // This test just shows an "incorrect" behavior.
+    // Greg mentioned there are ways to make the check within SemaGaia.cpp
+    // if/when this will happen we can change this test to look for errors.
     OnInsert(farmer)
     {
         farmer.Connect();

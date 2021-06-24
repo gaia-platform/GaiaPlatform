@@ -53,7 +53,7 @@ using namespace clang;
 using namespace clang::driver;
 using namespace llvm::opt;
 
-// Used created before running ExecuteCC1Tool to run the entire translation
+// Used before running ExecuteCC1Tool to run the entire translation
 // process within a single transaction.
 class db_monitor_t
 {

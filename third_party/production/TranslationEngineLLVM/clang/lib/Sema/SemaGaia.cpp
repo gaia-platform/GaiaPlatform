@@ -796,7 +796,7 @@ QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTableAttr* tableAttr = rulesetDecl->getAttr<RulesetTableAttr>();
 
-    // There is no Table declaration, being the name non-unique it is an ambiguous reference.
+    // This is an ambiguous because the field name is not unique and there is not Table declaration.
     if (tableAttr == nullptr)
     {
         printAmbiguousFieldReferenceDiagnostic(
