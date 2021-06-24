@@ -53,6 +53,14 @@ atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
 // When an employee is inserted insert an address.
+void rule_insert(const rule_context_t* context)
+{
+    employee_t e = employee_t::get(context->record);
+    EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
+    EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
+    g_wait_for_count--;
+}
+
 void rule_insert_address(const rule_context_t* context)
 {
     employee_t e = employee_t::get(context->record);
@@ -122,13 +130,15 @@ void rule_field_phone_type(const rule_context_t* context)
     g_wait_for_count--;
 }
 
-void rule_delete(const rule_context_t* context)
-{
-    employee_t d = employee_t::get(context->record);
-    EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
-    EXPECT_THROW(d.delete_row(), invalid_object_id);
-    g_wait_for_count--;
-}
+// TODO[GAIAPLAT-445]: When we determine how we want to surface the deleted
+// row event then we can re-instate these tests
+// void rule_delete(const rule_context_t* context)
+// {
+//     employee_t d = employee_t::get(context->record);
+//     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
+//     EXPECT_THROW(d.delete_row(), invalid_object_id);
+//     g_wait_for_count--;
+// }
 
 void rule_sleep(const rule_context_t*)
 {
@@ -194,6 +204,12 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
+    void subscribe_insert()
+    {
+        rule_binding_t rule1{"ruleset", "rule_insert", rule_insert};
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
+    }
+
     void subscribe_insert_chain(bool commit_in_rule)
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
@@ -203,11 +219,11 @@ public:
         subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
-    void subscribe_delete()
-    {
-        rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
-    }
+    // void subscribe_delete()
+    // {
+    //     rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
+    //     subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
+    // }
 
     void subscribe_update()
     {
@@ -319,22 +335,21 @@ TEST_F(rule_integration_test, test_insert)
     }
 }
 
-TEST_F(rule_integration_test, test_delete)
-{
-    subscribe_delete();
-    {
-        rule_monitor_t monitor(1);
+// TEST_F(rule_integration_test, test_delete)
+// {
+//     subscribe_delete();
+//     {
+//         rule_monitor_t monitor(1);
 
-        auto_transaction_t txn(true);
-        employee_writer writer;
-        writer.name_first = c_name;
-        employee_t e = employee_t::get(writer.insert_row());
-        txn.commit();
-        e.delete_row();
-        txn.commit();
-    }
-}
-
+//         auto_transaction_t txn(true);
+//         employee_writer writer;
+//         writer.name_first = c_name;
+//         employee_t e = employee_t::get(writer.insert_row());
+//         txn.commit();
+//         e.delete_row();
+//         txn.commit();
+//     }
+// }
 TEST_F(rule_integration_test, test_update)
 {
     subscribe_update();
@@ -428,21 +443,22 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
 TEST_F(rule_integration_test, test_two_rules)
 {
     subscribe_update();
-    subscribe_delete();
+    subscribe_insert();
     {
-        rule_monitor_t monitor(2);
+        // Two inserts and one update
+        rule_monitor_t monitor(3);
         gaia_id_t first;
         gaia_id_t second;
 
         auto_transaction_t txn(true);
         employee_writer writer;
-        writer.name_first = "Ignore";
+        writer.name_first = "Marty";
         first = writer.insert_row();
-        writer.name_first = "Me Too";
+        writer.name_first = "McFly";
         second = writer.insert_row();
         txn.commit();
 
-        // Delete first row and update second.
+        // Update second record.
         employee_t::delete_row(first);
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
