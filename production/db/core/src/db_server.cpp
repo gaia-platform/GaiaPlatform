@@ -732,7 +732,7 @@ void server_t::recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts
 
             persistent_log_handler->set_persistent_log_sequence(log_seq);
 
-            // persistent_log_handler->destroy_persistent_log();
+            persistent_log_handler->destroy_persistent_log();
 
             persistent_log_handler->open_for_writes(s_validate_persistence_batch_eventfd);
         }
@@ -1047,7 +1047,7 @@ void server_t::write_to_persistent_log(bool sync_writes)
     {
         if (txn_decisions.size() > 0)
         {
-            std::cout << "create decision record" << std::endl;
+            // std::cout << "create decision record" << std::endl;
             persistent_log_handler->create_decision_record(txn_decisions);
         }
 

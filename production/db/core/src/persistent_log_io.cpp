@@ -159,6 +159,8 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     header.entry.index = current_file->file_num;
     header.entry.offset = begin_log_offset;
 
+    std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND SIZE = " << total_log_space_needed << std::endl;
+
     crc32_t txn_crc = 0;
     txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
     txn_crc = calculate_crc32(txn_crc, txn_decisions.data(), txn_decision_size);
@@ -195,7 +197,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
     }
 
-    std::cout << "TXN RECORD COUNT = " << log.data()->record_count << std::endl;
+    // std::cout << "TXN RECORD COUNT = " << log.data()->record_count << std::endl;
     // Obtain deleted_ids & obtain sorted offsets per chunk.
     for (size_t i = 0; i < log.data()->record_count; i++)
     {
@@ -206,7 +208,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         }
         else
         {
-            std::cout << " = Insert/update operation" << std::endl;
+            // std::cout << " = Insert/update operation" << std::endl;
             auto chunk = memory_manager->get_chunk_offset(get_address_offset(lr->new_offset));
             ASSERT_INVARIANT(map.find(chunk) != map.end(), "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
@@ -235,7 +237,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
-        std::cout << "CREATE TXN RECORD" << std::endl;
+        // std::cout << "CREATE TXN RECORD" << std::endl;
         // Finally make call.
         create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
     }
@@ -300,6 +302,8 @@ void persistent_log_handler_t::create_txn_record(
     header.record_type = type;
     header.entry.index = current_file->file_num;
     header.entry.offset = start_offset;
+
+    std::cout << "TXN RECORD OFFSET = " << start_offset << " AND SIZE = " << total_log_space_needed << std::endl;
 
     // Calculate CRC.
     auto txn_crc = calculate_crc32(0, &header, sizeof(record_header_t));
@@ -519,6 +523,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
     do
     {
         std::cout << "READING RECORD NUMBER = " << record_count << std::endl;
+
         auto current_record_ptr = it->cursor;
         record_size = update_cursor(it);
         if (record_size == 0)
@@ -531,14 +536,6 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
 
         read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
 
-        // Skip over records that have already been checkpointed.
-        if (record->header.txn_commit_ts <= last_checkpointed_commit_ts)
-        {
-            record_count++;
-            it->cursor += record->header.payload_size;
-            continue;
-        }
-
         if (record_size != 0 && record->header.record_type == record_type_t::decision)
         {
             std::cout << "Obtained decision record" << std::endl;
@@ -550,14 +547,23 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
             for (size_t i = 0; i < record->header.count; i++)
             {
                 auto decision_entry = reinterpret_cast<decision_record_entry_t*>(payload_ptr);
-                ASSERT_INVARIANT(txn_index.count(decision_entry->txn_commit_ts) > 0, "Transaction record should be written before the decision record.");
-                decision_index.insert(std::pair(decision_entry->txn_commit_ts, decision_entry->decision));
+                if (decision_entry->txn_commit_ts > last_checkpointed_commit_ts)
+                {
+                    ASSERT_INVARIANT(txn_index.count(decision_entry->txn_commit_ts) > 0, "Transaction record should be written before the decision record.");
+                    decision_index.insert(std::pair(decision_entry->txn_commit_ts, decision_entry->decision));
+                }
                 payload_ptr += sizeof(decision_record_entry_t);
             }
             record_count++;
         }
         else if (record_size != 0 && record->header.record_type == record_type_t::txn)
         {
+            // Skip over records that have already been checkpointed.
+            if (record->header.txn_commit_ts <= last_checkpointed_commit_ts)
+            {
+                record_count++;
+                continue;
+            }
             std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
             txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
             record_count++;
@@ -596,9 +602,11 @@ size_t persistent_log_handler_t::update_cursor(struct record_iterator_t* it)
 size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
 {
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
+    // std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin  << " AND RECORD = " << (uint8_t) destination->header.record_type << std::endl;
+
     if (destination->header.crc == 0)
     {
-        std::cout << "HEADER CRC zero." << std::endl;
+        // std::cout << "HEADER CRC zero." << std::endl;
         if (it->recovery_mode == recovery_mode_t::fail_on_error)
         {
             throw write_ahead_log_error("Read log record with empty checksum value.");
