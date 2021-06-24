@@ -28,6 +28,9 @@ using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
+const std::string persistent_store_manager::c_last_checkpointed_commit_ts_key = "gaia_last_checkpointed_commit_ts_key";
+const std::string persistent_store_manager::c_last_processed_log_num_key = "gaia_last_processed_log_num_key";
+
 persistent_store_manager::persistent_store_manager(
     gaia::db::counters_t* counters, gaia::db::locators_t* locators, std::string data_dir)
     : m_counters(counters), m_locators(locators)
@@ -79,15 +82,15 @@ void persistent_store_manager::open()
     m_rdb_internal->open_db(init_options);
 }
 
-uint64_t persistent_store_manager::get_value(const char* key)
+uint64_t persistent_store_manager::get_value(const std::string& key)
 {
     rocksdb::Slice value;
-    m_rdb_internal->get(key, &value);
+    m_rdb_internal->get(key, value);
     gaia::db::persistence::string_reader_t value_reader(value);
 
     if (value.empty())
     {
-        return 0;
+        return static_cast<uint64_t>(0);
     }
 
     uint64_t result;
@@ -106,12 +109,29 @@ void persistent_store_manager::flush()
     m_rdb_internal->flush();
 }
 
-void persistent_store_manager::update_value(const char* key, uint64_t value_to_write)
+void persistent_store_manager::update_value(const std::string& key_to_write, uint64_t value_to_write)
 {
+    // string_writer_t key;
     string_writer_t value;
-    value.write_uint64(value_to_write);
-    m_rdb_internal->put(key, value.to_slice());
-    std::cout << "UPDATE KEY " << std::endl;
+    // key.write(key_to_write.c_str(), key_to_write.size());
+    std::string x = "hoo";
+    value.write(x.c_str(), x.size());
+    // string_reader_t reader(value.to_slice());
+    // uint64_t written;
+    // reader.read_uint64(written);
+    // ASSERT_INVARIANT(written == 100, "hi");
+    // ASSERT_INVARIANT(
+    //     key.get_current_position() != 0 && value.get_current_position() != 0,
+    //     "Failed to encode object.");
+    m_rdb_internal->put(key_to_write, value.to_slice());
+
+    auto to_return = rocksdb::Slice();
+    m_rdb_internal->get(key_to_write, to_return);
+    string_reader_t reader2(to_return);
+    uint64_t hello = 1;
+    auto y = reader2.read(x.size());
+    string s(y);
+    assert(s == x);
 }
 
 void persistent_store_manager::put(gaia::db::db_object_t& object)

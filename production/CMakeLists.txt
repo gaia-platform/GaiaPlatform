@@ -144,13 +144,13 @@ if(DEFINED CACHE{SANITIZER})
 
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     # Enable ASan on all targets because libc++ requires it to prevent false positives.
-    add_compile_options(-fsanitize=address)
-    add_link_options(-fsanitize=address)
+    #add_compile_options(-fsanitize=address)
+    #add_link_options(-fsanitize=address)
 
     # Add UBSan as well as ASan to Gaia targets.
     # (They are compatible so we have no separate option for UBSan.)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=undefined")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=undefined")
+    #set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=undefined")
+    #set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=undefined")
   endif()
 endif()
 

@@ -195,6 +195,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
     }
 
+    std::cout << "TXN RECORD COUNT = " << log.data()->record_count << std::endl;
     // Obtain deleted_ids & obtain sorted offsets per chunk.
     for (size_t i = 0; i < log.data()->record_count; i++)
     {
@@ -205,6 +206,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         }
         else
         {
+            std::cout << " = Insert/update operation" << std::endl;
             auto chunk = memory_manager->get_chunk_offset(get_address_offset(lr->new_offset));
             ASSERT_INVARIANT(map.find(chunk) != map.end(), "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
@@ -233,7 +235,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
-        // std::cout << "CREATE TXN RECORD" << std::endl;
+        std::cout << "CREATE TXN RECORD" << std::endl;
         // Finally make call.
         create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
     }
@@ -512,9 +514,11 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
 void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts)
 {
     size_t record_size = 0;
+    size_t record_count = 1;
 
     do
     {
+        std::cout << "READING RECORD NUMBER = " << record_count << std::endl;
         auto current_record_ptr = it->cursor;
         record_size = update_cursor(it);
         if (record_size == 0)
@@ -530,6 +534,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
         // Skip over records that have already been checkpointed.
         if (record->header.txn_commit_ts <= last_checkpointed_commit_ts)
         {
+            record_count++;
             it->cursor += record->header.payload_size;
             continue;
         }
@@ -549,11 +554,13 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
                 decision_index.insert(std::pair(decision_entry->txn_commit_ts, decision_entry->decision));
                 payload_ptr += sizeof(decision_record_entry_t);
             }
+            record_count++;
         }
         else if (record_size != 0 && record->header.record_type == record_type_t::txn)
         {
             std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
             txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
+            record_count++;
         }
         else
         {

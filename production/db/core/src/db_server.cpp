@@ -723,6 +723,7 @@ void server_t::recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts
 
             // Get last processed log.
             auto log_seq = rdb->get_value(persistent_store_manager::c_last_processed_log_num_key);
+            std::cout << "RECOVERED LOG SEQ = " << log_seq << std::endl;
 
             // Recover only the first time this method gets called.
             persistent_log_handler->recover_from_persistent_log(last_checkpointed_commit_ts, log_seq);
@@ -731,7 +732,7 @@ void server_t::recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts
 
             persistent_log_handler->set_persistent_log_sequence(log_seq);
 
-            persistent_log_handler->destroy_persistent_log();
+            // persistent_log_handler->destroy_persistent_log();
 
             persistent_log_handler->open_for_writes(s_validate_persistence_batch_eventfd);
         }
@@ -760,6 +761,7 @@ void server_t::recover_db()
             rdb->open();
 
             auto commit_ts = rdb->get_value(persistent_store_manager::c_last_checkpointed_commit_ts_key);
+            std::cout << "RECOVERED LOG SEQ = " << commit_ts << std::endl;
 
             recover_persistent_log(commit_ts);
 
@@ -1045,7 +1047,7 @@ void server_t::write_to_persistent_log(bool sync_writes)
     {
         if (txn_decisions.size() > 0)
         {
-            // std::cout << "create decision record" << std::endl;
+            std::cout << "create decision record" << std::endl;
             persistent_log_handler->create_decision_record(txn_decisions);
         }
 

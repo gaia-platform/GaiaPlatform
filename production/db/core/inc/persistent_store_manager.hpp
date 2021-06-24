@@ -71,17 +71,17 @@ public:
     /**
      * Get custom key. Used to retain a gaia counter across restarts.
      */
-    uint64_t get_value(const char* key);
+    uint64_t get_value(const std::string& key);
 
     /**
      * Update custom key's value. Used to retain gaia counter across restarts.
      */
-    void update_value(const char* key, uint64_t value_to_write);
+    void update_value(const std::string& key, uint64_t value_to_write);
 
     static constexpr char c_data_dir_command_flag[] = "--data-dir";
-    static constexpr char c_last_checkpointed_commit_ts_key[] = "gaia_last_checkpointed_commit_ts_key";
-    static constexpr char c_last_processed_log_num_key[] = "gaia_last_processed_log_num_key";
     static constexpr char c_persistent_store_dir_name[] = "/data";
+    static const std::string c_last_checkpointed_commit_ts_key;
+    static const std::string c_last_processed_log_num_key;
 
 private:
     gaia::db::counters_t* m_counters = nullptr;

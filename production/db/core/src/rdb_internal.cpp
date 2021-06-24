@@ -5,6 +5,7 @@
 
 #include "rdb_internal.hpp"
 
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -86,18 +87,20 @@ void rdb_internal_t::remove(const rocksdb::Slice& key)
     m_db->Delete(m_write_options, key);
 }
 
-void rdb_internal_t::get(const rocksdb::Slice& key, rocksdb::Slice* value)
+void rdb_internal_t::get(const rocksdb::Slice& key, rocksdb::Slice& value)
 {
     std::string val;
     rocksdb::Status status = m_db->Get(rocksdb::ReadOptions(), key, &val);
-    if (status.code() == rocksdb::Status::kOk)
-    {
-        *value = val;
-    }
-    else if (status.code() == rocksdb::Status::kNotFound)
+    std::cout << "READ VAL = " << val << std::endl;
+    if (status.IsNotFound())
     {
         // Not found.
-        *value = rocksdb::Slice();
+        value = rocksdb::Slice();
+    }
+    else if (status.ok())
+    {
+        value = rocksdb::Slice(val);
+        std::cout << "READ VALUE = " << value.data() << std::endl;
     }
     else
     {

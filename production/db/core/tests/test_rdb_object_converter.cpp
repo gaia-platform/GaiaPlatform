@@ -24,6 +24,7 @@ TEST(write_read_assert, basic)
     uint8_t e7 = '*';
     std::string empty_payload = "";
     ASSERT_EQ(empty_payload.length(), 0);
+    u_int64_t e8 = 0;
 
     // Fill write buffer
     writer.write_uint64(e1);
@@ -35,6 +36,7 @@ TEST(write_read_assert, basic)
     writer.write_uint32(e5);
     writer.write_uint8(e6);
     writer.write_uint8(e7);
+    writer.write_uint64(e8);
 
     writer.write(empty_payload.c_str(), empty_payload.length());
 
@@ -62,6 +64,9 @@ TEST(write_read_assert, basic)
     EXPECT_EQ(e6, c);
     EXPECT_NO_THROW(reader.read_byte(c));
     EXPECT_EQ(e7, c);
+    EXPECT_NO_THROW(reader.read_uint64(v1));
+    EXPECT_EQ(e8, v1);
+
     // We should get a null pointer from a read after we've exhausted the buffer
     // (otherwise we'd be reading past the end of the buffer).
     const char* c2 = reader.read(0);

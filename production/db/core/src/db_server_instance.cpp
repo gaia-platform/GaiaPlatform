@@ -113,6 +113,7 @@ void server_instance_t::start(bool wait_for_init)
 
     // TODO this should be wrapped into a if_debug_enabled()
     std::string command_str;
+    command_str.append("sudo /home/ubuntu/GaiaPlatform/production/build/db/core/gaia_db_server ");
     for (const char* part : command)
     {
         if (part)
@@ -122,6 +123,7 @@ void server_instance_t::start(bool wait_for_init)
         }
     }
 
+    std::cerr << "COMMAND " << command_str << std::endl;
     gaia_log::sys().debug("Starting server instance:{} with command: '{}'.", instance_name(), command_str);
 
     m_server_pid = ::fork();

@@ -305,6 +305,8 @@ void async_disk_writer_t::construct_pwritev(
     persistent_log_file_offset_t expected_final_offset,
     uring_op_t type)
 {
+    ASSERT_PRECONDITION(!writes_to_submit.empty(), "At least enque one write to the io_uring queue");
+
     auto required_size = sizeof(iovec) * writes_to_submit.size();
     // std::cout << "CONSTRUCT PWRITEV" << std::endl;
     auto current_helper_ptr = copy_into_metadata_buffer(writes_to_submit.data(), required_size, file_fd);
