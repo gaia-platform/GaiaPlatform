@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "gaia_internal/catalog/catalog_facade.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 
 /*
@@ -15,7 +16,8 @@
  * catalog types. Each Catalog class has its own "facade".
  * Eg. gaia_table_t -> table_facade_t.
  *
- * The only user of this class is edc_generator.
+ * Each generator (eg. gaiat, gaiac) may decide to subclass one of
+ * these classes to provide more specific logics.
  */
 
 namespace gaia
@@ -27,14 +29,12 @@ namespace generate
 
 class table_facade_t;
 class field_facade_t;
-class incoming_relationship_facade_t;
-class outgoing_relationship_facade_t;
+class link_facade_t;
 
 class database_facade_t
 {
 public:
-    explicit database_facade_t(gaia_database_t database)
-        : m_database(std::move(database)){};
+    explicit database_facade_t(gaia_database_t database);
 
     std::string database_name() const;
     bool is_default_database();
@@ -47,17 +47,18 @@ private:
 class table_facade_t
 {
 public:
-    explicit table_facade_t(gaia_table_t table)
-        : m_table(std::move(table)){};
+    explicit table_facade_t(gaia_table_t table);
 
     std::string table_name() const;
     std::string table_type() const;
     std::string class_name() const;
     std::vector<field_facade_t> fields() const;
-    std::vector<incoming_relationship_facade_t> incoming_relationships() const;
-    std::vector<outgoing_relationship_facade_t> outgoing_relationships() const;
     bool has_string_or_vector() const;
     bool needs_reference_class() const;
+
+    std::vector<link_facade_t> incoming_links() const;
+
+    std::vector<link_facade_t> outgoing_links() const;
 
 private:
     gaia_table_t m_table;
@@ -66,8 +67,7 @@ private:
 class field_facade_t
 {
 public:
-    explicit field_facade_t(gaia_field_t field)
-        : m_field(std::move(field)){};
+    explicit field_facade_t(gaia_field_t field);
 
     std::string field_name() const;
     std::string field_type(bool is_function_parameter = false) const;
@@ -86,46 +86,26 @@ private:
     gaia_field_t m_field;
 };
 
-class relationship_facade_t
+class link_facade_t
 {
 public:
-    explicit relationship_facade_t(gaia_relationship_t relationship)
-        : m_relationship(std::move(relationship)){};
+    link_facade_t(gaia::catalog::gaia_relationship_t relationship, bool is_from_parent);
 
-    std::string parent_table() const;
-    std::string child_table() const;
-    bool is_one_to_many() const;
+    std::string field_name() const;
+    std::string from_table() const;
+    std::string to_table() const;
+
+    std::string target_type() const;
+
     bool is_one_to_one() const;
+    bool is_one_to_many() const;
+
+    bool is_single_cardinality() const;
+    bool is_multiple_cardinality() const;
 
 protected:
-    gaia_relationship_t m_relationship;
-};
-
-class incoming_relationship_facade_t : public relationship_facade_t
-{
-public:
-    explicit incoming_relationship_facade_t(gaia_relationship_t relationship)
-        : relationship_facade_t(std::move(relationship)){};
-
-    std::string field_name() const;
-    std::string target_type() const;
-    std::string parent_offset() const;
-    std::string parent_offset_value() const;
-    std::string next_offset() const;
-    std::string next_offset_value() const;
-};
-
-class outgoing_relationship_facade_t : public relationship_facade_t
-{
-public:
-    explicit outgoing_relationship_facade_t(gaia_relationship_t relationship)
-        : relationship_facade_t(std::move(relationship)){};
-
-    std::string field_name() const;
-    std::string target_type() const;
-    std::string first_offset() const;
-    std::string first_offset_value() const;
-    std::string next_offset() const;
+    gaia::catalog::gaia_relationship_t m_relationship;
+    bool m_is_from_parent;
 };
 
 } // namespace generate
