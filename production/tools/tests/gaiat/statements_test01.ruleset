@@ -1,5 +1,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
+//TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
 ruleset test1 : Table(incubator)
 {
     OnInsert(incubator)

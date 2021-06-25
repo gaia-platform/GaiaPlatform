@@ -732,18 +732,25 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType(std::string fieldName, SourceLocation loc)
+QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
-    auto pair = tagMapping.find(fieldName);
+    auto pair = tagMapping.find(fieldOrTagName);
 
-    // There is a tag, that hides the real field name.
-    if (pair != tagMapping.end())
+    std::string fieldName;
+
+    // Checks if fieldOrTagName is a field name or a tag name.
+    if (pair == tagMapping.end())
+    {
+        fieldName = fieldOrTagName;
+    }
+    else
     {
         fieldName = pair->second;
     }
 
+    // There is no such name in the catalog.
     if (!get_gaia_context().is_name_valid(fieldName))
     {
         Diag(loc, diag::err_unknown_field) << fieldName;
