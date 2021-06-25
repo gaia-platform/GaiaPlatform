@@ -33,7 +33,8 @@ std::optional<gaia_id_t> type_generator_t::operator()()
     {
         std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(m_type);
         record_list->start(m_iterator);
-        server_t::create_local_snapshot(false);
+        bool replay_logs = false;
+        server_t::create_local_snapshot(replay_logs);
         m_is_initialized = true;
     }
 
