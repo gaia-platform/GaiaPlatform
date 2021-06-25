@@ -17,7 +17,7 @@
  * Eg. gaia_table_t -> table_facade_t.
  *
  * Each generator (eg. gaiat, gaiac) may decide to subclass one of
- * these classes to provide more specific logics.
+ * these classes to provide more specific logic.
  */
 
 namespace gaia
