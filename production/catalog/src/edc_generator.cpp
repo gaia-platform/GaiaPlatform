@@ -8,6 +8,9 @@
 #include <flatbuffers/code_generators.h>
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/catalog_facade.hpp"
+
+#include "gaiac_catalog_facade.hpp"
 
 namespace gaia
 {
@@ -152,28 +155,30 @@ std::string edc_compilation_unit_writer_t::generate_constants()
         // The '//' in the end of each line prevents the new line to be created.
         std::map<int, std::string> table_constants;
 
-        for (const incoming_relationship_facade_t& relationship : table.incoming_relationships())
+        for (const auto& incoming_link : table.incoming_links())
         {
+            gaiac_incoming_link_facade_t link{incoming_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
-            const_code.SetValue("PARENT_OFFSET", relationship.parent_offset());
-            const_code.SetValue("PARENT_OFFSET_VALUE", relationship.parent_offset_value());
+            const_code.SetValue("PARENT_OFFSET", link.parent_offset());
+            const_code.SetValue("PARENT_OFFSET_VALUE", link.parent_offset_value());
             const_code += "constexpr int {{PARENT_OFFSET}} = {{PARENT_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(relationship.parent_offset_value()), const_code.ToString()});
+            table_constants.insert({std::stoi(link.parent_offset_value()), const_code.ToString()});
 
             const_code.Clear();
-            const_code.SetValue("NEXT_OFFSET", relationship.next_offset());
-            const_code.SetValue("NEXT_OFFSET_VALUE", relationship.next_offset_value());
+            const_code.SetValue("NEXT_OFFSET", link.next_offset());
+            const_code.SetValue("NEXT_OFFSET_VALUE", link.next_offset_value());
             const_code += "constexpr int {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(relationship.next_offset_value()), const_code.ToString()});
+            table_constants.insert({std::stoi(link.next_offset_value()), const_code.ToString()});
         }
 
-        for (const outgoing_relationship_facade_t& relationship : table.outgoing_relationships())
+        for (const auto& outgoing_link : table.outgoing_links())
         {
+            gaiac_outgoing_link_facade_t link{outgoing_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
-            const_code.SetValue("FIRST_OFFSET", relationship.first_offset());
-            const_code.SetValue("FIRST_OFFSET_VALUE", relationship.first_offset_value());
+            const_code.SetValue("FIRST_OFFSET", link.first_offset());
+            const_code.SetValue("FIRST_OFFSET_VALUE", link.first_offset_value());
             const_code += "constexpr int {{FIRST_OFFSET}} = {{FIRST_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(relationship.first_offset_value()), const_code.ToString()});
+            table_constants.insert({std::stoi(link.first_offset_value()), const_code.ToString()});
         }
 
         for (auto& constant_pair : table_constants)
@@ -232,8 +237,8 @@ std::string class_writer_t::write_header()
     code += generate_insert() + "\\";
     code += generate_list_accessor() + "\\";
     code += generate_fields_accessors() + "\\";
-    code += generate_incoming_relationships_accessors() + "\\";
-    code += generate_outgoing_relationships_accessors();
+    code += generate_incoming_links_accessors() + "\\";
+    code += generate_outgoing_links_accessors();
     code += generate_expressions() + "\\";
     decrement_indent();
     code += "private:";
@@ -255,8 +260,8 @@ std::string class_writer_t::write_cpp()
     code += generate_insert_cpp() + "\\";
     code += generate_list_accessor_cpp() + "\\";
     code += generate_fields_accessors_cpp() + "\\";
-    code += generate_incoming_relationships_accessors_cpp() + "\\";
-    code += generate_outgoing_relationships_accessors_cpp() + "\\";
+    code += generate_incoming_links_accessors_cpp() + "\\";
+    code += generate_outgoing_links_accessors_cpp() + "\\";
     code += generate_ref_class_cpp() + "\\";
     return code.ToString();
 }
@@ -302,12 +307,12 @@ std::string class_writer_t::generate_class_definition()
 std::string class_writer_t::generate_list_types()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (link_facade_t& link : m_table.outgoing_links())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("CHILD_TABLE", relationship.child_table());
+        code.SetValue("FIELD_NAME", link.field_name());
+        code.SetValue("CHILD_TABLE", link.to_table());
 
-        if (relationship.is_one_to_many())
+        if (link.is_multiple_cardinality())
         {
             code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
                     "{{FIELD_NAME}}_list_t;";
@@ -446,15 +451,15 @@ std::string class_writer_t::generate_fields_accessors_cpp()
     return code.ToString();
 }
 
-std::string class_writer_t::generate_incoming_relationships_accessors()
+std::string class_writer_t::generate_incoming_links_accessors()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
     // Iterate over the relationships where the current table is the child
-    for (auto& relationship : m_table.incoming_relationships())
+    for (auto& link : m_table.incoming_links())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("PARENT_TABLE", relationship.parent_table());
+        code.SetValue("FIELD_NAME", link.field_name());
+        code.SetValue("PARENT_TABLE", link.to_table());
 
         code += "{{PARENT_TABLE}}_t {{FIELD_NAME}}() const;";
     }
@@ -462,16 +467,17 @@ std::string class_writer_t::generate_incoming_relationships_accessors()
     return code.ToString();
 }
 
-std::string class_writer_t::generate_incoming_relationships_accessors_cpp()
+std::string class_writer_t::generate_incoming_links_accessors_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
     // Iterate over the relationships where the current table is the child
-    for (auto& relationship : m_table.incoming_relationships())
+    for (auto& incoming_link : m_table.incoming_links())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("PARENT_TABLE", relationship.parent_table());
-        code.SetValue("PARENT_OFFSET", relationship.parent_offset());
+        gaiac_incoming_link_facade_t link{incoming_link};
+        code.SetValue("FIELD_NAME", link.field_name());
+        code.SetValue("PARENT_TABLE", link.to_table());
+        code.SetValue("PARENT_OFFSET", link.parent_offset());
 
         code += "{{PARENT_TABLE}}_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
         code.IncrementIdentLevel();
@@ -483,22 +489,22 @@ std::string class_writer_t::generate_incoming_relationships_accessors_cpp()
     return code.ToString();
 }
 
-std::string class_writer_t::generate_outgoing_relationships_accessors()
+std::string class_writer_t::generate_outgoing_links_accessors()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
     // Iterate over the relationships where the current table appear as parent
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (auto& link : m_table.outgoing_links())
     {
-        if (relationship.is_one_to_many())
+        if (link.is_multiple_cardinality())
         {
-            code.SetValue("FIELD_NAME", relationship.field_name());
+            code.SetValue("FIELD_NAME", link.field_name());
             code += "{{FIELD_NAME}}_list_t {{FIELD_NAME}}() const;";
         }
-        else if (relationship.is_one_to_one())
+        else if (link.is_single_cardinality())
         {
-            code.SetValue("FIELD_NAME", relationship.field_name());
-            code.SetValue("CHILD_TABLE", relationship.child_table());
+            code.SetValue("FIELD_NAME", link.field_name());
+            code.SetValue("CHILD_TABLE", link.to_table());
             code += "{{CHILD_TABLE}}_ref_t {{FIELD_NAME}}() const; ";
         }
         else
@@ -510,19 +516,20 @@ std::string class_writer_t::generate_outgoing_relationships_accessors()
     return code.ToString();
 }
 
-std::string class_writer_t::generate_outgoing_relationships_accessors_cpp()
+std::string class_writer_t::generate_outgoing_links_accessors_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
     // Iterate over the relationships where the current table appear as parent
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (auto& outgoing_link : m_table.outgoing_links())
     {
-        code.SetValue("CHILD_TABLE", relationship.child_table());
-        code.SetValue("FIELD_NAME", relationship.field_name());
-        code.SetValue("FIRST_OFFSET", relationship.first_offset());
-        code.SetValue("NEXT_OFFSET", relationship.next_offset());
+        gaiac_outgoing_link_facade_t link{outgoing_link};
+        code.SetValue("CHILD_TABLE", link.to_table());
+        code.SetValue("FIELD_NAME", link.field_name());
+        code.SetValue("FIRST_OFFSET", link.first_offset());
+        code.SetValue("NEXT_OFFSET", link.next_offset());
 
-        if (relationship.is_one_to_many())
+        if (link.is_multiple_cardinality())
         {
             code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
             code.IncrementIdentLevel();
@@ -530,7 +537,7 @@ std::string class_writer_t::generate_outgoing_relationships_accessors_cpp()
             code.DecrementIdentLevel();
             code += "}";
         }
-        else if (relationship.is_one_to_one())
+        else if (link.is_single_cardinality())
         {
             code += "{{CHILD_TABLE}}_ref_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
             code.IncrementIdentLevel();
@@ -568,15 +575,15 @@ std::string class_writer_t::generate_expressions()
         code += expr_variable.first;
     }
 
-    for (auto& relationship : m_table.incoming_relationships())
+    for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
         code += expr_variable.first;
     }
 
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
         code += expr_variable.first;
     }
 
@@ -657,15 +664,15 @@ std::string class_writer_t::generate_expr_namespace()
         code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
     }
 
-    for (auto& relationship : m_table.incoming_relationships())
+    for (auto& link : m_table.incoming_links())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("FIELD_NAME", link.field_name());
         code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
     }
 
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (auto& link : m_table.outgoing_links())
     {
-        code.SetValue("FIELD_NAME", relationship.field_name());
+        code.SetValue("FIELD_NAME", link.field_name());
         code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
     }
     code.DecrementIdentLevel();
@@ -691,15 +698,15 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
         code += expr_variable.second;
     }
 
-    for (auto& relationship : m_table.incoming_relationships())
+    for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
         code += expr_variable.second;
     }
 
-    for (auto& relationship : m_table.outgoing_relationships())
+    for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), relationship.target_type(), relationship.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
         code += expr_variable.second;
     }
 
