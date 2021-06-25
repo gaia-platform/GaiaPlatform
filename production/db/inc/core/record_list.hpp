@@ -187,7 +187,7 @@ protected:
 
     record_range_t* m_record_ranges;
 
-    gaia::common::queue_t<gaia::db::gaia_locator_t> m_deletions_requested;
+    gaia::common::mpsc_queue_t<gaia::db::gaia_locator_t> m_deletions_requested;
 
     // These booleans are used to ensure that only one operation can be attempted at a time.
     std::atomic<bool> m_is_deletion_marking_in_progress;

@@ -174,3 +174,140 @@ size_t queue_t<T>::size() const
 {
     return m_size;
 }
+
+template <class T>
+mpsc_queue_node_t<T>::mpsc_queue_node_t()
+    : value{}
+{
+}
+
+template <class T>
+mpsc_queue_node_t<T>::mpsc_queue_node_t(T value)
+{
+    this->value = value;
+
+    this->next = nullptr;
+}
+
+template <class T>
+mpsc_queue_t<T>::mpsc_queue_t()
+{
+    m_head = &m_stub;
+    m_tail = &m_stub;
+    m_stub.next = nullptr;
+    m_size = 0;
+}
+
+template <class T>
+mpsc_queue_t<T>::~mpsc_queue_t()
+{
+    mpsc_queue_node_t<T>* node = nullptr;
+    while ((node = dequeue_internal()))
+    {
+        delete node;
+    }
+}
+
+template <class T>
+void mpsc_queue_t<T>::enqueue_internal(mpsc_queue_node_t<T>* node)
+{
+    // Set up node to be last node.
+    node->next = nullptr;
+
+    // Exchange head and link previous head to our node.
+    mpsc_queue_node_t<T>* previous = m_head.exchange(node);
+    previous->next = node;
+}
+
+template <class T>
+mpsc_queue_node_t<T>* mpsc_queue_t<T>::dequeue_internal()
+{
+    // This is a multiple-producer, single-consumer queue,
+    // and this is the consumer call,
+    // so only one thread is expected to be executing it.
+    mpsc_queue_node_t<T>* tail = m_tail;
+    mpsc_queue_node_t<T>* next = tail->next;
+
+    if (tail == &m_stub)
+    {
+        if (next == nullptr)
+        {
+            // Queue only containes the stub, so there is nothing to return.
+            return nullptr;
+        }
+
+        // There is a node after the stub.
+        // Update tail past the stub node and update tail/next.
+        m_tail = next;
+        tail = next;
+        next = next->next;
+    }
+
+    if (next)
+    {
+        // We have another node after this one, so we can just update the tail.
+        m_tail = next;
+
+        return tail;
+    }
+
+    // There is a single node in the queue, so we'll need to update head as well.
+    // Store its current value - other producers may update it.
+    mpsc_queue_node_t<T>* head = m_head;
+
+    // DEVNOTE: Original code returned nullptr if head != tail.
+    // But that can only happen if a new node was inserted, in which case
+    // we should be able to continue with the removing of the tail node.
+    if (tail == head)
+    {
+        // Push back the stub, so that we have one remaining entry in the queue.
+        enqueue_internal(&m_stub);
+    }
+
+    // Refresh the tail.next value.
+    next = tail->next;
+
+    // DEVNOTE: Original code had a check on next, but we've replaced it with an assert.
+    ASSERT_INVARIANT(next, "Next node was expected to be non-null at this point!");
+
+    // Remove tail node now.
+    m_tail = next;
+
+    return tail;
+}
+
+template <class T>
+void mpsc_queue_t<T>::enqueue(const T& value)
+{
+    mpsc_queue_node_t<T>* node = new mpsc_queue_node_t<T>(value);
+
+    enqueue_internal(node);
+
+    ++m_size;
+}
+
+template <class T>
+void mpsc_queue_t<T>::dequeue(T& value)
+{
+    mpsc_queue_node_t<T>* node = dequeue_internal();
+
+    if (node)
+    {
+        value = node->value;
+        delete node;
+
+        --m_size;
+    }
+}
+
+template <class T>
+bool mpsc_queue_t<T>::is_empty() const
+{
+    return (size() == 0);
+}
+
+template <class T>
+size_t mpsc_queue_t<T>::size() const
+{
+    return m_size;
+}

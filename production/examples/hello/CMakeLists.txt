@@ -10,25 +10,33 @@ project(hello)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Ensure debug builds have the DEBUG flag defined.
+add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
+
 # We need pthreads support.
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # Default compiler/linker flags.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O3")
-set(GAIA_LINK_FLAGS " ")
+add_compile_options(-c -Wall -Wextra -stdlib=libc++)
+add_link_options(-stdlib=libc++)
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -O0 -g -fno-limit-debug-info")
+  add_compile_options(-O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all")
+    add_compile_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
+    add_link_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
   endif()
+else()
+  add_compile_options(-O3)
 endif()
 
-include(/opt/gaia/cmake/gaia.cmake)
+if(NOT DEFINED GAIA_ROOT)
+  set(GAIA_ROOT "/opt/gaia")
+endif()
+include("${GAIA_ROOT}/cmake/gaia.cmake")
 
 set(HELLO_DDL ${PROJECT_SOURCE_DIR}/hello.ddl)
 set(HELLO_RULESET ${PROJECT_SOURCE_DIR}/hello.ruleset)
@@ -44,7 +52,6 @@ add_executable(hello
 )
 
 target_add_gaia_generated_sources(hello)
-set_target_properties(hello PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
-set_target_properties(hello PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 target_include_directories(hello PRIVATE ${GAIA_INC})
+target_link_directories(hello PRIVATE ${GAIA_LIB_DIR})
 target_link_libraries(hello PRIVATE gaia rt Threads::Threads)
