@@ -9,7 +9,7 @@
 
 #include <flatbuffers/code_generators.h>
 
-#include "catalog_facade.hpp"
+#include "gaia_internal/catalog/catalog_facade.hpp"
 
 //
 // Contains the classes that generate the header & cpp code
@@ -93,10 +93,10 @@ private:
     std::string generate_list_accessor_cpp();
     std::string generate_fields_accessors();
     std::string generate_fields_accessors_cpp();
-    std::string generate_incoming_relationships_accessors();
-    std::string generate_incoming_relationships_accessors_cpp();
-    std::string generate_outgoing_relationships_accessors();
-    std::string generate_outgoing_relationships_accessors_cpp();
+    std::string generate_incoming_links_accessors();
+    std::string generate_incoming_links_accessors_cpp();
+    std::string generate_outgoing_links_accessors();
+    std::string generate_outgoing_links_accessors_cpp();
     std::string generate_expressions();
     std::string generate_private_constructor();
     std::string generate_friend_declarations();

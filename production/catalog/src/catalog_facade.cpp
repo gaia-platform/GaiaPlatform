@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "catalog_facade.hpp"
+#include "gaia_internal/catalog/catalog_facade.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 
@@ -13,6 +13,15 @@ namespace catalog
 {
 namespace generate
 {
+
+//
+// database_facade_t
+//
+
+database_facade_t::database_facade_t(gaia_database_t database)
+    : m_database(std::move(database))
+{
+}
 
 std::string database_facade_t::database_name() const
 {
@@ -34,6 +43,15 @@ std::vector<table_facade_t> database_facade_t::tables() const
 bool database_facade_t::is_default_database()
 {
     return database_name().empty();
+}
+
+//
+// table_facade_t
+//
+
+table_facade_t::table_facade_t(gaia_table_t table)
+    : m_table(std::move(table))
+{
 }
 
 std::string table_facade_t::table_name() const
@@ -68,30 +86,6 @@ std::vector<field_facade_t> table_facade_t::fields() const
     return fields;
 }
 
-std::vector<incoming_relationship_facade_t> table_facade_t::incoming_relationships() const
-{
-    auto relationships = std::vector<incoming_relationship_facade_t>();
-
-    for (const gaia_relationship_t& relationship : m_table.incoming_relationships())
-    {
-        relationships.emplace_back(relationship);
-    }
-
-    return relationships;
-}
-
-std::vector<outgoing_relationship_facade_t> table_facade_t::outgoing_relationships() const
-{
-    auto relationships = std::vector<outgoing_relationship_facade_t>();
-
-    for (const gaia_relationship_t& relationship : m_table.outgoing_relationships())
-    {
-        relationships.emplace_back(relationship);
-    }
-
-    return relationships;
-}
-
 bool table_facade_t::has_string_or_vector() const
 {
     for (auto& field : m_table.gaia_fields())
@@ -107,14 +101,47 @@ bool table_facade_t::has_string_or_vector() const
 
 bool table_facade_t::needs_reference_class() const
 {
-    for (const incoming_relationship_facade_t& relationship : incoming_relationships())
+    for (const link_facade_t& link : incoming_links())
     {
-        if (relationship.is_one_to_one())
+        if (link.is_one_to_one())
         {
             return true;
         }
     }
     return false;
+}
+
+std::vector<link_facade_t> table_facade_t::incoming_links() const
+{
+    auto links = std::vector<link_facade_t>();
+
+    for (const gaia_relationship_t& relationship : m_table.incoming_relationships())
+    {
+        links.emplace_back(relationship, false);
+    }
+
+    return links;
+}
+
+std::vector<link_facade_t> table_facade_t::outgoing_links() const
+{
+    auto links = std::vector<link_facade_t>();
+
+    for (const gaia_relationship_t& relationship : m_table.outgoing_relationships())
+    {
+        links.emplace_back(relationship, true);
+    }
+
+    return links;
+}
+
+//
+// field_facade_t
+//
+
+field_facade_t::field_facade_t(gaia_field_t field)
+    : m_field(std::move(field))
+{
 }
 
 std::string field_facade_t::field_name() const
@@ -246,103 +273,95 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
     return make_pair(expr_decl, expr_init);
 }
 
-std::string relationship_facade_t::parent_table() const
+//
+// link_facade_t
+//
+
+link_facade_t::link_facade_t(gaia::catalog::gaia_relationship_t relationship, bool is_from_parent)
+    : m_relationship(std::move(relationship)), m_is_from_parent(is_from_parent)
 {
-    return m_relationship.parent().name();
 }
 
-std::string relationship_facade_t::child_table() const
+std::string link_facade_t::field_name() const
 {
+    if (m_is_from_parent)
+    {
+        return m_relationship.to_child_link_name();
+    }
+    return m_relationship.to_parent_link_name();
+}
+
+std::string link_facade_t::from_table() const
+{
+    if (m_is_from_parent)
+    {
+        return m_relationship.parent().name();
+    }
     return m_relationship.child().name();
 }
 
-bool relationship_facade_t::is_one_to_many() const
+std::string link_facade_t::to_table() const
 {
-    return static_cast<relationship_cardinality_t>(m_relationship.cardinality())
-        == relationship_cardinality_t::many;
+    if (m_is_from_parent)
+    {
+        return m_relationship.child().name();
+    }
+    return m_relationship.parent().name();
 }
 
-bool relationship_facade_t::is_one_to_one() const
+bool link_facade_t::is_single_cardinality() const
+{
+    return !m_is_from_parent || is_one_to_one();
+}
+
+bool link_facade_t::is_multiple_cardinality() const
+{
+    return m_is_from_parent && is_one_to_many();
+}
+
+bool link_facade_t::is_one_to_one() const
 {
     return static_cast<relationship_cardinality_t>(m_relationship.cardinality())
         == relationship_cardinality_t::one;
 }
 
-std::string incoming_relationship_facade_t::field_name() const
+bool link_facade_t::is_one_to_many() const
 {
-    return m_relationship.to_parent_link_name();
+    return static_cast<relationship_cardinality_t>(m_relationship.cardinality())
+        == relationship_cardinality_t::many;
 }
 
-std::string incoming_relationship_facade_t::parent_offset() const
+std::string link_facade_t::target_type() const
 {
-    return "c_" + child_table() + "_parent_" + field_name();
-}
-
-std::string incoming_relationship_facade_t::parent_offset_value() const
-{
-    return std::to_string(m_relationship.parent_offset());
-}
-
-std::string incoming_relationship_facade_t::next_offset() const
-{
-
-    return "c_" + child_table() + "_next_" + field_name();
-}
-
-std::string incoming_relationship_facade_t::next_offset_value() const
-{
-    return std::to_string(m_relationship.next_child_offset());
-}
-
-std::string incoming_relationship_facade_t::target_type() const
-{
-    std::string type;
-    type.append(parent_table());
-    type.append("_t");
-    return type;
-}
-
-std::string outgoing_relationship_facade_t::field_name() const
-{
-    return m_relationship.to_child_link_name();
-}
-
-std::string outgoing_relationship_facade_t::first_offset() const
-{
-    return "c_" + parent_table() + "_first_" + field_name();
-}
-
-std::string outgoing_relationship_facade_t::first_offset_value() const
-{
-    return std::to_string(m_relationship.first_child_offset());
-}
-
-std::string outgoing_relationship_facade_t::next_offset() const
-{
-    return "c_" + child_table() + "_next_" + m_relationship.to_parent_link_name();
-}
-
-std::string outgoing_relationship_facade_t::target_type() const
-{
-    std::string type;
-    if (is_one_to_many())
+    if (m_is_from_parent)
     {
-        type.append(parent_table());
-        type.append("_t::");
-        type.append(field_name());
-        type.append("_list_t");
-    }
-    else if (is_one_to_one())
-    {
-        type.append(child_table());
-        type.append("_ref_t");
+        std::string type;
+        if (is_multiple_cardinality())
+        {
+            type.append(from_table());
+            type.append("_t::");
+            type.append(field_name());
+            type.append("_list_t");
+        }
+        else if (is_single_cardinality())
+        {
+            type.append(to_table());
+            type.append("_ref_t");
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+        }
+
+        return type;
     }
     else
     {
-        ASSERT_UNREACHABLE("Unsupported relationship cardinality!");
+        std::string type;
+        type.append(to_table());
+        type.append("_t");
+        return type;
     }
-
-    return type;
 }
 
 } // namespace generate
