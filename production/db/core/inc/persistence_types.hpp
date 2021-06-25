@@ -86,7 +86,7 @@ struct record_header_t
     // For a decision record, this represents the number of decisions in the record's payload.
     uint32_t count;
 
-    uint8_t padding[5];
+    char padding[5];
 };
 
 struct read_record_t

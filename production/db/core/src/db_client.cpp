@@ -644,7 +644,7 @@ address_offset_t client_t::allocate_object(
             chunk_address_offset);
 
         // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
+        object_offset = s_chunk_manager.allocate(size);
     }
 
     ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");

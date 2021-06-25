@@ -685,7 +685,7 @@ address_offset_t server_t::allocate_object(
             chunk_address_offset);
 
         // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
+        object_offset = s_chunk_manager.allocate(size);
     }
 
     ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
@@ -761,7 +761,7 @@ void server_t::recover_db()
             rdb->open();
 
             auto commit_ts = rdb->get_value(persistent_store_manager::c_last_checkpointed_commit_ts_key);
-            std::cout << "RECOVERED LOG SEQ = " << commit_ts << std::endl;
+            std::cout << "RECOVERED COMMIT TS = " << commit_ts << std::endl;
 
             recover_persistent_log(commit_ts);
 

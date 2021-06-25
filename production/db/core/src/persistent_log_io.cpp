@@ -159,7 +159,7 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     header.entry.index = current_file->file_num;
     header.entry.offset = begin_log_offset;
 
-    std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND SIZE = " << total_log_space_needed << std::endl;
+    // std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND SIZE = " << total_log_space_needed << std::endl;
 
     crc32_t txn_crc = 0;
     txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
@@ -186,6 +186,7 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     map_commit_ts_to_session_unblock_fd(commit_ts, log.data()->session_unblock_fd);
 
+    std::cout << "CREATE TXN RECORD COMMIT TS =" << commit_ts << std::endl;
     std::vector<common::gaia_id_t> deleted_ids;
     std::map<chunk_offset_t, std::set<gaia_offset_t>> map;
 
@@ -208,11 +209,12 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         }
         else
         {
-            // std::cout << " = Insert/update operation" << std::endl;
+            std::cout << "WRITING OBJECT SIZE = " << offset_to_ptr(lr->new_offset)->payload_size << std::endl;
             auto chunk = memory_manager->get_chunk_offset(get_address_offset(lr->new_offset));
-            ASSERT_INVARIANT(map.find(chunk) != map.end(), "Can't find chunk.");
+            ASSERT_INVARIANT(map.count(chunk) > 0, "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
-            map.find(chunk)->second.insert(lr->new_offset);
+            std::cout << "WRITING OFFSET = " << get_address_offset(lr->new_offset) << std::endl;
+            map.find(chunk)->second.insert(get_address_offset(lr->new_offset));
         }
     }
 
@@ -222,22 +224,28 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
 
     for (const auto& pair : map)
     {
-        auto object_offsets = pair.second;
-        if (object_offsets.size() == 0)
+        auto object_address_offsets = pair.second;
+        if (object_address_offsets.size() == 0)
         {
             continue;
         }
-        auto end_offset = *(--object_offsets.end());
-        contiguous_offsets.push_back(*object_offsets.begin());
-        auto payload_size = offset_to_ptr(end_offset)->payload_size;
-        contiguous_offsets.push_back(end_offset + payload_size + sizeof(db_object_t));
+        contiguous_offsets.push_back(*object_address_offsets.begin());
+        auto it = object_address_offsets.end();
+        it--;
+        auto end_offset = *it;
+        auto payload_size = offset_to_ptr(get_gaia_offset(end_offset))->payload_size + c_db_object_header_size;
+        size_t allocation_size = ((payload_size + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
+        ASSERT_INVARIANT(allocation_size > 0 && allocation_size % gaia::db::memory_manager::c_slot_size == 0, "Invalid allocation size.");
+        contiguous_offsets.push_back(end_offset + allocation_size);
+
+        std::cout << "TXN START OFFSET = " << *object_address_offsets.begin() << std::endl;
+        std::cout << "TXN END OFFSET = " << end_offset + allocation_size << std::endl;
     }
 
     ASSERT_INVARIANT(contiguous_offsets.size() % 2 == 0, "We expect a begin and end offset.");
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
-        // std::cout << "CREATE TXN RECORD" << std::endl;
         // Finally make call.
         create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
     }
@@ -263,10 +271,10 @@ void persistent_log_handler_t::submit_writes(bool sync)
 void persistent_log_handler_t::create_txn_record(
     gaia_txn_id_t commit_ts,
     record_type_t type,
-    std::vector<gaia_offset_t>& contiguous_offsets,
+    std::vector<gaia_offset_t>& contiguous_address_offsets,
     std::vector<gaia_id_t>& deleted_ids)
 {
-    ASSERT_PRECONDITION(!deleted_ids.empty() || (contiguous_offsets.size() % 2 == 0 && !contiguous_offsets.empty()), "Txn record cannot have empty payload.");
+    ASSERT_PRECONDITION(!deleted_ids.empty() || (contiguous_address_offsets.size() % 2 == 0 && !contiguous_address_offsets.empty()), "Txn record cannot have empty payload.");
     std::vector<iovec> writes_to_submit;
 
     // Reserve iovec to store header for the log record.
@@ -275,10 +283,11 @@ void persistent_log_handler_t::create_txn_record(
 
     // Create iovec entries.
     size_t payload_size = 0;
-    for (size_t i = 0; i < contiguous_offsets.size(); i += 2)
+    for (size_t i = 0; i < contiguous_address_offsets.size(); i += 2)
     {
-        auto ptr = offset_to_ptr(contiguous_offsets.at(i));
-        auto chunk_size = contiguous_offsets.at(i + 1) - contiguous_offsets.at(i);
+        auto offset = get_gaia_offset(contiguous_address_offsets.at(i));
+        auto ptr = offset_to_ptr(offset);
+        auto chunk_size = contiguous_address_offsets.at(i + 1) - contiguous_address_offsets.at(i);
         payload_size += chunk_size;
         writes_to_submit.push_back({ptr, chunk_size});
     }
@@ -303,7 +312,7 @@ void persistent_log_handler_t::create_txn_record(
     header.entry.index = current_file->file_num;
     header.entry.offset = start_offset;
 
-    std::cout << "TXN RECORD OFFSET = " << start_offset << " AND SIZE = " << total_log_space_needed << std::endl;
+    // std::cout << "TXN RECORD OFFSET = " << start_offset << " AND SIZE = " << total_log_space_needed << std::endl;
 
     // Calculate CRC.
     auto txn_crc = calculate_crc32(0, &header, sizeof(record_header_t));
@@ -381,6 +390,7 @@ void persistent_log_handler_t::recover_from_persistent_log(
         // Ignore already processed files.
         if (file_seq <= last_processed_log_seq)
         {
+            std::cout << "Skipping sequence = " << file_seq << std::endl;
             continue;
         }
 
@@ -487,26 +497,36 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
     auto payload_ptr = reinterpret_cast<uint8_t*>(record->payload);
+    auto start_ptr = payload_ptr;
     auto end_ptr = reinterpret_cast<uint8_t*>(record) + record->header.payload_size;
     auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.count);
 
+    std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
     while (payload_ptr < deleted_ids_ptr)
     {
         auto obj_ptr = reinterpret_cast<db_object_t*>(payload_ptr);
 
         ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
         ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
+        ASSERT_INVARIANT(obj_ptr->payload_size > 0, "Recovered object size should be greater than 0");
         write_to_persistent_store_fn(*obj_ptr);
 
-        size_t allocation_size = ((obj_ptr->payload_size + 2 * sizeof(db_object_t) + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
+        size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
+
+        size_t allocation_size = ((requested_size + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
 
         ASSERT_INVARIANT(allocation_size > 0 && allocation_size % gaia::db::memory_manager::c_slot_size == 0, "Invalid allocation size.");
 
+        std::cout << "object size " << obj_ptr->payload_size << std::endl;
+        std::cout << "RECORD OFFSET IN CHUNK = " << payload_ptr - start_ptr << " AND ALLOC SIZE = " << allocation_size << " AND PAYLOAD SIZE = " << requested_size << std::endl;
+
+        // ASSERT_INVARIANT(payload_ptr + allocation_size < deleted_ids_ptr, "Object size cannot overflow outside txn record.");
         payload_ptr += allocation_size;
     }
 
-    while (deleted_ids_ptr < end_ptr)
+    for (size_t i = 0; i < record->header.count; i++)
     {
+        ASSERT_INVARIANT(deleted_ids_ptr < end_ptr, "Txn content overflow.");
         auto deleted_id = reinterpret_cast<common::gaia_id_t*>(deleted_ids_ptr);
         ASSERT_INVARIANT(deleted_id, "Deleted ID cannot be null.");
         ASSERT_INVARIANT(*deleted_id > 0, "Deleted ID cannot be invalid.");
@@ -522,7 +542,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
 
     do
     {
-        std::cout << "READING RECORD NUMBER = " << record_count << std::endl;
+        // std::cout << "READING RECORD NUMBER = " << record_count << std::endl;
 
         auto current_record_ptr = it->cursor;
         record_size = update_cursor(it);
@@ -538,7 +558,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
 
         if (record_size != 0 && record->header.record_type == record_type_t::decision)
         {
-            std::cout << "Obtained decision record" << std::endl;
+            // std::cout << "Obtained decision record" << std::endl;
 
             // Decode decision record.
             auto payload_ptr = current_record_ptr + sizeof(record_header_t);
@@ -564,7 +584,7 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
                 record_count++;
                 continue;
             }
-            std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
+            // std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
             txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
             record_count++;
         }
@@ -606,7 +626,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
 
     if (destination->header.crc == 0)
     {
-        // std::cout << "HEADER CRC zero." << std::endl;
+        std::cout << "HEADER CRC zero." << std::endl;
         if (it->recovery_mode == recovery_mode_t::fail_on_error)
         {
             throw write_ahead_log_error("Read log record with empty checksum value.");

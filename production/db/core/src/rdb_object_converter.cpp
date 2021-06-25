@@ -60,6 +60,7 @@ db_object_t* gaia::db::persistence::decode_object(
     value_reader.read_uint16(num_references);
     value_reader.read_uint16(size);
     auto payload = value_reader.read(size);
+    ASSERT_POSTCONDITION(payload, "Read object shouldn't be null");
 
     // Create object.
     db_object_t* db_object = create_object(id, type, num_references, size, payload);

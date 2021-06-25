@@ -127,7 +127,7 @@ void persistent_store_manager::put(gaia::db::db_object_t& object)
         key.get_current_position() != 0 && value.get_current_position() != 0,
         "Failed to encode object.");
     m_rdb_internal->put(key.to_slice(), value.to_slice());
-    std::cout << "PUT KEY " << std::endl;
+    // std::cout << "PUT KEY " << std::endl;
 }
 
 void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)

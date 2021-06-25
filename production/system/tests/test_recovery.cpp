@@ -140,13 +140,13 @@ void recovery_test::validate_data()
     begin_transaction();
     for (auto employee : employee_t::list())
     {
-        auto it = s_employee_map.find(employee.gaia_id());
-
-        if (it == s_employee_map.end())
+        if (s_employee_map.count(employee.gaia_id()) == 0)
         {
             // There might be other tests that create employees.
             continue;
         }
+
+        auto it = s_employee_map.find(employee.gaia_id());
 
         auto employee_expected = it->second;
 
@@ -438,7 +438,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     end_session();
 }
 
-TEST_F(recovery_test, DISABLED_reference_update_test)
+TEST_F(recovery_test, reference_update_test)
 {
     s_server.start();
     begin_session();
@@ -520,7 +520,7 @@ TEST_F(recovery_test, DISABLED_reference_update_test)
     end_session();
 }
 
-TEST_F(recovery_test, DISABLED_basic_correctness_test)
+TEST_F(recovery_test, basic_correctness_test)
 {
     // Basic correctness test.
     ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
@@ -536,7 +536,7 @@ TEST_F(recovery_test, load_and_recover_test)
     load_modify_recover_test(load_size, 2, true);
 }
 
-TEST_F(recovery_test, DISABLED_reference_create_delete_test_new)
+TEST_F(recovery_test, reference_create_delete_test_new)
 {
     constexpr int c_num_children = 10;
     gaia_id_t parent_id;
@@ -639,7 +639,7 @@ TEST_F(recovery_test, DISABLED_reference_create_delete_test_new)
     end_session();
 }
 
-TEST_F(recovery_test, DISABLED_reference_update_test_new)
+TEST_F(recovery_test, reference_update_test_new)
 {
     gaia_id_t parent_id;
     gaia_id_t child_id;
