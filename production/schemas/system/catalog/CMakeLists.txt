@@ -8,9 +8,14 @@ project(catalog_schema)
 
 string(RANDOM GAIAC_CATALOG_INSTANCE_NAME)
 
+# We generate and copy the catalog EDC code into the gaia source tree compiling it as a starndard cpp file.
+# There are 2 reasons for this:
+# 1. We don't want the catalog EDC API to change and possibly break on every modification to the catalog code.
+# 2. We use the catalog generated code to "observe" the changes in the EDC generation logic.
+
 # We use a custom command to generate catalog EDC code because process_schema_internal()
 # creates dependencies on the generated code which would causes this target to be automatically
-# called.
+# called on every change of the gaia source code (db, catalog, etc...)
 add_custom_command(
     COMMENT "Generating EDC code for database catalog..."
     OUTPUT ${GAIA_GENERATED_CODE}/catalog/gaia_catalog.cpp
@@ -24,11 +29,7 @@ add_custom_command(
       -g
 )
 
-# We copy the catalog EDC code into the gaia source tree and compile it as a normal cpp file.
-# There are 2 reasons for this:
-# 1. We don't want the catalog EDC API to change and possibly break on every modification to the catalog code.
-# 2. We use the catalog generated code to "observe" the changes in the EDC generation logic.
-#
+
 # This is a standalone command and is not automatically run as part of the build. To run it you can use either of these
 # commands:
 # cmake --build build_folder --target generate_catalog_edc_code
@@ -41,6 +42,8 @@ add_custom_target(generate_catalog_edc_code
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/gaia_catalog.cpp ${GAIA_REPO}/production/catalog/src/
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/gaia_catalog.h ${GAIA_REPO}/production/inc/gaia_internal/catalog/
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/catalog_generated.h ${GAIA_REPO}/production/inc/gaia_internal/catalog/
+    # Removes the generated files to force the next invocation of this command to regenerate the files.
+    COMMAND rm -r ${GAIA_GENERATED_CODE}/catalog
 )
 
 set_target_properties(generate_catalog_edc_code PROPERTIES
