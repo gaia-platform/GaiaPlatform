@@ -41,8 +41,6 @@ add_custom_target(generate_catalog_edc_code
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/gaia_catalog.cpp ${GAIA_REPO}/production/catalog/src/
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/gaia_catalog.h ${GAIA_REPO}/production/inc/gaia_internal/catalog/
     COMMAND cp ${GAIA_GENERATED_CODE}/catalog/catalog_generated.h ${GAIA_REPO}/production/inc/gaia_internal/catalog/
-    # Removes the generated files to force the next invocation of this command to regenerate the files.
-    COMMAND rm -r ${GAIA_GENERATED_CODE}/catalog
 )
 
 set_target_properties(generate_catalog_edc_code PROPERTIES
