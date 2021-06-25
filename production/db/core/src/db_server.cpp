@@ -635,7 +635,8 @@ void server_t::init_shared_memory()
     init_memory_manager();
 
     // Create snapshot for db recovery and index population.
-    create_local_snapshot(false);
+    bool apply_logs = false;
+    create_local_snapshot(apply_logs);
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -747,12 +748,12 @@ void server_t::txn_internal_end()
     // Initialize the new record.
     log.data()->begin_ts = s_txn_id;
 
-    txn_log_t::log_record_t* lr = log.data()->log_records + log.data()->record_count++;
-    lr->locator = c_invalid_gaia_locator;
-    lr->old_offset = c_invalid_gaia_offset;
-    lr->new_offset = c_invalid_gaia_offset;
-    lr->deleted_id = c_invalid_gaia_id;
-    lr->operation = gaia_operation_t::noop;
+    txn_log_t::log_record_t* log_record = log.data()->log_records + log.data()->record_count++;
+    log_record->locator = c_invalid_gaia_locator;
+    log_record->old_offset = c_invalid_gaia_offset;
+    log_record->new_offset = c_invalid_gaia_offset;
+    log_record->deleted_id = c_invalid_gaia_id;
+    log_record->operation = gaia_operation_t::noop;
 
     log.truncate_seal_and_close(fd, log_size);
     s_fd_log = fd;
@@ -781,7 +782,9 @@ void server_t::txn_internal_end()
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
-// Create a thread- local snapshot from the shared locators.
+// Create a local snapshot from the shared locators.
+// This method is not exception safe. Errors in this method should
+// induce a panic and crash the server otherwise data-inconsistency would result.
 void server_t::create_local_snapshot(bool apply_logs)
 {
     ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");

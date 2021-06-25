@@ -44,7 +44,7 @@ enum class gaia_operation_t : uint8_t
 
 inline bool is_logical_operation(gaia_operation_t op)
 {
-    return op == gaia_operation_t::noop || op == gaia_operation_t::not_set;
+    return op == gaia_operation_t::noop;
 }
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
