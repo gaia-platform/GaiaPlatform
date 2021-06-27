@@ -16,6 +16,7 @@ set(SDK_LINK_LIBRARIES
   gaia_system
   -Wl,--no-whole-archive
 )
+target_compile_options(gaia PRIVATE -Qunused-arguments)
 target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )

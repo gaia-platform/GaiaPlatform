@@ -3,7 +3,7 @@ set(CPPTOML_VERSION "0.1.1")
 set(CPPTOML_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/cpptoml)
 add_library(cpptoml INTERFACE)
 add_dependencies(cpptoml cpptoml_dependency)
-target_include_directories(cpptoml INTERFACE ${CPPTOML_ROOT}/include)
+target_include_directories(cpptoml SYSTEM INTERFACE ${CPPTOML_ROOT}/include)
 ExternalProject_Add(cpptoml_dependency
   URL
     https://github.com/skystrife/cpptoml/archive/v${CPPTOML_VERSION}.tar.gz

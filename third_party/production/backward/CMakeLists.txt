@@ -16,7 +16,7 @@ else ()
   set(BACKWARD_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/backward)
   add_library(backward INTERFACE)
   add_dependencies(backward backward_dependency)
-  target_include_directories(backward INTERFACE ${BACKWARD_ROOT}/include)
+  target_include_directories(backward SYSTEM INTERFACE ${BACKWARD_ROOT}/include)
   ExternalProject_Add(backward_dependency
     URL
       https://github.com/bombela/backward-cpp/archive/v${BACKWARD_VERSION}.tar.gz

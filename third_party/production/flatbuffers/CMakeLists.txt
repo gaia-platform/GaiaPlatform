@@ -324,7 +324,7 @@ include_directories(grpc)
 if(FLATBUFFERS_BUILD_FLATLIB)
   add_library(flatbuffers STATIC ${FlatBuffers_Library_SRCS})
   # Attach header directory for when build via add_subdirectory().
-  target_include_directories(flatbuffers INTERFACE
+  target_include_directories(flatbuffers SYSTEM INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
   target_compile_options(flatbuffers PRIVATE "${FLATBUFFERS_PRIVATE_CXX_FLAGS}")
 endif()

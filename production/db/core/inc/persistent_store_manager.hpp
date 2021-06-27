@@ -29,7 +29,7 @@ class persistent_store_manager
 
 public:
     persistent_store_manager(
-        gaia::db::counters_t* counters, gaia::db::locators_t* locators, std::string data_dir);
+        gaia::db::counters_t* counters, std::string data_dir);
     ~persistent_store_manager();
 
     /**
@@ -84,7 +84,6 @@ public:
 
 private:
     gaia::db::counters_t* m_counters = nullptr;
-    gaia::db::locators_t* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
     std::string m_data_dir_path;
 };

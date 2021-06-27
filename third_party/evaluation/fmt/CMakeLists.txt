@@ -2,7 +2,7 @@ set(FMT_VERSION "7.0.3")
 set(FMT_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
 add_library(fmt INTERFACE)
 add_dependencies(fmt fmt_dependency)
-target_include_directories(fmt INTERFACE ${FMT_ROOT}/include)
+target_include_directories(fmt SYSTEM INTERFACE ${FMT_ROOT}/include)
 target_link_libraries(fmt INTERFACE ${FMT_ROOT}/lib/libfmt.a)
 ExternalProject_Add(fmt_dependency
   URL
