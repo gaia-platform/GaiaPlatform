@@ -242,7 +242,7 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
-set(DISABLE_WARNINGS OFF CACHE BOOL "" FORCE)
+set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 
 # Flatbuffers.
