@@ -219,6 +219,15 @@ void server_t::handle_begin_txn(
     // allocation per txn.
     std::vector<int> txn_log_fds;
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+    auto cleanup_log_fds = make_scope_guard([&]() {
+        // Now we need to close all the duplicated log fds in the buffer.
+        for (auto& fd : txn_log_fds)
+        {
+            // Each log fd should still be valid.
+            ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+            close_fd(fd);
+        }
+    });
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
@@ -238,14 +247,6 @@ void server_t::handle_begin_txn(
         send_msg_with_fds(
             s_session_socket, txn_log_fds.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
-    }
-
-    // Now we need to close all the duplicated log fds in the buffer.
-    for (auto& fd : txn_log_fds)
-    {
-        // Each log fd should still be valid.
-        ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
-        close_fd(fd);
     }
 }
 
@@ -795,6 +796,15 @@ void server_t::create_local_snapshot(bool apply_logs)
     {
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+        auto cleanup_log_fds = make_scope_guard([&]() {
+            // Close all the duplicated log fds in the buffer.
+            for (auto& fd : txn_log_fds)
+            {
+                // Each log fd should still be valid.
+                ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+                close_fd(fd);
+            }
+        });
 
         // Open a private locator mmap for the current thread.
         s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
@@ -811,14 +821,6 @@ void server_t::create_local_snapshot(bool apply_logs)
         if (s_log)
         {
             apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
-        }
-
-        // Now we need to close all the duplicated log fds in the buffer.
-        for (auto& fd : txn_log_fds)
-        {
-            // Each log fd should still be valid.
-            ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
-            close_fd(fd);
         }
     }
     else
