@@ -2,7 +2,7 @@
 
 #include "tags_test.h"
 
-ruleset test1
+ruleset test_for_with_table_scan
 {
     OnInsert(incubator)
     {
@@ -14,7 +14,7 @@ ruleset test1
     }
 }
 
-ruleset test2
+ruleset test_for
 {
     {
         float temp = 0;
@@ -25,7 +25,7 @@ ruleset test2
     }
 }
 
-ruleset test3
+ruleset test_for_if
 {
     {
         float temp = 0;
@@ -36,7 +36,7 @@ ruleset test3
     }
 }
 
-ruleset test4
+ruleset test_if
 {
     {
         float temp = 0;
@@ -47,7 +47,7 @@ ruleset test4
     }
 }
 
-ruleset test5
+ruleset test_implicit_iteration_active_field_inside_if
 {
     {
         float temp = 0;
@@ -58,7 +58,7 @@ ruleset test5
     }
 }
 
-ruleset test6
+ruleset test_implicit_iteration_inside_if_on_insert
 {
     OnInsert(incubator)
     {
@@ -70,7 +70,7 @@ ruleset test6
     }
 }
 
-ruleset test7
+ruleset test_if_else_implicit_iteration
 {
     OnInsert(incubator)
     {
@@ -86,9 +86,9 @@ ruleset test7
     }
 }
 
-// Questionable code generation on this one.
-ruleset test8
+ruleset test_if_else_navigation
 {
+    // Questionable code generation on this one.
     OnInsert(incubator)
     {
         float temp = 0;
@@ -103,7 +103,7 @@ ruleset test8
     }
 }
 
-ruleset test9
+ruleset test_if_else_nomatch_navigation
 {
     OnInsert(incubator)
     {
@@ -125,7 +125,7 @@ ruleset test9
     }
 }
 
-ruleset test10
+ruleset test_navigation_tags
 {
     OnInsert(incubator)
     {
@@ -141,7 +141,7 @@ ruleset test10
     }
 }
 
-ruleset test11
+ruleset test_while_navigation
 {
     OnInsert(incubator)
     {
@@ -153,7 +153,7 @@ ruleset test11
     }
 }
 
-ruleset test12
+ruleset test_nested_while_navigation_multiple_tags
 {
     OnInsert(incubator)
     {
@@ -168,7 +168,7 @@ ruleset test12
     }
 }
 
-ruleset test13
+ruleset test_while_if_navigation_on_insert
 {
     OnInsert(farmer)
     {
@@ -183,7 +183,7 @@ ruleset test13
     }
 }
 
-ruleset test14
+ruleset test_while_if_navigation_active_field
 {
     {
         float temp = 0;
@@ -197,7 +197,7 @@ ruleset test14
     }
 }
 
-ruleset test15
+ruleset test_else_if_table_scans
 {
     {
         int total_acres;
@@ -216,7 +216,7 @@ ruleset test15
     }
 }
 
-ruleset test16
+ruleset test_else_if_implicit_iteration
 {
     {
         int total_acres;
@@ -237,8 +237,10 @@ ruleset test16
 
 int strcmp(const char*, const char*);
 
-ruleset test17
+ruleset test_else_if_backward_navigation
 {
+    // Does this intend to test backward navigation (farmer->yield->farmer)
+    // or function usage in a declarative statement (strcmp() in this test)?
     {
         int total_acres;
         if (@farmer->Y:yield->feeding.portion > 10)
@@ -256,7 +258,7 @@ ruleset test17
     }
 }
 
-ruleset test18
+ruleset test_else_if_table_scans
 {
     OnInsert(isolated)
     {
@@ -276,7 +278,7 @@ ruleset test18
     }
 }
 
-ruleset test19
+ruleset test_multiple_else_if_nomatch
 {
     OnInsert(isolated)
     {
@@ -309,7 +311,7 @@ ruleset test19
     }
 }
 
-ruleset test20
+ruleset test_single_cardinality_for
 {
     OnInsert(incubator)
     {
@@ -321,7 +323,7 @@ ruleset test20
     }
 }
 
-ruleset test21
+ruleset test_multiple_cardinality_for_with_tag
 {
     OnInsert(incubator)
     {
@@ -334,7 +336,7 @@ ruleset test21
     }
 }
 
-ruleset test22
+ruleset test_deep_navigation_for_while
 {
     OnInsert(incubator)
     {
@@ -354,7 +356,7 @@ ruleset test22
     }
 }
 
-ruleset test23
+ruleset test_nested_braceless_if_nomatch
 {
     OnInsert(incubator)
     {
@@ -376,7 +378,7 @@ ruleset test23
     }
 }
 
-ruleset test24
+ruleset test_procedural_for_with_implicit_iteration
 {
     OnInsert(feeding)
     {
@@ -391,7 +393,7 @@ ruleset test24
     }
 }
 
-ruleset test25
+ruleset test_statement_with_navigations
 {
     OnInsert(feeding)
     {
@@ -402,7 +404,7 @@ ruleset test25
 
 void sprintf(char*, const char*, const char*, float, float);
 
-ruleset test26
+ruleset test_navigations_in_function_parameters
 {
     OnInsert(feeding)
     {
@@ -411,7 +413,7 @@ ruleset test26
     }
 }
 
-ruleset test27
+ruleset test_on_insert_tag_usage
 {
     OnInsert(I:incubator)
     {
@@ -426,7 +428,7 @@ ruleset test27
     }
 }
 
-ruleset test28
+ruleset test_implicit_iteration_inside_if_else_nomatch
 {
     OnInsert(incubator)
     {
@@ -446,7 +448,7 @@ ruleset test28
     }
 }
 
-ruleset test29
+ruleset test_braceless_while_with_tags
 {
     OnInsert(incubator)
     {
@@ -457,7 +459,7 @@ ruleset test29
     }
 }
 
-ruleset test30
+ruleset test_procedural_while_and_if
 {
     OnInsert(incubator)
     {
@@ -474,7 +476,7 @@ ruleset test30
     }
 }
 
-ruleset test31
+ruleset test_nested_procedural_and_declarative_whiles
 {
     OnInsert(incubator)
     {
@@ -493,7 +495,7 @@ ruleset test31
     }
 }
 
-ruleset test32
+ruleset test_braceless_declarative_statement_in_procedural_while
 {
     OnInsert(incubator)
     {
@@ -505,7 +507,7 @@ ruleset test32
     }
 }
 
-ruleset test33
+ruleset test_if_nomatch_tag_scope
 {
     {
         int total_acres;
@@ -529,7 +531,7 @@ ruleset test33
     }
 }
 
-ruleset test34
+ruleset test_do_while_implicit_iteration
 {
     OnInsert(incubator)
     {
@@ -544,7 +546,7 @@ ruleset test34
     }
 }
 
-ruleset test35
+ruleset test_braceless_do_while_one_line
 {
     OnInsert(incubator)
     {
@@ -554,7 +556,7 @@ ruleset test35
     }
 }
 
-ruleset test36
+ruleset test_braceless_do_while_two_lines
 {
     OnInsert(incubator)
     {
@@ -596,6 +598,8 @@ ruleset test38
 ruleset test39
 {
     // The consequences of the syntax in this rule are up for discussion.
+    // This may become a negative test in the future,
+    // in the event that we disallow references inside a while() statement.
     {
         int count = 0;
         // Procedural do-while referencing an active field inside while().
@@ -661,6 +665,7 @@ ruleset test43
     {
         int count = 0;
         // Declarative do-while referencing a field inside while() using a full-table scan.
+        // In the future, references inside a while() loop that cause iteration may be illegal.
         do
         {
             count += 1;
