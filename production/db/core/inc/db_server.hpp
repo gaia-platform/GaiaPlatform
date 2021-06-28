@@ -271,7 +271,7 @@ private:
 
     static void recover_db();
 
-    static void recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts);
+    static void recover_persistent_log(gai);
 
     static sigset_t mask_signals();
 
