@@ -695,7 +695,7 @@ address_offset_t server_t::allocate_object(
     return object_offset;
 }
 
-void server_t::recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts)
+void server_t::recover_persistent_log()
 {
     // If persistence is disabled, then this is a no-op.
     if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
@@ -726,9 +726,13 @@ void server_t::recover_persistent_log(gaia_txn_id_t& last_checkpointed_commit_ts
             std::cout << "RECOVERED LOG SEQ = " << log_seq << std::endl;
 
             // Recover only the first time this method gets called.
+            gaia_txn_id_t last_checkpointed_commit_ts = 0;
             persistent_log_handler->recover_from_persistent_log(last_checkpointed_commit_ts, log_seq);
 
             rdb->update_value(persistent_store_manager::c_last_processed_log_num_key, log_seq);
+
+            // Reset c_last_checkpointed_commit_ts_key, we don't persist it across restarts.
+            rdb->update_value(persistent_store_manager::c_last_checkpointed_commit_ts_key, 0);
 
             persistent_log_handler->set_persistent_log_sequence(log_seq);
 
@@ -760,17 +764,12 @@ void server_t::recover_db()
             }
             rdb->open();
 
-            auto commit_ts = rdb->get_value(persistent_store_manager::c_last_checkpointed_commit_ts_key);
-            std::cout << "RECOVERED COMMIT TS = " << commit_ts << std::endl;
-
-            recover_persistent_log(commit_ts);
-
-            rdb->update_value(persistent_store_manager::c_last_checkpointed_commit_ts_key, commit_ts);
+            recover_persistent_log();
 
             // Flush persistent store buffer to disk.
             rdb->flush();
 
-            rdb->recover(commit_ts);
+            rdb->recover();
         }
     }
 

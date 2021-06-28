@@ -363,6 +363,9 @@ void persistent_log_handler_t::recover_from_persistent_log(
     gaia_txn_id_t& last_checkpointed_commit_ts,
     uint64_t& last_processed_log_seq)
 {
+    // Only relevant for checkpointing. Recovery doesn't care about the
+    // 'last_checkpointed_commit_ts' and will reset this field to zero.
+    // We don't persist txn ids across restarts.
     max_decided_commit_ts = last_checkpointed_commit_ts;
     std::cout << "Recovering from persistent log." << std::endl;
     // Scan all files and read log records starting from the highest numbered file.

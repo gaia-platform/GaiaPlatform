@@ -271,7 +271,7 @@ private:
 
     static void recover_db();
 
-    static void recover_persistent_log(gai);
+    static void recover_persistent_log();
 
     static sigset_t mask_signals();
 

@@ -46,7 +46,7 @@ public:
      * Iterate over all elements in the LSM and call SE create API
      * for every key/value pair obtained (after deduping keys).
      */
-    void recover(gaia_txn_id_t latest_checkpointed_commit_ts);
+    void recover();
 
     /**
      * This API is only used during checkpointing & recovery.

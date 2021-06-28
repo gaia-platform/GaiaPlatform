@@ -153,7 +153,7 @@ void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)
  * Todo(Mihir) Note that, for now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
  */
-void persistent_store_manager::recover(gaia_txn_id_t latest_checkpointed_commit_ts)
+void persistent_store_manager::recover()
 {
     auto it = std::unique_ptr<rocksdb::Iterator>(m_rdb_internal->get_iterator());
     gaia_id_t max_id = 0;
@@ -184,7 +184,7 @@ void persistent_store_manager::recover(gaia_txn_id_t latest_checkpointed_commit_
     m_rdb_internal->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
-    m_counters->last_txn_id = latest_checkpointed_commit_ts;
+    m_counters->last_txn_id = c_invalid_gaia_txn_id;
 
     std::cout << "OBJECTS RECOVERED = " << count << std::endl;
 
