@@ -56,37 +56,26 @@ enum class txn_decision_type_t : uint64_t
     abort = 2,
 };
 
-struct txn_index_entry_t
-{
-    persistent_log_sequence_t index;
-    persistent_log_file_offset_t offset;
-};
-
 struct decision_record_entry_t
 {
     gaia_txn_id_t txn_commit_ts;
     txn_decision_type_t decision;
 };
 
-// 32 bytes.
+// 24 bytes.
 struct record_header_t
 {
-    crc32_t crc;
-
-    record_size_t payload_size;
-    record_type_t record_type;
-
-    // The wal_index and the offset uniquely represent the location of a txn's updates in the log.
-    txn_index_entry_t entry;
-
-    gaia_txn_id_t txn_commit_ts;
+    crc32_t crc; // 4 bytes
+    record_size_t payload_size; // 4 bytes
+    record_type_t record_type; // 1 byte
+    gaia_txn_id_t txn_commit_ts; // 8 bytes
 
     // Stores a count value depending on the record type.
     // For txn record, this represents the deleted count.
     // For a decision record, this represents the number of decisions in the record's payload.
-    uint32_t count;
+    uint32_t count; // 4 bytes
 
-    char padding[5];
+    char padding[3];
 };
 
 struct read_record_t

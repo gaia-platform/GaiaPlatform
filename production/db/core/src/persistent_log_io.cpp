@@ -156,8 +156,6 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     header.count = txn_decisions.size();
     header.txn_commit_ts = 0;
     header.record_type = record_type_t::decision;
-    header.entry.index = current_file->file_num;
-    header.entry.offset = begin_log_offset;
 
     // std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND SIZE = " << total_log_space_needed << std::endl;
 
@@ -309,8 +307,6 @@ void persistent_log_handler_t::create_txn_record(
     header.count = deleted_ids.size();
     header.txn_commit_ts = commit_ts;
     header.record_type = type;
-    header.entry.index = current_file->file_num;
-    header.entry.offset = start_offset;
 
     // std::cout << "TXN RECORD OFFSET = " << start_offset << " AND SIZE = " << total_log_space_needed << std::endl;
 
