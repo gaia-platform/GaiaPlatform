@@ -543,12 +543,17 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
 
         auto current_record_ptr = it->cursor;
         record_size = update_cursor(it);
+
         if (record_size == 0)
         {
-            ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
+            if (it->halt_recovery || it->cursor >= it->stop_at)
+            {
+                it->cursor = nullptr;
+                it->end = nullptr;
+                break;
+            }
 
-            // Break since an error was encountered and recovery is halted.
-            break;
+            ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
         }
 
         read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
@@ -602,18 +607,16 @@ size_t persistent_log_handler_t::update_cursor(struct record_iterator_t* it)
         // Recovery failure.
         if (record_size == 0)
         {
-            it->cursor = nullptr;
-            it->end = nullptr;
             return 0;
         }
 
         it->cursor += record_size;
         return record_size;
     }
-
-    it->cursor = nullptr;
-    it->end = nullptr;
-    return 0;
+    else
+    {
+        return 0;
+    }
 }
 
 size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
@@ -621,6 +624,10 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
     // std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin  << " AND RECORD = " << (uint8_t) destination->header.record_type << std::endl;
 
+    if (destination->header.payload_size == 0)
+    {
+        std::cout << "halt here " << std::endl;
+    }
     if (destination->header.crc == 0)
     {
         std::cout << "HEADER CRC zero." << std::endl;
