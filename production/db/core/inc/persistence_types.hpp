@@ -22,8 +22,8 @@ namespace db
 {
 typedef uint32_t record_size_t;
 typedef uint32_t crc32_t;
-typedef uint16_t persistent_log_sequence_t;
-typedef uint32_t persistent_log_file_offset_t;
+typedef size_t persistent_log_sequence_t;
+typedef size_t persistent_log_file_offset_t;
 
 enum class recovery_mode_t : uint8_t
 {
@@ -49,7 +49,7 @@ enum class record_type_t : uint8_t
     file_header = 0x3,
 };
 
-enum class txn_decision_type_t : uint64_t
+enum class txn_decision_type_t : uint8_t
 {
     not_set = 0,
     commit = 1,
@@ -75,7 +75,7 @@ struct record_header_t
     // For a decision record, this represents the number of decisions in the record's payload.
     uint32_t count; // 4 bytes
 
-    char padding[3];
+    //char padding[3];
 };
 
 struct read_record_t

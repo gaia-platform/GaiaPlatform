@@ -65,11 +65,11 @@ TEST(io_uring_manager_test, single_write)
     iov.iov_base = (void*)to_write.c_str();
     iov.iov_len = to_write.size();
 
-    size_t count_submitted = io_uring_mgr->pwritev(&iov, 1, wal_file.file_fd, 0, uring_op_t::PWRITEV_TXN);
+    size_t count_submitted = io_uring_mgr->pwritev(&iov, 1, wal_file.get_file_fd(), 0, uring_op_t::PWRITEV_TXN);
     wal_file.allocate(to_write.size());
 
-    count_submitted += io_uring_mgr->handle_file_close(wal_file.file_fd, wal_file.current_offset);
-    count_submitted += io_uring_mgr->handle_submit(wal_file.file_fd, false);
+    count_submitted += io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_current_offset());
+    count_submitted += io_uring_mgr->handle_submit(wal_file.get_file_fd(), false);
 
     int flush_efd = io_uring_mgr->get_flush_efd();
 
@@ -123,12 +123,12 @@ TEST(io_uring_manager_test, multiple_write)
         iov_entries[i].iov_base = (void*)to_write.c_str();
         iov_entries[i].iov_len = to_write.size();
         total_size_written += to_write.size();
-        io_uring_mgr->pwritev(&iov_entries[i], 1, wal_file.file_fd, wal_file.current_offset, uring_op_t::PWRITEV_TXN);
+        io_uring_mgr->pwritev(&iov_entries[i], 1, wal_file.get_file_fd(), wal_file.get_current_offset(), uring_op_t::PWRITEV_TXN);
         wal_file.allocate(to_write.size());
     }
 
-    io_uring_mgr->handle_file_close(wal_file.file_fd, wal_file.current_offset);
-    io_uring_mgr->handle_submit(wal_file.file_fd, false);
+    io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_current_offset());
+    io_uring_mgr->handle_submit(wal_file.get_file_fd(), false);
 
     int flush_efd = io_uring_mgr->get_flush_efd();
     eventfd_t counter;

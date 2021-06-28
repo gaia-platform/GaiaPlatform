@@ -115,22 +115,23 @@ persistent_log_file_offset_t persistent_log_handler_t::allocate_log_space(size_t
     // TODO: ASSERT(payload_size < log_file_size)
     if (!current_file)
     {
-        auto fs = (payload_size > file_size) ? payload_size : file_size;
+        std::cout << "Current file doesn't exist" << std::endl;
+        auto fs = (payload_size > c_file_size) ? payload_size : c_file_size;
         current_file.reset(new persistent_log_file_t(s_wal_dir_path, dir_fd, file_num, fs));
     }
-
-    if (!current_file->has_enough_space(payload_size))
+    else if (!current_file->has_enough_space(payload_size))
     {
-        async_disk_writer->handle_file_close(current_file->file_fd, current_file->current_offset);
+        async_disk_writer->handle_file_close(current_file->get_file_fd(), current_file->get_current_offset());
 
         // As a simplification, one batch writes to a single log file at a time.
-        async_disk_writer->handle_submit(current_file->file_fd);
+        async_disk_writer->handle_submit(current_file->get_file_fd());
 
         current_file.reset();
 
         // Open new file.
         file_num++;
-        auto fs = (payload_size > file_size) ? payload_size : file_size;
+        auto fs = (payload_size > c_file_size) ? payload_size : c_file_size;
+        std::cout << "File out of space; creating new file with fs = " << fs << std::endl;
         current_file = std::make_unique<persistent_log_file_t>(s_wal_dir_path, dir_fd, file_num, fs);
     }
     persistent_log_file_offset_t current_offset = current_file->get_current_offset();
@@ -167,14 +168,14 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     header.crc = txn_crc;
 
     // std::cout << "DECISION HDR" << std::endl;
-    auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
+    auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->get_file_fd());
     // std::cout << "DECISIONS" << std::endl;
-    auto txn_decisions_ptr = async_disk_writer->copy_into_metadata_buffer(txn_decisions.data(), txn_decision_size, current_file->file_fd);
+    auto txn_decisions_ptr = async_disk_writer->copy_into_metadata_buffer(txn_decisions.data(), txn_decision_size, current_file->get_file_fd());
 
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
     writes_to_submit.push_back({txn_decisions_ptr, txn_decision_size});
 
-    async_disk_writer->construct_pwritev(writes_to_submit, current_file->file_fd, begin_log_offset, current_file->get_current_offset(), uring_op_t::PWRITEV_DECISION);
+    async_disk_writer->construct_pwritev(writes_to_submit, current_file->get_file_fd(), begin_log_offset, current_file->get_current_offset(), uring_op_t::PWRITEV_DECISION);
 }
 
 void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts, memory_manager_t* memory_manager)
@@ -263,7 +264,7 @@ void persistent_log_handler_t::validate_flushed_batch()
 
 void persistent_log_handler_t::submit_writes(bool sync)
 {
-    async_disk_writer->handle_submit(current_file->file_fd, sync);
+    async_disk_writer->handle_submit(current_file->get_file_fd(), sync);
 }
 
 void persistent_log_handler_t::create_txn_record(
@@ -327,7 +328,7 @@ void persistent_log_handler_t::create_txn_record(
     header.crc = txn_crc;
 
     // std::cout << "ADD HEADER" << std::endl;
-    auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->file_fd);
+    auto header_ptr = async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), current_file->get_file_fd());
 
     // Update the first iovec entry with the header information.
     writes_to_submit.at(0).iov_base = header_ptr;
@@ -337,11 +338,11 @@ void persistent_log_handler_t::create_txn_record(
     // std::cout << "ADD DEL IDS" << std::endl;
     if (!deleted_ids.empty())
     {
-        auto deleted_id_ptr = async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, current_file->file_fd);
+        auto deleted_id_ptr = async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, current_file->get_file_fd());
         writes_to_submit.push_back({deleted_id_ptr, deleted_size});
     }
 
-    async_disk_writer->construct_pwritev(writes_to_submit, current_file->file_fd, start_offset, current_file->current_offset, uring_op_t::PWRITEV_TXN);
+    async_disk_writer->construct_pwritev(writes_to_submit, current_file->get_file_fd(), start_offset, current_file->get_current_offset(), uring_op_t::PWRITEV_TXN);
 }
 
 void persistent_log_handler_t::destroy_persistent_log()
