@@ -150,7 +150,7 @@ endif()
 add_library(gaia_spdlog::gaia_spdlog ALIAS gaia_spdlog)
 
 target_compile_definitions(gaia_spdlog PUBLIC GAIA_SPDLOG_COMPILED_LIB)
-target_include_directories(gaia_spdlog PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
+target_include_directories(gaia_spdlog SYSTEM PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
                                          "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 target_link_libraries(gaia_spdlog PUBLIC Threads::Threads)
 spdlog_enable_warnings(gaia_spdlog)
@@ -169,7 +169,7 @@ endif()
 add_library(gaia_spdlog_header_only INTERFACE)
 add_library(gaia_spdlog::gaia_spdlog_header_only ALIAS gaia_spdlog_header_only)
 
-target_include_directories(gaia_spdlog_header_only INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
+target_include_directories(gaia_spdlog_header_only SYSTEM INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
                                                         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 target_link_libraries(gaia_spdlog_header_only INTERFACE Threads::Threads)
 
@@ -305,4 +305,3 @@ if(GAIA_SPDLOG_INSTALL)
     # ---------------------------------------------------------------------------------------
     include(cmake/spdlogCPack.cmake)
 endif()
-

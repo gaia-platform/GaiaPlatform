@@ -9,7 +9,7 @@ else ()
   set(TABULATE_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/tabulate)
   add_library(tabulate INTERFACE)
   add_dependencies(tabulate tabulate_dependency)
-  target_include_directories(tabulate INTERFACE ${TABULATE_ROOT}/include)
+  target_include_directories(tabulate SYSTEM INTERFACE ${TABULATE_ROOT}/include)
   ExternalProject_Add(tabulate_dependency
     URL
       https://github.com/p-ranav/tabulate/archive/v${TABULATE_VERSION}.tar.gz
