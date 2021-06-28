@@ -33,7 +33,7 @@ gaia::db::memory_manager::address_offset_t allocate_object(
     gaia_locator_t locator,
     size_t size);
 
-// Get the current txn id
+// Get the current txn id.
 gaia::db::gaia_txn_id_t get_current_txn_id();
 
 // Returns a pointer to the indexes.
