@@ -4,8 +4,7 @@
 
 // #define TEST_FAILURES
 
-// TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
-ruleset test1 : Table(incubator)
+ruleset test1
 {
     OnInsert(incubator)
     {
@@ -17,8 +16,7 @@ ruleset test1 : Table(incubator)
     }
 }
 
-// TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
-ruleset test2 : Table(incubator)
+ruleset test2
 {
     {
         float temp = 0;
@@ -29,8 +27,7 @@ ruleset test2 : Table(incubator)
     }
 }
 
-// TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
-ruleset test3 : Table(incubator)
+ruleset test3
 {
     {
         float temp = 0;

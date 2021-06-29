@@ -16,7 +16,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -33,49 +32,10 @@
 using namespace gaia;
 using namespace std;
 using namespace clang;
-//using namespace gaia::catalog::generate;
 
 static string fieldTableName;
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
-
-/**
- * When an ambiguous reference to a field is found prints a message in
- * the that shows where the source of the ambiguity is (tables, fields, links):
- *
- * statements_tests.ruleset:12:15: error: Ambiguous reference to field 'incubator'.
- *      if (incubator)
- *          ^
- * statements_tests.ruleset:12:15: note: Table: 'incubator'.
- * statements_tests.ruleset:12:15: note: Link: 'sensor.incubator'.
- * statements_tests.ruleset:12:15: note: Link: 'actuator.incubator'.
- * statements_tests.ruleset:12:15: note: Link: 'raised.incubator'.
- */
-//void printAmbiguousFieldReferenceDiagnostic(
-//    Sema& sema,
-//    SourceLocation loc,
-//    const std::string& fieldName,
-//    std::optional<table_facade_t> table,
-//    std::vector<field_facade_t> fields,
-//    std::vector<link_facade_t> links)
-//{
-//    sema.Diag(loc, diag::err_ambiguous_field_reference) << fieldName;
-//
-//    if (table)
-//    {
-//        sema.Diag(loc, diag::note_table_reference) << table->table_name();
-//    }
-//
-//    for (auto& field : fields)
-//    {
-//        sema.Diag(loc, diag::note_field_reference) << field.table_name() << field.field_name();
-//    }
-//
-//    for (auto& link : links)
-//    {
-//        sema.Diag(loc, diag::note_link_reference) << link.from_table() << link.field_name();
-//    }
-//}
 
 static string get_table_from_expression(const string& expression)
 {
