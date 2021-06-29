@@ -29,8 +29,8 @@ using namespace gaia::common;
 using namespace rocksdb;
 
 persistent_store_manager::persistent_store_manager(
-    gaia::db::counters_t* counters, gaia::db::locators_t* locators, std::string data_dir)
-    : m_counters(counters), m_locators(locators), m_data_dir_path(std::move(data_dir))
+    gaia::db::counters_t* counters, std::string data_dir)
+    : m_counters(counters), m_data_dir_path(std::move(data_dir))
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;

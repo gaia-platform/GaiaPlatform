@@ -710,7 +710,7 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), get_locators(), s_server_conf.data_dir());
+            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();

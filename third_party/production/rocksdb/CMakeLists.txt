@@ -274,6 +274,12 @@ if(FAIL_ON_WARNINGS)
   endif()
 endif()
 
+option(DISABLE_WARNINGS "Disable all compile warnings" OFF)
+if(DISABLE_WARNINGS)
+  # assume GCC/Clang
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-everything")
+endif()
+
 option(WITH_ASAN "build with ASAN" OFF)
 if(WITH_ASAN)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")

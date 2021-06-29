@@ -1,7 +1,7 @@
 set(GAIA_SPDLOG_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog)
 add_library(gaia_spdlog INTERFACE)
 add_dependencies(gaia_spdlog spdlog_dependency)
-target_include_directories(gaia_spdlog INTERFACE ${GAIA_SPDLOG_ROOT}/include)
+target_include_directories(gaia_spdlog SYSTEM INTERFACE ${GAIA_SPDLOG_ROOT}/include)
 target_link_libraries(gaia_spdlog INTERFACE ${GAIA_SPDLOG_ROOT}/lib/libgaia_spdlog.a)
 # Uses the local gaia_spdlog sources to build the static library.
 ExternalProject_Add(spdlog_dependency

@@ -1,4 +1,4 @@
 add_library(gaia_spdlog_setup INTERFACE)
 add_dependencies(gaia_spdlog_setup cpptoml)
 add_dependencies(gaia_spdlog_setup gaia_spdlog)
-target_include_directories(gaia_spdlog_setup INTERFACE ${GAIA_REPO}/third_party/bundle/gaia_spdlog_setup/include)
+target_include_directories(gaia_spdlog_setup SYSTEM INTERFACE ${GAIA_REPO}/third_party/bundle/gaia_spdlog_setup/include)

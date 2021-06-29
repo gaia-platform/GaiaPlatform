@@ -81,8 +81,8 @@ struct edc_generator_iterator_state_t : public edc_base_iterator_state_t
 
 std::shared_ptr<edc_base_iterator_state_t> edc_db_t::initialize_iterator(gaia_type_t container_type_id)
 {
-    std::shared_ptr<edc_base_iterator_state_t> iterator_state;
-    iterator_state.reset(new edc_generator_iterator_state_t());
+    std::shared_ptr<edc_base_iterator_state_t> iterator_state
+        = std::make_shared<edc_generator_iterator_state_t>();
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<edc_generator_iterator_state_t*>(iterator_state.get()))->iterator;
     iterator = gaia_ptr_t::find_all_iterator(container_type_id);

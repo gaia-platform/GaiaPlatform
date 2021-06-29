@@ -64,11 +64,12 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Default compiler/linker flags for Gaia targets.
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ftime-trace")
+set(GAIA_COMPILE_FLAGS "-Wall -Wextra -ftime-trace")
 set(GAIA_LINK_FLAGS " ")
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
+  set(LLVM_ENABLE_WARNINGS OFF CACHE BOOL "")
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
@@ -241,7 +242,7 @@ endif()
 # External project dependencies.
 
 # Rocksdb.
-set(FAIL_ON_WARNINGS OFF CACHE BOOL "" FORCE)
+set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 
 # Flatbuffers.
