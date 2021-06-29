@@ -86,7 +86,7 @@ public:
      */
     bool is_trace_enabled()
     {
-        return m_spdlogger->level() == gaia_spdlog::level::level_enum::trace;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::trace);
     }
 
     /**
@@ -104,7 +104,7 @@ public:
      */
     bool is_debug_enabled()
     {
-        return m_spdlogger->level() <= gaia_spdlog::level::level_enum::debug;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::debug);
     }
 
     /**
@@ -122,7 +122,7 @@ public:
      */
     bool is_info_enabled()
     {
-        return m_spdlogger->level() <= gaia_spdlog::level::level_enum::info;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::info);
     }
 
     /**
@@ -140,7 +140,7 @@ public:
      */
     bool is_warn_enabled()
     {
-        return m_spdlogger->level() <= gaia_spdlog::level::level_enum::warn;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::warn);
     }
 
     /**
@@ -157,7 +157,7 @@ public:
      */
     bool is_error_enabled()
     {
-        return m_spdlogger->level() <= gaia_spdlog::level::level_enum::err;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::err);
     }
 
     /**
@@ -175,7 +175,7 @@ public:
      */
     bool is_critical_enabled()
     {
-        return m_spdlogger->level() <= gaia_spdlog::level::level_enum::critical;
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::critical);
     }
 
 protected:

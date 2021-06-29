@@ -73,7 +73,7 @@ gaia::common::logging::logger_t* create_debug_logger(
     return debug_logger_ptr;
 }
 
-void verify_log_levels(gaia_spdlog::level::level_enum log_level, bool trace_status, bool debug_status, bool info_status, bool warn_status, bool error_status, bool critical_status)
+void verify_log_levels(gaia_spdlog::level::level_enum log_level)
 {
     gaia_log::initialize({});
 
@@ -85,6 +85,26 @@ void verify_log_levels(gaia_spdlog::level::level_enum log_level, bool trace_stat
     gaia_log::set_catalog_logger(create_debug_logger(log_level, "catalog_logger"));
     gaia_log::set_app_logger(create_debug_logger(log_level, "app_logger"));
 
+    bool f_trace = false, f_debug = false, f_info = false, f_warn = false, f_error = false, f_critical = false;
+    // Fall through from the most to least verbose log levels.
+    switch (log_level)
+    {
+    case gaia_spdlog::level::trace:
+        f_trace = true;
+    case gaia_spdlog::level::debug:
+        f_debug = true;
+    case gaia_spdlog::level::info:
+        f_info = true;
+    case gaia_spdlog::level::warn:
+        f_warn = true;
+    case gaia_spdlog::level::err:
+        f_error = true;
+    case gaia_spdlog::level::critical:
+        f_critical = true;
+    default:
+        break;
+    }
+
     vector<gaia_log::logger_t> loggers = {
         gaia_log::sys(),
         gaia_log::catalog(),
@@ -95,12 +115,12 @@ void verify_log_levels(gaia_spdlog::level::level_enum log_level, bool trace_stat
 
     for (auto logger : loggers)
     {
-        EXPECT_EQ(logger.is_trace_enabled(), trace_status);
-        EXPECT_EQ(logger.is_debug_enabled(), debug_status);
-        EXPECT_EQ(logger.is_info_enabled(), info_status);
-        EXPECT_EQ(logger.is_warn_enabled(), warn_status);
-        EXPECT_EQ(logger.is_error_enabled(), error_status);
-        EXPECT_EQ(logger.is_critical_enabled(), critical_status);
+        EXPECT_EQ(logger.is_trace_enabled(), f_trace);
+        EXPECT_EQ(logger.is_debug_enabled(), f_debug);
+        EXPECT_EQ(logger.is_info_enabled(), f_info);
+        EXPECT_EQ(logger.is_warn_enabled(), f_warn);
+        EXPECT_EQ(logger.is_error_enabled(), f_error);
+        EXPECT_EQ(logger.is_critical_enabled(), f_critical);
     }
 
     gaia_log::shutdown();
@@ -108,20 +128,11 @@ void verify_log_levels(gaia_spdlog::level::level_enum log_level, bool trace_stat
 
 TEST(logger_test, is_log_level_enabled)
 {
-    // Trace is the deepest log level, so every log level must be active.
-    verify_log_levels(gaia_spdlog::level::trace, true, true, true, true, true, true);
-
-    verify_log_levels(gaia_spdlog::level::debug, false, true, true, true, true, true);
-
-    verify_log_levels(gaia_spdlog::level::info, false, false, true, true, true, true);
-
-    verify_log_levels(gaia_spdlog::level::warn, false, false, false, true, true, true);
-
-    verify_log_levels(gaia_spdlog::level::err, false, false, false, false, true, true);
-
-    // Critical is the shallowest log level, so all other log levels must be inactive.
-    verify_log_levels(gaia_spdlog::level::critical, false, false, false, false, false, true);
-
-    // All log levels should be inactive if the level is "off".
-    verify_log_levels(gaia_spdlog::level::off, false, false, false, false, false, false);
+    verify_log_levels(gaia_spdlog::level::trace);
+    verify_log_levels(gaia_spdlog::level::debug);
+    verify_log_levels(gaia_spdlog::level::info);
+    verify_log_levels(gaia_spdlog::level::warn);
+    verify_log_levels(gaia_spdlog::level::err);
+    verify_log_levels(gaia_spdlog::level::critical);
+    verify_log_levels(gaia_spdlog::level::off);
 }
