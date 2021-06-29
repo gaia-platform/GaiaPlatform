@@ -62,6 +62,7 @@ unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
 unordered_set<string> g_update_tables;
 unordered_map<string, string> g_attribute_tag_map;
+bool g_insert_call = false;
 
 namespace std
 {
@@ -90,6 +91,8 @@ enum rewriter_operation_t
 {
     replace_text,
     insert_text_after_token,
+    remove_text,
+    insert_text_before,
 };
 
 struct rewriter_history_t
@@ -845,6 +848,12 @@ void generate_table_subscription(
             case insert_text_after_token:
                 copy_rewriter.InsertTextAfterToken(history_item.range.getBegin(), history_item.string_argument);
                 break;
+            case remove_text:
+                copy_rewriter.RemoveText(history_item.range);
+                break;
+            case insert_text_before:
+                copy_rewriter.InsertTextBefore(history_item.range.getBegin(), history_item.string_argument);
+                break;
             default:
                 break;
             }
@@ -1091,6 +1100,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<CallExpr>())
@@ -2446,6 +2457,18 @@ public:
             {
                 m_rewriter.ReplaceText(expression_source_range, variable_name);
                 g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
+                if (g_insert_call)
+                {
+                    string insert_call_prefix = "gaia::";
+                    insert_call_prefix
+                        .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
+                        .append("::")
+                        .append(table_name)
+                        .append("_t::get(");
+                    m_rewriter.InsertTextBefore(expression_source_range.getBegin(), insert_call_prefix);
+                    g_rewriter_history.push_back({expression_source_range, insert_call_prefix, insert_text_before});
+                    g_insert_call = false;
+                }
                 auto offset
                     = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
                 if (explicit_path_present)
@@ -2541,6 +2564,128 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when a while has a declarative expression.
+class declarative_delete_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_delete_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
+        if (expression != nullptr)
+        {
+            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
+            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()", replace_text});
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
+class declarative_insert_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_insert_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
+        const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        if (expression != nullptr && expression_declaration!= nullptr)
+        {
+            SourceLocation argument_start_location = expression->getExprLoc();
+            unordered_map<string, string> argument_map;
+            const ValueDecl* decl = expression_declaration->getDecl();
+            string table_name = get_table_name(decl);
+
+            for (auto argument : expression->arguments())
+            {
+                string raw_argument_name =
+                    m_rewriter.getRewrittenText(
+                        SourceRange(argument_start_location,
+                            argument->getSourceRange().getBegin().getLocWithOffset(-1)));
+                size_t argument_name_start_position = raw_argument_name.find(',');
+                if (argument_name_start_position == string::npos)
+                {
+                    argument_name_start_position = raw_argument_name.find('(');
+                }
+                size_t argument_name_end_position = raw_argument_name.find(':');
+                string argument_name = raw_argument_name.substr(
+                    argument_name_start_position + 1, argument_name_end_position - argument_name_start_position -1);
+                //Trim the argument name of whitespaces.
+                argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(),
+                    [](unsigned char ch) { return !isspace(ch); }));
+                argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(),
+                    [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
+                argument_map[argument_name] = m_rewriter.getRewrittenText(argument->getSourceRange());
+
+                argument_start_location = argument->getSourceRange().getEnd().getLocWithOffset(1);
+            }
+            string replacement_string = "insert_row(";
+            vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
+            const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
+            for (const auto& call_argument : function_arguments)
+            {
+                const auto argument_map_iterator = argument_map.find(call_argument);
+                if (argument_map_iterator == argument_map.end())
+                {
+                    const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
+                    switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                    {
+                    case data_type_t::e_bool:
+                        replacement_string.append("false,");
+                        break;
+                    case data_type_t::e_int8:
+                    case data_type_t::e_uint8:
+                    case data_type_t::e_int16:
+                    case data_type_t::e_uint16:
+                    case data_type_t::e_int32:
+                    case data_type_t::e_uint32:
+                    case data_type_t::e_int64:
+                    case data_type_t::e_uint64:
+                    case data_type_t::e_float:
+                    case data_type_t::e_double:
+                        replacement_string.append("0,");
+                        break;
+                    case data_type_t::e_string:
+                        replacement_string.append("\"\",");
+                        break;
+                    }
+                }
+                else
+                {
+                    replacement_string.append(argument_map_iterator->second).append(",");
+                }
+            }
+            replacement_string.resize(replacement_string.size() - 1);
+            replacement_string.append("))");
+
+            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), replacement_string);
+            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), replacement_string, replace_text});
+            g_insert_call = true;
+        }
+        else
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 // AST handler that is called when a declarative for.
 class declarative_for_match_handler_t : public MatchFinder::MatchCallback
 {
@@ -2555,6 +2700,7 @@ public:
         if (expression != nullptr)
         {
             m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
+            g_rewriter_history.push_back({SourceRange(expression->getForLoc(), expression->getRParenLoc()), "", remove_text});
         }
         else
         {
@@ -2582,6 +2728,8 @@ public:
         , m_if_nomatch_match_handler(r)
         , m_declarative_while_match_handler(r)
         , m_declarative_for_match_handler(r)
+        , m_declarative_delete_handler(r)
+        , m_declarative_insert_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -2718,6 +2866,20 @@ public:
                               hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("varDeclarationInit");
 
+        StatementMatcher declarative_delete_matcher
+            = cxxMemberCallExpr(
+                hasAncestor(ruleset_matcher),
+                callee(cxxMethodDecl(hasName("Delete"))),
+                hasDescendant(table_call_matcher)
+                ).bind("DeleteCall");
+
+        StatementMatcher declarative_insert_matcher
+            = cxxMemberCallExpr(
+                hasAncestor(ruleset_matcher),
+                callee(cxxMethodDecl(hasName("Insert"))),
+                hasDescendant(table_call_matcher)
+                ).bind("InsertCall");
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -2740,6 +2902,8 @@ public:
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
         m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
         m_matcher.addMatcher(declarative_for_matcher, &m_declarative_for_match_handler);
+        m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
+        m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -2760,6 +2924,8 @@ private:
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
     declarative_while_match_handler_t m_declarative_while_match_handler;
     declarative_for_match_handler_t m_declarative_for_match_handler;
+    declarative_delete_handler_t m_declarative_delete_handler;
+    declarative_insert_handler_t m_declarative_insert_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

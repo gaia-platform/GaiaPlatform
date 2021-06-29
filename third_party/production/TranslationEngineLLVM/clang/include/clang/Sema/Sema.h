@@ -4641,7 +4641,7 @@ private:
   QualType getRuleContextType(SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD,
-    SourceLocation loc, bool isVariadic = false) ;
+    SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);

@@ -8,8 +8,8 @@
 using namespace std;
 using namespace gaia::translation;
 
-static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-static const int c_variable_length = 15;
+constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+constexpr int c_variable_length = 15;
 
 bool table_navigation_t::m_is_initialized = false;
 unordered_map<string, table_data_t> table_navigation_t::m_table_data;
@@ -311,6 +311,7 @@ void table_navigation_t::fill_table_data()
             field_data.is_active = field.active();
             field_data.position = field.position();
             field_data.is_deprecated = field.deprecated();
+            field_data.field_type = field.type();
             table_data.db_name = table.database().name();
             table_data.field_data[field.name()] = field_data;
             m_table_data[table.name()] = table_data;

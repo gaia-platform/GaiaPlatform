@@ -1837,6 +1837,13 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         if (GaiaCallLocation.isValid())
         {
           tableName = insertCallTableMap[GaiaCallLocation];
+          std::unordered_map<std::string, std::string> tagMapping = Actions.getTagMapping(Actions.getCurFunctionDecl(), GaiaCallLocation);
+          auto tag_iterator = tagMapping.find(tableName);
+          if (tag_iterator != tagMapping.end())
+          {
+            tableName = tag_iterator->second;
+          }
+
           parameterNames = insertCallParameterMap[GaiaCallLocation];
         }
 
