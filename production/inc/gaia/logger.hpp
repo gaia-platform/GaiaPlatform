@@ -49,7 +49,7 @@ namespace logging
  * 
  * You can check whether a log level is enabled before running expensive calculations:
  * 
- *  if (gaia_log::app().debug())
+ *  if (gaia_log::app().is_debug_enabled())
  *  {
  *      int num = very_slow_function();
  *      gaia_log::app().debug("value: {}", num);
@@ -82,9 +82,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is "trace".
+     * Returns true if the log level is at "trace".
      */
-    bool trace()
+    bool is_trace_enabled()
     {
         return m_spdlogger->level() == gaia_spdlog::level::level_enum::trace;
     }
@@ -100,9 +100,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is at or above "debug".
+     * Returns true if the log level is at "debug" or higher.
      */
-    bool debug()
+    bool is_debug_enabled()
     {
         return m_spdlogger->level() <= gaia_spdlog::level::level_enum::debug;
     }
@@ -118,9 +118,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is at or above "info".
+     * Returns true if the log level is at "info" or higher.
      */
-    bool info()
+    bool is_info_enabled()
     {
         return m_spdlogger->level() <= gaia_spdlog::level::level_enum::info;
     }
@@ -136,9 +136,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is at or above "warn".
+     * Returns true if the log level is at "warn" or higher.
      */
-    bool warn()
+    bool is_warn_enabled()
     {
         return m_spdlogger->level() <= gaia_spdlog::level::level_enum::warn;
     }
@@ -153,9 +153,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is at or above "error".
+     * Returns true if the log level is at "error" or higher.
      */
-    bool error()
+    bool is_error_enabled()
     {
         return m_spdlogger->level() <= gaia_spdlog::level::level_enum::err;
     }
@@ -171,9 +171,9 @@ public:
     }
 
     /**
-     * Returns true if the log level is at or above "critical".
+     * Returns true if the log level is at "critical" or higher.
      */
-    bool critical()
+    bool is_critical_enabled()
     {
         return m_spdlogger->level() <= gaia_spdlog::level::level_enum::critical;
     }

@@ -121,9 +121,13 @@ private:
         throw logger_exception_t("Logger sub-system not initialized!");
     }
 
-    // Allow debug code to override a well-known logger.  Currently
-    // only the rule stats tests do this.
-    friend void gaia_log::set_rules_stats(logger_t* logger);
+    // Allow debug code to override the loggers.
+    friend void gaia_log::set_sys_logger(logger_t* logger_ptr);
+    friend void gaia_log::set_db_logger(logger_t* logger_ptr);
+    friend void gaia_log::set_rules_logger(logger_t* logger_ptr);
+    friend void gaia_log::set_rules_stats_logger(logger_t* logger_ptr);
+    friend void gaia_log::set_catalog_logger(logger_t* logger_ptr);
+    friend void gaia_log::set_app_logger(logger_t* logger_ptr);
 
 private:
     std::mutex m_log_init_mutex;
