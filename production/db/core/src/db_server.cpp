@@ -784,8 +784,6 @@ void server_t::txn_internal_end()
 }
 
 // Create a local snapshot from the shared locators.
-// This method is not exception safe. Errors in this method should
-// induce a panic and crash the server otherwise data-inconsistency would result.
 void server_t::create_local_snapshot(bool apply_logs)
 {
     ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
