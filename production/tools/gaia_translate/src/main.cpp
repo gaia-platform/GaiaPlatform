@@ -2635,6 +2635,7 @@ public:
             string replacement_string = "insert_row(";
             vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
             const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
+            // Generate call arguments.
             for (const auto& call_argument : function_arguments)
             {
                 const auto argument_map_iterator = argument_map.find(call_argument);
