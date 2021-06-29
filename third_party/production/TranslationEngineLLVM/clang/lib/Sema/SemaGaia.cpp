@@ -960,8 +960,6 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
 
     string table = ParseExplicitPath(explicitPath, loc);
 
-    std::cout << "injectVariableDefinition " << table << std::endl;
-
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
