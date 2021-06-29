@@ -36,16 +36,8 @@ enum class gaia_operation_t : uint8_t
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone = 0x4,
-    // NO OP - this log does nothing. Used at startup to create a sentinel log to allow for
-    // txn validation without any storage operations.
-    noop = 0x5
+    clone = 0x4
 };
-
-inline bool is_logical_operation(gaia_operation_t op)
-{
-    return op == gaia_operation_t::noop;
-}
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 {

@@ -737,49 +737,14 @@ gaia_txn_id_t server_t::txn_internal_begin()
 
 void server_t::txn_internal_end()
 {
-    // Create a logical noop log.
-    // This is to ensure the validation logic applies to this txn.
-
-    mapped_log_t log;
-    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
-
-    int fd;
-    size_t log_size;
-
-    // Initialize the new record.
-    log.data()->begin_ts = s_txn_id;
-
-    txn_log_t::log_record_t* log_record = log.data()->log_records + log.data()->record_count++;
-    log_record->locator = c_invalid_gaia_locator;
-    log_record->old_offset = c_invalid_gaia_offset;
-    log_record->new_offset = c_invalid_gaia_offset;
-    log_record->deleted_id = c_invalid_gaia_id;
-    log_record->operation = gaia_operation_t::noop;
-
-    log.truncate_seal_and_close(fd, log_size);
-    s_fd_log = fd;
-    s_log = log.data();
-
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(s_fd_log);
-    });
-
     // Register the committing txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts
-        = submit_txn(s_txn_id, s_fd_log);
-
-    bool committed = validate_txn(commit_ts);
-
-    // Validate the committing txn.
-    ASSERT_POSTCONDITION(committed, "Cannot commit internal txn");
-
-    cleanup_log_fd.dismiss();
-
-    // Update the txn entry with our commit decision.
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, -1);
+    // Now update the active txn metadata.
+    txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
+    // Update the current txn's decided status.
     txn_metadata_t::update_txn_decision(commit_ts, true);
     perform_maintenance();
 
-    s_fd_log = -1;
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
@@ -1894,11 +1859,11 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     // post-apply watermark, we don't need the safe_fd_from_ts_t wrapper.
     int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
 
-    // A txn log fd should never be invalidated until it falls behind the
-    // post-apply watermark.
-    ASSERT_INVARIANT(
-        log_fd != -1,
-        "apply_txn_log_from_ts() must be called on a commit_ts with a valid log fd!");
+    // TS is associated with no fd, return.
+    if (log_fd == -1)
+    {
+        return;
+    }
 
     mapped_log_t txn_log;
     txn_log.open(log_fd);
