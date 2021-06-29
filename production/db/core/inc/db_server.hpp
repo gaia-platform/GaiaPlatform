@@ -314,14 +314,15 @@ private:
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
 
-    // Internal txn_id for server-side transactions.
+    // The following method pairs are used to work on a startup transaction.
 
     // This method allocates a new begin_ts and initializes its entry in the txn
     // table. Returns the allocated txn_id.
-    static gaia_txn_id_t txn_internal_begin();
+    static gaia_txn_id_t startup_txn_begin();
 
-    // This method commits the internal txn from txn_internal_begin() and resets the current thread state.
-    static void txn_internal_end();
+    // This method creates a corresponding commit_ts to the txn above and initializes
+    // their entries in the txn table.
+    static void startup_txn_end();
 
     class invalid_log_fd : public common::gaia_exception
     {

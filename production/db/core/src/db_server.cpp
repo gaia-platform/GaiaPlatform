@@ -729,13 +729,13 @@ void server_t::recover_db()
     }
 }
 
-gaia_txn_id_t server_t::txn_internal_begin()
+gaia_txn_id_t server_t::startup_txn_begin()
 {
     s_txn_id = txn_metadata_t::txn_begin();
     return s_txn_id;
 }
 
-void server_t::txn_internal_end()
+void server_t::startup_txn_end()
 {
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, -1);
