@@ -274,10 +274,8 @@ ruleset test79
 {
     OnInsert(S:sensor)
     {
-        actuator.value += value/2; // expected-error {{use of undeclared identifier 'value'}} \
-                                   // expected-error {{Ambiguous reference to field 'value'}} \
-                                   // expected-note {{Field: 'sensor.value'.}} \
-                                   // expected-note {{Field: 'actuator.value'}}
+        actuator.value += value/2; // expected-error {{Duplicate field 'value'}} \
+                                   // expected-error {{use of undeclared identifier 'value'}}
     }
 }
 

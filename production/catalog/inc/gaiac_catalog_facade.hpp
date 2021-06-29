@@ -21,7 +21,6 @@ namespace generate
 class gaiac_incoming_link_facade_t : public link_facade_t
 {
 public:
-    gaiac_incoming_link_facade_t(const gaia_relationship_t& relationship, bool is_from_parent);
     gaiac_incoming_link_facade_t(const link_facade_t& link);
 
     std::string parent_offset() const;
@@ -33,7 +32,6 @@ public:
 class gaiac_outgoing_link_facade_t : public link_facade_t
 {
 public:
-    gaiac_outgoing_link_facade_t(const gaia_relationship_t& relationship, bool is_from_parent);
     gaiac_outgoing_link_facade_t(const link_facade_t& link);
 
     std::string first_offset() const;

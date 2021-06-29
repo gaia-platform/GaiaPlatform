@@ -9514,6 +9514,8 @@ def note_link_reference : Note<
     "Link: '%0.%1'.">;
 def err_duplicate_field : Error<
     "Duplicate field '%0'.">;
+def err_duplicate_link : Error<
+    "Duplicate link '%0'.">;
 def err_unknown_field : Error<
     "Field '%0' was not found in the catalog.">;
 def err_catalog_exception : Error<

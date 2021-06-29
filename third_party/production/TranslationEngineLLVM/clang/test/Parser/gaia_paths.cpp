@@ -41,7 +41,7 @@ ruleset test95
     }
 }
 
-ruleset test96 : Table(farmer)
+ruleset test96
 {
     {
         if (farmer-->raised) // expected-error {{cannot decrement value of type 'farmer__type'}}
@@ -49,18 +49,18 @@ ruleset test96 : Table(farmer)
     }
 }
 
-ruleset test97 : Table(farmer)
+ruleset test97
 {
     {
-        if (farmer>-raised) // expected-error {{invalid argument type 'farmer_raised__type' to unary expression}}
+        if (farmer>-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
         {}
     }
 }
 
-ruleset test98 : Table(farmer)
+ruleset test98
 {
     {
-        if (farmer<-raised) // expected-error {{invalid argument type 'farmer_raised__type' to unary expression}}
+        if (farmer<-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
         {}
     }
 }
@@ -104,7 +104,7 @@ ruleset test103
     }
 }
 
-ruleset test136 : Table(incubator)
+ruleset test136
 {
     {
         while (/incubator) // expected-error {{value of type 'incubator__type' is not contextually convertible to 'bool'}}

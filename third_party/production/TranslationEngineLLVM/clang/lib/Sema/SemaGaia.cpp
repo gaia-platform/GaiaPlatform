@@ -16,16 +16,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
-#include "clang/Basic/Attributes.h"
 #include "clang/Basic/DiagnosticSema.h"
-#include "clang/Basic/PrettyStackTrace.h"
 #include "clang/Sema/DeclSpec.h"
-#include "clang/Sema/GaiaCatalogFacade.hpp"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/Sema.h"
 
@@ -35,16 +33,9 @@
 using namespace gaia;
 using namespace std;
 using namespace clang;
-using namespace clang::gaia_catalog;
+//using namespace gaia::catalog::generate;
 
 static string fieldTableName;
-
-// A little ugly to put this here.
-static gaia_catalog::gaia_catalog_context_t get_gaia_context()
-{
-    static gaia_catalog::gaia_catalog_context_t gaia_context;
-    return gaia_context;
-}
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
 
@@ -60,31 +51,31 @@ static constexpr char ruleContextTypeName[] = "rule_context__type";
  * statements_tests.ruleset:12:15: note: Link: 'actuator.incubator'.
  * statements_tests.ruleset:12:15: note: Link: 'raised.incubator'.
  */
-void printAmbiguousFieldReferenceDiagnostic(
-    Sema& sema,
-    SourceLocation loc,
-    const std::string& fieldName,
-    std::optional<table_facade_t> table,
-    std::vector<field_facade_t> fields,
-    std::vector<link_facade_t> links)
-{
-    sema.Diag(loc, diag::err_ambiguous_field_reference) << fieldName;
-
-    if (table)
-    {
-        sema.Diag(loc, diag::note_table_reference) << table->table_name();
-    }
-
-    for (auto& field : fields)
-    {
-        sema.Diag(loc, diag::note_field_reference) << field.table_name() << field.field_name();
-    }
-
-    for (auto& link : links)
-    {
-        sema.Diag(loc, diag::note_link_reference) << link.from_table() << link.field_name();
-    }
-}
+//void printAmbiguousFieldReferenceDiagnostic(
+//    Sema& sema,
+//    SourceLocation loc,
+//    const std::string& fieldName,
+//    std::optional<table_facade_t> table,
+//    std::vector<field_facade_t> fields,
+//    std::vector<link_facade_t> links)
+//{
+//    sema.Diag(loc, diag::err_ambiguous_field_reference) << fieldName;
+//
+//    if (table)
+//    {
+//        sema.Diag(loc, diag::note_table_reference) << table->table_name();
+//    }
+//
+//    for (auto& field : fields)
+//    {
+//        sema.Diag(loc, diag::note_field_reference) << field.table_name() << field.field_name();
+//    }
+//
+//    for (auto& link : links)
+//    {
+//        sema.Diag(loc, diag::note_link_reference) << link.from_table() << link.field_name();
+//    }
+//}
 
 static string get_table_from_expression(const string& expression)
 {
@@ -663,9 +654,13 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         }
     }
 
-    auto tableData = get_gaia_context().find_table(typeName);
-
-    if (!tableData)
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
+    auto tableDescription = tableData.find(typeName);
+    if (tableDescription == tableData.end())
     {
         Diag(loc, diag::err_invalid_table_name) << typeName;
         return Context.VoidTy;
@@ -697,23 +692,26 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         RD->addDecl(conversionFunctionDeclaration);
     }
 
-    for (const auto& field : tableData->fields())
+    for (const auto& f : tableDescription->second)
     {
-        QualType fieldType = field.field_type(Context);
-
+        string fieldName = f.first;
+        QualType fieldType = f.second;
         if (fieldType->isVoidType())
         {
-            Diag(loc, diag::err_invalid_field_type) << field.field_name();
+            Diag(loc, diag::err_invalid_field_type) << fieldName;
             return Context.VoidTy;
         }
-
-        addField(&Context.Idents.get(field.field_name()), fieldType, RD, loc);
+        addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    for (const auto& link : tableData->outgoing_links())
+    unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
+    auto links = relationships.equal_range(typeName);
+
+    for (auto link = links.first; link != links.second; ++link)
     {
-        QualType linkType = getLinkType(link.field_name(), link.from_table(), loc);
-        addField(&Context.Idents.get(link.field_name()), linkType, RD, loc);
+        TableLinkData_t linkData = link->second;
+        QualType type = getLinkType(linkData.field, tableName, loc);
+        addField(&Context.Idents.get(linkData.field), type, RD, loc);
     }
 
     //insert fields and methods that are not part of the schema
@@ -735,56 +733,38 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
-    auto pair = tagMapping.find(fieldOrTagName);
-
-    std::string fieldName;
-
-    // Checks if fieldOrTagName is a field name or a tag name.
-    if (pair == tagMapping.end())
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
     {
-        fieldName = fieldOrTagName;
-    }
-    else
-    {
-        fieldName = pair->second;
-    }
-
-    // There is no such name in the catalog.
-    if (!get_gaia_context().is_name_valid(fieldName))
-    {
-        Diag(loc, diag::err_unknown_field) << fieldName;
         return Context.VoidTy;
     }
 
-    if (get_gaia_context().is_name_unique(fieldName))
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+
+    // Check if the fieldOrTagName is a reference to a table or to a tag.
+    if (tableData.find(fieldOrTagName) != tableData.end() || tagMapping.find(fieldOrTagName) != tagMapping.end())
     {
-        std::optional<table_facade_t> tableData = get_gaia_context().find_table(fieldName);
-        if (tableData)
+        for (auto iterator : tableData)
         {
-            return getTableType(fieldName, loc);
+
+            if (iterator.second.find(fieldOrTagName) != iterator.second.end())
+            {
+                // TODO add information about the source of ambiguity.
+                Diag(loc, diag::err_ambiguous_field_reference) << fieldOrTagName;
+                return Context.VoidTy;
+            }
         }
 
-        std::vector<field_facade_t> fields = get_gaia_context().find_fields(fieldName);
-        if (!fields.empty())
+        if (tableData.find(fieldOrTagName) != tableData.end())
         {
-            fieldTableName = fields.front().table_name();
-            return fields.front().field_type(Context);
+            return getTableType(fieldOrTagName, loc);
         }
-
-        std::vector<link_facade_t> links = get_gaia_context().find_links(fieldName);
-        if (!links.empty())
+        else
         {
-            auto link = links.front();
-            fieldTableName = link.from_table();
-            return getLinkType(link.field_name(), link.from_table(), loc);
+            return getTableType(tagMapping[fieldOrTagName], loc);
         }
-
-        assert(false && "Field name should appear at least in one place.");
     }
 
-    // The name is not unique in the catalog. We look for a Table declaration
-    // at the beginning of the ruleset to determine if we can disambiguate it.
     while (context)
     {
         if (isa<RulesetDecl>(context))
@@ -799,78 +779,83 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
-
+    vector<string> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* tableAttr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
-    // This is an ambiguous because the field name is not unique and there is not Table declaration.
-    if (tableAttr == nullptr)
+    if (attr != nullptr)
     {
-        printAmbiguousFieldReferenceDiagnostic(
-            *this,
-            loc,
-            fieldName,
-            get_gaia_context().find_table(fieldName),
-            get_gaia_context().find_fields(fieldName),
-            get_gaia_context().find_links(fieldName));
-
-        return Context.VoidTy;
+        for (const IdentifierInfo* id : attr->tables())
+        {
+            tables.push_back(id->getName().str());
+        }
+    }
+    else
+    {
+        for (auto it : tableData)
+        {
+            tables.push_back(it.first);
+        }
     }
 
-    vector<string> table_names;
-
-    // Collect the tables defined in the Table attribute.
-    for (const IdentifierInfo* id : tableAttr->tables())
+    QualType retVal = Context.VoidTy;
+    for (string tableName : tables)
     {
-        std::optional<table_facade_t> table = get_gaia_context().find_table(id->getName().str());
-
-        if (!table)
+        auto tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
         {
-            Diag(loc, diag::err_invalid_table_name) << id->getName().str();
+            Diag(loc, diag::err_invalid_table_name) << tableName;
             return Context.VoidTy;
         }
 
-        table_names.push_back(table->table_name());
+        auto fieldDescription = tableDescription->second.find(fieldOrTagName);
+
+        if (fieldDescription != tableDescription->second.end())
+        {
+            if (fieldDescription->second->isVoidType())
+            {
+                Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
+                return Context.VoidTy;
+            }
+            if (retVal != Context.VoidTy)
+            {
+                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
+                return Context.VoidTy;
+            }
+
+            retVal = fieldDescription->second;
+            fieldTableName = tableName;
+        }
+        else
+        {
+            unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
+            auto links = relationships.equal_range(fieldOrTagName);
+
+            for (auto link = links.first; link != links.second; ++link)
+            {
+                TableLinkData_t linkData = link->second;
+
+                if (linkData.field == fieldOrTagName)
+                {
+                    if (retVal != Context.VoidTy)
+                    {
+                        Diag(loc, diag::err_duplicate_link) << fieldOrTagName;
+                        return Context.VoidTy;
+                    }
+
+                    retVal = getLinkType(linkData.field, tableName, loc);
+                    fieldTableName = tableName;
+                }
+            }
+        }
     }
 
-    optional<table_facade_t> table = get_gaia_context().find_table(fieldName);
-    std::vector<field_facade_t> fields = get_gaia_context().find_fields_in_tables(table_names, fieldName);
-    std::vector<link_facade_t> links = get_gaia_context().find_links_in_tables(table_names, fieldName);
-
-    // We collect inside this vector all the types deriving from the fields and relationships.
-    // In order to be an unambiguous field reference this array must contain exactly one item.
-    std::vector<QualType> types;
-
-    if (std::find(table_names.begin(), table_names.end(), fieldName) != table_names.end())
+    if (retVal == Context.VoidTy)
     {
-        fieldTableName = fieldName;
-        types.push_back(getTableType(fieldName, loc));
+        Diag(loc, diag::err_unknown_field) << fieldOrTagName;
     }
 
-    for (auto field : fields)
-    {
-        fieldTableName = field.table_name();
-        types.push_back(field.field_type(Context));
-    }
-
-    for (auto link : links)
-    {
-        fieldTableName = link.from_table();
-        types.push_back(getLinkType(link.field_name(), link.from_table(), loc));
-    }
-
-    assert(!types.empty() && "It is expected to exists at least one field or relationship");
-
-    if (types.size() > 1)
-    {
-        printAmbiguousFieldReferenceDiagnostic(
-            *this, loc, fieldName,
-            table, fields, links);
-
-        return Context.VoidTy;
-    }
-
-    return types.front();
+    return retVal;
 }
 
 static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
@@ -1014,6 +999,8 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
+
+    std::cout << "injectVariableDefinition " << table << std::endl;
 
     if (!table.empty())
     {

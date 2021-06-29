@@ -37,9 +37,7 @@ ruleset test15
 ruleset test16
 {
     {
-        value++; // expected-error {{Ambiguous reference to field 'value'}} \
-                 // expected-note {{Field: 'sensor.value'}} \
-                 // expected-note {{Field: 'actuator.value'}} \
+        value++; // expected-error {{Duplicate field 'value'}} \
                  // expected-error {{use of undeclared identifier 'value'}}
     }
 }
@@ -67,16 +65,3 @@ ruleset test134
     }
 }
 #endif
-
-ruleset test_ambiguous_reference_in_path
-{
-    {
-        if (farmer->raised) // expected-error {{use of undeclared identifier 'farmer'}} \
-                            // expected-error {{Ambiguous reference to field 'raised'}} \
-                            // expected-note {{Table: 'raised'}} \
-                            // expected-note {{Link: 'animal.raised'}} \
-                            // expected-note {{Link: 'incubator.raised'}} \
-                            // expected-note {{Link: 'farmer.raised'}}
-        {}
-    }
-}

@@ -7,6 +7,7 @@ ruleset test_connect_disconnect_1
     OnInsert(farmer)
     {
         gaia::barn_storage::incubator_t i;
+
         farmer.Connect(i);
         // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
         // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
@@ -28,8 +29,14 @@ ruleset test_connect_disconnect_1
         // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
         // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> 'farmer_incubators__type' lvalue .incubators 0x{{[^ ]*}}
         // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+
+        // This is not possible ATM because of this bug: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1037
+        // In order to correctly tell apart tables from links we need to improve the parsing logic.
+//        incubators.Connect(i);
+//        incubators.Disconnect(i);
     }
 }
+
 
 ruleset test_connect_disconnect_invalid_syntax
 {
