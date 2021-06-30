@@ -41,8 +41,7 @@ void setup_dir(int& dir_fd, std::string& dirname)
 
 TEST(io_uring_manager_test, single_write)
 {
-    std::string home = getenv("HOME");
-    std::string dirname = home.append("/.local/wal_dir");
+    std::string dirname = "/tmp/single_write";
     int dir_fd = 0;
     setup_dir(dir_fd, dirname);
     std::cout << "DIR FD = " << dir_fd << std::endl;
@@ -94,8 +93,7 @@ TEST(io_uring_manager_test, single_write)
 
 TEST(io_uring_manager_test, multiple_write)
 {
-    std::string home = getenv("HOME");
-    std::string dirname = home.append("/.local/wal_dir");
+    std::string dirname = "/tmp/multiple_write");
     int dir_fd = 0;
     setup_dir(dir_fd, dirname);
     size_t file_num = 2;
