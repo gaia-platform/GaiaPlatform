@@ -141,6 +141,7 @@ persistent_log_file_offset_t persistent_log_handler_t::allocate_log_space(size_t
 
 void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decisions)
 {
+    check_endianness();
     ASSERT_PRECONDITION(!txn_decisions.empty(), "Decision record cannot have empty payload.");
     // Track decisions per batch.
     async_disk_writer->add_decisions_to_batch(txn_decisions);
@@ -264,6 +265,7 @@ void persistent_log_handler_t::validate_flushed_batch()
 
 void persistent_log_handler_t::submit_writes(bool sync)
 {
+    check_endianness();
     async_disk_writer->handle_submit(current_file->get_file_fd(), sync);
 }
 
@@ -273,6 +275,7 @@ void persistent_log_handler_t::create_txn_record(
     std::vector<gaia_offset_t>& contiguous_address_offsets,
     std::vector<gaia_id_t>& deleted_ids)
 {
+    check_endianness();
     ASSERT_PRECONDITION(!deleted_ids.empty() || (contiguous_address_offsets.size() % 2 == 0 && !contiguous_address_offsets.empty()), "Txn record cannot have empty payload.");
     std::vector<iovec> writes_to_submit;
 
