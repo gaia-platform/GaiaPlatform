@@ -93,7 +93,7 @@ TEST(io_uring_manager_test, single_write)
 
 TEST(io_uring_manager_test, multiple_write)
 {
-    std::string dirname = "/tmp/multiple_write");
+    std::string dirname = "/tmp/multiple_write";
     int dir_fd = 0;
     setup_dir(dir_fd, dirname);
     size_t file_num = 2;
