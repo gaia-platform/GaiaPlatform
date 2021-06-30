@@ -700,6 +700,8 @@ void server_t::recover_persistent_log()
     // If persistence is disabled, then this is a no-op.
     if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
     {
+        check_endianness();
+
         if (!persistent_log_handler)
         {
             // std::cout << "Have initialized persistent log handler" << std::endl;
@@ -753,6 +755,8 @@ void server_t::recover_db()
     // If persistence is disabled, then this is a no-op.
     if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
+        check_endianness();
+
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
