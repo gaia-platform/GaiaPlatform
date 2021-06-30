@@ -234,12 +234,8 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
         it--;
         auto end_offset = *it;
         auto payload_size = offset_to_ptr(get_gaia_offset(end_offset))->payload_size + c_db_object_header_size;
-        size_t allocation_size = ((payload_size + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
-        ASSERT_INVARIANT(allocation_size > 0 && allocation_size % gaia::db::memory_manager::c_slot_size == 0, "Invalid allocation size.");
+        size_t allocation_size = base_memory_manager_t::calculate_allocation_size(payload_size);
         contiguous_offsets.push_back(end_offset + allocation_size);
-
-        std::cout << "TXN START OFFSET = " << *object_address_offsets.begin() << std::endl;
-        std::cout << "TXN END OFFSET = " << end_offset + allocation_size << std::endl;
     }
 
     ASSERT_INVARIANT(contiguous_offsets.size() % 2 == 0, "We expect a begin and end offset.");
@@ -484,9 +480,7 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
 
         size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
 
-        size_t allocation_size = ((requested_size + gaia::db::memory_manager::c_slot_size - 1) / gaia::db::memory_manager::c_slot_size) * gaia::db::memory_manager::c_slot_size;
-
-        ASSERT_INVARIANT(allocation_size > 0 && allocation_size % gaia::db::memory_manager::c_slot_size == 0, "Invalid allocation size.");
+        size_t allocation_size = base_memory_manager_t::calculate_allocation_size(requested_size);
 
         std::cout << "object size " << obj_ptr->payload_size << std::endl;
         std::cout << "RECORD OFFSET IN CHUNK = " << payload_ptr - start_ptr << " AND ALLOC SIZE = " << allocation_size << " AND PAYLOAD SIZE = " << requested_size << std::endl;
