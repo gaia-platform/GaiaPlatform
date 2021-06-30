@@ -56,32 +56,10 @@ enum class txn_decision_type_t : uint8_t
     abort = 2,
 };
 
-enum class endianess_t : uint8_t
-{
-    not_set = 0,
-
-    // Little endian.
-    le = 1,
-
-    // Big endian.
-    be = 2,
-};
-
 struct decision_record_entry_t
 {
     gaia_txn_id_t txn_commit_ts;
     txn_decision_type_t decision;
-};
-
-struct log_file_header_t
-{
-    crc32_t crc;
-    size_t file_sequence;
-
-    // The log write path skips encoding gaia objects to a particular byte order
-    // which is why we stash system endianess in log file header to convert integers to
-    // host byte order on recovery on recovery.
-    endianess_t endianess;
 };
 
 struct record_header_t
