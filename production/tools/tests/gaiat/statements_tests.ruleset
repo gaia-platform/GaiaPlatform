@@ -197,7 +197,7 @@ ruleset test_while_if_navigation_active_field
     }
 }
 
-ruleset test_else_if_table_scans
+ruleset test_else_if_table_scans_active_field
 {
     {
         int total_acres;
@@ -258,7 +258,7 @@ ruleset test_else_if_backward_navigation
     }
 }
 
-ruleset test_else_if_table_scans
+ruleset test_else_if_table_scans_on_insert
 {
     OnInsert(isolated)
     {
