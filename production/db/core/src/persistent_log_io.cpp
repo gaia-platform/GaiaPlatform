@@ -449,40 +449,8 @@ bool persistent_log_handler_t::write_log_file_to_persistent_store(std::string& w
         unmap_file(&it);
     });
 
-    // First index all records in file and validate record checksums.
-    index_records_in_file(&it, last_checkpointed_commit_ts);
-
-    // The decision record (set of decision markers for txns) is be the last record in the log, otherwise this is indicative of a crash mid transaction.
-    // The decision marker of a transaction is always written after the txn record; thus in the final log file,
-    // ignore all transactions after the last decision record.
-    // There can be txns that are logged before this decision record and don't have their decision markers
-    // Thus any transaction that is greater than the max decision txn should be ignored.
-    // In every decision record, we mark the max commit ts that has been made durable. Simply ignore all txn with
-    // commit ts greater than this value.
-
-    // Iterate txn records & only write them if decision for them exists.
-    // Decision record is always written after the txn record.
-    for (auto decision_it = decision_index.cbegin(); decision_it != decision_index.cend();)
-    {
-        ASSERT_INVARIANT(txn_index.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
-
-        auto txn_it = txn_index.find(decision_it->first);
-
-        // Only perform recovery and checkpointing for committed transactions.
-        if (decision_it->second == txn_decision_type_t::commit)
-        {
-            // Txn record is safe to be written to rocksdb at this point, since checksums for both
-            // the txn & decision record were validated and we asserted that the txn record is written
-            // before the decision record in the wal.
-            write_log_record_to_persistent_store(reinterpret_cast<read_record_t*>(txn_it->second));
-        }
-
-        // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
-        last_checkpointed_commit_ts = std::max(last_checkpointed_commit_ts, decision_it->first);
-        std::cout << "Erasing decision = " << decision_it->first << std::endl;
-        txn_it = txn_index.erase(txn_it);
-        decision_it = decision_index.erase(decision_it);
-    }
+    // Iterate over records in file and write them to persistent store.
+    write_records(&it, last_checkpointed_commit_ts);
 
     // Check that any remaining transactions have commit timestamp greater than the commit ts of the txn that was last written to the persistent store.
     for (auto entry : txn_index)
@@ -538,15 +506,12 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
     }
 }
 
-void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts)
+void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts)
 {
     size_t record_size = 0;
-    size_t record_count = 1;
 
     do
     {
-        // std::cout << "READING RECORD NUMBER = " << record_count << std::endl;
-
         auto current_record_ptr = it->cursor;
         record_size = update_cursor(it);
 
@@ -562,12 +527,11 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
             ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
         }
 
+        // Todo: Don't cast structs directly, instead decode byte by byte.
         read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
 
         if (record_size != 0 && record->header.record_type == record_type_t::decision)
         {
-            // std::cout << "Obtained decision record" << std::endl;
-
             // Decode decision record.
             auto payload_ptr = current_record_ptr + sizeof(record_header_t);
 
@@ -582,23 +546,38 @@ void persistent_log_handler_t::index_records_in_file(record_iterator_t* it, gaia
                 }
                 payload_ptr += sizeof(decision_record_entry_t);
             }
-            record_count++;
+
+            // Iterare decisions.
+            for (auto decision_it = decision_index.cbegin(); decision_it != decision_index.cend();)
+            {
+                ASSERT_INVARIANT(txn_index.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
+
+                auto txn_it = txn_index.find(decision_it->first);
+
+                // Only perform recovery and checkpointing for committed transactions.
+                if (decision_it->second == txn_decision_type_t::commit)
+                {
+                    // Txn record is safe to be written to rocksdb at this point, since checksums for both
+                    // the txn & decision record were validated and we asserted that the txn record is written
+                    // before the decision record in the wal.
+                    write_log_record_to_persistent_store(reinterpret_cast<read_record_t*>(txn_it->second));
+                }
+
+                // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
+                last_checkpointed_commit_ts = std::max(last_checkpointed_commit_ts, decision_it->first);
+                std::cout << "Erasing decision = " << decision_it->first << std::endl;
+                txn_it = txn_index.erase(txn_it);
+                decision_it = decision_index.erase(decision_it);
+            }
         }
         else if (record_size != 0 && record->header.record_type == record_type_t::txn)
         {
             // Skip over records that have already been checkpointed.
             if (record->header.txn_commit_ts <= last_checkpointed_commit_ts)
             {
-                record_count++;
                 continue;
             }
-            // std::cout << "txn index inserted = " << record->header.txn_commit_ts << std::endl;
             txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
-            record_count++;
-        }
-        else
-        {
-            ASSERT_INVARIANT(false, "We don't expect another record type");
         }
 
     } while (true);
@@ -654,7 +633,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
     }
 
     // CRC calculation requires manipulating the recovered record header's CRC;
-    // A create a copy of the header to avoid modifying the wal log once it has been written.
+    // So create a copy of the header to avoid modifying the wal log once it has been written.
     record_header_t header_copy;
     memcpy(&header_copy, &destination->header, sizeof(record_header_t));
 

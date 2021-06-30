@@ -60,7 +60,7 @@ private:
     void unmap_file(struct record_iterator_t* it);
     bool is_remaining_file_empty(uint8_t* start, uint8_t* end);
     void write_log_record_to_persistent_store(read_record_t* record);
-    void index_records_in_file(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts);
+    void write_records(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts);
     bool write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode);
 
     // Persistent log writer.
