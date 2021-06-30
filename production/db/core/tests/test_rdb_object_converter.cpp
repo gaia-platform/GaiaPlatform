@@ -57,7 +57,6 @@ TEST(write_read_assert, basic)
     const char* c1 = reader.read(payload.length());
     // We can't use EXPECT_STREQ() here, since the embedded string isn't null-terminated.
     EXPECT_EQ(0, std::memcmp(payload.data(), c1, payload.length()));
-    EXPECT_STREQ(payload.data(), c1);
     EXPECT_NO_THROW(reader.read_uint32(v2));
     EXPECT_EQ(e5, v2);
     EXPECT_NO_THROW(reader.read_byte(c));
