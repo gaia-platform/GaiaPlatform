@@ -45,22 +45,22 @@ public:
 
     inline void write_uint64(uint64_t value)
     {
-        // Convert to network order (big endian).
-        u_int64_t result = htobe64(value);
+        // Convert to little endian.
+        u_int64_t result = htole64(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
     inline void write_uint32(uint32_t value)
     {
-        // Convert to network order (big endian).
-        uint32_t result = htobe32(value);
+        // Convert to little endian.
+        uint32_t result = htole32(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
     inline void write_uint16(uint16_t value)
     {
-        // Convert to network order (big endian).
-        u_int16_t result = htobe16(value);
+        // Convert to little endian.
+        u_int16_t result = htole16(value);
         write(reinterpret_cast<const char* const>(&result), sizeof(result));
     }
 
@@ -120,7 +120,7 @@ public:
         uint64_t value;
         memcpy(&value, value_ptr, sizeof(uint64_t));
         // Convert to host byte order.
-        out = be64toh(value);
+        out = le64toh(value);
     }
 
     inline void read_uint32(uint32_t& out)
@@ -129,7 +129,7 @@ public:
         uint32_t value;
         memcpy(&value, value_ptr, sizeof(uint32_t));
         // Convert to host byte order.
-        out = be32toh(value);
+        out = le32toh(value);
     }
 
     inline void read_uint16(uint16_t& out)
@@ -138,7 +138,7 @@ public:
         uint16_t value;
         memcpy(&value, value_ptr, sizeof(uint16_t));
         // Convert to host byte order.
-        out = be16toh(value);
+        out = le16toh(value);
     }
 
     inline void read_byte(uint8_t& out)

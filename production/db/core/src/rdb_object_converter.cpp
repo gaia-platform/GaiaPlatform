@@ -37,7 +37,18 @@ void gaia::db::persistence::encode_object(
     value.write_uint16(gaia_object->num_references);
     value.write_uint16(gaia_object->payload_size);
 
-    value.write(gaia_object->payload, gaia_object->payload_size);
+    auto reference_arr_ptr = gaia_object->references();
+    for (int i = 0; i < gaia_object->num_references; i++)
+    {
+        // Encode all references.
+        value.write_uint64(*reference_arr_ptr);
+        reference_arr_ptr++;
+    }
+
+    auto references_size = gaia_object->num_references * sizeof(gaia_id_t);
+    auto data_size = gaia_object->payload_size - references_size;
+    auto data_ptr = gaia_object->payload + references_size;
+    value.write(data_ptr, data_size);
 }
 
 db_object_t* gaia::db::persistence::decode_object(
@@ -59,10 +70,20 @@ db_object_t* gaia::db::persistence::decode_object(
     value_reader.read_uint32(type);
     value_reader.read_uint16(num_references);
     value_reader.read_uint16(size);
-    auto payload = value_reader.read(size);
+
+    // Read references.
+    gaia_id_t refs[num_references];
+    for (size_t i = 0; i < num_references; i++)
+    {
+        value_reader.read_uint64(refs[i]);
+    }
+
+    auto data_size = size - num_references * sizeof(gaia_id_t);
+    auto payload = value_reader.read(data_size);
+    ASSERT_POSTCONDITION(payload, "Read object shouldn't be null");
 
     // Create object.
-    db_object_t* db_object = create_object(id, type, num_references, size, payload);
+    db_object_t* db_object = create_object(id, type, num_references, refs, data_size, payload);
 
     // Lookup object again to find its locator and add it to the type's record_list.
     gaia_locator_t locator = gaia::db::db_hash_map::find(db_object->id);
