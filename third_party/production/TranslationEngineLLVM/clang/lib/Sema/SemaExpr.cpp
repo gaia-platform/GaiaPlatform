@@ -5488,7 +5488,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       Diag(LParenLoc, diag::err_invalid_table_name) << tableName;
       return ExprError();
     }
-
+    // Perform semantic check of parameters.
     std::unordered_set<std::string> processed_parameters;
     for (unsigned i = 0; i != numberOfParameters; ++i)
     {
