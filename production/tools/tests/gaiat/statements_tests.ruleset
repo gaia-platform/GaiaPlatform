@@ -16,6 +16,46 @@ ruleset test1
     }
 }
 
+// GAIAPLAT-1042
+// TESTCASE: Use for statement to scan a table near the anchor.
+ruleset test1_1
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        for (/S:sensor)
+        {
+            temp += S.value;
+        }
+    }
+}
+
+// TESTCASE: Use an implicit query in a for statement.
+ruleset test1_2
+{
+    OnInsert(incubator)
+    {
+        int total_portion = 0;
+        for (F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
+// TESTCASE: Use for statement to scan a table not near the anchor.
+ruleset test1_3
+{
+    OnInsert(incubator)
+    {
+        int total_portion = 0;
+        for (/F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
 ruleset test2
 {
     {

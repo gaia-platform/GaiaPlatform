@@ -371,3 +371,34 @@ ruleset test37
         sensor.value += sensor.incubator->incubator.min_temp;
     }
 }
+
+// GAIAPLAT-1043
+// GAIAPLAT-1044
+// TESTCASE: Use a long explicit path in a for statement.
+ruleset test38
+{
+    OnUpdate(I:incubator)
+    {
+        int counter = 0;
+        int acre_total = 0;
+        for (incubator->raised->farmer->yield->C:crop)
+        {
+            acre_total += C.acres;
+            counter++;
+        }
+    }
+}
+
+// GAIAPLAT-1045
+// TESTCASE: No row references inside for loop
+ruleset test39
+{
+    OnUpdate(incubator)
+    {
+        int counter = 0;
+        for (actuator)
+        {
+            counter++;
+        }
+    }
+}
