@@ -803,6 +803,7 @@ TEST_F(event_manager_test, log_database_event_single_rule_multi_event)
     // Log update, and insert.  Sequence should be update followed by insert
     // because we didn't bind a rule to delete.
     trigger_event_t events[] = {
+        // TODO[GAIAPLAT-445] We don't expose deleted row events
         //{event_type_t::row_delete, test_gaia_t::s_gaia_type, record, empty_position_list, dummy_txn_id},
         {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, empty_position_list, dummy_txn_id},
         {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, empty_position_list, dummy_txn_id}};
