@@ -20,6 +20,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
+  "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
 
@@ -110,6 +111,23 @@ target_link_libraries(rocks_wrapper rocksdb gaia_storage)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
+add_library(persistence STATIC
+  src/persistent_log_file.cpp
+  src/io_uring_wrapper.cpp
+  src/async_disk_writer.cpp
+  src/persistent_log_io.cpp)
+target_include_directories(persistence PRIVATE
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+target_include_directories(persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(persistence SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
+# Only need util, not all of rocks.
+target_link_libraries(persistence rocksdb "${LIBURING_LIBRARY}")
+set_target_properties(persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+set_property (TARGET persistence PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
   src/txn_metadata.cpp
@@ -137,7 +155,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
