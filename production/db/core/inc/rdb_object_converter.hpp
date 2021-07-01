@@ -18,7 +18,7 @@
 #include "gaia_internal/db/db_object.hpp"
 
 /**
- * This file assumes big endian architectures aren't supported which is why all encoding & decoding
+ * This file assumes big-endian architectures aren't supported which is why all encoding & decoding
  * to and from a specific byte ordering is avoided.
  */
 namespace gaia
