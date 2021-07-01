@@ -766,7 +766,7 @@ void server_t::end_startup_txn()
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
-// Create a local snapshot from the shared locators.
+// Create a thread-local snapshot from the shared locators.
 void server_t::create_local_snapshot(bool apply_logs)
 {
     ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
