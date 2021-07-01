@@ -21,6 +21,9 @@ namespace gaia
 namespace db
 {
 
+/**
+ * Layer for persistent log file management.
+ */
 class persistent_log_file_t
 {
 private:

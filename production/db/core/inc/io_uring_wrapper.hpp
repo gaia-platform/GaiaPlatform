@@ -33,8 +33,12 @@ enum class uring_op_t : uint64_t
     FSYNC = 5,
 };
 
-// For simplicity all APIs in this file assume that the io_uring submission queue has enough space to write to.
-// The caller should verify that enough space exists before queuing requests to the ring.
+/**
+ * Library to perform async IO operations using io_uring which is a Linux async I/O interface.
+ * The liburing client library is used to manage all io_uring system calls.
+ * For simplicity all APIs in this file assume that the io_uring submission queue has enough space.
+ * The caller should verify that enough space exists before queuing requests to the ring.
+ */
 class io_uring_wrapper_t
 {
 private:
