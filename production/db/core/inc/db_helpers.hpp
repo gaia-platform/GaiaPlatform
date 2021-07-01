@@ -151,16 +151,11 @@ inline index::db_index_t id_to_index(common::gaia_id_t index_id)
     return (it != get_indexes()->end()) ? it->second : nullptr;
 }
 
-inline void check_endianness()
+inline bool is_little_endian()
 {
     uint32_t val = 1;
-    uint8_t* least_significant_addr = reinterpret_cast<uint8_t*>(&val);
-    bool is_little_endian = *least_significant_addr == val;
-
-    if (!is_little_endian)
-    {
-        throw std::runtime_error("Big Endian architectures are currently not supported.");
-    }
+    uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
+    return least_significant_byte == val;
 }
 
 } // namespace db

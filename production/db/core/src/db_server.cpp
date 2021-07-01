@@ -706,8 +706,6 @@ void server_t::recover_db()
     // If persistence is disabled, then this is a no-op.
     if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
-        check_endianness();
-
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
         if (!rdb)
@@ -2374,6 +2372,12 @@ void server_t::run(server_config_t server_conf)
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
+    if (!is_little_endian())
+    {
+        cerr << "Big Endian architectures are currently not supported, exiting." << endl;
+        std::abort();
+    }
 
     while (true)
     {
