@@ -219,6 +219,7 @@ public:
         subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
     // void subscribe_delete()
     // {
     //     rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
@@ -335,6 +336,7 @@ TEST_F(rule_integration_test, test_insert)
     }
 }
 
+// TODO[GAIAPLAT-445] We don't expose deleted row events
 // TEST_F(rule_integration_test, test_delete)
 // {
 //     subscribe_delete();

@@ -663,6 +663,7 @@ TEST_F(event_manager_test, invalid_subscription)
     // EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_rollback, fields, m_rule1), invalid_subscription);
 
     // Table delete event cannot specify any fields
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
     // EXPECT_THROW(
     //     subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_delete, fields, m_rule1),
     //     invalid_subscription);
@@ -673,6 +674,7 @@ TEST_F(event_manager_test, invalid_subscription)
         invalid_subscription);
 }
 
+// TODO[GAIAPLAT-445] We don't expose deleted row events
 // TEST_F(event_manager_test, log_event_no_rules)
 // {
 //     // An empty sequence will verify that the rule was not called.
@@ -983,6 +985,7 @@ TEST_F(event_manager_test, unsubscribe_rule_not_found)
 
     // Try to remove the rule from the other table events that we didn't register the rule on.
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb));
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
     //EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
 
     // Try to remove the rule from a type that we didn't register the rule on
@@ -1073,6 +1076,8 @@ TEST_F(event_manager_test, list_rules_all_filters)
 
     const char* ruleset_filter = c_ruleset1_name;
     gaia_type_t gaia_type_filter = test_gaia_t::s_gaia_type;
+
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
     // event_type_t event_filter = event_type_t::row_delete;
     // list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_filter, nullptr, rules);
     // validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, &gaia_type_filter, &event_filter));
