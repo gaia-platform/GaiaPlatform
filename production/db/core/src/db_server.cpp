@@ -2376,6 +2376,8 @@ void server_t::run(server_config_t server_conf)
     if (!is_little_endian())
     {
         cerr << "Big-endian architectures are currently not supported, exiting." << endl;
+
+        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
         std::abort();
     }
 
