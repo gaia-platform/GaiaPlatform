@@ -112,10 +112,8 @@ set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 add_library(persistence STATIC
-  src/persistent_log_file.cpp
   src/io_uring_wrapper.cpp
-  src/async_disk_writer.cpp
-  src/persistent_log_io.cpp)
+  src/persistent_log_file.cpp)
 target_include_directories(persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
