@@ -318,11 +318,11 @@ private:
 
     // This method allocates a new begin_ts and initializes its entry in the txn
     // table. Returns the allocated txn_id.
-    static gaia_txn_id_t startup_txn_begin();
+    static gaia_txn_id_t begin_startup_txn();
 
     // This method creates a corresponding commit_ts to the txn above and initializes
     // their entries in the txn table.
-    static void startup_txn_end();
+    static void end_startup_txn();
 
     class invalid_log_fd : public common::gaia_exception
     {

@@ -729,22 +729,40 @@ void server_t::recover_db()
     }
 }
 
-gaia_txn_id_t server_t::startup_txn_begin()
+gaia_txn_id_t server_t::begin_startup_txn()
 {
     s_txn_id = txn_metadata_t::txn_begin();
     return s_txn_id;
 }
 
-void server_t::startup_txn_end()
+void server_t::end_startup_txn()
 {
+    // Use a local variable to ensure cleanup in case of an error.
+    mapped_log_t log;
+
+    int fd;
+    size_t log_size;
+
+    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+
+    // Update the log header with our begin timestamp and intialize it to empty.
+    log.data()->begin_ts = s_txn_id;
+    log.data()->record_count = 0;
+
+    log.truncate_seal_and_close(fd, log_size);
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(fd);
+    });
+
     // Register the committing txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, -1);
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, fd);
     // Now update the active txn metadata.
     txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
     // Update the current txn's decided status.
     txn_metadata_t::update_txn_decision(commit_ts, true);
     perform_maintenance();
 
+    cleanup_log_fd.dismiss();
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
@@ -1859,11 +1877,11 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     // post-apply watermark, we don't need the safe_fd_from_ts_t wrapper.
     int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
 
-    // TS is associated with no fd, return.
-    if (log_fd == -1)
-    {
-        return;
-    }
+    // A txn log fd should never be invalidated until it falls behind the
+    // post-apply watermark.
+    ASSERT_INVARIANT(
+        log_fd != -1,
+        "apply_txn_log_from_ts() must be called on a commit_ts with a valid log fd!");
 
     mapped_log_t txn_log;
     txn_log.open(log_fd);
