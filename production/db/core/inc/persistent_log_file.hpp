@@ -37,7 +37,7 @@ private:
     static constexpr int c_file_permissions = 0666;
 
 public:
-    persistent_log_file_t(std::string& dir_name, int dir_fd, size_t file_num, size_t file_size);
+    persistent_log_file_t(const std::string& dir_name, int dir_fd, size_t file_num, size_t file_size);
 
     bool has_enough_space(size_t record_size);
     size_t get_current_offset();

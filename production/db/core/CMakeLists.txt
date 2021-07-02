@@ -111,20 +111,19 @@ target_link_libraries(rocks_wrapper rocksdb gaia_storage)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-add_library(persistence STATIC
+add_library(gaia_db_persistence STATIC
   src/io_uring_wrapper.cpp
   src/persistent_log_file.cpp)
-target_include_directories(persistence PRIVATE
+target_include_directories(gaia_db_persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
-target_include_directories(persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-target_include_directories(persistence SYSTEM PRIVATE "${GEN_DIR}")
-target_include_directories(persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
 # Only need util, not all of rocks.
-target_link_libraries(persistence rocksdb "${LIBURING_LIBRARY}")
-set_target_properties(persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-set_property (TARGET persistence PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(gaia_db_persistence rocksdb "${LIBURING_LIBRARY}")
+set_target_properties(gaia_db_persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(gaia_db_persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
@@ -153,7 +152,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
