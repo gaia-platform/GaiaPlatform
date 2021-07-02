@@ -24,6 +24,11 @@ gaia::db::locators_t* gaia::db::get_locators()
     return gaia::db::client_t::s_private_locators.data();
 }
 
+gaia::db::locators_t* gaia::db::get_locators_for_allocator()
+{
+    return gaia::db::get_locators();
+}
+
 gaia::db::counters_t* gaia::db::get_counters()
 {
     // Since we don't use this accessor in the client itself, we can assert that
@@ -71,6 +76,11 @@ gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
     size_t size)
 {
     return gaia::db::client_t::allocate_object(locator, size);
+}
+
+gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
+{
+    return gaia::db::client_t::get_txn_id();
 }
 
 gaia::db::index::indexes_t* gaia::db::get_indexes()

@@ -91,11 +91,7 @@ inline void update_locator(
     gaia_locator_t locator,
     gaia::db::memory_manager::address_offset_t offset)
 {
-    locators_t* locators = gaia::db::get_locators();
-    if (!locators)
-    {
-        throw no_open_transaction();
-    }
+    locators_t* locators = gaia::db::get_locators_for_allocator();
 
     (*locators)[locator] = get_gaia_offset(offset);
 }
@@ -142,6 +138,15 @@ inline gaia_txn_id_t get_last_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
     return counters->last_txn_id;
+}
+
+inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
+{
+    for (size_t i = 0; i < logs->record_count; ++i)
+    {
+        auto& record = logs->log_records[i];
+        (*locators)[record.locator] = record.new_offset;
+    }
 }
 
 inline index::db_index_t id_to_index(common::gaia_id_t index_id)

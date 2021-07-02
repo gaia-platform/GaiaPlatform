@@ -84,11 +84,15 @@ private:
 class server_t
 {
     friend class gaia_ptr_t;
+    friend class type_generator_t;
 
-    friend gaia::db::locators_t* gaia::db::get_locators();
+    friend gaia::db::locators_t*
+    gaia::db::get_locators();
+    friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
@@ -121,6 +125,9 @@ private:
     // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
+
+    // Local snapshot. This is a private copy of locators for server-side transactions.
+    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
@@ -244,6 +251,8 @@ private:
 
     static void init_shared_memory();
 
+    static void create_local_snapshot(bool apply_logs);
+
     static void recover_db();
 
     static sigset_t mask_signals();
@@ -304,6 +313,16 @@ private:
     static void gc_txn_log_from_fd(int log_fd, bool committed = true);
 
     static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
+
+    // The following method pairs are used to work on a startup transaction.
+
+    // This method allocates a new begin_ts and initializes its entry in the txn
+    // table. Returns the allocated txn_id.
+    static gaia_txn_id_t begin_startup_txn();
+
+    // This method creates a corresponding commit_ts to the txn above and initializes
+    // their entries in the txn table.
+    static void end_startup_txn();
 
     class invalid_log_fd : public common::gaia_exception
     {
