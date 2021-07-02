@@ -49,17 +49,17 @@ enum class record_type_t : uint8_t
     file_header = 0x3,
 };
 
-enum class txn_decision_type_t : uint8_t
+enum class decision_type_t : uint8_t
 {
     not_set = 0,
     commit = 1,
     abort = 2,
 };
 
-struct decision_record_entry_t
+struct decision_entry_t
 {
     gaia_txn_id_t txn_commit_ts;
-    txn_decision_type_t decision;
+    decision_type_t decision;
 };
 
 struct record_header_t
@@ -153,7 +153,7 @@ struct helper_buffer_t
     }
 };
 
-typedef std::vector<std::pair<gaia_txn_id_t, txn_decision_type_t>> decision_list_t;
+typedef std::vector<decision_entry_t> decision_list_t;
 
 } // namespace db
 } // namespace gaia

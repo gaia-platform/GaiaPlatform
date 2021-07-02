@@ -37,55 +37,39 @@ enum class uring_op_t : uint64_t
 // The caller should verify that enough space exists before queuing requests to the ring.
 class io_uring_wrapper_t
 {
-private:
-    // Size can only be a power of 2 and the max value is 4096.
-    static constexpr size_t c_buffer_size = 64;
-
-    static constexpr char c_setup_err_msg[] = "IOUring setup failed.";
-    static constexpr char c_buffer_empty_err_msg[] = "IOUring submission queue out of space.";
-
-    // ring will internally maintain a submission queue and a completion queue which exist in shared memory.
-    std::unique_ptr<io_uring> ring;
-
-    void prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe);
-
-    io_uring_sqe* get_sqe();
-
-    // Keep track of fds to close.
-    std::vector<std::pair<int, size_t>> file_fds;
-
 public:
+    io_uring_wrapper_t()
+        : m_ring(){};
+
+    ~io_uring_wrapper_t();
+
     void close_all_files_in_batch();
 
-    void append_file_to_batch(int fd, size_t file_size);
+    void append_file_to_batch(int fd);
 
     void teardown();
 
-    io_uring* get_ring();
-
-    void append_pwritev(
-        const struct iovec* iov,
-        size_t iovcnt,
+    void add_pwritev_op_to_batch(
+        const iovec* iovecs,
+        size_t num_iovecs,
         int file_fd,
         uint64_t current_offset,
         uint64_t data,
         u_char flags);
 
-    void append_fsync(
+    void add_fsync_op_to_batch(
         int file_fd,
         uint32_t fsync_flags,
         uint64_t data,
         u_char flags);
 
-    void close(int fd, uint64_t data, u_char flags);
-
     void open(size_t buffer_size = c_buffer_size);
 
-    size_t submit(bool wait);
+    size_t submit_operation_batch(bool wait);
 
-    size_t space_left();
+    size_t get_unused_submission_entries_count();
 
-    size_t count_unsubmitted_entries();
+    size_t get_unsubmitted_entries_count();
 
     size_t get_completion_count();
 
@@ -97,13 +81,25 @@ public:
 
     void mark_completion_seen(struct io_uring_cqe* cqe);
 
-    io_uring_wrapper_t()
-        : ring(nullptr){};
-
-    ~io_uring_wrapper_t();
-
     // Decisions that belong to this batch.
     decision_list_t batch_decisions;
+
+private:
+    // Size can only be a power of 2 and the max value is 4096.
+    static constexpr size_t c_buffer_size = 32;
+
+    static constexpr char c_setup_err_msg[] = "io_uring setup failed.";
+    static constexpr char c_buffer_empty_err_msg[] = "io_uring submission queue out of space.";
+
+    // io_uring instance. Each ring maintains a submission queue and a completion queue.
+    std::unique_ptr<io_uring> m_ring;
+
+    void prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe);
+
+    io_uring_sqe* get_sqe();
+
+    // Keep track of all persistent log file_fds that need to be closed.
+    std::vector<int> m_file_fds;
 };
 } // namespace db
 } // namespace gaia

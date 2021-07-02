@@ -27,9 +27,9 @@ using namespace gaia::db;
 // Todo (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
 // Open() operation will remain synchronous, since we need the file fd to perform other async
 // operations on the file.
-persistent_log_file_t::persistent_log_file_t(std::string& dir, int fd, persistent_log_sequence_t file_seq, size_t size)
+persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd, size_t file_seq, size_t size)
 {
-    m_dir_fd = fd;
+    m_dir_fd = dir_fd;
     m_dir_name = dir;
     m_file_num = file_seq;
     m_file_size = size;
@@ -42,7 +42,7 @@ persistent_log_file_t::persistent_log_file_t(std::string& dir, int fd, persisten
     m_file_fd = open(file_name.str().c_str(), O_WRONLY | O_CREAT, 0666);
     if (m_file_fd < 0)
     {
-        throw_system_error("Unable to create wal file", errno);
+        throw_system_error("Unable to create persistent log file");
     }
 
     // Todo: zero-fill entires in file.
@@ -50,14 +50,14 @@ persistent_log_file_t::persistent_log_file_t(std::string& dir, int fd, persisten
     auto res = fallocate(m_file_fd, 0, 0, m_file_size);
     if (res != 0)
     {
-        throw_system_error("Fallocate failed", errno);
+        throw_system_error("Fallocate when creating persistent log file failed");
     }
 
     res = fsync(m_file_fd);
     std::cout << "FILE CREATED " << std::endl;
     if (res != 0)
     {
-        throw_system_error("Fsync when creating new log file failed.", errno);
+        throw_system_error("Fsync when creating persistent log file failed.");
     }
 
     // Calling fsync() does not necessarily ensure that the entry in the directory containing
@@ -66,7 +66,7 @@ persistent_log_file_t::persistent_log_file_t(std::string& dir, int fd, persisten
     res = fsync(m_dir_fd);
     if (res != 0)
     {
-        throw_system_error("Fsync on persistent log directory failed.", errno);
+        throw_system_error("Fsync on persistent log directory failed.");
     }
 }
 
