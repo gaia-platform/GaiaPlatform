@@ -219,6 +219,15 @@ void server_t::handle_begin_txn(
     // allocation per txn.
     std::vector<int> txn_log_fds;
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+    auto cleanup_log_fds = make_scope_guard([&]() {
+        // Now we need to close all the duplicated log fds in the buffer.
+        for (auto& fd : txn_log_fds)
+        {
+            // Each log fd should still be valid.
+            ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+            close_fd(fd);
+        }
+    });
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
@@ -238,14 +247,6 @@ void server_t::handle_begin_txn(
         send_msg_with_fds(
             s_session_socket, txn_log_fds.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
-    }
-
-    // Now we need to close all the duplicated log fds in the buffer.
-    for (auto& fd : txn_log_fds)
-    {
-        // Each log fd should still be valid.
-        ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
-        close_fd(fd);
     }
 }
 
@@ -606,6 +607,7 @@ void server_t::build_server_reply(
 void server_t::clear_shared_memory()
 {
     data_mapping_t::close(c_data_mappings);
+    s_local_snapshot_locators.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -641,8 +643,15 @@ void server_t::init_shared_memory()
 
     init_memory_manager();
 
+    // Create snapshot for db recovery and index population.
+    bool apply_logs = false;
+    create_local_snapshot(apply_logs);
+
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
+    // Done with local snapshot.
+    s_local_snapshot_locators.close();
 
     cleanup_memory.dismiss();
 }
@@ -725,6 +734,87 @@ void server_t::recover_db()
     if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
     {
         rdb.reset();
+    }
+}
+
+gaia_txn_id_t server_t::begin_startup_txn()
+{
+    s_txn_id = txn_metadata_t::txn_begin();
+    return s_txn_id;
+}
+
+void server_t::end_startup_txn()
+{
+    // Use a local variable to ensure cleanup in case of an error.
+    mapped_log_t log;
+
+    int fd;
+    size_t log_size;
+
+    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+
+    // Update the log header with our begin timestamp and intialize it to empty.
+    log.data()->begin_ts = s_txn_id;
+    log.data()->record_count = 0;
+
+    log.truncate_seal_and_close(fd, log_size);
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(fd);
+    });
+
+    // Register the committing txn under a new commit timestamp.
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, fd);
+    // Now update the active txn metadata.
+    txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
+    // Update the current txn's decided status.
+    txn_metadata_t::update_txn_decision(commit_ts, true);
+    perform_maintenance();
+
+    cleanup_log_fd.dismiss();
+    s_txn_id = c_invalid_gaia_txn_id;
+}
+
+// Create a thread-local snapshot from the shared locators.
+void server_t::create_local_snapshot(bool apply_logs)
+{
+    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+    bool manage_fd = false;
+    bool is_shared = false;
+
+    if (apply_logs)
+    {
+        std::vector<int> txn_log_fds;
+        get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+        auto cleanup_log_fds = make_scope_guard([&]() {
+            // Close all the duplicated log fds in the buffer.
+            for (auto& fd : txn_log_fds)
+            {
+                // Each log fd should still be valid.
+                ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+                close_fd(fd);
+            }
+        });
+
+        // Open a private locator mmap for the current thread.
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+
+        // Apply txn_logs for the snapshot.
+        for (const auto& it : txn_log_fds)
+        {
+            mapped_log_t txn_log;
+            txn_log.open(it);
+            apply_logs_to_locators(s_local_snapshot_locators.data(), txn_log.data());
+        }
+
+        // Apply s_log to the local snapshot, if any.
+        if (s_log)
+        {
+            apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
+        }
+    }
+    else
+    {
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
     }
 }
 
@@ -1213,8 +1303,6 @@ void server_t::stream_producer_handler(
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
 
-    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
-
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
@@ -1250,6 +1338,8 @@ void server_t::stream_producer_handler(
 
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
+
+    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
 
     while (!producer_shutdown)
     {
@@ -1809,18 +1899,14 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
-    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
-    {
-        // Update the shared locator view with each redo version (i.e., the
-        // version created or updated by the txn). This is safe as long as the
-        // committed txn being applied has commit_ts older than the oldest
-        // active txn's begin_ts (so it can't overwrite any versions visible in
-        // that txn's snapshot). This update is non-atomic because log application
-        // is idempotent and therefore a txn log can be re-applied over the same
-        // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
-        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
-    }
+    // Update the shared locator view with each redo version (i.e., the
+    // version created or updated by the txn). This is safe as long as the
+    // committed txn being applied has commit_ts older than the oldest
+    // active txn's begin_ts (so it can't overwrite any versions visible in
+    // that txn's snapshot). This update is non-atomic because log application
+    // is idempotent and therefore a txn log can be re-applied over the same
+    // txn's partially-applied log during snapshot reconstruction.
+    apply_logs_to_locators(s_shared_locators.data(), txn_log.data());
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)

@@ -517,11 +517,7 @@ void client_t::apply_txn_log(int log_fd)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
-    {
-        const auto& lr = txn_log.data()->log_records[i];
-        (*s_private_locators.data())[lr.locator] = lr.new_offset;
-    }
+    apply_logs_to_locators(s_private_locators.data(), txn_log.data());
 }
 
 void client_t::rollback_transaction()

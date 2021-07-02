@@ -70,6 +70,7 @@ constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
 constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
+constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
