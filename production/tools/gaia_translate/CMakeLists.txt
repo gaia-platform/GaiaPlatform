@@ -43,6 +43,10 @@ target_link_libraries(gaiat
   dl
 )
 
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaiat PRIVATE gaia_stack_trace)
+endif()
+
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(TEST_INCLUDES

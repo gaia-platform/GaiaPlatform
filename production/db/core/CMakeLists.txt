@@ -120,10 +120,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp)
 
-if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
-endif()
-
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server "messages.fbs")
 target_include_directories(gaia_db_server PRIVATE
@@ -138,8 +134,8 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
-if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  target_link_libraries(gaia_db_server PUBLIC backward)
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
 endif()
 install(TARGETS gaia_db_server DESTINATION ${CMAKE_INSTALL_BINDIR})
 
