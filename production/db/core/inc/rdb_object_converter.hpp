@@ -67,7 +67,6 @@ public:
 
     inline void write(const char* const payload, size_t len)
     {
-        ASSERT_PRECONDITION(len >= 0, "Size of payload should not be negative.");
         m_buffer.reserve(m_buffer.size() + len);
         std::copy(payload, payload + len, std::back_inserter(m_buffer));
     }
