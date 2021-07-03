@@ -133,3 +133,22 @@ void io_uring_wrapper_t::mark_completion_seen(struct io_uring_cqe* cqe)
 {
     io_uring_cqe_seen(m_ring.get(), cqe);
 }
+
+void io_uring_wrapper_t::insert_in_decision_batch(decision_entry_t decision)
+{
+    m_batch_decisions.push_back(decision);
+}
+
+const decision_list_t& io_uring_wrapper_t::get_decision_batch_entries() const
+{
+    return m_batch_decisions;
+}
+
+size_t io_uring_wrapper_t::get_decision_batch_size()
+{
+    return m_batch_decisions.size();
+}
+void io_uring_wrapper_t::clear_decision_batch()
+{
+    m_batch_decisions.clear();
+}

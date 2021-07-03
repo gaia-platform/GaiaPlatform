@@ -86,7 +86,7 @@ void async_disk_writer_t::add_decisions_to_batch(decision_list_t& decisions)
 {
     for (const auto& decision : decisions)
     {
-        in_progress_buffer->batch_decisions.push_back(decision);
+        in_progress_buffer->insert_in_decision_batch(decision);
     }
 }
 
@@ -141,7 +141,8 @@ void async_disk_writer_t::perform_post_completion_maintenence()
 
     // Set durability flags.
     // std::cout << "validating batch decision size = " << in_flight_buffer->batch_decisions.size() << std::endl;
-    for (auto entry : in_flight_buffer->batch_decisions)
+    const decision_list_t& decisions = in_flight_buffer->get_decision_batch_entries();
+    for (auto entry : decisions)
     {
         s_txn_durable_fn(entry.txn_commit_ts);
         auto itr = ts_to_session_unblock_fd_map.find(entry.txn_commit_ts);
@@ -154,7 +155,7 @@ void async_disk_writer_t::perform_post_completion_maintenence()
         ts_to_session_unblock_fd_map.erase(itr);
     }
 
-    in_flight_buffer->batch_decisions.clear();
+    in_flight_buffer->clear_decision_batch();
 }
 
 size_t async_disk_writer_t::handle_submit(int file_fd, bool wait)
