@@ -91,17 +91,13 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         ASSERT_PRECONDITION(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
     }
 
-    struct msghdr msg
-    {
-    };
-    struct iovec iov
-    {
-    };
+    msghdr msg{};
+    iovec iov{};
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
         // This is a dummy field for alignment only.
-        struct cmsghdr dummy;
+        cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
     ::memset(&control.buf, 0, sizeof(control.buf));
@@ -118,7 +114,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     {
         msg.msg_control = control.buf;
         msg.msg_controllen = CMSG_SPACE(sizeof(int) * fd_count);
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
+        cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
@@ -172,17 +168,13 @@ inline size_t recv_msg_with_fds(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
     }
-    struct msghdr msg
-    {
-    };
-    struct iovec iov
-    {
-    };
+    msghdr msg{};
+    iovec iov{};
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
         // This is a dummy field for alignment only.
-        struct cmsghdr dummy;
+        cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
     ::memset(&control.buf, 0, sizeof(control.buf));
@@ -234,7 +226,7 @@ inline size_t recv_msg_with_fds(
 
     if (fds)
     {
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
+        cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         if (cmsg)
         {
             // If `throw_on_zero_bytes_read == false`, we assume that a
@@ -253,7 +245,7 @@ inline size_t recv_msg_with_fds(
             // This potentially fails to account for padding after cmsghdr,
             // but seems to work in practice, and there's no supported way
             // to directly get this information.
-            size_t fd_count = (cmsg->cmsg_len - sizeof(struct cmsghdr)) / sizeof(int);
+            size_t fd_count = (cmsg->cmsg_len - sizeof(cmsghdr)) / sizeof(int);
             // *pfd_count has initial value equal to length of fds array
             ASSERT_INVARIANT(fd_count <= *pfd_count, "Mismatched fd count!");
             for (size_t i = 0; i < fd_count; i++)
