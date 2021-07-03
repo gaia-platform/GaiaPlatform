@@ -81,8 +81,10 @@ public:
 
     void mark_completion_seen(struct io_uring_cqe* cqe);
 
-    // Decisions that belong to this batch.
-    decision_list_t batch_decisions;
+    void insert_in_decision_batch(decision_entry_t decision);
+    const decision_list_t& get_decision_batch_entries() const;
+    size_t get_decision_batch_size();
+    void clear_decision_batch();
 
 private:
     // Size can only be a power of 2 and the max value is 4096.
@@ -102,6 +104,9 @@ private:
 
     // Keep track of all persistent log file_fds that need to be closed.
     std::vector<int> m_file_fds;
+
+    // Decisions that belong to this batch.
+    decision_list_t m_batch_decisions;
 };
 } // namespace db
 } // namespace gaia
