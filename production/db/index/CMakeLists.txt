@@ -20,9 +20,8 @@ add_library(gaia_index STATIC
   src/index.cpp
   src/hash_index.cpp
   src/range_index.cpp)
+target_link_libraries(gaia_index INTERFACE gaia_build_options)
 target_include_directories(gaia_index PUBLIC ${GAIA_INDEX_INCLUDES})
-set_target_properties(gaia_index PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_index PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_index PRIVATE gaia_common gaia_payload_types)
 
 set (INDEX_TEST_INCLUDES

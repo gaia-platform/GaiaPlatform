@@ -28,15 +28,14 @@ add_library(gaia_common STATIC
   src/logger.cpp
   src/logger_manager.cpp
   src/random.cpp)
+
+target_link_libraries(gaia_common INTERFACE gaia_build_options)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
 # The following are INTERFACE libraries for including headers.
-target_link_libraries(gaia_common cpptoml)
-target_link_libraries(gaia_common gaia_spdlog)
-target_link_libraries(gaia_common gaia_spdlog_setup)
-
-set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_common PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_link_libraries(gaia_common PUBLIC cpptoml)
+target_link_libraries(gaia_common PUBLIC gaia_spdlog)
+target_link_libraries(gaia_common PUBLIC gaia_spdlog_setup)
 
 # The logging unit test needs a logger configuration file.
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")

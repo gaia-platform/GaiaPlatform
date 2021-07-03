@@ -21,9 +21,8 @@ add_library(gaia_payload_types STATIC
   src/data_holder.cpp
   src/type_cache.cpp
   src/field_access.cpp)
+target_link_libraries(gaia_payload_types INTERFACE gaia_build_options)
 target_include_directories(gaia_payload_types PUBLIC ${GAIA_PAYLOAD_TYPES_INCLUDES})
-set_target_properties(gaia_payload_types PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_payload_types PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_payload_types PRIVATE gaia_common flatbuffers)
 
 # Generate the flatbuffers files required by test_field_access.
