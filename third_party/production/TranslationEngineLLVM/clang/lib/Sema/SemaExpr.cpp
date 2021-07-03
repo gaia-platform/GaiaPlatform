@@ -5477,7 +5477,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
     auto numberOfParameters = ArgExprs.size();
     if (numberOfParameters != parameterNames.size())
     {
-      Diag(LParenLoc, diag::err_parameter_names_numbers_different_from_parameter);
+      Diag(LParenLoc, diag::err_parameter_names_numbers_different_from_parameter) << (unsigned)parameterNames.size() << (unsigned)numberOfParameters;
       return ExprError();
     }
 

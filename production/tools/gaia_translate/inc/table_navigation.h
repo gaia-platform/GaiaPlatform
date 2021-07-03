@@ -44,7 +44,7 @@ struct field_data_t
     bool is_deprecated;
     bool is_active;
     field_position_t position;
-    unsigned char field_type;
+    data_type_t field_type;
 };
 
 struct table_data_t

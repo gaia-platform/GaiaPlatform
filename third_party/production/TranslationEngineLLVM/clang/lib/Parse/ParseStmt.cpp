@@ -1718,20 +1718,15 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     // Try to determine if a first expression is a declarative statement and it is the only expression in for statement.
     ExtendedExplicitPathScopeMonitor monitor(Actions);
 
-    if (isGaia && Tok.isOneOf(tok::slash, tok::at, tok::identifier))
+    if (isGaia && Tok.isOneOf(tok::slash, tok::identifier))
     {
       RevertingTentativeParsingAction PA(*this);
-      if (Tok.isOneOf(tok::slash, tok::at))
+      if (Tok.is(tok::slash))
       {
         isDeclarativeStatement = true;
         ConsumeToken();
       }
-      // Check for /@
-      if (Tok.is(tok::at))
-      {
-        isDeclarativeStatement = true;
-        ConsumeToken();
-      }
+
       while (Tok.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
       {
         ConsumeToken();

@@ -311,7 +311,7 @@ void table_navigation_t::fill_table_data()
             field_data.is_active = field.active();
             field_data.position = field.position();
             field_data.is_deprecated = field.deprecated();
-            field_data.field_type = field.type();
+            field_data.field_type = static_cast<data_type_t>(field.type());
             table_data.db_name = table.database().name();
             table_data.field_data[field.name()] = field_data;
             m_table_data[table.name()] = table_data;
@@ -627,7 +627,6 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     catch (const exception& e)
     {
         cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
-
         return vector<string>();
     }
 
