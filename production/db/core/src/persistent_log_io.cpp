@@ -609,6 +609,13 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
     }
     if (destination->header.crc == 0)
     {
+        if (is_remaining_file_empty(it->cursor, it->end))
+        {
+            // Stop processing the current log file.
+            it->stop_at = it->cursor;
+            return 0;
+        }
+
         std::cout << "HEADER CRC zero." << std::endl;
         if (it->recovery_mode == recovery_mode_t::fail_on_error)
         {
