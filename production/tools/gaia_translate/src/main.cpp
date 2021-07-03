@@ -2708,6 +2708,7 @@ public:
         string variable_name;
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
+        bool explicit_path_present = true;
         const auto* path = static_cast<const DeclRefExpr*>(expression->getPath());
 
         const ValueDecl* decl = path->getDecl();
@@ -2717,6 +2718,8 @@ public:
         {
             variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            explicit_path_present = false;
+            expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
         }
         else
         {
@@ -2728,13 +2731,25 @@ public:
 
         if (expression_source_range.isValid())
         {
-            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-            update_expression_explicit_path_data(
-                result.Context,
-                path,
-                explicit_path_data,
-                expression_source_range,
-                m_rewriter);
+            if (explicit_path_present)
+            {
+                update_expression_explicit_path_data(
+                    result.Context,
+                    path,
+                    explicit_path_data,
+                    expression_source_range,
+                    m_rewriter);
+            }
+            else
+            {
+                update_expression_used_tables(
+                    result.Context,
+                    path,
+                    table_name,
+                    variable_name,
+                    expression_source_range,
+                    m_rewriter);
+            }
         }
         m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
         g_rewriter_history.push_back({SourceRange(expression->getForLoc(), expression->getRParenLoc()), "", remove_text});
