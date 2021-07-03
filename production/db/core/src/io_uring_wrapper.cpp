@@ -119,9 +119,25 @@ size_t io_uring_wrapper_t::get_unused_submission_entries_count()
     return io_uring_sq_space_left(m_ring.get());
 }
 
-int io_uring_wrapper_t::get_completion_event(struct io_uring_cqe** cqe)
+void io_uring_wrapper_t::validate_next_completion_event()
 {
-    return io_uring_peek_cqe(m_ring.get(), cqe);
+    io_uring_cqe* cqe;
+    int ret = io_uring_peek_cqe(m_ring.get(), &cqe);
+    if (ret != 0)
+    {
+        throw_system_error("Expected completions to be ready post flush_fd write.", ret);
+    }
+
+    // Validate completion result.
+    if (cqe->res < 0)
+    {
+        std::stringstream ss;
+        ss << "CQE completion failure for op: " << cqe->user_data;
+        throw_system_error(ss.str(), cqe->res);
+    }
+
+    // Mark completion as seen.
+    mark_completion_seen(cqe);
 }
 
 size_t io_uring_wrapper_t::get_completion_count()
