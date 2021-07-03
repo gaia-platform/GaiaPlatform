@@ -91,8 +91,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         ASSERT_PRECONDITION(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
     }
 
-    struct msghdr msg = {0};
-    struct iovec iov = {0};
+    struct msghdr msg
+    {
+    };
+    struct iovec iov
+    {
+    };
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
@@ -168,8 +172,12 @@ inline size_t recv_msg_with_fds(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
     }
-    struct msghdr msg = {0};
-    struct iovec iov = {0};
+    struct msghdr msg
+    {
+    };
+    struct iovec iov
+    {
+    };
     // This is a union only to guarantee alignment for cmsghdr.
     union
     {
