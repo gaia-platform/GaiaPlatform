@@ -118,22 +118,7 @@ void async_disk_writer_t::perform_post_completion_maintenence()
     auto size_to_validate = in_flight_buffer->get_completion_count();
     for (size_t i = 0; i < size_to_validate; i++)
     {
-        io_uring_cqe* cqe;
-        auto ret = in_flight_buffer->get_completion_event(&cqe);
-
-        if (ret != 0)
-        {
-            throw_io_uring_error("Expected completions to be ready post flush_fd write.", ret);
-        }
-
-        // Validate completion result.
-        if (cqe->res < 0)
-        {
-            throw_io_uring_error("CQE completion failure from in_flight batch.", cqe->res, cqe->user_data);
-        }
-
-        // Mark completion as seen.
-        in_flight_buffer->mark_completion_seen(cqe);
+        in_flight_buffer->validate_next_completion_event();
     }
 
     // Post validation, clear the helper buffer.

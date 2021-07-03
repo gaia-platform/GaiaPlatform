@@ -42,7 +42,7 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     m_file_fd = openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
     if (m_file_fd < 0)
     {
-        throw_system_error("Unable to create persistent log file");
+        throw_system_error("openat() when creating persistent log file failed.");
     }
 
     // Todo: zero-fill entires in file.
@@ -50,14 +50,14 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     auto res = fallocate(m_file_fd, 0, 0, m_file_size);
     if (res != 0)
     {
-        throw_system_error("Fallocate when creating persistent log file failed");
+        throw_system_error("fallocate() when creating persistent log file failed.");
     }
 
     res = fsync(m_file_fd);
     std::cout << "FILE CREATED " << std::endl;
     if (res != 0)
     {
-        throw_system_error("Fsync when creating persistent log file failed.");
+        throw_system_error("fsync() when creating persistent log file failed.");
     }
 
     // Calling fsync() does not necessarily ensure that the entry in the directory containing
@@ -66,7 +66,7 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     res = fsync(m_dir_fd);
     if (res != 0)
     {
-        throw_system_error("Fsync on persistent log directory failed.");
+        throw_system_error("fsync() on persistent log directory failed.");
     }
 }
 
@@ -85,12 +85,12 @@ void persistent_log_file_t::allocate(size_t size)
     m_current_offset += size;
 }
 
-bool persistent_log_file_t::has_enough_space(size_t record_size)
+size_t persistent_log_file_t::get_remaining_space(size_t record_size)
 {
     ASSERT_PRECONDITION(m_file_size > 0, "Preallocated file size should be greater than 0.");
     std::cout << "CURRENT OFFSET = " << m_current_offset << std::endl;
     std::cout << "RECORD_SIZE = " << record_size << std::endl;
-    return m_current_offset + record_size <= m_file_size;
+    return m_file_size - (m_current_offset + record_size);
 }
 
 // Just for testing.

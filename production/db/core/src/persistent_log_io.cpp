@@ -119,7 +119,7 @@ persistent_log_file_offset_t persistent_log_handler_t::allocate_log_space(size_t
         auto fs = (payload_size > c_file_size) ? payload_size : c_file_size;
         current_file.reset(new persistent_log_file_t(s_wal_dir_path, dir_fd, file_num, fs));
     }
-    else if (!current_file->has_enough_space(payload_size))
+    else if (current_file->get_remaining_space(payload_size) <= 0)
     {
         async_disk_writer->handle_file_close(current_file->get_file_fd(), current_file->get_current_offset());
 

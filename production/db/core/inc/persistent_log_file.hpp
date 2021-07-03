@@ -36,7 +36,7 @@ private:
 public:
     persistent_log_file_t(const std::string& dir_name, int dir_fd, size_t file_num, size_t file_size);
 
-    bool has_enough_space(size_t record_size);
+    size_t get_remaining_space(size_t record_size);
     persistent_log_file_offset_t get_current_offset();
     void allocate(size_t size);
     void get_file_name(std::string& file_name);

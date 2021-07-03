@@ -37,8 +37,7 @@ enum class uring_op_t : uint64_t
 class io_uring_wrapper_t
 {
 public:
-    io_uring_wrapper_t()
-        : m_ring(){};
+    io_uring_wrapper_t();
 
     ~io_uring_wrapper_t();
 
@@ -69,11 +68,7 @@ public:
 
     size_t get_completion_count();
 
-    /**
-     * Returns an I/O completion, if one is readily available. Doesn’t wait.
-     * Returns 0 with cqe filled in on success, -errno on failure.
-     */
-    int get_completion_event(struct io_uring_cqe** cqe);
+    void validate_next_completion_event();
 
     void mark_completion_seen(struct io_uring_cqe* cqe);
 
