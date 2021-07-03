@@ -73,7 +73,8 @@ void async_disk_writer_t::throw_io_uring_error(std::string err_msg, int err, uin
     {
         ss << "; with cqe data = " << cqe_data;
     }
-    throw io_uring_error(ss.str());
+    // io_uring will execute commands asynchronously so the default errno will not work.
+    throw_system_error(ss.str(), err);
 }
 
 void async_disk_writer_t::map_commit_ts_to_session_unblock_fd(gaia_txn_id_t commit_ts, int session_unblock_fd)
@@ -91,7 +92,7 @@ void async_disk_writer_t::add_decisions_to_batch(decision_list_t& decisions)
 
 size_t async_disk_writer_t::get_submission_batch_size(bool in_progress)
 {
-    return in_progress ? in_progress_buffer->space_left() : in_flight_buffer->space_left();
+    return in_progress ? in_progress_buffer->get_unused_submission_entries_count() : in_flight_buffer->get_unused_submission_entries_count();
 }
 
 size_t async_disk_writer_t::get_completion_batch_size(bool in_progress)
@@ -142,8 +143,8 @@ void async_disk_writer_t::perform_post_completion_maintenence()
     // std::cout << "validating batch decision size = " << in_flight_buffer->batch_decisions.size() << std::endl;
     for (auto entry : in_flight_buffer->batch_decisions)
     {
-        s_txn_durable_fn(entry.first);
-        auto itr = ts_to_session_unblock_fd_map.find(entry.first);
+        s_txn_durable_fn(entry.txn_commit_ts);
+        auto itr = ts_to_session_unblock_fd_map.find(entry.txn_commit_ts);
         ASSERT_INVARIANT(itr != ts_to_session_unblock_fd_map.end(), "Unable to find fd of session to wakeup post log write.");
 
         // Obtain session_unblock_efd to be able to signal it.
@@ -197,7 +198,7 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
     // queue are done. This is accomplished by the IOSQE_IO_DRAIN flag.
     // Additionally we supply a IOSQE_IO_LINK flag, so that the next operation in the queue is dependent on
     // the fsync operation.
-    size_t in_prog_size = in_progress_buffer->count_unsubmitted_entries();
+    size_t in_prog_size = in_progress_buffer->get_unsubmitted_entries_count();
     // std::cout << "IN PROG SIZE DURING SUBMIT = " << in_prog_size << std::endl;
     if (in_prog_size == 0)
     {
@@ -213,25 +214,25 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
     }
     in_prog_size += submission_entries_needed;
 
-    in_progress_buffer->append_fsync(file_fd, IORING_FSYNC_DATASYNC, get_enum_value(uring_op_t::FSYNC), IOSQE_IO_LINK);
-    in_progress_buffer->append_pwritev(&default_iov, 1, flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_FLUSH), IOSQE_IO_LINK);
-    in_progress_buffer->append_pwritev(&default_iov, 1, validate_flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_VALIDATE), IOSQE_IO_DRAIN);
+    in_progress_buffer->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::FDATASYNC), IOSQE_IO_LINK);
+    in_progress_buffer->add_pwritev_op_to_batch(&default_iov, 1, flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_FLUSH), IOSQE_IO_LINK);
+    in_progress_buffer->add_pwritev_op_to_batch(&default_iov, 1, validate_flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_VALIDATE), IOSQE_IO_DRAIN);
 
     swap_buffers();
-    auto flushed_batch_size = in_flight_buffer->count_unsubmitted_entries();
+    auto flushed_batch_size = in_flight_buffer->get_unsubmitted_entries_count();
     ASSERT_INVARIANT(in_prog_size == flushed_batch_size, "ptr swap failed.");
     size_t submission_count = 0;
 
     if (wait)
     {
-        submission_count = in_flight_buffer->submit(wait);
+        submission_count = in_flight_buffer->submit_operation_batch(wait);
         perform_post_completion_maintenence();
     }
     else
     {
         // Issue async submit.
         bool wait_for_io = false;
-        submission_count = in_flight_buffer->submit(wait_for_io);
+        submission_count = in_flight_buffer->submit_operation_batch(wait_for_io);
     }
 
     if (flushed_batch_size != submission_count)
@@ -239,7 +240,7 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
         throw_io_uring_error("IOUring submission failure.", -1);
     }
 
-    if (in_flight_buffer->count_unsubmitted_entries() != 0)
+    if (in_flight_buffer->get_unsubmitted_entries_count() != 0)
     {
         throw_io_uring_error("IOUring batch size after submission should be 0.", -1);
     }
@@ -252,8 +253,8 @@ size_t async_disk_writer_t::handle_file_close(int fd, size_t file_size)
 {
     size_t submission_entries_needed = 1;
     submit_if_full(fd, submission_entries_needed);
-    in_progress_buffer->append_fsync(fd, IORING_FSYNC_DATASYNC, get_enum_value(uring_op_t::FSYNC), IOSQE_IO_DRAIN);
-    in_progress_buffer->append_file_to_batch(fd, file_size);
+    in_progress_buffer->add_fdatasync_op_to_batch(fd, get_enum_value(uring_op_t::FDATASYNC), IOSQE_IO_DRAIN);
+    in_progress_buffer->append_file_to_batch(fd);
     return submission_entries_needed;
 }
 
@@ -345,7 +346,7 @@ void async_disk_writer_t::construct_pwritev(
 
 bool async_disk_writer_t::submit_if_full(int file_fd, size_t required_entries)
 {
-    bool to_submit = in_progress_buffer.get()->space_left() - submit_batch_sqe_count - required_entries <= 0;
+    bool to_submit = in_progress_buffer.get()->get_unused_submission_entries_count() - submit_batch_sqe_count - required_entries <= 0;
     if (to_submit)
     {
         // This call will block if flushing the in_flight batch is still in progress.
@@ -366,7 +367,7 @@ size_t async_disk_writer_t::pwritev(
 {
     size_t submission_entries_needed = 1;
     submit_if_full(file_fd, submission_entries_needed);
-    in_progress_buffer->append_pwritev(iovecs, iovcnt, file_fd, current_offset, get_enum_value(type), 0);
+    in_progress_buffer->add_pwritev_op_to_batch(iovecs, iovcnt, file_fd, current_offset, get_enum_value(type), 0);
     return submission_entries_needed;
 }
 

@@ -50,7 +50,7 @@ private:
     // The current set of txns that are being processed (either recovered or checkpointed)
     // Txns are processed one decision record at a time; a single decision record can contain
     // multiple txns.
-    std::map<gaia_txn_id_t, txn_decision_type_t> decision_index;
+    std::map<gaia_txn_id_t, decision_type_t> decision_index;
 
     gaia_txn_id_t max_decided_commit_ts;
 

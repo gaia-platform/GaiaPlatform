@@ -148,7 +148,7 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
 
     // Create decision record and write it using pwritev.
     std::vector<iovec> writes_to_submit;
-    size_t txn_decision_size = txn_decisions.size() * (sizeof(gaia_txn_id_t) + sizeof(txn_decision_type_t));
+    size_t txn_decision_size = txn_decisions.size() * (sizeof(gaia_txn_id_t) + sizeof(decision_type_t));
     auto total_log_space_needed = txn_decision_size + sizeof(record_header_t);
     persistent_log_file_offset_t begin_log_offset = allocate_log_space(total_log_space_needed);
 
@@ -532,13 +532,13 @@ void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_
             // Obtain decisions. Decisions may not be in commit order, so sort and process them.
             for (size_t i = 0; i < record->header.count; i++)
             {
-                auto decision_entry = reinterpret_cast<decision_record_entry_t*>(payload_ptr);
+                auto decision_entry = reinterpret_cast<decision_entry_t*>(payload_ptr);
                 if (decision_entry->txn_commit_ts > last_checkpointed_commit_ts)
                 {
                     ASSERT_INVARIANT(txn_index.count(decision_entry->txn_commit_ts) > 0, "Transaction record should be written before the decision record.");
                     decision_index.insert(std::pair(decision_entry->txn_commit_ts, decision_entry->decision));
                 }
-                payload_ptr += sizeof(decision_record_entry_t);
+                payload_ptr += sizeof(decision_entry_t);
             }
 
             // Iterare decisions.
@@ -549,7 +549,7 @@ void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_
                 auto txn_it = txn_index.find(decision_it->first);
 
                 // Only perform recovery and checkpointing for committed transactions.
-                if (decision_it->second == txn_decision_type_t::commit)
+                if (decision_it->second == decision_type_t::commit)
                 {
                     // Txn record is safe to be written to rocksdb at this point, since checksums for both
                     // the txn & decision record were validated and we asserted that the txn record is written

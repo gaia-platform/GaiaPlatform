@@ -990,8 +990,8 @@ void server_t::write_to_persistent_log(bool sync_writes)
                     mapped_log_t log;
                     log.open(txn_log_fd);
                     persistent_log_handler->map_commit_ts_to_session_unblock_fd(ts, log.data()->session_unblock_fd);
-                    auto decision = txn_metadata_t::is_txn_committed(ts) ? txn_decision_type_t::commit : txn_decision_type_t::abort;
-                    txn_decisions.push_back(std::pair(ts, decision));
+                    auto decision = txn_metadata_t::is_txn_committed(ts) ? decision_type_t::commit : decision_type_t::abort;
+                    txn_decisions.push_back(decision_entry_t{ts, decision});
                     itr = seen_txn_set.erase(itr);
                 }
                 else

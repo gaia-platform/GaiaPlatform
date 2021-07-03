@@ -57,7 +57,8 @@ TEST(io_uring_manager_test, single_write)
     io_uring_mgr->open();
     persistent_log_file_t wal_file(dirname, dir_fd, file_num, file_size);
 
-    std::string file_name = wal_file.get_file_name();
+    std::string file_name;
+    wal_file.get_file_name(file_name);
 
     std::string to_write = "hello there";
     struct iovec iov;
@@ -107,7 +108,8 @@ TEST(io_uring_manager_test, multiple_write)
     io_uring_mgr->open(batch_size);
     persistent_log_file_t wal_file(dirname, dir_fd, file_num, file_size);
 
-    auto file_name = wal_file.get_file_name();
+    std::string file_name;
+    wal_file.get_file_name(file_name);
 
     std::string to_write = "hello there";
 
