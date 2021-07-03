@@ -20,7 +20,7 @@ set(GAIA_DUMP_INCLUDES
 message(VERBOSE "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
 
 add_executable(gaia_dump src/main.cpp src/gaia_dump.cpp)
-target_link_libraries(gaia_dump INTERFACE gaia_build_options)
+target_link_libraries(gaia_dump PUBLIC gaia_build_options)
 target_include_directories(gaia_dump PRIVATE ${GAIA_DUMP_INCLUDES})
 target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser gaia_db_client Threads::Threads)
 

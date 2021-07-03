@@ -27,7 +27,7 @@ add_library(gaia_direct STATIC
   src/edc_base.cpp
   src/auto_transaction.cpp
 )
-target_link_libraries(gaia_direct INTERFACE gaia_build_options)
+target_link_libraries(gaia_direct PUBLIC gaia_build_options)
 target_include_directories(gaia_direct PUBLIC ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES})
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES})
 target_link_libraries(gaia_direct PUBLIC gaia_db_client)

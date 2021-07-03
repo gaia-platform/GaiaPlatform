@@ -63,7 +63,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "")
   endif()
 
-  target_link_libraries(${TARGET} INTERFACE gaia_build_options)
+  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
   set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
   gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)
@@ -210,7 +210,7 @@ function(process_schema_internal)
   add_library(${ARG_LIB_NAME}
     ${EDC_CPP_FILE})
 
-  target_link_libraries(${ARG_LIB_NAME} INTERFACE gaia_build_options)
+  target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_build_options)
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})

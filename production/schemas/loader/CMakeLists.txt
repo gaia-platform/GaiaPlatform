@@ -21,7 +21,7 @@ message(VERBOSE "GAIA_SCHEMA_LOADER_PRIVATE_INCLUDES=${GAIA_SCHEMA_LOADER_PRIVAT
 
 add_library(gaia_schema_loader STATIC src/schema_loader.cpp)
 
-target_link_libraries(gaia_schema_loader INTERFACE gaia_build_options)
+target_link_libraries(gaia_schema_loader PUBLIC gaia_build_options)
 
 target_include_directories(gaia_schema_loader PUBLIC ${GAIA_SCHEMA_LOADER_PUBLIC_INCLUDES})
 target_include_directories(gaia_schema_loader PRIVATE ${GAIA_SCHEMA_LOADER_PRIVATE_INCLUDES})

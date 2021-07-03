@@ -29,7 +29,7 @@ add_library(gaia_common STATIC
   src/logger_manager.cpp
   src/random.cpp)
 
-target_link_libraries(gaia_common INTERFACE gaia_build_options)
+target_link_libraries(gaia_common PUBLIC gaia_build_options)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
 # The following are INTERFACE libraries for including headers.

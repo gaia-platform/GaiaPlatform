@@ -28,7 +28,7 @@ add_executable(ping_pong
 )
 
 add_dependencies(ping_pong translate_ping_pong_ruleset)
-target_link_libraries(ping_pong INTERFACE gaia_build_options)
+target_link_libraries(ping_pong PUBLIC gaia_build_options)
 target_include_directories(ping_pong PRIVATE
   ${GAIA_INC}
   ${FLATBUFFERS_INC}

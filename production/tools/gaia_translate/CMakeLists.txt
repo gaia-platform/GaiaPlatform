@@ -25,7 +25,7 @@ link_directories(
 )
 
 add_executable(gaiat ${GAIAT_SRCS})
-target_link_libraries(gaiat INTERFACE gaia_build_options)
+target_link_libraries(gaiat PUBLIC gaia_build_options)
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
 target_link_libraries(gaiat
   PRIVATE

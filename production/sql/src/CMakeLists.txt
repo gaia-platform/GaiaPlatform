@@ -6,7 +6,7 @@ add_library(gaia_fdw SHARED
   gaia_fdw.cpp
   gaia_fdw_adapter.cpp)
 
-target_link_libraries(gaia_fdw INTERFACE gaia_build_options)
+target_link_libraries(gaia_fdw PUBLIC gaia_build_options)
 
 # exec_program() mangles this variable with added quotes, so un-quote it.
 separate_arguments(PGSQL_CPPFLAGS UNIX_COMMAND "${PGSQL_CPPFLAGS}")

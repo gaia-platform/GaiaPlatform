@@ -26,7 +26,7 @@ message(VERBOSE "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
 # Our main target.
 add_library(gaia_system STATIC src/gaia_system.cpp)
 
-target_link_libraries(gaia_system INTERFACE gaia_build_options)
+target_link_libraries(gaia_system PUBLIC gaia_build_options)
 
 target_include_directories(gaia_system PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
 target_include_directories(gaia_system PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})

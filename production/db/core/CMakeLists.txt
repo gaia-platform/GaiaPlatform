@@ -60,7 +60,7 @@ endforeach(FBS_SOURCE)
 add_library(gaia_storage STATIC
   src/record_list.cpp
   src/record_list_manager.cpp)
-target_link_libraries(gaia_storage INTERFACE gaia_build_options)
+target_link_libraries(gaia_storage PUBLIC gaia_build_options)
 target_include_directories(gaia_storage PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_storage PRIVATE gaia_common)
@@ -84,7 +84,7 @@ add_library(gaia_db_client STATIC
   src/db_server_instance.cpp)
 
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs" "gaia_index.fbs" "gaia_db_server")
-target_link_libraries(gaia_db_client INTERFACE gaia_build_options)
+target_link_libraries(gaia_db_client PUBLIC gaia_build_options)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
@@ -101,7 +101,7 @@ add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
-target_link_libraries(rocks_wrapper INTERFACE gaia_build_options)
+target_link_libraries(rocks_wrapper PUBLIC gaia_build_options)
 target_include_directories(rocks_wrapper PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -128,7 +128,7 @@ endif()
 
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server "messages.fbs")
-target_link_libraries(gaia_db_server INTERFACE gaia_build_options)
+target_link_libraries(gaia_db_server PUBLIC gaia_build_options)
 target_include_directories(gaia_db_server PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -158,7 +158,7 @@ find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
-  target_link_libraries(gaia_db_pybind INTERFACE gaia_build_options)
+  target_link_libraries(gaia_db_pybind PUBLIC gaia_build_options)
   target_include_directories(gaia_db_pybind PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_db_pybind PRIVATE
     "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
@@ -190,7 +190,7 @@ endif()
 if(JAVA_FOUND AND JNI_FOUND)
   # Configure build of native C++ wrapper library.
   add_library(gaia_db_jni SHARED src/db_jni_wrapper.cpp)
-  target_link_libraries(gaia_db_jni INTERFACE gaia_build_options)
+  target_link_libraries(gaia_db_jni PUBLIC gaia_build_options)
   target_include_directories(gaia_db_jni PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_db_jni PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(gaia_db_jni PRIVATE ${JNI_INCLUDE_DIRS})
@@ -212,7 +212,7 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
 )
 
 add_library(gaia_db_catalog_test tests/db_catalog_test_base.cpp)
-target_link_libraries(gaia_db_catalog_test INTERFACE gaia_build_options)
+target_link_libraries(gaia_db_catalog_test PUBLIC gaia_build_options)
 target_include_directories(gaia_db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client gaia_schema_loader gtest)
 
