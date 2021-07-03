@@ -42,7 +42,7 @@ public:
     bool has_enough_space(size_t record_size);
     size_t get_current_offset();
     void allocate(size_t size);
-    std::string get_file_name();
+    void get_file_name(std::string& file_name);
     int get_file_fd();
 };
 

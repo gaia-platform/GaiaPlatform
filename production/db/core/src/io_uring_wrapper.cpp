@@ -7,7 +7,6 @@
 
 #include <iostream>
 
-#include "gaia_internal/common/io_uring_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
@@ -19,10 +18,10 @@ using namespace gaia::common;
 void io_uring_wrapper_t::open(size_t buffer_size)
 {
     auto r = new io_uring();
-    auto ret = io_uring_queue_init(buffer_size, r, 0);
+    int ret = io_uring_queue_init(buffer_size, r, 0);
     if (ret < 0)
     {
-        throw io_uring_error(c_setup_err_msg, errno);
+        throw_system_error(c_setup_err_msg);
     }
     m_ring.reset(r);
 }
@@ -42,19 +41,14 @@ void io_uring_wrapper_t::teardown()
 
 io_uring_sqe* io_uring_wrapper_t::get_sqe()
 {
-    if (io_uring_sq_space_left(m_ring.get()) <= 0)
-    {
-        throw io_uring_error(c_buffer_empty_err_msg);
-    }
-    return io_uring_get_sqe(m_ring.get());
+    auto sqe = io_uring_get_sqe(m_ring.get());
+    ASSERT_INVARIANT(sqe, c_buffer_empty_err_msg);
+    return sqe;
 }
 
 void io_uring_wrapper_t::prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe)
 {
-    if (!sqe)
-    {
-        throw io_uring_error(c_buffer_empty_err_msg);
-    }
+    ASSERT_PRECONDITION(sqe, "Submission queue entry cannot be null.");
     sqe->user_data = data;
     sqe->flags |= flags;
 }
@@ -72,14 +66,13 @@ void io_uring_wrapper_t::add_pwritev_op_to_batch(
     prep_sqe(data, flags, sqe);
 }
 
-void io_uring_wrapper_t::add_fsync_op_to_batch(
+void io_uring_wrapper_t::add_fdatasync_op_to_batch(
     int file_fd,
-    uint32_t fsync_flags,
     uint64_t data,
     u_char flags)
 {
     auto sqe = get_sqe();
-    io_uring_prep_fsync(sqe, file_fd, fsync_flags);
+    io_uring_prep_fsync(sqe, file_fd, IORING_FSYNC_DATASYNC);
     prep_sqe(data, flags, sqe);
 }
 
