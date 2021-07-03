@@ -31,6 +31,7 @@ private:
     int m_dir_fd;
     int m_file_fd;
     std::string m_file_name;
+    static constexpr int c_file_permissions = 0666;
 
 public:
     persistent_log_file_t(const std::string& dir_name, int dir_fd, size_t file_num, size_t file_size);
@@ -38,7 +39,7 @@ public:
     bool has_enough_space(size_t record_size);
     persistent_log_file_offset_t get_current_offset();
     void allocate(size_t size);
-    std::string get_file_name();
+    void get_file_name(std::string& file_name);
     int get_file_fd();
 };
 

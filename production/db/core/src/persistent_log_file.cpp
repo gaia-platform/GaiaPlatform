@@ -39,7 +39,7 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     // Open and fallocate depending on size.
     std::stringstream file_name;
     file_name << m_dir_name << "/" << m_file_num;
-    m_file_fd = open(file_name.str().c_str(), O_WRONLY | O_CREAT, 0666);
+    m_file_fd = openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
     if (m_file_fd < 0)
     {
         throw_system_error("Unable to create persistent log file");
@@ -94,9 +94,9 @@ bool persistent_log_file_t::has_enough_space(size_t record_size)
 }
 
 // Just for testing.
-std::string persistent_log_file_t::get_file_name()
+void persistent_log_file_t::get_file_name(std::string& file_name)
 {
-    std::string ret = m_dir_name;
-    ret.append("/").append(std::to_string(m_file_num));
-    return ret;
+    std::stringstream file_name0;
+    file_name0 << m_dir_name << "/" << m_file_num;
+    file_name = file_name0.str();
 }

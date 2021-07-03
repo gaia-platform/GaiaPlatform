@@ -12,7 +12,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "gaia_internal/common/io_uring_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 #include "liburing.h"
@@ -30,7 +29,7 @@ enum class uring_op_t : uint64_t
     PWRITEV_DECISION = 2,
     PWRITEV_EVENTFD_FLUSH = 3,
     PWRITEV_EVENTFD_VALIDATE = 4,
-    FSYNC = 5,
+    FDATASYNC = 5,
 };
 
 // For simplicity all APIs in this file assume that the io_uring submission queue has enough space to write to.
@@ -47,8 +46,6 @@ public:
 
     void append_file_to_batch(int fd);
 
-    void teardown();
-
     void add_pwritev_op_to_batch(
         const iovec* iovecs,
         size_t num_iovecs,
@@ -57,9 +54,8 @@ public:
         uint64_t data,
         u_char flags);
 
-    void add_fsync_op_to_batch(
+    void add_fdatasync_op_to_batch(
         int file_fd,
-        uint32_t fsync_flags,
         uint64_t data,
         u_char flags);
 
@@ -88,7 +84,7 @@ private:
     // Size can only be a power of 2 and the max value is 4096.
     static constexpr size_t c_buffer_size = 32;
 
-    static constexpr char c_setup_err_msg[] = "io_uring setup failed.";
+    static constexpr char c_setup_err_msg[] = "io_uring_queue_init failed.";
     static constexpr char c_buffer_empty_err_msg[] = "io_uring submission queue out of space.";
 
     // io_uring instance. Each ring maintains a submission queue and a completion queue.
@@ -97,6 +93,8 @@ private:
     void prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe);
 
     io_uring_sqe* get_sqe();
+
+    void teardown();
 
     // Keep track of all persistent log file_fds that need to be closed.
     std::vector<int> m_file_fds;
