@@ -360,7 +360,8 @@ void persistent_log_handler_t::set_persistent_log_sequence(uint64_t log_seq)
 
 void persistent_log_handler_t::recover_from_persistent_log(
     gaia_txn_id_t& last_checkpointed_commit_ts,
-    uint64_t& last_processed_log_seq)
+    uint64_t& last_processed_log_seq,
+    uint64_t max_log_seq_to_process)
 {
     // Only relevant for checkpointing. Recovery doesn't care about the
     // 'last_checkpointed_commit_ts' and will reset this field to zero.
@@ -386,6 +387,11 @@ void persistent_log_handler_t::recover_from_persistent_log(
     // Apply txns from file.
     for (auto file_seq : log_files)
     {
+        if (file_seq > max_log_seq_to_process)
+        {
+            break;
+        }
+
         // Ignore already processed files.
         if (file_seq <= last_processed_log_seq)
         {
@@ -393,11 +399,26 @@ void persistent_log_handler_t::recover_from_persistent_log(
             continue;
         }
 
+        // halt_recovery is set to true in case an IO issue is encountered while reading the log.
         auto halt_recovery = write_log_file_to_persistent_store(
             s_wal_dir_path,
             file_seq,
             last_checkpointed_commit_ts,
             recovery_mode_t::finish_on_first_error);
+
+        // Call delete & flush here.
+
+        if (checkpointing)
+        {
+            if (txn_index.size() == 0)
+            {
+                // no more txns to process in this log file; can be deleted.
+                // Update key of last checkpointed log seq
+                // Flush it.
+
+                // Now delete log file.
+            }
+        }
 
         if (halt_recovery)
         {
@@ -408,21 +429,17 @@ void persistent_log_handler_t::recover_from_persistent_log(
 
     if (log_files.size() > 0)
     {
-        last_processed_log_seq = log_files.back();
+        last_processed_log_seq = std::min(log_files.back(), max_log_seq_to_process);
     }
 
     ASSERT_POSTCONDITION(decision_index.size() == 0, "Failed to process all persistent log records.");
 
-    if (log_files.size() > 0)
-    {
-        last_processed_log_seq = log_files.at(log_files.size() - 1);
-    }
-    else
-    {
-        last_processed_log_seq = 0;
-    }
-
     std::cout << "==== RECOVERY DONE ====" << std::endl;
+}
+
+size_t persistent_log_handler_t::get_remaining_txns_to_checkpoint_count()
+{
+    return txn_index.size();
 }
 
 bool persistent_log_handler_t::write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode)

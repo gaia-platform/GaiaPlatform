@@ -115,6 +115,8 @@ private:
 
     static inline int s_signal_decision_eventfd = -1;
 
+    static inline int s_signal_checkpoint_log_evenfd = -1;
+
     // These thread objects are owned by the client dispatch thread.
     // These fields have session lifetime.
     static inline std::vector<std::thread> s_session_threads{};
@@ -181,6 +183,8 @@ private:
     // Only used when writing to the persistent_log; writes to the log occur via the persistent_log_writer alone
     // which is why we don't need std::atomic<> here.
     static inline gaia_txn_id_t s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
+    static inline gaia_txn_id_t s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Used to provide the guarantee that if txn with ts 'X' is durable then all txn's with ts lesser
     // than 'X' are also durable.
@@ -284,6 +288,10 @@ private:
     static void client_dispatch_handler(const std::string& socket_name);
 
     static void persistent_log_writer_handler();
+
+    static void persistent_checkpoint_handler();
+
+    static void checkpoint_writes();
 
     static void write_to_persistent_log(bool sync_writes = false);
 

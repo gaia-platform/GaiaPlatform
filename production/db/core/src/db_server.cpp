@@ -724,19 +724,19 @@ void server_t::recover_persistent_log()
             }
 
             // Get last processed log.
-            auto log_seq = rdb->get_value(persistent_store_manager::c_last_processed_log_num_key);
-            std::cout << "RECOVERED LOG SEQ = " << log_seq << std::endl;
+            auto last_processed_log_seq = rdb->get_value(persistent_store_manager::c_last_processed_log_num_key);
+            std::cout << "RECOVERED LOG SEQ = " << last_processed_log_seq << std::endl;
 
             // Recover only the first time this method gets called.
             gaia_txn_id_t last_checkpointed_commit_ts = 0;
-            persistent_log_handler->recover_from_persistent_log(last_checkpointed_commit_ts, log_seq);
+            persistent_log_handler->recover_from_persistent_log(last_checkpointed_commit_ts, last_processed_log_seq, INT64_MAX);
 
-            rdb->update_value(persistent_store_manager::c_last_processed_log_num_key, log_seq);
+            rdb->update_value(persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
 
             // Reset c_last_checkpointed_commit_ts_key, we don't persist it across restarts.
             rdb->update_value(persistent_store_manager::c_last_checkpointed_commit_ts_key, 0);
 
-            persistent_log_handler->set_persistent_log_sequence(log_seq);
+            persistent_log_handler->set_persistent_log_sequence(last_processed_log_seq);
 
             persistent_log_handler->destroy_persistent_log();
 
@@ -1027,11 +1027,6 @@ void server_t::write_to_persistent_log(bool sync_writes)
                     int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
                     ASSERT_INVARIANT(txn_log_fd != -1, c_message_uninitialized_fd_log);
                     persistent_log_handler->process_txn_log_and_write(txn_log_fd, ts, &s_memory_manager);
-                    // mapped_log_t log;
-                    // log.open(txn_log_fd);
-                    // persistent_log_handler->map_commit_ts_to_session_unblock_fd(ts, log.data()->session_unblock_fd);
-                    // auto decision = txn_metadata_t::is_txn_committed(ts) ? txn_decision_type_t::commit : txn_decision_type_t::abort;
-                    // txn_decisions.push_back(std::pair(ts, decision));
                 }
             }
         }
@@ -1058,6 +1053,22 @@ void server_t::write_to_persistent_log(bool sync_writes)
         // empty batch to queue new txn writes occurs internally in the persistent_log_writer. We explicitly
         // call submit_writes here to submit up any half batches.
         persistent_log_handler->submit_writes(sync_writes);
+    }
+}
+
+void server_t::persistent_checkpoint_handler()
+{
+    // Wait for a persistent log file to be closed before checkpointing it.
+    // This can be achieved via blocking on an eventfd read.
+    while (true)
+    {
+        // Log sequence number of file ready to be checkpointed.
+        eventfd_t max_log_seq_to_checkpoint;
+        eventfd_read(s_signal_checkpoint_log_evenfd, &max_log_seq_to_checkpoint);
+
+        // Process all existing log files till the 'max_log_seq_to_checkpoint'
+        gaia_txn_id_t last_processed_log_seq = 0;
+        persistent_log_handler->recover_from_persistent_log(s_last_checkpointed_commit_ts_lower_bound, last_processed_log_seq, max_log_seq_to_checkpoint);
     }
 }
 
@@ -2731,11 +2742,14 @@ void server_t::run(server_config_t server_conf)
         s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
-        std::thread persistence_thread;
+        std::thread persistent_log_writer_thread;
+        std::thread persistent_checkpoint_thread;
         if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
         {
             // Launch persistence thread.
-            persistence_thread = std::thread(&persistent_log_writer_handler);
+            persistent_log_writer_thread = std::thread(&persistent_log_writer_handler);
+            persistent_checkpoint_thread = std::thread(&persistent_checkpoint_handler);
+            ;
         }
 
         // Launch thread to listen for client connections and create session threads.
@@ -2753,7 +2767,8 @@ void server_t::run(server_config_t server_conf)
 
         if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
         {
-            persistence_thread.join();
+            persistent_log_writer_thread.join();
+            persistent_checkpoint_thread.join();
         }
 
         // We special-case SIGHUP to force reinitialization of the server.

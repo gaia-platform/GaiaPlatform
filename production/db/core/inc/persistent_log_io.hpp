@@ -104,7 +104,8 @@ public:
 
     void recover_from_persistent_log(
         gaia_txn_id_t& last_checkpointed_commit_ts,
-        uint64_t& last_processed_log_seq);
+        uint64_t& last_processed_log_seq,
+        uint64_t max_log_seq_to_process);
 
     void destroy_persistent_log();
 
@@ -112,6 +113,8 @@ public:
     void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
 
     void set_persistent_log_sequence(uint64_t log_seq);
+
+    size_t get_remaining_txns_to_checkpoint_count();
 
     static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
 };
