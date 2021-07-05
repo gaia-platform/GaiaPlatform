@@ -41,7 +41,7 @@ enum class uring_op_t : uint64_t
 class io_uring_wrapper_t
 {
 public:
-    io_uring_wrapper_t();
+    io_uring_wrapper_t() = default;
 
     ~io_uring_wrapper_t();
 
