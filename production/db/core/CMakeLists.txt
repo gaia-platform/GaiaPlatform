@@ -91,7 +91,7 @@ target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDE
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
 target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
@@ -107,7 +107,7 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper rocksdb gaia_storage)
-set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 set(GAIA_DB_SERVER_SOURCES
@@ -135,7 +135,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
