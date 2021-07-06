@@ -4630,6 +4630,7 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  // Checks if an expression contains injected declarative references.
   bool IsExpressionInjected(const Expr* expression) const;
 private:
 

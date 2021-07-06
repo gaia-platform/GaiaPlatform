@@ -9537,7 +9537,7 @@ def err_tag_redefined : Error<
 def err_incorrect_tag_use_in_path : Error<
   "Tag '%0' cannot be used in this context.">;
 def err_parameter_names_numbers_different_from_parameter: Error<
-  "The number of parameter names is not the same as number of parameters.">;
+  "%0 parameter names are specified and %1 parameters passed.">;
 def err_unknown_parameter_name : Error<
   "Parameter name '%0' is not found in the catalog.">;
 def err_duplicate_parameter_name : Error<
