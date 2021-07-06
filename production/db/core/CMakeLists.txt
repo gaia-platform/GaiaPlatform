@@ -18,6 +18,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core/inc"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
@@ -82,7 +83,9 @@ add_library(gaia_db_client STATIC
   src/type_metadata.cpp
   src/type_id_mapping.cpp
   src/db_client_config.cpp
-  src/db_server_instance.cpp)
+  src/db_server_instance.cpp
+  src/index_builder.cpp)
+
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs" "gaia_index.fbs" "gaia_db_server")
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
@@ -94,7 +97,7 @@ target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp
@@ -118,7 +121,10 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_server_exec.cpp
   src/type_generator.cpp
   src/gaia_ptr.cpp
-  src/gaia_ptr_server.cpp)
+  src/gaia_ptr_server.cpp
+  src/index_builder.cpp
+  src/catalog_core.cpp
+  src/type_id_mapping.cpp)
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
@@ -137,7 +143,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager gaia_index ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
