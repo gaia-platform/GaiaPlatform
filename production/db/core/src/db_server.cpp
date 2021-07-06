@@ -768,9 +768,11 @@ void server_t::end_startup_txn()
     txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
     // Update the current txn's decided status.
     txn_metadata_t::update_txn_decision(commit_ts, true);
+
+    // Dismiss the cleanup here to avoid a potential double-free.
+    cleanup_log_fd.dismiss();
     perform_maintenance();
 
-    cleanup_log_fd.dismiss();
     s_txn_id = c_invalid_gaia_txn_id;
 }
 
