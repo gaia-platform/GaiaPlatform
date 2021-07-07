@@ -2459,20 +2459,27 @@ public:
 
         if (expression_source_range.isValid())
         {
-            m_rewriter.ReplaceText(expression_source_range, variable_name);
-            g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
             if (g_insert_call)
             {
-                string insert_call_prefix = "gaia::";
-                insert_call_prefix
-                    .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
-                    .append("::")
-                    .append(table_name)
-                    .append("_t::get(");
-                m_rewriter.InsertTextBefore(expression_source_range.getBegin(), insert_call_prefix);
-                g_rewriter_history.push_back({expression_source_range, insert_call_prefix, insert_text_before});
+                if (explicit_path_present)
+                {
+                    cerr << "Insert call cannot be used with navigation." << endl;
+                    g_is_generation_error = true;
+                    return;
+                }
+
+                if (table_name == variable_name)
+                {
+                    cerr << "Insert call cannot be used with tags." << endl;
+                    g_is_generation_error = true;
+                    return;
+                }
                 g_insert_call = false;
+                return;
             }
+            m_rewriter.ReplaceText(expression_source_range, variable_name);
+            g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
+
             auto offset
                 = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
             if (explicit_path_present)
@@ -2636,7 +2643,17 @@ public:
 
             argument_start_location = argument->getSourceRange().getEnd().getLocWithOffset(1);
         }
-        string replacement_string = "insert_row(";
+        string class_qualification_string = "gaia::";
+        class_qualification_string
+            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
+            .append("::")
+            .append(table_name)
+            .append("_t::");
+        string replacement_string = class_qualification_string;
+        replacement_string
+            .append("get(")
+            .append(class_qualification_string)
+            .append("insert_row(");
         vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
         const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
         // Generate call arguments.
@@ -2678,8 +2695,8 @@ public:
         replacement_string.resize(replacement_string.size() - 1);
         replacement_string.append("))");
 
-        m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), replacement_string);
-        g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), replacement_string, replace_text});
+        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
+        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call = true;
     }
 
