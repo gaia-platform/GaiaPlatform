@@ -62,7 +62,6 @@ unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
 unordered_set<string> g_update_tables;
 unordered_map<string, string> g_attribute_tag_map;
-bool g_insert_call = false;
 
 namespace std
 {
@@ -75,7 +74,17 @@ struct hash<SourceRange>
             (range.getBegin().getRawEncoding() << c_encoding_shift) | (range.getEnd().getRawEncoding() & c_encoding_mask));
     }
 };
+template <>
+struct hash<SourceLocation>
+{
+    std::size_t operator()(SourceLocation const& location) const noexcept
+    {
+        return std::hash<unsigned int>{}(location.getRawEncoding());
+    }
+};
 } // namespace std
+
+unordered_set<SourceLocation> g_insert_call_locations;
 
 unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
 
@@ -2459,7 +2468,7 @@ public:
 
         if (expression_source_range.isValid())
         {
-            if (g_insert_call)
+            if (g_insert_call_locations.find(expression->getBeginLoc()) != g_insert_call_locations.end())
             {
                 if (explicit_path_present)
                 {
@@ -2474,7 +2483,6 @@ public:
                     g_is_generation_error = true;
                     return;
                 }
-                g_insert_call = false;
                 return;
             }
             m_rewriter.ReplaceText(expression_source_range, variable_name);
@@ -2697,7 +2705,7 @@ public:
 
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
-        g_insert_call = true;
+        g_insert_call_locations.insert(expression->getBeginLoc());
     }
 
 private:
