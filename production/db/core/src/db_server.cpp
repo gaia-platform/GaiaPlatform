@@ -44,6 +44,7 @@ using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::storage;
+using namespace gaia::db::transactions;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
