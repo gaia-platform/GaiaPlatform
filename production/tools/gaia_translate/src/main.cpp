@@ -62,7 +62,7 @@ unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
 unordered_set<string> g_update_tables;
 unordered_map<string, string> g_attribute_tag_map;
-bool g_insert_call = false;
+unordered_set<unsigned int> g_insert_call_locations;
 
 namespace std
 {
@@ -2459,7 +2459,7 @@ public:
 
         if (expression_source_range.isValid())
         {
-            if (g_insert_call)
+            if (g_insert_call_locations.find(expression->getBeginLoc().getRawEncoding()) != g_insert_call_locations.end())
             {
                 if (explicit_path_present)
                 {
@@ -2474,7 +2474,6 @@ public:
                     g_is_generation_error = true;
                     return;
                 }
-                g_insert_call = false;
                 return;
             }
             m_rewriter.ReplaceText(expression_source_range, variable_name);
@@ -2697,7 +2696,7 @@ public:
 
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
-        g_insert_call = true;
+        g_insert_call_locations.insert(expression->getBeginLoc().getRawEncoding());
     }
 
 private:
