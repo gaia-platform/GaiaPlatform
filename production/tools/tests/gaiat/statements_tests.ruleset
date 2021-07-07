@@ -56,6 +56,23 @@ ruleset test1_3
     }
 }
 
+// TESTCASE: Path moves from M to 1 in if with nomatch.
+// GAIAPLAT-1005 (fixed)
+ruleset test1_4
+{
+    OnInsert(sensor)
+    {
+        if (sensor->incubator.min_temp < 95.0)
+        {
+            sensor.value += 3.0;
+        }
+        nomatch
+        {
+            sensor.value += 5;
+        }
+    }
+}
+
 ruleset test2
 {
     {

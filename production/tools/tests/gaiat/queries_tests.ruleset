@@ -192,7 +192,7 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-915
+// GAIAPLAT-915 (fixed)
 // This translates without error, but translated code will not compile.
 ruleset test22
 {
@@ -204,7 +204,7 @@ ruleset test22
 }
 
 // GAIAPLAT-807 (fixed)
-// GAIAPLAT-892
+// GAIAPLAT-892 (fixed)
 ruleset test23
 {
     OnInsert(S:sensor)
@@ -232,7 +232,7 @@ ruleset test25
 }
 #endif
 
-// GAIAPLAT-808
+// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test26
 {
@@ -256,8 +256,7 @@ ruleset test27
     }
 }
 
-// GAIAPLAT-809
-// the query in the 'for' isn't recognized
+// GAIAPLAT-809 (fixed)
 ruleset test28
 {
     OnChange(actuator)
@@ -300,7 +299,7 @@ ruleset test31
     }
 }
 
-// GAIAPLAT-839
+// GAIAPLAT-839 (fixed)
 ruleset test32
 {
     OnChange(yield.bushels)
@@ -363,7 +362,7 @@ ruleset test36
     }
 }
 
-// GAIAPLAT-945
+// GAIAPLAT-945 (fixed)
 ruleset test37
 {
     OnUpdate(min_temp)
@@ -372,8 +371,8 @@ ruleset test37
     }
 }
 
-// GAIAPLAT-1043
-// GAIAPLAT-1044
+// GAIAPLAT-1043 (fixed)
+// GAIAPLAT-1044 (fixed)
 // TESTCASE: Use a long explicit path in a for statement.
 ruleset test38
 {
@@ -389,7 +388,7 @@ ruleset test38
     }
 }
 
-// GAIAPLAT-1045
+// GAIAPLAT-1045 (fixed)
 // TESTCASE: No row references inside for loop
 ruleset test39
 {
