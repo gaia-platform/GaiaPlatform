@@ -44,6 +44,7 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
                     create_relationship_stmt->name,
                     create_relationship_stmt->relationship.first,
                     create_relationship_stmt->relationship.second,
+                    create_relationship_stmt->field_map,
                     throw_on_exist);
             }
             else if (create_stmt->type == ddl::create_type_t::create_index)

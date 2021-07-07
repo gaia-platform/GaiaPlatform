@@ -106,9 +106,9 @@ const char* gaia_relationship_t::gaia_typename() {
     static const char* gaia_typename = "gaia_relationship_t";
     return gaia_typename;
 }
-gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset) {
+gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset, const std::vector<uint64_t>& parent_fields, const std::vector<uint64_t>& child_fields) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
+    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset, &parent_fields, &child_fields));
     return edc_object_t::insert_row(b);
 }
 gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> gaia_relationship_t::list() {
@@ -140,6 +140,12 @@ uint16_t gaia_relationship_t::next_child_offset() const {
 }
 uint16_t gaia_relationship_t::parent_offset() const {
     return GET(parent_offset);
+}
+gaia::direct_access::edc_vector_t<uint64_t> gaia_relationship_t::parent_fields() const {
+    return GET_ARRAY(parent_fields);
+}
+gaia::direct_access::edc_vector_t<uint64_t> gaia_relationship_t::child_fields() const {
+    return GET_ARRAY(child_fields);
 }
 gaia_table_t gaia_relationship_t::child() const {
     return gaia_table_t::get(this->references()[c_gaia_relationship_parent_child]);

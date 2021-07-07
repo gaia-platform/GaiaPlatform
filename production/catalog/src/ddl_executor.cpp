@@ -6,9 +6,11 @@
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
@@ -16,6 +18,7 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
@@ -86,6 +89,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_database_table",
             {c_catalog_db_name, "gaia_database", "gaia_tables", "catalog", "gaia_table", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_table", "database", "catalog", "gaia_database", relationship_cardinality_t::one},
+            std::nullopt,
             false);
     }
     {
@@ -117,6 +121,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_table_field",
             {c_catalog_db_name, "gaia_table", "gaia_fields", "catalog", "gaia_field", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_field", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
             false);
     }
     {
@@ -129,6 +134,8 @@ void ddl_executor_t::bootstrap_catalog()
         //     first_child_offset uint16,
         //     next_child_offset uint16,
         //     parent_offset uint16,
+        //     parent_fields uint64[],
+        //     child_fields uint64[],
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -144,6 +151,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint16, 1));
         // (child)-[parent_offset]->(parent)
         fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("parent_fields", data_type_t::e_uint64, 0));
+        fields.emplace_back(make_unique<data_field_def_t>("child_fields", data_type_t::e_uint64, 0));
         create_table_impl(
             c_catalog_db_name, "gaia_relationship",
             fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
@@ -155,6 +164,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_relationship_parent",
             {c_catalog_db_name, "gaia_table", "outgoing_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "parent", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
             false);
         // create relationship gaia_catalog_relationship_child (
         //     catalog.gaia_table.incoming_relationships -> catalog.gaia_relationship[],
@@ -164,6 +174,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_relationship_child",
             {c_catalog_db_name, "gaia_table", "incoming_relationships", "catalog", "gaia_relationship", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_relationship", "child", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
             false);
     }
     {
@@ -201,6 +212,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_ruleset_rule",
             {c_catalog_db_name, "gaia_ruleset", "gaia_rules", "catalog", "gaia_rule", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_rule", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
+            std::nullopt,
             false);
     }
     {
@@ -221,6 +233,7 @@ void ddl_executor_t::bootstrap_catalog()
             "gaia_catalog_table_index",
             {c_catalog_db_name, "gaia_table", "gaia_indexes", "catalog", "gaia_index", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_index", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
             false);
     }
 }
@@ -343,6 +356,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
+    const std::optional<ddl::table_field_map_t>& field_map,
     bool throw_on_exists)
 {
     shared_lock lock(m_lock);
@@ -409,6 +423,53 @@ gaia_id_t ddl_executor_t::create_relationship(
     bool is_parent_required = false;
     bool is_deprecated = false;
 
+    std::vector<uint64_t> parent_fields;
+    std::vector<uint64_t> child_fields;
+
+    if (field_map)
+    {
+        if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
+        {
+            throw invalid_field_map("Defining relationships using composite keys are not supported currently.");
+        }
+        gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
+        gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
+
+        if (first_table_id == parent_table_id && second_table_id == child_table_id)
+        {
+            parent_fields = find_table_field_ids(first_table_id, field_map->first.fields);
+            child_fields = find_table_field_ids(second_table_id, field_map->second.fields);
+        }
+        else if (first_table_id == child_table_id && second_table_id == parent_table_id)
+        {
+            parent_fields = find_table_field_ids(second_table_id, field_map->second.fields);
+            child_fields = find_table_field_ids(first_table_id, field_map->first.fields);
+        }
+        else
+        {
+            throw invalid_field_map("The field's table(s) do not match the tables of the relationship");
+        }
+
+        for (gaia_id_t field_id : child_fields)
+        {
+            if (!gaia_field_t::get(field_id).unique())
+            {
+                throw invalid_field_map("The field on the one side of the relationship must be unique.");
+            }
+        }
+
+        if (link1.cardinality == relationship_cardinality_t::one)
+        {
+            for (gaia_id_t field_id : parent_fields)
+            {
+                if (!gaia_field_t::get(field_id).unique())
+                {
+                    throw invalid_field_map("The field on the one side of relationship must be unique.");
+                }
+            }
+        }
+    }
+
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
         name.c_str(),
         to_parent_link_name,
@@ -418,7 +479,9 @@ gaia_id_t ddl_executor_t::create_relationship(
         is_deprecated,
         first_child_offset,
         next_child_offset,
-        parent_offset);
+        parent_offset,
+        parent_fields,
+        child_fields);
 
     gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
     gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
@@ -831,6 +894,36 @@ void ddl_executor_t::switch_db_context(const string& db_name)
     m_db_context = db_name;
 }
 
+std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(gaia_id_t table_id, const std::vector<std::string>& field_names)
+{
+    std::vector<gaia_id_t> field_ids;
+
+    std::unordered_map<std::string, gaia_id_t> table_fields;
+    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
+    {
+        table_fields[field.name()] = field.gaia_id();
+    }
+
+    std::unordered_set<std::string> field_name_set;
+    for (const auto& name : field_names)
+    {
+        if (table_fields.find(name) == table_fields.end())
+        {
+            throw field_not_exists(name);
+        }
+        if (field_name_set.find(name) != field_name_set.end())
+        {
+            throw duplicate_field(name);
+        }
+        else
+        {
+            field_name_set.insert(name);
+        }
+        field_ids.push_back(table_fields.at(name));
+    }
+    return field_ids;
+}
+
 gaia_id_t ddl_executor_t::create_index(
     const std::string& index_name,
     bool unique,
@@ -861,30 +954,7 @@ gaia_id_t ddl_executor_t::create_index(
         }
     }
 
-    std::unordered_map<std::string, gaia_id_t> index_table_fields;
-    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
-    {
-        index_table_fields[field.name()] = field.gaia_id();
-    }
-
-    std::unordered_set<std::string> field_name_set;
-    std::vector<gaia_id_t> index_field_ids;
-    for (const auto& name : field_names)
-    {
-        if (index_table_fields.find(name) == index_table_fields.end())
-        {
-            throw field_not_exists(name);
-        }
-        if (field_name_set.find(name) != field_name_set.end())
-        {
-            throw duplicate_field(name);
-        }
-        else
-        {
-            field_name_set.insert(name);
-        }
-        index_field_ids.push_back(index_table_fields.at(name));
-    }
+    std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
         index_name.c_str(),

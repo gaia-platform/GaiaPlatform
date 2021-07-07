@@ -52,3 +52,32 @@ TEST_F(ddl_execution_test, create_table_with_unique_constraints)
                     ->unique());
     ASSERT_EQ(gaia_index_t::list().where(gaia_index_expr::name == "t_c").size(), 1);
 }
+
+TEST_F(ddl_execution_test, create_relationship_using_fields)
+{
+    const string ddl = R"(
+DROP TABLE IF EXISTS t1;
+CREATE TABLE IF NOT EXISTS t1(c1 INT32 UNIQUE);
+
+DROP TABLE IF EXISTS t2;
+CREATE TABLE IF NOT EXISTS t2(c2 INT32 UNIQUE);
+
+CREATE RELATIONSHIP r1 (
+  t1.link1 -> t2,
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    gaia::direct_access::auto_transaction_t txn(false);
+    ASSERT_EQ(
+        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->child_fields()[0],
+        gaia_field_t::list().where(gaia_field_expr::name == "c2").begin()->gaia_id());
+    ASSERT_EQ(
+        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->parent_fields()[0],
+        gaia_field_t::list().where(gaia_field_expr::name == "c1").begin()->gaia_id());
+}
