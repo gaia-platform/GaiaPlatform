@@ -188,15 +188,15 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
 void txn_metadata_t::dump_txn_metadata_at_ts(gaia_txn_id_t ts)
 {
     txn_metadata_t ts_metadata(ts);
-    ts_metadata.get_entry().dump_metadata();
+    std::cerr << ts_metadata.get_entry().dump_metadata();
 
     if (ts_metadata.is_commit_ts())
     {
         txn_metadata_t begin_ts_metadata = ts_metadata.get_begin_ts_metadata();
         std::cerr
             << "Metadata for commit_ts " << ts << " metadata's begin_ts "
-            << begin_ts_metadata.get_timestamp() << ": " << std::endl;
-        begin_ts_metadata.get_entry().dump_metadata();
+            << begin_ts_metadata.get_timestamp() << ": " << std::endl
+            << begin_ts_metadata.get_entry().dump_metadata();
     }
 
     if (ts_metadata.is_begin_ts())
@@ -209,8 +209,8 @@ void txn_metadata_t::dump_txn_metadata_at_ts(gaia_txn_id_t ts)
             txn_metadata_t commit_ts_metadata = *opt_commit_ts_metadata;
             std::cerr
                 << "Metadata for begin_ts " << ts << " metadata's commit_ts "
-                << commit_ts_metadata.get_timestamp() << ": " << std::endl;
-            commit_ts_metadata.get_entry().dump_metadata();
+                << commit_ts_metadata.get_timestamp() << ": " << std::endl
+                << commit_ts_metadata.get_entry().dump_metadata();
         }
     }
 }

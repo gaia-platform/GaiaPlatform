@@ -14,7 +14,6 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
-#include "txn_metadata.inc"
 #include "txn_metadata_entry.hpp"
 
 namespace gaia
@@ -24,9 +23,11 @@ namespace db
 namespace transactions
 {
 
-// This identity class represents mutable txn metadata at an immutable
-// (begin or commit) timestamp.
-// "A value class has a public destructor, copy constructor, and assignment with value semantics.""
+// This identity class represents mutable txn metadata at an immutable (begin or
+// commit) timestamp. (It also manages the allocation and lifetime of the txn
+// metadata array.) This class handles all reads, writes, and synchronization on
+// the metadata array, but has no knowledge of the metadata format; that is the
+// responsibility of the txn_metadata_entry_t class.
 class txn_metadata_t
 {
 private:
@@ -35,289 +36,63 @@ private:
 public:
     static void init_txn_metadata_map();
 
-    inline explicit txn_metadata_t(gaia_txn_id_t ts)
-        : m_ts(ts)
-    {
-        ASSERT_PRECONDITION(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
-        txn_metadata_entry_t::check_ts_size(m_ts);
-    }
-
+    inline explicit txn_metadata_t(gaia_txn_id_t ts);
     txn_metadata_t(const txn_metadata_t&) = default;
 
     // The copy assignment operator is implicitly deleted because this class has
     // no non-static, non-const members, but we make it explicit.
     txn_metadata_t& operator=(const txn_metadata_t&) = delete;
 
-    friend inline bool operator==(txn_metadata_t a, txn_metadata_t b)
-    {
-        return (a.m_ts == b.m_ts);
-    }
+    friend inline bool operator==(txn_metadata_t a, txn_metadata_t b);
+    friend inline bool operator!=(txn_metadata_t a, txn_metadata_t b);
 
-    friend inline bool operator!=(txn_metadata_t a, txn_metadata_t b)
-    {
-        return (a.m_ts != b.m_ts);
-    }
+    inline gaia_txn_id_t get_timestamp();
 
-    inline gaia_txn_id_t get_timestamp()
-    {
-        return m_ts;
-    }
+    inline bool is_uninitialized();
+    inline bool is_sealed();
+    inline bool is_begin_ts();
+    inline bool is_commit_ts();
+    inline bool is_submitted();
+    inline bool is_validating();
+    inline bool is_decided();
+    inline bool is_committed();
+    inline bool is_aborted();
+    inline bool is_gc_complete();
+    inline bool is_durable();
+    inline bool is_active();
+    inline bool is_terminated();
 
-    inline bool is_uninitialized()
-    {
-        return get_entry().is_uninitialized();
-    }
+    static inline bool is_uninitialized_ts(gaia_txn_id_t ts);
+    static inline bool is_sealed_ts(gaia_txn_id_t ts);
+    static inline bool is_begin_ts(gaia_txn_id_t ts);
+    static inline bool is_commit_ts(gaia_txn_id_t ts);
+    static inline bool is_txn_submitted(gaia_txn_id_t begin_ts);
+    static inline bool is_txn_validating(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_decided(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_committed(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_aborted(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_gc_complete(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_durable(gaia_txn_id_t commit_ts);
+    static inline bool is_txn_active(gaia_txn_id_t begin_ts);
+    static inline bool is_txn_terminated(gaia_txn_id_t begin_ts);
 
-    inline bool is_sealed()
-    {
-        return get_entry().is_sealed();
-    }
-
-    inline bool is_begin_ts()
-    {
-        return get_entry().is_begin_ts_entry();
-    }
-
-    inline bool is_commit_ts()
-    {
-        return get_entry().is_commit_ts_entry();
-    }
-
-    inline bool is_submitted()
-    {
-        return get_entry().is_submitted();
-    }
-
-    inline bool is_validating()
-    {
-        return get_entry().is_validating();
-    }
-
-    inline bool is_decided()
-    {
-        return get_entry().is_decided();
-    }
-
-    inline bool is_committed()
-    {
-        return get_entry().is_committed();
-    }
-
-    inline bool is_aborted()
-    {
-        return get_entry().is_aborted();
-    }
-
-    inline bool is_gc_complete()
-    {
-        return get_entry().is_gc_complete();
-    }
-
-    inline bool is_durable()
-    {
-        return get_entry().is_durable();
-    }
-
-    inline bool is_active()
-    {
-        return get_entry().is_active();
-    }
-
-    inline bool is_terminated()
-    {
-        return get_entry().is_terminated();
-    }
-
-    static inline bool is_uninitialized_ts(gaia_txn_id_t ts)
-    {
-        return txn_metadata_t(ts).is_uninitialized();
-    }
-
-    static inline bool is_sealed_ts(gaia_txn_id_t ts)
-    {
-        return txn_metadata_t(ts).is_sealed();
-    }
-
-    static inline bool is_begin_ts(gaia_txn_id_t ts)
-    {
-        return txn_metadata_t(ts).is_begin_ts();
-    }
-
-    static inline bool is_commit_ts(gaia_txn_id_t ts)
-    {
-        return txn_metadata_t(ts).is_commit_ts();
-    }
-
-    static inline bool is_txn_submitted(gaia_txn_id_t begin_ts)
-    {
-        return txn_metadata_t(begin_ts).is_submitted();
-    }
-
-    static inline bool is_txn_validating(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_validating();
-    }
-
-    static inline bool is_txn_decided(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_decided();
-    }
-
-    static inline bool is_txn_committed(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_committed();
-    }
-
-    static inline bool is_txn_aborted(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_aborted();
-    }
-
-    static inline bool is_txn_gc_complete(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_gc_complete();
-    }
-
-    static inline bool is_txn_durable(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).is_durable();
-    }
-
-    static inline bool is_txn_active(gaia_txn_id_t begin_ts)
-    {
-        return txn_metadata_t(begin_ts).is_active();
-    }
-
-    static inline bool is_txn_terminated(gaia_txn_id_t begin_ts)
-    {
-        return txn_metadata_t(begin_ts).is_terminated();
-    }
-
-    inline txn_metadata_t get_begin_ts_metadata()
-    {
-        ASSERT_PRECONDITION(is_commit_ts(), "Not a commit timestamp!");
-        return txn_metadata_t(get_entry().get_timestamp());
-    }
+    inline txn_metadata_t get_begin_ts_metadata();
 
     // This returns an optional value because a begin_ts entry will not contain
     // a commit_ts unless it has been submitted, and even then it may not because
     // a begin_ts entry is not updated atomically with its commit_ts entry.
-    inline std::optional<txn_metadata_t> get_commit_ts_metadata()
-    {
-        ASSERT_PRECONDITION(is_begin_ts(), "Not a begin timestamp!");
-        gaia_txn_id_t commit_ts = get_entry().get_timestamp();
-        if (commit_ts != c_invalid_gaia_txn_id)
-        {
-            return txn_metadata_t(commit_ts);
-        }
-        return std::nullopt;
-    }
+    inline std::optional<txn_metadata_t> get_commit_ts_metadata();
 
-    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).get_begin_ts_metadata().get_timestamp();
-    }
+    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
+    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
 
-    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts)
-    {
-        auto commit_ts_metadata = txn_metadata_t(begin_ts).get_commit_ts_metadata();
-        return commit_ts_metadata ? commit_ts_metadata->get_timestamp() : c_invalid_gaia_txn_id;
-    }
-
-    inline int get_txn_log_fd()
-    {
-        return get_entry().get_log_fd();
-    }
-
-    inline bool invalidate_txn_log_fd()
-    {
-        // We need a CAS because only one thread can be allowed to invalidate the fd
-        // entry and hence to close the fd.
-        // NB: we use compare_exchange_weak() for the global update because we need to
-        // retry anyway on concurrent updates, so tolerating spurious failures
-        // requires no additional logic.
-        while (true)
-        {
-            if (get_txn_log_fd() == -1)
-            {
-                return false;
-            }
-
-            txn_metadata_entry_t expected_value{get_entry()};
-            txn_metadata_entry_t desired_value{expected_value.invalidate_log_fd()};
-            txn_metadata_entry_t actual_value{compare_exchange_weak(
-                expected_value, desired_value)};
-
-            if (actual_value == expected_value)
-            {
-                break;
-            }
-        }
-
-        return true;
-    }
-
-    inline void set_active_txn_submitted(gaia_txn_id_t commit_ts)
-    {
-        // Only an active txn can be submitted.
-        ASSERT_PRECONDITION(is_active(), "Not an active transaction!");
-        ASSERT_PRECONDITION(is_commit_ts(commit_ts), c_message_not_a_commit_timestamp);
-
-        // We don't need a CAS here because only the session thread can submit or terminate a txn,
-        // and an active txn cannot be sealed.
-        set_entry(get_entry().set_submitted(commit_ts));
-    }
-
-    inline void set_active_txn_terminated()
-    {
-        // Only an active txn can be terminated.
-        ASSERT_PRECONDITION(is_active(), "Not an active transaction!");
-
-        // We don't need a CAS here because only the session thread can submit or terminate a txn,
-        // and an active txn cannot be sealed.
-        set_entry(get_entry().set_terminated());
-    }
-
-    inline void update_txn_decision(bool has_committed)
-    {
-        txn_metadata_entry_t expected_value{get_entry()};
-        txn_metadata_entry_t desired_value{expected_value.set_decision(has_committed)};
-        if (expected_value != compare_exchange_strong(expected_value, desired_value))
-        {
-            // The only state transition allowed from TXN_VALIDATING is to TXN_DECIDED.
-            ASSERT_POSTCONDITION(
-                is_decided(),
-                "commit_ts metadata in validating state can only transition to a decided state!");
-
-            // If another txn validated before us, they should have reached the same decision.
-            ASSERT_POSTCONDITION(
-                is_committed() == has_committed,
-                "Inconsistent txn decision detected!");
-        }
-    }
-
-    inline void set_txn_durable()
-    {
-        while (true)
-        {
-            txn_metadata_entry_t expected_value{get_entry()};
-            txn_metadata_entry_t desired_value{expected_value.set_durable()};
-            txn_metadata_entry_t actual_value{compare_exchange_weak(expected_value, desired_value)};
-
-            if (actual_value == expected_value)
-            {
-                break;
-            }
-        }
-    }
-
-    inline bool set_txn_gc_complete()
-    {
-        txn_metadata_entry_t expected_value{get_entry()};
-        txn_metadata_entry_t desired_value{expected_value.set_gc_complete()};
-        txn_metadata_entry_t actual_value{compare_exchange_strong(expected_value, desired_value)};
-        return (actual_value == expected_value);
-    }
+    inline int get_txn_log_fd();
+    inline bool invalidate_txn_log_fd();
+    inline void set_active_txn_submitted(gaia_txn_id_t commit_ts);
+    inline void set_active_txn_terminated();
+    inline void update_txn_decision(bool has_committed);
+    inline void set_txn_durable();
+    inline bool set_txn_gc_complete();
 
     // This is designed for implementing "fences" that can guarantee no thread can
     // ever claim a timestamp, by marking that timestamp permanently sealed. Sealing
@@ -327,71 +102,16 @@ public:
     // entry for that timestamp, it simply allocates another timestamp and retries.
     // This is possible because we never publish a newly allocated timestamp until
     // we know that its metadata entry has been successfully initialized.
-    inline bool seal_if_uninitialized()
-    {
-        // If the metadata is not uninitialized, we can't seal it.
-        if (!is_uninitialized())
-        {
-            return false;
-        }
+    inline bool seal_if_uninitialized();
 
-        txn_metadata_entry_t expected_value{txn_metadata_entry_t::uninitialized_value()};
-        txn_metadata_entry_t desired_value{txn_metadata_entry_t::sealed_value()};
-        txn_metadata_entry_t actual_value{compare_exchange_strong(expected_value, desired_value)};
-
-        if (actual_value != expected_value)
-        {
-            // We don't consider TXN_SUBMITTED or TXN_TERMINATED to be valid prior
-            // states, because only the submitting thread can transition the txn to
-            // these states.
-            ASSERT_INVARIANT(
-                actual_value != txn_metadata_entry_t::uninitialized_value(),
-                "An uninitialized txn metadata entry cannot fail to be sealed!");
-            return false;
-        }
-
-        return true;
-    }
-
-    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).get_txn_log_fd();
-    }
-
-    static inline bool seal_uninitialized_ts(gaia_txn_id_t ts)
-    {
-        return txn_metadata_t(ts).seal_if_uninitialized();
-    }
-
-    static bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).invalidate_txn_log_fd();
-    }
-
-    static void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(begin_ts).set_active_txn_submitted(commit_ts);
-    }
-
-    static void set_active_txn_terminated(gaia_txn_id_t begin_ts)
-    {
-        return txn_metadata_t(begin_ts).set_active_txn_terminated();
-    }
-
-    static void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
-    {
-        return txn_metadata_t(commit_ts).update_txn_decision(is_committed);
-    }
-
-    static void set_txn_durable(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).set_txn_durable();
-    }
-
-    static bool set_txn_gc_complete(gaia_txn_id_t commit_ts)
-    {
-        return txn_metadata_t(commit_ts).set_txn_gc_complete();
-    }
+    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+    static inline bool seal_uninitialized_ts(gaia_txn_id_t ts);
+    static inline bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
+    static inline void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
+    static inline void set_active_txn_terminated(gaia_txn_id_t begin_ts);
+    static inline void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
+    static inline void set_txn_durable(gaia_txn_id_t commit_ts);
+    static inline bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t txn_begin();
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
@@ -399,38 +119,13 @@ public:
     static void dump_txn_metadata_at_ts(gaia_txn_id_t ts);
 
 private:
-    inline txn_metadata_entry_t get_entry() const
-    {
-        return txn_metadata_entry_t{s_txn_metadata_map[m_ts].load()};
-    }
-
-    inline void set_entry(txn_metadata_entry_t entry)
-    {
-        s_txn_metadata_map[m_ts].store(entry.get_word());
-    }
+    inline txn_metadata_entry_t get_entry();
+    inline void set_entry(txn_metadata_entry_t entry);
 
     // These wrappers over std::atomic::compare_exchange_*() return the actual value of this txn_metadata_t instance when the method was called.
     // If the returned value is not equal to the expected value, then the CAS must have failed.
-
-    inline txn_metadata_entry_t compare_exchange_strong(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value)
-    {
-        auto expected_word = expected_value.get_word();
-        auto desired_word = desired_value.get_word();
-        s_txn_metadata_map[m_ts].compare_exchange_strong(expected_word, desired_word);
-        // expected_word is passed by reference, and on exit holds the initial word at the address.
-        txn_metadata_entry_t actual_value{expected_word};
-        return actual_value;
-    }
-
-    inline txn_metadata_entry_t compare_exchange_weak(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value)
-    {
-        auto expected_word = expected_value.get_word();
-        auto desired_word = desired_value.get_word();
-        s_txn_metadata_map[m_ts].compare_exchange_weak(expected_word, desired_word);
-        // expected_word is passed by reference, and on exit holds the initial word at the address.
-        txn_metadata_entry_t actual_value{expected_word};
-        return actual_value;
-    }
+    inline txn_metadata_entry_t compare_exchange_strong(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
+    inline txn_metadata_entry_t compare_exchange_weak(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
 
 private:
     // This is an effectively infinite array of timestamp entries, indexed by
@@ -476,8 +171,10 @@ private:
     // would still need only 32 bits for a timestamp reference in the timestamp
     // metadata. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
-    static inline std::atomic<uint64_t>* s_txn_metadata_map = nullptr;
+    static inline std::atomic<uint64_t>* s_txn_metadata_map{nullptr};
 };
+
+#include "txn_metadata.inc"
 
 } // namespace transactions
 } // namespace db
