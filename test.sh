@@ -3,7 +3,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Testing the incubator..."
+        echo "Testing the incubator against data in directory '$(realpath "$SCRIPTPATH/tests/$TEST_MODE")'."
     fi
 }
 
@@ -96,6 +96,10 @@ copy_test_output() {
             cat "$TEMP_FILE"
             echo "Test script cannot copy intermediate log files from '$(realpath logs)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
+        fi
+
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Test results located in: $(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")"
         fi
     fi
 }
