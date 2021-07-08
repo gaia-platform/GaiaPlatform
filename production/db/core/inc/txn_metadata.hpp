@@ -121,10 +121,13 @@ private:
     inline txn_metadata_entry_t get_entry();
     inline void set_entry(txn_metadata_entry_t entry);
 
-    // These wrappers over std::atomic::compare_exchange_*() return the actual value of this txn_metadata_t instance when the method was called.
-    // If the returned value is not equal to the expected value, then the CAS must have failed.
-    inline txn_metadata_entry_t compare_exchange_strong(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
-    inline txn_metadata_entry_t compare_exchange_weak(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
+    // This wrapper over std::atomic::compare_exchange_strong() returns the
+    // actual value of this txn_metadata_t instance when the method was called.
+    // If the returned value is not equal to the expected value, then the CAS
+    // must have failed, otherwise it succeeded (compare_exchange_strong()
+    // cannot fail spuriously).
+    inline txn_metadata_entry_t compare_exchange(
+        txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
 
 public:
     static void init_txn_metadata_map();

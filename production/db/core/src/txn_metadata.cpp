@@ -118,10 +118,6 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
     // could invalidate our begin_ts metadata before we install it.)
     // Technically, there is no bound on the number of iterations until success,
     // so this is not wait-free, but in practice conflicts should be very rare.
-    //
-    // NB: we use compare_exchange_weak() because we need to retry anyway on
-    // concurrent invalidation, so tolerating spurious failures requires no
-    // additional logic.
     while (true)
     {
         // Allocate a new begin timestamp.
@@ -135,7 +131,7 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
         txn_metadata_entry_t desired_value{
             txn_metadata_entry_t::new_begin_ts_entry()};
         txn_metadata_entry_t actual_value{
-            begin_ts_metadata.compare_exchange_weak(expected_value, desired_value)};
+            begin_ts_metadata.compare_exchange(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -156,10 +152,9 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
     // The newly allocated commit timestamp for the submitted txn.
     gaia_txn_id_t commit_ts;
 
-    // We're possibly racing another beginning or committing txn that wants to
-    // seal our commit_ts metadata. We use compare_exchange_weak() because we
-    // need to loop until success anyway. A spurious failure will just waste a
-    // timestamp, and the uninitialized metadata will eventually be sealed.
+    // Loop until we successfully install a newly allocated commit_ts in the txn
+    // table. (We're possibly racing another beginning or committing txn that
+    // could invalidate our commit_ts metadata before we install it.)
     // Technically, there is no bound on the number of iterations until success,
     // so this is not wait-free, but in practice conflicts should be very rare.
     while (true)
@@ -175,7 +170,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
         txn_metadata_entry_t desired_value{
             txn_metadata_entry_t::new_commit_ts_entry(begin_ts, log_fd)};
         txn_metadata_entry_t actual_value{
-            commit_ts_metadata.compare_exchange_weak(expected_value, desired_value)};
+            commit_ts_metadata.compare_exchange(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {

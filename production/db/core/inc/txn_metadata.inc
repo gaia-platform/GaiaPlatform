@@ -198,9 +198,6 @@ bool txn_metadata_t::invalidate_txn_log_fd()
 {
     // We need a CAS because only one thread can be allowed to invalidate the fd
     // entry and hence to close the fd.
-    // NB: we use compare_exchange_weak() for the global update because we need to
-    // retry anyway on concurrent updates, so tolerating spurious failures
-    // requires no additional logic.
     while (true)
     {
         if (get_txn_log_fd() == -1)
@@ -213,7 +210,7 @@ bool txn_metadata_t::invalidate_txn_log_fd()
         txn_metadata_entry_t desired_value{
             expected_value.invalidate_log_fd()};
         txn_metadata_entry_t actual_value{
-            compare_exchange_weak(expected_value, desired_value)};
+            compare_exchange(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -252,7 +249,7 @@ void txn_metadata_t::update_txn_decision(bool has_committed)
     txn_metadata_entry_t desired_value{
         expected_value.set_decision(has_committed)};
 
-    if (expected_value != compare_exchange_strong(expected_value, desired_value))
+    if (expected_value != compare_exchange(expected_value, desired_value))
     {
         // The only state transition allowed from TXN_VALIDATING is to TXN_DECIDED.
         ASSERT_POSTCONDITION(
@@ -275,7 +272,7 @@ void txn_metadata_t::set_txn_durable()
         txn_metadata_entry_t desired_value{
             expected_value.set_durable()};
         txn_metadata_entry_t actual_value{
-            compare_exchange_weak(expected_value, desired_value)};
+            compare_exchange(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -291,7 +288,7 @@ bool txn_metadata_t::set_txn_gc_complete()
     txn_metadata_entry_t desired_value{
         expected_value.set_gc_complete()};
     txn_metadata_entry_t actual_value{
-        compare_exchange_strong(expected_value, desired_value)};
+        compare_exchange(expected_value, desired_value)};
 
     return (actual_value == expected_value);
 }
@@ -317,7 +314,7 @@ bool txn_metadata_t::seal_if_uninitialized()
     txn_metadata_entry_t desired_value{
         txn_metadata_entry_t::sealed_value()};
     txn_metadata_entry_t actual_value{
-        compare_exchange_strong(expected_value, desired_value)};
+        compare_exchange(expected_value, desired_value)};
 
     if (actual_value != expected_value)
     {
@@ -383,23 +380,15 @@ void txn_metadata_t::set_entry(txn_metadata_entry_t entry)
     s_txn_metadata_map[m_ts].store(entry.get_word());
 }
 
-txn_metadata_entry_t txn_metadata_t::compare_exchange_strong(
+txn_metadata_entry_t txn_metadata_t::compare_exchange(
     txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value)
 {
     auto expected_word = expected_value.get_word();
     auto desired_word = desired_value.get_word();
+    // compare_exchange_strong() cannot spuriously fail, so if
+    // actual_value == expected_value, then we know that
+    // desired_value must have been stored at the address.
     s_txn_metadata_map[m_ts].compare_exchange_strong(expected_word, desired_word);
-    // expected_word is passed by reference, and on exit holds the initial word at the address.
-    txn_metadata_entry_t actual_value{expected_word};
-    return actual_value;
-}
-
-txn_metadata_entry_t txn_metadata_t::compare_exchange_weak(
-    txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value)
-{
-    auto expected_word = expected_value.get_word();
-    auto desired_word = desired_value.get_word();
-    s_txn_metadata_map[m_ts].compare_exchange_weak(expected_word, desired_word);
     // expected_word is passed by reference, and on exit holds the initial word at the address.
     txn_metadata_entry_t actual_value{expected_word};
     return actual_value;
