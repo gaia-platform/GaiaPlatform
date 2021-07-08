@@ -208,10 +208,12 @@ bool txn_metadata_t::invalidate_txn_log_fd()
             return false;
         }
 
-        txn_metadata_entry_t expected_value{get_entry()};
-        txn_metadata_entry_t desired_value{expected_value.invalidate_log_fd()};
-        txn_metadata_entry_t actual_value{compare_exchange_weak(
-            expected_value, desired_value)};
+        txn_metadata_entry_t expected_value{
+            get_entry()};
+        txn_metadata_entry_t desired_value{
+            expected_value.invalidate_log_fd()};
+        txn_metadata_entry_t actual_value{
+            compare_exchange_weak(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -245,8 +247,11 @@ void txn_metadata_t::set_active_txn_terminated()
 
 void txn_metadata_t::update_txn_decision(bool has_committed)
 {
-    txn_metadata_entry_t expected_value{get_entry()};
-    txn_metadata_entry_t desired_value{expected_value.set_decision(has_committed)};
+    txn_metadata_entry_t expected_value{
+        get_entry()};
+    txn_metadata_entry_t desired_value{
+        expected_value.set_decision(has_committed)};
+
     if (expected_value != compare_exchange_strong(expected_value, desired_value))
     {
         // The only state transition allowed from TXN_VALIDATING is to TXN_DECIDED.
@@ -265,9 +270,12 @@ void txn_metadata_t::set_txn_durable()
 {
     while (true)
     {
-        txn_metadata_entry_t expected_value{get_entry()};
-        txn_metadata_entry_t desired_value{expected_value.set_durable()};
-        txn_metadata_entry_t actual_value{compare_exchange_weak(expected_value, desired_value)};
+        txn_metadata_entry_t expected_value{
+            get_entry()};
+        txn_metadata_entry_t desired_value{
+            expected_value.set_durable()};
+        txn_metadata_entry_t actual_value{
+            compare_exchange_weak(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -278,9 +286,13 @@ void txn_metadata_t::set_txn_durable()
 
 bool txn_metadata_t::set_txn_gc_complete()
 {
-    txn_metadata_entry_t expected_value{get_entry()};
-    txn_metadata_entry_t desired_value{expected_value.set_gc_complete()};
-    txn_metadata_entry_t actual_value{compare_exchange_strong(expected_value, desired_value)};
+    txn_metadata_entry_t expected_value{
+        get_entry()};
+    txn_metadata_entry_t desired_value{
+        expected_value.set_gc_complete()};
+    txn_metadata_entry_t actual_value{
+        compare_exchange_strong(expected_value, desired_value)};
+
     return (actual_value == expected_value);
 }
 
@@ -300,9 +312,12 @@ bool txn_metadata_t::seal_if_uninitialized()
         return false;
     }
 
-    txn_metadata_entry_t expected_value{txn_metadata_entry_t::uninitialized_value()};
-    txn_metadata_entry_t desired_value{txn_metadata_entry_t::sealed_value()};
-    txn_metadata_entry_t actual_value{compare_exchange_strong(expected_value, desired_value)};
+    txn_metadata_entry_t expected_value{
+        txn_metadata_entry_t::uninitialized_value()};
+    txn_metadata_entry_t desired_value{
+        txn_metadata_entry_t::sealed_value()};
+    txn_metadata_entry_t actual_value{
+        compare_exchange_strong(expected_value, desired_value)};
 
     if (actual_value != expected_value)
     {

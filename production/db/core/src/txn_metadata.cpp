@@ -130,10 +130,12 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
         txn_metadata_t begin_ts_metadata{begin_ts};
 
         // The txn metadata must be uninitialized (not sealed).
-        txn_metadata_entry_t expected_value{txn_metadata_entry_t::uninitialized_value()};
-        txn_metadata_entry_t desired_value{txn_metadata_entry_t::new_begin_ts_entry()};
-        txn_metadata_entry_t actual_value{begin_ts_metadata.compare_exchange_weak(
-            expected_value, desired_value)};
+        txn_metadata_entry_t expected_value{
+            txn_metadata_entry_t::uninitialized_value()};
+        txn_metadata_entry_t desired_value{
+            txn_metadata_entry_t::new_begin_ts_entry()};
+        txn_metadata_entry_t actual_value{
+            begin_ts_metadata.compare_exchange_weak(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
@@ -168,10 +170,12 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
         txn_metadata_t commit_ts_metadata{commit_ts};
 
         // The txn metadata must be uninitialized (not sealed).
-        txn_metadata_entry_t expected_value{txn_metadata_entry_t::uninitialized_value()};
-        txn_metadata_entry_t desired_value{txn_metadata_entry_t::new_commit_ts_entry(begin_ts, log_fd)};
-        txn_metadata_entry_t actual_value{commit_ts_metadata.compare_exchange_weak(
-            expected_value, desired_value)};
+        txn_metadata_entry_t expected_value{
+            txn_metadata_entry_t::uninitialized_value()};
+        txn_metadata_entry_t desired_value{
+            txn_metadata_entry_t::new_commit_ts_entry(begin_ts, log_fd)};
+        txn_metadata_entry_t actual_value{
+            commit_ts_metadata.compare_exchange_weak(expected_value, desired_value)};
 
         if (actual_value == expected_value)
         {
