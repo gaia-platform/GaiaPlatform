@@ -334,7 +334,7 @@ int client_t::get_session_socket(const std::string& socket_name)
         close_fd(session_socket);
     });
 
-    sockaddr_un server_addr = {0};
+    sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
 
     // The socket name (minus its null terminator) needs to fit into the space
