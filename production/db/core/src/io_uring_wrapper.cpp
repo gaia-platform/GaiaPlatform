@@ -123,10 +123,7 @@ void io_uring_wrapper_t::validate_next_completion_event()
 {
     io_uring_cqe* cqe;
     int ret = io_uring_peek_cqe(m_ring.get(), &cqe);
-    if (ret != 0)
-    {
-        throw_system_error("Expected completions to be ready post flush_fd write.", ret);
-    }
+    ASSERT_INVARIANT(ret == 0, "Expected completions to be ready post flush_fd write.");
 
     // Validate completion result.
     if (cqe->res < 0)

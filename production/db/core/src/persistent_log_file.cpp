@@ -7,6 +7,9 @@
 
 #include <string>
 
+#include <libexplain/fsync.h>
+#include <libexplain/openat.h>
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
@@ -30,7 +33,8 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     m_file_fd = openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
     if (m_file_fd < 0)
     {
-        throw_system_error("openat() when creating persistent log file failed.");
+        const char* reason = ::explain_openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
+        throw_system_error(reason);
     }
 
     // Todo: zero-fill entires in file.
@@ -44,7 +48,8 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     res = fsync(m_file_fd);
     if (res != 0)
     {
-        throw_system_error("fsync() when creating persistent log file failed.");
+        const char* reason = ::explain_fsync(m_file_fd);
+        throw_system_error(reason);
     }
 
     // Calling fsync() on the file fd does not ensure that the entry in the directory containing
@@ -53,7 +58,8 @@ persistent_log_file_t::persistent_log_file_t(const std::string& dir, int dir_fd,
     res = fsync(m_dir_fd);
     if (res != 0)
     {
-        throw_system_error("fsync() on persistent log directory failed.");
+        const char* reason = ::explain_fsync(m_dir_fd);
+        throw_system_error(reason);
     }
 }
 
