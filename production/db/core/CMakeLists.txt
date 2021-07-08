@@ -116,6 +116,7 @@ target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 add_library(gaia_db_persistence STATIC
   src/io_uring_wrapper.cpp
   src/persistent_log_file.cpp)
+target_link_libraries(gaia_db_persistence PUBLIC gaia_build_options)
 target_include_directories(gaia_db_persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -123,9 +124,7 @@ target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${FLATBUFFERS_INC
 target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
 # Only need util, not all of rocks.
-target_link_libraries(gaia_db_persistence rocksdb "${LIBURING_LIBRARY}")
-set_target_properties(gaia_db_persistence PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(gaia_db_persistence PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
 
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
