@@ -45,9 +45,9 @@ void gaia::db::persistence::encode_object(
         reference_arr_ptr++;
     }
 
-    auto references_size = gaia_object->num_references * sizeof(gaia_id_t);
-    auto data_size = gaia_object->payload_size - references_size;
-    auto data_ptr = gaia_object->payload + references_size;
+    size_t references_size = gaia_object->num_references * sizeof(gaia_id_t);
+    size_t data_size = gaia_object->payload_size - references_size;
+    const char* data_ptr = gaia_object->payload + references_size;
     value.write(data_ptr, data_size);
 }
 

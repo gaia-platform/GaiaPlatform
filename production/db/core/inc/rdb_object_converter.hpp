@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include <endian.h>
-
 #include <vector>
 
 #include "rocksdb/slice.h"
@@ -19,6 +17,10 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 
+/**
+ * This file assumes big-endian architectures aren't supported which is why all encoding & decoding
+ * to and from a specific byte ordering is avoided.
+ */
 namespace gaia
 {
 namespace db
@@ -45,23 +47,17 @@ public:
 
     inline void write_uint64(uint64_t value)
     {
-        // Convert to little endian.
-        u_int64_t result = htole64(value);
-        write(reinterpret_cast<const char* const>(&result), sizeof(result));
+        write(reinterpret_cast<const char* const>(&value), sizeof(value));
     }
 
     inline void write_uint32(uint32_t value)
     {
-        // Convert to little endian.
-        uint32_t result = htole32(value);
-        write(reinterpret_cast<const char* const>(&result), sizeof(result));
+        write(reinterpret_cast<const char* const>(&value), sizeof(value));
     }
 
     inline void write_uint16(uint16_t value)
     {
-        // Convert to little endian.
-        u_int16_t result = htole16(value);
-        write(reinterpret_cast<const char* const>(&result), sizeof(result));
+        write(reinterpret_cast<const char* const>(&value), sizeof(value));
     }
 
     inline void write_uint8(uint8_t value)
@@ -119,8 +115,7 @@ public:
         const char* value_ptr = read(sizeof(uint64_t));
         uint64_t value;
         memcpy(&value, value_ptr, sizeof(uint64_t));
-        // Convert to host byte order.
-        out = le64toh(value);
+        out = value;
     }
 
     inline void read_uint32(uint32_t& out)
@@ -128,8 +123,7 @@ public:
         const char* value_ptr = read(sizeof(uint32_t));
         uint32_t value;
         memcpy(&value, value_ptr, sizeof(uint32_t));
-        // Convert to host byte order.
-        out = le32toh(value);
+        out = value;
     }
 
     inline void read_uint16(uint16_t& out)
@@ -137,8 +131,7 @@ public:
         const char* value_ptr = read(sizeof(uint16_t));
         uint16_t value;
         memcpy(&value, value_ptr, sizeof(uint16_t));
-        // Convert to host byte order.
-        out = le16toh(value);
+        out = value;
     }
 
     inline void read_byte(uint8_t& out)
