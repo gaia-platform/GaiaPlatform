@@ -36,15 +36,6 @@ VERBOSE_MODE=0
 PARAMS=""
 while (( "$#" )); do
   case "$1" in
-    # -b|--my-flag-with-argument)
-    #   if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-    #     MY_FLAG_ARG=$2
-    #     shift 2
-    #   else
-    #     echo "Error: Argument for $1 is missing" >&2
-    #     exit 1
-    #   fi
-    #   ;;
     -h|--help) # unsupported flags
       show_usage
       ;;

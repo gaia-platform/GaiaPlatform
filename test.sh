@@ -32,11 +32,13 @@ complete_process() {
 
 # Show how this script can be used.
 show_usage() {
-    echo "Usage: $(basename "$0") [flags]"
+    echo "Usage: $(basename "$0") [flags] [test-name]"
     echo "Flags:"
     echo "  -v,--verbose      Show lots of information while executing the project."
     echo "  -h,--help         Display this help text."
     echo "  -ni,--no-init     Do not initialize the test data before executing the test."
+    echo "Arguments:"
+    echo "  test-name         Optional name of the test to run.  (Default: 'basic')"
     exit 1
 }
 
@@ -77,22 +79,24 @@ copy_test_output() {
         fi
     fi
 
-    if ! cp -r "$TEST_RESULTS_DIRECTORY/" "$SCRIPTPATH" > "$TEMP_FILE" 2>&1;  then
-        cat "$TEMP_FILE"
-        echo "Test script cannot intermediate test results from '$TEST_RESULTS_DIRECTORY' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 2
-    fi
+    if [ "$DID_PUSHD" -ne 0 ]; then
+        if ! cp -r "$TEST_RESULTS_DIRECTORY/" "$SCRIPTPATH" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy intermediate test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
 
-    if ! cp build/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        echo "Test script cannot intermediate test results from 'build' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 2
-    fi
+        if ! cp build/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy intermediate test results from '$(realpath build)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
 
-    if ! cp logs/gaia_stats.log "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        echo "Test script cannot intermediate log files from 'logs' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 2
+        if ! cp logs/gaia_stats.log "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy intermediate log files from '$(realpath logs)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
     fi
 }
 
@@ -224,6 +228,15 @@ parse_command_line() {
         NO_INIT_MODE=1
         shift
         ;;
+        #-t|--test-mode)
+        #if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        #    TEST_MODE=$2
+        #    shift 2
+        #else
+        #    echo "Error: Argument for $1 is missing" >&2
+        #    exit 1
+        #fi
+        #;;
         -h|--help)
         show_usage
         ;;
@@ -241,9 +254,22 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [[ ! "${PARAMS[0]}" == "" ]]; then
+        TEST_MODE=${PARAMS[0]}
+    fi
+    TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests/$TEST_MODE
+    if [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
+        complete_process 1
+    fi
+    if [ ! -f "$TEST_SOURCE_DIRECTORY/expected_output.json" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'expected_output.json' file."
+        complete_process 1
+    fi
 }
 
-# Set up any script variables.
+# Set up "$TEST_SOU variables.
 DID_PUSHD=0
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 TEST_DIRECTORY=/tmp/test_incubator

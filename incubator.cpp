@@ -315,6 +315,7 @@ void simulation_step() {
 void step() {
     g_timestamp++;
     simulation_step();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 void ztep() {
@@ -325,7 +326,6 @@ void ztep() {
         printf("[\n");
     }
     step();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     dump_db_json();
 }
 
