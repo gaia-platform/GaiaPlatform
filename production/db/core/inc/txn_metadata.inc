@@ -178,12 +178,12 @@ std::optional<txn_metadata_t> txn_metadata_t::get_commit_ts_metadata()
     return std::nullopt;
 }
 
-gaia_txn_id_t txn_metadata_t::get_begin_ts(gaia_txn_id_t commit_ts)
+gaia_txn_id_t txn_metadata_t::get_begin_ts_from_commit_ts(gaia_txn_id_t commit_ts)
 {
     return txn_metadata_t(commit_ts).get_begin_ts_metadata().get_timestamp();
 }
 
-gaia_txn_id_t txn_metadata_t::get_commit_ts(gaia_txn_id_t begin_ts)
+gaia_txn_id_t txn_metadata_t::get_commit_ts_from_begin_ts(gaia_txn_id_t begin_ts)
 {
     auto commit_ts_metadata = txn_metadata_t(begin_ts).get_commit_ts_metadata();
     return commit_ts_metadata ? commit_ts_metadata->get_timestamp() : c_invalid_gaia_txn_id;

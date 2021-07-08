@@ -83,8 +83,8 @@ public:
     // a begin_ts entry is not updated atomically with its commit_ts entry.
     inline std::optional<txn_metadata_t> get_commit_ts_metadata();
 
-    static inline gaia_txn_id_t get_begin_ts(gaia_txn_id_t commit_ts);
-    static inline gaia_txn_id_t get_commit_ts(gaia_txn_id_t begin_ts);
+    static inline gaia_txn_id_t get_begin_ts_from_commit_ts(gaia_txn_id_t commit_ts);
+    static inline gaia_txn_id_t get_commit_ts_from_begin_ts(gaia_txn_id_t begin_ts);
 
     inline int get_txn_log_fd();
     inline bool invalidate_txn_log_fd();
