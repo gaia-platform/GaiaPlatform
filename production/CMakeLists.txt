@@ -64,8 +64,8 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Default compiler/linker flags for Gaia targets.
-set(GAIA_COMPILE_FLAGS "-Wall -Wextra -ftime-trace")
-set(GAIA_LINK_FLAGS " ")
+add_library(gaia_build_options INTERFACE)
+target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
@@ -93,11 +93,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   # Don't omit debug symbols from any built binaries.
   add_compile_options(-fno-limit-debug-info)
 
-  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf")
-  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -Wl,--gdb-index")
+  target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
+  target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O0")
+    target_compile_options(gaia_build_options INTERFACE -O0)
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -108,11 +108,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   endif()
 
   if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Og")
+    # Set the highest optimization level compatible with reasonable debuggability.
+    target_compile_options(gaia_build_options INTERFACE -Og)
   endif()
 else()
   # Set the maximum optimization level for release builds.
-  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -O3")
+  target_compile_options(gaia_build_options INTERFACE -O3)
 endif()
 
 # Sanitizer-specific compiler/linker flags.
@@ -149,14 +150,16 @@ if(DEFINED CACHE{SANITIZER})
 
     # Add UBSan as well as ASan to Gaia targets.
     # (They are compatible so we have no separate option for UBSan.)
-    set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=undefined")
-    set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=undefined")
+    target_compile_options(gaia_build_options INTERFACE -fsanitize=undefined)
+    target_link_options(gaia_build_options INTERFACE -fsanitize=undefined)
   endif()
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
-message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
+get_target_property(gaia_compile_options gaia_build_options INTERFACE_COMPILE_OPTIONS)
+get_target_property(gaia_link_options gaia_build_options INTERFACE_LINK_OPTIONS)
+message(VERBOSE "Gaia compile options: ${gaia_compile_options}")
+message(VERBOSE "Gaia link options: ${gaia_link_options}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
