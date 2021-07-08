@@ -11,7 +11,9 @@ start_process() {
 complete_process() {
     # $1 is the return code to assign to the script
 
-    copy_test_output
+    if [ "$1" -ne 2 ]; then
+        copy_test_output
+    fi
 
     if [ "$1" -ne 0 ]; then
         echo "Testing of the incubator failed."
@@ -41,15 +43,17 @@ show_usage() {
 # Clear the test output directory, making sure it exists for the test execution.
 clear_test_output() {
     if [ -d "$TEST_RESULTS_DIRECTORY" ]; then
-        if ! rm "$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
-            cat "$TEMP_FILE"
-            echo "Test script cannot remove intermediate test results directory '$TEST_RESULTS_DIRECTORY' prior to test execution."
-            complete_process 1
+        if [ "$(ls -A "$TEST_RESULTS_DIRECTORY")" ] ; then
+            if ! rm "$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
+                cat "$TEMP_FILE"
+                echo "Test script cannot remove intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
+                complete_process 1
+            fi
         fi
     else
         if ! mkdir "$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot create intermediate test results directory '$TEST_RESULTS_DIRECTORY' prior to test execution."
+            echo "Test script cannot create intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
             complete_process 1
         fi
     fi
@@ -58,35 +62,37 @@ clear_test_output() {
 # Copy the intermediate test output directory to the script's test output directory.
 copy_test_output() {
     if [ -d "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" ]; then
-        if ! rm "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
-            cat "$TEMP_FILE"
-            echo "Test script cannot remove test results directory '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY' to contain test results."
-            complete_process 1
+        if [ "$(ls -A "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")" ] ; then
+            if ! rm "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
+                cat "$TEMP_FILE"
+                echo "Test script cannot remove test results directory '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' to contain test results."
+                complete_process 2
+            fi
         fi
     else
         if ! mkdir "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot create test results directory '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY' to contain test results."
-            complete_process 1
+            echo "Test script cannot create test results directory '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' to contain test results."
+            complete_process 2
         fi
     fi
 
     if ! cp -r "$TEST_RESULTS_DIRECTORY/" "$SCRIPTPATH" > "$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
         echo "Test script cannot intermediate test results from '$TEST_RESULTS_DIRECTORY' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 1
+        complete_process 2
     fi
 
     if ! cp build/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         echo "Test script cannot intermediate test results from 'build' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 1
+        complete_process 2
     fi
 
     if ! cp logs/gaia_stats.log "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         echo "Test script cannot intermediate log files from 'logs' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
-        complete_process 1
+        complete_process 2
     fi
 }
 
@@ -107,7 +113,7 @@ save_current_directory() {
 # Change to the test directory for execution.
 cd_to_test_directory() {
     if ! cd "$TEST_DIRECTORY"; then
-        echo "Test script cannot change to the test directory '$TEST_DIRECTORY'."
+        echo "Test script cannot change to the test directory '$(realpath "$TEST_DIRECTORY")'."
         complete_process 1
     fi
 }
@@ -117,21 +123,21 @@ cd_to_test_directory() {
 initialize_and_build_test_directory() {
     # To make sure we start at ground zero, remove the entire test directory.
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Removing test directory '$TEST_DIRECTORY' prior to test execution."
+        echo "Removing test directory '$(realpath "$TEST_DIRECTORY")' prior to test execution."
     fi
     if ! rm -rf "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Test script cannot remove test directory '$TEST_DIRECTORY' prior to test execution."
+        echo "Test script cannot remove test directory '$(realpath "$TEST_DIRECTORY")' prior to test execution."
         complete_process 1
     fi
 
     # Install the project into the new test directory and cd into it.
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Installing project into test directory '$TEST_DIRECTORY'."
+        echo "Installing project into test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Test script cannot install the project into directory '$TEST_DIRECTORY'."
+        echo "Test script cannot install the project into directory '$(realpath "$TEST_DIRECTORY")'."
         complete_process 1
     fi
 
@@ -139,7 +145,7 @@ initialize_and_build_test_directory() {
 
     # Build the project.  Technically we don't need the -f flag, but it doesn't hurt either.
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Building project in test directory '$TEST_DIRECTORY'."
+        echo "Building project in test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
@@ -154,7 +160,7 @@ initialize_and_build_test_directory() {
         if [ "$VERY_VERBOSE_MODE" -eq 0 ]; then
             cat "$TEMP_FILE"
         fi
-        echo "Test script cannot build the project in directory '$TEST_DIRECTORY'."
+        echo "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
         complete_process 1
     fi
 }
@@ -162,7 +168,7 @@ initialize_and_build_test_directory() {
 # Execute the workflow that will run the specific test that was indicated.
 execute_test_workflow() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Running debug commands through project in test directory '$TEST_DIRECTORY'."
+        echo "Running debug commands through project in test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     clear_test_output
     TEST_START_MARK=$(date +%s.%N)
@@ -180,7 +186,7 @@ execute_test_workflow() {
         if [ "$VERY_VERBOSE_MODE" -eq 0 ]; then
             cat "$TEMP_FILE"
         fi
-        echo "Test script cannot run the project in directory '$TEST_DIRECTORY'."
+        echo "Test script cannot run the project in directory '$(realpath "$TEST_DIRECTORY")'."
         complete_process 1
     fi
 
@@ -195,7 +201,7 @@ execute_test_workflow() {
     fi
     if ! diff "tests/$TEST_MODE/expected_output.json" "build/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
         echo "Test results were not as expected."
-        echo "Differences between expected and actual results located at: $TEST_RESULTS_DIRECTORY/expected.diff"
+        echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
         complete_process 1
     fi
 }
@@ -206,16 +212,9 @@ parse_command_line() {
     VERBOSE_MODE=0
     VERY_VERBOSE_MODE=0
     NO_INIT_MODE=0
-    PARAMS=""
+    PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -h|--help) # unsupported flags
-        show_usage
-        ;;
-        -v|--verbose)
-        VERBOSE_MODE=1
-        shift
-        ;;
         -vv|--very-verbose)
         VERBOSE_MODE=1
         VERY_VERBOSE_MODE=1
@@ -225,17 +224,23 @@ parse_command_line() {
         NO_INIT_MODE=1
         shift
         ;;
+        -h|--help)
+        show_usage
+        ;;
+        -v|--verbose)
+        VERBOSE_MODE=1
+        shift
+        ;;
         -*) # unsupported flags
         echo "Error: Unsupported flag $1" >&2
         show_usage
         ;;
         *) # preserve positional arguments
-        PARAMS="$PARAMS $1"
+        PARAMS+=("$1")
         shift
         ;;
     esac
     done
-    eval set -- "$PARAMS"
 }
 
 # Set up any script variables.

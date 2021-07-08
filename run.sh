@@ -1,11 +1,13 @@
 #! /usr/bin/bash
 
+# Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing the incubator..."
     fi
 }
 
+# Simple function to stop the process, including any cleanup
 complete_process() {
     # $1 is the return code to assign to the script
     if [ "$1" -ne 0 ]; then
@@ -18,12 +20,14 @@ complete_process() {
     exit "$1"
 }
 
+# Show how this script can be used.
 show_usage() {
     echo "Usage: $(basename "$0") [flags] <command>"
     echo "Flags:"
     echo "  -v,--verbose      Show lots of information while executing the project."
     echo "  -h,--help         Display this help text."
     echo "  -a,--auto         Automatically build the project before execution, if needed."
+    echo "  -c,--csv          Generate a CSV output file if applicable."
     echo ""
     echo "Commands:"
     echo "  run               Run the simulator in normal mode."
@@ -35,40 +39,43 @@ show_usage() {
     exit 1
 }
 
-# Set up any script variables.
-JSON_OUTPUT=build/output.json
-CSV_OUTPUT=build/output.csv
-TEMP_FILE=/tmp/incubator.run.tmp
+# Parse the command line.
+parse_command_line() {
+    VERBOSE_MODE=0
+    AUTO_BUILD_MODE=0
+    GENERATE_CSV_MODE=0
+    PARAMS=()
+    while (( "$#" )); do
+    case "$1" in
+        -a|--auto)
+        AUTO_BUILD_MODE=1
+        shift
+        ;;
+        -c|--csv)
+        GENERATE_CSV_MODE=1
+        shift
+        ;;
+        -h|--help) # unsupported flags
+        show_usage
+        ;;
+        -v|--verbose)
+        VERBOSE_MODE=1
+        shift
+        ;;
+        -*) # unsupported flags
+        echo "Error: Unsupported flag $1" >&2
+        show_usage
+        ;;
+        *) # preserve positional arguments
+        PARAMS+=("$1")
+        shift
+        ;;
+    esac
+    done
+}
 
-# Parse any command line values.
-VERBOSE_MODE=0
-AUTO_BUILD_MODE=0
-PARAMS=""
-while (( "$#" )); do
-  case "$1" in
-    -h|--help) # unsupported flags
-      show_usage
-      ;;
-    -v|--verbose)
-      VERBOSE_MODE=1
-      shift
-      ;;
-    -a|--auto)
-      AUTO_BUILD_MODE=1
-      shift
-      ;;
-    -*) # unsupported flags
-      echo "Error: Unsupported flag $1" >&2
-      show_usage
-      ;;
-    *) # preserve positional arguments
-      PARAMS="$PARAMS $1"
-      shift
-      ;;
-  esac
-done
-eval set -- "$PARAMS"
-
+# Check to see if any of our core files have changed, and automatically
+# build if that happens.
 handle_auto_build() {
     if [ $AUTO_BUILD_MODE -ne 0 ]; then
         DO_BUILD=0
@@ -105,15 +112,18 @@ handle_auto_build() {
             if [ "$VERBOSE_MODE" -ne 0 ]; then
                 echo "Autobuilding the incubator project."
             fi
-            if ! ./build.sh -v $FULL_BUILD_FLAG >$TEMP_FILE 2>&1 ; then
-                cat $TEMP_FILE
-                echo "Test script cannot build the project in directory '$TEST_DIRECTORY'."
+            if ! ./build.sh -v $FULL_BUILD_FLAG > "$TEMP_FILE" 2>&1 ; then
+                cat "$TEMP_FILE"
+                echo "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
                 complete_process 1
             fi
         fi
     fi
 }
 
+# Process a debug command which executes a file containing commands
+# and captures any output.  Normal assumption is that the output is
+# in the form of a JSON file.
 process_debug() {
 
     if [ -z "$1" ]
@@ -134,28 +144,39 @@ process_debug() {
         echo "JSON output file located at: $(realpath $JSON_OUTPUT)"
     fi
 
-    # For ease of graphing, also produce a CSV file.
-    if ! ./translate_to_csv.py > $CSV_OUTPUT; then
-        echo "Translation of the JSON output to CSV failed."
-        complete_process 1
-    fi
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "CSV output file located at: $(realpath $CSV_OUTPUT)"
+    # For ease of graphing, also produce a CSV file if requested.
+    if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
+        if ! ./translate_to_csv.py > $CSV_OUTPUT; then
+            echo "Translation of the JSON output to CSV failed."
+            complete_process 1
+        fi
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "CSV output file located at: $(realpath $CSV_OUTPUT)"
+        fi
     fi
 }
 
+# Process one of the commands to watch the changes of the database
+# on a second by second interval.
 process_watch() {
-
     watch -n 1 ./build/incubator "$1"
 }
 
+# Process a normal command that interacts with the user.
 process_normal() {
-
     if ! ./build/incubator "$1"; then
         echo "Execution of the incubator failed."
         complete_process 1
     fi
 }
+
+# Set up any script variables.
+JSON_OUTPUT=build/output.json
+CSV_OUTPUT=build/output.csv
+TEMP_FILE=/tmp/incubator.run.tmp
+
+# Parse any command line values.
+parse_command_line "$@"
 
 # Handle the auto-build functionality.
 handle_auto_build
@@ -170,25 +191,26 @@ fi
 start_process
 
 # Process the various commands.
-if [[ "$1" == "debug" ]]; then
-    process_debug "$2"
-elif [[ "$1" == "watch" ]]; then
+if [[ "${PARAMS[0]}" == "debug" ]]; then
+    process_debug "${PARAMS[1]}"
+elif [[ "${PARAMS[0]}" == "watch" ]]; then
     process_watch "show"
-elif [[ "$1" == "watch-json" ]]; then
+elif [[ "${PARAMS[0]}" == "watch-json" ]]; then
     process_watch "showj"
-elif [[ "$1" == "show" ]]; then
+elif [[ "${PARAMS[0]}" == "show" ]]; then
     process_normal "show"
-elif [[ "$1" == "show-json" ]]; then
+elif [[ "${PARAMS[0]}" == "show-json" ]]; then
     process_normal "showj"
-elif [[ "$1" == "run" ]]; then
+elif [[ "${PARAMS[0]}" == "run" ]]; then
     process_normal "sim"
-elif [[ "$1" == "" ]]; then
+elif [[ "${PARAMS[0]}" == "" ]]; then
     echo "Command was not provided."
     show_usage
 else
-    echo "Command \'$1\' not known."
+    echo "Command '${PARAMS[0]}' not known."
     complete_process 1
 fi
 
 # If we get here, we have a clean exit from the script.
 complete_process 0 "$1"
+
