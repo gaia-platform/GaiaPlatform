@@ -82,6 +82,12 @@ copy_test_output() {
         echo "Test script cannot intermediate test results from 'build' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
         complete_process 1
     fi
+
+    if ! cp logs/gaia_stats.log "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        echo "Test script cannot intermediate log files from 'logs' to '$SCRIPTPATH/$TEST_RESULTS_DIRECTORY'."
+        complete_process 1
+    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
@@ -194,6 +200,44 @@ execute_test_workflow() {
     fi
 }
 
+# Parse the command line.
+parse_command_line() {
+    TEST_MODE="basic"
+    VERBOSE_MODE=0
+    VERY_VERBOSE_MODE=0
+    NO_INIT_MODE=0
+    PARAMS=""
+    while (( "$#" )); do
+    case "$1" in
+        -h|--help) # unsupported flags
+        show_usage
+        ;;
+        -v|--verbose)
+        VERBOSE_MODE=1
+        shift
+        ;;
+        -vv|--very-verbose)
+        VERBOSE_MODE=1
+        VERY_VERBOSE_MODE=1
+        shift
+        ;;
+        -ni|--no-init)
+        NO_INIT_MODE=1
+        shift
+        ;;
+        -*) # unsupported flags
+        echo "Error: Unsupported flag $1" >&2
+        show_usage
+        ;;
+        *) # preserve positional arguments
+        PARAMS="$PARAMS $1"
+        shift
+        ;;
+    esac
+    done
+    eval set -- "$PARAMS"
+}
+
 # Set up any script variables.
 DID_PUSHD=0
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -202,40 +246,7 @@ TEST_RESULTS_DIRECTORY="test-results"
 TEMP_FILE=/tmp/incubator.test.tmp
 
 # Parse any command line values.
-TEST_MODE="basic"
-VERBOSE_MODE=0
-VERY_VERBOSE_MODE=0
-NO_INIT_MODE=0
-PARAMS=""
-while (( "$#" )); do
-  case "$1" in
-    -h|--help) # unsupported flags
-      show_usage
-      ;;
-    -v|--verbose)
-      VERBOSE_MODE=1
-      shift
-      ;;
-    -vv|--very-verbose)
-      VERBOSE_MODE=1
-      VERY_VERBOSE_MODE=1
-      shift
-      ;;
-    -ni|--no-init)
-      NO_INIT_MODE=1
-      shift
-      ;;
-    -*) # unsupported flags
-      echo "Error: Unsupported flag $1" >&2
-      show_usage
-      ;;
-    *) # preserve positional arguments
-      PARAMS="$PARAMS $1"
-      shift
-      ;;
-  esac
-done
-eval set -- "$PARAMS"
+parse_command_line "$@"
 
 # Clean entrance into the script.
 start_process
