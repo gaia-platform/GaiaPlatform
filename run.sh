@@ -158,7 +158,6 @@ process_normal() {
 }
 
 # Handle the auto-build functionality.
-echo "auto"
 handle_auto_build
 
 # Make sure the program is compiled before going on.
