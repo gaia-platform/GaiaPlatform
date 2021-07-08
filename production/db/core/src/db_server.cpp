@@ -2459,6 +2459,14 @@ void server_t::run(server_config_t server_conf)
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
 
+    if (!is_little_endian())
+    {
+        cerr << "Big-endian architectures are currently not supported, exiting." << endl;
+
+        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
+        std::abort();
+    }
+
     while (true)
     {
         // Create eventfd shutdown event.
