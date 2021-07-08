@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <optional>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -48,7 +49,8 @@ public:
         const std::string& name,
         const ddl::link_def_t& link1,
         const ddl::link_def_t& link2,
-        bool thrown_on_exists = true);
+        const std::optional<ddl::table_field_map_t>& field_map,
+        bool throw_on_exists);
 
     gaia::common::gaia_id_t create_index(
         const std::string& index_name,
@@ -57,7 +59,7 @@ public:
         const std::string& db_name,
         const std::string& table_name,
         const std::vector<std::string>& field_names,
-        bool thrown_on_exists = true);
+        bool throw_on_exists = true);
 
     void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
 
@@ -136,6 +138,10 @@ private:
     static common::reference_offset_t find_child_available_offset(const gaia_table_t::incoming_relationships_list_t& relationships);
     // Find the next available offset in the relationships of the given table.
     static common::reference_offset_t find_available_offset(gaia::common::gaia_id_t table);
+
+    // Find field IDs given a table ID and field names.
+    static std::vector<gaia::common::gaia_id_t> find_table_field_ids(
+        gaia::common::gaia_id_t table_id, const std::vector<std::string>& field_names);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
