@@ -240,7 +240,7 @@ void server_t::handle_begin_txn(
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
     // We need a 1-byte dummy message buffer due to our datagram size convention.
-    uint8_t msg_buf[1] = {0};
+    uint8_t msg_buf[1]{0};
     size_t fds_sent_count = 0;
     while (fds_sent_count < txn_log_fds.size())
     {
@@ -866,7 +866,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
-    sockaddr_un server_addr = {0};
+    sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
 
     // The socket name (minus its null terminator) needs to fit into the space
@@ -1014,7 +1014,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
-        epoll_event ev = {0};
+        epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.fd = registered_fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fd, &ev))
@@ -1129,7 +1129,7 @@ void server_t::session_handler(int session_socket)
     for (int fd : fds)
     {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
-        epoll_event ev = {0};
+        epoll_event ev{};
         ev.events = EPOLLIN | EPOLLRDHUP;
         ev.data.fd = fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev))
@@ -1182,7 +1182,7 @@ void server_t::session_handler(int session_socket)
         const void* event_data = nullptr;
 
         // Buffer used to send and receive all message data.
-        uint8_t msg_buf[c_max_msg_size] = {0};
+        uint8_t msg_buf[c_max_msg_size]{0};
 
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
@@ -1314,7 +1314,7 @@ void server_t::stream_producer_handler(
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
-    epoll_event sock_ev = {0};
+    epoll_event sock_ev{};
     sock_ev.events = EPOLLOUT;
     sock_ev.data.fd = stream_socket;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
@@ -1322,7 +1322,7 @@ void server_t::stream_producer_handler(
         throw_system_error(c_message_epoll_ctl_failed);
     }
 
-    epoll_event cancel_ev = {0};
+    epoll_event cancel_ev{};
     cancel_ev.events = EPOLLIN;
     cancel_ev.data.fd = cancel_eventfd;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
@@ -1461,7 +1461,7 @@ void server_t::stream_producer_handler(
                         // be notified (with EPOLLHUP/EPOLLERR) when the client
                         // closes the socket, so we can close our end of the
                         // socket and terminate the thread.
-                        epoll_event ev = {0};
+                        epoll_event ev{};
                         // We're only interested in EPOLLHUP/EPOLLERR
                         // notifications, and we don't need to register for
                         // those.
@@ -2459,6 +2459,14 @@ void server_t::run(server_config_t server_conf)
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
+    if (!is_little_endian())
+    {
+        cerr << "Big-endian architectures are currently not supported, exiting." << endl;
+
+        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
+        std::abort();
+    }
 
     while (true)
     {

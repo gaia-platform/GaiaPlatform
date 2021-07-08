@@ -6,21 +6,16 @@ add_library(gaia_fdw SHARED
   gaia_fdw.cpp
   gaia_fdw_adapter.cpp)
 
+target_link_libraries(gaia_fdw PUBLIC gaia_build_options)
+
 # exec_program() mangles this variable with added quotes, so un-quote it.
 separate_arguments(PGSQL_CPPFLAGS UNIX_COMMAND "${PGSQL_CPPFLAGS}")
 target_compile_options(gaia_fdw PRIVATE ${PGSQL_CPPFLAGS})
-
-# We need to un-quote this variable for some reason as well.
-separate_arguments(GAIA_COMPILE_FLAGS UNIX_COMMAND "${GAIA_COMPILE_FLAGS}")
-target_compile_options(gaia_fdw PRIVATE ${GAIA_COMPILE_FLAGS})
 
 # exec_program() mangles this variable with added quotes, so un-quote it.
 separate_arguments(PGSQL_LDFLAGS UNIX_COMMAND "${PGSQL_LDFLAGS}")
 target_link_options(gaia_fdw PRIVATE ${PGSQL_LDFLAGS})
 
-# We need to un-quote this variable for some reason as well.
-separate_arguments(GAIA_LINK_FLAGS UNIX_COMMAND "${GAIA_LINK_FLAGS}")
-target_link_options(gaia_fdw PRIVATE ${GAIA_LINK_FLAGS})
 if("$CACHE{SANITIZER}" STREQUAL "ASAN")
   target_link_options(gaia_fdw PRIVATE "-shared-libasan")
 endif()
