@@ -57,6 +57,10 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   endif()
   target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
 
+  if(ENABLE_STACKTRACE)
+    target_link_libraries(${TARGET} PRIVATE gaia_stack_trace)
+  endif()
+
   if(NOT ("${ARGV6}" STREQUAL ""))
     set(ENV "${ARGV6}")
   else()

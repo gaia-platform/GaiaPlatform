@@ -30,4 +30,8 @@ target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
 add_dependencies(gaiac gaia_db_server)
 target_link_libraries(gaiac PRIVATE rt gaia_common gaia_catalog gaia_parser flatbuffers tabulate Threads::Threads)
 
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaiac PRIVATE gaia_stack_trace)
+endif()
+
 install(TARGETS gaiac DESTINATION ${CMAKE_INSTALL_BINDIR})

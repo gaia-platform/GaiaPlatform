@@ -14,7 +14,7 @@ project(production VERSION 0.1.0)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
-option(ENABLE_STACKTRACE "Enable stack traces in debug builds" ON)
+option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 include(GNUInstallDirs)
@@ -255,8 +255,13 @@ add_subdirectory(${FLATBUFFERS} flatbuffers)
 include(ExternalProject)
 
 # Backward.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(ENABLE_STACKTRACE)
+  message(VERBOSE "ENABLE_STACKTRACE=${ENABLE_STACKTRACE}")
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
+  add_library(gaia_stack_trace INTERFACE)
+  target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
+  target_compile_options(gaia_stack_trace INTERFACE -g -funwind-tables -fno-omit-frame-pointer)
+  target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
