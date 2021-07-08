@@ -30,12 +30,7 @@ namespace transactions
 // responsibility of the txn_metadata_entry_t class.
 class txn_metadata_t
 {
-private:
-    const gaia_txn_id_t m_ts;
-
 public:
-    static void init_txn_metadata_map();
-
     inline explicit txn_metadata_t(gaia_txn_id_t ts);
     txn_metadata_t(const txn_metadata_t&) = default;
 
@@ -46,6 +41,10 @@ public:
     friend inline bool operator==(txn_metadata_t a, txn_metadata_t b);
     friend inline bool operator!=(txn_metadata_t a, txn_metadata_t b);
 
+private:
+    const gaia_txn_id_t m_ts;
+
+public:
     inline gaia_txn_id_t get_timestamp();
 
     inline bool is_uninitialized();
@@ -126,6 +125,9 @@ private:
     // If the returned value is not equal to the expected value, then the CAS must have failed.
     inline txn_metadata_entry_t compare_exchange_strong(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
     inline txn_metadata_entry_t compare_exchange_weak(txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
+
+public:
+    static void init_txn_metadata_map();
 
 private:
     // This is an effectively infinite array of timestamp entries, indexed by

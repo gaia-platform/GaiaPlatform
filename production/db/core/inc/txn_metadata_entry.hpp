@@ -30,9 +30,64 @@ namespace transactions
 // metadata array; that is the responsibility of the txn_metadata_t class.
 class txn_metadata_entry_t
 {
+public:
+    inline explicit txn_metadata_entry_t(uint64_t word)
+        : m_word(word)
+    {
+    }
+
+    txn_metadata_entry_t(const txn_metadata_entry_t&) = default;
+
+    // The copy assignment operator is implicitly deleted because this class has
+    // no non-static, non-const members, but we make it explicit.
+    txn_metadata_entry_t& operator=(const txn_metadata_entry_t&) = delete;
+
+    friend inline bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b);
+    friend inline bool operator!=(txn_metadata_entry_t a, txn_metadata_entry_t b);
+
 private:
     const uint64_t m_word;
 
+public:
+    inline uint64_t get_word();
+
+    static inline void check_ts_size(gaia_txn_id_t ts);
+    static inline constexpr size_t get_max_ts_count();
+
+    static inline txn_metadata_entry_t uninitialized_value();
+    static inline txn_metadata_entry_t sealed_value();
+    static inline txn_metadata_entry_t new_begin_ts_entry();
+    static inline txn_metadata_entry_t new_commit_ts_entry(gaia_txn_id_t begin_ts, int log_fd);
+
+    inline bool is_uninitialized();
+    inline bool is_sealed();
+    inline bool is_begin_ts_entry();
+    inline bool is_commit_ts_entry();
+    inline bool is_submitted();
+    inline bool is_validating();
+    inline bool is_decided();
+    inline bool is_committed();
+    inline bool is_aborted();
+    inline bool is_gc_complete();
+    inline bool is_durable();
+    inline bool is_active();
+    inline bool is_terminated();
+
+    inline uint64_t get_status();
+    inline gaia_txn_id_t get_timestamp();
+    inline int get_log_fd();
+
+    inline txn_metadata_entry_t invalidate_log_fd();
+    inline txn_metadata_entry_t set_submitted(gaia_txn_id_t commit_ts);
+    inline txn_metadata_entry_t set_terminated();
+    inline txn_metadata_entry_t set_decision(bool is_committed);
+    inline txn_metadata_entry_t set_durable();
+    inline txn_metadata_entry_t set_gc_complete();
+
+    inline const char* status_to_str();
+    inline std::string dump_metadata();
+
+private:
     // Transaction metadata constants.
     //
     // Transaction metadata format:
@@ -161,59 +216,6 @@ private:
 
     // The first 3 bits of this value do not correspond to any valid txn status value.
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
-
-public:
-    inline explicit txn_metadata_entry_t(uint64_t word)
-        : m_word(word)
-    {
-    }
-
-    txn_metadata_entry_t(const txn_metadata_entry_t&) = default;
-
-    // The copy assignment operator is implicitly deleted because this class has
-    // no non-static, non-const members, but we make it explicit.
-    txn_metadata_entry_t& operator=(const txn_metadata_entry_t&) = delete;
-
-    friend inline bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b);
-    friend inline bool operator!=(txn_metadata_entry_t a, txn_metadata_entry_t b);
-
-    inline uint64_t get_word();
-
-    static inline void check_ts_size(gaia_txn_id_t ts);
-    static inline constexpr size_t get_max_ts_count();
-
-    static inline txn_metadata_entry_t uninitialized_value();
-    static inline txn_metadata_entry_t sealed_value();
-    static inline txn_metadata_entry_t new_begin_ts_entry();
-    static inline txn_metadata_entry_t new_commit_ts_entry(gaia_txn_id_t begin_ts, int log_fd);
-
-    inline bool is_uninitialized();
-    inline bool is_sealed();
-    inline bool is_begin_ts_entry();
-    inline bool is_commit_ts_entry();
-    inline bool is_submitted();
-    inline bool is_validating();
-    inline bool is_decided();
-    inline bool is_committed();
-    inline bool is_aborted();
-    inline bool is_gc_complete();
-    inline bool is_durable();
-    inline bool is_active();
-    inline bool is_terminated();
-
-    inline uint64_t get_status();
-    inline gaia_txn_id_t get_timestamp();
-    inline int get_log_fd();
-
-    inline txn_metadata_entry_t invalidate_log_fd();
-    inline txn_metadata_entry_t set_submitted(gaia_txn_id_t commit_ts);
-    inline txn_metadata_entry_t set_terminated();
-    inline txn_metadata_entry_t set_decision(bool is_committed);
-    inline txn_metadata_entry_t set_durable();
-    inline txn_metadata_entry_t set_gc_complete();
-
-    inline const char* status_to_str();
-    inline std::string dump_metadata();
 };
 
 #include "txn_metadata_entry.inc"
