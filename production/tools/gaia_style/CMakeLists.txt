@@ -18,14 +18,14 @@ set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
 add_executable(gaia_format tests/clang_format.cpp)
 
+target_link_libraries(gaia_format PUBLIC gaia_build_options)
 target_include_directories(gaia_format PRIVATE ${GAIA_STYLE_INCLUDES})
 target_link_libraries(gaia_format PRIVATE rt gaia_catalog gaia_parser)
-set_target_properties(gaia_format PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-unused-variable -Wno-unused-parameter")
-set_target_properties(gaia_format PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_compile_options(gaia_format PRIVATE -Wno-unused-variable -Wno-unused-parameter)
 
 add_executable(gaia_tidy tests/clang_tidy.cpp)
 
+target_link_libraries(gaia_tidy PUBLIC gaia_build_options)
 target_include_directories(gaia_tidy PRIVATE ${GAIA_STYLE_INCLUDES})
 target_link_libraries(gaia_tidy PRIVATE rt gaia_catalog gaia_parser)
-set_target_properties(gaia_tidy PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-unused-variable -Wno-unused-parameter")
-set_target_properties(gaia_tidy PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_compile_options(gaia_tidy PRIVATE -Wno-unused-variable -Wno-unused-parameter)
