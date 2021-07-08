@@ -61,10 +61,9 @@ endforeach(FBS_SOURCE)
 add_library(gaia_storage STATIC
   src/record_list.cpp
   src/record_list_manager.cpp)
+target_link_libraries(gaia_storage PUBLIC gaia_build_options)
 target_include_directories(gaia_storage PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
-set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_storage PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_storage PRIVATE gaia_common)
 
 ###############################################
@@ -84,16 +83,20 @@ add_library(gaia_db_client STATIC
   src/type_id_mapping.cpp
   src/db_client_config.cpp
   src/db_server_instance.cpp)
+
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs" "gaia_index.fbs" "gaia_db_server")
+target_link_libraries(gaia_db_client PUBLIC gaia_build_options)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
+target_link_libraries(gaia_db_client PUBLIC gaia_common)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+
+# Suppress spurious warnings about zero-initialized structs.
+target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
 
 # For flatbuffers generated code.
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
-# Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
 target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
@@ -101,15 +104,14 @@ add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
+target_link_libraries(rocks_wrapper PUBLIC gaia_build_options)
 target_include_directories(rocks_wrapper PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
-target_link_libraries(rocks_wrapper rocksdb gaia_storage)
-set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(rocks_wrapper PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 
 add_library(gaia_db_persistence STATIC
   src/io_uring_wrapper.cpp
@@ -135,12 +137,9 @@ set(GAIA_DB_SERVER_SOURCES
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp)
 
-if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  list(APPEND GAIA_DB_SERVER_SOURCES src/backward.cpp)
-endif()
-
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server "messages.fbs")
+target_link_libraries(gaia_db_server PUBLIC gaia_build_options)
 target_include_directories(gaia_db_server PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -150,11 +149,9 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
-if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  target_link_libraries(gaia_db_server PUBLIC backward)
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
 endif()
 install(TARGETS gaia_db_server DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -170,16 +167,17 @@ find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
+  target_link_libraries(gaia_db_pybind PUBLIC gaia_build_options)
   target_include_directories(gaia_db_pybind PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_db_pybind PRIVATE
     "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
     "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
   target_include_directories(gaia_db_pybind SYSTEM PRIVATE "${GEN_DIR}")
   target_link_libraries(gaia_db_pybind PRIVATE pybind11::module rt gaia_system gaia_db_client)
+
   # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
-  set_target_properties(gaia_db_pybind PROPERTIES COMPILE_FLAGS
-    "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
-  set_target_properties(gaia_db_pybind PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  target_compile_options(gaia_db_pybind PRIVATE -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation)
+
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_pybind PRIVATE "-shared-libasan")
   endif()
@@ -201,15 +199,14 @@ endif()
 if(JAVA_FOUND AND JNI_FOUND)
   # Configure build of native C++ wrapper library.
   add_library(gaia_db_jni SHARED src/db_jni_wrapper.cpp)
+  target_link_libraries(gaia_db_jni PUBLIC gaia_build_options)
   target_include_directories(gaia_db_jni PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(gaia_db_jni PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(gaia_db_jni PRIVATE ${JNI_INCLUDE_DIRS})
   target_include_directories(gaia_db_jni PRIVATE ${GAIA_DB_CORE_INCLUDES})
   target_include_directories(gaia_db_jni PRIVATE ${GAIA_REPO}/production/db/inc/memory_manager)
   target_link_libraries(gaia_db_jni PRIVATE rt gaia_system gaia_db_client db_jni_headers)
-  set_target_properties(gaia_db_jni PROPERTIES COMPILE_FLAGS
-    "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
-  set_target_properties(gaia_db_jni PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+  target_compile_options(gaia_db_jni PRIVATE -Wno-deprecated-register -Wno-unused-parameter)
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     target_link_options(gaia_db_jni PRIVATE "-shared-libasan")
   endif()
@@ -224,10 +221,9 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
 )
 
 add_library(gaia_db_catalog_test tests/db_catalog_test_base.cpp)
+target_link_libraries(gaia_db_catalog_test PUBLIC gaia_build_options)
 target_include_directories(gaia_db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client gaia_schema_loader gtest)
-set_target_properties(gaia_db_catalog_test PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_db_catalog_test PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")

@@ -286,6 +286,18 @@ public:
     }
 };
 
+/**
+ * Thrown when the field map is invalid.
+ */
+class invalid_field_map : public gaia::common::gaia_exception
+{
+public:
+    explicit invalid_field_map(const std::string& message)
+    {
+        m_message = message;
+    }
+};
+
 namespace ddl
 {
 /**
@@ -733,6 +745,21 @@ gaia::common::gaia_id_t create_relationship(
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
     bool throw_on_exist = true);
+
+/**
+ * Create a relationship between tables.
+ *
+ * @param name of the relationship
+ * @param link1, link2 link definitions of the relationship
+ * @param field_map field map of the relationship
+ * @return gaia id of the created relationship
+ */
+gaia::common::gaia_id_t create_relationship(
+    const std::string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    const std::optional<ddl::table_field_map_t>& field_map,
+    bool throw_on_exist);
 
 /**
  * Find the database id given its name

@@ -28,6 +28,8 @@ public:
     type_generator_t(const type_generator_t&) = delete;
     type_generator_t& operator=(const type_generator_t&) = delete;
 
+    ~type_generator_t();
+
 private:
     common::gaia_type_t m_type;
     storage::record_iterator_t m_iterator;
