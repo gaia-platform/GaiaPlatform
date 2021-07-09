@@ -59,14 +59,15 @@ public:
     static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
 
 public:
-    server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir)
-        : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir))
+    server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir, bool testing)
+        : m_persistence_mode(persistence_mode), m_instance_name(std::move(instance_name)), m_data_dir(std::move(data_dir)), m_testing(testing)
     {
     }
 
     inline persistence_mode_t persistence_mode();
     inline const std::string& instance_name();
     inline const std::string& data_dir();
+    inline bool testing();
 
 private:
     // Dummy constructor to allow server_t initialization.
@@ -79,6 +80,7 @@ private:
     persistence_mode_t m_persistence_mode;
     std::string m_instance_name;
     std::string m_data_dir;
+    bool m_testing;
 };
 
 class server_t

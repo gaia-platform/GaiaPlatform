@@ -221,7 +221,7 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
-void index_builder_t::update_indexes_from_logs(const txn_log_t& records)
+void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool ignore_catalog_verification)
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
@@ -241,7 +241,7 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records)
             obj_type = obj->type;
         }
 
-        // Flag the type_id_mapping cache to clear if any changes detected
+        // Flag the type_id_mapping cache to clear if any changes in the schema are detected.
         if (obj_type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
             type_id_mapping_t::instance().clear();
@@ -249,9 +249,10 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records)
 
         gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj_type);
 
-        if (type_record_id == c_invalid_gaia_id)
+        // System tables are not indexed.
+        // Skip if catalog verification disabled and type not found in the catalog.
+        if (obj_type >= c_system_table_reserved_range_start || (ignore_catalog_verification && type_record_id == c_invalid_gaia_id))
         {
-            // Can happen during bootstrap and in tests, ignore instead of assert here.
             continue;
         }
 

@@ -19,3 +19,8 @@ const std::string& server_config_t::instance_name()
 {
     return m_instance_name;
 }
+
+bool server_config_t::testing()
+{
+    return m_testing;
+}
