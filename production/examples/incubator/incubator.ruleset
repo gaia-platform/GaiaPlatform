@@ -60,13 +60,14 @@ ruleset incubator_ruleset
             return;
         }
 
-        float new_fan_speed = 0.0;
-        new_fan_speed = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
-        if (actuator.value != new_fan_speed)
+        if (sensor.value >= incubator.min_temp &&
+            sensor.value <= incubator.max_temp)
         {
-            actuator.value = new_fan_speed;
-            actuator.timestamp = g_timestamp;
+            return;
         }
+
+        actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
+        actuator.timestamp = g_timestamp;
     }
 
     // Rule 3:  Turn off all the fans if the incubator is powered down.
