@@ -3,7 +3,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing the incubator..."
+        echo "Executing the $PROJECT_NAME project..."
     fi
 }
 
@@ -11,10 +11,10 @@ start_process() {
 complete_process() {
     # $1 is the return code to assign to the script
     if [ "$1" -ne 0 ]; then
-        echo "Execution of the incubator failed."
+        echo "Execution of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Execution of the incubator succeeded."
+            echo "Execution of the $PROJECT_NAME project succeeded."
         fi
     fi
 
@@ -79,48 +79,64 @@ parse_command_line() {
     done
 }
 
+check_auto_build_component() {
+    local NEXT_SOURCE_ITEM=$1
+    local SOURCE_ITEM_TYPE=$2
+    local SET_FULL_FLAG_IF_CHANGED=$3
+
+    if [[ "$NEXT_SOURCE_ITEM" -nt "$EXECUTABLE_PATH" ]]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "$SOURCE_ITEM_TYPE file $NEXT_SOURCE_ITEM has changed."
+        fi
+        DO_BUILD=1
+        if [ "$SET_FULL_FLAG_IF_CHANGED" -ne 0 ]; then
+            FULL_BUILD_FLAG=-f
+        fi
+    else
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "$SOURCE_ITEM_TYPE file $NEXT_SOURCE_ITEM has not changed."
+        fi
+    fi
+}
+
 # Check to see if any of our core files have changed, and automatically
 # build if that happens.
 handle_auto_build() {
     if [ $AUTO_BUILD_MODE -ne 0 ]; then
         DO_BUILD=0
         FULL_BUILD_FLAG=
-        MY_EXECUTABLE="build/incubator"
-        MY_CPP_FILE="incubator.cpp"
-        MY_RULESET_FILE="incubator.ruleset"
-        MY_DDL_FILE="incubator.ddl"
-        if [ ! -f "$MY_EXECUTABLE" ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Checking for any out-of-sync dependent files needed to build $EXECUTABLE_NAME."
+        fi
+        if [ ! -f "$EXECUTABLE_PATH" ]; then
             if [ "$VERBOSE_MODE" -ne 0 ]; then
-                echo "Incubator executable does not exist."
+                echo "Executable $EXECUTABLE_NAME does not exist."
             fi
             DO_BUILD=1
-        elif [[ "$MY_RULESET_FILE" -nt "$MY_EXECUTABLE" ]]; then
-            if [ "$VERBOSE_MODE" -ne 0 ]; then
-                echo "Ruleset file $MY_RULESET_FILE has changed."
-            fi
-            DO_BUILD=1
-            FULL_BUILD_FLAG=-f
-        elif [[ "$MY_DDL_FILE" -nt "$MY_EXECUTABLE" ]]; then
-            if [ "$VERBOSE_MODE" -ne 0 ]; then
-                echo "DDL file $MY_DDL_FILE has changed."
-            fi
-            DO_BUILD=1
-            FULL_BUILD_FLAG=-f
-        elif [[ "$MY_CPP_FILE" -nt "$MY_EXECUTABLE" ]]; then
-            if [ "$VERBOSE_MODE" -ne 0 ]; then
-                echo "Source file $MY_CPP_FILE has changed."
-            fi
-            DO_BUILD=1
+        else
+            for NEXT_SOURCE_ITEM in "${RULESET_PATHS[@]}"; do
+                check_auto_build_component "$NEXT_SOURCE_ITEM" "Ruleset" 1
+            done
+            for NEXT_SOURCE_ITEM in "${DDL_PATHS[@]}"; do
+                check_auto_build_component "$NEXT_SOURCE_ITEM" "DDL" 1
+            done
+            for NEXT_SOURCE_ITEM in "${SOURCE_PATHS[@]}"; do
+                check_auto_build_component "$NEXT_SOURCE_ITEM" "Source" 0
+            done
         fi
 
         if [ $DO_BUILD -ne 0 ]; then
             if [ "$VERBOSE_MODE" -ne 0 ]; then
-                echo "Autobuilding the incubator project."
+                echo "Autobuilding the $PROJECT_NAME project."
             fi
-            if ! ./build.sh -v $FULL_BUILD_FLAG > "$TEMP_FILE" 2>&1 ; then
+            if ! ./build.sh -v "$FULL_BUILD_FLAG" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
                 echo "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
                 complete_process 1
+            fi
+        else
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Not autobuilding the $PROJECT_NAME project.  All dependent files up to date."
             fi
         fi
     fi
@@ -137,12 +153,12 @@ process_debug() {
         complete_process 1
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing the incubator in debug mode with input file: $(realpath "$1")"
+        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$1")"
     fi
 
     # Run the commands and produce a JSON output file.
-    if ! ./build/incubator debug < "$1" > "$JSON_OUTPUT"; then
-        echo "Execution of the incubator failed."
+    if ! "$EXECUTABLE_PATH" debug < "$1" > "$JSON_OUTPUT"; then
+        echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
         complete_process 1
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -164,21 +180,33 @@ process_debug() {
 # Process one of the commands to watch the changes of the database
 # on a second by second interval.
 process_watch() {
-    watch -n 1 ./build/incubator "$1"
+    watch -n 1 "$EXECUTABLE_PATH" "$1"
 }
 
 # Process a normal command that interacts with the user.
 process_normal() {
-    if ! ./build/incubator "$1"; then
-        echo "Execution of the incubator failed."
+    if ! "$EXECUTABLE_PATH" "$1"; then
+        echo "Execution of the executable $EXECUTABLE_NAME in $1 mode failed."
         complete_process 1
     fi
 }
 
-# Set up any script variables.
-JSON_OUTPUT=build/output.json
-CSV_OUTPUT=build/output.csv
-TEMP_FILE=/tmp/incubator.run.tmp
+
+
+# Set up any global script variables.
+# shellcheck disable=SC2164
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+# shellcheck disable=SC1091
+source "$SCRIPTPATH/properties.sh"
+
+# Set up any project based local script variables.
+TEMP_FILE=/tmp/$PROJECT_NAME.run.tmp
+
+# Set up any local script variables.
+JSON_OUTPUT=$BUILD_DIRECTORY/output.json
+CSV_OUTPUT=$BUILD_DIRECTORY/output.csv
+EXECUTABLE_PATH=./$BUILD_DIRECTORY/$EXECUTABLE_NAME
+
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -187,8 +215,8 @@ parse_command_line "$@"
 handle_auto_build
 
 # Make sure the program is compiled before going on.
-if [ ! -f "build/incubator" ]; then
-    echo "Execution of the program has not be completed.  Cannot run."
+if [ ! -f "$EXECUTABLE_PATH" ]; then
+    echo "Building of the project has not be completed.  Cannot run."
     complete_process 1
 fi
 

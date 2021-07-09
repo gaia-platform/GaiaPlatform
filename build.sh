@@ -3,7 +3,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo Building the project...
+        echo Building project "$PROJECT_NAME"...
     fi
 }
 
@@ -11,10 +11,10 @@ start_process() {
 complete_process() {
     # $1 is the return code to assign to the script
     if [ "$1" -ne 0 ]; then
-        echo "Build of the project failed."
+        echo "Build of project $PROJECT_NAME failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Build of the project succeeded."
+            echo "Build of project $PROJECT_NAME succeeded."
         fi
     fi
 
@@ -139,17 +139,17 @@ prepare_build_directory() {
         if [ $VERBOSE_MODE -ne 0 ]; then
             echo "Force option selected. Forcing rebuild of all build artifacts."
         fi
-        rm -rf build
+        rm -rf "$BUILD_DIRECTORY"
     fi
 
     # If the build directory does not already exist, then create it.
-    if [ ! -d "build" ]; then
+    if [ ! -d "$BUILD_DIRECTORY" ]; then
         # Note that at this point, even if the flag has not been set, we
         #   treat the build as a forced build to ensure everything is set
         #   properly.
         FORCE_BUILD=1
 
-        if ! mkdir build; then
+        if ! mkdir "$BUILD_DIRECTORY"; then
             echo "Creation of the build directory failed."
             complete_process 1
         fi
@@ -171,16 +171,26 @@ handle_optional_flags() {
     # If the flag is set to refresh the DDL data, then do so.
     if [ $REFRESH_DDL -eq 1 ]; then
         if [ $VERBOSE_MODE -ne 0 ]; then
-            echo "Refresh-ddl option selected.  Removing database 'incubator'."
+            echo "Refresh-ddl option selected.  Removing database '$DATABASE_NAME'."
         fi
-        echo "drop database incubator" > "$TEMP_FILE"
+        echo "drop database $DATABASE_NAME" > "$TEMP_FILE"
         echo "exit" >> "$TEMP_FILE"
         gaiac -i < "$TEMP_FILE" > /dev/null
     fi
 }
 
-# Set up any script variables.
-TEMP_FILE=/tmp/incubator.build.tmp
+
+
+# Set up any global script variables.
+# shellcheck disable=SC2164
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+# shellcheck disable=SC1091
+source "$SCRIPTPATH/properties.sh"
+
+# Set up any project based local script variables.
+TEMP_FILE=/tmp/$PROJECT_NAME.build.tmp
+
+# Set up any local script variables.
 
 parse_command_line "$@"
 

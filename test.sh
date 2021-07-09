@@ -3,7 +3,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Testing the incubator against data in directory '$(realpath "$SCRIPTPATH/tests/$TEST_MODE")'."
+        echo "Testing the $PROJECT_NAME project against data in directory '$(realpath "$SCRIPTPATH/tests/$TEST_MODE")'."
     fi
 }
 
@@ -16,10 +16,10 @@ complete_process() {
     fi
 
     if [ "$1" -ne 0 ]; then
-        echo "Testing of the incubator failed."
+        echo "Testing of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Testing of the incubator succeeded."
+            echo "Testing of the $PROJECT_NAME project succeeded."
         fi
     fi
 
@@ -150,15 +150,15 @@ copy_test_output() {
             complete_process 2
         fi
 
-        if ! cp build/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+        if ! cp "$BUILD_DIRECTORY"/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot copy intermediate test results from '$(realpath build)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            echo "Test script cannot copy intermediate test results from '$(realpath "$BUILD_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
         fi
 
-        if ! cp logs/gaia_stats.log "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+        if ! cp "$LOG_DIRECTORY/gaia_stats.log" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot copy intermediate log files from '$(realpath logs)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            echo "Test script cannot copy intermediate log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
         fi
 
@@ -193,6 +193,7 @@ cd_to_test_directory() {
 # Remove the entire directory containing the test version of the project,
 # reinstall the project therer, and rebuild the project there.
 initialize_and_build_test_directory() {
+
     # To make sure we start at ground zero, remove the entire test directory.
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Removing test directory '$(realpath "$TEST_DIRECTORY")' prior to test execution."
@@ -205,7 +206,7 @@ initialize_and_build_test_directory() {
 
     # Install the project into the new test directory and cd into it.
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Installing project into test directory '$(realpath "$TEST_DIRECTORY")'."
+        echo "Installing the project into test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
@@ -239,6 +240,7 @@ initialize_and_build_test_directory() {
 
 # Execute the workflow that will run the specific test that was indicated.
 execute_test_workflow() {
+
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Running debug commands through project in test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
@@ -271,7 +273,7 @@ execute_test_workflow() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Verifying expected results against actual results."
     fi
-    if ! diff "tests/$TEST_MODE/expected_output.json" "build/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
+    if ! diff "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
         echo "Test results were not as expected."
         echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
         complete_process 1
@@ -279,12 +281,21 @@ execute_test_workflow() {
 }
 
 
-# Set up any script variables.
-DID_PUSHD=0
+
+# Set up any global script variables.
+# shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-TEST_DIRECTORY=/tmp/test_incubator
-TEST_RESULTS_DIRECTORY="test-results"
-TEMP_FILE=/tmp/incubator.test.tmp
+# shellcheck disable=SC1091
+source "$SCRIPTPATH/properties.sh"
+
+# Set up any project based local script variables.
+TEST_DIRECTORY=/tmp/test_$PROJECT_NAME
+TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp
+
+# Set up any local script variables.
+DID_PUSHD=0
+
+
 
 # Parse any command line values.
 parse_command_line "$@"

@@ -3,7 +3,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Installing the incubator example to directory $1"
+        echo "Installing the $PROJECT_NAME project to directory $1"
     fi
 }
 
@@ -11,10 +11,10 @@ start_process() {
 complete_process() {
     # $1 is the return code to assign to the script
     if [ "$1" -ne 0 ]; then
-        echo "Installation of the incubator example failed."
+        echo "Installation of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Installation of the incubator example succeeded."
+            echo "Installation of the $PROJECT_NAME project succeeded."
         fi
     fi
     exit "$1"
@@ -24,10 +24,10 @@ complete_process() {
 show_usage() {
     echo "Usage: $(basename "$0") [flags] <directory>"
     echo "Flags:"
-    echo "  -v,--verbose      Show lots of information while installing the example."
+    echo "  -v,--verbose      Show lots of information while installing the project."
     echo "  -h,--help         Display this help text."
     echo "Other:"
-    echo "  directory         Directory to create and install the example into."
+    echo "  directory         Directory to create and install the project into."
     exit 1
 }
 
@@ -62,7 +62,7 @@ calculate_install_directory() {
 
     if [ -z "${PARAMS[0]}" ]
     then
-        echo "Directory to install the example into was not provided."
+        echo "Directory to install the project into was not provided."
         show_usage
     fi
     INSTALL_DIRECTORY=${PARAMS[0]}
@@ -82,30 +82,31 @@ calculate_install_directory() {
     fi
 }
 
+# Remove any dynamic directories so that the build is really clean.
+remove_dynamic_directory() {
+
+    if [ "$1" == "/" ]; then
+        echo "Removing the specified directory '$1' is dangerous. Aborting."
+        complete_process 1
+    fi
+
+    if [ -d "$1" ]; then
+        if ! rm -rf "$1"; then
+            echo "Existing '$(realpath "$1")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
+            complete_process 1
+        fi
+    fi
+}
+
 # Copy the example into the directory.
 install_into_directory() {
     if ! cp -rf "$SCRIPTPATH" "$INSTALL_DIRECTORY"; then
-        echo "Example was not copied into the '$(realpath "$INSTALL_DIRECTORY")' directory."
+        echo "Project $PROJECT_NAME cannot be copied into the '$(realpath "$INSTALL_DIRECTORY")' directory."
         complete_process 1
     fi
-    if [ -d "$INSTALL_DIRECTORY/build" ]; then
-        if ! rm -rf "$INSTALL_DIRECTORY/build"; then
-            echo "Existing '$(realpath "$INSTALL_DIRECTORY/build")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
-            complete_process 1
-        fi
-    fi
-    if [ -d "$INSTALL_DIRECTORY/logs" ]; then
-        if ! rm -rf "$INSTALL_DIRECTORY/logs"; then
-            echo "Existing '$(realpath "$INSTALL_DIRECTORY/logs")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
-            complete_process 1
-        fi
-    fi
-    if [ -d "$INSTALL_DIRECTORY/test-results" ]; then
-        if ! rm -rf "$INSTALL_DIRECTORY/test-results"; then
-            echo "Existing '$(realpath "$INSTALL_DIRECTORY/test-results")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
-            complete_process 1
-        fi
-    fi
+    remove_dynamic_directory "$INSTALL_DIRECTORY/$BUILD_DIRECTORY"
+    remove_dynamic_directory "$INSTALL_DIRECTORY/$LOG_DIRECTORY"
+    remove_dynamic_directory "$INSTALL_DIRECTORY/$TEST_RESULTS_DIRECTORY"
 
     # ...then go into that directory.
     if ! cd "$INSTALL_DIRECTORY"; then
@@ -114,8 +115,19 @@ install_into_directory() {
     fi
 }
 
-# Set up any script variables.
+
+
+# Set up any global script variables.
+# shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+# shellcheck disable=SC1091
+source "$SCRIPTPATH/properties.sh"
+
+# Set up any project based local script variables.
+
+# Set up any local script variables.
+
+
 
 parse_command_line "$@"
 
