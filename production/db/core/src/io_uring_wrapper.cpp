@@ -15,7 +15,7 @@
 using namespace gaia::db;
 using namespace gaia::common;
 
-void io_uring_wrapper_t::open(size_t buffer_size)
+void async_write_batch_t::open(size_t buffer_size)
 {
     auto r = new io_uring();
     int ret = io_uring_queue_init(buffer_size, r, 0);
@@ -26,12 +26,12 @@ void io_uring_wrapper_t::open(size_t buffer_size)
     m_ring.reset(r);
 }
 
-io_uring_wrapper_t::~io_uring_wrapper_t()
+async_write_batch_t::~async_write_batch_t()
 {
     teardown();
 }
 
-void io_uring_wrapper_t::teardown()
+void async_write_batch_t::teardown()
 {
     if (m_ring)
     {
@@ -39,21 +39,21 @@ void io_uring_wrapper_t::teardown()
     }
 }
 
-io_uring_sqe* io_uring_wrapper_t::get_sqe()
+io_uring_sqe* async_write_batch_t::get_sqe()
 {
     auto sqe = io_uring_get_sqe(m_ring.get());
     ASSERT_INVARIANT(sqe, c_buffer_empty_err_msg);
     return sqe;
 }
 
-void io_uring_wrapper_t::prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe)
+void async_write_batch_t::prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe)
 {
     ASSERT_PRECONDITION(sqe, "Submission queue entry cannot be null.");
     sqe->user_data = data;
     sqe->flags |= flags;
 }
 
-void io_uring_wrapper_t::add_pwritev_op_to_batch(
+void async_write_batch_t::add_pwritev_op_to_batch(
     const iovec* iovecs,
     size_t num_iovecs,
     int file_fd,
@@ -66,7 +66,7 @@ void io_uring_wrapper_t::add_pwritev_op_to_batch(
     prep_sqe(data, flags, sqe);
 }
 
-void io_uring_wrapper_t::add_fdatasync_op_to_batch(
+void async_write_batch_t::add_fdatasync_op_to_batch(
     int file_fd,
     uint64_t data,
     u_char flags)
@@ -76,7 +76,7 @@ void io_uring_wrapper_t::add_fdatasync_op_to_batch(
     prep_sqe(data, flags, sqe);
 }
 
-size_t io_uring_wrapper_t::submit_operation_batch(bool wait)
+size_t async_write_batch_t::submit_operation_batch(bool wait)
 {
     if (wait)
     {
@@ -90,7 +90,7 @@ size_t io_uring_wrapper_t::submit_operation_batch(bool wait)
     }
 }
 
-void io_uring_wrapper_t::close_all_files_in_batch()
+void async_write_batch_t::close_all_files_in_batch()
 {
     {
         auto cleanup = gaia::common::scope_guard::make_scope_guard([&]() {
@@ -104,22 +104,22 @@ void io_uring_wrapper_t::close_all_files_in_batch()
     m_file_fds.clear();
 }
 
-void io_uring_wrapper_t::append_file_to_batch(int fd)
+void async_write_batch_t::append_file_to_batch(int fd)
 {
     m_file_fds.emplace_back(fd);
 }
 
-size_t io_uring_wrapper_t::get_unsubmitted_entries_count()
+size_t async_write_batch_t::get_unsubmitted_entries_count()
 {
     return io_uring_sq_ready(m_ring.get());
 }
 
-size_t io_uring_wrapper_t::get_unused_submission_entries_count()
+size_t async_write_batch_t::get_unused_submission_entries_count()
 {
     return io_uring_sq_space_left(m_ring.get());
 }
 
-void io_uring_wrapper_t::validate_next_completion_event()
+void async_write_batch_t::validate_next_completion_event()
 {
     io_uring_cqe* cqe;
     int ret = io_uring_peek_cqe(m_ring.get(), &cqe);
@@ -137,31 +137,31 @@ void io_uring_wrapper_t::validate_next_completion_event()
     mark_completion_seen(cqe);
 }
 
-size_t io_uring_wrapper_t::get_completion_count()
+size_t async_write_batch_t::get_completion_count()
 {
     return io_uring_cq_ready(m_ring.get());
 }
 
-void io_uring_wrapper_t::mark_completion_seen(struct io_uring_cqe* cqe)
+void async_write_batch_t::mark_completion_seen(struct io_uring_cqe* cqe)
 {
     io_uring_cqe_seen(m_ring.get(), cqe);
 }
 
-void io_uring_wrapper_t::insert_in_decision_batch(decision_entry_t decision)
+void async_write_batch_t::insert_in_decision_batch(decision_entry_t decision)
 {
     m_batch_decisions.push_back(decision);
 }
 
-const decision_list_t& io_uring_wrapper_t::get_decision_batch_entries() const
+const decision_list_t& async_write_batch_t::get_decision_batch_entries() const
 {
     return m_batch_decisions;
 }
 
-size_t io_uring_wrapper_t::get_decision_batch_size()
+size_t async_write_batch_t::get_decision_batch_size()
 {
     return m_batch_decisions.size();
 }
-void io_uring_wrapper_t::clear_decision_batch()
+void async_write_batch_t::clear_decision_batch()
 {
     m_batch_decisions.clear();
 }

@@ -84,7 +84,6 @@ size_t persistent_log_file_t::get_remaining_space(size_t record_size)
     return m_file_size - (m_current_offset + record_size);
 }
 
-// Just for testing.
 void persistent_log_file_t::get_file_name(std::string& file_name)
 {
     std::stringstream file_name0;

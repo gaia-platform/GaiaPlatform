@@ -38,12 +38,12 @@ enum class uring_op_t : uint64_t
  * For simplicity all APIs in this file assume that the io_uring submission queue has enough space.
  * The caller should verify that enough space exists before queuing requests to the ring.
  */
-class io_uring_wrapper_t
+class async_write_batch_t
 {
 public:
-    io_uring_wrapper_t() = default;
+    async_write_batch_t() = default;
 
-    ~io_uring_wrapper_t();
+    ~async_write_batch_t();
 
     void close_all_files_in_batch();
 
@@ -91,14 +91,14 @@ private:
     // io_uring instance. Each ring maintains a submission queue and a completion queue.
     std::unique_ptr<io_uring> m_ring;
 
+    // Keep track of all persistent log file_fds that need to be closed.
+    std::vector<int> m_file_fds;
+
     void prep_sqe(uint64_t data, u_char flags, io_uring_sqe* sqe);
 
     io_uring_sqe* get_sqe();
 
     void teardown();
-
-    // Keep track of all persistent log file_fds that need to be closed.
-    std::vector<int> m_file_fds;
 
     // Decisions that belong to this batch.
     decision_list_t m_batch_decisions;
