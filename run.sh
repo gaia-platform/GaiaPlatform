@@ -17,6 +17,11 @@ complete_process() {
             echo "Execution of the incubator succeeded."
         fi
     fi
+
+    if [ -f "$TEMP_FILE" ]; then
+        rm "$TEMP_FILE"
+    fi
+
     exit "$1"
 }
 
@@ -24,10 +29,10 @@ complete_process() {
 show_usage() {
     echo "Usage: $(basename "$0") [flags] <command>"
     echo "Flags:"
-    echo "  -v,--verbose      Show lots of information while executing the project."
-    echo "  -h,--help         Display this help text."
     echo "  -a,--auto         Automatically build the project before execution, if needed."
     echo "  -c,--csv          Generate a CSV output file if applicable."
+    echo "  -v,--verbose      Show lots of information while executing the project."
+    echo "  -h,--help         Display this help text."
     echo ""
     echo "Commands:"
     echo "  run               Run the simulator in normal mode."
@@ -48,27 +53,27 @@ parse_command_line() {
     while (( "$#" )); do
     case "$1" in
         -a|--auto)
-        AUTO_BUILD_MODE=1
-        shift
+            AUTO_BUILD_MODE=1
+            shift
         ;;
         -c|--csv)
-        GENERATE_CSV_MODE=1
-        shift
-        ;;
-        -h|--help) # unsupported flags
-        show_usage
+            GENERATE_CSV_MODE=1
+            shift
         ;;
         -v|--verbose)
-        VERBOSE_MODE=1
-        shift
+            VERBOSE_MODE=1
+            shift
+        ;;
+        -h|--help)
+            show_usage
         ;;
         -*) # unsupported flags
-        echo "Error: Unsupported flag $1" >&2
-        show_usage
+            echo "Error: Unsupported flag $1" >&2
+            show_usage
         ;;
         *) # preserve positional arguments
-        PARAMS+=("$1")
-        shift
+            PARAMS+=("$1")
+            shift
         ;;
     esac
     done
@@ -136,22 +141,22 @@ process_debug() {
     fi
 
     # Run the commands and produce a JSON output file.
-    if ! ./build/incubator debug < "$1" > $JSON_OUTPUT; then
+    if ! ./build/incubator debug < "$1" > "$JSON_OUTPUT"; then
         echo "Execution of the incubator failed."
         complete_process 1
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "JSON output file located at: $(realpath $JSON_OUTPUT)"
+        echo "JSON output file located at: $(realpath "$JSON_OUTPUT")"
     fi
 
     # For ease of graphing, also produce a CSV file if requested.
     if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
-        if ! ./translate_to_csv.py > $CSV_OUTPUT; then
+        if ! ./translate_to_csv.py > "$CSV_OUTPUT"; then
             echo "Translation of the JSON output to CSV failed."
             complete_process 1
         fi
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "CSV output file located at: $(realpath $CSV_OUTPUT)"
+            echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
         fi
     fi
 }

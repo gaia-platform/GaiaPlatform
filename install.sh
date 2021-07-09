@@ -37,16 +37,16 @@ parse_command_line() {
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -h|--help) # unsupported flags
-        show_usage
-        ;;
         -v|--verbose)
-        VERBOSE_MODE=1
-        shift
+            VERBOSE_MODE=1
+            shift
+        ;;
+        -h|--help)
+            show_usage
         ;;
         -*) # unsupported flags
-        echo "Error: Unsupported flag $1" >&2
-        show_usage
+            echo "Error: Unsupported flag $1" >&2
+            show_usage
         ;;
         *) # preserve positional arguments
             PARAMS+=("$1")

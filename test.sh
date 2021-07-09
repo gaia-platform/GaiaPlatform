@@ -23,6 +23,10 @@ complete_process() {
         fi
     fi
 
+    if [ -f "$TEMP_FILE" ]; then
+        rm "$TEMP_FILE"
+    fi
+
     # Restore the current directory.
     if [ "$DID_PUSHD" -eq 1 ]; then
         popd > /dev/null 2>&1 || exit
@@ -34,12 +38,72 @@ complete_process() {
 show_usage() {
     echo "Usage: $(basename "$0") [flags] [test-name]"
     echo "Flags:"
-    echo "  -v,--verbose      Show lots of information while executing the project."
-    echo "  -h,--help         Display this help text."
-    echo "  -ni,--no-init     Do not initialize the test data before executing the test."
+    echo "  -ni,--no-init       Do not initialize the test data before executing the test."
+    echo "  -vv,--very-verbose  Verbose for this script and any top level scripts it calls."
+    echo "  -v,--verbose        Show lots of information while executing the project."
+    echo "  -h,--help           Display this help text."
     echo "Arguments:"
-    echo "  test-name         Optional name of the test to run.  (Default: 'basic')"
+    echo "  test-name           Optional name of the test to run.  (Default: 'basic')"
     exit 1
+}
+
+# Parse the command line.
+parse_command_line() {
+    TEST_MODE="basic"
+    VERBOSE_MODE=0
+    VERY_VERBOSE_MODE=0
+    NO_INIT_MODE=0
+    PARAMS=()
+    while (( "$#" )); do
+    case "$1" in
+        -vv|--very-verbose)
+            VERBOSE_MODE=1
+            VERY_VERBOSE_MODE=1
+            shift
+        ;;
+        -ni|--no-init)
+            NO_INIT_MODE=1
+            shift
+        ;;
+        #-t|--test-mode)
+        #if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        #    TEST_MODE=$2
+        #    shift 2
+        #else
+        #    echo "Error: Argument for $1 is missing" >&2
+        #    exit 1
+        #fi
+        #;;
+        -v|--verbose)
+            VERBOSE_MODE=1
+            shift
+        ;;
+        -h|--help)
+            show_usage
+        ;;
+        -*) # unsupported flags
+            echo "Error: Unsupported flag $1" >&2
+            show_usage
+        ;;
+        *) # preserve positional arguments
+            PARAMS+=("$1")
+            shift
+        ;;
+    esac
+    done
+
+    if [[ ! "${PARAMS[0]}" == "" ]]; then
+        TEST_MODE=${PARAMS[0]}
+    fi
+    TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests/$TEST_MODE
+    if [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
+        complete_process 1
+    fi
+    if [ ! -f "$TEST_SOURCE_DIRECTORY/expected_output.json" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'expected_output.json' file."
+        complete_process 1
+    fi
 }
 
 # Clear the test output directory, making sure it exists for the test execution.
@@ -214,66 +278,8 @@ execute_test_workflow() {
     fi
 }
 
-# Parse the command line.
-parse_command_line() {
-    TEST_MODE="basic"
-    VERBOSE_MODE=0
-    VERY_VERBOSE_MODE=0
-    NO_INIT_MODE=0
-    PARAMS=()
-    while (( "$#" )); do
-    case "$1" in
-        -vv|--very-verbose)
-        VERBOSE_MODE=1
-        VERY_VERBOSE_MODE=1
-        shift
-        ;;
-        -ni|--no-init)
-        NO_INIT_MODE=1
-        shift
-        ;;
-        #-t|--test-mode)
-        #if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        #    TEST_MODE=$2
-        #    shift 2
-        #else
-        #    echo "Error: Argument for $1 is missing" >&2
-        #    exit 1
-        #fi
-        #;;
-        -h|--help)
-        show_usage
-        ;;
-        -v|--verbose)
-        VERBOSE_MODE=1
-        shift
-        ;;
-        -*) # unsupported flags
-        echo "Error: Unsupported flag $1" >&2
-        show_usage
-        ;;
-        *) # preserve positional arguments
-        PARAMS+=("$1")
-        shift
-        ;;
-    esac
-    done
 
-    if [[ ! "${PARAMS[0]}" == "" ]]; then
-        TEST_MODE=${PARAMS[0]}
-    fi
-    TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests/$TEST_MODE
-    if [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
-        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
-        complete_process 1
-    fi
-    if [ ! -f "$TEST_SOURCE_DIRECTORY/expected_output.json" ]; then
-        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'expected_output.json' file."
-        complete_process 1
-    fi
-}
-
-# Set up "$TEST_SOU variables.
+# Set up any script variables.
 DID_PUSHD=0
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 TEST_DIRECTORY=/tmp/test_incubator
