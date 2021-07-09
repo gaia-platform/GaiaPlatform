@@ -120,14 +120,14 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     {
     case catalog::index_type_t::range:
     {
-        auto idx = static_cast<range_index_t*>(it->second.get());
-        idx->insert_index_entry(std::move(key), record);
+        auto index = static_cast<range_index_t*>(it->second.get());
+        index->insert_index_entry(std::move(key), record);
     }
     break;
     case catalog::index_type_t::hash:
     {
-        auto idx = static_cast<hash_index_t*>(it->second.get());
-        idx->insert_index_entry(std::move(key), record);
+        auto index = static_cast<hash_index_t*>(it->second.get());
+        index->insert_index_entry(std::move(key), record);
     }
     break;
     }
@@ -206,15 +206,15 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     {
     case catalog::index_type_t::range:
     {
-        auto idx = static_cast<range_index_t*>(it->second.get());
-        auto w = idx->get_writer();
+        auto index = static_cast<range_index_t*>(it->second.get());
+        auto w = index->get_writer();
         truncate_index(&w, commit_ts);
     }
     break;
     case catalog::index_type_t::hash:
     {
-        auto idx = static_cast<hash_index_t*>(it->second.get());
-        auto w = idx->get_writer();
+        auto index = static_cast<hash_index_t*>(it->second.get());
+        auto w = index->get_writer();
         truncate_index(&w, commit_ts);
     }
     break;
@@ -225,18 +225,18 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool ig
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
-        auto& log = records.log_records[i];
+        auto& log_record = records.log_records[i];
         gaia_type_t obj_type = c_invalid_gaia_type;
 
-        if (log.operation == gaia_operation_t::remove)
+        if (log_record.operation == gaia_operation_t::remove)
         {
-            auto obj = offset_to_ptr(log.old_offset);
+            auto obj = offset_to_ptr(log_record.old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
             obj_type = obj->type;
         }
         else
         {
-            auto obj = offset_to_ptr(log.new_offset);
+            auto obj = offset_to_ptr(log_record.new_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
             obj_type = obj->type;
         }
@@ -256,9 +256,9 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool ig
             continue;
         }
 
-        for (auto idx : catalog_core_t::list_indexes(type_record_id))
+        for (auto index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::update_index(idx.id(), obj_type, log);
+            index::index_builder_t::update_index(index.id(), obj_type, log_record);
         }
     }
 }
