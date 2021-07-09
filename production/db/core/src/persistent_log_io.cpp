@@ -61,7 +61,7 @@ persistent_log_handler_t::persistent_log_handler_t(const std::string& directory_
         throw_system_error("Unable to open persistent log directory.");
     }
 
-    max_decided_commit_ts = c_invalid_gaia_txn_id;
+    m_max_decided_commit_ts = c_invalid_gaia_txn_id;
 }
 
 void persistent_log_handler_t::open_for_writes(int validate_flushed_batch_efd)
@@ -344,12 +344,16 @@ void persistent_log_handler_t::create_txn_record(
     async_disk_writer->construct_pwritev(writes_to_submit, current_file->get_file_fd(), start_offset, current_file->get_current_offset(), uring_op_t::PWRITEV_TXN);
 }
 
-void persistent_log_handler_t::destroy_persistent_log()
+void persistent_log_handler_t::destroy_persistent_log(uint64_t max_log_seq_to_delete)
 {
     // Done with recovery, delete all files.
     for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
     {
-        std::filesystem::remove_all(file.path());
+        uint64_t file_seq = std::stoi(file.path().filename());
+        if (file_seq <= max_log_seq_to_delete)
+        {
+            std::filesystem::remove_all(file.path());
+        }
     }
 }
 
@@ -361,12 +365,13 @@ void persistent_log_handler_t::set_persistent_log_sequence(uint64_t log_seq)
 void persistent_log_handler_t::recover_from_persistent_log(
     gaia_txn_id_t& last_checkpointed_commit_ts,
     uint64_t& last_processed_log_seq,
-    uint64_t max_log_seq_to_process)
+    uint64_t max_log_seq_to_process,
+    recovery_mode_t mode)
 {
     // Only relevant for checkpointing. Recovery doesn't care about the
     // 'last_checkpointed_commit_ts' and will reset this field to zero.
     // We don't persist txn ids across restarts.
-    max_decided_commit_ts = last_checkpointed_commit_ts;
+    m_max_decided_commit_ts = last_checkpointed_commit_ts;
     std::cout << "Recovering from persistent log." << std::endl;
     // Scan all files and read log records starting from the highest numbered file.
     std::vector<uint64_t> log_files;
@@ -377,16 +382,14 @@ void persistent_log_handler_t::recover_from_persistent_log(
         log_files.push_back(std::stoi(file.path().filename()));
     }
 
-    std::cout << "RECOVERY: Number of logs" << log_files.size() << std::endl;
-
-    std::cout << "RECOVERY: Last processed" << last_processed_log_seq << std::endl;
-
     // Sort files in ascending order by file name.
     sort(log_files.begin(), log_files.end());
 
     // Apply txns from file.
+    uint64_t max_log_file_seq_to_delete = 0;
     for (auto file_seq : log_files)
     {
+        ASSERT_PRECONDITION(file_seq > last_processed_log_seq, "Log file sequence number should be ");
         if (file_seq > max_log_seq_to_process)
         {
             break;
@@ -404,19 +407,15 @@ void persistent_log_handler_t::recover_from_persistent_log(
             s_wal_dir_path,
             file_seq,
             last_checkpointed_commit_ts,
-            recovery_mode_t::finish_on_first_error);
+            mode);
 
-        // Call delete & flush here.
-
-        if (checkpointing)
+        if (mode == recovery_mode_t::checkpoint)
         {
             if (txn_index.size() == 0)
             {
-                // no more txns to process in this log file; can be deleted.
-                // Update key of last checkpointed log seq
-                // Flush it.
-
-                // Now delete log file.
+                // Safe to delete this file as it doesn't have any more txns to write to the persistent store.
+                max_log_file_seq_to_delete = file_seq;
+                ASSERT_INVARIANT(decision_index.size() == 0, "Failed to process all persistent log records.");
             }
         }
 
@@ -429,12 +428,10 @@ void persistent_log_handler_t::recover_from_persistent_log(
 
     if (log_files.size() > 0)
     {
-        last_processed_log_seq = std::min(log_files.back(), max_log_seq_to_process);
+        last_processed_log_seq = (mode == recovery_mode_t::checkpoint) ? max_log_file_seq_to_delete : log_files.back();
     }
 
     ASSERT_POSTCONDITION(decision_index.size() == 0, "Failed to process all persistent log records.");
-
-    std::cout << "==== RECOVERY DONE ====" << std::endl;
 }
 
 size_t persistent_log_handler_t::get_remaining_txns_to_checkpoint_count()
@@ -517,7 +514,7 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
     }
 }
 
-void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts)
+void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts)
 {
     size_t record_size = 0;
 
@@ -634,7 +631,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
         }
 
         std::cout << "HEADER CRC zero." << std::endl;
-        if (it->recovery_mode == recovery_mode_t::fail_on_error)
+        if (it->recovery_mode == recovery_mode_t::checkpoint)
         {
             throw write_ahead_log_error("Read log record with empty checksum value.");
         }
@@ -667,7 +664,7 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
     if (crc != expected_crc)
     {
         std::cout << "CRC mismatch." << std::endl;
-        if (it->recovery_mode == recovery_mode_t::fail_on_error)
+        if (it->recovery_mode == recovery_mode_t::checkpoint)
         {
             throw write_ahead_log_error("Record checksum match failed!");
         }

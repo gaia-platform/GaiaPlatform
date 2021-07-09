@@ -28,7 +28,6 @@ using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
-const std::string persistent_store_manager::c_last_checkpointed_commit_ts_key = "gaia_last_checkpointed_commit_ts_key";
 const std::string persistent_store_manager::c_last_processed_log_num_key = "gaia_last_processed_log_num_key";
 
 persistent_store_manager::persistent_store_manager(
@@ -162,8 +161,7 @@ void persistent_store_manager::recover()
     size_t count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
-        if (it->key().compare(c_last_checkpointed_commit_ts_key) == 0
-            || it->key().compare(c_last_processed_log_num_key) == 0)
+        if (it->key().compare(c_last_processed_log_num_key) == 0)
         {
             continue;
         }

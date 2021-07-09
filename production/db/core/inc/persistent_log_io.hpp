@@ -52,7 +52,7 @@ private:
     // multiple txns.
     std::map<gaia_txn_id_t, decision_type_t> decision_index;
 
-    gaia_txn_id_t max_decided_commit_ts;
+    gaia_txn_id_t m_max_decided_commit_ts;
 
     size_t update_cursor(struct record_iterator_t* it);
     size_t validate_recovered_record_crc(struct record_iterator_t* it);
@@ -60,7 +60,7 @@ private:
     void unmap_file(struct record_iterator_t* it);
     bool is_remaining_file_empty(uint8_t* start, uint8_t* end);
     void write_log_record_to_persistent_store(read_record_t* record);
-    void write_records(record_iterator_t* it, gaia_txn_id_t last_checkpointed_commit_ts);
+    void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
     bool write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode);
 
     // Persistent log writer.
@@ -105,9 +105,10 @@ public:
     void recover_from_persistent_log(
         gaia_txn_id_t& last_checkpointed_commit_ts,
         uint64_t& last_processed_log_seq,
-        uint64_t max_log_seq_to_process);
+        uint64_t max_log_seq_to_process,
+        recovery_mode_t mode);
 
-    void destroy_persistent_log();
+    void destroy_persistent_log(uint64_t max_log_seq_to_delete);
 
     void register_write_to_persistent_store_fn(std::function<void(db_object_t&)> write_obj_fn);
     void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);

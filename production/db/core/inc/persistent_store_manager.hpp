@@ -80,7 +80,6 @@ public:
 
     static constexpr char c_data_dir_command_flag[] = "--data-dir";
     static constexpr char c_persistent_store_dir_name[] = "/data";
-    static const std::string c_last_checkpointed_commit_ts_key;
     static const std::string c_last_processed_log_num_key;
 
 private:

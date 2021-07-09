@@ -720,7 +720,7 @@ void server_t::recover_persistent_log()
 
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
-                persistent_log_handler->destroy_persistent_log();
+                persistent_log_handler->destroy_persistent_log(INT64_MAX);
             }
 
             // Get last processed log.
@@ -729,16 +729,17 @@ void server_t::recover_persistent_log()
 
             // Recover only the first time this method gets called.
             gaia_txn_id_t last_checkpointed_commit_ts = 0;
-            persistent_log_handler->recover_from_persistent_log(last_checkpointed_commit_ts, last_processed_log_seq, INT64_MAX);
+            persistent_log_handler->recover_from_persistent_log(
+                last_checkpointed_commit_ts,
+                last_processed_log_seq,
+                INT64_MAX,
+                recovery_mode_t::finish_on_first_error);
 
             rdb->update_value(persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
 
-            // Reset c_last_checkpointed_commit_ts_key, we don't persist it across restarts.
-            rdb->update_value(persistent_store_manager::c_last_checkpointed_commit_ts_key, 0);
-
             persistent_log_handler->set_persistent_log_sequence(last_processed_log_seq);
 
-            persistent_log_handler->destroy_persistent_log();
+            persistent_log_handler->destroy_persistent_log(INT64_MAX);
 
             persistent_log_handler->open_for_writes(s_validate_persistence_batch_eventfd);
         }
@@ -1066,9 +1067,20 @@ void server_t::persistent_checkpoint_handler()
         eventfd_t max_log_seq_to_checkpoint;
         eventfd_read(s_signal_checkpoint_log_evenfd, &max_log_seq_to_checkpoint);
 
-        // Process all existing log files till the 'max_log_seq_to_checkpoint'
+        // Process all existing log files.
         gaia_txn_id_t last_processed_log_seq = 0;
-        persistent_log_handler->recover_from_persistent_log(s_last_checkpointed_commit_ts_lower_bound, last_processed_log_seq, max_log_seq_to_checkpoint);
+        persistent_log_handler->recover_from_persistent_log(
+            s_last_checkpointed_commit_ts_lower_bound,
+            last_processed_log_seq,
+            max_log_seq_to_checkpoint,
+            recovery_mode_t::checkpoint);
+
+        rdb->update_value(persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
+
+        // Flush persistent store buffer to disk.
+        rdb->flush();
+
+        persistent_log_handler->destroy_persistent_log(last_processed_log_seq);
     }
 }
 

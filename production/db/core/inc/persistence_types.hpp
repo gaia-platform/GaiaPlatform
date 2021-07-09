@@ -31,7 +31,7 @@ enum class recovery_mode_t : uint8_t
 
     // Does not tolerate any IO failure when reading a log file; any
     // IO error is treated as unrecoverable. Checkpointing does not tolerate any error.
-    fail_on_error = 0x1,
+    checkpoint = 0x1,
 
     // Stop recovery on first IO error. Database will always start and will try to recover as much
     // committed data from the log as possible.
