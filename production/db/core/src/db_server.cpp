@@ -44,6 +44,7 @@ using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::storage;
+using namespace gaia::db::transactions;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
@@ -1674,7 +1675,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     do
     {
         has_found_new_committed_txn = false;
-        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
             // Seal all uninitialized timestamps. This marks a "fence" after which
             // any submitted txns with commit timestamps in our conflict window must
@@ -1758,7 +1759,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // Validate all undecided txns, from oldest to newest. If any validated txn
     // commits, test it immediately for conflicts. Also test any committed txns
     // for conflicts if they weren't tested in the first pass.
-    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts) + 1; ts < commit_ts; ++ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
         {
@@ -1896,7 +1897,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // Ensure that the begin_ts in this metadata matches the txn log header.
     ASSERT_INVARIANT(
-        txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
     // Update the shared locator view with each redo version (i.e., the
@@ -2120,7 +2121,7 @@ void server_t::apply_txn_logs_to_shared_view()
             }
 
             if (txn_metadata_t::is_txn_submitted(ts)
-                && txn_metadata_t::is_txn_validating(txn_metadata_t::get_commit_ts(ts)))
+                && txn_metadata_t::is_txn_validating(txn_metadata_t::get_commit_ts_from_begin_ts(ts)))
             {
                 break;
             }
