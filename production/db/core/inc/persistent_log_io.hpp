@@ -82,7 +82,7 @@ private:
 public:
     persistent_log_handler_t(const std::string& directory_path);
     ~persistent_log_handler_t();
-    void open_for_writes(int validate_flushed_batch_efd);
+    void open_for_writes(int validate_flushed_batch_efd, int signal_checkpoint_eventfd);
 
     void create_txn_record(
         gaia_txn_id_t commit_ts,

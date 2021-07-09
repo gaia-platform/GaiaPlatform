@@ -94,19 +94,28 @@ void io_uring_wrapper_t::close_all_files_in_batch()
 {
     {
         auto cleanup = gaia::common::scope_guard::make_scope_guard([&]() {
-            for (auto fd : m_file_fds)
+            for (log_file_info_t file_info : m_files_to_close)
             {
-                close_fd(fd);
+                close_fd(file_info.second);
             }
         });
     }
-
-    m_file_fds.clear();
+    m_files_to_close.clear();
 }
 
-void io_uring_wrapper_t::append_file_to_batch(int fd)
+uint64_t io_uring_wrapper_t::get_max_file_seq_to_close()
 {
-    m_file_fds.emplace_back(fd);
+    if (m_files_to_close.size() > 0)
+    {
+        return m_files_to_close.back().first;
+    }
+    return 0;
+}
+
+void io_uring_wrapper_t::append_file_to_batch(int fd, uint64_t log_seq)
+{
+    log_file_info_t info{log_seq, fd};
+    m_files_to_close.push_back(info);
 }
 
 size_t io_uring_wrapper_t::get_unsubmitted_entries_count()

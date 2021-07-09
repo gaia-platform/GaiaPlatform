@@ -41,6 +41,7 @@ public:
     void allocate(size_t size);
     void get_file_name(std::string& file_name);
     int get_file_fd();
+    uint64_t get_log_file_seq();
 };
 
 } // namespace db

@@ -8,6 +8,7 @@
 #include <cstddef>
 
 #include <atomic>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -43,7 +44,9 @@ public:
 
     void close_all_files_in_batch();
 
-    void append_file_to_batch(int fd);
+    void append_file_to_batch(int fd, uint64_t log_file_seq);
+
+    uint64_t get_max_file_seq_to_close();
 
     void add_pwritev_op_to_batch(
         const iovec* iovecs,
@@ -94,7 +97,7 @@ private:
     void teardown();
 
     // Keep track of all persistent log file_fds that need to be closed.
-    std::vector<int> m_file_fds;
+    std::vector<log_file_info_t> m_files_to_close;
 
     // Decisions that belong to this batch.
     decision_list_t m_batch_decisions;

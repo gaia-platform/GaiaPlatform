@@ -153,6 +153,8 @@ struct helper_buffer_t
     }
 };
 
+// Pair of log file sequence number and file fd.
+typedef std::pair<uint64_t, int> log_file_info_t;
 typedef std::vector<decision_entry_t> decision_list_t;
 
 } // namespace db

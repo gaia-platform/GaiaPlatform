@@ -51,7 +51,7 @@ TEST(io_uring_manager_test, single_write)
     auto file_size = 4 * 1024 * 1024;
 
     auto validate_flush_efd = gaia::common::make_eventfd(0);
-    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd);
+    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_eventfd(0));
     auto set_txn_durable_fn = [=](gaia_txn_id_t) {};
     io_uring_mgr->register_txn_durable_fn(set_txn_durable_fn);
     io_uring_mgr->open();
@@ -68,7 +68,7 @@ TEST(io_uring_manager_test, single_write)
     size_t count_submitted = io_uring_mgr->pwritev(&iov, 1, wal_file.get_file_fd(), 0, uring_op_t::PWRITEV_TXN);
     wal_file.allocate(to_write.size());
 
-    count_submitted += io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_current_offset());
+    count_submitted += io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_log_file_seq());
     count_submitted += io_uring_mgr->handle_submit(wal_file.get_file_fd(), false);
 
     int flush_efd = io_uring_mgr->get_flush_efd();
@@ -101,7 +101,7 @@ TEST(io_uring_manager_test, multiple_write)
     auto file_size = 4 * 1024 * 1024;
 
     auto validate_flush_efd = gaia::common::make_eventfd(0);
-    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd);
+    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_eventfd(0));
     size_t batch_size = 16;
     auto set_txn_durable_fn = [=](gaia_txn_id_t) {};
     io_uring_mgr->register_txn_durable_fn(set_txn_durable_fn);
@@ -127,7 +127,7 @@ TEST(io_uring_manager_test, multiple_write)
         wal_file.allocate(to_write.size());
     }
 
-    io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_current_offset());
+    io_uring_mgr->handle_file_close(wal_file.get_file_fd(), wal_file.get_log_file_seq());
     io_uring_mgr->handle_submit(wal_file.get_file_fd(), false);
 
     int flush_efd = io_uring_mgr->get_flush_efd();

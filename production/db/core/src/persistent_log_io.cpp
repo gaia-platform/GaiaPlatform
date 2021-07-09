@@ -64,13 +64,13 @@ persistent_log_handler_t::persistent_log_handler_t(const std::string& directory_
     m_max_decided_commit_ts = c_invalid_gaia_txn_id;
 }
 
-void persistent_log_handler_t::open_for_writes(int validate_flushed_batch_efd)
+void persistent_log_handler_t::open_for_writes(int validate_flushed_batch_efd, int signal_checkpoint_eventfd)
 {
     ASSERT_PRECONDITION(validate_flushed_batch_efd >= 0, "Invalid validate flush eventfd.");
     ASSERT_INVARIANT(dir_fd > 0, "Unable to open data directory for persistent log writes.");
 
     // Create new wal file every time the wal writer gets initialized.
-    async_disk_writer = std::make_unique<async_disk_writer_t>(validate_flushed_batch_efd);
+    async_disk_writer = std::make_unique<async_disk_writer_t>(validate_flushed_batch_efd, signal_checkpoint_eventfd);
 
     auto set_txn_durable_fn = [=](gaia_txn_id_t commit_ts) {
         txn_metadata_t::set_txn_durable(commit_ts);
@@ -121,7 +121,7 @@ persistent_log_file_offset_t persistent_log_handler_t::allocate_log_space(size_t
     }
     else if (current_file->get_remaining_space(payload_size) <= 0)
     {
-        async_disk_writer->handle_file_close(current_file->get_file_fd(), current_file->get_current_offset());
+        async_disk_writer->handle_file_close(current_file->get_file_fd(), current_file->get_log_file_seq());
 
         // As a simplification, one batch writes to a single log file at a time.
         async_disk_writer->handle_submit(current_file->get_file_fd());

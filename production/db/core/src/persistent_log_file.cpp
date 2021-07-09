@@ -100,3 +100,8 @@ void persistent_log_file_t::get_file_name(std::string& file_name)
     file_name0 << m_dir_name << "/" << m_file_num;
     file_name = file_name0.str();
 }
+
+uint64_t persistent_log_file_t::get_log_file_seq()
+{
+    return m_file_num;
+}

@@ -741,7 +741,7 @@ void server_t::recover_persistent_log()
 
             persistent_log_handler->destroy_persistent_log(INT64_MAX);
 
-            persistent_log_handler->open_for_writes(s_validate_persistence_batch_eventfd);
+            persistent_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_evenfd);
         }
     }
 
@@ -1069,6 +1069,7 @@ void server_t::persistent_checkpoint_handler()
 
         // Process all existing log files.
         gaia_txn_id_t last_processed_log_seq = 0;
+        std::cout << "CHECKPOINT" << std::endl;
         persistent_log_handler->recover_from_persistent_log(
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
@@ -2734,11 +2735,13 @@ void server_t::run(server_config_t server_conf)
         // To signal to the persistence thread that new writes are available to be written.
         s_signal_log_write_eventfd = make_eventfd(0);
         s_signal_decision_eventfd = make_eventfd(0);
+        s_signal_checkpoint_log_evenfd = make_eventfd(0);
 
         auto cleanup_persistence_eventfds = make_scope_guard([]() {
             close_fd(s_signal_log_write_eventfd);
             close_fd(s_signal_decision_eventfd);
             close_fd(s_validate_persistence_batch_eventfd);
+            close_fd(s_signal_checkpoint_log_evenfd);
         });
 
         // Launch signal handler thread.

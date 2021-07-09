@@ -38,7 +38,7 @@ public:
      * Initializes io_uring ring buffers. 
      * Setting up each ring will create two shared memory queues.
     */
-    async_disk_writer_t(int validate_flushed_batch_efd);
+    async_disk_writer_t(int validate_flushed_batch_efd, int signal_checkpoint_eventfd);
 
     /**
      * Tear down function for io_uring. Unmaps all setup shared ring buffers 
@@ -71,7 +71,7 @@ public:
 
     size_t handle_submit(int file_fd, bool validate = false);
 
-    size_t handle_file_close(int fd, size_t file_size);
+    size_t handle_file_close(int fd, uint64_t log_seq);
 
     void* get_header_ptr(
         int file_fd,
@@ -103,6 +103,7 @@ private:
 
     static inline int flush_efd = -1;
     static inline int validate_flush_efd = -1;
+    static inline int signal_checkpoint_efd = -1;
 
     std::unordered_map<gaia_txn_id_t, int> ts_to_session_unblock_fd_map;
 

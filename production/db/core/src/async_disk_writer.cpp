@@ -27,13 +27,14 @@ namespace gaia
 namespace db
 {
 
-async_disk_writer_t::async_disk_writer_t(int validate_flush_efd0)
+async_disk_writer_t::async_disk_writer_t(int validate_flush_efd0, int signal_checkpoint_eventfd0)
 {
     in_progress_buffer = std::make_unique<io_uring_wrapper_t>();
     in_flight_buffer = std::make_unique<io_uring_wrapper_t>();
     ASSERT_INVARIANT(validate_flush_efd0 >= 0, "Invalid validate flush eventfd");
 
     validate_flush_efd = validate_flush_efd0;
+    signal_checkpoint_efd = signal_checkpoint_eventfd0;
 
     // Used to block new writes to disk when a batch is already getting flushed.
     flush_efd = eventfd(1, 0);
@@ -121,8 +122,15 @@ void async_disk_writer_t::perform_post_completion_maintenence()
         in_flight_buffer->validate_next_completion_event();
     }
 
+    auto max_file_seq_to_close = in_flight_buffer->get_max_file_seq_to_close();
+
     // Post validation, clear the helper buffer.
     in_flight_buffer->close_all_files_in_batch();
+
+    if (max_file_seq_to_close > 0)
+    {
+        signal_eventfd(signal_checkpoint_efd, max_file_seq_to_close);
+    }
 
     // Set durability flags.
     // std::cout << "validating batch decision size = " << in_flight_buffer->batch_decisions.size() << std::endl;
@@ -235,12 +243,12 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
 
 // Call fsync on the file before closing it.
 // Close the fd separately.
-size_t async_disk_writer_t::handle_file_close(int fd, size_t file_size)
+size_t async_disk_writer_t::handle_file_close(int fd, uint64_t log_seq)
 {
     size_t submission_entries_needed = 1;
     submit_if_full(fd, submission_entries_needed);
     in_progress_buffer->add_fdatasync_op_to_batch(fd, get_enum_value(uring_op_t::FDATASYNC), IOSQE_IO_DRAIN);
-    in_progress_buffer->append_file_to_batch(fd);
+    in_progress_buffer->append_file_to_batch(fd, log_seq);
     return submission_entries_needed;
 }
 
