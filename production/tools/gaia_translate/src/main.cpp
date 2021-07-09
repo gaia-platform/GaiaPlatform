@@ -135,7 +135,8 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr)
     {
-        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(), tok::semi, source_manager, options, true);
+        SourceLocation end_location = Lexer::findLocationAfterToken(
+            return_value.getEnd(), tok::semi, source_manager, options, true);
         if (end_location.isValid())
         {
             return_value.setEnd(end_location.getLocWithOffset(-1));
@@ -584,8 +585,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         if (data_iterator.path_components.size() == 1
                             && table_name == anchor_table_name && !data_iterator.is_absolute_path)
                         {
-                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
-                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
+                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding()
+                                - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding()
+                                - variable_declaration_range.getBegin().getRawEncoding();
                             if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
                             {
                                 variable_declaration_range = variable_declaration_range_iterator.first;
@@ -928,8 +931,10 @@ void optimize_subscription(const string& table, int rule_count)
 // tables used by all active fields.
 bool has_multiple_anchors()
 {
-    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'OnInsert', 'OnChange', or 'OnUpdate'.";
-    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields from different tables.";
+    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
+                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
+                                               "from different tables.";
 
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
@@ -944,7 +949,9 @@ bool has_multiple_anchors()
     }
 
     // Handle the special case of OnUpdate(table1, table2.field)
-    if (g_active_fields.size() == 1 && g_update_tables.size() == 1 && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+    if (g_active_fields.size() == 1
+        && g_update_tables.size() == 1
+        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
         cerr << c_multi_anchor_tables << endl;
         return true;
