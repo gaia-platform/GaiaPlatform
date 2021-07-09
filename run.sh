@@ -130,7 +130,7 @@ handle_auto_build() {
             fi
             if ! ./build.sh -v "$FULL_BUILD_FLAG" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
-                echo "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
+                echo "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
                 complete_process 1
             fi
         else

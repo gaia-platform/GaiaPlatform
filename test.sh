@@ -102,9 +102,15 @@ parse_command_line() {
 
 # Clear the test output directory, making sure it exists for the test execution.
 clear_test_output() {
+    if [ "$TEST_RESULTS_DIRECTORY" == "" ]; then
+        echo "Removing the specified directory '$TEST_RESULTS_DIRECTORY' is dangerous. Aborting."
+        complete_process 1
+    fi
+
     if [ -d "$TEST_RESULTS_DIRECTORY" ]; then
         if [ "$(ls -A "$TEST_RESULTS_DIRECTORY")" ] ; then
-            if ! rm "$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
+            # shellcheck disable=SC2115
+            if ! rm -rf "$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
                 cat "$TEMP_FILE"
                 echo "Test script cannot remove intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
                 complete_process 1
@@ -283,7 +289,6 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
-TEST_DIRECTORY=/tmp/test_$PROJECT_NAME
 TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp
 
 # Set up any local script variables.

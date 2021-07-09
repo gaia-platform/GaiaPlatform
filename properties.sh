@@ -32,6 +32,13 @@ export LOG_DIRECTORY="logs"
 # Relative directory where the test results are stored.
 export TEST_RESULTS_DIRECTORY="test-results"
 
+# Relative directory where the test suite results are stored.
+export SUITE_RESULTS_DIRECTORY="suite-results"
+
+# Absolute temp directory where the project is installed to and operated
+# on during the testing process.
+export TEST_DIRECTORY=/tmp/test_$PROJECT_NAME
+
 # -----------------------------------------------------------------
 # Functions to specify how to process the command line with run.sh.
 #
