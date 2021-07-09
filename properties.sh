@@ -31,3 +31,100 @@ export LOG_DIRECTORY="logs"
 
 # Relative directory where the test results are stored.
 export TEST_RESULTS_DIRECTORY="test-results"
+
+# -----------------------------------------------------------------
+# Functions to specify how to process the command line with run.sh.
+#
+# This is placed in this file to make the core scripts as agnostic
+# as possible for reuse.
+# -----------------------------------------------------------------
+
+export TEST_COMMAND_NAME="debug"
+
+# Process a debug command which executes a file containing commands
+# and captures any output.  Normal assumption is that the output is
+# in the form of a JSON file.
+process_debug() {
+
+    JSON_OUTPUT=$BUILD_DIRECTORY/output.json
+    CSV_OUTPUT=$BUILD_DIRECTORY/output.csv
+
+    if [ -z "$1" ]
+    then
+        echo "No debug file to execute supplied for command 'debug'."
+        complete_process 1
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$1")"
+    fi
+
+    # Run the commands and produce a JSON output file.
+    if ! "$EXECUTABLE_PATH" debug < "$1" > "$JSON_OUTPUT"; then
+        echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
+        complete_process 1
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "JSON output file located at: $(realpath "$JSON_OUTPUT")"
+    fi
+
+    # For ease of graphing, also produce a CSV file if requested.
+    if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
+        if ! ./translate_to_csv.py > "$CSV_OUTPUT"; then
+            echo "Translation of the JSON output to CSV failed."
+            complete_process 1
+        fi
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
+        fi
+    fi
+}
+
+# Process one of the commands to watch the changes of the database
+# on a second by second interval.
+process_watch() {
+    watch -n 1 "$EXECUTABLE_PATH" "$1"
+}
+
+# Process a normal command that interacts with the user.
+process_normal() {
+    if ! "$EXECUTABLE_PATH" "$1"; then
+        echo "Execution of the executable $EXECUTABLE_NAME in $1 mode failed."
+        complete_process 1
+    fi
+}
+
+# Process the various commands.
+execute_commands() {
+
+    GENERATE_CSV_MODE=$1
+
+    if [[ "${PARAMS[0]}" == "$TEST_COMMAND_NAME" ]]; then
+        process_debug "${PARAMS[1]}"
+    elif [[ "${PARAMS[0]}" == "watch" ]]; then
+        process_watch "show"
+    elif [[ "${PARAMS[0]}" == "watch-json" ]]; then
+        process_watch "showj"
+    elif [[ "${PARAMS[0]}" == "show" ]]; then
+        process_normal "show"
+    elif [[ "${PARAMS[0]}" == "show-json" ]]; then
+        process_normal "showj"
+    elif [[ "${PARAMS[0]}" == "run" ]]; then
+        process_normal "sim"
+    elif [[ "${PARAMS[0]}" == "" ]]; then
+        echo "Command was not provided."
+        show_usage
+    else
+        echo "Command '${PARAMS[0]}' not known."
+        complete_process 1
+    fi
+}
+
+show_usage_commands() {
+    echo "Commands:"
+    echo "  run               Run the simulator in normal mode."
+    echo "  debug <file>      Debug the simulator using the specified file."
+    echo "  show              Show the current state of the simulation and exit."
+    echo "  show-json         Show the current state of the simulation as JSON and exit."
+    echo "  watch             Show the state of the simulation every second."
+    echo "  watch-json        Show the state of the simulation as JSON every second."
+}

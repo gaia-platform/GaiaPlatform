@@ -9,8 +9,9 @@ start_process() {
 
 # Simple function to stop the process, including any cleanup
 complete_process() {
-    # $1 is the return code to assign to the script
-    if [ "$1" -ne 0 ]; then
+    local SCRIPT_RETURN_CODE=$1
+
+    if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Execution of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -22,25 +23,21 @@ complete_process() {
         rm "$TEMP_FILE"
     fi
 
-    exit "$1"
+    exit "$SCRIPT_RETURN_CODE"
 }
 
 # Show how this script can be used.
 show_usage() {
-    echo "Usage: $(basename "$0") [flags] <command>"
+    local SCRIPT_NAME=$0
+
+    echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
     echo "  -a,--auto         Automatically build the project before execution, if needed."
     echo "  -c,--csv          Generate a CSV output file if applicable."
     echo "  -v,--verbose      Show lots of information while executing the project."
     echo "  -h,--help         Display this help text."
     echo ""
-    echo "Commands:"
-    echo "  run               Run the simulator in normal mode."
-    echo "  debug <file>      Debug the simulator using the specified file."
-    echo "  show              Show the current state of the simulation and exit."
-    echo "  show-json         Show the current state of the simulation as JSON and exit."
-    echo "  watch             Show the state of the simulation every second."
-    echo "  watch-json        Show the state of the simulation as JSON every second."
+    show_usage_commands
     exit 1
 }
 
@@ -79,6 +76,8 @@ parse_command_line() {
     done
 }
 
+# Check to see if an individual component to make the executable
+# has been updated since the last time the executable was built.
 check_auto_build_component() {
     local NEXT_SOURCE_ITEM=$1
     local SOURCE_ITEM_TYPE=$2
@@ -142,55 +141,6 @@ handle_auto_build() {
     fi
 }
 
-# Process a debug command which executes a file containing commands
-# and captures any output.  Normal assumption is that the output is
-# in the form of a JSON file.
-process_debug() {
-
-    if [ -z "$1" ]
-    then
-        echo "No debug file to execute supplied for command 'debug'."
-        complete_process 1
-    fi
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$1")"
-    fi
-
-    # Run the commands and produce a JSON output file.
-    if ! "$EXECUTABLE_PATH" debug < "$1" > "$JSON_OUTPUT"; then
-        echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
-        complete_process 1
-    fi
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "JSON output file located at: $(realpath "$JSON_OUTPUT")"
-    fi
-
-    # For ease of graphing, also produce a CSV file if requested.
-    if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
-        if ! ./translate_to_csv.py > "$CSV_OUTPUT"; then
-            echo "Translation of the JSON output to CSV failed."
-            complete_process 1
-        fi
-        if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
-        fi
-    fi
-}
-
-# Process one of the commands to watch the changes of the database
-# on a second by second interval.
-process_watch() {
-    watch -n 1 "$EXECUTABLE_PATH" "$1"
-}
-
-# Process a normal command that interacts with the user.
-process_normal() {
-    if ! "$EXECUTABLE_PATH" "$1"; then
-        echo "Execution of the executable $EXECUTABLE_NAME in $1 mode failed."
-        complete_process 1
-    fi
-}
-
 
 
 # Set up any global script variables.
@@ -203,8 +153,6 @@ source "$SCRIPTPATH/properties.sh"
 TEMP_FILE=/tmp/$PROJECT_NAME.run.tmp
 
 # Set up any local script variables.
-JSON_OUTPUT=$BUILD_DIRECTORY/output.json
-CSV_OUTPUT=$BUILD_DIRECTORY/output.csv
 EXECUTABLE_PATH=./$BUILD_DIRECTORY/$EXECUTABLE_NAME
 
 
@@ -223,27 +171,8 @@ fi
 # Clean entrance into the script.
 start_process
 
-# Process the various commands.
-if [[ "${PARAMS[0]}" == "debug" ]]; then
-    process_debug "${PARAMS[1]}"
-elif [[ "${PARAMS[0]}" == "watch" ]]; then
-    process_watch "show"
-elif [[ "${PARAMS[0]}" == "watch-json" ]]; then
-    process_watch "showj"
-elif [[ "${PARAMS[0]}" == "show" ]]; then
-    process_normal "show"
-elif [[ "${PARAMS[0]}" == "show-json" ]]; then
-    process_normal "showj"
-elif [[ "${PARAMS[0]}" == "run" ]]; then
-    process_normal "sim"
-elif [[ "${PARAMS[0]}" == "" ]]; then
-    echo "Command was not provided."
-    show_usage
-else
-    echo "Command '${PARAMS[0]}' not known."
-    complete_process 1
-fi
+execute_commands $GENERATE_CSV_MODE
 
 # If we get here, we have a clean exit from the script.
-complete_process 0 "$1"
+complete_process 0
 

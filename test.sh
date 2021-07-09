@@ -9,13 +9,13 @@ start_process() {
 
 # Simple function to stop the process, including any cleanup
 complete_process() {
-    # $1 is the return code to assign to the script
+    local SCRIPT_RETURN_CODE=$1
 
-    if [ "$1" -ne 2 ]; then
+    if [ "$SCRIPT_RETURN_CODE" -ne 2 ]; then
         copy_test_output
     fi
 
-    if [ "$1" -ne 0 ]; then
+    if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Testing of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -31,12 +31,15 @@ complete_process() {
     if [ "$DID_PUSHD" -eq 1 ]; then
         popd > /dev/null 2>&1 || exit
     fi
-    exit "$1"
+
+    exit "$SCRIPT_RETURN_CODE"
 }
 
 # Show how this script can be used.
 show_usage() {
-    echo "Usage: $(basename "$0") [flags] [test-name]"
+    local SCRIPT_NAME=$0
+
+    echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
     echo "  -ni,--no-init       Do not initialize the test data before executing the test."
     echo "  -vv,--very-verbose  Verbose for this script and any top level scripts it calls."
@@ -65,15 +68,6 @@ parse_command_line() {
             NO_INIT_MODE=1
             shift
         ;;
-        #-t|--test-mode)
-        #if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        #    TEST_MODE=$2
-        #    shift 2
-        #else
-        #    echo "Error: Argument for $1 is missing" >&2
-        #    exit 1
-        #fi
-        #;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -248,11 +242,11 @@ execute_test_workflow() {
     TEST_START_MARK=$(date +%s.%N)
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
-        ./run.sh -v -a debug "tests/$TEST_MODE/commands.txt"
+        ./run.sh -v -a "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
         DID_FAIL=$?
     else
         DID_FAIL=0
-        ./run.sh -v -a debug "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
+        ./run.sh -v -a "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)
@@ -320,4 +314,4 @@ fi
 execute_test_workflow
 
 # If we get here, we have a clean exit from the script.
-complete_process 0 "$1"
+complete_process 0

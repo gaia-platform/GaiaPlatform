@@ -2,27 +2,32 @@
 
 # Simple function to start the process off.
 start_process() {
+    local DIRECTORY_TO_INSTALL_TO=$1
+
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Installing the $PROJECT_NAME project to directory $1"
+        echo "Installing the $PROJECT_NAME project to directory $DIRECTORY_TO_INSTALL_TO"
     fi
 }
 
 # Simple function to stop the process, including any cleanup
 complete_process() {
-    # $1 is the return code to assign to the script
-    if [ "$1" -ne 0 ]; then
+    local SCRIPT_RETURN_CODE=$1
+
+    if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Installation of the $PROJECT_NAME project failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Installation of the $PROJECT_NAME project succeeded."
         fi
     fi
-    exit "$1"
+    exit "$SCRIPT_RETURN_CODE"
 }
 
 # Show how this script can be used.
 show_usage() {
-    echo "Usage: $(basename "$0") [flags] <directory>"
+    local SCRIPT_NAME=$0
+
+    echo "Usage: $(basename "$SCRIPT_NAME") [flags] <directory>"
     echo "Flags:"
     echo "  -v,--verbose      Show lots of information while installing the project."
     echo "  -h,--help         Display this help text."
@@ -50,7 +55,7 @@ parse_command_line() {
         ;;
         *) # preserve positional arguments
             PARAMS+=("$1")
-        shift
+            shift
         ;;
     esac
     done
@@ -59,13 +64,13 @@ parse_command_line() {
 # Calculate where to install the project to and that it is in the right state
 # for that install to continue.
 calculate_install_directory() {
+    INSTALL_DIRECTORY=${PARAMS[0]}
 
-    if [ -z "${PARAMS[0]}" ]
+    if [ -z "$INSTALL_DIRECTORY" ]
     then
-        echo "Directory to install the project into was not provided."
+        echo "Directory to install the project to was not provided."
         show_usage
     fi
-    INSTALL_DIRECTORY=${PARAMS[0]}
     length=${#INSTALL_DIRECTORY}
     last_char=${INSTALL_DIRECTORY:length-1:1}
     [[ $last_char != "/" ]] && INSTALL_DIRECTORY="$INSTALL_DIRECTORY/"; :
@@ -84,15 +89,16 @@ calculate_install_directory() {
 
 # Remove any dynamic directories so that the build is really clean.
 remove_dynamic_directory() {
+    local DYNAMIC_DIRECTORY_PATH=$1
 
-    if [ "$1" == "/" ]; then
-        echo "Removing the specified directory '$1' is dangerous. Aborting."
+    if [ "$DYNAMIC_DIRECTORY_PATH" == "/" ]; then
+        echo "Removing the specified directory '$DYNAMIC_DIRECTORY_PATH' is dangerous. Aborting."
         complete_process 1
     fi
 
-    if [ -d "$1" ]; then
-        if ! rm -rf "$1"; then
-            echo "Existing '$(realpath "$1")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
+    if [ -d "$DYNAMIC_DIRECTORY_PATH" ]; then
+        if ! rm -rf "$DYNAMIC_DIRECTORY_PATH"; then
+            echo "Existing '$(realpath "$DYNAMIC_DIRECTORY_PATH")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
             complete_process 1
         fi
     fi
@@ -139,4 +145,4 @@ start_process "$INSTALL_DIRECTORY"
 install_into_directory
 
 # If we get here, we have a clean exit from the script.
-complete_process 0 "$1"
+complete_process 0

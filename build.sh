@@ -3,14 +3,15 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo Building project "$PROJECT_NAME"...
+        echo Building the project "$PROJECT_NAME"...
     fi
 }
 
 # Simple function to stop the process, including any cleanup
 complete_process() {
-    # $1 is the return code to assign to the script
-    if [ "$1" -ne 0 ]; then
+    local SCRIPT_RETURN_CODE=$1
+
+    if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Build of project $PROJECT_NAME failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -22,12 +23,14 @@ complete_process() {
         rm "$TEMP_FILE"
     fi
 
-    exit "$1"
+    exit "$SCRIPT_RETURN_CODE"
 }
 
 # Show how this script can be used.
 show_usage() {
-    echo "Usage: $(basename "$0") [flags]"
+    local SCRIPT_NAME=$0
+
+    echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -f,--force        Force a complete build of the project."
     echo "  -m,--make-only    Build only the make part of the project."
@@ -105,7 +108,7 @@ parse_command_line() {
 # Generate the Makefile
 generate_makefile() {
     if [ $VERBOSE_MODE -ne 0 ]; then
-        echo "Building the makefile..."
+        echo "Generating the makefile..."
         cmake -B build
         DID_FAIL=$?
     else
@@ -114,9 +117,9 @@ generate_makefile() {
     fi
     if [ $DID_FAIL -ne 0 ]; then
         if [ $VERBOSE_MODE -eq 0 ]; then
-        cat "$TEMP_FILE"
+            cat "$TEMP_FILE"
         fi
-        echo "Build of the makefile failed."
+        echo "Generation of the makefile failed."
         complete_process 1
     fi
 }
@@ -124,10 +127,10 @@ generate_makefile() {
 # Build the actual executable file.
 invoke_makefile() {
     if [ $VERBOSE_MODE -ne 0 ]; then
-        echo "Building the executable file..."
+        echo "Building the executable..."
     fi
     if ! make -C build --silent; then
-        echo "Build of the executable file failed."
+        echo "Build of the executable failed."
         complete_process 1
     fi
 }
@@ -165,7 +168,7 @@ handle_optional_flags() {
         if [ $VERBOSE_MODE -ne 0 ]; then
             echo "No-cache option selected.  Removing CMake cache file."
         fi
-        rm build/CMakeCache.txt
+        rm "$BUILD_DIRECTORY/CMakeCache.txt"
     fi
 
     # If the flag is set to refresh the DDL data, then do so.
