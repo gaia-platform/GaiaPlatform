@@ -1,16 +1,17 @@
 // RUN: echo "Tag used before it is declared." | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
-ruleset test34
+// TESTCASE: forbid using a tag in the do{} before it is declared in the while()
+ruleset test09
 {
-    OnInsert(incubator)
+    OnInsert(sensor)
     {
         int val = 0;
         do
         {
             val += S.value;
         }
-        while (S:sensor.value > 0.0);
+        while (S:sensor.value < 10);
     }
 }
 
