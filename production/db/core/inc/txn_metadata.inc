@@ -355,9 +355,9 @@ void txn_metadata_t::set_active_txn_terminated(gaia_txn_id_t begin_ts)
     return txn_metadata_t(begin_ts).set_active_txn_terminated();
 }
 
-void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed)
+void txn_metadata_t::update_txn_decision(gaia_txn_id_t commit_ts, bool has_committed)
 {
-    return txn_metadata_t(commit_ts).update_txn_decision(is_committed);
+    return txn_metadata_t(commit_ts).update_txn_decision(has_committed);
 }
 
 void txn_metadata_t::set_txn_durable(gaia_txn_id_t commit_ts)

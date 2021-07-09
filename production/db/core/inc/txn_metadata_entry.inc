@@ -179,7 +179,7 @@ txn_metadata_entry_t txn_metadata_entry_t::set_terminated()
         c_terminated_flags | (m_word & ~c_txn_status_flags_mask)};
 }
 
-txn_metadata_entry_t txn_metadata_entry_t::set_decision(bool is_committed)
+txn_metadata_entry_t txn_metadata_entry_t::set_decision(bool has_committed)
 {
     // The commit_ts metadata must be in state TXN_VALIDATING or TXN_DECIDED.
     // We allow the latter to enable idempotent concurrent validation.
@@ -187,7 +187,7 @@ txn_metadata_entry_t txn_metadata_entry_t::set_decision(bool is_committed)
         is_validating() || is_decided(),
         "commit_ts metadata must be in validating or decided state!");
 
-    uint64_t decided_status_flags{is_committed ? c_txn_status_committed : c_txn_status_aborted};
+    uint64_t decided_status_flags{has_committed ? c_txn_status_committed : c_txn_status_aborted};
 
     // This masks out all bits except the commit_ts flag bits.
     constexpr uint64_t c_commit_flags_mask = ~c_txn_status_commit_ts << c_txn_status_flags_shift;
