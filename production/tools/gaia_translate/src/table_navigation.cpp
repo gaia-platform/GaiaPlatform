@@ -1,9 +1,16 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "table_navigation.h"
 
 #include <climits>
 
 #include <iostream>
 #include <random>
+
+#include "gaia_internal/common/random.hpp"
 
 using namespace std;
 using namespace gaia::translation;
@@ -458,7 +465,7 @@ string table_navigation_t::get_variable_name(const string& variable, const unord
 {
     if (tags.find(variable) == tags.end())
     {
-        return "_" + variable + "_" + generate_random_string(c_variable_length);
+        return "_" + variable + "_" + common::gen_random_str(c_variable_length);
     }
     else
     {
@@ -466,25 +473,6 @@ string table_navigation_t::get_variable_name(const string& variable, const unord
     }
 }
 
-string table_navigation_t::generate_random_string(string::size_type length)
-{
-    const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-                        "abcdefghijklmnopqrstuvwxyz0123456789";
-
-    random_device rd;
-    mt19937_64 gen(rd());
-    uniform_int_distribution<string::size_type> dis;
-
-    string s;
-
-    s.reserve(length);
-    while (length--)
-    {
-        s += chrs[dis(gen) % (sizeof(chrs) - 1)];
-    }
-
-    return s;
-}
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {

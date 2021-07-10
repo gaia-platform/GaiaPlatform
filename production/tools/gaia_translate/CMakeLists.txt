@@ -18,6 +18,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 set(GAIAT_SRCS
   src/main.cpp
   src/table_navigation.cpp
+  src/catalog_graph.cpp
 )
 
 link_directories(
@@ -37,6 +38,7 @@ target_link_libraries(gaiat
   gaia_payload_types
   gaia_system
   flatbuffers
+  lemon
   ${LIB_EXPLAIN}
   ${LIB_CAP}
   dl
@@ -52,6 +54,7 @@ set(TEST_INCLUDES
   ${GAIA_INC}
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/tools/gaia_translate/tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/incubator.ddl")
@@ -179,4 +182,10 @@ add_gtest(test_queries_ruleset
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
+)
+
+add_gtest(test_graph
+    "tests/test_graph.cpp;src/catalog_graph.cpp"
+    "${TEST_INCLUDES}"
+    "rt;gaia_spdlog;lemon;gaia_system;gaia_db_catalog_test;edc_prerequisites"
 )
