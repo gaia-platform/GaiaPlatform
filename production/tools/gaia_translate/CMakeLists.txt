@@ -185,7 +185,7 @@ add_gtest(test_queries_ruleset
 )
 
 add_gtest(test_graph
-    "tests/test_graph.cpp;src/catalog_graph.cpp"
+    "tests/test_catalog_graph.cpp;src/catalog_graph.cpp"
     "${TEST_INCLUDES}"
     "rt;gaia_spdlog;lemon;gaia_system;gaia_db_catalog_test;edc_prerequisites"
 )
