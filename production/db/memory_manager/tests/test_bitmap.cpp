@@ -245,3 +245,26 @@ TEST(bitmap, bit_range_setting)
     bit_count = count_set_bits(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_count, 4);
 }
+
+TEST(bitmap, set_get_find_bitstring)
+{
+    constexpr size_t c_bitmap_size = 2;
+    std::atomic<uint64_t> bitmap[c_bitmap_size]{};
+
+    constexpr uint64_t c_bitstring = 0b1101;
+    constexpr size_t c_width = 4;
+    constexpr size_t c_bit_index = c_uint64_bit_count + c_width;
+    set_bitstring_at_index(bitmap, c_bitmap_size, c_bit_index, c_bitstring, c_width);
+    print_bitmap(bitmap, c_bitmap_size);
+    ASSERT_EQ(bitmap[0], 0);
+    ASSERT_EQ(bitmap[1], c_bitstring << c_width);
+
+    size_t bit_count = count_set_bits(bitmap, c_bitmap_size);
+    ASSERT_EQ(bit_count, 3);
+
+    uint64_t bitstring = get_bitstring_at_index(bitmap, c_bitmap_size, c_bit_index, c_width);
+    ASSERT_EQ(bitstring, c_bitstring);
+
+    size_t found_bit_index = find_first_bitstring(bitmap, c_bitmap_size, c_bitstring, c_width);
+    ASSERT_EQ(found_bit_index, c_bit_index);
+}
