@@ -1,7 +1,7 @@
 // RUN: echo "TODO error message" | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
-// TESTCASE: illegal navigation in a while() statement
+// TESTCASE: illegal navigation in the while() statement of a do-while
 ruleset test48
 {
     OnInsert(farmer)

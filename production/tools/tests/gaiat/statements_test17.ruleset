@@ -1,17 +1,16 @@
 // RUN: echo "TODO error message" | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
-// TESTCASE: illegal navigation in a while() statement
-ruleset test48
+// TESTCASE: do-while with an active field and an illegal table scan
+ruleset test44
 {
-    OnInsert(farmer)
     {
         int count = 0;
         do
         {
-            count++;
+            count += 1;
         }
-        while (farmer->yield.bushels < 10);
+        while (/@animal.age < 10);
     }
 }
 

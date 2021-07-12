@@ -1,15 +1,18 @@
 // RUN: echo "TODO error message" | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
-// TESTCASE: while() with an active field and an illegal table scan
-ruleset test44
+// TESTCASE: do-while with illegal iteration in the while()
+ruleset test11
 {
+    OnInsert(incubator)
     {
         int count = 0;
-        while (/@animal.age < 10)
+        do
         {
             count += 1;
         }
+        while (sensor.value > 0.0);
+        // illegal iteration, 1 incubator -> N sensors
     }
 }
 

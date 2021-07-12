@@ -555,8 +555,21 @@ ruleset test33
 
 #ifdef SHOULD_FAIL
 
-// TESTCASE: while() with navigation and tags
+// TESTCASE: while() with 1-to-N iteration
 ruleset fail_test1
+{
+    OnInsert(incubator)
+    {
+        int num = 0;
+        while (sensor.value > 0.0)
+        {
+            num++;
+        }
+    }
+}
+
+// TESTCASE: while() with navigation and tags
+ruleset fail_test2
 {
     OnInsert(incubator)
     {
@@ -569,7 +582,7 @@ ruleset fail_test1
 }
 
 // TESTCASE: nested while() loops with navigation and tags
-ruleset fail_test2
+ruleset fail_test3
 {
     OnInsert(incubator)
     {
@@ -585,7 +598,7 @@ ruleset fail_test2
 }
 
 // TESTCASE: if() inside of while(), both with complex navigation, using OnInsert
-ruleset fail_test3
+ruleset fail_test4
 {
     OnInsert(farmer)
     {
@@ -601,7 +614,7 @@ ruleset fail_test3
 }
 
 // TESTCASE: if() inside of while(), both with complex navigation, active field in the while()
-ruleset fail_test4
+ruleset fail_test5
 {
     {
         float temp = 0;
@@ -616,7 +629,7 @@ ruleset fail_test4
 }
 
 // TESTCASE: arbitrarily deep navigation with tags in a for() containing a while()
-ruleset fail_test5
+ruleset fail_test6
 {
     OnInsert(incubator)
     {
@@ -636,7 +649,7 @@ ruleset fail_test5
 }
 
 // TESTCASE: braceless while() with tag declarations
-ruleset fail_test6
+ruleset fail_test7
 {
     OnInsert(incubator)
     {
@@ -647,7 +660,7 @@ ruleset fail_test6
 }
 
 // TESTCASE: nested procedural and declarative while()s and an if()
-ruleset fail_test7
+ruleset fail_test8
 {
     OnInsert(incubator)
     {
@@ -666,7 +679,7 @@ ruleset fail_test7
 }
 
 // TESTCASE: declarative do-while() with implicit iteration
-ruleset fail_test8
+ruleset fail_test9
 {
     OnInsert(incubator)
     {
@@ -680,7 +693,7 @@ ruleset fail_test8
 }
 
 // TESTCASE: declarative do-while containing an if() that declares a tag
-ruleset fail_test9
+ruleset fail_test10
 {
     OnUpdate(incubator)
     {
@@ -697,7 +710,7 @@ ruleset fail_test9
 }
 
 // TESTCASE: declarative do-while with a full-table scan
-ruleset fail_test10
+ruleset fail_test11
 {
     OnInsert(incubator)
     {
@@ -711,7 +724,7 @@ ruleset fail_test10
 }
 
 // TESTCASE: do-while with an active field and a table scan in the while()
-ruleset fail_test11
+ruleset fail_test12
 {
     {
         int count = 0;
@@ -724,7 +737,7 @@ ruleset fail_test11
 }
 
 // TESTCASE: do-while with a table scan in the while() over the child table of the anchor row's table
-ruleset fail_test12
+ruleset fail_test13
 {
     OnInsert(incubator)
     {
@@ -738,7 +751,7 @@ ruleset fail_test12
 }
 
 // TESTCASE: nested declarative do-while loops
-ruleset fail_test13
+ruleset fail_test14
 {
     OnInsert(I:incubator)
     {
@@ -766,7 +779,7 @@ ruleset fail_test13
 }
 
 // TESTCASE: arbitrarily complex navigation in the while() statement of a do-while
-ruleset fail_test14
+ruleset fail_test15
 {
     OnInsert(farmer)
     {
@@ -780,7 +793,7 @@ ruleset fail_test14
 }
 
 // TESTCASE: procedural for() with a declarative query inside a do-while
-ruleset fail_test15
+ruleset fail_test16
 {
     OnInsert(incubator)
     {
