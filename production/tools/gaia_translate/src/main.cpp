@@ -1181,10 +1181,15 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
                 SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1)),
                 return_value))
             {
-                auto offset
-                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+                SourceRange for_source_range = expression->getSourceRange();
+                SourceRange nomatch_source_range = get_statement_source_range(expression->getNoMatch(), rewriter.getSourceMgr(), rewriter.getLangOpts());
+
+                if (nomatch_source_range.isValid())
+                {
+                    for_source_range.setEnd(nomatch_source_range.getEnd());
+                }
                 update_expression_location(
-                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+                    return_value, for_source_range.getBegin(), for_source_range.getEnd());
             }
             return return_value;
         }
@@ -1605,12 +1610,14 @@ public:
             {
                 cerr << "Incorrect base type of generated type." << endl;
                 g_is_generation_error = true;
+                return;
             }
         }
         else
         {
             cerr << "Incorrect matched expression." << endl;
             g_is_generation_error = true;
+            return;
         }
         if (expression_source_range.isValid())
         {
@@ -2727,6 +2734,7 @@ public:
         {
             cerr << "Incorrect matched expression." << endl;
             g_is_generation_error = true;
+            return;
         }
 
         string table_name;
@@ -2734,11 +2742,16 @@ public:
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
-        const auto* path = static_cast<const DeclRefExpr*>(expression->getPath());
 
+        const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
+        if (path == nullptr)
+        {
+            cerr << "Incorrect expression is used as a path in for statement." << endl;
+            g_is_generation_error = true;
+            return;
+        }
         const ValueDecl* decl = path->getDecl();
         table_name = get_table_name(decl);
-
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
             variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
@@ -2778,6 +2791,12 @@ public:
         }
         m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
         g_rewriter_history.push_back({SourceRange(expression->getForLoc(), expression->getRParenLoc()), "", remove_text});
+        if (expression->getNoMatch() != nullptr)
+        {
+            SourceRange nomatch_location = get_statement_source_range(expression->getNoMatch(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+            g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
+            g_nomatch_location.emplace_back(nomatch_location);
+        }
     }
 
 private:

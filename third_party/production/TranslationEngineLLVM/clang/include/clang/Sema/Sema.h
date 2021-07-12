@@ -3802,9 +3802,11 @@ public:
 
   StmtResult ActOnGaiaForStmt(SourceLocation ForLoc,
                           SourceLocation LParenLoc,
-                          Stmt *Path,
+                          Expr *Path,
                           SourceLocation RParenLoc,
-                          Stmt *Body);
+                          Stmt *Body,
+                          SourceLocation NoMatchLoc,
+                          Stmt* NoMatchStmt);
   ExprResult CheckObjCForCollectionOperand(SourceLocation forLoc,
                                            Expr *collection);
   StmtResult ActOnObjCForCollectionStmt(SourceLocation ForColLoc,
