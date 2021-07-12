@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <chrono>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
@@ -755,6 +756,17 @@ public:
             printf("]\n");
         }
         stop();
+        {
+            using std::chrono::high_resolution_clock;
+            using std::chrono::duration;
+            using std::chrono::milliseconds;
+
+            auto end_sleep_start_mark = high_resolution_clock::now();
+            sleep(10);
+            auto end_sleep_end_mark = high_resolution_clock::now();
+            duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+            printf("{ \"stop_pause_in_sec\" : %.9f }\n", ms_double.count()/1000.0);
+        }
         return EXIT_SUCCESS;
     }
 

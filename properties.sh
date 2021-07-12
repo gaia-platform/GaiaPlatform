@@ -55,6 +55,7 @@ process_debug() {
 
     JSON_OUTPUT=$BUILD_DIRECTORY/output.json
     CSV_OUTPUT=$BUILD_DIRECTORY/output.csv
+    STOP_OUTPUT=$BUILD_DIRECTORY/output.delay
 
     if [ -z "$1" ]
     then
@@ -84,6 +85,12 @@ process_debug() {
             echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
         fi
     fi
+
+    # Assuming that the last line of the file has a prefix of `stop_pause_in_sec:`,
+    # remove it and locate it elsewhere in that folder.
+    tail -n 1 $JSON_OUTPUT > $STOP_OUTPUT
+    head -n -1 $JSON_OUTPUT > $TEST_DIRECTORY/blah
+    cp $TEST_DIRECTORY/blah $JSON_OUTPUT
 }
 
 # Process one of the commands to watch the changes of the database

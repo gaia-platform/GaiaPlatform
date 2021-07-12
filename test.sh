@@ -123,6 +123,15 @@ clear_test_output() {
             complete_process 1
         fi
     fi
+
+    STATS_LOG=$LOG_DIRECTORY/gaia_stats.log
+    if [ -f "$STATS_LOG" ]; then
+        if ! rm "$STATS_LOG" > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            echo "Test script cannot remove stats log '$STATS_LOG' before running test."
+            complete_process 1
+        fi
+    fi
 }
 
 # Copy the intermediate test output directory to the script's test output directory.
