@@ -762,7 +762,7 @@ public:
             using std::chrono::milliseconds;
 
             auto end_sleep_start_mark = high_resolution_clock::now();
-            sleep(10);
+            sleep(4);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
             printf("{ \"stop_pause_in_sec\" : %.9f }\n", ms_double.count()/1000.0);
@@ -846,7 +846,8 @@ int main(int argc, const char** argv)
     }
 
     simulation_t sim;
-    gaia::system::initialize();
+    const char * configuration_file_name = "incubator.conf";
+    gaia::system::initialize(configuration_file_name, nullptr);
 
     if(is_live_user) {
         printf("-----------------------------------------\n");

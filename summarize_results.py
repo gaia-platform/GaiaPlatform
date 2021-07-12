@@ -53,7 +53,9 @@ def process_rules_engine_stats(log_path):
         log_line_columns = next_log_line.split(" ")
         if log_line_columns[3].startswith("--"):
             continue
-        assert len(log_line_columns) == maximum_exec_index + 2
+        if not log_line_columns[3].startswith("[thread"):
+            continue
+        assert len(log_line_columns) == maximum_exec_index + 2, str(log_line_columns)
 
         stats_slice = {}
         stats_slice[thread_load_title] = float(log_line_columns[thread_load_index])
