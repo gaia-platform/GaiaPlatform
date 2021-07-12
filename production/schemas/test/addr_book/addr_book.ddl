@@ -52,6 +52,20 @@ create relationship if not exists phone_owner (
     phone.owner -> employee
 );
 
+create table if not exists internet_contract (
+    provider string
+);
+
+create relationship if not exists internet_contract_address (
+    address.internet_contract -> internet_contract,
+    internet_contract.address -> address
+);
+
+create relationship if not exists internet_contract_owner (
+    employee.internet_contract -> internet_contract,
+    internet_contract.owner -> employee
+);
+
 create table if not exists customer (
     name string,
     sales_by_quarter int32[]
