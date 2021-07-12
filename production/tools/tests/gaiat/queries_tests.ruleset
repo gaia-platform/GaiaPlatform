@@ -193,7 +193,6 @@ ruleset test21
 }
 
 // GAIAPLAT-915 (fixed)
-// This translates without error, but translated code will not compile.
 ruleset test22
 {
     OnInsert(yield)
