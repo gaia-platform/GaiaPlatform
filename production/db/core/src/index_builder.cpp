@@ -28,9 +28,9 @@ namespace index
 {
 
 template <class T_index>
-void truncate_index(index_writer_guard_t<T_index>* w, gaia_txn_id_t commit_ts)
+void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
-    auto index = w->get_index();
+    auto index = w.get_index();
     auto end = index.end();
     auto iter = index.begin();
 
@@ -208,14 +208,14 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     {
         auto index = static_cast<range_index_t*>(it->second.get());
         auto w = index->get_writer();
-        truncate_index(&w, commit_ts);
+        truncate_index(w, commit_ts);
     }
     break;
     case catalog::index_type_t::hash:
     {
         auto index = static_cast<hash_index_t*>(it->second.get());
         auto w = index->get_writer();
-        truncate_index(&w, commit_ts);
+        truncate_index(w, commit_ts);
     }
     break;
     }
