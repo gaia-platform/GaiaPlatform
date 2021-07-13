@@ -53,7 +53,9 @@ public:
     /**
      * Add file to the batch that should be closed once all of its pending writes have finished.
      */
-    void append_file_to_batch(int fd);
+    void append_file_to_batch(int fd, uint64_t log_seq);
+
+    uint64_t get_max_file_seq_to_close();
 
     /**
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
@@ -104,7 +106,7 @@ private:
     io_uring m_ring;
 
     // Keep track of all persistent log file_fds that need to be closed.
-    std::vector<int> m_file_fds;
+    std::vector<log_file_info_t> m_files_to_close;
 
     void prepare_submission_queue_entry(uint64_t data, u_char flags, io_uring_sqe* sqe);
 
