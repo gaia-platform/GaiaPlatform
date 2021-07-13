@@ -86,7 +86,7 @@ struct mpsc_queue_node_t
 
 // This implementation of a multiple-producer single-consumer (mpsc) queue
 // is based on the implementation described at:
-// https://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue
+// https://www.1024cores.net/home/lock-free-algorithms/queues/intrusive-mpsc-node-based-queue
 template <class T>
 class mpsc_queue_t
 {
@@ -112,6 +112,7 @@ protected:
     mpsc_queue_node_t<T>* dequeue_internal();
 
 protected:
+    // Nodes are enqueued at tail and removed from head.
     std::atomic<mpsc_queue_node_t<T>*> m_head;
     mpsc_queue_node_t<T>* m_tail;
 
