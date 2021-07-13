@@ -43,7 +43,6 @@ struct decision_entry_t
 // 3) Txn decisions
 // 4) iovec entries to be supplied to the pwritev() call.
 static constexpr uint64_t c_max_metadata_buf_size = 16 * 1024 * 1024;
-
 struct metadata_buffer_t
 {
     uint8_t* start;
