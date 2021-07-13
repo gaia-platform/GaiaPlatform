@@ -551,6 +551,37 @@ ruleset test33
     }
 }
 
+#ifdef FUTURE_SUCCESS
+
+// TESTCASE: 1-to-1 navigation in a while() is legal
+ruleset future_success_test_1
+{
+    OnInsert(TODO_PARENT)
+    {
+        int num = 0;
+        while(TODO_PARENT->TODO_CHILD.TODO_FIELD < 10)
+        {
+            num++;
+        }
+    }
+}
+
+// TESTCASE: 1-to-1 navigation in a do-while is legal
+ruleset future_success_test_2
+{
+    OnInsert(TODO_PARENT)
+    {
+        int num = 0;
+        do
+        {
+            num++;
+        }
+        while(TODO_PARENT->TODO_CHILD.TODO_FIELD < 10);
+    }
+}
+
+#endif // #ifdef FUTURE_SUCCESS
+
 #define SHOULD_FAIL
 
 #ifdef SHOULD_FAIL
