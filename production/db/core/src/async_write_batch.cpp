@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "io_uring_wrapper.hpp"
+#include "async_write_batch.hpp"
 
 #include <iostream>
 
@@ -94,19 +94,28 @@ void async_write_batch_t::close_all_files_in_batch()
 {
     {
         auto cleanup = gaia::common::scope_guard::make_scope_guard([&]() {
-            for (auto fd : m_file_fds)
+            for (log_file_info_t file_info : m_files_to_close)
             {
-                close_fd(fd);
+                close_fd(file_info.second);
             }
         });
     }
-
-    m_file_fds.clear();
+    m_files_to_close.clear();
 }
 
-void async_write_batch_t::append_file_to_batch(int fd)
+void async_write_batch_t::append_file_to_batch(int fd, uint64_t log_seq)
 {
-    m_file_fds.emplace_back(fd);
+    log_file_info_t info{log_seq, fd};
+    m_files_to_close.push_back(info);
+}
+
+uint64_t async_write_batch_t::get_max_file_seq_to_close()
+{
+    if (m_files_to_close.size() > 0)
+    {
+        return m_files_to_close.back().first;
+    }
+    return 0;
 }
 
 size_t async_write_batch_t::get_unsubmitted_entries_count()

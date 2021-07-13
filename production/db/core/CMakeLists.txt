@@ -114,7 +114,8 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 
 add_library(gaia_db_persistence STATIC
-  src/io_uring_wrapper.cpp
+  src/async_disk_writer.cpp
+  src/async_write_batch.cpp
   src/persistent_log_file.cpp)
 target_link_libraries(gaia_db_persistence PUBLIC gaia_build_options)
 target_include_directories(gaia_db_persistence PRIVATE
