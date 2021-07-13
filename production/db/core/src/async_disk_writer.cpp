@@ -44,10 +44,10 @@ async_disk_writer_t::async_disk_writer_t(int validate_flush_efd0, int signal_che
     }
 }
 
-void async_disk_writer_t::open(size_t buffer_size)
+void async_disk_writer_t::open(size_t batch_size)
 {
-    m_in_progress_batch->open(buffer_size);
-    m_in_flight_batch->open(buffer_size);
+    m_in_progress_batch->open(batch_size);
+    m_in_flight_batch->open(batch_size);
 }
 
 async_disk_writer_t::~async_disk_writer_t()
@@ -150,7 +150,7 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
     size_t in_prog_size = m_in_progress_batch->get_unsubmitted_entries_count();
     if (in_prog_size == 0)
     {
-        swap_buffers();
+        swap_batches();
 
         // Nothing to submit; reset the flush efd that got burnt in handle_submit() function.
         signal_eventfd(s_flush_efd, 1);
@@ -168,7 +168,7 @@ size_t async_disk_writer_t::finish_and_submit_batch(int file_fd, bool wait)
     m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_FLUSH), IOSQE_IO_LINK);
     m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_validate_flush_efd, 0, get_enum_value(uring_op_t::PWRITEV_EVENTFD_VALIDATE), IOSQE_IO_DRAIN);
 
-    swap_buffers();
+    swap_batches();
     auto flushed_batch_size = m_in_flight_batch->get_unsubmitted_entries_count();
     ASSERT_INVARIANT(in_prog_size == flushed_batch_size, "ptr swap failed.");
     size_t submission_count = 0;
@@ -272,14 +272,13 @@ void async_disk_writer_t::construct_pwritev(
 
         if (remaining_count <= __IOV_MAX)
         {
-            pwritev((const iovec*)ptr_to_write, remaining_count, file_fd, current_log_file_offset, type);
-            current_log_file_offset += calculate_total_pwritev_size((const iovec*)current_helper_ptr, remaining_count);
+            pwritev(reinterpret_cast<const iovec*>(ptr_to_write), remaining_count, file_fd, current_log_file_offset, type);
             break;
         }
         else
         {
-            pwritev((const iovec*)ptr_to_write, __IOV_MAX, file_fd, current_log_file_offset, type);
-            current_log_file_offset += calculate_total_pwritev_size((const iovec*)current_helper_ptr, __IOV_MAX);
+            pwritev(reinterpret_cast<const iovec*>(ptr_to_write), __IOV_MAX, file_fd, current_log_file_offset, type);
+            current_log_file_offset += calculate_total_pwritev_size(reinterpret_cast<const iovec*>(current_helper_ptr), __IOV_MAX);
             remaining_size -= __IOV_MAX * sizeof(iovec);
             current_helper_ptr += __IOV_MAX * sizeof(iovec);
             remaining_count -= __IOV_MAX;
@@ -310,7 +309,7 @@ size_t async_disk_writer_t::pwritev(
     return submission_entries_needed;
 }
 
-void async_disk_writer_t::swap_buffers()
+void async_disk_writer_t::swap_batches()
 {
     m_in_flight_batch.swap(m_in_progress_batch);
 }

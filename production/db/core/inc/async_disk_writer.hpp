@@ -50,7 +50,7 @@ public:
      * called when the in_progress batch has become full and we want to submit IO requests in the batch
      * to the kernel.
      */
-    void swap_buffers();
+    void swap_batches();
 
     /**
      * Create a pwritev() request and enqueue it to the in_progress batch.
@@ -114,7 +114,7 @@ public:
     void register_txn_durable_fn(std::function<void(gaia_txn_id_t)> txn_durable_fn);
 
 private:
-    // Reserve slots in the buffer to be able to append additional operations in a batch before it gets submitted to the kernel.
+    // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;
     static constexpr eventfd_t c_default_flush_efd_value = 1;
     static constexpr iovec c_default_iov = {(void*)&c_default_flush_efd_value, sizeof(eventfd_t)};
@@ -129,6 +129,7 @@ private:
     // Event fd to signal that a file is ready to be checkpointed.
     static inline int s_signal_checkpoint_efd = -1;
 
+    // Keep track of session threads to unblock.
     std::unordered_map<gaia_txn_id_t, int> m_ts_to_session_unblock_fd_map;
 
     // Function to mark txn durable.
