@@ -9,6 +9,11 @@
 using namespace std;
 
 extern atomic<int> g_timestamp;
+
+extern atomic<int> g_rule_1_tracker;
+extern atomic<int> g_rule_2_tracker;
+extern atomic<int> g_rule_3_tracker;
+
 constexpr float c_fan_speed_limit = 5000.0;
 constexpr float c_fan_speed_increment = 500.0;
 constexpr float c_fan_threshold = 0.7f;
@@ -34,6 +39,7 @@ ruleset incubator_ruleset
             actuator.value = max(0.0f, actuator.value - (2*c_fan_speed_increment));
             actuator.timestamp   = g_timestamp;
         }
+        g_rule_1_tracker++;
     }
 
     // Rule 2:  Turn off all the fans if the incubator is powered down.
@@ -43,6 +49,7 @@ ruleset incubator_ruleset
             actuator.value = 0;
             actuator.timestamp = g_timestamp;
         }
+        g_rule_2_tracker++;
     }
 
     // Rule 3:  If the fan is at 70% of its limit and the temperature is still too hot then
@@ -58,5 +65,6 @@ ruleset incubator_ruleset
         {
             actuator.value = c_fan_speed_limit;
         }
+        g_rule_3_tracker++;
     }
 }

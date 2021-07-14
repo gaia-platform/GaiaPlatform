@@ -48,6 +48,10 @@ atomic<bool> g_in_simulation{false};
 atomic<int> g_timestamp{0};
 bool g_has_ztep_output = false;
 
+atomic<int> g_rule_1_tracker{0};
+atomic<int> g_rule_2_tracker{0};
+atomic<int> g_rule_3_tracker{0};
+
 void add_fan_control_rule();
 
 gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -314,9 +318,45 @@ void simulation_step() {
 }
 
 void step() {
+    int rule_1_sample_base = g_rule_1_tracker;
+    int rule_2_sample_base = g_rule_2_tracker;
+    int rule_3_sample_base = g_rule_3_tracker;
+
+    bool have_no_deltas = false;
+    int no_deltas_count = 0;
+    const int maximum_no_delta_attempts = 25;
+    const int no_delta_count_before_break = 1;
+
     g_timestamp++;
     simulation_step();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    for(int current_no_delta_attempt = 0; current_no_delta_attempt < maximum_no_delta_attempts; current_no_delta_attempt++) {
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        int rule_1_current_sample = g_rule_1_tracker;
+        int rule_2_current_sample = g_rule_2_tracker;
+        int rule_3_current_sample = g_rule_3_tracker;
+
+        int delta_u = rule_1_current_sample-rule_1_sample_base + rule_2_current_sample-rule_2_sample_base + rule_3_current_sample-rule_3_sample_base;
+        if (delta_u == 0) {
+            if(have_no_deltas) {
+                no_deltas_count++;
+            } else {
+                no_deltas_count = 1;
+                have_no_deltas = true;
+            }
+        } else {
+            have_no_deltas =false;
+            no_deltas_count = 0;
+        }
+        if (have_no_deltas && no_deltas_count >= no_delta_count_before_break) {
+            break;
+        }
+
+        rule_1_sample_base=rule_1_current_sample;
+        rule_2_sample_base=rule_2_current_sample;
+        rule_3_sample_base=rule_3_current_sample;
+    }
 }
 
 void ztep() {
