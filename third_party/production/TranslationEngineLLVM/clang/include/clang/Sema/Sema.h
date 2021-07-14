@@ -4628,6 +4628,8 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  bool IsExplicitPathInRange(SourceRange range) const;
+  bool ValidateLabel(const LabelDecl *label);
 private:
 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
@@ -4642,6 +4644,8 @@ private:
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
   bool does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc);
+  void ActOnStartDeclarativeLabel(const std::string& label);
+  bool ActOnStartLabel(const std::string& label);
 
   struct ExplicitPathData_t
   {
@@ -4657,6 +4661,9 @@ private:
     std::string table;
     std::string field;
   };
+
+  std::unordered_set<std::string> labelsInProcess;
+  std::unordered_set<std::string> declarativeLabelsInProcess;
 
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 

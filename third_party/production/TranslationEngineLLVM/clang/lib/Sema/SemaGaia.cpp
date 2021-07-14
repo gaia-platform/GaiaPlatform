@@ -1054,3 +1054,79 @@ bool Sema::RemoveTagData(SourceRange range)
     }
     return true;
 }
+
+bool Sema::IsExplicitPathInRange(SourceRange range) const
+{
+    if (range.isValid())
+    {
+        return extendedExplicitPathTagMapping.lower_bound(range.getBegin()) != extendedExplicitPathTagMapping.end() ||
+            extendedExplicitPathTagMapping.upper_bound(range.getEnd()) != extendedExplicitPathTagMapping.end();
+    }
+    return false;
+}
+
+void Sema::ActOnStartDeclarativeLabel(const string& label)
+{
+    declarativeLabelsInProcess.emplace(label);
+}
+
+bool Sema::ActOnStartLabel(const string& label)
+{
+    if (declarativeLabelsInProcess.find(label) != declarativeLabelsInProcess.end())
+    {
+        return false;
+    }
+    labelsInProcess.emplace(label);
+    return true;
+}
+
+bool Sema::ValidateLabel(const LabelDecl *label)
+{
+    string labelName = label->getName().str();
+
+    // Check if there is a declarative label which is not currently processed as a regular label.
+    for (auto declarativeLabel : declarativeLabelsInProcess)
+    {
+        if (labelsInProcess.find(declarativeLabel) == labelsInProcess.end())
+        {
+            Diag(label->getLocation(), diag::err_declarative_label_does_not_exist);
+            return false;
+        }
+    }
+    auto labelIterator = labelsInProcess.find(labelName);
+    auto declarativeLabelIterator = declarativeLabelsInProcess.find(labelName);
+    if (declarativeLabelIterator == declarativeLabelsInProcess.end())
+    {
+        labelsInProcess.erase(labelName);
+        return true;
+    }
+    const LabelStmt *LabelStatement = label->getStmt();
+    if (LabelStatement == nullptr)
+    {
+        Diag(label->getLocation(), diag::err_declarative_label_statment_is_invalid);
+        return false;
+    }
+    const Stmt* statement = LabelStatement->getSubStmt();
+    if (statement == nullptr)
+    {
+        Diag(label->getLocation(), diag::err_declarative_label_statment_is_invalid);
+        return false;
+    }
+    if (!GaiaForStmt::classof(statement) && !IfStmt::classof(statement))
+    {
+        Diag(label->getLocation(), diag::err_declarative_label_wrong_statement);
+        return false;
+    }
+    if (IfStmt::classof(statement))
+    {
+        const IfStmt *IfStatement = static_cast<const IfStmt*>(statement);
+        if (!IsExplicitPathInRange(IfStatement->getCond()->getSourceRange()))
+        {
+            Diag(label->getLocation(), diag::err_declarative_label_wrong_statement);
+            return false;
+        }
+    }
+    labelsInProcess.erase(labelName);
+    declarativeLabelsInProcess.erase(labelName);
+    return true;
+}

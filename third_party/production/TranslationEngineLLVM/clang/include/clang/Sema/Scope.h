@@ -134,7 +134,10 @@ public:
     ClassInheritanceScope = 0x800000,
 
     /// Gaia ruleset scope
-    GaiaRulesetScope = 0x1000000
+    GaiaRulesetScope = 0x1000000,
+
+    /// Gaia break scope
+    GaiaBreakScope = 0x2000000
   };
 
 private:
@@ -353,6 +356,24 @@ public:
     for (const Scope *S = this; S; S = S->getParent())
     {
       if (S->isRulesetScope())
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// isGaiaBreakScope() - Return true if this scope is a GaiaBreak scope.
+  bool isGaiaBreakScope() const
+  {
+      return (getFlags() & Scope::GaiaBreakScope);
+  }
+
+  bool isInGaiaBreakScope() const
+  {
+    for (const Scope *S = this; S; S = S->getParent())
+    {
+      if (S->isGaiaBreakScope())
       {
         return true;
       }

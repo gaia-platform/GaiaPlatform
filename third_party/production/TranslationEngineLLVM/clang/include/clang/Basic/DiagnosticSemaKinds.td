@@ -9536,4 +9536,11 @@ def err_tag_redefined : Error<
     "Tag '%0' is already defined.">;
 def err_incorrect_tag_use_in_path : Error<
     "Tag '%0' cannot be used in this context.">;
+def err_declarative_label_does_not_exist : Error<
+    "Declarative label does not exist.">;
+def err_declarative_label_statment_is_invalid : Error<
+    "The statement of the declarative label is invalid.">;
+def err_declarative_label_wrong_statement : Error<
+    "The statement of the declarative label is not declarative if or for.">;
+
 } // end of sema component.

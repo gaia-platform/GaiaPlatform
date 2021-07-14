@@ -168,7 +168,8 @@ void Scope::dumpImpl(raw_ostream &OS) const {
       {SEHFilterScope, "SEHFilterScope"},
       {CompoundStmtScope, "CompoundStmtScope"},
       {ClassInheritanceScope, "ClassInheritanceScope"},
-      {GaiaRulesetScope, "GaiaRulesetScope"}};
+      {GaiaRulesetScope, "GaiaRulesetScope"},
+      {GaiaBreakScope, "GaiaBreakScope"}};
 
   for (auto Info : FlagInfo) {
     if (Flags & Info.first) {
