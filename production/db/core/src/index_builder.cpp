@@ -62,7 +62,8 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
 
-    for (auto field_id : *(index_view.fields()))
+    auto& fields = *(index_view.fields());
+    for (auto field_id : fields)
     {
         field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
         k.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
@@ -73,12 +74,14 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
 
 index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
 {
-    return index_record_t{get_current_txn_id(), offset, locator, false};
+    bool is_delete = false;
+    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
 }
 
 index_record_t index_builder_t::make_delete_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
 {
-    return index_record_t{get_current_txn_id(), offset, locator, true};
+    bool is_delete = true;
+    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)
