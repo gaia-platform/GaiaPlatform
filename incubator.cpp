@@ -318,6 +318,17 @@ void simulation_step() {
 }
 
 void step() {
+    g_timestamp++;
+    simulation_step();
+}
+
+void ztep() {
+    if(g_has_ztep_output){
+        printf(",\n");
+    }else {
+        g_has_ztep_output = true;
+        printf("[\n");
+    }
     int rule_1_sample_base = g_rule_1_tracker;
     int rule_2_sample_base = g_rule_2_tracker;
     int rule_3_sample_base = g_rule_3_tracker;
@@ -327,8 +338,9 @@ void step() {
     const int maximum_no_delta_attempts = 25;
     const int no_delta_count_before_break = 1;
 
-    g_timestamp++;
-    simulation_step();
+    step();
+    dump_db_json();
+
     for(int current_no_delta_attempt = 0; current_no_delta_attempt < maximum_no_delta_attempts; current_no_delta_attempt++) {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -357,17 +369,6 @@ void step() {
         rule_2_sample_base=rule_2_current_sample;
         rule_3_sample_base=rule_3_current_sample;
     }
-}
-
-void ztep() {
-    if(g_has_ztep_output){
-        printf(",\n");
-    }else {
-        g_has_ztep_output = true;
-        printf("[\n");
-    }
-    step();
-    dump_db_json();
 }
 
 void simulation()
@@ -446,6 +447,8 @@ public:
     static constexpr char c_cmd_print_state = 'p';
     static constexpr char c_cmd_print_state_json = 'j';
     static constexpr char c_cmd_manage_incubators = 'm';
+    static constexpr char c_cmd_wait = 'w';
+    static constexpr char c_cmd_comment = '#';
     static constexpr char c_cmd_quit = 'q';
 
     // Choose incubator commands.
@@ -463,8 +466,11 @@ public:
     // Invalid input.
     const char* c_wrong_input = "Wrong input.";
 
+    int last_known_timestamp = 0;
+
     void stop()
     {
+        last_known_timestamp = g_timestamp;
         if (g_in_simulation)
         {
             g_in_simulation = false;
@@ -493,6 +499,8 @@ public:
             printf("(%c) | print current state as raw\n", c_cmd_print_state);
             printf("(%c) | print current state as json\n", c_cmd_print_state_json);
             printf("(%c) | manage incubators\n", c_cmd_manage_incubators);
+            printf("(%c) | comment line\n", c_cmd_comment);
+            printf("(%c) | wait for specified milliseconds\n", c_cmd_wait);
             printf("(%c) | quit\n\n", c_cmd_quit);
             printf("main> ");
         }
@@ -552,20 +560,29 @@ public:
                 printf("Exiting...\n");
                 return false;
                 break;
+            case c_cmd_wait:
+                break;
             default:
                 printf("%s\n", c_wrong_input);
                 break;
             }
         }
-        else if (m_input.size() > 1 && (m_input[0] == c_cmd_ztep_sim || m_input[0] == c_cmd_step_sim))
+        else if (m_input.size() > 1 && (m_input[0] == c_cmd_ztep_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
         {
-            bool is_step = m_input[0] == c_cmd_step_sim;
-            int limit = stoi(m_input.substr(1, m_input.size() - 1));
-            for(int i = 0; i < limit; i++) {
-                if (is_step) {
-                    step();
-                } else {
-                    ztep();
+            if(m_input[0] == c_cmd_wait) {
+                int limit = stoi(m_input.substr(1, m_input.size() - 1));
+                std::this_thread::sleep_for(std::chrono::milliseconds(limit));
+            } else if(m_input[0] == c_cmd_comment) {
+                ;
+            } else {
+                bool is_step = m_input[0] == c_cmd_step_sim;
+                int limit = stoi(m_input.substr(1, m_input.size() - 1));
+                for(int i = 0; i < limit; i++) {
+                    if (is_step) {
+                        step();
+                    } else {
+                        ztep();
+                    }
                 }
             }
         }
@@ -805,7 +822,7 @@ public:
             sleep(4);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-            printf("{ \"stop_pause_in_sec\" : %.9f }\n", ms_double.count()/1000.0);
+            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d }\n", ms_double.count()/1000.0, last_known_timestamp);
         }
         return EXIT_SUCCESS;
     }

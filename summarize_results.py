@@ -81,23 +81,24 @@ def load_test_result_files(suite_test):
 
     json_path = os.path.join(base_dir, "return_code.json")
     with open(json_path) as input_file:
-        return_code_data = json.load(input_file)
-        return_code_data = return_code_data["return-code"]
+        data = json.load(input_file)
+        return_code_data = data["return-code"]
 
     json_path = os.path.join(base_dir, "duration.json")
     with open(json_path) as input_file:
-        duration_data = json.load(input_file)
-        duration_data = duration_data["duration"]
+        data = json.load(input_file)
+        duration_data = data["duration"]
 
     json_path = os.path.join(base_dir, "output.delay")
     with open(json_path) as input_file:
-        stop_pause_data = json.load(input_file)
-        stop_pause_data = stop_pause_data["stop_pause_in_sec"]
+        data = json.load(input_file)
+        stop_pause_data = data["stop_pause_in_sec"]
+        iterations_data = data["iterations"]
 
     log_path = os.path.join(base_dir, "gaia_stats.log")
     stats_data = process_rules_engine_stats(log_path)
 
-    return return_code_data, duration_data, stop_pause_data, stats_data
+    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data
 
 if len(sys.argv) != 2:
     print("error")
@@ -114,13 +115,15 @@ full_test_results = {}
 for suite_test in suite_file_lines:
 
     suite_test = suite_test.strip()
-    return_code_data, duration_data, stop_pause_data, stats_data = load_test_result_files(suite_test)
+    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data = load_test_result_files(suite_test)
 
     new_results = {}
+    new_results["iterations"] = iterations_data
     new_results["return-code"] = return_code_data
     new_results["duration-sec"] = duration_data
     new_results["stop-pause-sec"] = stop_pause_data
     new_results["test-duration-sec"] =  new_results["duration-sec"] - new_results["stop-pause-sec"]
+    new_results["iteration-duration-sec"] = new_results["test-duration-sec"] / float(new_results["iterations"])
     new_results["rules-engine-stats"] = stats_data
 
     full_test_results[suite_test] = new_results
