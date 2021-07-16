@@ -40,6 +40,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
+    echo "  -l,--list           List all available suites for this project."
     echo "  -v,--verbose        Show lots of information while executing the suite of tests."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
@@ -47,13 +48,33 @@ show_usage() {
     exit 1
 }
 
+# Show a list of the available suites (suite files).
+list_available_suites() {
+    echo "Available suites:"
+    echo ""
+    for next_file in ./tests/*
+    do
+        if [ -f "$next_file" ] ; then
+            next_file_end="${next_file:8}"
+            if [[ $next_file_end = suite-* ]] ; then
+                echo "$next_file_end"
+            fi
+        fi
+    done
+}
+
 # Parse the command line.
 parse_command_line() {
     SUITE_MODE="smoke"
     VERBOSE_MODE=0
+    LIST_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -l|--list)
+            LIST_MODE=1
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -71,6 +92,11 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [ $LIST_MODE -ne 0 ] ; then
+        list_available_suites
+        complete_process 0
+    fi
 
     if [[ ! "${PARAMS[0]}" == "" ]]; then
         SUITE_MODE=${PARAMS[0]}

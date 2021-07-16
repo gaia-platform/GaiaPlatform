@@ -41,6 +41,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
+    echo "  -l,--list           List all available tests for this project."
     echo "  -ni,--no-init       Do not initialize the test data before executing the test."
     echo "  -vv,--very-verbose  Verbose for this script and any top level scripts it calls."
     echo "  -v,--verbose        Show lots of information while executing the project."
@@ -50,12 +51,25 @@ show_usage() {
     exit 1
 }
 
+# Show a list of the available tests (directories).
+list_available_tests() {
+    echo "Available tests:"
+    echo ""
+    for next_file in ./tests/*
+    do
+        if [ -d "$next_file" ] ; then
+            echo "${next_file:8}"
+        fi
+    done
+}
+
 # Parse the command line.
 parse_command_line() {
     TEST_MODE="basic"
     VERBOSE_MODE=0
     VERY_VERBOSE_MODE=0
     NO_INIT_MODE=0
+    LIST_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -66,6 +80,10 @@ parse_command_line() {
         ;;
         -ni|--no-init)
             NO_INIT_MODE=1
+            shift
+        ;;
+        -l|--list)
+            LIST_MODE=1
             shift
         ;;
         -v|--verbose)
@@ -85,6 +103,11 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [ $LIST_MODE -ne 0 ] ; then
+        list_available_tests
+        complete_process 0
+    fi
 
     if [[ ! "${PARAMS[0]}" == "" ]]; then
         TEST_MODE=${PARAMS[0]}
