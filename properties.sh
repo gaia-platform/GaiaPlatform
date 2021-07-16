@@ -77,7 +77,7 @@ process_debug() {
 
     # For ease of graphing, also produce a CSV file if requested.
     if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
-        if ! ./translate_to_csv.py > "$CSV_OUTPUT"; then
+        if ! ./python/translate_to_csv.py > "$CSV_OUTPUT"; then
             echo "Translation of the JSON output to CSV failed."
             complete_process 1
         fi

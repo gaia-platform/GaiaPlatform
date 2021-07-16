@@ -225,7 +225,7 @@ for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
     execute_suite_test "$NEXT_TEST_NAME"
 done
 
-if ! ./summarize_results.py "$SUITE_FILE_NAME"; then
+if ! ./python/summarize_results.py "$SUITE_FILE_NAME"; then
     echo "Summarizing the results failed."
     complete_process 1
 fi

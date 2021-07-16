@@ -164,7 +164,7 @@ create_configuration_file() {
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
     fi
-    if ! ./generate_config.py "$CONFIG_PATH"; then
+    if ! ./python/generate_config.py "$CONFIG_PATH"; then
         echo "Generating gaia configuration file failed."
         complete_process 1
     fi
