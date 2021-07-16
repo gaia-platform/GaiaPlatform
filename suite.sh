@@ -56,8 +56,8 @@ list_available_suites() {
     do
         if [ -f "$next_file" ] ; then
             next_file_end="${next_file:8}"
-            if [[ $next_file_end = suite-* ]] ; then
-                echo "$next_file_end"
+            if [[ $next_file_end = suite-* ]] && [[ $next_file_end = *.txt ]]; then
+                echo "${next_file_end:6:-4}"
             fi
         fi
     done
