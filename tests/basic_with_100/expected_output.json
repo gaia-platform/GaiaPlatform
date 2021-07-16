@@ -1,0 +1,50 @@
+{
+  "chicken" : {
+    "power" : "ON",
+    "min_temp" :  99.0,
+    "max_temp" : 102.0,
+    "sensors" : [
+        {
+            "name" : "Temp C",
+            "timestamp" : 100,
+            "value" : 100.95
+        },
+        {
+            "name" : "Temp A",
+            "timestamp" : 100,
+            "value" : 100.95
+        }
+    ],
+    "actuators" : [
+        {
+            "name" : "Fan A",
+            "timestamp" : 93,
+            "value" : 3500.00
+        }
+    ]
+  },
+  "puppy" : {
+    "power" : "ON",
+    "min_temp" :  85.0,
+    "max_temp" : 100.0,
+    "sensors" : [
+        {
+            "name" : "Temp B",
+            "timestamp" : 100,
+            "value" : 90.60
+        }
+    ],
+    "actuators" : [
+        {
+            "name" : "Fan C",
+            "timestamp" : 80,
+            "value" : 5000.00
+        },
+        {
+            "name" : "Fan B",
+            "timestamp" : 80,
+            "value" : 5000.00
+        }
+    ]
+  }
+}
