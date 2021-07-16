@@ -323,7 +323,7 @@ execute_test_workflow() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Verifying expected results against actual results."
     fi
-    if ! diff "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
+    if ! diff -w "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
         echo "Test results were not as expected."
         echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
         complete_process 6

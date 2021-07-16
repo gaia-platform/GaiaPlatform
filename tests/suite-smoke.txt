@@ -1,2 +1,2 @@
-basic
-basic-time-only
+smoke
+smoke-time-only
