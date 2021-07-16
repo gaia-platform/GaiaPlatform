@@ -336,7 +336,7 @@ void ztep() {
     bool have_no_deltas = false;
     int no_deltas_count = 0;
     const int maximum_no_delta_attempts = 25;
-    const int no_delta_count_before_break = 1;
+    const int no_delta_count_before_break = 3;
 
     step();
     dump_db_json();

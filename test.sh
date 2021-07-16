@@ -250,6 +250,22 @@ initialize_and_build_test_directory() {
 # Execute the workflow that will run the specific test that was indicated.
 execute_test_workflow() {
 
+    TEST_SPECIFIC_PATH=$(realpath "$TEST_SOURCE_DIRECTORY/config.json")
+    PROJECT_SPECIFIC_PATH=$(realpath "$TEST_SOURCE_DIRECTORY/../config.json")
+    if [ -f "$TEST_SPECIFIC_PATH" ] ; then
+        CONFIG_PATH=$TEST_SPECIFIC_PATH
+        echo "Test specifc configuration specified.  Using '$TEST_SPECIFIC_PATH'."
+    elif [ -f "$PROJECT_SPECIFIC_PATH" ] ; then
+        CONFIG_PATH=$PROJECT_SPECIFIC_PATH
+        echo "Project specifc configuration specified.  Using '$PROJECT_SPECIFIC_PATH'."
+    else
+        echo "No configuration specified.  Using default configuration."
+    fi
+    CONFIG_ARGUMENT=
+    if [ -n "$CONFIG_PATH" ] ; then
+        CONFIG_ARGUMENT="--config $CONFIG_PATH"
+    fi
+
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Running debug commands through project in test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
@@ -257,11 +273,13 @@ execute_test_workflow() {
     TEST_START_MARK=$(date +%s.%N)
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
-        ./run.sh -v -a "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
+        # shellcheck disable=SC2086
+        ./run.sh -v -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
         DID_FAIL=$?
     else
         DID_FAIL=0
-        ./run.sh -v -a "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
+        # shellcheck disable=SC2086
+        ./run.sh -v -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)

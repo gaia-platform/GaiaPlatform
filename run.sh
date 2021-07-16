@@ -32,10 +32,11 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -a,--auto         Automatically build the project before execution, if needed."
-    echo "  -c,--csv          Generate a CSV output file if applicable."
-    echo "  -v,--verbose      Show lots of information while executing the project."
-    echo "  -h,--help         Display this help text."
+    echo "  -a,--auto           Automatically build the project before execution, if needed."
+    echo "  -c,--csv            Generate a CSV output file if applicable."
+    echo "  -g,--config <file>  Generate a configuration file specific to this run."
+    echo "  -v,--verbose        Show lots of information while executing the project."
+    echo "  -h,--help           Display this help text."
     echo ""
     show_usage_commands
     exit 1
@@ -46,6 +47,7 @@ parse_command_line() {
     VERBOSE_MODE=0
     AUTO_BUILD_MODE=0
     GENERATE_CSV_MODE=0
+    CONFIG_FILE=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -56,6 +58,16 @@ parse_command_line() {
         -c|--csv)
             GENERATE_CSV_MODE=1
             shift
+        ;;
+        -g|--config)
+            # shellcheck disable=SC2086
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                CONFIG_FILE=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+        fi
         ;;
         -v|--verbose)
             VERBOSE_MODE=1
@@ -141,6 +153,23 @@ handle_auto_build() {
     fi
 }
 
+# Create a configuration file from the config.json file in the project's
+# test file hierarchy.
+create_configuration_file() {
+
+    local CONFIG_PATH=
+    if [ -z "$CONFIG_FILE" ]; then
+        echo "No configuration file specified.  Generating gaia configuation file with default values."
+    else
+        CONFIG_PATH=$(realpath "$CONFIG_FILE")
+        echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
+    fi
+    if ! ./generate_config.py "$CONFIG_PATH"; then
+        echo "Generating gaia configuration file failed."
+        complete_process 1
+    fi
+}
+
 
 
 # Set up any global script variables.
@@ -162,9 +191,19 @@ parse_command_line "$@"
 # Handle the auto-build functionality.
 handle_auto_build
 
+# Create the configuration file specific to gaia from a simple JSON file.
+create_configuration_file
+
 # Make sure the program is compiled before going on.
 if [ ! -f "$EXECUTABLE_PATH" ]; then
     echo "Building of the project has not be completed.  Cannot run."
+    complete_process 1
+fi
+
+# Make sure that the program configuration file is present.
+CONFIGURATION_PATH=$(realpath "incubator.conf")
+if [ ! -f "$CONFIGURATION_PATH" ]; then
+    echo "Building of the project configuration file has not be completed.  Cannot run."
     complete_process 1
 fi
 
