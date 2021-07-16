@@ -40,12 +40,27 @@ def calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
         previous_value = totals[title]
     totals[title] = previous_value + stats_slice[title]
 
+def calculate_maximum_values(stats_slice, log_line_columns, calculations, title, index):
+    stats_slice[title] = float(log_line_columns[index])
+    previous_maximum = 0.0
+    if title in calculations:
+        previous_maximum = calculations[title]
+    calculations[title] = max(previous_maximum, stats_slice[title])
+
+def calculate_average_values(stats_slice, log_line_columns, calculations, title, index):
+    stats_slice[title] = float(log_line_columns[index])
+    previous_value = 0
+    if title in calculations:
+        previous_value = calculations[title]
+    calculations[title] = previous_value + (stats_slice[title] * stats_slice[scheduled_title])
+
 def process_rules_engine_stats(log_path):
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
     stats_slices = []
     totals = {}
+    calculations = {}
     for next_log_line in log_file_lines:
         next_log_line = next_log_line.strip()
         while "  " in next_log_line:
@@ -65,15 +80,19 @@ def process_rules_engine_stats(log_path):
         calculate_total_counts(stats_slice, log_line_columns, totals, abandoned_title, abandoned_index)
         calculate_total_counts(stats_slice, log_line_columns, totals, retry_title, retry_index)
         calculate_total_counts(stats_slice, log_line_columns, totals, exception_title, exception_index)
-        stats_slice[average_latency_title] = float(log_line_columns[average_latency_index])
-        stats_slice[maximum_latency_title] = float(log_line_columns[maximum_latency_index])
-        stats_slice[average_exec_title] = float(log_line_columns[average_exec_index])
-        stats_slice[maximum_exec_title] = float(log_line_columns[maximum_exec_index])
+        calculate_average_values(stats_slice, log_line_columns, calculations, average_latency_title, average_latency_index)
+        calculate_maximum_values(stats_slice, log_line_columns, calculations, maximum_latency_title, maximum_latency_index)
+        calculate_average_values(stats_slice, log_line_columns, calculations, average_exec_title, average_exec_index)
+        calculate_maximum_values(stats_slice, log_line_columns, calculations, maximum_exec_title, maximum_exec_index)
         stats_slices.append(stats_slice)
+
+    calculations[average_latency_title] = calculations[average_latency_title] / float(totals[scheduled_title])
+    calculations[average_exec_title] = calculations[average_exec_title] / float(totals[scheduled_title])
 
     rules_engine_stats = {}
     rules_engine_stats["slices"] = stats_slices
     rules_engine_stats["totals"] = totals
+    rules_engine_stats["calculations"] = calculations
     return rules_engine_stats
 
 def load_test_result_files(suite_test):

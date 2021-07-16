@@ -288,7 +288,7 @@ execute_test_workflow() {
             cat "$TEMP_FILE"
         fi
         echo "Test script cannot run the project in directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 5
     fi
 
     # Make sure to calculate the runtime and store it in the `duration.json` file.
@@ -303,7 +303,7 @@ execute_test_workflow() {
     if ! diff "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
         echo "Test results were not as expected."
         echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
-        complete_process 1
+        complete_process 6
     fi
 }
 
