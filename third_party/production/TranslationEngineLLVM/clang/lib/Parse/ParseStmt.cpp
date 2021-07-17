@@ -1222,7 +1222,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
 
   if (Actions.IsExplicitPathInRange(SourceRange(IfLoc, Tok.getLocation())))
   {
-    getCurScope()->AddFlags(Scope::GaiaBreakScope);
+    getCurScope()->AddFlags(Scope::GaiaBreakScope | Scope::BreakScope);
   }
   llvm::Optional<bool> ConstexprCondition;
   if (IsConstexpr)

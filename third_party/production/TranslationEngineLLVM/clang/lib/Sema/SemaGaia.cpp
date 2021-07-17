@@ -1117,15 +1117,6 @@ bool Sema::ValidateLabel(const LabelDecl *label)
         Diag(label->getLocation(), diag::err_declarative_label_wrong_statement);
         return false;
     }
-    if (IfStmt::classof(statement))
-    {
-        const IfStmt *IfStatement = static_cast<const IfStmt*>(statement);
-        if (!IsExplicitPathInRange(IfStatement->getCond()->getSourceRange()))
-        {
-            Diag(label->getLocation(), diag::err_declarative_label_wrong_statement);
-            return false;
-        }
-    }
     labelsInProcess.erase(labelName);
     declarativeLabelsInProcess.erase(labelName);
     return true;
