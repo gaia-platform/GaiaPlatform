@@ -104,6 +104,8 @@ vector<SourceRange> g_nomatch_location;
 unordered_map<SourceRange, string> g_variable_declaration_location;
 unordered_set<SourceRange> g_variable_declaration_init_location;
 unordered_map<SourceRange, SourceLocation> g_nomatch_location_map;
+unordered_map<SourceRange, string> g_break_label_map;
+unordered_map<SourceRange, string> g_continue_label_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -529,19 +531,31 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
+        SourceRange nomatch_range;
+        for (const auto& nomatch_source_range : g_nomatch_location)
+        {
+            if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
+            {
+                nomatch_range = nomatch_source_range;
+                break;
+            }
+        }
+        const auto break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
+        const auto continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
+        string break_label;
+        string continue_label;
+        if (break_label_iterator != g_break_label_map.end())
+        {
+            break_label = break_label_iterator->second;
+        }
+        if (continue_label_iterator != g_continue_label_map.end())
+        {
+            continue_label = continue_label_iterator->second;
+        }
         for (const auto& data_iterator : explicit_path_data_iterator.second)
         {
             string anchor_table_name = get_table_name(
                 get_table_from_expression(anchor_table), data_iterator.tag_table_map);
-            SourceRange nomatch_range;
-            for (const auto& nomatch_source_range : g_nomatch_location)
-            {
-                if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
-                {
-                    nomatch_range = nomatch_source_range;
-                    break;
-                }
-            }
 
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
@@ -635,6 +649,15 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 return;
             }
 
+            if (!break_label.empty())
+            {
+                navigation_code.postfix += "\n" + break_label + ":\n";
+            }
+            if (!continue_label.empty())
+            {
+                navigation_code.postfix = "\n" + continue_label + ":\n" + navigation_code.postfix;
+            }
+
             if (nomatch_range.isValid())
             {
                 string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
@@ -652,7 +675,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextBefore(
                     explicit_path_data_iterator.first.getBegin(),
                     navigation_code.prefix);
-                rewriter.InsertTextAfter(
+                rewriter.InsertTextAfterToken(
                     explicit_path_data_iterator.first.getEnd(),
                     navigation_code.postfix);
             }
@@ -2567,6 +2590,87 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when declarative break or continue are used in the rule.
+class declarative_break_continue_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_break_continue_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* break_expression = result.Nodes.getNodeAs<BreakStmt>("DeclBreak");
+        const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
+        if (break_expression == nullptr && continue_expression == nullptr)
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        LabelDecl* decl;
+        SourceRange expression_source_range;
+        if (break_expression != nullptr)
+        {
+            decl = break_expression->getLabel();
+            expression_source_range = break_expression->getSourceRange();
+        }
+        else
+        {
+            decl = continue_expression->getLabel();
+            expression_source_range = continue_expression->getSourceRange();
+        }
+
+        // Handle non-declarative break/continue.
+        if (decl == nullptr)
+        {
+            return;
+        }
+
+        const LabelStmt* label_statement = decl->getStmt();
+        const Stmt* statement = label_statement->getSubStmt();
+        SourceRange statement_source_range = get_statement_source_range(statement, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+
+        string label_name;
+        if (break_expression != nullptr)
+        {
+            auto break_label_iterator = g_break_label_map.find(statement_source_range);
+            if (break_label_iterator == g_break_label_map.end())
+            {
+                label_name = table_navigation_t::get_variable_name("break", unordered_map<string, string>());
+                g_break_label_map[statement_source_range] = label_name;
+            }
+            else
+            {
+                label_name = break_label_iterator->second;
+            }
+        }
+        else
+        {
+            auto continue_label_iterator = g_continue_label_map.find(statement_source_range);
+            if (continue_label_iterator == g_continue_label_map.end())
+            {
+                label_name = table_navigation_t::get_variable_name("continue", unordered_map<string, string>());
+                g_continue_label_map[statement_source_range] = label_name;
+            }
+            else
+            {
+                label_name = continue_label_iterator->second;
+            }
+        }
+
+        auto offset
+                    = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        expression_source_range.setEnd(expression_source_range.getEnd().getLocWithOffset(offset));
+        string replacement_string = "goto " + label_name;
+        m_rewriter.ReplaceText(expression_source_range, replacement_string);
+        g_rewriter_history.push_back({expression_source_range, replacement_string, replace_text});
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
@@ -2582,6 +2686,7 @@ public:
         , m_if_nomatch_match_handler(r)
         , m_declarative_while_match_handler(r)
         , m_declarative_for_match_handler(r)
+        , m_declarative_break_continue_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -2718,6 +2823,9 @@ public:
                               hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("varDeclarationInit");
 
+        StatementMatcher declarative_break_matcher = breakStmt().bind("DeclBreak");
+        StatementMatcher declarative_continue_matcher = continueStmt().bind("DeclContinue");
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -2740,6 +2848,8 @@ public:
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
         m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
         m_matcher.addMatcher(declarative_for_matcher, &m_declarative_for_match_handler);
+        m_matcher.addMatcher(declarative_break_matcher, &m_declarative_break_continue_handler);
+        m_matcher.addMatcher(declarative_continue_matcher, &m_declarative_break_continue_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -2760,6 +2870,7 @@ private:
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
     declarative_while_match_handler_t m_declarative_while_match_handler;
     declarative_for_match_handler_t m_declarative_for_match_handler;
+    declarative_break_continue_handler_t m_declarative_break_continue_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
