@@ -13,8 +13,7 @@ static const int c_variable_length = 15;
 
 bool table_navigation_t::m_is_initialized = false;
 unordered_map<string, table_data_t> table_navigation_t::m_table_data;
-unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_1;
-unordered_multimap<string, table_navigation_t::table_link_data_t> table_navigation_t::m_table_relationship_n;
+unordered_multimap<string, table_navigation_t::navigation_data_t> table_navigation_t::m_table_relationship;
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data)
@@ -167,14 +166,12 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     {
         return return_value;
     }
-    if (m_table_relationship_1.find(anchor_table_name) == m_table_relationship_1.end()
-        && m_table_relationship_n.find(anchor_table_name) == m_table_relationship_n.end())
+    if (m_table_relationship.find(anchor_table_name) == m_table_relationship.end())
     {
         cerr << "No path between '" << anchor_table << "' and other tables." << endl;
         return navigation_code_data_t();
     }
-    auto parent_itr = m_table_relationship_1.equal_range(anchor_table_name);
-    auto child_itr = m_table_relationship_n.equal_range(anchor_table_name);
+    auto table_itr = m_table_relationship.equal_range(anchor_table_name);
     unordered_set<string> processed_tables;
     // Iterate through list of destination tables
     for (const string& table : tables)
@@ -198,38 +195,26 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         bool is_1_relationship = false, is_n_relationship = false;
 
         string linking_field;
-        for (auto it = parent_itr.first; it != parent_itr.second; ++it)
+        for (auto it = table_itr.first; it != table_itr.second; ++it)
         {
-            if (it != m_table_relationship_1.end() && it->second.table == table_name)
+            if (it != m_table_relationship.end() && it->second.table_name == table_name)
             {
-                if (is_1_relationship)
+
+                if (is_1_relationship || is_n_relationship)
                 {
                     cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
                     return navigation_code_data_t();
                 }
-                is_1_relationship = true;
-                linking_field = it->second.field;
-            }
-        }
-
-        for (auto it = child_itr.first; it != child_itr.second; ++it)
-        {
-            if (it != m_table_relationship_n.end() && it->second.table == table_name)
-            {
-                if (is_n_relationship)
+                if (it->second.is_parent)
                 {
-                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
-                    return navigation_code_data_t();
+                    is_1_relationship = true;
                 }
-                is_n_relationship = true;
-                linking_field = it->second.field;
+                else
+                {
+                    is_n_relationship = true;
+                }
+                linking_field = it->second.linking_field;
             }
-        }
-
-        if (is_1_relationship && is_n_relationship)
-        {
-            cerr << "Both relationships exist between tables '" << anchor_table << "' and '" << table << "'." << endl;
-            return navigation_code_data_t();
         }
 
         if (!is_1_relationship && !is_n_relationship)
@@ -243,23 +228,23 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
                 // Generate code for the path.
                 for (const auto& p : path)
                 {
-                    if (p.name == anchor_table_name)
+                    if (p.table_name == anchor_table_name)
                     {
                         variable_name = anchor_table;
                     }
-                    else if (p.name == table_name)
+                    else if (p.table_name == table_name)
                     {
                         variable_name = last_variable_name;
                     }
                     else
                     {
-                        variable_name = get_variable_name(p.name, tags);
+                        variable_name = get_variable_name(p.table_name, tags);
                     }
-                    if (!generate_navigation_step(source_table_type, "", p.name, source_table, variable_name, return_value))
+                    if (!generate_navigation_step(source_table_type, "", p.table_name, source_table, variable_name, return_value))
                     {
                         return navigation_code_data_t();
                     }
-                    source_table_type = p.name;
+                    source_table_type = p.table_name;
                     source_table = variable_name;
                 }
                 last_variable_name = variable_name;
@@ -333,15 +318,11 @@ void table_navigation_t::fill_table_data()
                 m_table_data.clear();
                 return;
             }
-            table_link_data_t link_data_1;
-            link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.to_parent_link_name();
-            table_link_data_t link_data_n;
-            link_data_n.table = child_table.name();
-            link_data_n.field = relationship.to_child_link_name();
+            navigation_data_t link_data_1 = {parent_table.name(), relationship.to_parent_link_name(), true};
+            navigation_data_t link_data_n = {child_table.name(), relationship.to_child_link_name(), false};
 
-            m_table_relationship_1.emplace(child_table.name(), link_data_1);
-            m_table_relationship_n.emplace(parent_table.name(), link_data_n);
+            m_table_relationship.emplace(child_table.name(), link_data_1);
+            m_table_relationship.emplace(parent_table.name(), link_data_n);
         }
     }
     catch (const exception& e)
@@ -406,37 +387,19 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 
         table_distance.erase(closest_table);
 
-        auto parent_itr = m_table_relationship_1.equal_range(closest_table);
-        for (auto it = parent_itr.first; it != parent_itr.second; ++it)
+        auto table_itr = m_table_relationship.equal_range(closest_table);
+        for (auto it = table_itr.first; it != table_itr.second; ++it)
         {
-            if (it != m_table_relationship_1.end())
+            if (it != m_table_relationship.end())
             {
-                string tbl = it->second.table;
-                if (table_distance.find(tbl) != table_distance.end())
+                string table_name = it->second.table_name;
+                if (table_distance.find(table_name) != table_distance.end())
                 {
-                    if (table_distance[tbl] > distance + 1)
+                    if (table_distance[table_name] > distance + 1)
                     {
-                        table_distance[tbl] = distance + 1;
-                        table_prev[tbl] = closest_table;
-                        table_navigation[tbl] = {tbl, it->second.field, true};
-                    }
-                }
-            }
-        }
-
-        auto child_itr = m_table_relationship_n.equal_range(closest_table);
-        for (auto it = child_itr.first; it != child_itr.second; ++it)
-        {
-            if (it != m_table_relationship_n.end())
-            {
-                string tbl = it->second.table;
-                if (table_distance.find(tbl) != table_distance.end())
-                {
-                    if (table_distance[tbl] > distance + 1)
-                    {
-                        table_distance[tbl] = distance + 1;
-                        table_prev[tbl] = closest_table;
-                        table_navigation[tbl] = {tbl, it->second.field, false};
+                        table_distance[table_name] = distance + 1;
+                        table_prev[table_name] = closest_table;
+                        table_navigation[table_name] = {table_name, it->second.linking_field, it->second.is_parent};
                     }
                 }
             }
@@ -488,58 +451,46 @@ string table_navigation_t::generate_random_string(string::size_type length)
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {
-    auto parent_itr = m_table_relationship_1.equal_range(source_table);
-    auto child_itr = m_table_relationship_n.equal_range(source_table);
+    auto table_itr = m_table_relationship.equal_range(source_table);
 
     bool is_1_relationship = false, is_n_relationship = false;
 
     string linking_field = source_field;
-    for (auto it = parent_itr.first; it != parent_itr.second; ++it)
+    for (auto it = table_itr.first; it != table_itr.second; ++it)
     {
-        if (it != m_table_relationship_1.end() && it->second.table == destination_table)
+        if (it != m_table_relationship.end() && it->second.table_name == destination_table)
         {
             if (!source_field.empty())
             {
-                if (it->second.field == source_field)
+                if (it->second.linking_field == source_field)
+                {
+                    if (it->second.is_parent)
+                    {
+                        is_1_relationship = true;
+                    }
+                    else
+                    {
+                        is_n_relationship = true;
+                    }
+                    break;
+                }
+            }
+            else
+            {
+                if (is_1_relationship || is_n_relationship)
+                {
+                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
+                    return false;
+                }
+                if (it->second.is_parent)
                 {
                     is_1_relationship = true;
-                    break;
                 }
-            }
-            else
-            {
-                if (is_1_relationship)
-                {
-                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
-                    return false;
-                }
-                is_1_relationship = true;
-                linking_field = it->second.field;
-            }
-        }
-    }
-
-    for (auto it = child_itr.first; it != child_itr.second; ++it)
-    {
-        if (it != m_table_relationship_n.end() && it->second.table == destination_table)
-        {
-            if (!source_field.empty())
-            {
-                if (it->second.field == source_field)
+                else
                 {
                     is_n_relationship = true;
-                    break;
                 }
-            }
-            else
-            {
-                if (is_n_relationship || is_1_relationship)
-                {
-                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
-                    return false;
-                }
-                is_n_relationship = true;
-                linking_field = it->second.field;
+                linking_field = it->second.linking_field;
             }
         }
     }

@@ -87,15 +87,9 @@ private:
         }
     };
 
-    struct table_link_data_t
-    {
-        string table;
-        string field;
-    };
-
     struct navigation_data_t
     {
-        string name;
+        string table_name;
         string linking_field;
         bool is_parent;
     };
@@ -111,8 +105,7 @@ private:
         const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
     static bool m_is_initialized;
     static unordered_map<string, table_data_t> m_table_data;
-    static unordered_multimap<string, table_link_data_t> m_table_relationship_1;
-    static unordered_multimap<string, table_link_data_t> m_table_relationship_n;
+    static unordered_multimap<string, navigation_data_t> m_table_relationship;
 };
 }
 }
