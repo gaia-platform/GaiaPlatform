@@ -480,7 +480,7 @@ void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceL
     RD->addDecl(Field);
 }
 
-void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo* Params, unsigned NumParams, AttributeFactory& attrFactory, ParsedAttributes& attrs, Scope* S, RecordDecl* RD, SourceLocation loc)
+void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo* Params, unsigned NumParams, AttributeFactory& attrFactory, ParsedAttributes& attrs, Scope* S, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
 {
     DeclSpec DS(attrFactory);
     const char* dummy;
@@ -488,7 +488,14 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorC
 
     Declarator D(DS, DeclaratorContext::MemberContext);
     D.setFunctionDefinitionKind(FDK_Declaration);
-    D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy, diagId, getPrintingPolicy());
+    if (!returnType)
+    {
+        D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy, diagId, getPrintingPolicy());
+    }
+    else
+    {
+        D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy, diagId, returnType, getPrintingPolicy());
+    }
     ActOnAccessSpecifier(AS_public, loc, loc, attrs);
 
     D.SetIdentifier(name, loc);
@@ -498,7 +505,7 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorC
     D.AddTypeInfo(
         DeclaratorChunk::getFunction(
             true, false, loc, Params,
-            NumParams, loc, loc,
+            NumParams, isVariadic ? loc : SourceLocation(), loc,
             true, loc,
             /*MutableLoc=*/loc,
             EST_None, SourceRange(), nullptr,
@@ -658,8 +665,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    //insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
@@ -1027,6 +1034,15 @@ void Sema::RemoveExplicitPathData(SourceLocation location)
     explicitPathData.erase(location);
 }
 
+bool Sema::IsExpressionInjected(const Expr* expression) const
+{
+    if (expression == nullptr)
+    {
+        return false;
+    }
+    return injectedVariablesLocation.find(expression->getExprLoc()) != injectedVariablesLocation.end();
+}
+
 bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation& startLocation, SourceLocation& endLocation, std::string& explicitPath)
 {
     auto data = explicitPathData.find(location);
@@ -1103,13 +1119,13 @@ bool Sema::ValidateLabel(const LabelDecl *label)
     const LabelStmt *LabelStatement = label->getStmt();
     if (LabelStatement == nullptr)
     {
-        Diag(label->getLocation(), diag::err_declarative_label_statment_is_invalid);
+        Diag(label->getLocation(), diag::err_declarative_label_statement_is_invalid);
         return false;
     }
     const Stmt* statement = LabelStatement->getSubStmt();
     if (statement == nullptr)
     {
-        Diag(label->getLocation(), diag::err_declarative_label_statment_is_invalid);
+        Diag(label->getLocation(), diag::err_declarative_label_statement_is_invalid);
         return false;
     }
     if (!GaiaForStmt::classof(statement) && !IfStmt::classof(statement))

@@ -1297,6 +1297,8 @@ void ASTStmtWriter::VisitGaiaForStmt(GaiaForStmt *S) {
   Record.AddSourceLocation(S->getRParenLoc());
   Record.AddStmt(S->getPath());
   Record.AddStmt(S->getBody());
+  Record.AddStmt(S->getNoMatch());
+  Record.AddSourceLocation(S->getNoMatchLoc());
   Code = serialization::STMT_GAIA_FOR_STMT;
 }
 

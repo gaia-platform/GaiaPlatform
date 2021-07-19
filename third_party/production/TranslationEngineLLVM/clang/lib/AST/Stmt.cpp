@@ -896,13 +896,15 @@ bool IfStmt::isObjCAvailabilityCheck() const {
   return isa<ObjCAvailabilityCheckExpr>(getCond());
 }
 
-GaiaForStmt::GaiaForStmt(const ASTContext &C, Stmt *Path, Stmt *Body,
-  SourceLocation FL, SourceLocation LP, SourceLocation RP)
+GaiaForStmt::GaiaForStmt(const ASTContext &C, Expr *Path, Stmt *Body,
+  SourceLocation FL, SourceLocation LP, SourceLocation RP, Stmt *NoMatch, SourceLocation NoMatchLocation)
   : Stmt(GaiaForStmtClass), LParenLoc(LP), RParenLoc(RP)
 {
   SubExprs[PATH] = Path;
   SubExprs[BODY] = Body;
+  SubExprs[NO_MATCH] = NoMatch;
   GaiaForLoc = FL;
+  setNoMatchLoc(NoMatchLocation);
 }
 
 ForStmt::ForStmt(const ASTContext &C, Stmt *Init, Expr *Cond, VarDecl *condVar,

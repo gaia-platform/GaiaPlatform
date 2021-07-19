@@ -46,6 +46,14 @@ namespace logging
  * - https://github.com/guangie88/spdlog_setup
  *
  * The logging configuration file location can be specified in gaia::system::initialize().
+ * 
+ * You can check whether a log level is enabled before running expensive calculations:
+ * 
+ *  if (gaia_log::app().is_debug_enabled())
+ *  {
+ *      int num = very_slow_function();
+ *      gaia_log::app().debug("value: {}", num);
+ *  }
  *
  * \addtogroup Logging
  * @{
@@ -74,6 +82,14 @@ public:
     }
 
     /**
+     * Returns true if the log level is at "trace".
+     */
+    bool is_trace_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::trace);
+    }
+
+    /**
      * Fine-grained informational events that are most
      * useful to debug an application.
      */
@@ -81,6 +97,14 @@ public:
     void debug(const char* format, const T_args&... args)
     {
         m_spdlogger->debug(format, args...);
+    }
+
+    /**
+     * Returns true if the log level is at "debug" or higher.
+     */
+    bool is_debug_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::debug);
     }
 
     /**
@@ -94,6 +118,14 @@ public:
     }
 
     /**
+     * Returns true if the log level is at "info" or higher.
+     */
+    bool is_info_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::info);
+    }
+
+    /**
      * Informational messages that highlight the progress
      * of the application at coarse-grained level.
      */
@@ -101,6 +133,14 @@ public:
     void warn(const char* format, const T_args&... args)
     {
         m_spdlogger->warn(format, args...);
+    }
+
+    /**
+     * Returns true if the log level is at "warn" or higher.
+     */
+    bool is_warn_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::warn);
     }
 
     /**
@@ -113,6 +153,14 @@ public:
     }
 
     /**
+     * Returns true if the log level is at "error" or higher.
+     */
+    bool is_error_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::err);
+    }
+
+    /**
      * Very severe error events that will presumably lead the
      * application to abort.
      */
@@ -120,6 +168,14 @@ public:
     void critical(const char* format, const T_args&... args)
     {
         m_spdlogger->critical(format, args...);
+    }
+
+    /**
+     * Returns true if the log level is at "critical" or higher.
+     */
+    bool is_critical_enabled()
+    {
+        return m_spdlogger->should_log(gaia_spdlog::level::level_enum::critical);
     }
 
 protected:

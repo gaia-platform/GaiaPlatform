@@ -44,6 +44,7 @@ using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::storage;
+using namespace gaia::db::transactions;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
@@ -219,6 +220,15 @@ void server_t::handle_begin_txn(
     // allocation per txn.
     std::vector<int> txn_log_fds;
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+    auto cleanup_log_fds = make_scope_guard([&]() {
+        // Now we need to close all the duplicated log fds in the buffer.
+        for (auto& fd : txn_log_fds)
+        {
+            // Each log fd should still be valid.
+            ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+            close_fd(fd);
+        }
+    });
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
@@ -230,7 +240,7 @@ void server_t::handle_begin_txn(
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
     // We need a 1-byte dummy message buffer due to our datagram size convention.
-    uint8_t msg_buf[1] = {0};
+    uint8_t msg_buf[1]{0};
     size_t fds_sent_count = 0;
     while (fds_sent_count < txn_log_fds.size())
     {
@@ -238,14 +248,6 @@ void server_t::handle_begin_txn(
         send_msg_with_fds(
             s_session_socket, txn_log_fds.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
-    }
-
-    // Now we need to close all the duplicated log fds in the buffer.
-    for (auto& fd : txn_log_fds)
-    {
-        // Each log fd should still be valid.
-        ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
-        close_fd(fd);
     }
 }
 
@@ -606,6 +608,7 @@ void server_t::build_server_reply(
 void server_t::clear_shared_memory()
 {
     data_mapping_t::close(c_data_mappings);
+    s_local_snapshot_locators.close();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -641,8 +644,15 @@ void server_t::init_shared_memory()
 
     init_memory_manager();
 
+    // Create snapshot for db recovery and index population.
+    bool apply_logs = false;
+    create_local_snapshot(apply_logs);
+
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
+    // Done with local snapshot.
+    s_local_snapshot_locators.close();
 
     cleanup_memory.dismiss();
 }
@@ -728,6 +738,87 @@ void server_t::recover_db()
     }
 }
 
+gaia_txn_id_t server_t::begin_startup_txn()
+{
+    s_txn_id = txn_metadata_t::txn_begin();
+    return s_txn_id;
+}
+
+void server_t::end_startup_txn()
+{
+    // Use a local variable to ensure cleanup in case of an error.
+    mapped_log_t log;
+
+    int fd;
+    size_t log_size;
+
+    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+
+    // Update the log header with our begin timestamp and intialize it to empty.
+    log.data()->begin_ts = s_txn_id;
+    log.data()->record_count = 0;
+
+    log.truncate_seal_and_close(fd, log_size);
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(fd);
+    });
+
+    // Register the committing txn under a new commit timestamp.
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, fd);
+    // Now update the active txn metadata.
+    txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
+    // Update the current txn's decided status.
+    txn_metadata_t::update_txn_decision(commit_ts, true);
+    perform_maintenance();
+
+    cleanup_log_fd.dismiss();
+    s_txn_id = c_invalid_gaia_txn_id;
+}
+
+// Create a thread-local snapshot from the shared locators.
+void server_t::create_local_snapshot(bool apply_logs)
+{
+    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+    bool manage_fd = false;
+    bool is_shared = false;
+
+    if (apply_logs)
+    {
+        std::vector<int> txn_log_fds;
+        get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+        auto cleanup_log_fds = make_scope_guard([&]() {
+            // Close all the duplicated log fds in the buffer.
+            for (auto& fd : txn_log_fds)
+            {
+                // Each log fd should still be valid.
+                ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
+                close_fd(fd);
+            }
+        });
+
+        // Open a private locator mmap for the current thread.
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+
+        // Apply txn_logs for the snapshot.
+        for (const auto& it : txn_log_fds)
+        {
+            mapped_log_t txn_log;
+            txn_log.open(it);
+            apply_logs_to_locators(s_local_snapshot_locators.data(), txn_log.data());
+        }
+
+        // Apply s_log to the local snapshot, if any.
+        if (s_log)
+        {
+            apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
+        }
+    }
+    else
+    {
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+    }
+}
+
 sigset_t server_t::mask_signals()
 {
     sigset_t sigset;
@@ -775,7 +866,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
-    sockaddr_un server_addr = {0};
+    sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
 
     // The socket name (minus its null terminator) needs to fit into the space
@@ -923,7 +1014,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
-        epoll_event ev = {0};
+        epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.fd = registered_fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fd, &ev))
@@ -1038,7 +1129,7 @@ void server_t::session_handler(int session_socket)
     for (int fd : fds)
     {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
-        epoll_event ev = {0};
+        epoll_event ev{};
         ev.events = EPOLLIN | EPOLLRDHUP;
         ev.data.fd = fd;
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev))
@@ -1091,7 +1182,7 @@ void server_t::session_handler(int session_socket)
         const void* event_data = nullptr;
 
         // Buffer used to send and receive all message data.
-        uint8_t msg_buf[c_max_msg_size] = {0};
+        uint8_t msg_buf[c_max_msg_size]{0};
 
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
@@ -1213,8 +1304,6 @@ void server_t::stream_producer_handler(
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
 
-    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
-
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
@@ -1225,7 +1314,7 @@ void server_t::stream_producer_handler(
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
-    epoll_event sock_ev = {0};
+    epoll_event sock_ev{};
     sock_ev.events = EPOLLOUT;
     sock_ev.data.fd = stream_socket;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
@@ -1233,7 +1322,7 @@ void server_t::stream_producer_handler(
         throw_system_error(c_message_epoll_ctl_failed);
     }
 
-    epoll_event cancel_ev = {0};
+    epoll_event cancel_ev{};
     cancel_ev.events = EPOLLIN;
     cancel_ev.data.fd = cancel_eventfd;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
@@ -1250,6 +1339,8 @@ void server_t::stream_producer_handler(
 
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
+
+    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
 
     while (!producer_shutdown)
     {
@@ -1370,7 +1461,7 @@ void server_t::stream_producer_handler(
                         // be notified (with EPOLLHUP/EPOLLERR) when the client
                         // closes the socket, so we can close our end of the
                         // socket and terminate the thread.
-                        epoll_event ev = {0};
+                        epoll_event ev{};
                         // We're only interested in EPOLLHUP/EPOLLERR
                         // notifications, and we don't need to register for
                         // those.
@@ -1584,7 +1675,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     do
     {
         has_found_new_committed_txn = false;
-        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+        for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts) + 1; ts < commit_ts; ++ts)
         {
             // Seal all uninitialized timestamps. This marks a "fence" after which
             // any submitted txns with commit timestamps in our conflict window must
@@ -1668,7 +1759,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     // Validate all undecided txns, from oldest to newest. If any validated txn
     // commits, test it immediately for conflicts. Also test any committed txns
     // for conflicts if they weren't tested in the first pass.
-    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts(commit_ts) + 1; ts < commit_ts; ++ts)
+    for (gaia_txn_id_t ts = txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts) + 1; ts < commit_ts; ++ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
         {
@@ -1806,21 +1897,17 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 
     // Ensure that the begin_ts in this metadata matches the txn log header.
     ASSERT_INVARIANT(
-        txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
+        txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
-    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
-    {
-        // Update the shared locator view with each redo version (i.e., the
-        // version created or updated by the txn). This is safe as long as the
-        // committed txn being applied has commit_ts older than the oldest
-        // active txn's begin_ts (so it can't overwrite any versions visible in
-        // that txn's snapshot). This update is non-atomic because log application
-        // is idempotent and therefore a txn log can be re-applied over the same
-        // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
-        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
-    }
+    // Update the shared locator view with each redo version (i.e., the
+    // version created or updated by the txn). This is safe as long as the
+    // committed txn being applied has commit_ts older than the oldest
+    // active txn's begin_ts (so it can't overwrite any versions visible in
+    // that txn's snapshot). This update is non-atomic because log application
+    // is idempotent and therefore a txn log can be re-applied over the same
+    // txn's partially-applied log during snapshot reconstruction.
+    apply_logs_to_locators(s_shared_locators.data(), txn_log.data());
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
@@ -2034,7 +2121,7 @@ void server_t::apply_txn_logs_to_shared_view()
             }
 
             if (txn_metadata_t::is_txn_submitted(ts)
-                && txn_metadata_t::is_txn_validating(txn_metadata_t::get_commit_ts(ts)))
+                && txn_metadata_t::is_txn_validating(txn_metadata_t::get_commit_ts_from_begin_ts(ts)))
             {
                 break;
             }
@@ -2372,6 +2459,14 @@ void server_t::run(server_config_t server_conf)
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
+
+    if (!is_little_endian())
+    {
+        cerr << "Big-endian architectures are currently not supported, exiting." << endl;
+
+        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
+        std::abort();
+    }
 
     while (true)
     {

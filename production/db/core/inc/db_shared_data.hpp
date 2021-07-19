@@ -16,6 +16,9 @@ namespace db
 // Returns a pointer to a mapping of the "locators" shared memory segment.
 gaia::db::locators_t* get_locators();
 
+// Returns a pointer to a mapping of the "locators" shared memory segment for the allocator.
+gaia::db::locators_t* get_locators_for_allocator();
+
 // Returns a pointer to a mapping of the "counters" shared memory segment.
 gaia::db::counters_t* get_counters();
 
@@ -29,6 +32,9 @@ gaia::db::id_index_t* get_id_index();
 gaia::db::memory_manager::address_offset_t allocate_object(
     gaia_locator_t locator,
     size_t size);
+
+// Get the current txn id.
+gaia::db::gaia_txn_id_t get_current_txn_id();
 
 // Returns a pointer to the indexes.
 gaia::db::index::indexes_t* get_indexes();

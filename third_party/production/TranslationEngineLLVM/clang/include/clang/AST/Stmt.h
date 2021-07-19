@@ -2344,26 +2344,28 @@ public:
 
 /// GaiaForStmt - This represents a 'for (path)' stmt.
 class GaiaForStmt : public Stmt {
-  enum { PATH, BODY, END_EXPR };
+  enum { PATH, BODY, NO_MATCH, END_EXPR };
   Stmt* SubExprs[END_EXPR]; // SubExprs[INIT] is an expression or declstmt.
-  SourceLocation LParenLoc, RParenLoc, GaiaForLoc;
+  SourceLocation LParenLoc, RParenLoc, GaiaForLoc, NoMatchLoc;
 
 public:
-  GaiaForStmt(const ASTContext &C, Stmt *Path, Stmt *Body, SourceLocation FL, SourceLocation LP,
-          SourceLocation RP);
+  GaiaForStmt(const ASTContext &C, Expr *Path, Stmt *Body, SourceLocation FL, SourceLocation LP,
+          SourceLocation RP, Stmt *NoMatch, SourceLocation NoMatchLoc);
 
   /// Build an empty for statement.
   explicit GaiaForStmt(EmptyShell Empty) : Stmt(GaiaForStmtClass, Empty) {}
 
-  Stmt *getPath() { return SubExprs[PATH]; }
-
+  Expr *getPath() { return reinterpret_cast<Expr*>(SubExprs[PATH]); }
   Stmt *getBody() { return SubExprs[BODY]; }
+  Stmt *getNoMatch() { return SubExprs[NO_MATCH]; }
 
-  const Stmt *getPath() const { return SubExprs[PATH]; }
+  const Expr *getPath() const { return reinterpret_cast<Expr*>(SubExprs[PATH]); }
   const Stmt *getBody() const { return SubExprs[BODY]; }
+  const Stmt *getNoMatch() const { return SubExprs[NO_MATCH]; }
 
-  void setPath(Stmt *S) { SubExprs[PATH] = S; }
+  void setPath(Expr *S) { SubExprs[PATH] = reinterpret_cast<Stmt*>(S); }
   void setBody(Stmt *S) { SubExprs[BODY] = S; }
+  void setNoMatch(Stmt *S) { SubExprs[NO_MATCH] = S; }
 
   SourceLocation getForLoc() const { return GaiaForLoc; }
   void setForLoc(SourceLocation L) { GaiaForLoc = L; }
@@ -2371,9 +2373,13 @@ public:
   void setLParenLoc(SourceLocation L) { LParenLoc = L; }
   SourceLocation getRParenLoc() const { return RParenLoc; }
   void setRParenLoc(SourceLocation L) { RParenLoc = L; }
+  SourceLocation getNoMatchLoc() const { return NoMatchLoc; }
+  void setNoMatchLoc(SourceLocation L) { NoMatchLoc = L; }
 
   SourceLocation getBeginLoc() const { return getForLoc(); }
-  SourceLocation getEndLoc() const { return getBody()->getEndLoc(); }
+  SourceLocation getEndLoc() const {
+    return getNoMatch() == nullptr ? getBody()->getEndLoc() : getNoMatch()->getEndLoc();
+  }
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == GaiaForStmtClass;

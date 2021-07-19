@@ -1339,9 +1339,11 @@ void ASTStmtReader::VisitGaiaForStmt(GaiaForStmt *S) {
   VisitStmt(S);
   S->setForLoc(ReadSourceLocation());
   S->setLParenLoc(ReadSourceLocation());
-  S->setRParenLoc(ReadSourceLocation()) ;
-  S->setPath(Record.readSubStmt());
+  S->setRParenLoc(ReadSourceLocation());
+  S->setPath(Record.readSubExpr());
   S->setBody(Record.readSubStmt());
+  S->setNoMatch(Record.readSubStmt());
+  S->setNoMatchLoc(ReadSourceLocation()) ;
 }
 
 void ASTStmtReader::VisitMSDependentExistsStmt(MSDependentExistsStmt *S) {

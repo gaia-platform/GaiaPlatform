@@ -1315,8 +1315,9 @@ public:
   /// By default, performs semantic analysis to build the new statement.
   /// Subclasses may override this routine to provide different behavior.
   StmtResult RebuildGaiaForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
-                            Stmt *Path, SourceLocation RParenLoc, Stmt *Body) {
-    return getSema().ActOnGaiaForStmt(ForLoc, LParenLoc, Path, RParenLoc, Body);
+                            Expr *Path, SourceLocation RParenLoc, Stmt *Body,
+                            Stmt *NoMatch, SourceLocation NoMatchLoc) {
+    return getSema().ActOnGaiaForStmt(ForLoc, LParenLoc, Path, RParenLoc, Body, NoMatchLoc, NoMatch);
   }
   /// Build a new goto statement.
   ///
@@ -7454,7 +7455,7 @@ StmtResult
 TreeTransform<Derived>::TransformGaiaForStmt(GaiaForStmt *S) {
 
   // Transform the initialization statement
-  StmtResult Path = getDerived().TransformStmt(S->getPath());
+  ExprResult Path = getDerived().TransformExpr(S->getPath());
   if (Path.isInvalid())
     return StmtError();
 
@@ -7463,13 +7464,18 @@ TreeTransform<Derived>::TransformGaiaForStmt(GaiaForStmt *S) {
   if (Body.isInvalid())
     return StmtError();
 
+  // Transform the nomatch
+  StmtResult NoMatch = getDerived().TransformStmt(S->getNoMatch());
+
   if (!getDerived().AlwaysRebuild() &&
       Path.get() == S->getPath() &&
-      Body.get() == S->getBody())
+      Body.get() == S->getBody() &&
+      NoMatch.get() == S->getNoMatch())
     return S;
 
   return getDerived().RebuildGaiaForStmt(S->getForLoc(), S->getLParenLoc(),
-                                     Path.get(), S->getRParenLoc(), Body.get());
+                                     Path.get(), S->getRParenLoc(), Body.get(),
+                                     NoMatch.get(), S->getNoMatchLoc());
 }
 
 

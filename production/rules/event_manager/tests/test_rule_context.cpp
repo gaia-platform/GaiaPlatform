@@ -23,12 +23,9 @@ void check_all_event_types(gaia_type_t context_type, gaia_type_t test_type, last
     gaia::direct_access::auto_transaction_t txn;
     field_position_list_t fields;
 
-    rule_context_t context(txn, context_type, event_type_t::row_delete, 0, fields);
+    rule_context_t context(txn, context_type, event_type_t::row_update, 0, fields);
 
-    // Test the insert/update/delete events which map to last operation types.
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_delete, context.last_operation(test_type));
-
-    context.event_type = event_type_t::row_update;
+    // Test the insert/update events which map to last operation types.
     EXPECT_EQ(expected ? *expected : last_operation_t::row_update, context.last_operation(test_type));
 
     context.event_type = event_type_t::row_insert;

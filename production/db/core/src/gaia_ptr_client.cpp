@@ -37,10 +37,12 @@ void gaia_ptr_t::reset()
     gaia::db::locators_t* locators = gaia::db::get_locators();
     client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
 
-    if (client_t::is_valid_event(to_ptr()->type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list, get_txn_id());
-    }
+    // TODO[GAIAPLAT-445]:  We don't expose delete events.
+    // if (client_t::is_valid_event(to_ptr()->type))
+    // {
+    //     client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list, get_txn_id());
+    // }
+
     (*locators)[m_locator] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;
 }

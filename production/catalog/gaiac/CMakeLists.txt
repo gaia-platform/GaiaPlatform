@@ -24,10 +24,14 @@ add_executable(gaiac
   src/command.cpp
   ${FLATBUFFERS}/src/idl_gen_cpp.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
+
+target_link_libraries(gaiac PUBLIC gaia_build_options)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
 add_dependencies(gaiac gaia_db_server)
 target_link_libraries(gaiac PRIVATE rt gaia_common gaia_catalog gaia_parser flatbuffers tabulate Threads::Threads)
-set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaiac PRIVATE gaia_stack_trace)
+endif()
 
 install(TARGETS gaiac DESTINATION ${CMAKE_INSTALL_BINDIR})

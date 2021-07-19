@@ -91,11 +91,7 @@ inline void update_locator(
     gaia_locator_t locator,
     gaia::db::memory_manager::address_offset_t offset)
 {
-    locators_t* locators = gaia::db::get_locators();
-    if (!locators)
-    {
-        throw no_open_transaction();
-    }
+    locators_t* locators = gaia::db::get_locators_for_allocator();
 
     (*locators)[locator] = get_gaia_offset(offset);
 }
@@ -144,11 +140,27 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id;
 }
 
+inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
+{
+    for (size_t i = 0; i < logs->record_count; ++i)
+    {
+        auto& record = logs->log_records[i];
+        (*locators)[record.locator] = record.new_offset;
+    }
+}
+
 inline index::db_index_t id_to_index(common::gaia_id_t index_id)
 {
     auto it = get_indexes()->find(index_id);
 
     return (it != get_indexes()->end()) ? it->second : nullptr;
+}
+
+inline bool is_little_endian()
+{
+    uint32_t val = 1;
+    uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
+    return least_significant_byte == val;
 }
 
 } // namespace db

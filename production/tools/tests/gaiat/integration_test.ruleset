@@ -32,14 +32,6 @@ ruleset test3
     }
 }
 
-ruleset test4
-{
-    OnInsert(sensor)
-    {
-        sensor.delete_row();
-    }
-}
-
 typedef enum
 {
     undefined = 0,
