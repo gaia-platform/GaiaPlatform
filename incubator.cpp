@@ -52,6 +52,9 @@ atomic<int> g_rule_1_tracker{0};
 atomic<int> g_rule_2_tracker{0};
 atomic<int> g_rule_3_tracker{0};
 
+double total_wait_time = 0.0;
+double total_print_time = 0.0;
+
 void add_fan_control_rule();
 
 gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -323,23 +326,30 @@ void step() {
 }
 
 void ztep() {
+    int rule_1_sample_base = g_rule_1_tracker;
+    int rule_2_sample_base = g_rule_2_tracker;
+    int rule_3_sample_base = g_rule_3_tracker;
+
+    step();
+
+    auto print_start_mark = std::chrono::high_resolution_clock::now();
     if(g_has_ztep_output){
         printf(",\n");
     }else {
         g_has_ztep_output = true;
         printf("[\n");
     }
-    int rule_1_sample_base = g_rule_1_tracker;
-    int rule_2_sample_base = g_rule_2_tracker;
-    int rule_3_sample_base = g_rule_3_tracker;
+    dump_db_json();
 
+    auto print_end_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
+    total_print_time += ms_print.count();
+
+    auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
     bool have_no_deltas = false;
     int no_deltas_count = 0;
     const int maximum_no_delta_attempts = 25;
     const int no_delta_count_before_break = 3;
-
-    step();
-    dump_db_json();
 
     for(int current_no_delta_attempt = 0; current_no_delta_attempt < maximum_no_delta_attempts; current_no_delta_attempt++) {
 
@@ -369,6 +379,10 @@ void ztep() {
         rule_2_sample_base=rule_2_current_sample;
         rule_3_sample_base=rule_3_current_sample;
     }
+    auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+    total_wait_time += ms_double.count();
 }
 
 void simulation()
@@ -570,23 +584,38 @@ public:
         else if (m_input.size() > 1 && (m_input[0] == c_cmd_ztep_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
         {
             if(m_input[0] == c_cmd_wait) {
-                int limit = stoi(m_input.substr(1, m_input.size() - 1));
-                std::this_thread::sleep_for(std::chrono::milliseconds(limit));
+                handle_wait();
             } else if(m_input[0] == c_cmd_comment) {
                 ;
             } else {
-                bool is_step = m_input[0] == c_cmd_step_sim;
-                int limit = stoi(m_input.substr(1, m_input.size() - 1));
-                for(int i = 0; i < limit; i++) {
-                    if (is_step) {
-                        step();
-                    } else {
-                        ztep();
-                    }
-                }
+                handle_multiple_steps();
             }
         }
         return true;
+    }
+
+    void handle_multiple_steps() {
+        bool is_step = m_input[0] == c_cmd_step_sim;
+        int limit = stoi(m_input.substr(1, m_input.size() - 1));
+        for(int i = 0; i < limit; i++) {
+            if (is_step) {
+                step();
+            } else {
+                ztep();
+            }
+        }
+    }
+
+    void handle_wait() {
+        auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
+
+        int limit = stoi(m_input.substr(1, m_input.size() - 1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(limit));
+
+        auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+        total_wait_time += ms_double.count();
     }
 
     // Return false if EOF is reached.
@@ -822,7 +851,7 @@ public:
             sleep(4);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d }\n", ms_double.count()/1000.0, last_known_timestamp);
+            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, \"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f }\n", ms_double.count()/1000.0, last_known_timestamp, total_wait_time/1000.0, total_print_time/1000.0);
         }
         return EXIT_SUCCESS;
     }

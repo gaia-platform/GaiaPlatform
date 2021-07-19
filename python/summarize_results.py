@@ -113,11 +113,13 @@ def load_test_result_files(suite_test):
         data = json.load(input_file)
         stop_pause_data = data["stop_pause_in_sec"]
         iterations_data = data["iterations"]
+        total_wait_data = data["total_wait_in_sec"]
+        total_print_data = data["total_print_in_sec"]
 
     log_path = os.path.join(base_dir, "gaia_stats.log")
     stats_data = process_rules_engine_stats(log_path)
 
-    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data
+    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data
 
 if len(sys.argv) != 2:
     print("error")
@@ -134,14 +136,17 @@ full_test_results = {}
 for suite_test in suite_file_lines:
 
     suite_test = suite_test.strip()
-    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data = load_test_result_files(suite_test)
+    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data = load_test_result_files(suite_test)
 
     new_results = {}
     new_results["iterations"] = iterations_data
     new_results["return-code"] = return_code_data
     new_results["duration-sec"] = duration_data
     new_results["stop-pause-sec"] = stop_pause_data
-    new_results["test-duration-sec"] =  new_results["duration-sec"] - new_results["stop-pause-sec"]
+    new_results["wait-pause-sec"] = total_wait_data
+    new_results["print-duration-sec"] = total_print_data
+
+    new_results["test-duration-sec"] =  new_results["duration-sec"] - new_results["stop-pause-sec"] - new_results["wait-pause-sec"] - new_results["print-duration-sec"]
     new_results["iteration-duration-sec"] = new_results["test-duration-sec"] / float(new_results["iterations"])
     new_results["rules-engine-stats"] = stats_data
 
