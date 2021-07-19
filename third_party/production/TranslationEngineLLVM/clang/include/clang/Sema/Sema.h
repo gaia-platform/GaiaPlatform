@@ -3802,9 +3802,11 @@ public:
 
   StmtResult ActOnGaiaForStmt(SourceLocation ForLoc,
                           SourceLocation LParenLoc,
-                          Stmt *Path,
+                          Expr *Path,
                           SourceLocation RParenLoc,
-                          Stmt *Body);
+                          Stmt *Body,
+                          SourceLocation NoMatchLoc,
+                          Stmt* NoMatchStmt);
   ExprResult CheckObjCForCollectionOperand(SourceLocation forLoc,
                                            Expr *collection);
   StmtResult ActOnObjCForCollectionStmt(SourceLocation ForColLoc,
@@ -4630,6 +4632,7 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  // Checks if an expression contains injected declarative references.
   bool IsExpressionInjected(const Expr* expression) const;
 private:
 

@@ -6019,20 +6019,18 @@ ExpectedStmt ASTNodeImporter::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
 
 ExpectedStmt ASTNodeImporter::VisitGaiaForStmt(GaiaForStmt *S)
 {
-  auto Imp1 = importSeq(S->getPath(), S->getBody());
-  if (!Imp1)
-    return Imp1.takeError();
-  auto Imp2 = importSeq(S->getForLoc(), S->getLParenLoc(), S->getRParenLoc());
-  if (!Imp2)
-    return Imp2.takeError();
+  auto Imp = importSeq(S->getPath(), S->getBody(), S->getForLoc(),
+   S->getLParenLoc(), S->getRParenLoc(), S->getNoMatch(), S->getNoMatchLoc());
+  if (!Imp)
+    return Imp.takeError();
 
-  Stmt *ToPath, *ToBody;
-  std::tie(ToPath, ToBody) = *Imp1;
-  SourceLocation ToForLoc, ToLParenLoc, ToRParenLoc;
-  std::tie(ToForLoc, ToLParenLoc, ToRParenLoc) = *Imp2;
+  Expr *ToPath;
+  Stmt *ToBody, *ToNoMatch;
+  SourceLocation ToForLoc, ToLParenLoc, ToRParenLoc, ToNoMatchLoc;
+  std::tie(ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc, ToNoMatch, ToNoMatchLoc) = *Imp;
 
   return new (Importer.getToContext()) GaiaForStmt(Importer.getToContext(),
-    ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc);
+    ToPath, ToBody, ToForLoc, ToLParenLoc, ToRParenLoc, ToNoMatch, ToNoMatchLoc);
 }
 
 ExpectedStmt

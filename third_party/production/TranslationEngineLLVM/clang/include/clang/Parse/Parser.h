@@ -2509,6 +2509,7 @@ private:
   Token getPreviousToken(Token token) const;
   void InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs);
   std::string GetExplicitNavigationPath();
+  // Check if a function uses Gaia convention to pass parameters.
   bool isGaiaSpecialFunction(StringRef name) const;
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
