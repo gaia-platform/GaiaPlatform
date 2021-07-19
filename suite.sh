@@ -189,14 +189,22 @@ install_and_build_cleanly() {
 }
 
 # Execute a single test within the test suite.
-execute_suite_test() {
+execute_single_test() {
     local NEXT_TEST_NAME=$1
+    local REPEAT_NUMBER=$2
 
     # Let the runner know what is going on.
-    echo "Executing test: $NEXT_TEST_NAME"
+    if [ -n "$REPEAT_NUMBER" ] ; then
+        echo "Executing test: $NEXT_TEST_NAME, repeat $REPEAT_NUMBER"
+    else
+        echo "Executing test: $NEXT_TEST_NAME"
+    fi
 
     # Make a new directory to contain all the results of the test.
     SUITE_TEST_DIRECTORY=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/$NEXT_TEST_NAME
+    if [ -n "$REPEAT_NUMBER" ] ; then
+        SUITE_TEST_DIRECTORY="$SUITE_TEST_DIRECTORY"_"$REPEAT_NUMBER"
+    fi
     if ! mkdir "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         echo "Suite script cannot create suite test directory '$(realpath "$SUITE_TEST_DIRECTORY")' prior to test execution."
@@ -216,6 +224,23 @@ execute_suite_test() {
         cat "$TEMP_FILE"
         echo "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
         complete_process 2
+    fi
+}
+
+# Execute a test within the test suite.
+execute_suite_test() {
+    local NEXT_TEST_NAME=$1
+
+    SUB="^(.*) repeat ([0-9]+)$"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+        NEXT_TEST_NAME="${BASH_REMATCH[1]}"
+        NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
+        for (( c=1; c<=NUMBER_OF_REPEATS; c++ ))
+          do
+            execute_single_test "$NEXT_TEST_NAME" $c
+          done
+    else
+        execute_single_test "$NEXT_TEST_NAME"
     fi
 }
 
