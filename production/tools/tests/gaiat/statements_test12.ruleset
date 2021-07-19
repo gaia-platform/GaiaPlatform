@@ -1,14 +1,13 @@
 // RUN: echo "TODO error message" | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
-// TESTCASE: while() with illegal iteration
-ruleset test11
+// TESTCASE: while() with an illegal full-table scan
+ruleset test43
 {
     OnInsert(incubator)
     {
         int count = 0;
-        // illegal iteration, 1 incubator -> N sensors
-        while (sensor.value > 0.0)
+        while (/sensor.value > 0.0)
         {
             count += 1;
         }
