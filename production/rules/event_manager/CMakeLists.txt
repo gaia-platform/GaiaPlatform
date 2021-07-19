@@ -35,8 +35,7 @@ add_library(gaia_rules STATIC
   src/event_manager_settings.cpp
 )
 
-set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_rules PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+target_link_libraries(gaia_rules PUBLIC gaia_build_options)
 
 target_include_directories(gaia_rules PUBLIC ${GAIA_EVENT_MANAGER_PUBLIC_INCLUDES})
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES})

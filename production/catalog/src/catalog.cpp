@@ -5,6 +5,8 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 
+#include <optional>
+
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 
@@ -54,14 +56,23 @@ gaia_id_t create_table(
     check_not_system_db(name);
     return ddl_executor_t::get().create_table(db_name, name, fields, throw_on_exists);
 }
-
 gaia_id_t create_relationship(
     const string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
     bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_relationship(name, link1, link2, throw_on_exists);
+    return create_relationship(name, link1, link2, std::nullopt, throw_on_exists);
+}
+
+gaia_id_t create_relationship(
+    const string& name,
+    const ddl::link_def_t& link1,
+    const ddl::link_def_t& link2,
+    const optional<ddl::table_field_map_t>& field_map,
+    bool throw_on_exists)
+{
+    return ddl_executor_t::get().create_relationship(name, link1, link2, field_map, throw_on_exists);
 }
 
 gaia_id_t create_index(

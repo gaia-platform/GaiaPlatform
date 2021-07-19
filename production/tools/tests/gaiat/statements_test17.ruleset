@@ -1,0 +1,17 @@
+// RUN: echo "TODO error message" | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: do-while with an active field and an illegal table scan
+ruleset test44
+{
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (/@animal.age < 10);
+    }
+}
+
+// CHECK: TODO error message

@@ -1609,7 +1609,9 @@ public:
   ExprResult ParseCaseExpression(SourceLocation CaseLoc);
   ExprResult ParseConstraintExpression();
   // Expr that doesn't include commas.
-  ExprResult ParseAssignmentExpression(TypeCastState isTypeCast = NotTypeCast);
+  ExprResult ParseAssignmentExpression(TypeCastState isTypeCast = NotTypeCast,
+                                  bool isGaiaSpecialFunctionCall = false,
+                                  SourceLocation expressionLocation = SourceLocation());
 
   ExprResult ParseMSAsmIdentifier(llvm::SmallVectorImpl<Token> &LineToks,
                                   unsigned &NumLineToksConsumed,
@@ -1670,7 +1672,10 @@ private:
   bool ParseExpressionList(
       SmallVectorImpl<Expr *> &Exprs,
       SmallVectorImpl<SourceLocation> &CommaLocs,
-      llvm::function_ref<void()> Completer = llvm::function_ref<void()>());
+      llvm::function_ref<void()> Completer = llvm::function_ref<void()>(),
+      bool isGaiaSpecialFunctionCall = false,
+      SourceLocation expressionLocation = SourceLocation()
+      );
 
   /// ParseSimpleExpressionList - A simple comma-separated list of expressions,
   /// used for misc language extensions.
@@ -1725,7 +1730,8 @@ private:
                                       bool *MayBePseudoDestructor = nullptr,
                                       bool IsTypename = false,
                                       IdentifierInfo **LastII = nullptr,
-                                      bool OnlyNamespace = false);
+                                      bool OnlyNamespace = false,
+                                      IdentifierInfo **LastIdentifier = nullptr);
 
   //===--------------------------------------------------------------------===//
   // C++0x 5.1.2: Lambda expressions
@@ -2483,9 +2489,12 @@ private:
     Rule
   };
 
-  const char *c_on_update_rule_attribute = "OnUpdate";
-  const char *c_on_insert_rule_attribute = "OnInsert";
-  const char *c_on_change_rule_attribute = "OnChange";
+  static constexpr char c_on_update_rule_attribute[] = "OnUpdate";
+  static constexpr char c_on_insert_rule_attribute[] = "OnInsert";
+  static constexpr char c_on_change_rule_attribute[] = "OnChange";
+
+  std::unordered_map<SourceLocation, std::string> insertCallTableMap;
+  std::unordered_map<SourceLocation, std::vector<std::string>> insertCallParameterMap;
 
   bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
                             GaiaAttributeType attributeType,
@@ -2500,6 +2509,8 @@ private:
   Token getPreviousToken(Token token) const;
   void InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &attrs);
   std::string GetExplicitNavigationPath();
+  // Check if a function uses Gaia convention to pass parameters.
+  bool isGaiaSpecialFunction(StringRef name) const;
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
                                      SourceLocation *endLoc = nullptr) {

@@ -25,9 +25,8 @@ link_directories(
 )
 
 add_executable(gaiat ${GAIAT_SRCS})
+target_link_libraries(gaiat PUBLIC gaia_build_options)
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
-set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaiat PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaiat
   PRIVATE
   rt
@@ -42,6 +41,10 @@ target_link_libraries(gaiat
   ${LIB_CAP}
   dl
 )
+
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaiat PRIVATE gaia_stack_trace)
+endif()
 
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -173,6 +176,13 @@ add_gtest(test_tags_ruleset
 
 add_gtest(test_queries_ruleset
   "tests/test_queries.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
+  "${TEST_INCLUDES}"
+  "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
+  "generate_rulesets_rules" ""
+)
+
+add_gtest(test_insert_delete_ruleset
+  "tests/test_insert_delete.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""

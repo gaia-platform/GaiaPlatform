@@ -3,15 +3,6 @@
 # All rights reserved.
 #############################################
 
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
-set(GAIA_LINK_FLAGS "-ggdb -pthread")
-
-# Enable AddressSanitizer in debug mode.
-if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-  set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
-endif()
-
 set(GAIA "/opt/gaia")
 
 include(${GAIA}/cmake/gaia.cmake)
@@ -35,6 +26,15 @@ add_executable(ping_pong
   ping_pong.cpp
   ${PROJECT_BINARY_DIR}/ping_pong_ruleset.cpp
 )
+
+target_compile_options(ping_pong PRIVATE -Wall -Wextra -ggdb)
+target_link_options(ping_pong PRIVATE -ggdb -pthread)
+
+# Enable AddressSanitizer in debug mode.
+if(ENABLE_ASAN AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  target_compile_options(ping_pong PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+  target_link_options(ping_pong PRIVATE -fsanitize=address)
+endif()
 
 add_dependencies(ping_pong translate_ping_pong_ruleset)
 target_include_directories(ping_pong PRIVATE ${GAIA_INC})

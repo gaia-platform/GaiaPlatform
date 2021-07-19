@@ -43,9 +43,8 @@ add_library(gaia_catalog STATIC
   src/edc_generator.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
-set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_catalog PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
+target_link_libraries(gaia_catalog PUBLIC gaia_build_options)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
 target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers edc_catalog)
