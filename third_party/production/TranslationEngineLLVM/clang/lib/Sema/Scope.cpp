@@ -106,7 +106,7 @@ bool Scope::containedInPrototypeScope() const {
 }
 
 void Scope::AddFlags(unsigned FlagsToSet) {
-  assert((FlagsToSet & ~(BreakScope | ContinueScope)) == 0 &&
+  assert((FlagsToSet & ~(BreakScope | ContinueScope | GaiaBreakScope)) == 0 &&
          "Unsupported scope flags");
   if (FlagsToSet & BreakScope) {
     assert((Flags & BreakScope) == 0 && "Already set");
