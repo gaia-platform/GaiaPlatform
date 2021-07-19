@@ -16,10 +16,91 @@ ruleset test1
     }
 }
 
+// GAIAPLAT-1042 (fixed)
+// TESTCASE: Use for statement to scan a table near the anchor.
+ruleset test1_1
+{
+    OnInsert(incubator)
+    {
+        float temp = 0;
+        for (/S:sensor)
+        {
+            temp += S.value;
+        }
+    }
+}
+
+// TESTCASE: Use an implicit query in a for statement.
+// NOTE: This implicit query from incubator to feeding goes through
+//       raised and animal. This is the same distance as a path
+//       that goes through farmer and yield. The selection of this
+//       path is arbitrary, and would produce different results if
+//       the other path was chosen. Should there be a warning?
+// NOTE: Most recent decision is to make this an error. By rearranging
+//       the order or table definitions in the DDL, the selection of
+//       the implicit path may change - that would be bad. By making
+//       this an error, the programmer can correct the code to have
+//       an explicit component to the path.
+// GAIAPLAT-1050
+ruleset test1_2
+{
+    OnInsert(incubator)
+    {
+        int total_portion = 0;
+        for (F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
+// TESTCASE: Use for statement to scan a table not near the anchor.
+ruleset test1_3
+{
+    OnInsert(incubator)
+    {
+        int total_portion = 0;
+        for (/F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
+// TESTCASE: Path moves from M to 1 in if with nomatch.
+// GAIAPLAT-1005 (fixed)
+ruleset test1_4
+{
+    OnInsert(sensor)
+    {
+        if (sensor->incubator.min_temp < 95.0)
+        {
+            sensor.value += 3.0;
+        }
+        nomatch
+        {
+            sensor.value += 5;
+        }
+    }
+}
+
+// TESTCASE: Path moves from M to 1 in if without nomatch.
+ruleset test1_5
+{
+    OnInsert(sensor)
+    {
+        if (sensor->incubator.min_temp < 95.0)
+        {
+            sensor.value += 3.0;
+        }
+    }
+}
+
 ruleset test2
 {
     {
         float temp = 0;
+        // This looks like a loop, but the incubator is the anchor.
         for (incubator)
         {
             temp += @max_temp;
@@ -540,6 +621,83 @@ ruleset test34
         {
             // This nomatch is for the inner 'if' so F is in scope
             total_acres = F.acreage;
+        }
+    }
+}
+
+// TESTCASE: break from within a declarative if.
+// GAIAPLAT-1053
+#ifdef TEST_FAILURES
+ruleset test_1
+{
+    OnInsert(incubator)
+    {
+        if (S:sensor.value > 99.9)
+        {
+            break;
+        }
+        else
+        {
+            S.value += 0.5;
+        }
+    }
+}
+#endif
+
+// TESTCASE: break from within the nomatch block of a declarative if.
+#ifdef TEST_FAILURES
+ruleset test_2
+{
+    OnInsert(incubator)
+    {
+        if (S:sensor.value > 99.9)
+        {
+            S.value -= 0.5;
+        }
+        else
+        {
+            S.value += 0.5;
+        }
+        nomatch
+        {
+            break;
+        }
+    }
+}
+#endif
+
+// TESTCASE: break from within a declarative for.
+ruleset test_3
+{
+    OnInsert(incubator)
+    {
+        for (S:sensor) if (S.value > 99.9)
+        {
+            break;
+        }
+        else
+        {
+            S.value += 0.5;
+        }
+    }
+}
+
+// TESTCASE: break from within a nested declarative for.
+// GAIAPLAT-1056
+ruleset test_4
+{
+    OnInsert(incubator)
+    {
+        for (S:sensor)
+        {
+            for (S->incubator->farmer->Y:yield)
+            {
+                if (Y.bushels > 10)
+                {
+                    break;
+                }
+            }
+            int i = 0;
         }
     }
 }

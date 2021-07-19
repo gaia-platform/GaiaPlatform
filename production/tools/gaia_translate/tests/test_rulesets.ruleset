@@ -419,3 +419,16 @@ ruleset test_query_9
         g_oninsert_called = true;
     }
 }
+
+ruleset test_insert_delete
+{
+    OnUpdate(S:student)
+    {
+        for (/R:registration)
+        {
+            R.Delete();
+            g_onupdate_value++;
+        }
+        g_onupdate_called = true;
+    }
+}

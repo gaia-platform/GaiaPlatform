@@ -177,3 +177,10 @@ add_gtest(test_queries_ruleset
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
 )
+
+add_gtest(test_insert_delete_ruleset
+  "tests/test_insert_delete.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
+  "${TEST_INCLUDES}"
+  "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
+  "generate_rulesets_rules" ""
+)

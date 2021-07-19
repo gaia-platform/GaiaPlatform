@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: Path without nomatch, guarded by declarative if condiiton.
+//           The non-conditional portion causes error.
+ruleset test1_6
+{       
+    OnInsert(sensor)
+    {   
+        if (sensor->incubator && sensor->incubator.min_temp < 95.0)
+        {   
+            sensor.value += 3.0;
+        }
+    }
+}
+
+// CHECK: not contextually convertible to 'bool'
