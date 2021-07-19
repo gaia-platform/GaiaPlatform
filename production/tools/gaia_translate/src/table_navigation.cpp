@@ -251,7 +251,6 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
             }
             else
             {
-                cerr << "No path between tables '" << anchor_table << "' and '" << table << "'." << endl;
                 return navigation_code_data_t();
             }
         }
@@ -350,8 +349,57 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
     return return_value;
 }
 
-// Find shortest navigation path between 2 tables.
+// Find shortest navigation path between 2 tables. If there are multiple shortest paths exist, return an error.
 bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path)
+{
+    if (src == dst)
+    {
+        return true;
+    }
+    bool return_value = find_navigation_path(src, dst, current_path, m_table_relationship);
+    if (!return_value)
+    {
+        cerr << "No path between tables '" << src << "' and '" << dst << "'." << endl;
+        return false;
+    }
+
+    const size_t path_length = current_path.size();
+    // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
+    for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
+    {
+        vector<navigation_data_t> path;
+        unordered_multimap<string, navigation_data_t> graph_data (m_table_relationship);
+        const auto& edge_src = current_path[path_index];
+        const auto& edge_dst = current_path[path_index + 1];
+        auto graph_itr = graph_data.equal_range(edge_src.table_name);
+
+        for (auto it = graph_itr.first; it != graph_itr.second; ++it)
+        {
+            if (it != graph_data.end())
+            {
+                if (it->second.table_name == edge_dst.table_name)
+                {
+                    graph_data.erase(it);
+                    break;
+                }
+            }
+        }
+
+        if (find_navigation_path(src, dst, path, graph_data))
+        {
+            if (path.size() == path_length)
+            {
+                cerr << "Multiple shortest paths between tables '" << src << "' and '" << dst << "' exist." << endl;
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Find shortest navigation path between 2 tables.
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_multimap<string, navigation_data_t>& graph_data)
 {
     if (src == dst)
     {
@@ -373,7 +421,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     while (closest_table != dst)
     {
         closest_table = get_closest_table(table_distance);
-        if (closest_table == "")
+        if (closest_table.empty())
         {
             return false;
         }
@@ -387,10 +435,10 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 
         table_distance.erase(closest_table);
 
-        auto table_itr = m_table_relationship.equal_range(closest_table);
+        auto table_itr = graph_data.equal_range(closest_table);
         for (auto it = table_itr.first; it != table_itr.second; ++it)
         {
-            if (it != m_table_relationship.end())
+            if (it != graph_data.end())
             {
                 string table_name = it->second.table_name;
                 if (table_distance.find(table_name) != table_distance.end())
@@ -399,7 +447,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
                     {
                         table_distance[table_name] = distance + 1;
                         table_prev[table_name] = closest_table;
-                        table_navigation[table_name] = {table_name, it->second.linking_field, it->second.is_parent};
+                        table_navigation[table_name] = it->second;
                     }
                 }
             }

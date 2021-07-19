@@ -85,7 +85,7 @@ ruleset test10
 {
     OnUpdate(incubator)
     {
-        actuator.value += feeding.portion;
+        actuator.value += animal->feeding.portion;
         sensor.value += acres;
     }
 }
