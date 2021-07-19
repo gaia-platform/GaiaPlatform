@@ -36,7 +36,7 @@ void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 
     while (iter != end)
     {
-        auto ts = txn_metadata_t::get_commit_ts(iter->second.txn_id);
+        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(iter->second.txn_id);
         // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
         if (ts < commit_ts && ts != c_invalid_gaia_txn_id)
         {
