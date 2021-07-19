@@ -1759,8 +1759,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     }
     if (isDeclarativeStatement)
     {
-      //explicitNavigationExpression = ParseExpression();
-      explicitNavigationExpression = Actions.ActOnExprStmt(ParseExpression().get());
+      explicitNavigationExpression = ParseExpression();
       if (explicitNavigationExpression.get() == nullptr)
       {
         cutOffParsing();
@@ -2054,6 +2053,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     return Actions.FinishCXXForRangeStmt(ForRangeStmt.get(), Body.get());
 
   if(explicitNavigationExpression.get())
+  {
     return Actions.ActOnGaiaForStmt(ForLoc, T.getOpenLocation(),
       explicitNavigationExpression.get(), T.getCloseLocation(), Body.get(),
       NoMatchLoc, NoMatchStmt.get());
