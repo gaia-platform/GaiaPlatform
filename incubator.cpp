@@ -46,7 +46,7 @@ constexpr float c_puppy_max = 100.0;
 
 atomic<bool> g_in_simulation{false};
 atomic<int> g_timestamp{0};
-bool g_has_ztep_output = false;
+bool g_has_intermediate_state_output = false;
 
 atomic<int> g_rule_1_tracker{0};
 atomic<int> g_rule_2_tracker{0};
@@ -325,7 +325,7 @@ void step() {
     simulation_step();
 }
 
-void ztep() {
+void step_and_emit_state() {
     int rule_1_sample_base = g_rule_1_tracker;
     int rule_2_sample_base = g_rule_2_tracker;
     int rule_3_sample_base = g_rule_3_tracker;
@@ -333,10 +333,10 @@ void ztep() {
     step();
 
     auto print_start_mark = std::chrono::high_resolution_clock::now();
-    if(g_has_ztep_output){
+    if(g_has_intermediate_state_output){
         printf(",\n");
     }else {
-        g_has_ztep_output = true;
+        g_has_intermediate_state_output = true;
         printf("[\n");
     }
     dump_db_json();
@@ -454,7 +454,7 @@ public:
     static constexpr char c_cmd_begin_sim = 'b';
     static constexpr char c_cmd_end_sim = 'e';
     static constexpr char c_cmd_step_sim = 's';
-    static constexpr char c_cmd_ztep_sim = 'z';
+    static constexpr char c_cmd_step_and_emit_state_sim = 'z';
     static constexpr char c_cmd_list_rules = 'l';
     static constexpr char c_cmd_disable_rules = 'd';
     static constexpr char c_cmd_reenable_rules = 'r';
@@ -505,7 +505,6 @@ public:
                 }
             } else {
                 printf("(%c) | step simulation\n", c_cmd_step_sim);
-                // c_cmd_ztep_sim
             }
             printf("(%c) | list rules\n", c_cmd_list_rules);
             printf("(%c) | disable rules\n", c_cmd_disable_rules);
@@ -540,8 +539,8 @@ public:
             case c_cmd_step_sim:
                 step();
                 break;
-            case c_cmd_ztep_sim:
-                ztep();
+            case c_cmd_step_and_emit_state_sim:
+                step_and_emit_state();
                 break;
             case c_cmd_list_rules:
                 list_rules();
@@ -581,7 +580,7 @@ public:
                 break;
             }
         }
-        else if (m_input.size() > 1 && (m_input[0] == c_cmd_ztep_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
+        else if (m_input.size() > 1 && (m_input[0] == c_cmd_step_and_emit_state_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
         {
             if(m_input[0] == c_cmd_wait) {
                 handle_wait();
@@ -601,7 +600,7 @@ public:
             if (is_step) {
                 step();
             } else {
-                ztep();
+                step_and_emit_state();
             }
         }
     }
@@ -838,7 +837,7 @@ public:
                 break;
             }
         }
-        if(g_has_ztep_output) {
+        if(g_has_intermediate_state_output) {
             printf("]\n");
         }
         stop();

@@ -235,9 +235,9 @@ execute_suite_test() {
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
         NEXT_TEST_NAME="${BASH_REMATCH[1]}"
         NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
-        for (( c=1; c<=NUMBER_OF_REPEATS; c++ ))
+        for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
           do
-            execute_single_test "$NEXT_TEST_NAME" $c
+            execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
           done
     else
         execute_single_test "$NEXT_TEST_NAME"
