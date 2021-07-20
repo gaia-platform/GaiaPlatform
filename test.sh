@@ -176,6 +176,12 @@ copy_test_output() {
     fi
 
     if [ "$DID_PUSHD" -ne 0 ]; then
+        if ! cp -r "$TEST_DIRECTORY/incubator.conf" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy incubator configuration from '$(realpath "$TEST_DIRECTORY"/incubator.conf)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/incubator.conf)'."
+            complete_process 2
+        fi
+
         if ! cp -r "$TEST_RESULTS_DIRECTORY/" "$SCRIPTPATH" > "$TEMP_FILE" 2>&1;  then
             cat "$TEMP_FILE"
             echo "Test script cannot copy intermediate test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."

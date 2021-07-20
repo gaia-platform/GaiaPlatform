@@ -237,6 +237,8 @@ execute_suite_test() {
         NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
         for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
           do
+            echo "Sleeping for 30s before nexxt test."
+            sleep 30
             execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
           done
     else

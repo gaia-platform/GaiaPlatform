@@ -164,9 +164,13 @@ create_configuration_file() {
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
     fi
+
+    CONFIGURATION_PATH=$(realpath "incubator.conf")
     if ! ./python/generate_config.py "$CONFIG_PATH"; then
         echo "Generating gaia configuration file failed."
         complete_process 1
+    else
+        echo "Gaia configuration file '$CONFIGURATION_PATH' generated."
     fi
 }
 
@@ -201,7 +205,6 @@ if [ ! -f "$EXECUTABLE_PATH" ]; then
 fi
 
 # Make sure that the program configuration file is present.
-CONFIGURATION_PATH=$(realpath "incubator.conf")
 if [ ! -f "$CONFIGURATION_PATH" ]; then
     echo "Building of the project configuration file has not be completed.  Cannot run."
     complete_process 1

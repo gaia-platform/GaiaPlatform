@@ -847,7 +847,7 @@ public:
             using std::chrono::milliseconds;
 
             auto end_sleep_start_mark = high_resolution_clock::now();
-            sleep(4);
+            sleep(6);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
             printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, \"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f }\n", ms_double.count()/1000.0, last_known_timestamp, total_wait_time/1000.0, total_print_time/1000.0);

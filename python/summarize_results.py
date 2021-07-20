@@ -3,6 +3,7 @@ import json
 import sys
 import os
 import re
+import configparser
 
 """
 Module to caluldate the summary for a suite of tests that were run.
@@ -24,6 +25,7 @@ maximum_exec_index = 19
 
 thread_load_title = "thread-load-percent"
 
+configuration_title = "configuration"
 iterations_title = "iterations"
 return_code_title = "return-code"
 test_duration_title = "test-duration-sec"
@@ -72,7 +74,8 @@ def calculate_average_values(stats_slice, log_line_columns, calculations, title,
         previous_value = calculations[title]
     calculations[title] = previous_value + (stats_slice[title] * stats_slice[scheduled_title])
 
-def process_rules_engine_stats(log_path):
+def process_rules_engine_stats(base_dir):
+    log_path = os.path.join(base_dir, "gaia_stats.log")
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
@@ -113,9 +116,24 @@ def process_rules_engine_stats(log_path):
     rules_engine_stats[rules_engine_calculations_title] = calculations
     return rules_engine_stats
 
-def load_test_result_files(suite_test):
+def process_configuration_file(base_dir):
 
-    base_dir = os.path.join(suite_directory, suite_test)
+    json_path = os.path.join(base_dir, "incubator.conf")
+    config = configparser.ConfigParser()
+    config.read(json_path)
+    assert "Rules" in config
+    rules_configuration = {}
+    for key in config["Rules"]:
+        this_value = config["Rules"][key]
+        if this_value.lower() == "true" or this_value.lower() == "false":
+            rules_configuration[key] = this_value.lower() == "true"
+        elif re.search("^([0-9]+)$", this_value):
+            rules_configuration[key] = int(this_value)
+        else:
+            rules_configuration[key] = this_value
+    return rules_configuration
+
+def load_simple_result_files(base_dir):
 
     json_path = os.path.join(base_dir, "return_code.json")
     with open(json_path) as input_file:
@@ -126,7 +144,9 @@ def load_test_result_files(suite_test):
     with open(json_path) as input_file:
         data = json.load(input_file)
         duration_data = data["duration"]
+    return return_code_data, duration_data
 
+def load_output_timing_files(base_dir):
     json_path = os.path.join(base_dir, "output.delay")
     with open(json_path) as input_file:
         data = json.load(input_file)
@@ -135,15 +155,26 @@ def load_test_result_files(suite_test):
         total_wait_data = data["total_wait_in_sec"]
         total_print_data = data["total_print_in_sec"]
 
-    log_path = os.path.join(base_dir, "gaia_stats.log")
-    stats_data = process_rules_engine_stats(log_path)
+    return stop_pause_data, iterations_data, total_wait_data, total_print_data
 
-    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data
+def load_test_result_files(suite_test):
+
+    base_dir = os.path.join(suite_directory, suite_test)
+
+    return_code_data, duration_data = load_simple_result_files(base_dir)
+    stop_pause_data, iterations_data, total_wait_data, total_print_data = load_output_timing_files(base_dir)
+
+    stats_data = process_rules_engine_stats(base_dir)
+
+    configuration_data = process_configuration_file(base_dir)
+
+    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data, configuration_data
 
 def load_results_for_test(suite_test):
-    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data = load_test_result_files(suite_test)
+    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data, configuration_data = load_test_result_files(suite_test)
 
     new_results = {}
+    new_results[configuration_title] = configuration_data
     new_results[iterations_title] = iterations_data
     new_results[return_code_title] = return_code_data
     new_results[total_duration_title] = duration_data
@@ -158,12 +189,12 @@ def load_results_for_test(suite_test):
 
 def summarize_repeated_tests():
 
-    xx = {}
+    main_dictionary = {}
 
-    xx[iterations_title] = []
-    xx[return_code_title] = []
-    xx[test_duration_title] = []
-    xx[iteration_duration_title] = []
+    main_dictionary[iterations_title] = []
+    main_dictionary[return_code_title] = []
+    main_dictionary[test_duration_title] = []
+    main_dictionary[iteration_duration_title] = []
 
     totals = {}
     totals[scheduled_title] = []
@@ -183,18 +214,18 @@ def summarize_repeated_tests():
     rules_engine_stats[rules_engine_totals_title] = totals
     rules_engine_stats[rules_engine_calculations_title] = calculations
 
-    xx[rules_engine_title] = rules_engine_stats
+    main_dictionary[rules_engine_title] = rules_engine_stats
 
     test_runs = {}
-    xx[test_runs_title] = test_runs
+    main_dictionary[test_runs_title] = test_runs
     for test_repeat in range(1, max_test + 1):
         recorded_name = suite_test + "_" + str(test_repeat)
         new_results = load_results_for_test(recorded_name)
 
-        xx[iterations_title].append(new_results[iterations_title])
-        xx[return_code_title].append(new_results[return_code_title])
-        xx[test_duration_title].append(new_results[test_duration_title])
-        xx[iteration_duration_title].append(new_results[iteration_duration_title])
+        main_dictionary[iterations_title].append(new_results[iterations_title])
+        main_dictionary[return_code_title].append(new_results[return_code_title])
+        main_dictionary[test_duration_title].append(new_results[test_duration_title])
+        main_dictionary[iteration_duration_title].append(new_results[iteration_duration_title])
 
         test_totals = new_results[rules_engine_title][rules_engine_totals_title]
         totals[scheduled_title].append(test_totals[scheduled_title])
@@ -211,7 +242,7 @@ def summarize_repeated_tests():
         calculations[maximum_exec_title].append(test_calculations[maximum_exec_title])
 
         test_runs[recorded_name] = new_results
-    return xx
+    return main_dictionary
 
 if len(sys.argv) != 2:
     print("error")
