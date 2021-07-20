@@ -48,7 +48,7 @@ ruleset test1_2
     OnInsert(incubator)
     {
         int total_portion = 0;
-        for (F:feeding)
+        for (animal->F:feeding)
         {
             total_portion += F.portion;
         }
