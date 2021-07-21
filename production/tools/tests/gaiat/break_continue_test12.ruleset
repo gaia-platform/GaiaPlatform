@@ -1,0 +1,20 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: break from a nomatch block
+ruleset test17
+{
+    OnUpdate(incubator)
+    {
+        if (S:sensor.value > 50.0)
+        {
+            S.value += 1.0;
+        }
+        nomatch
+        {
+            break;
+        }
+    }
+}
+
+// CHECK: 'break' statement not in loop or switch statement
+// GAIAPLAT-1087

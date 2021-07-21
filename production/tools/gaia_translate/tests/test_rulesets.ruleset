@@ -424,11 +424,21 @@ ruleset test_insert_delete
 {
     OnUpdate(S:student)
     {
-        for (/R:registration)
+        // This is a technique for deleting members of an iteration.
+        // It restarts the iterator after obtaining each first member.
+        bool deleted;
+        do
         {
-            R.Delete();
-            g_onupdate_value++;
+            deleted = false;
+            for (/R:registration)
+            {
+                R.Delete();
+                deleted = true;
+                g_onupdate_value++;
+                break;
+            }
         }
+        while (deleted);
         g_onupdate_called = true;
     }
 }

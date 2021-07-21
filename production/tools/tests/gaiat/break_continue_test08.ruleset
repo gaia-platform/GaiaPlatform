@@ -1,0 +1,21 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: break to a misplaced label
+ruleset test08
+{
+    OnUpdate(sensor)
+    {
+        for (animal->F:feeding)
+        {
+BREAK_TARGET:
+            int total_portions = 0;
+            while (F.portion > 0)
+            {
+                total_portions += F.portion;
+                break BREAK_TARGET;
+            }
+        }
+    }
+}
+
+// CHECK: Invalid declarative label
