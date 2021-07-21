@@ -10,12 +10,29 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
 
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
+
+    COMPLETE_MESSAGE=
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
-        echo "Testing of the $PROJECT_NAME suite failed."
+        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite failed."
+        echo "$COMPLETE_MESSAGE"
     else
+        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite succeeded."
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Testing of the $PROJECT_NAME suite succeeded."
+            echo "$COMPLETE_MESSAGE"
+        fi
+    fi
+
+    if [ "$DID_REPORT_START" -ne 0 ] ; then
+        if [ "$SLACK_MODE" -ne 0 ] ; then
+            ./python/publish_to_slack.py message "$SUITE_MODE" "$COMPLETE_MESSAGE"
+            if [ -n "$COMPLETE_REASON" ] ; then
+                ./python/publish_to_slack.py message "$SUITE_MODE" "Failure reason: $COMPLETE_REASON"
+            fi
         fi
     fi
 
@@ -41,11 +58,24 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
     echo "  -l,--list           List all available suites for this project."
+    echo "  -s,--slack          Publish status and results to slack."
     echo "  -v,--verbose        Show lots of information while executing the suite of tests."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
     echo "  suite-name          Optional name of the suite to run.  (Default: 'smoke')"
     exit 1
+}
+
+# Take the specified message and broadcast it to the command line and, if
+# enabled, slack.
+broadcast_message() {
+    local title=$1
+    local message=$2
+
+    echo "$2"
+    if [ "$SLACK_MODE" -ne 0 ] ; then
+        ./python/publish_to_slack.py message "$title" "$message"
+    fi
 }
 
 # Show a list of the available suites (suite files).
@@ -67,12 +97,17 @@ list_available_suites() {
 parse_command_line() {
     SUITE_MODE="smoke"
     VERBOSE_MODE=0
+    SLACK_MODE=0
     LIST_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
         -l|--list)
             LIST_MODE=1
+            shift
+        ;;
+        -s|--slack)
+            SLACK_MODE=1
             shift
         ;;
         -v|--verbose)
@@ -104,8 +139,7 @@ parse_command_line() {
     TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests
     SUITE_FILE_NAME=$TEST_SOURCE_DIRECTORY/suite-${SUITE_MODE}.txt
     if [ ! -f "$SUITE_FILE_NAME" ]; then
-        echo "Test directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'suite-${SUITE_MODE}.txt' file."
-        complete_process 1
+        complete_process 1 "Test directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'suite-${SUITE_MODE}.txt' file."
     fi
 }
 
@@ -117,8 +151,7 @@ save_current_directory() {
     fi
     if ! pushd . >"$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        echo "Suite script cannot save the current directory before proceeding."
-        complete_process 1
+        complete_process 1 "Suite script cannot save the current directory before proceeding."
     fi
     DID_PUSHD=1
 }
@@ -126,8 +159,7 @@ save_current_directory() {
 # Clear the suite output directory, making sure it exists for the suite execution.
 clear_suite_output() {
     if [ "$SUITE_RESULTS_DIRECTORY" == "" ]; then
-        echo "Removing the specified directory '$SUITE_RESULTS_DIRECTORY' is dangerous. Aborting."
-        complete_process 1
+        complete_process 1 "Removing the specified directory '$SUITE_RESULTS_DIRECTORY' is dangerous. Aborting."
     fi
 
     if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" ]; then
@@ -135,15 +167,13 @@ clear_suite_output() {
             # shellcheck disable=SC2115
             if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
                 cat "$TEMP_FILE"
-                echo "Suite script cannot remove suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
-                complete_process 1
+                complete_process 1 "Suite script cannot remove suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
             fi
         fi
     else
         if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
-            complete_process 1
+            complete_process 1 "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
         fi
     fi
 }
@@ -152,18 +182,18 @@ clear_suite_output() {
 # before proceeding with the tests.
 install_and_build_cleanly() {
 
+    broadcast_message "$SUITE_MODE" "Installing test suite project in temporary directory."
+
     # Remove any existing directory.
     if ! rm -rf "$TEST_DIRECTORY"; then
-        echo "Suite script failed to remove the '$(realpath "$TEST_DIRECTORY")' directory."
-        complete_process 1
+        complete_process 1 "Suite script failed to remove the '$(realpath "$TEST_DIRECTORY")' directory."
     fi
 
     # Install a clean version into that directory.
     echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
     if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 1 "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     echo "Suite script installed the project into directory '$(realpath "$TEST_DIRECTORY")'."
     if ! pushd "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
@@ -172,12 +202,13 @@ install_and_build_cleanly() {
     fi
     DID_PUSHD_FOR_BUILD=1
 
+    broadcast_message "$SUITE_MODE" "Building test suite project in temporary directory."
+
     # Build the executable, tracking any build information for later examination.
     echo "Suite script building the project in directory '$(realpath "$TEST_DIRECTORY")'..."
     if ! ./build.sh -v  > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt" 2>&1 ; then
         cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt"
-        echo "Suite script failed to build the project in directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 1 "Suite script failed to build the project in directory '$(realpath "$TEST_DIRECTORY")'."
     fi
     echo "Suite script built the project in directory '$(realpath "$TEST_DIRECTORY")'."
 
@@ -193,11 +224,14 @@ execute_single_test() {
     local NEXT_TEST_NAME=$1
     local REPEAT_NUMBER=$2
 
+    broadcast_message "" "Sleeping for 15s before next test."
+    sleep 15
+
     # Let the runner know what is going on.
     if [ -n "$REPEAT_NUMBER" ] ; then
-        echo "Executing test: $NEXT_TEST_NAME, repeat $REPEAT_NUMBER"
+        broadcast_message "" "Executing test: $NEXT_TEST_NAME, repeat $REPEAT_NUMBER"
     else
-        echo "Executing test: $NEXT_TEST_NAME"
+        broadcast_message "" "Executing test: $NEXT_TEST_NAME"
     fi
 
     # Make a new directory to contain all the results of the test.
@@ -207,8 +241,7 @@ execute_single_test() {
     fi
     if ! mkdir "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
-        echo "Suite script cannot create suite test directory '$(realpath "$SUITE_TEST_DIRECTORY")' prior to test execution."
-        complete_process 1
+        complete_process 1 "Suite script cannot create suite test directory '$(realpath "$SUITE_TEST_DIRECTORY")' prior to test execution."
     fi
 
     # Execute the test in question.  Note that we do not complete the script
@@ -222,8 +255,7 @@ execute_single_test() {
     # that one test.
     if ! cp -r "$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        echo "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
-        complete_process 2
+        complete_process 2 "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
     fi
 }
 
@@ -235,10 +267,11 @@ execute_suite_test() {
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
         NEXT_TEST_NAME="${BASH_REMATCH[1]}"
         NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
+
+        broadcast_message "" "Executing suite test: $NEXT_TEST_NAME with $NUMBER_OF_REPEATS repeats."
+
         for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
           do
-            echo "Sleeping for 30s before nexxt test."
-            sleep 30
             execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
           done
     else
@@ -260,6 +293,7 @@ TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
 # Set up any local script variables.
 DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
+DID_REPORT_START=0
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -273,14 +307,20 @@ clear_suite_output
 
 install_and_build_cleanly
 
+broadcast_message "$SUITE_MODE" "Testing of the incubator test suite started."
+DID_REPORT_START=1
+
 IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
 for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
     execute_suite_test "$NEXT_TEST_NAME"
 done
 
 if ! ./python/summarize_results.py "$SUITE_FILE_NAME"; then
-    echo "Summarizing the results failed."
-    complete_process 1
+    complete_process 1 "Summarizing the results failed."
+fi
+
+if [ $SLACK_MODE -ne 0 ] ; then
+    ./python/publish_to_slack.py attachment "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/summary.json" "application/json"
 fi
 
 # If we get here, we have a clean exit from the script.
