@@ -110,7 +110,11 @@ bool is_valid(uint64_t lock_word)
 
     // Form a bitvector of all state predicate values.
     uint64_t predicate_values{
-        static_cast<uint64_t>(is_free(lock_word)) | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL) | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL) | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3ULL) | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4ULL)};
+        static_cast<uint64_t>(is_free(lock_word))
+        | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL)
+        | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL)
+        | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3ULL)
+        | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4ULL)};
 
     // Now check that exactly one predicate is true, by separately checking that
     // at least one predicate is true[1], and at most one predicate is true[2].
@@ -150,7 +154,7 @@ bool try_acquire_exclusive(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Allowed state transitions are FREE->EXCLUSIVE and
+        // Allowed state transitions: FREE->EXCLUSIVE,
         // FREE_WITH_EXCLUSIVE_INTENT->EXCLUSIVE.
         if (!is_free(lock_word) && !is_free_with_exclusive_intent(lock_word))
         {
@@ -171,7 +175,7 @@ bool try_acquire_shared(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Allowed state transitions are FREE->SHARED and SHARED->SHARED.
+        // Allowed state transitions: FREE->SHARED, SHARED->SHARED.
         if (!is_free(lock_word) && !is_shared(lock_word))
         {
             return false;
@@ -200,7 +204,7 @@ bool try_acquire_exclusive_intent(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Allowed state transitions are FREE->FREE_WITH_EXCLUSIVE_INTENT and
+        // Allowed state transitions: FREE->FREE_WITH_EXCLUSIVE_INTENT,
         // SHARED->SHARED_WITH_EXCLUSIVE_INTENT.
         if (!is_free(lock_word) && !is_shared(lock_word))
         {
@@ -214,6 +218,10 @@ bool try_acquire_exclusive_intent(std::atomic<uint64_t>& lock)
 
 void release_shared(std::atomic<uint64_t>& lock)
 {
+    // We could just use an atomic decrement here, but that would be incorrect
+    // if other flags could be concurrently set which would invalidate our
+    // decrement (like the exclusive_intent bit invalidates an increment).
+    // An explicit CAS ensures this can't happen.
     uint64_t lock_word = lock.load();
     uint64_t reader_count;
     uint64_t new_lock_word;
@@ -221,7 +229,7 @@ void release_shared(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Allowed state transitions are SHARED->SHARED, SHARED->FREE,
+        // Allowed state transitions: SHARED->SHARED, SHARED->FREE,
         // SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT,
         // SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT.
         ASSERT_PRECONDITION(is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word), "Cannot release a shared lock that is not acquired!");
@@ -245,7 +253,7 @@ void release_exclusive(std::atomic<uint64_t>& lock)
     // Allowed state transition: EXCLUSIVE->FREE.
     uint64_t expected_value = c_exclusive_mask;
     bool has_released_lock = lock.compare_exchange_strong(expected_value, c_free_lock);
-    ASSERT_PRECONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
+    ASSERT_POSTCONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
     check_state(lock.load());
 }
 
