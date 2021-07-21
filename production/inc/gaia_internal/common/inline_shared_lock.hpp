@@ -118,9 +118,9 @@ bool is_valid(uint64_t lock_word)
 
     // Now check that exactly one predicate is true, by separately checking that
     // at least one predicate is true[1], and at most one predicate is true[2].
-    // If [1] is true, then the bitvector is nonzero, so we can use the usual
-    // bit-twiddling trick to verify that it is a power of 2, which is
-    // equivalent to [2].
+    // If the bitvector is nonzero, then [1] is true. If the bitvector is either
+    // zero or a power of 2 (which we verify with the standard bit-twiddling
+    // trick: `x & (x - 1) == 0`), then [2] is true.
     return (predicate_values != 0) && ((predicate_values & (predicate_values - 1)) == 0);
 }
 
