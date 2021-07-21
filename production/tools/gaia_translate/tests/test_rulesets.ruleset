@@ -299,24 +299,6 @@ ruleset test_query_4
     }
 }
 
-ruleset test_query_5
-{
-    OnUpdate(S:student)
-    {
-// GAIAPLAT-989
-        while (student->R:registration->C:course.hours > 0)
-        {
-            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
-        }
-        g_onupdate_result = test_error_result_t::e_none;
-        g_onupdate_called = true;
-    }
-}
-// NOTE: alter above to
-//        while (S:student->R:registration->C:course.hours > 0)
-//        {
-//            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
-
 ruleset test_query_6
 {
     OnUpdate(student)

@@ -9,7 +9,7 @@
 
 #include "test_rulesets.hpp"
 
-const int c_rule_execution_step_delay = 1;
+const int c_rule_execution_step_delay = 5;
 const int c_max_loops = 1000;
 
 namespace rule_test_helpers
