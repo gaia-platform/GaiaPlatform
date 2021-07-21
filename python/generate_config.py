@@ -1,4 +1,12 @@
 #! /usr/bin/python3
+
+"""
+Script to generate a Gaia configuration file from a more compact config.json file.
+
+Copyright (c) Gaia Platform LLC
+All rights reserved.
+"""
+
 import sys
 import os
 import json

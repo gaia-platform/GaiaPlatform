@@ -1,5 +1,10 @@
 #! /usr/bin/bash
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -47,7 +52,7 @@ show_usage() {
     echo "  -v,--verbose        Show lots of information while executing the project."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
-    echo "  test-name           Optional name of the test to run.  (Default: 'basic')"
+    echo "  test-name           Optional name of the test to run.  (Default: 'smoke')"
     exit 1
 }
 
@@ -65,7 +70,7 @@ list_available_tests() {
 
 # Parse the command line.
 parse_command_line() {
-    TEST_MODE="basic"
+    TEST_MODE="smoke"
     VERBOSE_MODE=0
     VERY_VERBOSE_MODE=0
     NO_INIT_MODE=0

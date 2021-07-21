@@ -1,5 +1,10 @@
 # shellcheck shell=bash
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 # ----------------------------------------------------
 # Variables that are specific to this project.
 # ----------------------------------------------------

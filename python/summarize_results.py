@@ -1,13 +1,17 @@
 #! /usr/bin/python3
+
+"""
+Script to calculate the summary.json file for a suite of tests that were run.
+
+Copyright (c) Gaia Platform LLC
+All rights reserved.
+"""
+
 import json
 import sys
 import os
 import re
 import configparser
-
-"""
-Module to caluldate the summary for a suite of tests that were run.
-"""
 
 suite_directory = "suite-results/"
 

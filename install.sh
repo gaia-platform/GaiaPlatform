@@ -1,5 +1,11 @@
 #! /usr/bin/bash
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+
 # Simple function to start the process off.
 start_process() {
     local DIRECTORY_TO_INSTALL_TO=$1

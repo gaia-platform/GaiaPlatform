@@ -1,5 +1,12 @@
 #! /usr/bin/python3
 
+"""
+Script to publish the supplied information to the #test channel on Slack.
+
+Copyright (c) Gaia Platform LLC
+All rights reserved.
+"""
+
 import requests
 import json
 import sys

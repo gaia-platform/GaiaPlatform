@@ -1,4 +1,12 @@
 #! /usr/bin/python3
+
+"""
+Script to translate a test's output.json file into a output.csv file.
+
+Copyright (c) Gaia Platform LLC
+All rights reserved.
+"""
+
 import json
 
 convert_paths = [
