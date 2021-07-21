@@ -14,51 +14,53 @@
 // memory. The semantics are purposefully highly constrained to the needs of the
 // current client code (compaction). The lock can be acquired either in
 // "exclusive" mode (1 "writer", 0 "readers"), "shared" mode (0 "writers", >0
-// "readers"), or "intent exclusive" (0 "writers", any number of "readers").
+// "readers"), or "exclusive intent" (0 "writers", any number of "readers").
 //
-// The word is divided into an "exclusive" bit, an "intent_exclusive" bit, and a
+// The word is divided into an "exclusive" bit, an "exclusive_intent" bit, and a
 // "reader_count" stored in the remaining bits. A writer sets the "exclusive"
 // bit in order to acquire the lock in exclusive mode, i.e., to exclude both
 // readers and writers. Acquiring the lock in exclusive mode will fail if
 // "reader_count" is nonzero. A reader increments "reader_count" in order to
 // acquire the lock in shared mode and decrements "reader_count" in order to
 // release their shared lock. Acquiring the lock in shared mode will fail if the
-// "exclusive" or "intent_exclusive" bits are set. The "intent_exclusive" bit is
+// "exclusive" or "exclusive_intent" bits are set. The "exclusive_intent" bit is
 // set by a waiting writer in order to block further readers. It is expected
 // that the waiting writer will wait for existing readers to exit, and then
 // acquire the lock in exclusive mode (unless another thread has already done
-// so). Acquiring the lock in "intent exclusive" mode will fail if the lock is
-// already in either exclusive or "intent exclusive" mode.
+// so). Acquiring the lock in "exclusive intent" mode will fail if the lock is
+// already in either exclusive or "exclusive intent" mode. (It is allowed for
+// one thread to set "exclusive intent" and another thread to subsequently
+// acquire the lock in "exclusive" mode.)
 //
-// The following lock states are defined (note that the "exclusive" and "intent
-// exclusive" states are mutually exclusive: a writer cannot block readers while
-// waiting for another writer):
+// The following lock states are defined (note that the "exclusive" and
+// "exclusive intent" states are mutually exclusive: a writer cannot block
+// readers while waiting for another writer):
 //
 // FREE (all bits 0)
-// INTENT_EXCLUSIVE_FREE (exclusive=0, intent_exclusive=1, reader_count=0)
-// INTENT_EXCLUSIVE_SHARED (exclusive=0, intent_exclusive=1, reader_count > 0)
-// EXCLUSIVE (exclusive=1, intent_exclusive=0, reader_count=0)
-// SHARED (exclusive=0, intent_exclusive=0, reader_count > 0)
+// FREE_WITH_EXCLUSIVE_INTENT (exclusive=0, exclusive_intent=1, reader_count=0)
+// SHARED_WITH_EXCLUSIVE_INTENT (exclusive=0, exclusive_intent=1, reader_count > 0)
+// EXCLUSIVE (exclusive=1, exclusive_intent=0, reader_count=0)
+// SHARED (exclusive=0, exclusive_intent=0, reader_count > 0)
 //
 // Allowed transitions:
 //
 // FREE->EXCLUSIVE
 // FREE->SHARED
-// FREE->INTENT_EXCLUSIVE_FREE
+// FREE->FREE_WITH_EXCLUSIVE_INTENT
 // SHARED->SHARED
 // SHARED->FREE
-// SHARED->INTENT_EXCLUSIVE_SHARED
-// INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED
-// INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE
-// INTENT_EXCLUSIVE_FREE->EXCLUSIVE
+// SHARED->SHARED_WITH_EXCLUSIVE_INTENT
+// SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT
+// SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT
+// FREE_WITH_EXCLUSIVE_INTENT->EXCLUSIVE
 // EXCLUSIVE->FREE
 //
 // State transition functions:
 //
-// try_acquire_exclusive->true if (FREE->EXCLUSIVE) or (INTENT_EXCLUSIVE_FREE->EXCLUSIVE) else false
+// try_acquire_exclusive->true if (FREE->EXCLUSIVE) or (FREE_WITH_EXCLUSIVE_INTENT->EXCLUSIVE) else false
 // try_acquire_shared->true if (FREE->SHARED) or (SHARED->SHARED) else false
-// try_acquire_intent_exclusive->true if (SHARED->INTENT_EXCLUSIVE_SHARED) or (FREE->INTENT_EXCLUSIVE_FREE) else false
-// release_shared->void if (SHARED->SHARED) or (SHARED->FREE) or (INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED) or (INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE) else assert
+// try_acquire_exclusive_intent->true if (SHARED->SHARED_WITH_EXCLUSIVE_INTENT) or (FREE->FREE_WITH_EXCLUSIVE_INTENT) else false
+// release_shared->void if (SHARED->SHARED) or (SHARED->FREE) or (SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT) or (SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT) else assert
 // release_exclusive->void if (EXCLUSIVE->FREE) else assert
 
 namespace gaia
@@ -71,8 +73,8 @@ namespace inline_shared_lock
 constexpr uint64_t c_free_lock{0};
 constexpr uint64_t c_exclusive_bit_index{63};
 constexpr uint64_t c_exclusive_mask{1ULL << c_exclusive_bit_index};
-constexpr uint64_t c_intent_exclusive_bit_index{62};
-constexpr uint64_t c_intent_exclusive_mask{1ULL << c_intent_exclusive_bit_index};
+constexpr uint64_t c_exclusive_intent_bit_index{62};
+constexpr uint64_t c_exclusive_intent_mask{1ULL << c_exclusive_intent_bit_index};
 constexpr uint64_t c_reader_count_bits{62};
 constexpr uint64_t c_reader_count_mask{(1ULL << c_reader_count_bits) - 1};
 constexpr size_t c_reader_count_max{(1ULL << c_reader_count_bits) - 1};
@@ -89,17 +91,17 @@ bool is_exclusive(uint64_t lock_word)
 
 bool is_shared(uint64_t lock_word)
 {
-    return !(lock_word & c_intent_exclusive_mask) && (lock_word & c_reader_count_mask);
+    return !(lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
 }
 
-bool is_intent_exclusive_free(uint64_t lock_word)
+bool is_free_with_exclusive_intent(uint64_t lock_word)
 {
-    return (lock_word & c_intent_exclusive_mask) && !(lock_word & c_reader_count_mask);
+    return (lock_word & c_exclusive_intent_mask) && !(lock_word & c_reader_count_mask);
 }
 
-bool is_intent_exclusive_shared(uint64_t lock_word)
+bool is_shared_with_exclusive_intent(uint64_t lock_word)
 {
-    return (lock_word & c_intent_exclusive_mask) && (lock_word & c_reader_count_mask);
+    return (lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
 }
 
 bool is_valid(uint64_t lock_word)
@@ -108,7 +110,7 @@ bool is_valid(uint64_t lock_word)
 
     // Form a bitvector of all state predicate values.
     uint64_t predicate_values{
-        static_cast<uint64_t>(is_free(lock_word)) | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL) | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL) | (static_cast<uint64_t>(is_intent_exclusive_free(lock_word)) << 3ULL) | (static_cast<uint64_t>(is_intent_exclusive_shared(lock_word)) << 4ULL)};
+        static_cast<uint64_t>(is_free(lock_word)) | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL) | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL) | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3ULL) | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4ULL)};
 
     // Now check that exactly one predicate is true, by separately checking that
     // at least one predicate is true[1], and at most one predicate is true[2].
@@ -129,7 +131,7 @@ size_t get_reader_count(std::atomic<uint64_t>& lock)
 {
     size_t reader_count = 0;
     uint64_t lock_word = lock.load();
-    if (is_shared(lock_word) || is_intent_exclusive_shared(lock_word))
+    if (is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word))
     {
         reader_count = lock_word & c_reader_count_mask;
     }
@@ -149,8 +151,8 @@ bool try_acquire_exclusive(std::atomic<uint64_t>& lock)
         check_state(lock_word);
 
         // Allowed state transitions are FREE->EXCLUSIVE and
-        // INTENT_EXCLUSIVE_FREE->EXCLUSIVE.
-        if (!is_free(lock_word) && !is_intent_exclusive_free(lock_word))
+        // FREE_WITH_EXCLUSIVE_INTENT->EXCLUSIVE.
+        if (!is_free(lock_word) && !is_free_with_exclusive_intent(lock_word))
         {
             return false;
         }
@@ -191,20 +193,20 @@ bool try_acquire_shared(std::atomic<uint64_t>& lock)
     return true;
 }
 
-bool try_acquire_intent_exclusive(std::atomic<uint64_t>& lock)
+bool try_acquire_exclusive_intent(std::atomic<uint64_t>& lock)
 {
     uint64_t lock_word = lock.load();
     do
     {
         check_state(lock_word);
 
-        // Allowed state transitions are FREE->INTENT_EXCLUSIVE_FREE and
-        // SHARED->INTENT_EXCLUSIVE_SHARED.
+        // Allowed state transitions are FREE->FREE_WITH_EXCLUSIVE_INTENT and
+        // SHARED->SHARED_WITH_EXCLUSIVE_INTENT.
         if (!is_free(lock_word) && !is_shared(lock_word))
         {
             return false;
         }
-    } while (!lock.compare_exchange_weak(lock_word, lock_word | c_intent_exclusive_mask));
+    } while (!lock.compare_exchange_weak(lock_word, lock_word | c_exclusive_intent_mask));
 
     check_state(lock_word);
     return true;
@@ -220,9 +222,9 @@ void release_shared(std::atomic<uint64_t>& lock)
         check_state(lock_word);
 
         // Allowed state transitions are SHARED->SHARED, SHARED->FREE,
-        // INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED,
-        // INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE.
-        ASSERT_PRECONDITION(is_shared(lock_word) || is_intent_exclusive_shared(lock_word), "Cannot release a shared lock that is not acquired!");
+        // SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT,
+        // SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT.
+        ASSERT_PRECONDITION(is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word), "Cannot release a shared lock that is not acquired!");
 
         reader_count = lock_word & c_reader_count_mask;
         ASSERT_PRECONDITION(reader_count != 0, "Reader count must be nonzero!");

@@ -68,23 +68,23 @@ TEST(common, inline_shared_lock)
     EXPECT_TRUE(is_shared(lock));
 
     // Acquire in intent exclusive mode.
-    EXPECT_TRUE(try_acquire_intent_exclusive(lock));
-    EXPECT_TRUE(is_intent_exclusive_shared(lock));
+    EXPECT_TRUE(try_acquire_exclusive_intent(lock));
+    EXPECT_TRUE(is_shared_with_exclusive_intent(lock));
 
     // Try to acquire in shared mode while intent exclusive lock is held.
     EXPECT_FALSE(try_acquire_shared(lock));
-    EXPECT_TRUE(is_intent_exclusive_shared(lock));
+    EXPECT_TRUE(is_shared_with_exclusive_intent(lock));
 
     // Release shared lock.
     release_shared(lock);
-    EXPECT_TRUE(is_intent_exclusive_free(lock));
+    EXPECT_TRUE(is_free_with_exclusive_intent(lock));
 
     // Upgrade from intent exclusive to exclusive mode.
     EXPECT_TRUE(try_acquire_exclusive(lock));
     EXPECT_TRUE(is_exclusive(lock));
 
     // Try to acquire lock in intent exclusive mode while exclusive lock is held.
-    EXPECT_FALSE(try_acquire_intent_exclusive(lock));
+    EXPECT_FALSE(try_acquire_exclusive_intent(lock));
     EXPECT_TRUE(is_exclusive(lock));
 
     // Release exclusive lock.
