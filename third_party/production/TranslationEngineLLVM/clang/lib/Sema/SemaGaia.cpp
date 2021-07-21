@@ -19,6 +19,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <iostream>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/DiagnosticSema.h"
@@ -761,6 +762,8 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     QualType retVal = Context.VoidTy;
     for (string tableName : tables)
     {
+        // Search if there is a match in the table fields.
+
         auto tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
@@ -788,8 +791,10 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         }
         else
         {
+            // Search if there is a match in the table links.
+
             unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
-            auto links = relationships.equal_range(fieldOrTagName);
+            auto links = relationships.equal_range(tableName);
 
             for (auto link = links.first; link != links.second; ++link)
             {
