@@ -1306,6 +1306,8 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     }
     if (Tok.is(tok::kw_nomatch))
     {
+      // Remove GaiaBreakScope in nomatch
+      getCurScope()->setFlags(getCurScope()->getFlags() & ~Scope::GaiaBreakScope);
       // Remove tags that may have been declared in the if
       SourceLocation startLocation = IfLoc;
       SourceLocation endLocation ;
@@ -2017,6 +2019,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     return StmtError();
   if (Tok.is(tok::kw_nomatch))
   {
+    // Remove GaiaBreakScope in nomatch
+    getCurScope()->setFlags(getCurScope()->getFlags() & ~Scope::GaiaBreakScope);
     if (explicitNavigationExpression.get())
     {
       // Remove tags that may have been declared in the for
