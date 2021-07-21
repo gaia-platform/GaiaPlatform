@@ -44,20 +44,21 @@
 //
 // FREE->EXCLUSIVE
 // FREE->SHARED
+// FREE->INTENT_EXCLUSIVE_FREE
 // SHARED->SHARED
 // SHARED->FREE
-// EXCLUSIVE->FREE
 // SHARED->INTENT_EXCLUSIVE_SHARED
-// FREE->INTENT_EXCLUSIVE_FREE
+// INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED
 // INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE
 // INTENT_EXCLUSIVE_FREE->EXCLUSIVE
+// EXCLUSIVE->FREE
 //
 // State transition functions:
 //
 // try_acquire_exclusive->true if (FREE->EXCLUSIVE) or (INTENT_EXCLUSIVE_FREE->EXCLUSIVE) else false
 // try_acquire_shared->true if (FREE->SHARED) or (SHARED->SHARED) else false
 // try_acquire_intent_exclusive->true if (SHARED->INTENT_EXCLUSIVE_SHARED) or (FREE->INTENT_EXCLUSIVE_FREE) else false
-// release_shared->void if (SHARED->SHARED) or (SHARED->FREE) else assert
+// release_shared->void if (SHARED->SHARED) or (SHARED->FREE) or (INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED) or (INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE) else assert
 // release_exclusive->void if (EXCLUSIVE->FREE) else assert
 
 namespace gaia
@@ -147,7 +148,8 @@ bool try_acquire_exclusive(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Exit if exclusive or shared lock is already held.
+        // Allowed state transitions are FREE->EXCLUSIVE and
+        // INTENT_EXCLUSIVE_FREE->EXCLUSIVE.
         if (!is_free(lock_word) && !is_intent_exclusive_free(lock_word))
         {
             return false;
@@ -167,7 +169,7 @@ bool try_acquire_shared(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Exit if exclusive or intent exclusive lock is already held.
+        // Allowed state transitions are FREE->SHARED and SHARED->SHARED.
         if (!is_free(lock_word) && !is_shared(lock_word))
         {
             return false;
@@ -196,7 +198,8 @@ bool try_acquire_intent_exclusive(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // Exit if exclusive or intent exclusive lock is already held.
+        // Allowed state transitions are FREE->INTENT_EXCLUSIVE_FREE and
+        // SHARED->INTENT_EXCLUSIVE_SHARED.
         if (!is_free(lock_word) && !is_shared(lock_word))
         {
             return false;
@@ -216,7 +219,9 @@ void release_shared(std::atomic<uint64_t>& lock)
     {
         check_state(lock_word);
 
-        // We must already hold a shared lock.
+        // Allowed state transitions are SHARED->SHARED, SHARED->FREE,
+        // INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_SHARED,
+        // INTENT_EXCLUSIVE_SHARED->INTENT_EXCLUSIVE_FREE.
         ASSERT_PRECONDITION(is_shared(lock_word) || is_intent_exclusive_shared(lock_word), "Cannot release a shared lock that is not acquired!");
 
         reader_count = lock_word & c_reader_count_mask;
@@ -235,9 +240,9 @@ void release_shared(std::atomic<uint64_t>& lock)
 void release_exclusive(std::atomic<uint64_t>& lock)
 {
     check_state(lock.load());
+    // Allowed state transition: EXCLUSIVE->FREE.
     uint64_t expected_value = c_exclusive_mask;
     bool has_released_lock = lock.compare_exchange_strong(expected_value, c_free_lock);
-    // We must already hold an exclusive lock.
     ASSERT_PRECONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
     check_state(lock.load());
 }
