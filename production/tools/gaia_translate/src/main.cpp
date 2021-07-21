@@ -135,8 +135,8 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr)
     {
-        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(),
-                tok::semi, source_manager, options, true);
+        SourceLocation end_location = Lexer::findLocationAfterToken(
+            return_value.getEnd(), tok::semi, source_manager, options, true);
         if (end_location.isValid())
         {
             return_value.setEnd(end_location.getLocWithOffset(-1));
@@ -562,7 +562,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
                     cerr << "Local variable declaration '" << variable_name
-                        << "' hides a tag of the same name." << endl;
+                         << "' hides a tag of the same name." << endl;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -585,10 +585,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         if (data_iterator.path_components.size() == 1
                             && table_name == anchor_table_name && !data_iterator.is_absolute_path)
                         {
-                            auto declaration_source_range_size =
-                                variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
-                            auto min_declaration_source_range_size =
-                                variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
+                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding()
+                                - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding()
+                                - variable_declaration_range.getBegin().getRawEncoding();
                             if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
                             {
                                 variable_declaration_range = variable_declaration_range_iterator.first;
@@ -657,7 +657,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
-                        navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+                    navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
             }
             else
             {
@@ -924,6 +924,42 @@ void optimize_subscription(const string& table, int rule_count)
     }
 }
 
+// [GAIAPLAT-799]:  For the preview release we do not allow a rule to have
+// multiple anchor rows. They are not allowed to reference more than a single table or
+// reference fields from multiple tables.  Note that the g_active_fields map is a
+// map of <table, field_list> so the number of entries in the map is the number of unique
+// tables used by all active fields.
+bool has_multiple_anchors()
+{
+    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
+                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
+                                               "from different tables.";
+
+    if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    if (g_active_fields.size() > 1)
+    {
+        cerr << c_multi_anchor_fields << endl;
+        return true;
+    }
+
+    // Handle the special case of OnUpdate(table1, table2.field)
+    if (g_active_fields.size() == 1
+        && g_update_tables.size() == 1
+        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    return false;
+}
+
 void generate_rules(Rewriter& rewriter)
 {
     validate_table_data();
@@ -949,6 +985,12 @@ void generate_rules(Rewriter& rewriter)
     for (const auto& table : g_update_tables)
     {
         g_active_fields.erase(table);
+    }
+
+    if (has_multiple_anchors())
+    {
+        g_is_generation_error = true;
+        return;
     }
 
     for (const auto& field_description : g_active_fields)
@@ -2802,7 +2844,6 @@ public:
 private:
     Rewriter& m_rewriter;
 };
-
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
