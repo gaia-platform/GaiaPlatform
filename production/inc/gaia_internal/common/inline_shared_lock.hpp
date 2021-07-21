@@ -147,6 +147,8 @@ void init_lock(std::atomic<uint64_t>& lock)
     lock.store(c_free_lock);
 }
 
+// NB: This can succeed when "exclusive intent" has been previously set by a
+// different thread than the caller!
 bool try_acquire_exclusive(std::atomic<uint64_t>& lock)
 {
     uint64_t lock_word = lock.load();
