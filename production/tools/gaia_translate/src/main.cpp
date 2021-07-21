@@ -1766,10 +1766,10 @@ public:
                 g_is_generation_error = true;
                 return;
             }
-                const ValueDecl* decl = declaration_expression->getDecl();
-                field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                table_name = get_table_name(decl);
-                variable_name = declaration_expression->getNameInfo().getAsString();
+            const ValueDecl* decl = declaration_expression->getDecl();
+            field_name = member_expression->getMemberNameInfo().getName().getAsString();
+            table_name = get_table_name(decl);
+            variable_name = declaration_expression->getNameInfo().getAsString();
 
             if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
             {
