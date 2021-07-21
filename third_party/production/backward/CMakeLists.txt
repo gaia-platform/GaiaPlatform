@@ -1,8 +1,8 @@
 # backward-cpp dependencies (one of several options):
 # "libdwarf is a library to consume and produce DWARF debug information."
 # (libelf is a dependency of libdwarf)
-find_library(LIBELF_LIBRARY elf REQUIRED)
-find_library(LIBDWARF_LIBRARY dwarf REQUIRED)
+find_library(LIBELF_LIBRARY NAMES libelf.a elf REQUIRED)
+find_library(LIBDWARF_LIBRARY NAMES libdwarf.a dwarf REQUIRED)
 
 message(CHECK_START "Looking for backward")
 find_package(Backward QUIET CONFIG)
