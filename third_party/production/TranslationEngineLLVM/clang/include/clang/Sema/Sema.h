@@ -3849,8 +3849,8 @@ public:
   StmtResult ActOnIndirectGotoStmt(SourceLocation GotoLoc,
                                    SourceLocation StarLoc,
                                    Expr *DestExp);
-  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope);
-  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope);
+  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDeclarativeContinue = false);
+  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclaraiveBreak = false);
 
   void ActOnCapturedRegionStart(SourceLocation Loc, Scope *CurScope,
                                 CapturedRegionKind Kind, unsigned NumParams);

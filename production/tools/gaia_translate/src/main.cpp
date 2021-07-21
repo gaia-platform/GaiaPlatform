@@ -2557,6 +2557,10 @@ public:
 
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
@@ -2585,6 +2589,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<WhileStmt>("DeclWhile");
         if (expression != nullptr)
         {
@@ -2617,6 +2625,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
         if (expression != nullptr)
         {
@@ -2644,6 +2656,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
@@ -2752,6 +2768,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
@@ -2836,6 +2856,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* break_expression = result.Nodes.getNodeAs<BreakStmt>("DeclBreak");
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
@@ -2864,7 +2888,18 @@ public:
         }
 
         const LabelStmt* label_statement = decl->getStmt();
+        if (label_statement == nullptr)
+        {
+            g_is_generation_error = true;
+            return;
+        }
+
         const Stmt* statement = label_statement->getSubStmt();
+        if (statement == nullptr)
+        {
+            g_is_generation_error = true;
+            return;
+        }
         SourceRange statement_source_range = get_statement_source_range(statement, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
 
         string label_name;

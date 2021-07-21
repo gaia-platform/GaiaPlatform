@@ -1222,7 +1222,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
 
   if (Actions.IsExplicitPathInRange(SourceRange(IfLoc, Tok.getLocation())))
   {
-    getCurScope()->AddFlags(Scope::GaiaBreakScope | Scope::BreakScope | Scope::ContinueScope);
+    getCurScope()->AddFlags(Scope::GaiaBreakScope);
   }
   llvm::Optional<bool> ConstexprCondition;
   if (IsConstexpr)
@@ -2107,21 +2107,23 @@ StmtResult Parser::ParseGotoStatement() {
 ///
 StmtResult Parser::ParseContinueStatement() {
   SourceLocation ContinueLoc = ConsumeToken();  // eat the 'continue'.
-  StmtResult returnValue = Actions.ActOnContinueStmt(ContinueLoc, getCurScope());
-  if (getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier) && !returnValue.isInvalid())
+  bool isDeclarativeContinue = getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier);
+  StmtResult returnValue = Actions.ActOnContinueStmt(ContinueLoc, getCurScope(), isDeclarativeContinue);
+  if (isDeclarativeContinue && !returnValue.isInvalid())
   {
-    LabelDecl *LD = Actions.LookupOrCreateLabel(Tok.getIdentifierInfo(),
-                                                Tok.getLocation());
+    IdentifierInfo* labelIdentifier = Tok.getIdentifierInfo();
+    SourceLocation labelLocation = Tok.getLocation();
+    ConsumeToken();
+    LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
     if (LD->getStmt())
     {
       Diag(Tok, diag::err_incorrect_declarative_label_scope);
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(Tok.getIdentifierInfo()->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
     auto statement = returnValue.getAs<ContinueStmt>();
     statement->setLabel(LD);
-    ConsumeToken();
   }
 
   return returnValue;
@@ -2135,21 +2137,23 @@ StmtResult Parser::ParseContinueStatement() {
 ///
 StmtResult Parser::ParseBreakStatement() {
   SourceLocation BreakLoc = ConsumeToken();  // eat the 'break'.
-  StmtResult returnValue = Actions.ActOnBreakStmt(BreakLoc, getCurScope());
-  if (getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier) && !returnValue.isInvalid())
+  bool isDeclarativeBreak = getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier);
+  StmtResult returnValue = Actions.ActOnBreakStmt(BreakLoc, getCurScope(), isDeclarativeBreak);
+  if (isDeclarativeBreak && !returnValue.isInvalid())
   {
-    LabelDecl *LD = Actions.LookupOrCreateLabel(Tok.getIdentifierInfo(),
-                                                Tok.getLocation());
+    IdentifierInfo* labelIdentifier = Tok.getIdentifierInfo();
+    SourceLocation labelLocation = Tok.getLocation();
+    ConsumeToken();
+    LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
     if (LD->getStmt())
     {
       Diag(Tok, diag::err_incorrect_declarative_label_scope);
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(Tok.getIdentifierInfo()->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
     auto statement = returnValue.getAs<BreakStmt>();
     statement->setLabel(LD);
-    ConsumeToken();
   }
 
   return returnValue;
