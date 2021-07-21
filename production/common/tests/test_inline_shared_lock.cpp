@@ -33,6 +33,7 @@ TEST(common, inline_shared_lock)
     // Release exclusive lock.
     release_exclusive(lock);
     EXPECT_FALSE(is_exclusive(lock));
+    EXPECT_TRUE(is_free(lock));
 
     // Release exclusive lock without it being acquired.
     EXPECT_THROW(release_exclusive(lock), gaia::common::retail_assertion_failure);
@@ -56,6 +57,7 @@ TEST(common, inline_shared_lock)
     // Release shared lock.
     release_shared(lock);
     EXPECT_FALSE(is_shared(lock));
+    EXPECT_TRUE(is_free(lock));
 
     // Try to release shared lock after it is no longer held.
     EXPECT_THROW(release_shared(lock), gaia::common::retail_assertion_failure);
