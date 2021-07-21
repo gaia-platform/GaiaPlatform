@@ -25,9 +25,8 @@ link_directories(
 )
 
 add_executable(gaiat ${GAIAT_SRCS})
+target_link_libraries(gaiat PUBLIC gaia_build_options)
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
-set_target_properties(gaiat PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaiat PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaiat
   PRIVATE
   rt
@@ -42,6 +41,10 @@ target_link_libraries(gaiat
   ${LIB_CAP}
   dl
 )
+
+if(ENABLE_STACKTRACE)
+  target_link_libraries(gaiat PRIVATE gaia_stack_trace)
+endif()
 
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 

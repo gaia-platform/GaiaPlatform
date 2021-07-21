@@ -26,12 +26,37 @@ debug_logger_t* debug_logger_t::create(const char* logger_name)
 debug_logger_t::debug_logger_t(const std::string& logger_name)
     : internal_logger_t(logger_name){};
 
-// Note that this is a friend function of the logger manager class.
-// It will replace the existing rules_stats logger and make a shared
-// reference to it.
-void set_rules_stats(logger_t* logger_ptr)
+// These are friend functions of the logger_manager_t class.
+// They replace existing logger instances and make shared
+// references to them.
+void set_sys_logger(logger_t* logger_ptr)
+{
+    logger_manager_t::get().m_sys_logger.reset(logger_ptr);
+}
+
+void set_db_logger(logger_t* logger_ptr)
+{
+    logger_manager_t::get().m_db_logger.reset(logger_ptr);
+}
+
+void set_rules_logger(logger_t* logger_ptr)
+{
+    logger_manager_t::get().m_rules_logger.reset(logger_ptr);
+}
+
+void set_rules_stats_logger(logger_t* logger_ptr)
 {
     logger_manager_t::get().m_rules_stats_logger.reset(logger_ptr);
+}
+
+void set_catalog_logger(logger_t* logger_ptr)
+{
+    logger_manager_t::get().m_catalog_logger.reset(logger_ptr);
+}
+
+void set_app_logger(logger_t* logger_ptr)
+{
+    logger_manager_t::get().m_app_logger.reset(logger_ptr);
 }
 
 } // namespace gaia::common::logging

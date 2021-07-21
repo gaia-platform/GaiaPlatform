@@ -190,7 +190,7 @@ TEST(bitmap, bit_setting)
 TEST(bitmap, bit_range_setting)
 {
     constexpr size_t c_bitmap_size = 5;
-    std::atomic<uint64_t> bitmap[c_bitmap_size] = {0};
+    std::atomic<uint64_t> bitmap[c_bitmap_size]{0};
 
     safe_set_bit_range_value(bitmap, c_bitmap_size, 3, 3, true);
     print_bitmap(bitmap, 1);

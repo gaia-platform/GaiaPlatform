@@ -38,9 +38,14 @@ private:
 };
 
 /**
- * Allow overriding the rule_stats logger explicitly.
+ * Allow overriding internal logger instances explicitly.
  */
-void set_rules_stats(logger_t* logger);
+void set_sys_logger(logger_t* logger_ptr);
+void set_db_logger(logger_t* logger_ptr);
+void set_rules_logger(logger_t* logger_ptr);
+void set_rules_stats_logger(logger_t* logger_ptr);
+void set_catalog_logger(logger_t* logger_ptr);
+void set_app_logger(logger_t* logger_ptr);
 
 } // namespace logging
 } // namespace common
