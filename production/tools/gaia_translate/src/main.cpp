@@ -25,9 +25,10 @@
 #include "clang/Tooling/Tooling.h"
 #pragma clang diagnostic pop
 
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "table_navigation.h"
 
@@ -2872,14 +2873,26 @@ int main(int argc, const char** argv)
     ClangTool tool(*compilation_database, source_files);
 
     // Run the entire translation process within a single transaction.
-    gaia::db::begin_session();
-    gaia::db::begin_transaction();
+    int result = EXIT_FAILURE;
 
-    tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    try
+    {
+        gaia::db::begin_session();
+        gaia::db::begin_transaction();
 
-    gaia::db::commit_transaction();
-    gaia::db::end_session();
+        tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
+        result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+
+        gaia::db::commit_transaction();
+        gaia::db::end_session();
+    }
+    catch (gaia::common::system_error& e)
+    {
+        cerr << "Impossible to connect to " << gaia::db::c_db_server_exec_name << ": '" << e.what() << "'\n"
+             << "The translation requires the " << gaia::db::c_db_server_exec_name << " running.\n"
+             << "Start the " << gaia::db::c_db_server_exec_name << " and re-run the translation."
+             << endl;
+    }
 
     if (result == 0 && !g_is_generation_error)
     {
