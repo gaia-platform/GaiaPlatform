@@ -332,19 +332,6 @@ void step_and_emit_state() {
 
     step();
 
-    auto print_start_mark = std::chrono::high_resolution_clock::now();
-    if(g_has_intermediate_state_output){
-        printf(",\n");
-    }else {
-        g_has_intermediate_state_output = true;
-        printf("[\n");
-    }
-    dump_db_json();
-
-    auto print_end_mark = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
-    total_print_time += ms_print.count();
-
     auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
     bool have_no_deltas = false;
     int no_deltas_count = 0;
@@ -383,6 +370,19 @@ void step_and_emit_state() {
 
     std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
     total_wait_time += ms_double.count();
+
+    auto print_start_mark = std::chrono::high_resolution_clock::now();
+    if(g_has_intermediate_state_output){
+        printf(",\n");
+    }else {
+        g_has_intermediate_state_output = true;
+        printf("[\n");
+    }
+    dump_db_json();
+
+    auto print_end_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
+    total_print_time += ms_print.count();
 }
 
 void simulation()
@@ -505,6 +505,7 @@ public:
                 }
             } else {
                 printf("(%c) | step simulation\n", c_cmd_step_sim);
+                printf("(%c) | step simulation and emit state\n", c_cmd_step_and_emit_state_sim);
             }
             printf("(%c) | list rules\n", c_cmd_list_rules);
             printf("(%c) | disable rules\n", c_cmd_disable_rules);

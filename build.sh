@@ -50,7 +50,6 @@ parse_command_line() {
     NO_CACHE=0
     REFRESH_DDL=0
     FORCE_BUILD=0
-    MAKE_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -64,10 +63,6 @@ parse_command_line() {
         ;;
         -f|--force)
             FORCE_BUILD=1
-            shift
-        ;;
-        -m|--make-only)
-            MAKE_MODE=1
             shift
         ;;
         -v|--verbose)
@@ -87,22 +82,6 @@ parse_command_line() {
         ;;
     esac
     done
-
-    # Make sure that competing command line flags are called out.
-    if [ $FORCE_BUILD -eq 1 ] && [ $MAKE_MODE -eq 1 ]; then
-        echo "Force flag and the Make-Only flag are not compatible with each other."
-        complete_process 1
-    fi
-
-    if [ $REFRESH_DDL -eq 1 ] && [ $MAKE_MODE -eq 1 ]; then
-        echo "Refresh DDL flag and the Make-Only flag are not compatible with each other."
-        complete_process 1
-    fi
-
-    if [ $NO_CACHE -eq 1 ] && [ $MAKE_MODE -eq 1 ]; then
-        echo "No (CMake) Cache flag and the Make-Only flag are not compatible with each other."
-        complete_process 1
-    fi
 }
 
 # Generate the Makefile
