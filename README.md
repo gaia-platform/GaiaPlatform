@@ -8,8 +8,8 @@ set of changes required.
 
 If all you want to do is run the tests, and have blind faith in them,
 please check out the sections on
-[Executing Single Tests](xx) and
-[Executing Test Suites](xx)
+[Executing Single Tests](#executing-single-tests) and
+[Executing Test Suites](#executing-test-suites)
 
 ## Introduction
 
@@ -71,13 +71,13 @@ High level tests are driven by specifying two files in a unique directory under 
   - output that is expected from the incubator application
 
 For more information on these files, refer to the following section on
-[Creating a Test](creating a test).
+[Creating a Test](#creating-a-test).
 
 In addition, the `config.json` file can be specified at the `tests` level
 or the individual test level.  A `config.json` file local to a test will
 always supersede the `tests` level `config.json`.  For more information
 on this file, refer to the section on
-[Gaia Test Configuration](test configuration)
+[Gaia Test Configuration](#gaia-test-configuration)
 
 #### Creating a Test
 
@@ -86,7 +86,7 @@ Each test is assigned the unique name of the directory containing the
 
 The `commands.txt` file is a simple file with a single command on each line.
 Those commands, exception for
-[a few added commands](#Main Menu Commands),
+[a few added commands](#main-menu-commands),
 are the same as the commands for the standard Incubator example. For example,
 look at the file `smoke\commands.txt`:
 
@@ -226,11 +226,11 @@ Along the way, the results of each test's `test-result` directory are persisted
 in the `suite-results` directory.  The directory containing those results for
 a simple test are just the name of the specified test.  For the example in
 the section
-[Suite Input](si),
+[Suite Input](#suite-input),
 two directories would be created: `test-result/smoke` and `test-result/smoke-time-only`.
 For repeat tests, a similar pattern follows, but the directory names are appended
 with the number of the iteration of the test.  For the example in the section
-[Repeating A Test](Repeating A Test),
+[Repeating A Test](#repeating-a-test),
 this means that 5 directories would be created, `test-result/smoke_1` to
 `test-result/smoke_5`.
 
@@ -242,7 +242,159 @@ affect another test within the same suite, suite tests are executed with a
 
 ### Summary.json File
 
-[describe]
+The elements in the `summary.json` file are organized by the name of the test that
+they are executing.  Regardless if it is a single test or a group of tests, that first
+level element is always the name of that test.  After that, there is some divergence
+on how the information is stored to more efficiently aggregate the information from a
+group of tests.
+
+#### Single Test JSON Blob
+
+For a single test, for example the `smoke` test, the output will look something
+like the following example.  Note that the information in the `slices` blob has been
+omitted as most of that information is aggregated in other places within the
+overall JSON blob.
+
+```json
+"smoke": {
+  "configuration": {
+      "thread_pool_count": 1,
+      "stats_log_interval": 2,
+      "log_individual_rule_stats": true,
+      "rule_retry_count": 3
+  },
+  "iterations": 1023,
+  "return-code": 0,
+  "duration-sec": 11.230913584,
+  "stop-pause-sec": 6.000195129,
+  "wait-pause-sec": 4.435873457,
+  "print-duration-sec": 0.326038276,
+  "test-duration-sec": 0.4688067220000003,
+  "iteration-duration-sec": 0.0004582665904203326,
+  "rules-engine-stats": {
+      "slices": [
+        ...
+      ],
+      "totals": {
+          "scheduled": 3222,
+          "invoked": 3222,
+          "pending": 0,
+          "abandoned": 0,
+          "retry": 0,
+          "exception": 0
+      },
+      "calculations": {
+          "avg-latency-ms": 0.17920235878336438,
+          "max-latency-ms": 1.0,
+          "avg-exec-ms": 0.01,
+          "max-exec-ms": 0.17
+      }
+  }
+}
+```
+
+A summary of the various fields and blobs are as follows:
+
+- `configuration`
+  - a summary of the relevant fields in the `incubator.conf` file
+- `iteration`
+  - harvested from `output.delay`
+  - number of steps that were enacted as part of the test
+- `return-code`
+  - return code from `return_code.json`
+  - generated from return code of `test.sh`
+  - see [this section](#test-return-codes) for specific decodings
+- `duration-sec`
+  - harvested from `duration.json`
+  - amount of time that it took to execute `run.sh`
+- `stop-pause-sec`
+  - harvested from `output.delay`
+  - amount of time that the test paused at the end of its execution
+  - allows time for any information in `gaia_stats.log` to be written
+- `wait-pause-sec`
+  - harvested from `output.delay`
+  - sum of total time used by the `w`ait command from the `commands.txt` file
+- `print-duration-sec`
+  - harvested from `output.delay`
+  - time spent in the `step_and_emit_state` method just to print the current state
+- `test-duration-sec`
+  - `duration-sec` minus `stop-pause-sec` minus `wait-pause-sec` minus `print-duration-sec`
+  - approximation of the run time of the test
+- `iteration-duration-sec`
+  - `test-duration-sec` divided by `iteration`
+  - approximation of the run time of a single step within the test
+- `rules-engine-stats.slices`
+  - raw slices harvested from `gaia_stats.log`
+- `totals.*`
+  - aggregated values over all `rules-engine-stats.slices`
+- `calculations.*`
+  - weighted average/maximum values over all `rules-engine-stats.slices`
+
+#### Group Test JSON Blob
+
+For a group of single tests, repeated `smoke` tests for example, the output will look something
+like the following.  As the intention of this example is to provide an understand of the shape
+and content of the data, most of the information in the arrays has been replaced with ellipses (...).
+In each case, the ellipses is replaced by 0 or more data objects.
+
+```json
+    "smoke": {
+        "iterations": [
+            1023,
+            ...
+        ],
+        "return-code": [
+            0,
+            ...
+        ],
+        "test-duration-sec": [
+            0.46579434499999983,
+            ...
+        ],
+        "iteration-duration-sec": [
+            0.00045532194037145634,
+            ...
+        ],
+        "rules-engine-stats": {
+            "totals": {
+                "scheduled": [
+                    3225,
+                    ...
+                ],
+                ...
+            },
+            "calculations": {
+                "avg-latency-ms": [
+                    0.1725705426356589,
+                    ...
+                ],
+                ...
+            }
+        },
+        "test_runs": {
+            "smoke_1": {
+              ...
+            },
+            ...
+        }
+    }
+}
+```
+
+The big difference to the individual test reports is that the relevant aggregated information
+is presented at the top of the blob as arrays.  The `iterations` field, the `return-code`,
+the `test-duration-sec` field, and the `iteration-duration-sec` fields are all presented as
+arrays to allow for the further interpretation of the values to be determined by the reader.
+Similarly, the `rules-engine-stats` are presented as arrays of values from the individual
+tests, except for the `slices` field which is omitted at this level.
+
+Finally, the `test_runs` field contains one element for every test that was executed within
+the group of tests.  This information is the contents of the `test-results` directory for
+that test when it completed.  The name of each element is the name of the test, followed
+by the `_` character, followed by the position of the test.  Therefore, in the above example,
+the first single test as part of the `smoke` group of tests is `smoke_1`.  If there are
+10 tests in that group of tests, the first test will be `smoke_1` and the last test will
+be `smoke_10`.
 
 ## Modifications To The Incubator Example
 
