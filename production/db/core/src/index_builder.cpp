@@ -28,7 +28,11 @@ namespace index
 {
 
 template <class T_index>
-void truncate_index(const index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
+/*
+w - the writer guard for the index meant to be truncated.
+commit_ts - the cutoff timestamp below which we remove committed transactions (inclusive).
+*/
+void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
     auto end = index.end();
@@ -36,15 +40,17 @@ void truncate_index(const index_writer_guard_t<T_index>& w, gaia_txn_id_t commit
 
     while (iter != end)
     {
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(iter->second.txn_id);
+        auto curr_iter = iter++;
+        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(curr_iter->second.txn_id);
+
         // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
-        if (ts < commit_ts && ts != c_invalid_gaia_txn_id)
+        if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
         {
-            iter = index.erase(iter);
-        }
-        else
-        {
-            ++iter;
+            // Only erase entry if each key contains at least one additional entry with the same key.
+            if (iter != end && curr_iter->first == iter->first)
+            {
+                iter = index.erase(curr_iter);
+            }
         }
     }
 }
