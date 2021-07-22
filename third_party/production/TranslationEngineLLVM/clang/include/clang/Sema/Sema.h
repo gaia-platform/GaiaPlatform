@@ -4636,12 +4636,14 @@ public:
   bool IsExpressionInjected(const Expr* expression) const;
 private:
 
+    // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
-  QualType getFieldType (const std::string &fieldName, SourceLocation loc);
+  QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD,
     SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr) ;
