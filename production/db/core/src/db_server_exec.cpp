@@ -23,7 +23,7 @@ static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
 static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 static constexpr char c_conf_file_flag[] = "--configuration-file-path";
-static constexpr char c_testing_flag[] = "--testing";
+static constexpr char c_skip_catalog_integrity_flag[] = "--skip-catalog-integrity-checks";
 
 static void usage()
 {
@@ -245,7 +245,7 @@ static server_config_t process_command_line(int argc, char* argv[])
         {
             instance_name = argv[++i];
         }
-        else if ((strcmp(argv[i], c_testing_flag) == 0))
+        else if ((strcmp(argv[i], c_skip_catalog_integrity_flag) == 0))
         {
             testing = true;
         }

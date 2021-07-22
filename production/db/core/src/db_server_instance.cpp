@@ -317,7 +317,7 @@ std::vector<const char*> server_instance_t::get_server_command_and_argument()
         strings.push_back(m_conf.data_dir.c_str());
     }
 
-    strings.push_back("--testing");
+    strings.push_back("--skip-catalog-integrity-checks");
     strings.push_back(nullptr);
     return strings;
 }

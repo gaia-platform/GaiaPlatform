@@ -38,7 +38,7 @@ public:
 
     static void populate_index(common::gaia_id_t index_id, common::gaia_type_t type, gaia::db::gaia_locator_t locator);
     static void truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts);
-    static void update_indexes_from_logs(const txn_log_t& records, bool ignore_catalog_verification = false);
+    static void update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check = false);
 
 private:
     static index_record_t make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset);

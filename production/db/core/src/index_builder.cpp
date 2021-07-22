@@ -28,7 +28,7 @@ namespace index
 {
 
 template <class T_index>
-void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
+void truncate_index(const index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
     auto end = index.end();
@@ -226,7 +226,7 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
-void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool ignore_catalog_verification)
+void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check)
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
@@ -256,7 +256,7 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool ig
 
         // System tables are not indexed.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (obj_type >= c_system_table_reserved_range_start || (ignore_catalog_verification && type_record_id == c_invalid_gaia_id))
+        if (obj_type >= c_system_table_reserved_range_start || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
         }
