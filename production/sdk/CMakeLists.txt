@@ -174,3 +174,6 @@ install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ruleset DESTI
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/README.md DESTINATION examples/incubator)
 install(FILES ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+
+# Place license files.
+install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

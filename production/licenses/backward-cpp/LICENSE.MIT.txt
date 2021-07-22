@@ -1,0 +1,1 @@
+https://github.com/bombela/backward-cpp/blob/master/LICENSE.txt

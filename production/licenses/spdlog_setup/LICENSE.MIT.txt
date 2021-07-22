@@ -1,0 +1,1 @@
+https://github.com/guangie88/spdlog_setup/blob/master/LICENSE

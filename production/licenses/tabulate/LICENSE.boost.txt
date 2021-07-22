@@ -1,0 +1,2 @@
+https://github.com/p-ranav/tabulate/blob/master/LICENSE.optional-lite
+https://github.com/p-ranav/tabulate/blob/master/LICENSE.variant-lite
