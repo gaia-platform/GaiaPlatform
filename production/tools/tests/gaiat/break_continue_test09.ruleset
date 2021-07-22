@@ -1,0 +1,18 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: attempt declarative break from while statement
+ruleset test09
+{
+    OnUpdate(sensor)
+    {
+BREAK_TARGET:
+        int i = 10;
+        while (i > 0)
+        {
+            --i;
+            break BREAK_TARGET;
+        }
+    }
+}
+
+// CHECK: expected ';' after break statement

@@ -1,7 +1,7 @@
 // RUN: %gaiat %s --
 
 // TESTCASE: Delete the anchor row.
-ruleset test1
+ruleset test01
 {
     OnInsert(sensor)
     {
@@ -12,7 +12,7 @@ ruleset test1
 void use_values(int, const char*);
 
 // TESTCASE: Insert two different row types.
-ruleset test2
+ruleset test02
 {
     OnInsert(incubator)
     {
@@ -23,7 +23,7 @@ ruleset test2
 }
 
 // TESTCASE: Delete a row found by implicit query.
-ruleset test3
+ruleset test03
 {
     OnInsert(sensor)
     {
@@ -32,7 +32,7 @@ ruleset test3
 }
 
 // TESTCASE: Delete rows found by implicit query.
-ruleset test4
+ruleset test04
 {
     OnInsert(incubator)
     {
@@ -42,7 +42,7 @@ ruleset test4
 
 // TESTCASE: Delete rows selected by field content, through a tag.
 // GAIAPLAT-1041 (fixed)
-ruleset test5
+ruleset test05
 {
     OnInsert(I:incubator)
     {
@@ -57,9 +57,9 @@ ruleset test5
     }
 }
 
-// It is expected that Insert will return a tagged row.
-// TESTCASE: Assign an Insert return value to a tag.
-ruleset test6
+// It is expected that Insert will return an EDC object.
+// TESTCASE: Assign an Insert return value to a tag
+ruleset test06
 {
     OnInsert(sensor)
     {

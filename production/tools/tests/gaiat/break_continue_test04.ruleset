@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: non-declarative if statement cannot have continue statement
+ruleset test01
+{
+    OnUpdate(incubator)
+    {
+        if (max_temp > 99.0)
+        {
+            continue;
+        }
+    }
+}
+
+// CHECK: 'continue' statement not in loop statement
+// GAIAPLAT-1067 (fixed)
