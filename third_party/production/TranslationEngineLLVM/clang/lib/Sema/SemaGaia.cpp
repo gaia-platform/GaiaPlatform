@@ -545,8 +545,10 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
+    //  and accept only the necessary types. Will address in next PR.
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
@@ -681,16 +683,20 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(linkData.field), type, RD, loc);
     }
 
-    //insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-    addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     // TODO this is weird, we have half API upper case and the other half lower case.
     //   IMHO we should stick to lower/snake case as we do for all the other APIs.
     //   The upper case is something David uses in his spec but, as himself said,
     //   it is something we are not forced to follow.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+
+    //insert fields and methods that are not part of the schema
+    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+
+    // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
+    //  and accept only the necessary types. Will address in next PR.
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
