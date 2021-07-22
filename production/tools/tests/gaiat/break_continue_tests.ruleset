@@ -243,39 +243,3 @@ BREAK_TARGET:
         }
     }
 }
-
-// TESTCASE: break from a nomatch block
-// GAIAPLAT-1088
-ruleset test18
-{
-    OnUpdate(incubator)
-    {
-BREAK_TARGET:
-        if (S:sensor.value > 50.0)
-        {
-            S.value += 1.0;
-        }
-        nomatch
-        {
-            break BREAK_TARGET;
-        }
-    }
-}
-
-// TESTCASE: continue from a nomatch block
-// GAIAPLAT-1088
-ruleset test20
-{
-    OnUpdate(incubator)
-    {
-CONTINUE_TARGET:
-        if (S:sensor.value > 50.0)
-        {
-            S.value += 1.0;
-        }
-        nomatch
-        {
-            continue CONTINUE_TARGET;
-        }
-    }
-}
