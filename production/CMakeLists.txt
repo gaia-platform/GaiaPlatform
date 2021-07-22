@@ -260,7 +260,7 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -g -funwind-tables -fno-omit-frame-pointer)
+  target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only -funwind-tables -fno-omit-frame-pointer)
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
 # Cpptoml.
