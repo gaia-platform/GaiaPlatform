@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: Use the wrong delete keyword.
+ruleset test1
+{
+    OnInsert(sensor)
+    {
+        sensor.delete();
+    }
+}
+
+// CHECK: expected unqualified-id

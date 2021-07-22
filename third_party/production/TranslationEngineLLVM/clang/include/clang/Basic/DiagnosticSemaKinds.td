@@ -9499,11 +9499,11 @@ def err_invalid_field_operation : Error<
   "Incorrect field operation.">;
 
 def err_invalid_table_name : Error<
-    "Table '%0' was not found in the catalog.">;
+  "Table '%0' was not found in the catalog.">;
 def err_invalid_field_type : Error<
-    "Field '%0' has incorrect type.">;
+  "Field '%0' has incorrect type.">;
 def err_no_ruleset_for_rule : Error<
-    "No ruleset was detected for rule.">;
+  "No ruleset was detected for rule.">;
 def err_ambiguous_field_reference : Error<
     "Ambiguous reference to field '%0'.">;
 def note_table_reference : Note<
@@ -9513,35 +9513,45 @@ def note_field_reference : Note<
 def note_link_reference : Note<
     "Link: '%0.%1'.">;
 def err_duplicate_field : Error<
-    "Duplicate field '%0'.">;
+  "Duplicate field '%0'.">;
 def err_duplicate_link : Error<
     "Duplicate link '%0'.">;
 def err_unknown_field : Error<
-    "Field '%0' was not found in the catalog.">;
+  "Field '%0' was not found in the catalog.">;
 def err_catalog_exception : Error<
-    "Exception occured while fetching data from catalog: '%0'.">;
+  "Exception occured while fetching data from catalog: '%0'.">;
 def err_invalid_table_field : Error<
-    "Field '%0' has no table in the catalog.">;
+  "Field '%0' has no table in the catalog.">;
 def warn_table_referenced_not_in_table_attribute : Warning<
-    "Table '%0' is not referenced in table attribute.">;
+  "Table '%0' is not referenced in table attribute.">;
 def err_invalid_rule_context_internal_error : Error<
-    "Internal error while generating 'rule_context'.">;
+  "Internal error while generating 'rule_context'.">;
 def err_invalid_rule_attribute : Error<
     "Invalid Gaia rule attribute.">;
 def err_invalid_explicit_path : Error<
-    "Invalid explicit path.">;
+  "Invalid explicit path.">;
 def err_invalid_child_table : Error<
-    "Incorrect child table in the relationship '%0'.">;
+  "Incorrect child table in the relationship '%0'.">;
 def err_invalid_parent_table : Error<
-    "Incorrect parent table in the relationship '%0'.">;
+  "Incorrect parent table in the relationship '%0'.">;
 def err_no_relations_table_in_path : Error<
   "'%0' table in the explicit path has no relationship to '%1'.">;
 def err_invalid_tag_defined: Error<
-    "Tag refers to an invalid table '%0'.">;
+  "Tag refers to an invalid table '%0'.">;
 def err_ambiguous_tag_defined: Error<
-    "Tag '%0' cannot have the same name as a table or a field.">;
+  "Tag '%0' cannot have the same name as a table or a field.">;
 def err_tag_redefined : Error<
-    "Tag '%0' is already defined.">;
+  "Tag '%0' is already defined.">;
 def err_incorrect_tag_use_in_path : Error<
-    "Tag '%0' cannot be used in this context.">;
+  "Tag '%0' cannot be used in this context.">;
+def err_parameter_names_numbers_different_from_parameter: Error<
+  "%0 parameter names are specified and %1 parameters passed.">;
+def err_unknown_parameter_name : Error<
+  "Parameter name '%0' is not found in the catalog.">;
+def err_duplicate_parameter_name : Error<
+  "Parameter name '%0' has already been used.">;
+def err_argument_type_mismatch : Error<
+  "Cannot convert from '%0' to '%1' for parameter '%2'.">;
+def err_argument_type_not_supported : Error<
+  "Type '%0' is not supported.">;
 } // end of sema component.

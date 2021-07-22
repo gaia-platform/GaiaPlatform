@@ -932,3 +932,35 @@ TEST_F(edc_object_test, array_writer)
 
     EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
 }
+
+// TESTCASE: Delete rows accessed through a list() iterator.
+// GAIAPLAT-1049
+// The delete_row() interferes with iterator.
+TEST_F(edc_object_test, delete_row_in_loop)
+{
+    auto_transaction_t txn;
+    phone_t::insert_row("206", "Y", true);
+    phone_t::insert_row("425", "Y", true);
+
+    int count = 0;
+
+    // The following code will not work because of the iterator implementation.
+#if 0
+    for (auto p : phone_t::list())
+    {
+        p.delete_row();
+        count++;
+    }
+#endif
+    // This form of iteration should work.
+    for (auto p = phone_t::list().begin(); p != phone_t::list().end();)
+    {
+        auto pp = p++;
+        (*pp).delete_row();
+        count++;
+    }
+
+    EXPECT_EQ(count, 2);
+
+    txn.commit();
+}

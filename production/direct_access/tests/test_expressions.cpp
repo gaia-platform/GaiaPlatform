@@ -6,7 +6,6 @@
 #include <ctime>
 
 #include <iostream>
-#include <string>
 
 #include <gtest/gtest.h>
 
@@ -41,6 +40,7 @@ protected:
     employee_t simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
     phone_t landline, mobile;
     customer_t hooli, pied_piper;
+    internet_contract_t simone_att, bill_comcast;
     const vector<int32_t> hooli_sales{3, 1, 4, 1, 5};
     const vector<int32_t> pied_piper_sales{1, 1, 2, 3, 5};
 
@@ -73,6 +73,9 @@ protected:
 
         hooli = create_customer("Hooli", hooli_sales);
         pied_piper = create_customer("Pied Piper", pied_piper_sales);
+
+        simone_att = create_internet_contract("AT&T", kissimmee, simone);
+        bill_comcast = create_internet_contract("Comcast", tyngsborough, bill);
 
         commit_transaction();
     }
@@ -115,6 +118,16 @@ protected:
     customer_t create_customer(const char* name, const std::vector<int32_t>& sales_by_quarter)
     {
         return customer_t::get(customer_t::insert_row(name, sales_by_quarter));
+    }
+
+    internet_contract_t create_internet_contract(const char* provider, address_t address, employee_t owner)
+    {
+        internet_contract_t internet_contract = internet_contract_t::get(
+            internet_contract_t::insert_row(provider));
+
+        address.internet_contract().connect(internet_contract);
+        owner.internet_contract().connect(internet_contract);
+        return internet_contract;
     }
 
     /**
@@ -544,4 +557,19 @@ TEST_F(test_expressions, array)
             [](const auto& c) {
                 return c.sales_by_quarter()[0] == -1;
             }));
+}
+
+TEST_F(test_expressions, one_to_one)
+{
+    auto_transaction_t txn;
+
+    assert_contains(
+        employee_t::list()
+            .where(employee_expr::internet_contract == simone_att),
+        simone);
+
+    assert_contains(
+        internet_contract_t::list()
+            .where(internet_contract_expr::owner == bill),
+        bill_comcast);
 }

@@ -32,14 +32,6 @@ ruleset test3
     }
 }
 
-ruleset test4
-{
-    OnInsert(sensor)
-    {
-        sensor.delete_row();
-    }
-}
-
 typedef enum
 {
     undefined = 0,
@@ -106,7 +98,7 @@ ruleset test8
         auto context_event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
-        if (@actuator.value < 5 && @sensor.value > 10)
+        if (@actuator.value < 5 && sensor.value > 10)
         {
             actuator.value = 5;
         }
@@ -157,6 +149,46 @@ ruleset test12
         nomatch
         {
             i = 2;
+        }
+    }
+}
+
+// Verify that these are all allowable rule constructs and don't
+// incorrectly cause the translation engine to think that these
+// are multi-anchor rules.
+ruleset test13
+{
+    OnInsert(sensor.value, sensor.timestamp)
+    {
+    }
+
+    OnInsert(sensor, sensor)
+    {
+    }
+
+    OnChange(sensor, sensor.timestamp)
+    {
+    }
+
+    OnChange(min_temp, max_temp)
+    {
+    }
+
+    OnUpdate(min_temp, max_temp)
+    {
+    }
+
+    OnUpdate(actuator, actuator)
+    {
+    }
+
+    OnUpdate(actuator, actuator.timestamp)
+    {
+    }
+
+    {
+        if (@actuator.value > 0 && @actuator.timestamp == 0)
+        {
         }
     }
 }

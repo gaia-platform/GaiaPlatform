@@ -1306,7 +1306,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
 
       if (!Actions.RemoveTagData(SourceRange(startLocation, endLocation)))
       {
-        Diag(startLocation, diag::err_nomatch_without_navigation);
+        Diag(startLocation, diag::err_nomatch_without_navigation) << true;
         return StmtError();
       }
 
@@ -1666,6 +1666,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   bool isGaia = getLangOpts().Gaia && getCurScope()->isInRulesetScope();
   bool isDeclarativeStatement = false;
   ExprResult explicitNavigationExpression;
+  SourceLocation NoMatchLoc, NoMatchStmtLoc;
+  StmtResult NoMatchStmt;
 
   // C99 6.8.5p5 - In C99, the for statement is a block.  This is not
   // the case for C90.  Start the loop scope.
@@ -1718,20 +1720,15 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     // Try to determine if a first expression is a declarative statement and it is the only expression in for statement.
     ExtendedExplicitPathScopeMonitor monitor(Actions);
 
-    if (isGaia && Tok.isOneOf(tok::slash, tok::at, tok::identifier))
+    if (isGaia && Tok.isOneOf(tok::slash, tok::identifier))
     {
       RevertingTentativeParsingAction PA(*this);
-      if (Tok.isOneOf(tok::slash, tok::at))
+      if (Tok.is(tok::slash))
       {
         isDeclarativeStatement = true;
         ConsumeToken();
       }
-      // Check for /@
-      if (Tok.is(tok::at))
-      {
-        isDeclarativeStatement = true;
-        ConsumeToken();
-      }
+
       while (Tok.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
       {
         ConsumeToken();
@@ -2002,6 +1999,35 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   if (Body.isInvalid())
     return StmtError();
+  if (Tok.is(tok::kw_nomatch))
+  {
+    if (explicitNavigationExpression.get())
+    {
+      // Remove tags that may have been declared in the for
+
+      if (!Actions.RemoveTagData(SourceRange(T.getOpenLocation(), T.getCloseLocation())))
+      {
+        Diag(T.getOpenLocation(), diag::err_nomatch_without_navigation) << false;
+        return StmtError();
+      }
+
+      NoMatchLoc = ConsumeToken();
+      NoMatchStmtLoc = Tok.getLocation();
+
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXXorObjC,
+                          Tok.is(tok::l_brace));
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
+        Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
+        Sema::ExpressionEvaluationContextRecord::EK_Other);
+      NoMatchStmt = ParseStatement();
+      InnerScope.Exit();
+    }
+    else
+    {
+      Diag(T.getOpenLocation(), diag::err_nomatch_without_navigation) << false;
+      return StmtError();
+    }
+  }
 
   if (ForEach)
    return Actions.FinishObjCForCollectionStmt(ForEachStmt.get(),
@@ -2013,7 +2039,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   if(explicitNavigationExpression.get())
   {
     return Actions.ActOnGaiaForStmt(ForLoc, T.getOpenLocation(),
-      explicitNavigationExpression.get(), T.getCloseLocation(), Body.get());
+      explicitNavigationExpression.get(), T.getCloseLocation(), Body.get(),
+      NoMatchLoc, NoMatchStmt.get());
   }
 
   return Actions.ActOnForStmt(ForLoc, T.getOpenLocation(), FirstPart.get(),

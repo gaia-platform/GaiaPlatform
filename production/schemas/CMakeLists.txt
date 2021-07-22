@@ -20,10 +20,9 @@ file(GLOB SCHEMA_FILES
 
 # Copies the .dll files into a known location in the Cmake build folder
 # to allow schema_loader to find them.
-file(
-  COPY ${SCHEMA_FILES}
-  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/"
-)
+foreach(SCHEMA_FILE ${SCHEMA_FILES})
+  configure_file(${SCHEMA_FILE} ${CMAKE_CURRENT_BINARY_DIR})
+endforeach()
 
 add_subdirectory(loader)
 add_subdirectory(system)

@@ -1,0 +1,9 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    OnUpdate(incubator.max_temp, sensor.value)
+    {
+    }
+}
+// CHECK: Multiple anchor rows: A rule may not specify active fields from different tables.
