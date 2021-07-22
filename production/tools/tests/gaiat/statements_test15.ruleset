@@ -17,3 +17,4 @@ ruleset test11
 }
 
 // CHECK: TODO error message
+// GAIAPLAT-1034

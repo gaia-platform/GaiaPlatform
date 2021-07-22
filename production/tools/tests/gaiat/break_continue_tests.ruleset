@@ -1,0 +1,281 @@
+// RUN: %gaiat %s --
+
+#include "tags_test.h"
+
+// TESTCASE: break within declarative for
+ruleset test3
+{
+    OnUpdate(incubator)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+// TESTCASE: continue within declarative for
+ruleset test4
+{
+    OnUpdate(incubator)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                continue;
+            }
+        }
+    }
+}
+
+// TESTCASE: break from multiple outer loops from implicit query
+// GAIAPLAT-1073
+ruleset test5
+{
+    OnUpdate(farmer)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+// TESTCASE: continue from multiple outer loops from implicit query
+// GAIAPLAT-1073
+ruleset test6
+{
+    OnUpdate(farmer)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                continue;
+            }
+        }
+    }
+}
+
+// TESTCASE: break within declarative if to label
+ruleset test9
+{
+    OnUpdate(incubator)
+    {
+BREAK_TARGET:
+        if (S:sensor.value > 99.0)
+        {
+            if (S.value > 100.0)
+            {
+                break BREAK_TARGET;
+            }
+        }
+    }
+}
+
+// TESTCASE: continue within declarative if to label
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+CONTINUE_TARGET:
+        if (S:sensor.value > 99.0)
+        {
+            if (S.value > 100.0)
+            {
+                continue CONTINUE_TARGET;
+            }
+        }
+    }
+}
+
+// TESTCASE: break to label from multiple outer loops from implicit query
+ruleset test11
+{
+    OnUpdate(farmer)
+    {
+BREAK_TARGET:
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                break BREAK_TARGET;
+            }
+        }
+    }
+}
+
+// TESTCASE: continue to label from multiple outer loops from implicit query
+ruleset test12
+{
+    OnUpdate(farmer)
+    {
+CONTINUE_TARGET:
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                continue CONTINUE_TARGET;
+            }
+        }
+    }
+}
+
+int strcmp(const char*, const char*);
+
+// TESTCASE: break to multiple labels
+// GAIAPLAT-1074
+ruleset test13
+{
+    OnUpdate(farmer)
+    {
+BREAK1_TARGET:
+        for (I:incubator)
+        {
+BREAK2_TARGET:
+            for (I->R:raised)
+            {
+BREAK3_TARGET:
+                for (R->A:animal)
+                {
+BREAK4_TARGET:
+                    for (A->F:feeding)
+                    {
+                        if (I.max_temp == 98.6)
+                            break BREAK1_TARGET;
+                        if (strcmp(R.birthdate, "") == 0)
+                            break BREAK2_TARGET;
+                        if (A.age == 3)
+                            break BREAK3_TARGET;
+                        if (F.portion <= 30)
+                            break BREAK4_TARGET;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TESTCASE: continue to multiple labels
+// GAIAPLAT-1074
+ruleset test14
+{
+    OnUpdate(farmer)
+    {
+CONTINUE1_TARGET:
+        for (I:incubator)
+        {
+CONTINUE2_TARGET:
+            for (I->R:raised)
+            {
+CONTINUE3_TARGET:
+                for (R->A:animal)
+                {
+CONTINUE4_TARGET:
+                    for (A->F:feeding)
+                    {
+                        if (I.max_temp == 98.6)
+                            continue CONTINUE1_TARGET;
+                        if (strcmp(R.birthdate, "") == 0)
+                            continue CONTINUE2_TARGET;
+                        if (A.age == 3)
+                            continue CONTINUE3_TARGET;
+                        if (F.portion <= 30)
+                            continue CONTINUE4_TARGET;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TESTCASE: deep combination if declarative for and if with break
+ruleset test15
+{
+    OnUpdate(sensor)
+    {
+BREAK1_TARGET:
+        if (incubator->raised->animal->feeding->yield->crop.acres == 15)
+        {
+            for (yield->F:feeding)
+            {
+                F.portion += 1;
+                break BREAK1_TARGET;
+            }
+        }
+
+        // Reverse the if and for statements.
+BREAK2_TARGET:
+        for (yield->F:feeding)
+        {
+            if (incubator->raised->animal->feeding->yield->crop.acres == 15)
+            {
+                F.portion += 1;
+                break BREAK2_TARGET;
+            }
+        }
+    }
+}
+
+// TESTCASE: break and continue to the same target
+ruleset test16
+{
+    OnUpdate(sensor)
+    {
+BREAK_TARGET:
+        if (incubator->raised->animal->feeding->yield->crop.acres == 15)
+        {
+            for (yield->F:feeding)
+            {
+                F.portion += 1;
+                if (F.portion > 3)
+                    break BREAK_TARGET;
+                else
+                    continue BREAK_TARGET;
+            }
+        }
+    }
+}
+
+// TESTCASE: break from a nomatch block
+// GAIAPLAT-1088
+ruleset test18
+{
+    OnUpdate(incubator)
+    {
+BREAK_TARGET:
+        if (S:sensor.value > 50.0)
+        {
+            S.value += 1.0;
+        }
+        nomatch
+        {
+            break BREAK_TARGET;
+        }
+    }
+}
+
+// TESTCASE: continue from a nomatch block
+// GAIAPLAT-1088
+ruleset test20
+{
+    OnUpdate(incubator)
+    {
+CONTINUE_TARGET:
+        if (S:sensor.value > 50.0)
+        {
+            S.value += 1.0;
+        }
+        nomatch
+        {
+            continue CONTINUE_TARGET;
+        }
+    }
+}

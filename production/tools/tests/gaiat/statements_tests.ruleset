@@ -433,7 +433,7 @@ ruleset test21
     OnInsert(feeding)
     {
         char str[200];
-        sprintf(str, "%ld,%f,%f", I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+        sprintf(str, "%ld,%f,%f", farmer->I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
     }
 }
 
@@ -667,19 +667,6 @@ ruleset future_success_test_2
 
 #ifdef SHOULD_FAIL
 
-// TESTCASE: while() with 1-to-N iteration
-ruleset fail_test1
-{
-    OnInsert(incubator)
-    {
-        int num = 0;
-        while (sensor.value > 0.0)
-        {
-            num++;
-        }
-    }
-}
-
 // TESTCASE: while() with navigation and tags
 ruleset fail_test2
 {
@@ -787,20 +774,6 @@ ruleset fail_test8
                 }
             }
         }
-    }
-}
-
-// TESTCASE: declarative do-while() with implicit iteration
-ruleset fail_test9
-{
-    OnInsert(incubator)
-    {
-        int count = 0;
-        do
-        {
-            count += 1;
-        }
-        while (sensor.value > 0.0);
     }
 }
 
@@ -997,3 +970,25 @@ ruleset test_4
         }
     }
 }
+
+void printf(const char*, unsigned int);
+
+// TESTCASE: mix up declarative for with switch statement
+// GAIAPLAT-1084
+#ifdef TEST_FAILURES
+ruleset test34
+{
+    OnUpdate(farmer)
+    {
+        for (F:feeding)
+        {
+            switch (F.portion)
+            {
+            default:
+                F.portion += 1;
+                printf("%d\n", F.portion);
+            }
+        }
+    }
+}
+#endif

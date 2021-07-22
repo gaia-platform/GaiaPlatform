@@ -1,0 +1,33 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: break targets outside the scope of the break
+ruleset test07
+{
+    OnUpdate(sensor)
+    {
+BREAK1_TARGET:
+        if (incubator->raised->animal->feeding->yield->crop.acres == 15)
+        {
+            for (yield->F:feeding)
+            {
+                F.portion += 1;
+                break BREAK2_TARGET;
+            }
+        }
+
+        // Reverse the if and for statements.
+BREAK2_TARGET:
+        for (yield->F:feeding)
+        {
+            if (incubator->raised->animal->feeding->yield->crop.acres == 15)
+            {
+                F.portion += 1;
+                break BREAK1_TARGET;
+            }
+        }
+    }
+}
+
+// CHECK: Declarative label does not exist.
+// CHECK: Invalid declarative label.
+// CHECK: use of undeclared label 'BREAK2_TARGET'
