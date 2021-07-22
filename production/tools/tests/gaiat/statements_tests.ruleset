@@ -42,7 +42,7 @@ ruleset test1_1
 //       the implicit path may change - that would be bad. By making
 //       this an error, the programmer can correct the code to have
 //       an explicit component to the path.
-// GAIAPLAT-1050
+// GAIAPLAT-1050 (fixed)
 ruleset test1_2
 {
     OnInsert(incubator)
@@ -974,8 +974,7 @@ ruleset test_4
 void printf(const char*, unsigned int);
 
 // TESTCASE: mix up declarative for with switch statement
-// GAIAPLAT-1084
-#ifdef TEST_FAILURES
+// GAIAPLAT-1084 (fixed)
 ruleset test34
 {
     OnUpdate(farmer)
@@ -991,4 +990,59 @@ ruleset test34
         }
     }
 }
-#endif
+
+// TESTCASE: while with an anchor field condition
+ruleset test35
+{
+    OnUpdate(incubator)
+    {
+        while (incubator.max_temp < 100.0)
+        {
+            incubator.max_temp += 5.0;
+        }
+    }
+}
+
+ruleset test36
+{
+    OnUpdate(incubator)
+    {
+        int maxtemp = incubator.max_temp;
+        while (maxtemp < 100.0)
+        {
+            maxtemp += 5.0;
+        }
+        incubator.max_temp = maxtemp;
+    }
+}
+
+ruleset test37
+{
+    OnUpdate(incubator)
+    {
+        for (S:sensor)
+        {
+            while (S.value < 100.0)
+            {
+                S.value += 5.0;
+            }
+        }
+    }
+}
+
+ruleset test38
+{
+    OnUpdate(incubator)
+    {
+        for (S:sensor)
+        {
+            float val;
+            val = S.value;
+            while (val < 100.0)
+            {
+                val += 5.0;
+            }
+            S.value = val;
+        }
+    }
+}
