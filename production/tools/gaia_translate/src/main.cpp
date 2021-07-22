@@ -2888,7 +2888,7 @@ int main(int argc, const char** argv)
     }
     catch (gaia::common::system_error& e)
     {
-        cerr << "Impossible to connect to " << gaia::db::c_db_server_exec_name << ": '" << e.what() << "'\n"
+        cerr << "Impossible to connect to " << gaia::db::c_db_server_exec_name << ": '" << e.what() << "'.\n"
              << "The translation requires the " << gaia::db::c_db_server_exec_name << " running.\n"
              << "Start the " << gaia::db::c_db_server_exec_name << " and re-run the translation."
              << endl;
