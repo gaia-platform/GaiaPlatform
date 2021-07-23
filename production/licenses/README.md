@@ -11,7 +11,7 @@ Hence, whenever a dependency on a new third-party component is added, you should
 
 This list should be maintained in alphabetical order, for easier lookup.
 
-* 1024cores - data structures
+* 1024cores.net - data structures
   * Apache: https://www.apache.org/licenses/LICENSE-2.0.html
   * BSD: https://www.1024cores.net/home/code-license
 * backward-cpp

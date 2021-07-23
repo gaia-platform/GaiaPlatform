@@ -4,6 +4,8 @@ Gaia Platform third-party component licenses
 Portions of Gaia Platform code are covered by the following licenses:
 
 ========================================================================================================================
+LevelDB License
+
 Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +34,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ========================================================================================================================
+backward-cpp License
+
 Copyright 2013 Google Inc. All Rights Reserved.
 
 The MIT License (MIT)
@@ -54,6 +58,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ========================================================================================================================
+daemonize License
+
 Copyright © 2003-2011 Brian M. Clapper. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -74,6 +80,8 @@ Permission to use, copy, modify, distribute, and sell this software and its docu
 License for getopt.c
 The version of getopt() that is compiled into daemonize is adapted from the original AT&T public domain implementation of getopt(3) and is in the public domain.
 ========================================================================================================================
+1024cores.net data structures License
+
 Copyright (c) 2010-2011 Dmitry Vyukov. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -94,6 +102,8 @@ The views and conclusions contained in the software and documentation are those 
 
 If not stated otherwise, all non-source-code text and images on this site are provided under the terms of the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. Source code is covered by the Simplified BSD License and by Apache License, Version 2.0. The opinions expressed on this site are my own and do not necessarily reflect the views of Google.
 ========================================================================================================================
+tabulate License
+
 MIT License
 
 Copyright (c) 2019 Pranav
@@ -116,6 +126,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ========================================================================================================================
+termcolor License
+
 Copyright (c) 2013, Ihor Kalnytskyi.
 All rights reserved.
 
@@ -148,6 +160,8 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE AND DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 ========================================================================================================================
+spdlog License
+
 The MIT License (MIT)
 
 Copyright (c) 2016 Gabi Melman.
@@ -174,6 +188,8 @@ THE SOFTWARE.
 This software depends on the fmt lib (MIT License),
 and users must comply to its license: https://github.com/fmtlib/fmt/blob/master/LICENSE.rst
 ========================================================================================================================
+spdlog-setup License
+
 MIT License
 
 Copyright (c) 2017 guangie88
@@ -196,6 +212,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ========================================================================================================================
+fmt License
+
 Copyright (c) 2012 - present, Victor Zverovich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -208,6 +226,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 As an exception, if, as a result of your compiling your source code, portions of this Software are embedded into a machine-executable object form of such source code, you may redistribute such embedded portions in such object form without including the above copyright and permission notices.
 ========================================================================================================================
+cpptoml License
+
 Copyright (c) 2014 Chase Geigle
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -227,7 +247,12 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ========================================================================================================================
-Apache License
+1024cores.net License
+flatbuffers License
+RocksDB License
+LLVM License
+
+                                 Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -429,7 +454,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 ========================================================================================================================
-Copyright (C) 2009 Peter Miller
+libexplain (Copyright (C) 2009 Peter Miller) License
 
 LGPL(3)                    Free Software Foundation                    LGPL(3)
 
