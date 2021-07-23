@@ -230,8 +230,8 @@ execute_single_test() {
     local NEXT_TEST_NAME=$1
     local REPEAT_NUMBER=$2
 
-    broadcast_message "" "Sleeping for 15s before next test."
-    sleep 15
+    broadcast_message "" "Sleeping for $PAUSE_IN_SECONDS_BEFORE_NEXT_TEST seconds before next test."
+    sleep "$PAUSE_IN_SECONDS_BEFORE_NEXT_TEST"
 
     # Let the runner know what is going on.
     if [ -n "$REPEAT_NUMBER" ] ; then
@@ -273,7 +273,9 @@ execute_suite_test() {
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
         NEXT_TEST_NAME="${BASH_REMATCH[1]}"
         NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
-
+        if [ "$NUMBER_OF_REPEATS" -le 0 ]; then
+            complete_process 2 "Repeat value $NUMBER_OF_REPEATS for test name '$NEXT_TEST_NAME' is not a positive integer."
+        fi
         broadcast_message "" "Executing suite test: $NEXT_TEST_NAME with $NUMBER_OF_REPEATS repeats."
 
         for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
@@ -297,6 +299,8 @@ source "$SCRIPTPATH/properties.sh"
 TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
 
 # Set up any local script variables.
+PAUSE_IN_SECONDS_BEFORE_NEXT_TEST=15
+
 DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0

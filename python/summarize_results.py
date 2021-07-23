@@ -319,7 +319,7 @@ def load_results_for_test(suite_test):
     return new_results
 
 
-def summarize_repeated_tests(suite_test_name):
+def summarize_repeated_tests(suite_test_name, max_test):
     """
     Create a summary dictionary for any repeated tests.
     """
@@ -388,28 +388,57 @@ def summarize_repeated_tests(suite_test_name):
     return main_dictionary
 
 
-if len(sys.argv) != 2:
-    print("error")
-    sys.exit(1)
-suite_file = sys.argv[1]
-if not os.path.exists(suite_file) or os.path.isdir(suite_file):
-    print("is not file")
-    sys.exit(1)
+def load_scenario_file():
+    """
+    Load the contents of the specified suite file.
+    """
 
-with open(suite_file) as suite_file:
-    suite_file_lines = suite_file.readlines()
+    if len(sys.argv) != 2:
+        print("Suite file must be specified as the second parameter.")
+        sys.exit(1)
+    suite_file_name = sys.argv[1]
+    if not os.path.exists(suite_file_name) or os.path.isdir(suite_file_name):
+        print(f"Suite file '{suite_file_name}' must exist and not be a directory.")
+        sys.exit(1)
+    with open(suite_file_name) as suite_file:
+        suite_file_lines = suite_file.readlines()
+    return suite_file_lines
 
-full_test_results = {}
-for next_suite_test in suite_file_lines:
 
-    next_suite_test = next_suite_test.strip()
-    is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
-    if is_repeat_test:
-        next_suite_test = is_repeat_test.group(1)
-        max_test = int(is_repeat_test.group(2))
-        full_test_results[next_suite_test] = summarize_repeated_tests(next_suite_test)
-    else:
-        full_test_results[next_suite_test] = load_results_for_test(next_suite_test)
+def dump_results_dictionary(full_test_results):
+    """
+    Dump the full_test_results dictionary as a JSON file.
+    """
+    with open(SUITE_DIRECTORY + "summary.json", "w") as write_file:
+        json.dump(full_test_results, write_file, indent=4)
 
-with open(SUITE_DIRECTORY + "summary.json", "w") as write_file:
-    json.dump(full_test_results, write_file, indent=4)
+
+def execute_suite_tests(suite_file_lines):
+    """
+    Execute each of the tests specified by the lines in the suite file.
+    """
+    full_test_results = {}
+    for next_suite_test in suite_file_lines:
+
+        next_suite_test = next_suite_test.strip()
+        is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
+        if is_repeat_test:
+            next_suite_test = is_repeat_test.group(1)
+            max_test = int(is_repeat_test.group(2))
+            if max_test < 1:
+                print(
+                    f"Repeat number for test {next_suite_test} must be greater than "
+                    + "or equal to 1, not '{max_test}'."
+                )
+                sys.exit(1)
+            full_test_results[next_suite_test] = summarize_repeated_tests(
+                next_suite_test, max_test
+            )
+        else:
+            full_test_results[next_suite_test] = load_results_for_test(next_suite_test)
+    return full_test_results
+
+
+file_lines = load_scenario_file()
+test_results = execute_suite_tests(file_lines)
+dump_results_dictionary(test_results)

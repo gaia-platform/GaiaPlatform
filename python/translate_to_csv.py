@@ -8,6 +8,7 @@ All rights reserved.
 """
 
 import json
+import sys
 
 convert_paths = [
     "chicken.sensors.0.value",
@@ -38,18 +39,25 @@ def traverse(json_data, json_path):
     return traversed_data
 
 
-with open("build/output.json") as input_file:
-    incubator_data = json.load(input_file)
+def process_script_action():
+    """
+    Process the translation of the output.json file into an output.csv file.
+    """
+    with open("build/output.json") as input_file:
+        incubator_data = json.load(input_file)
 
-csv_lines = []
-for next_path in convert_paths:
-    csv_lines.append(next_path)
+    csv_lines = []
+    for next_path in convert_paths:
+        csv_lines.append(next_path)
 
-for next_incubator_sample in incubator_data:
-    for index, next_path in enumerate(convert_paths):
-        final_object = traverse(next_incubator_sample, next_path)
-        line_so_far = csv_lines[index] + "," + str(final_object)
-        csv_lines[index] = line_so_far
+    for next_incubator_sample in incubator_data:
+        for index, next_path in enumerate(convert_paths):
+            final_object = traverse(next_incubator_sample, next_path)
+            line_so_far = csv_lines[index] + "," + str(final_object)
+            csv_lines[index] = line_so_far
 
-for next_line in csv_lines:
-    print(next_line)
+    for next_line in csv_lines:
+        print(next_line)
+
+
+sys.exit(process_script_action())

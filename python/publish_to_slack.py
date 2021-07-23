@@ -110,15 +110,22 @@ def post_attachment(filename, file_type):
     return response
 
 
-args = process_command_line()
-if args.which == "message":
-    post_response = post_message(args.title, args.message)
-else:
-    assert args.which == "attachment"
-    post_response = post_attachment(args.filename, args.filetype)
+def process_script_action():
+    """
+    Process the posting of the message.
+    """
+    args = process_command_line()
+    if args.which == "message":
+        post_response = post_message(args.title, args.message)
+    else:
+        assert args.which == "attachment"
+        post_response = post_attachment(args.filename, args.filetype)
 
-EXIT_CODE = 0
-if not post_response.ok:
-    print(post_response.text)
-    EXIT_CODE = 1
-sys.exit(EXIT_CODE)
+    exit_code = 0
+    if not post_response.ok:
+        print(post_response.text)
+        exit_code = 1
+    return exit_code
+
+
+sys.exit(process_script_action())
