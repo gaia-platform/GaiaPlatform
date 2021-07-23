@@ -1,0 +1,77 @@
+BasedOnStyle: LLVM
+UseCRLF: false
+UseTab: Never
+IndentWidth: 4
+ColumnLimit: 0
+BreakBeforeBraces: Allman
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Align public/final/protected on the left.
+AccessModifierOffset: -4
+
+# From clang-format-11 there are more fine grained options for this setting.
+AlignOperands: false
+BreakBeforeBinaryOperators: All
+BreakBeforeTernaryOperators: true
+
+AllowAllConstructorInitializersOnNextLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+
+AllowShortFunctionsOnASingleLine: None
+
+# If false, all arguments will either be all on the same line or will have one line each.
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
+# 1. Associated file header (XYZ.hpp)
+# 2. C system headers. (Priority: 1/2)
+# 3. C++ standard library headers (Priority: 3)
+# 4. third party library headers (Priority: 10)
+# 5. your other project headers (Priority: 20)
+# Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Public Gaia headers.
+  - Regex: 'gaia\/'
+    Priority: 20
+    SortPriority: 20
+  # Internal Gaia headers.
+  - Regex: 'gaia_internal\/'
+    Priority: 21
+    SortPriority: 21
+  # Third-party headers.
+  - Regex: '[spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb|tabulate]\/'
+    Priority: 10
+    SortPriority: 10
+  - Regex: 'postgres'
+    Priority: 10
+    SortPriority: 11
+  - Regex: 'pg_'
+    Priority: 10
+    SortPriority: 12
+  # C system headers.
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^<c.*'
+    Priority: 2
+  # C++ library headers.
+  - Regex: '^<.*'
+    Priority: 3
+  # Component-only headers.
+  - Regex: '.*'
+    Priority: 30
+    SortPriority: 30
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+SpaceAfterCStyleCast: false
+ContinuationIndentWidth: 4
+AlignTrailingComments: false

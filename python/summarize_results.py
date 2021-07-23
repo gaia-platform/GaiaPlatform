@@ -13,72 +13,99 @@ import os
 import re
 import configparser
 
-suite_directory = "suite-results/"
+SUITE_DIRECTORY = "suite-results/"
 
-thread_load_index = 5
-scheduled_index = 7
-invoked_index = 8
-pending_index = 9
-abandoned_index = 10
-retry_index = 11
-exception_index = 12
-average_latency_index = 13
-maximum_latency_index = 15
-average_exec_index = 17
-maximum_exec_index = 19
+THREAD_LOAD_INDEX = 5
+SCHEDULED_INDEX = 7
+INVOKED_INDEX = 8
+PENDING_INDEX = 9
+ABANDONED_INDEX = 10
+RETRY_INDEX = 11
+EXCEPTION_INDEX = 12
+AVERAGE_LATENCY_INDEX = 13
+MAXIMUM_LATENCY_INDEX = 15
+AVERAGE_EXEC_INDEX = 17
+MAXIMUM_EXEC_INDEX = 19
 
-thread_load_title = "thread-load-percent"
+THREAD_LOAD_TITLE = "thread-load-percent"
 
-configuration_title = "configuration"
-iterations_title = "iterations"
-return_code_title = "return-code"
-test_duration_title = "test-duration-sec"
-iteration_duration_title = "iteration-duration-sec"
-total_duration_title = "duration-sec"
-pause_duration_title = "stop-pause-sec"
-wait_duration_title = "wait-pause-sec"
-print_duration_title = "print-duration-sec"
-test_runs_title = "test_runs"
+CONFIGURATION_TITLE = "configuration"
+ITERATIONS_TITLE = "iterations"
+RETURN_CODE_TITLE = "return-code"
+TEST_DURATION_TITLE = "test-duration-sec"
+ITERATION_DURATION_TITLE = "iteration-duration-sec"
+TOTAL_DURATION_TITLE = "duration-sec"
+PAUSE_DURATION_TITLE = "stop-pause-sec"
+WAIT_DURATION_TITLE = "wait-pause-sec"
+PRINT_DURATION_TITLE = "print-duration-sec"
+TEST_RUNS_TITLE = "test_runs"
 
-rules_engine_title = "rules-engine-stats"
-rules_engine_slices_title = "slices"
-rules_engine_totals_title = "totals"
-rules_engine_calculations_title = "calculations"
+RULES_ENGINE_TITLE = "rules-engine-stats"
+RULES_ENGINE_SLICES_TITLE = "slices"
+RULES_ENGINE_TOTALS_TITLE = "totals"
+RULES_ENGINE_CALCULATIONS_TITLE = "calculations"
 
-scheduled_title = "scheduled"
-invoked_title = "invoked"
-pending_title = "pending"
-abandoned_title = "abandoned"
-retry_title = "retry"
-exception_title = "exception"
+SCHEDULED_TITLE = "scheduled"
+INVOKED_TITLE = "invoked"
+PENDING_TITLE = "pending"
+ABANDONED_TITLE = "abandoned"
+RETRY_TITLE = "retry"
+EXCEPTION_TITLE = "exception"
 
-average_latency_title = "avg-latency-ms"
-maximum_latency_title = "max-latency-ms"
-average_exec_title = "avg-exec-ms"
-maximum_exec_title = "max-exec-ms"
+AVERAGE_LATENCY_TITLE = "avg-latency-ms"
+MAXIMUM_LATENCY_TITLE = "max-latency-ms"
+AVERAGE_EXEC_TITLE = "avg-exec-ms"
+MAXIMUM_EXEC_TITLE = "max-exec-ms"
+
 
 def calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
+    """
+    Given another sliace, update the total number of elements for a given title.
+    """
+
     stats_slice[title] = int(log_line_columns[index])
     previous_value = 0
     if title in totals:
         previous_value = totals[title]
     totals[title] = previous_value + stats_slice[title]
 
+
 def calculate_maximum_values(stats_slice, log_line_columns, calculations, title, index):
+    """
+    Given another slice, update the maximum values if needed for any title.
+    """
+
     stats_slice[title] = float(log_line_columns[index])
     previous_maximum = 0.0
     if title in calculations:
         previous_maximum = calculations[title]
     calculations[title] = max(previous_maximum, stats_slice[title])
 
+
 def calculate_average_values(stats_slice, log_line_columns, calculations, title, index):
+    """
+    Given another slice, calculate any totals we need for average values.
+
+    Note: These values are weighted by the number of scheduled rules that
+          were processed.  Before reporting, that number must be divided by the
+          total number of scheduled rules to get a proper average.
+    """
+
     stats_slice[title] = float(log_line_columns[index])
     previous_value = 0
     if title in calculations:
         previous_value = calculations[title]
-    calculations[title] = previous_value + (stats_slice[title] * stats_slice[scheduled_title])
+    calculations[title] = previous_value + (
+        stats_slice[title] * stats_slice[SCHEDULED_TITLE]
+    )
+
 
 def process_rules_engine_stats(base_dir):
+    """
+    Load up the `gaia_stats.log` file for a given test and convert it into
+    a JSON blob that can be attached to the summary.
+    """
+
     log_path = os.path.join(base_dir, "gaia_stats.log")
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
@@ -95,32 +122,77 @@ def process_rules_engine_stats(base_dir):
             continue
         if not log_line_columns[3].startswith("[thread"):
             continue
-        assert len(log_line_columns) == maximum_exec_index + 2, str(log_line_columns)
+        assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(log_line_columns)
 
         stats_slice = {}
-        stats_slice[thread_load_title] = float(log_line_columns[thread_load_index])
-        calculate_total_counts(stats_slice, log_line_columns, totals, scheduled_title, scheduled_index)
-        calculate_total_counts(stats_slice, log_line_columns, totals, invoked_title, invoked_index)
-        calculate_total_counts(stats_slice, log_line_columns, totals, pending_title, pending_index)
-        calculate_total_counts(stats_slice, log_line_columns, totals, abandoned_title, abandoned_index)
-        calculate_total_counts(stats_slice, log_line_columns, totals, retry_title, retry_index)
-        calculate_total_counts(stats_slice, log_line_columns, totals, exception_title, exception_index)
-        calculate_average_values(stats_slice, log_line_columns, calculations, average_latency_title, average_latency_index)
-        calculate_maximum_values(stats_slice, log_line_columns, calculations, maximum_latency_title, maximum_latency_index)
-        calculate_average_values(stats_slice, log_line_columns, calculations, average_exec_title, average_exec_index)
-        calculate_maximum_values(stats_slice, log_line_columns, calculations, maximum_exec_title, maximum_exec_index)
+        stats_slice[THREAD_LOAD_TITLE] = float(log_line_columns[THREAD_LOAD_INDEX])
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, SCHEDULED_TITLE, SCHEDULED_INDEX
+        )
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, INVOKED_TITLE, INVOKED_INDEX
+        )
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, PENDING_TITLE, PENDING_INDEX
+        )
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, ABANDONED_TITLE, ABANDONED_INDEX
+        )
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, RETRY_TITLE, RETRY_INDEX
+        )
+        calculate_total_counts(
+            stats_slice, log_line_columns, totals, EXCEPTION_TITLE, EXCEPTION_INDEX
+        )
+        calculate_average_values(
+            stats_slice,
+            log_line_columns,
+            calculations,
+            AVERAGE_LATENCY_TITLE,
+            AVERAGE_LATENCY_INDEX,
+        )
+        calculate_maximum_values(
+            stats_slice,
+            log_line_columns,
+            calculations,
+            MAXIMUM_LATENCY_TITLE,
+            MAXIMUM_LATENCY_INDEX,
+        )
+        calculate_average_values(
+            stats_slice,
+            log_line_columns,
+            calculations,
+            AVERAGE_EXEC_TITLE,
+            AVERAGE_EXEC_INDEX,
+        )
+        calculate_maximum_values(
+            stats_slice,
+            log_line_columns,
+            calculations,
+            MAXIMUM_EXEC_TITLE,
+            MAXIMUM_EXEC_INDEX,
+        )
         stats_slices.append(stats_slice)
 
-    calculations[average_latency_title] = calculations[average_latency_title] / float(totals[scheduled_title])
-    calculations[average_exec_title] = calculations[average_exec_title] / float(totals[scheduled_title])
+    calculations[AVERAGE_LATENCY_TITLE] = calculations[AVERAGE_LATENCY_TITLE] / float(
+        totals[SCHEDULED_TITLE]
+    )
+    calculations[AVERAGE_EXEC_TITLE] = calculations[AVERAGE_EXEC_TITLE] / float(
+        totals[SCHEDULED_TITLE]
+    )
 
     rules_engine_stats = {}
-    rules_engine_stats[rules_engine_slices_title] = stats_slices
-    rules_engine_stats[rules_engine_totals_title] = totals
-    rules_engine_stats[rules_engine_calculations_title] = calculations
+    rules_engine_stats[RULES_ENGINE_SLICES_TITLE] = stats_slices
+    rules_engine_stats[RULES_ENGINE_TOTALS_TITLE] = totals
+    rules_engine_stats[RULES_ENGINE_CALCULATIONS_TITLE] = calculations
     return rules_engine_stats
 
+
 def process_configuration_file(base_dir):
+    """
+    Load up the generated "*.conf" file for the test and translate the
+    "Rules" portion into a JSON blob.
+    """
 
     json_path = os.path.join(base_dir, "incubator.conf")
     config = configparser.ConfigParser()
@@ -137,12 +209,19 @@ def process_configuration_file(base_dir):
             rules_configuration[key] = this_value
     return rules_configuration
 
+
 def load_simple_result_files(base_dir):
+    """
+    Load the simple, one value, result files.
+
+    The return_code.json is from the test.sh and stored by the suite.sh file.
+    The duration.json is from the run.sh and stored by the test.sh file.,
+    """
 
     json_path = os.path.join(base_dir, "return_code.json")
     with open(json_path) as input_file:
         data = json.load(input_file)
-        return_code_data = data[return_code_title]
+        return_code_data = data[RETURN_CODE_TITLE]
 
     json_path = os.path.join(base_dir, "duration.json")
     with open(json_path) as input_file:
@@ -150,7 +229,12 @@ def load_simple_result_files(base_dir):
         duration_data = data["duration"]
     return return_code_data, duration_data
 
+
 def load_output_timing_files(base_dir):
+    """
+    Load the 'output.delay' file generated from the main executable.
+    """
+
     json_path = os.path.join(base_dir, "output.delay")
     with open(json_path) as input_file:
         data = json.load(input_file)
@@ -161,115 +245,171 @@ def load_output_timing_files(base_dir):
 
     return stop_pause_data, iterations_data, total_wait_data, total_print_data
 
-def load_test_result_files(suite_test):
 
-    base_dir = os.path.join(suite_directory, suite_test)
+def load_test_result_files(suite_test):
+    """
+    Load sets of individual results from their various sources.
+
+    The various sources are used because it is easier for each component
+    to emit its own data without having to worry about the integrity of
+    a single file.
+    """
+
+    base_dir = os.path.join(SUITE_DIRECTORY, suite_test)
 
     return_code_data, duration_data = load_simple_result_files(base_dir)
-    stop_pause_data, iterations_data, total_wait_data, total_print_data = load_output_timing_files(base_dir)
+    (
+        stop_pause_data,
+        iterations_data,
+        total_wait_data,
+        total_print_data,
+    ) = load_output_timing_files(base_dir)
 
     stats_data = process_rules_engine_stats(base_dir)
 
     configuration_data = process_configuration_file(base_dir)
 
-    return return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data, configuration_data
+    return (
+        return_code_data,
+        duration_data,
+        stop_pause_data,
+        stats_data,
+        iterations_data,
+        total_wait_data,
+        total_print_data,
+        configuration_data,
+    )
+
 
 def load_results_for_test(suite_test):
-    return_code_data, duration_data, stop_pause_data, stats_data, iterations_data, total_wait_data, total_print_data, configuration_data = load_test_result_files(suite_test)
+    """
+    Load all the results for tests and place them in the main dictionary.
+    """
+
+    (
+        return_code_data,
+        duration_data,
+        stop_pause_data,
+        stats_data,
+        iterations_data,
+        total_wait_data,
+        total_print_data,
+        configuration_data,
+    ) = load_test_result_files(suite_test)
 
     new_results = {}
-    new_results[configuration_title] = configuration_data
-    new_results[iterations_title] = iterations_data
-    new_results[return_code_title] = return_code_data
-    new_results[total_duration_title] = duration_data
-    new_results[pause_duration_title] = stop_pause_data
-    new_results[wait_duration_title] = total_wait_data
-    new_results[print_duration_title] = total_print_data
+    new_results[CONFIGURATION_TITLE] = configuration_data
+    new_results[ITERATIONS_TITLE] = iterations_data
+    new_results[RETURN_CODE_TITLE] = return_code_data
+    new_results[TOTAL_DURATION_TITLE] = duration_data
+    new_results[PAUSE_DURATION_TITLE] = stop_pause_data
+    new_results[WAIT_DURATION_TITLE] = total_wait_data
+    new_results[PRINT_DURATION_TITLE] = total_print_data
 
-    new_results[test_duration_title] =  new_results[total_duration_title] - new_results[pause_duration_title] - new_results[wait_duration_title] - new_results[print_duration_title]
-    new_results[iteration_duration_title] = new_results[test_duration_title] / float(new_results[iterations_title])
-    new_results[rules_engine_title] = stats_data
+    new_results[TEST_DURATION_TITLE] = (
+        new_results[TOTAL_DURATION_TITLE]
+        - new_results[PAUSE_DURATION_TITLE]
+        - new_results[WAIT_DURATION_TITLE]
+        - new_results[PRINT_DURATION_TITLE]
+    )
+    new_results[ITERATION_DURATION_TITLE] = new_results[TEST_DURATION_TITLE] / float(
+        new_results[ITERATIONS_TITLE]
+    )
+    new_results[RULES_ENGINE_TITLE] = stats_data
     return new_results
 
-def summarize_repeated_tests():
+
+def summarize_repeated_tests(suite_test_name):
+    """
+    Create a summary dictionary for any repeated tests.
+    """
 
     main_dictionary = {}
 
-    main_dictionary[iterations_title] = []
-    main_dictionary[return_code_title] = []
-    main_dictionary[test_duration_title] = []
-    main_dictionary[iteration_duration_title] = []
+    main_dictionary[ITERATIONS_TITLE] = []
+    main_dictionary[RETURN_CODE_TITLE] = []
+    main_dictionary[TEST_DURATION_TITLE] = []
+    main_dictionary[ITERATION_DURATION_TITLE] = []
 
     totals = {}
-    totals[scheduled_title] = []
-    totals[invoked_title] = []
-    totals[pending_title] = []
-    totals[abandoned_title] = []
-    totals[retry_title] = []
-    totals[exception_title] = []
+    totals[SCHEDULED_TITLE] = []
+    totals[INVOKED_TITLE] = []
+    totals[PENDING_TITLE] = []
+    totals[ABANDONED_TITLE] = []
+    totals[RETRY_TITLE] = []
+    totals[EXCEPTION_TITLE] = []
 
     calculations = {}
-    calculations[average_latency_title] = []
-    calculations[maximum_latency_title] = []
-    calculations[average_exec_title] = []
-    calculations[maximum_exec_title] = []
+    calculations[AVERAGE_LATENCY_TITLE] = []
+    calculations[MAXIMUM_LATENCY_TITLE] = []
+    calculations[AVERAGE_EXEC_TITLE] = []
+    calculations[MAXIMUM_EXEC_TITLE] = []
 
     rules_engine_stats = {}
-    rules_engine_stats[rules_engine_totals_title] = totals
-    rules_engine_stats[rules_engine_calculations_title] = calculations
+    rules_engine_stats[RULES_ENGINE_TOTALS_TITLE] = totals
+    rules_engine_stats[RULES_ENGINE_CALCULATIONS_TITLE] = calculations
 
-    main_dictionary[rules_engine_title] = rules_engine_stats
+    main_dictionary[RULES_ENGINE_TITLE] = rules_engine_stats
 
     test_runs = {}
-    main_dictionary[test_runs_title] = test_runs
+    main_dictionary[TEST_RUNS_TITLE] = test_runs
     for test_repeat in range(1, max_test + 1):
-        recorded_name = suite_test + "_" + str(test_repeat)
+        recorded_name = suite_test_name + "_" + str(test_repeat)
         new_results = load_results_for_test(recorded_name)
 
-        main_dictionary[iterations_title].append(new_results[iterations_title])
-        main_dictionary[return_code_title].append(new_results[return_code_title])
-        main_dictionary[test_duration_title].append(new_results[test_duration_title])
-        main_dictionary[iteration_duration_title].append(new_results[iteration_duration_title])
+        main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
+        main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
+        main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
+        main_dictionary[ITERATION_DURATION_TITLE].append(
+            new_results[ITERATION_DURATION_TITLE]
+        )
 
-        test_totals = new_results[rules_engine_title][rules_engine_totals_title]
-        totals[scheduled_title].append(test_totals[scheduled_title])
-        totals[invoked_title].append(test_totals[invoked_title])
-        totals[pending_title].append(test_totals[pending_title])
-        totals[abandoned_title].append(test_totals[abandoned_title])
-        totals[retry_title].append(test_totals[retry_title])
-        totals[exception_title].append(test_totals[exception_title])
+        test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
+        totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
+        totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
+        totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
+        totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
+        totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
+        totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
 
-        test_calculations = new_results[rules_engine_title][rules_engine_calculations_title]
-        calculations[average_latency_title].append(test_calculations[average_latency_title])
-        calculations[maximum_latency_title].append(test_calculations[maximum_latency_title])
-        calculations[average_exec_title].append(test_calculations[average_exec_title])
-        calculations[maximum_exec_title].append(test_calculations[maximum_exec_title])
+        test_calculations = new_results[RULES_ENGINE_TITLE][
+            RULES_ENGINE_CALCULATIONS_TITLE
+        ]
+        calculations[AVERAGE_LATENCY_TITLE].append(
+            test_calculations[AVERAGE_LATENCY_TITLE]
+        )
+        calculations[MAXIMUM_LATENCY_TITLE].append(
+            test_calculations[MAXIMUM_LATENCY_TITLE]
+        )
+        calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
+        calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
         test_runs[recorded_name] = new_results
     return main_dictionary
 
+
 if len(sys.argv) != 2:
     print("error")
-    exit(1)
+    sys.exit(1)
 suite_file = sys.argv[1]
 if not os.path.exists(suite_file) or os.path.isdir(suite_file):
     print("is not file")
-    exit(1)
+    sys.exit(1)
 
-with open(suite_file) as input_file:
-    suite_file_lines = input_file.readlines()
+with open(suite_file) as suite_file:
+    suite_file_lines = suite_file.readlines()
 
 full_test_results = {}
-for suite_test in suite_file_lines:
+for next_suite_test in suite_file_lines:
 
-    suite_test = suite_test.strip()
-    is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", suite_test)
+    next_suite_test = next_suite_test.strip()
+    is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
     if is_repeat_test:
-        suite_test = is_repeat_test.group(1)
+        next_suite_test = is_repeat_test.group(1)
         max_test = int(is_repeat_test.group(2))
-        full_test_results[suite_test] = summarize_repeated_tests()
+        full_test_results[next_suite_test] = summarize_repeated_tests(next_suite_test)
     else:
-        full_test_results[suite_test] = load_results_for_test(suite_test)
+        full_test_results[next_suite_test] = load_results_for_test(next_suite_test)
 
-with open(suite_directory + "summary.json", "w") as write_file:
+with open(SUITE_DIRECTORY + "summary.json", "w") as write_file:
     json.dump(full_test_results, write_file, indent=4)

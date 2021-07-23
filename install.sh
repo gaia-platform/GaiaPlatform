@@ -133,7 +133,7 @@ install_into_directory() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.

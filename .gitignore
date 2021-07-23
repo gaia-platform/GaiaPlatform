@@ -3,3 +3,4 @@ logs/*
 .vscode/*
 test-results/*
 suite-results/*
+Pipfile.lock

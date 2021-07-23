@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 
+#include <chrono>
 #include <cstring>
 #include <ctime>
 
@@ -13,7 +14,6 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <chrono>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
@@ -44,6 +44,8 @@ const char c_puppy[] = "puppy";
 constexpr float c_puppy_min = 85.0;
 constexpr float c_puppy_max = 100.0;
 
+const double c_milliseconds_in_second = 1000.0;
+
 atomic<bool> g_in_simulation{false};
 atomic<int> g_timestamp{0};
 bool g_has_intermediate_state_output = false;
@@ -52,9 +54,9 @@ atomic<int> g_rule_1_tracker{0};
 atomic<int> g_rule_2_tracker{0};
 atomic<int> g_rule_3_tracker{0};
 
-double total_wait_time = 0.0;
-double total_print_time = 0.0;
-
+double g_total_wait_time = 0.0;
+double g_total_print_time = 0.0;
+const int c_sleep_time_in_seconds_after_stop = 6;
 void add_fan_control_rule();
 
 gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -135,9 +137,12 @@ void init_storage()
     }
 
     // Chicken Incubator: 2 sensors, 1 fan
-    auto incubator = incubator_t::get(insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
-    incubator.sensors().insert(sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
-    incubator.sensors().insert(sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
+    auto incubator = incubator_t::get(
+        insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
+    incubator.sensors().insert(
+        sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
+    incubator.sensors().insert(
+        sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
     incubator.actuators().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
 
     // Puppy Incubator: 1 sensor, 2 fans
@@ -153,7 +158,7 @@ void dump_db()
 {
     begin_transaction();
     printf("\n");
-    for (auto i : incubator_t::list())
+    for (const gaia::incubator::incubator_t& i : incubator_t::list())
     {
         printf("-----------------------------------------\n");
         printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
@@ -177,27 +182,33 @@ void dump_db_json()
 {
     begin_transaction();
     printf("{\n");
-    bool isFirst = true;
-    for (auto i : incubator_t::list())
+    bool is_first = true;
+    for (const gaia::incubator::incubator_t& i : incubator_t::list())
     {
-        if (isFirst) {
-            isFirst = false;
-        } else {
+        if (is_first)
+        {
+            is_first = false;
+        }
+        else
+        {
             printf(",\n");
         }
         printf("  \"%s\" : {\n", i.name());
-        //printf("    \"name\" : \"%s\",\n", i.name());
+        // printf("    \"name\" : \"%s\",\n", i.name());
         printf("    \"power\" : \"%s\",\n", i.is_on() ? "ON" : "OFF");
         printf("    \"min_temp\" : %5.1lf,\n", i.min_temp());
         printf("    \"max_temp\" : %5.1lf,\n", i.max_temp());
 
         printf("    \"sensors\" : [\n");
-        bool isFirstObject = true;
+        bool is_first_object = true;
         for (const auto& s : i.sensors())
         {
-            if (isFirstObject) {
-                isFirstObject = false;
-            } else {
+            if (is_first_object)
+            {
+                is_first_object = false;
+            }
+            else
+            {
                 printf(",\n");
             }
             printf("        {\n");
@@ -209,12 +220,15 @@ void dump_db_json()
         printf("\n    ],\n");
 
         printf("    \"actuators\" : [\n");
-        isFirstObject = true;
+        is_first_object = true;
         for (const auto& a : i.actuators())
         {
-            if (isFirstObject) {
-                isFirstObject = false;
-            } else {
+            if (is_first_object)
+            {
+                is_first_object = false;
+            }
+            else
+            {
                 printf(",\n");
             }
             printf("        {\n");
@@ -266,7 +280,8 @@ void set_power(bool is_on)
     tx.commit();
 }
 
-void simulation_step() {
+void simulation_step()
+{
 
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
@@ -320,12 +335,14 @@ void simulation_step() {
     tx.commit();
 }
 
-void step() {
+void step()
+{
     g_timestamp++;
     simulation_step();
 }
 
-void step_and_emit_state() {
+void step_and_emit_state()
+{
     int rule_1_sample_base = g_rule_1_tracker;
     int rule_2_sample_base = g_rule_2_tracker;
     int rule_3_sample_base = g_rule_3_tracker;
@@ -338,7 +355,10 @@ void step_and_emit_state() {
     const int maximum_no_delta_attempts = 25;
     const int no_delta_count_before_break = 3;
 
-    for(int current_no_delta_attempt = 0; current_no_delta_attempt < maximum_no_delta_attempts; current_no_delta_attempt++) {
+    for (int current_no_delta_attempt = 0;
+         current_no_delta_attempt < maximum_no_delta_attempts;
+         current_no_delta_attempt++)
+    {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
@@ -346,35 +366,45 @@ void step_and_emit_state() {
         int rule_2_current_sample = g_rule_2_tracker;
         int rule_3_current_sample = g_rule_3_tracker;
 
-        int delta_u = rule_1_current_sample-rule_1_sample_base + rule_2_current_sample-rule_2_sample_base + rule_3_current_sample-rule_3_sample_base;
-        if (delta_u == 0) {
-            if(have_no_deltas) {
+        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base;
+        if (delta_u == 0)
+        {
+            if (have_no_deltas)
+            {
                 no_deltas_count++;
-            } else {
+            }
+            else
+            {
                 no_deltas_count = 1;
                 have_no_deltas = true;
             }
-        } else {
-            have_no_deltas =false;
+        }
+        else
+        {
+            have_no_deltas = false;
             no_deltas_count = 0;
         }
-        if (have_no_deltas && no_deltas_count >= no_delta_count_before_break) {
+        if (have_no_deltas && no_deltas_count >= no_delta_count_before_break)
+        {
             break;
         }
 
-        rule_1_sample_base=rule_1_current_sample;
-        rule_2_sample_base=rule_2_current_sample;
-        rule_3_sample_base=rule_3_current_sample;
+        rule_1_sample_base = rule_1_current_sample;
+        rule_2_sample_base = rule_2_current_sample;
+        rule_3_sample_base = rule_3_current_sample;
     }
     auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-    total_wait_time += ms_double.count();
+    g_total_wait_time += ms_double.count();
 
     auto print_start_mark = std::chrono::high_resolution_clock::now();
-    if(g_has_intermediate_state_output){
+    if (g_has_intermediate_state_output)
+    {
         printf(",\n");
-    }else {
+    }
+    else
+    {
         g_has_intermediate_state_output = true;
         printf("[\n");
     }
@@ -382,7 +412,7 @@ void step_and_emit_state() {
 
     auto print_end_mark = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
-    total_print_time += ms_print.count();
+    g_total_print_time += ms_print.count();
 }
 
 void simulation()
@@ -495,15 +525,22 @@ public:
 
     bool handle_main(bool is_debug, bool is_live_user)
     {
-        if (is_live_user) {
+        if (is_live_user)
+        {
             printf("\n");
-            if (!is_debug) {
-                if (!g_in_simulation) {
+            if (!is_debug)
+            {
+                if (!g_in_simulation)
+                {
                     printf("(%c) | begin simulation\n", c_cmd_begin_sim);
-                } else {
+                }
+                else
+                {
                     printf("(%c) | end simulation \n", c_cmd_end_sim);
                 }
-            } else {
+            }
+            else
+            {
                 printf("(%c) | step simulation\n", c_cmd_step_sim);
                 printf("(%c) | step simulation and emit state\n", c_cmd_step_and_emit_state_sim);
             }
@@ -583,30 +620,41 @@ public:
         }
         else if (m_input.size() > 1 && (m_input[0] == c_cmd_step_and_emit_state_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
         {
-            if(m_input[0] == c_cmd_wait) {
+            if (m_input[0] == c_cmd_wait)
+            {
                 handle_wait();
-            } else if(m_input[0] == c_cmd_comment) {
+            }
+            else if (m_input[0] == c_cmd_comment)
+            {
                 ;
-            } else {
+            }
+            else
+            {
                 handle_multiple_steps();
             }
         }
         return true;
     }
 
-    void handle_multiple_steps() {
+    void handle_multiple_steps()
+    {
         bool is_step = m_input[0] == c_cmd_step_sim;
         int limit = stoi(m_input.substr(1, m_input.size() - 1));
-        for(int i = 0; i < limit; i++) {
-            if (is_step) {
+        for (int i = 0; i < limit; i++)
+        {
+            if (is_step)
+            {
                 step();
-            } else {
+            }
+            else
+            {
                 step_and_emit_state();
             }
         }
     }
 
-    void handle_wait() {
+    void handle_wait()
+    {
         auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
 
         int limit = stoi(m_input.substr(1, m_input.size() - 1));
@@ -615,7 +663,7 @@ public:
         auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-        total_wait_time += ms_double.count();
+        g_total_wait_time += ms_double.count();
     }
 
     // Return false if EOF is reached.
@@ -642,7 +690,8 @@ public:
 
     bool handle_incubators(bool is_live_user)
     {
-        if(is_live_user) {
+        if (is_live_user)
+        {
             printf("\n");
             printf("(%c) | select chicken incubator\n", c_cmd_choose_chickens);
             printf("(%c) | select puppy incubator\n", c_cmd_choose_puppies);
@@ -679,7 +728,8 @@ public:
 
     bool handle_incubator_settings(bool is_live_user)
     {
-        if (is_live_user) {
+        if (is_live_user)
+        {
             printf("\n");
             printf("(%s)    | turn power on\n", c_cmd_on);
             printf("(%s)   | turn power off\n", c_cmd_off);
@@ -717,7 +767,8 @@ public:
             if (0 == m_input.compare(c_cmd_on))
             {
                 adjust_power(true);
-                if (is_live_user) {
+                if (is_live_user)
+                {
                     dump_db();
                 }
             }
@@ -733,7 +784,8 @@ public:
             if (0 == m_input.compare(c_cmd_off))
             {
                 adjust_power(false);
-                if (is_live_user) {
+                if (is_live_user)
+                {
                     dump_db();
                 }
             }
@@ -838,20 +890,23 @@ public:
                 break;
             }
         }
-        if(g_has_intermediate_state_output) {
+        if (g_has_intermediate_state_output)
+        {
             printf("]\n");
         }
         stop();
         {
-            using std::chrono::high_resolution_clock;
             using std::chrono::duration;
+            using std::chrono::high_resolution_clock;
             using std::chrono::milliseconds;
 
             auto end_sleep_start_mark = high_resolution_clock::now();
-            sleep(6);
+            sleep(c_sleep_time_in_seconds_after_stop);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, \"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f }\n", ms_double.count()/1000.0, last_known_timestamp, total_wait_time/1000.0, total_print_time/1000.0);
+            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, "
+                   "\"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f }\n",
+                   ms_double.count() / c_milliseconds_in_second, last_known_timestamp, g_total_wait_time / c_milliseconds_in_second, g_total_print_time / c_milliseconds_in_second);
         }
         return EXIT_SUCCESS;
     }
@@ -918,24 +973,29 @@ int main(int argc, const char** argv)
     {
         gaia::system::initialize();
         gaia::rules::unsubscribe_rules();
-        if(is_show_json) {
+        if (is_show_json)
+        {
             dump_db_json();
-        } else {
+        }
+        else
+        {
             dump_db();
         }
         return EXIT_SUCCESS;
     }
 
     bool is_live_user = isatty(fileno(stdin));
-    if (is_live_user) {
-        printf( "Stdin is not a file or a pipe.  Activating interactive mode.\n");
+    if (is_live_user)
+    {
+        printf("Stdin is not a file or a pipe.  Activating interactive mode.\n");
     }
 
     simulation_t sim;
-    const char * configuration_file_name = "incubator.conf";
+    const char* configuration_file_name = "incubator.conf";
     gaia::system::initialize(configuration_file_name, nullptr);
 
-    if(is_live_user) {
+    if (is_live_user)
+    {
         printf("-----------------------------------------\n");
         printf("Gaia Incubator\n\n");
         printf("No chickens or puppies were harmed in the\n");

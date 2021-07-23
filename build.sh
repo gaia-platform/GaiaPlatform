@@ -33,6 +33,7 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -f,--force        Force a complete build of the project."
+    echo "  -l,--lint         In addition to building the project, lint it as well."
     echo "  -m,--make-only    Build only the make part of the project."
     echo "  -nc,--no-cache    (Experimental) Build the project with no CMake cache."
     echo "  -r,--refresh-ddl  (Experimental) Build the project with refreshed DDL."
@@ -50,11 +51,16 @@ parse_command_line() {
     NO_CACHE=0
     REFRESH_DDL=0
     FORCE_BUILD=0
+    LINT_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
         -nc|--no-cache)
             NO_CACHE=1
+            shift
+        ;;
+        -l|--lint)
+            LINT_MODE=1
             shift
         ;;
         -r|--refresh-ddl)
@@ -91,7 +97,7 @@ generate_makefile() {
         cmake -B build
         DID_FAIL=$?
     else
-        cmake -B build >"$TEMP_FILE" 2>&1
+        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >"$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     if [ $DID_FAIL -ne 0 ]; then
@@ -166,7 +172,7 @@ handle_optional_flags() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
@@ -186,6 +192,14 @@ handle_optional_flags
 generate_makefile
 
 invoke_makefile
+
+if [ $LINT_MODE -ne 0 ]; then
+    if ! ./lint.sh  > "$TEMP_FILE" 2>&1 ; then
+        cat "$TEMP_FILE"
+        echo "Linting of the project after a successful build failed."
+        complete_process 1
+    fi
+fi
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

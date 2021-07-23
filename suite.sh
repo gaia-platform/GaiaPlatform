@@ -290,7 +290,7 @@ execute_suite_test() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
@@ -316,6 +316,7 @@ install_and_build_cleanly
 broadcast_message "$SUITE_MODE" "Testing of the incubator test suite started."
 DID_REPORT_START=1
 
+# shellcheck disable=SC2016
 IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
 for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
     execute_suite_test "$NEXT_TEST_NAME"

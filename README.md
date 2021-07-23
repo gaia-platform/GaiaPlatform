@@ -1,7 +1,7 @@
 # Gaia Platform - Incubator Integration Test Suite
 
 As much as possible, this project has been engineered to be copied to
-another directory and used for another integration tests, with a minimal
+another directory and used for other integration tests, with a minimal
 set of changes required.
 
 ## TL;DR
@@ -600,6 +600,35 @@ The `build.sh` script file is a more flexible wrapper around the CMake and make
 applications.  Besides the default building of the project, the `-f`/`--force`
 flag is the next most popular, deleting any existing `build` directory, forcing
 the build of the project from the start.
+
+### Lint Script File
+
+The `lint.sh` script file can be run after the build has completed to verify the
+correctness of the project code.  These verifiers fall into two categories:
+formatters and analyzers.  The formatters are applied using company-standard and
+industry-standard formats to ensure the source code is consistently formatted.
+The analyzers use various methods to look for common issues based on industry
+standards.
+
+By virtue of their design, the formatters will always try and adjust the source
+code format to follow all the guidelines without changing the meaning of the source
+code.  As a contrast, the analyzers will provide errors when an analyzer rule has
+been violated.  To proceed to get a clean analysis by this script, any returned
+errors need to be addressed by fixing or suppression before it will continue.
+
+In addition to executing this script on its won, the command line `./build.sh --lint`
+can be used to automatically execute this script after a successful build has completed.
+
+The currently implemented formatters and analyzers are:
+
+| Tool Name | Category | Language |
+| --- | --- | --- |
+| `clang-format` | Formatter | C++ |
+| `clang-tidy`  | Analyzer | C++ |
+| `shellcheck` | Analyzer | Bash |
+| `black` | Formatter | Python |
+| `Flake8` |Analyzer | Python |
+| `PyLint` | Analyzer | Python |
 
 ### Run Script File
 

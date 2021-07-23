@@ -184,7 +184,7 @@ create_configuration_file() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
@@ -218,7 +218,7 @@ fi
 # Clean entrance into the script.
 start_process
 
-execute_commands $GENERATE_CSV_MODE
+execute_commands "$GENERATE_CSV_MODE"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
