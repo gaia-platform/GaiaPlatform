@@ -1,1 +1,0 @@
-https://github.com/fmtlib/fmt/blob/master/LICENSE.rst

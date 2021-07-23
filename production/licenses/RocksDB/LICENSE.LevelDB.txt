@@ -1,1 +1,0 @@
-https://github.com/facebook/rocksdb/blob/master/LICENSE.leveldb

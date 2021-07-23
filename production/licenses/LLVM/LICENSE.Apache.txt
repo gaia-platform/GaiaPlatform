@@ -1,1 +1,0 @@
-https://llvm.org/docs/DeveloperPolicy.html#new-llvm-project-license-framework

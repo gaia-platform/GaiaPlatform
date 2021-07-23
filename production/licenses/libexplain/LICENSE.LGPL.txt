@@ -1,1 +1,0 @@
-https://salsa.debian.org/debian/libexplain/-/blob/master/LICENSE
