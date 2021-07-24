@@ -25,9 +25,10 @@
 #include "clang/Tooling/Tooling.h"
 #pragma clang diagnostic pop
 
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "table_navigation.h"
 
@@ -74,7 +75,17 @@ struct hash<SourceRange>
             (range.getBegin().getRawEncoding() << c_encoding_shift) | (range.getEnd().getRawEncoding() & c_encoding_mask));
     }
 };
+template <>
+struct hash<SourceLocation>
+{
+    std::size_t operator()(SourceLocation const& location) const noexcept
+    {
+        return std::hash<unsigned int>{}(location.getRawEncoding());
+    }
+};
 } // namespace std
+
+unordered_set<SourceLocation> g_insert_call_locations;
 
 unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
 
@@ -90,6 +101,8 @@ enum rewriter_operation_t
 {
     replace_text,
     insert_text_after_token,
+    remove_text,
+    insert_text_before,
 };
 
 struct rewriter_history_t
@@ -123,8 +136,8 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr)
     {
-        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(),
-                tok::semi, source_manager, options, true);
+        SourceLocation end_location = Lexer::findLocationAfterToken(
+            return_value.getEnd(), tok::semi, source_manager, options, true);
         if (end_location.isValid())
         {
             return_value.setEnd(end_location.getLocWithOffset(-1));
@@ -550,7 +563,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
                     cerr << "Local variable declaration '" << variable_name
-                        << "' hides a tag of the same name." << endl;
+                         << "' hides a tag of the same name." << endl;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -573,10 +586,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         if (data_iterator.path_components.size() == 1
                             && table_name == anchor_table_name && !data_iterator.is_absolute_path)
                         {
-                            auto declaration_source_range_size =
-                                variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
-                            auto min_declaration_source_range_size =
-                                variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
+                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding()
+                                - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding()
+                                - variable_declaration_range.getBegin().getRawEncoding();
                             if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
                             {
                                 variable_declaration_range = variable_declaration_range_iterator.first;
@@ -645,7 +658,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
-                        navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+                    navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
             }
             else
             {
@@ -845,6 +858,12 @@ void generate_table_subscription(
             case insert_text_after_token:
                 copy_rewriter.InsertTextAfterToken(history_item.range.getBegin(), history_item.string_argument);
                 break;
+            case remove_text:
+                copy_rewriter.RemoveText(history_item.range);
+                break;
+            case insert_text_before:
+                copy_rewriter.InsertTextBefore(history_item.range.getBegin(), history_item.string_argument);
+                break;
             default:
                 break;
             }
@@ -906,6 +925,42 @@ void optimize_subscription(const string& table, int rule_count)
     }
 }
 
+// [GAIAPLAT-799]:  For the preview release we do not allow a rule to have
+// multiple anchor rows. They are not allowed to reference more than a single table or
+// reference fields from multiple tables.  Note that the g_active_fields map is a
+// map of <table, field_list> so the number of entries in the map is the number of unique
+// tables used by all active fields.
+bool has_multiple_anchors()
+{
+    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
+                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
+                                               "from different tables.";
+
+    if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    if (g_active_fields.size() > 1)
+    {
+        cerr << c_multi_anchor_fields << endl;
+        return true;
+    }
+
+    // Handle the special case of OnUpdate(table1, table2.field)
+    if (g_active_fields.size() == 1
+        && g_update_tables.size() == 1
+        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    return false;
+}
+
 void generate_rules(Rewriter& rewriter)
 {
     validate_table_data();
@@ -931,6 +986,12 @@ void generate_rules(Rewriter& rewriter)
     for (const auto& table : g_update_tables)
     {
         g_active_fields.erase(table);
+    }
+
+    if (has_multiple_anchors())
+    {
+        g_is_generation_error = true;
+        return;
     }
 
     for (const auto& field_description : g_active_fields)
@@ -1091,6 +1152,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
+            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
+            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<CallExpr>())
@@ -1155,6 +1218,24 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             }
             return return_value;
         }
+        else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
+        {
+            if (is_range_contained_in_another_range(
+                    SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1)),
+                    return_value))
+            {
+                SourceRange for_source_range = expression->getSourceRange();
+                SourceRange nomatch_source_range = get_statement_source_range(expression->getNoMatch(), rewriter.getSourceMgr(), rewriter.getLangOpts());
+
+                if (nomatch_source_range.isValid())
+                {
+                    for_source_range.setEnd(nomatch_source_range.getEnd());
+                }
+                update_expression_location(
+                    return_value, for_source_range.getBegin(), for_source_range.getEnd());
+            }
+            return return_value;
+        }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
             auto offset
@@ -1197,6 +1278,12 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
                 is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange())
                 || is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange())
                 || is_range_contained_in_another_range(expression->getInc()->getSourceRange(), node.getSourceRange()));
+        }
+        else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
+        {
+            return !is_range_contained_in_another_range(
+                SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1)),
+                node.getSourceRange());
         }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
@@ -1250,6 +1337,17 @@ bool should_expression_location_be_merged(ASTContext* context, const Stmt& node,
             }
         }
         else if (const auto* expression = node_parents_iterator.get<ForStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
         {
             if (special_parent)
             {
@@ -1363,74 +1461,74 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         return false;
     }
     const GaiaExplicitPathAttr* explicit_path_attribute = decl->getAttr<GaiaExplicitPathAttr>();
-    if (explicit_path_attribute != nullptr)
+    if (explicit_path_attribute == nullptr)
     {
-        data.is_absolute_path = explicit_path_attribute->getPath().startswith("/");
-        path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
-        path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
-        vector<string> path_components;
-        unordered_map<string, string> tag_map;
-        for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
-        {
-            data.path_components.push_back(path_component_iterator);
-        }
-
-        data.used_tables.insert(get_table_from_expression(data.path_components.front()));
-        const GaiaExplicitPathTagKeysAttr* explicit_path_tag_key_attribute = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
-        const GaiaExplicitPathTagValuesAttr* explicit_path_tag_value_attribute = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
-
-        const GaiaExplicitPathDefinedTagKeysAttr* explicit_path_defined_tag_key_attribute
-            = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
-        const GaiaExplicitPathDefinedTagValuesAttr* explicit_path_defined_tag_value_attribute
-            = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
-
-        if (explicit_path_tag_key_attribute->tagMapKeys_size() != explicit_path_tag_value_attribute->tagMapValues_size())
-        {
-            g_is_generation_error = true;
-            return false;
-        }
-        vector<string> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
-
-        for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
-        {
-            tag_map_keys.push_back(tag_map_keys_iterator);
-        }
-
-        for (const auto& tag_map_values_iterator : explicit_path_tag_value_attribute->tagMapValues())
-        {
-            tag_map_values.push_back(tag_map_values_iterator);
-        }
-
-        if (explicit_path_defined_tag_key_attribute != nullptr)
-        {
-            for (const auto& tag_map_keys_iterator : explicit_path_defined_tag_key_attribute->tagMapKeys())
-            {
-                defined_tag_map_keys.push_back(tag_map_keys_iterator);
-            }
-
-            for (const auto& tag_map_values_iterator : explicit_path_defined_tag_value_attribute->tagMapValues())
-            {
-                defined_tag_map_values.push_back(tag_map_values_iterator);
-            }
-        }
-
-        for (unsigned int tag_index = 0; tag_index < tag_map_keys.size(); ++tag_index)
-        {
-            data.tag_table_map[tag_map_keys[tag_index]] = tag_map_values[tag_index];
-        }
-
-        for (unsigned int tag_index = 0; tag_index < defined_tag_map_keys.size(); ++tag_index)
-        {
-            data.defined_tags[defined_tag_map_keys[tag_index]] = defined_tag_map_values[tag_index];
-        }
-
-        for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
-        {
-            data.tag_table_map[attribute_tag_map_iterator.first] = attribute_tag_map_iterator.second;
-        }
-        return true;
+        return false;
     }
-    return false;
+    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/");
+    path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
+    path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
+    vector<string> path_components;
+    unordered_map<string, string> tag_map;
+    for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
+    {
+        data.path_components.push_back(path_component_iterator);
+    }
+
+    data.used_tables.insert(get_table_from_expression(data.path_components.front()));
+    const GaiaExplicitPathTagKeysAttr* explicit_path_tag_key_attribute = decl->getAttr<GaiaExplicitPathTagKeysAttr>();
+    const GaiaExplicitPathTagValuesAttr* explicit_path_tag_value_attribute = decl->getAttr<GaiaExplicitPathTagValuesAttr>();
+
+    const GaiaExplicitPathDefinedTagKeysAttr* explicit_path_defined_tag_key_attribute
+        = decl->getAttr<GaiaExplicitPathDefinedTagKeysAttr>();
+    const GaiaExplicitPathDefinedTagValuesAttr* explicit_path_defined_tag_value_attribute
+        = decl->getAttr<GaiaExplicitPathDefinedTagValuesAttr>();
+
+    if (explicit_path_tag_key_attribute->tagMapKeys_size() != explicit_path_tag_value_attribute->tagMapValues_size())
+    {
+        g_is_generation_error = true;
+        return false;
+    }
+    vector<string> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
+
+    for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
+    {
+        tag_map_keys.push_back(tag_map_keys_iterator);
+    }
+
+    for (const auto& tag_map_values_iterator : explicit_path_tag_value_attribute->tagMapValues())
+    {
+        tag_map_values.push_back(tag_map_values_iterator);
+    }
+
+    if (explicit_path_defined_tag_key_attribute != nullptr)
+    {
+        for (const auto& tag_map_keys_iterator : explicit_path_defined_tag_key_attribute->tagMapKeys())
+        {
+            defined_tag_map_keys.push_back(tag_map_keys_iterator);
+        }
+
+        for (const auto& tag_map_values_iterator : explicit_path_defined_tag_value_attribute->tagMapValues())
+        {
+            defined_tag_map_values.push_back(tag_map_values_iterator);
+        }
+    }
+
+    for (unsigned int tag_index = 0; tag_index < tag_map_keys.size(); ++tag_index)
+    {
+        data.tag_table_map[tag_map_keys[tag_index]] = tag_map_values[tag_index];
+    }
+
+    for (unsigned int tag_index = 0; tag_index < defined_tag_map_keys.size(); ++tag_index)
+    {
+        data.defined_tags[defined_tag_map_keys[tag_index]] = defined_tag_map_values[tag_index];
+    }
+
+    for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
+    {
+        data.tag_table_map[attribute_tag_map_iterator.first] = attribute_tag_map_iterator.second;
+    }
+    return true;
 }
 
 void update_used_dbs(const explicit_path_data_t& explicit_path_data)
@@ -1555,12 +1653,14 @@ public:
             {
                 cerr << "Incorrect base type of generated type." << endl;
                 g_is_generation_error = true;
+                return;
             }
         }
         else
         {
             cerr << "Incorrect matched expression." << endl;
             g_is_generation_error = true;
+            return;
         }
         if (expression_source_range.isValid())
         {
@@ -1625,209 +1725,200 @@ public:
             return;
         }
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
-        if (op != nullptr)
+        if (op == nullptr)
         {
-            const Expr* operator_expression = op->getLHS();
-            if (operator_expression != nullptr)
+            cerr << "Incorrect matched operator." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        const Expr* operator_expression = op->getLHS();
+        if (operator_expression == nullptr)
+        {
+            cerr << "Incorrect operator expression" << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        const auto* left_declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
+        const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
+
+        explicit_path_data_t explicit_path_data;
+        bool explicit_path_present = true;
+
+        string table_name;
+        string field_name;
+        string variable_name;
+        SourceRange set_source_range;
+        if (left_declaration_expression == nullptr && member_expression == nullptr)
+        {
+            cerr << "Incorrect operator expression type." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        if (left_declaration_expression != nullptr)
+        {
+            const ValueDecl* operator_declaration = left_declaration_expression->getDecl();
+            if (operator_declaration->getType()->isStructureType())
             {
-                const auto* left_declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
-                const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
-
-                explicit_path_data_t explicit_path_data;
-                bool explicit_path_present = true;
-
-                string table_name;
-                string field_name;
-                string variable_name;
-                SourceRange set_source_range;
-                if (left_declaration_expression != nullptr || member_expression != nullptr)
-                {
-                    if (left_declaration_expression != nullptr)
-                    {
-                        const ValueDecl* operator_declaration = left_declaration_expression->getDecl();
-                        if (operator_declaration->getType()->isStructureType())
-                        {
-                            return;
-                        }
-                        table_name = get_table_name(operator_declaration);
-                        field_name = operator_declaration->getName().str();
-                        variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
-                        if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
-                        {
-                            explicit_path_present = false;
-                            set_source_range.setBegin(left_declaration_expression->getLocation());
-                            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-                        }
-                        else
-                        {
-                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
-                            get_variable_name(variable_name, table_name, explicit_path_data);
-                            update_used_dbs(explicit_path_data);
-                        }
-                    }
-                    else
-                    {
-                        auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
-                        if (declaration_expression == nullptr)
-                        {
-                            cerr << "Incorrect base type of generated type." << endl;
-                            g_is_generation_error = true;
-                            return;
-                        }
-                        const ValueDecl* decl = declaration_expression->getDecl();
-                        field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = get_table_name(decl);
-                        variable_name = declaration_expression->getNameInfo().getAsString();
-
-                        if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
-                        {
-                            variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
-                            explicit_path_present = false;
-                            set_source_range.setBegin(member_expression->getBeginLoc());
-                            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-                        }
-                        else
-                        {
-                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
-                            get_variable_name(variable_name, table_name, explicit_path_data);
-                            update_used_dbs(explicit_path_data);
-                        }
-                    }
-                    tok::TokenKind token_kind;
-                    std::string replacement_text
-                        = "[&]() mutable {auto w = " + variable_name + ".writer(); w." + field_name;
-
-                    switch (op->getOpcode())
-                    {
-                    case BO_Assign:
-                    {
-                        token_kind = tok::equal;
-                        break;
-                    }
-                    case BO_MulAssign:
-                    {
-                        token_kind = tok::starequal;
-                        break;
-                    }
-                    case BO_DivAssign:
-                    {
-                        token_kind = tok::slashequal;
-                        break;
-                    }
-                    case BO_RemAssign:
-                    {
-                        token_kind = tok::percentequal;
-                        break;
-                    }
-                    case BO_AddAssign:
-                    {
-                        token_kind = tok::plusequal;
-                        break;
-                    }
-                    case BO_SubAssign:
-                    {
-                        token_kind = tok::minusequal;
-                        break;
-                    }
-                    case BO_ShlAssign:
-                    {
-                        token_kind = tok::lesslessequal;
-                        break;
-                    }
-                    case BO_ShrAssign:
-                    {
-                        token_kind = tok::greatergreaterequal;
-                        break;
-                    }
-                    case BO_AndAssign:
-                    {
-                        token_kind = tok::ampequal;
-                        break;
-                    }
-                    case BO_XorAssign:
-                    {
-                        token_kind = tok::caretequal;
-                        break;
-                    }
-                    case BO_OrAssign:
-                    {
-                        token_kind = tok::pipeequal;
-                        break;
-                    }
-                    default:
-                        cerr << "Incorrect operator type." << endl;
-                        g_is_generation_error = true;
-                        return;
-                    }
-
-                    replacement_text += convert_compound_binary_opcode(op->getOpcode());
-
-                    if (left_declaration_expression != nullptr)
-                    {
-                        set_source_range.setEnd(Lexer::findLocationAfterToken(
-                                                    set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
-                                                    m_rewriter.getLangOpts(), true)
-                                                    .getLocWithOffset(-1));
-                    }
-                    else
-                    {
-                        set_source_range.setEnd(Lexer::findLocationAfterToken(
-                                                    member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
-                                                    m_rewriter.getLangOpts(), true)
-                                                    .getLocWithOffset(-1));
-                    }
-                    m_rewriter.ReplaceText(set_source_range, replacement_text);
-                    g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-                    m_rewriter.InsertTextAfterToken(
-                        op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-                    g_rewriter_history
-                        .push_back(
-                            {SourceRange(op->getEndLoc()),
-                             "; w.update_row(); return w." + field_name + ";}()",
-                             insert_text_after_token});
-
-                    auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
-                    if (!explicit_path_present)
-                    {
-                        update_expression_used_tables(
-                            result.Context,
-                            op,
-                            table_name,
-                            variable_name,
-                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
-                            m_rewriter);
-                    }
-                    else
-                    {
-                        update_expression_explicit_path_data(
-                            result.Context,
-                            op,
-                            explicit_path_data,
-                            SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
-                            m_rewriter);
-                    }
-                }
-                else
-                {
-                    cerr << "Incorrect operator expression type." << endl;
-                    g_is_generation_error = true;
-                }
+                return;
+            }
+            table_name = get_table_name(operator_declaration);
+            field_name = operator_declaration->getName().str();
+            variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
+            if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
+            {
+                explicit_path_present = false;
+                set_source_range.setBegin(left_declaration_expression->getLocation());
+                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             }
             else
             {
-                cerr << "Incorrect operator expression" << endl;
-                g_is_generation_error = true;
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+                get_variable_name(variable_name, table_name, explicit_path_data);
+                update_used_dbs(explicit_path_data);
             }
         }
         else
         {
-            cerr << "Incorrect matched operator." << endl;
+            auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
+            if (declaration_expression == nullptr)
+            {
+                cerr << "Incorrect base type of generated type." << endl;
+                g_is_generation_error = true;
+                return;
+            }
+            const ValueDecl* decl = declaration_expression->getDecl();
+            field_name = member_expression->getMemberNameInfo().getName().getAsString();
+            table_name = get_table_name(decl);
+            variable_name = declaration_expression->getNameInfo().getAsString();
+
+            if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
+            {
+                variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
+                explicit_path_present = false;
+                set_source_range.setBegin(member_expression->getBeginLoc());
+                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            }
+            else
+            {
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+                get_variable_name(variable_name, table_name, explicit_path_data);
+                update_used_dbs(explicit_path_data);
+            }
+        }
+        tok::TokenKind token_kind;
+        string replacement_text = "[&]() mutable {auto w = " + variable_name + ".writer(); w." + field_name;
+
+        switch (op->getOpcode())
+        {
+        case BO_Assign:
+        {
+            token_kind = tok::equal;
+            break;
+        }
+        case BO_MulAssign:
+        {
+            token_kind = tok::starequal;
+            break;
+        }
+        case BO_DivAssign:
+        {
+            token_kind = tok::slashequal;
+            break;
+        }
+        case BO_RemAssign:
+        {
+            token_kind = tok::percentequal;
+            break;
+        }
+        case BO_AddAssign:
+        {
+            token_kind = tok::plusequal;
+            break;
+        }
+        case BO_SubAssign:
+        {
+            token_kind = tok::minusequal;
+            break;
+        }
+        case BO_ShlAssign:
+        {
+            token_kind = tok::lesslessequal;
+            break;
+        }
+        case BO_ShrAssign:
+        {
+            token_kind = tok::greatergreaterequal;
+            break;
+        }
+        case BO_AndAssign:
+        {
+            token_kind = tok::ampequal;
+            break;
+        }
+        case BO_XorAssign:
+        {
+            token_kind = tok::caretequal;
+            break;
+        }
+        case BO_OrAssign:
+        {
+            token_kind = tok::pipeequal;
+            break;
+        }
+        default:
+            cerr << "Incorrect operator type." << endl;
             g_is_generation_error = true;
+            return;
+        }
+
+        replacement_text += convert_compound_binary_opcode(op->getOpcode());
+
+        if (left_declaration_expression != nullptr)
+        {
+            set_source_range.setEnd(Lexer::findLocationAfterToken(
+                                        set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
+                                        m_rewriter.getLangOpts(), true)
+                                        .getLocWithOffset(-1));
+        }
+        else
+        {
+            set_source_range.setEnd(Lexer::findLocationAfterToken(
+                                        member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
+                                        m_rewriter.getLangOpts(), true)
+                                        .getLocWithOffset(-1));
+        }
+        m_rewriter.ReplaceText(set_source_range, replacement_text);
+        g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
+        m_rewriter.InsertTextAfterToken(
+            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
+        g_rewriter_history.push_back(
+            {SourceRange(op->getEndLoc()), "; w.update_row(); return w." + field_name + ";}()",
+             insert_text_after_token});
+
+        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        if (!explicit_path_present)
+        {
+            update_expression_used_tables(
+                result.Context,
+                op,
+                table_name,
+                variable_name,
+                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                m_rewriter);
+        }
+        else
+        {
+            update_expression_explicit_path_data(
+                result.Context,
+                op,
+                explicit_path_data,
+                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                m_rewriter);
         }
     }
 
 private:
-    std::string convert_compound_binary_opcode(BinaryOperator::Opcode op_code)
+    string convert_compound_binary_opcode(BinaryOperator::Opcode op_code)
     {
         switch (op_code)
         {
@@ -1878,162 +1969,148 @@ public:
             return;
         }
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
-        if (op != nullptr)
+        if (op == nullptr)
         {
-            const Expr* operator_expression = op->getSubExpr();
-            if (operator_expression != nullptr)
+            cerr << "Incorrect matched operator." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        const Expr* operator_expression = op->getSubExpr();
+        if (operator_expression == nullptr)
+        {
+            cerr << "Incorrect operator expression." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        const auto* declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
+        const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
+
+        if (declaration_expression == nullptr && member_expression == nullptr)
+        {
+            cerr << "Incorrect operator expression type." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        explicit_path_data_t explicit_path_data;
+        bool explicit_path_present = true;
+        string replace_string;
+        string table_name;
+        string field_name;
+        string variable_name;
+        SourceRange operator_source_range;
+
+        if (declaration_expression != nullptr)
+        {
+            const ValueDecl* operator_declaration = declaration_expression->getDecl();
+            if (operator_declaration->getType()->isStructureType())
             {
-                const auto* declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
-                const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
+                return;
+            }
 
-                if (declaration_expression != nullptr || member_expression != nullptr)
-                {
-                    explicit_path_data_t explicit_path_data;
-                    bool explicit_path_present = true;
-                    string replace_string;
-                    string table_name;
-                    string field_name;
-                    string variable_name;
-                    SourceRange operator_source_range;
-
-                    if (declaration_expression != nullptr)
-                    {
-                        const ValueDecl* operator_declaration = declaration_expression->getDecl();
-                        if (operator_declaration->getType()->isStructureType())
-                        {
-                            return;
-                        }
-
-                        table_name = get_table_name(operator_declaration);
-                        field_name = operator_declaration->getName().str();
-                        variable_name = declaration_expression->getNameInfo().getAsString();
-                        if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
-                        {
-                            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
-                            explicit_path_present = false;
-                            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-                        }
-                        else
-                        {
-                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
-                            get_variable_name(variable_name, table_name, explicit_path_data);
-                            update_used_dbs(explicit_path_data);
-                        }
-                    }
-                    else
-                    {
-                        auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
-                        if (declaration_expression == nullptr)
-                        {
-                            cerr << "Incorrect base type of generated type." << endl;
-                            g_is_generation_error = true;
-                            return;
-                        }
-                        const ValueDecl* operator_declaration = declaration_expression->getDecl();
-                        field_name = member_expression->getMemberNameInfo().getName().getAsString();
-                        table_name = get_table_name(operator_declaration);
-                        variable_name = declaration_expression->getNameInfo().getAsString();
-                        if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
-                        {
-                            variable_name
-                                = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
-                            explicit_path_present = false;
-                            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-                        }
-                        else
-                        {
-                            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
-                            get_variable_name(variable_name, table_name, explicit_path_data);
-                            update_used_dbs(explicit_path_data);
-                        }
-                    }
-
-                    if (op->isPostfix())
-                    {
-                        if (op->isIncrementOp())
-                        {
-                            replace_string
-                                = "[&]() mutable {auto t = "
-                                + variable_name + "." + field_name + "(); auto w = "
-                                + variable_name + ".writer(); w." + field_name + "++; w.update_row(); return t;}()";
-                        }
-                        else if (op->isDecrementOp())
-                        {
-                            replace_string
-                                = "[&]() mutable {auto t =" + variable_name + "." + field_name + "(); auto w = "
-                                + variable_name + ".writer(); w." + field_name + "--; w.update_row(); return t;}()";
-                        }
-                    }
-                    else
-                    {
-                        if (op->isIncrementOp())
-                        {
-                            replace_string
-                                = "[&]() mutable {auto w = " + variable_name + ".writer(); ++ w." + field_name
-                                + ";w.update_row(); return w." + field_name + ";}()";
-                        }
-                        else if (op->isDecrementOp())
-                        {
-                            replace_string
-                                = "[&]() mutable {auto w = " + variable_name + ".writer(); -- w." + field_name
-                                + ";w.update_row(); return w." + field_name + ";}()";
-                        }
-                    }
-                    m_rewriter.ReplaceText(
-                        SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
-                        replace_string);
-                    g_rewriter_history
-                        .push_back(
-                            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
-                             replace_string,
-                             replace_text});
-                    auto offset
-                        = Lexer::MeasureTokenLength(
-                              op->getEndLoc(),
-                              m_rewriter.getSourceMgr(),
-                              m_rewriter.getLangOpts())
-                        + 1;
-
-                    if (!explicit_path_present)
-                    {
-                        update_expression_used_tables(
-                            result.Context,
-                            op,
-                            table_name,
-                            variable_name,
-                            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
-                            m_rewriter);
-                    }
-                    else
-                    {
-                        if (op->isPrefix())
-                        {
-                            offset += 1;
-                        }
-                        update_expression_explicit_path_data(
-                            result.Context,
-                            op,
-                            explicit_path_data,
-                            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
-                            m_rewriter);
-                    }
-                }
-                else
-                {
-                    cerr << "Incorrect operator expression type." << endl;
-                    g_is_generation_error = true;
-                }
+            table_name = get_table_name(operator_declaration);
+            field_name = operator_declaration->getName().str();
+            variable_name = declaration_expression->getNameInfo().getAsString();
+            if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
+            {
+                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                explicit_path_present = false;
+                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             }
             else
             {
-                cerr << "Incorrect operator expression." << endl;
-                g_is_generation_error = true;
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+                get_variable_name(variable_name, table_name, explicit_path_data);
+                update_used_dbs(explicit_path_data);
             }
         }
         else
         {
-            cerr << "Incorrect matched operator." << endl;
-            g_is_generation_error = true;
+            auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
+            if (declaration_expression == nullptr)
+            {
+                cerr << "Incorrect base type of generated type." << endl;
+                g_is_generation_error = true;
+                return;
+            }
+            const ValueDecl* operator_declaration = declaration_expression->getDecl();
+            field_name = member_expression->getMemberNameInfo().getName().getAsString();
+            table_name = get_table_name(operator_declaration);
+            variable_name = declaration_expression->getNameInfo().getAsString();
+            if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
+            {
+                variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
+                explicit_path_present = false;
+                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            }
+            else
+            {
+                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+                get_variable_name(variable_name, table_name, explicit_path_data);
+                update_used_dbs(explicit_path_data);
+            }
+        }
+
+        if (op->isPostfix())
+        {
+            if (op->isIncrementOp())
+            {
+                replace_string
+                    = "[&]() mutable {auto t = "
+                    + variable_name + "." + field_name + "(); auto w = "
+                    + variable_name + ".writer(); w." + field_name + "++; w.update_row(); return t;}()";
+            }
+            else if (op->isDecrementOp())
+            {
+                replace_string
+                    = "[&]() mutable {auto t =" + variable_name + "." + field_name + "(); auto w = "
+                    + variable_name + ".writer(); w." + field_name + "--; w.update_row(); return t;}()";
+            }
+        }
+        else
+        {
+            if (op->isIncrementOp())
+            {
+                replace_string
+                    = "[&]() mutable {auto w = " + variable_name + ".writer(); ++ w." + field_name
+                    + ";w.update_row(); return w." + field_name + ";}()";
+            }
+            else if (op->isDecrementOp())
+            {
+                replace_string
+                    = "[&]() mutable {auto w = " + variable_name + ".writer(); -- w." + field_name
+                    + ";w.update_row(); return w." + field_name + ";}()";
+            }
+        }
+        m_rewriter.ReplaceText(
+            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+            replace_string);
+        g_rewriter_history.push_back(
+            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+             replace_string, replace_text});
+        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+
+        if (!explicit_path_present)
+        {
+            update_expression_used_tables(
+                result.Context,
+                op,
+                table_name,
+                variable_name,
+                SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
+                m_rewriter);
+        }
+        else
+        {
+            if (op->isPrefix())
+            {
+                offset += 1;
+            }
+            update_expression_explicit_path_data(
+                result.Context,
+                op,
+                explicit_path_data,
+                SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
+                m_rewriter);
         }
     }
 
@@ -2203,73 +2280,70 @@ public:
         g_rule_attribute_source_range = SourceRange();
 
         const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
-        if (ruleset_declaration != nullptr)
+        if (ruleset_declaration == nullptr)
         {
-            if (!g_current_ruleset.empty())
-            {
-                g_generated_subscription_code
-                    += "\nnamespace " + g_current_ruleset
-                    + "{\nvoid subscribe_ruleset_" + g_current_ruleset
-                    + "()\n{\n" + g_current_ruleset_subscription
-                    + "}\nvoid unsubscribe_ruleset_" + g_current_ruleset
-                    + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
-            }
-            g_current_ruleset = ruleset_declaration->getName().str();
+            return;
+        }
+        if (!g_current_ruleset.empty())
+        {
+            g_generated_subscription_code
+                += "\nnamespace " + g_current_ruleset
+                + "{\nvoid subscribe_ruleset_" + g_current_ruleset
+                + "()\n{\n" + g_current_ruleset_subscription
+                + "}\nvoid unsubscribe_ruleset_" + g_current_ruleset
+                + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
+        }
+        g_current_ruleset = ruleset_declaration->getName().str();
 
-            // Make sure each new ruleset name is unique.
-            for (const auto& r : g_rulesets)
+        // Make sure each new ruleset name is unique.
+        for (const auto& r : g_rulesets)
+        {
+            if (r == g_current_ruleset)
             {
-                if (r == g_current_ruleset)
-                {
-                    cerr << "Ruleset names must be unique - '"
-                         << g_current_ruleset
-                         << "' has been found multiple times." << endl;
-                    g_is_generation_error = true;
-                    return;
-                }
+                cerr << "Ruleset names must be unique - '"
+                     << g_current_ruleset
+                     << "' has been found multiple times." << endl;
+                g_is_generation_error = true;
+                return;
             }
+        }
 
-            g_rulesets.push_back(g_current_ruleset);
-            g_current_ruleset_subscription.clear();
-            g_current_ruleset_unsubscription.clear();
-            g_current_ruleset_rule_number = 1;
-            if (*(ruleset_declaration->decls_begin()) == nullptr)
-            {
-                // Empty ruleset so it doesn't make sense to process any possible attributes
-                m_rewriter.ReplaceText(
-                    SourceRange(
-                        ruleset_declaration->getBeginLoc(),
-                        ruleset_declaration->getEndLoc()),
-                    "namespace " + g_current_ruleset
-                        + "\n{\n} // namespace " + g_current_ruleset + "\n");
-                g_rewriter_history
-                    .push_back(
-                        {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
-                         "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n",
-                         replace_text});
-            }
-            else
-            {
-                // Replace ruleset declaration that may include attributes with namespace declaration
-                m_rewriter.ReplaceText(
-                    SourceRange(
-                        ruleset_declaration->getBeginLoc(),
-                        ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
-                    "namespace " + g_current_ruleset + "\n{\n");
+        g_rulesets.push_back(g_current_ruleset);
+        g_current_ruleset_subscription.clear();
+        g_current_ruleset_unsubscription.clear();
+        g_current_ruleset_rule_number = 1;
+        if (*(ruleset_declaration->decls_begin()) == nullptr)
+        {
+            // Empty ruleset so it doesn't make sense to process any possible attributes
+            m_rewriter.ReplaceText(
+                SourceRange(
+                    ruleset_declaration->getBeginLoc(),
+                    ruleset_declaration->getEndLoc()),
+                "namespace " + g_current_ruleset
+                    + "\n{\n} // namespace " + g_current_ruleset + "\n");
+            g_rewriter_history.push_back(
+                {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
+                 "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n",
+                 replace_text});
+        }
+        else
+        {
+            // Replace ruleset declaration that may include attributes with namespace declaration
+            m_rewriter.ReplaceText(
+                SourceRange(
+                    ruleset_declaration->getBeginLoc(),
+                    ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
+                "namespace " + g_current_ruleset + "\n{\n");
 
-                // Replace closing brace with namespace comment.
-                m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
+            // Replace closing brace with namespace comment.
+            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
 
-                g_rewriter_history
-                    .push_back(
-                        {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
-                         "namespace " + g_current_ruleset + "\n{\n",
-                         replace_text});
-                g_rewriter_history
-                    .push_back(
-                        {SourceRange(ruleset_declaration->getEndLoc()),
-                         "}// namespace " + g_current_ruleset, replace_text});
-            }
+            g_rewriter_history.push_back(
+                {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
+                 "namespace " + g_current_ruleset + "\n{\n", replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(ruleset_declaration->getEndLoc()),
+                 "}// namespace " + g_current_ruleset, replace_text});
         }
     }
 
@@ -2293,28 +2367,29 @@ public:
         {
             g_variable_declaration_init_location.insert(variable_declaration_init->getSourceRange());
         }
-        if (variable_declaration != nullptr)
+        if (variable_declaration == nullptr)
         {
-            const auto variable_name = variable_declaration->getNameAsString();
-            if (variable_name != "")
-            {
-                g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
+            return;
+        }
+        const auto variable_name = variable_declaration->getNameAsString();
+        if (variable_name != "")
+        {
+            g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
 
-                if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
+            if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
+            {
+                cerr << "Local variable declaration '" << variable_name
+                     << "' hides database table of the same name." << endl;
+                return;
+            }
+
+            for (auto table_data : table_navigation_t::get_table_data())
+            {
+                if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
                     cerr << "Local variable declaration '" << variable_name
-                         << "' hides database table of the same name." << endl;
+                         << "' hides catalog field entity of the same name." << endl;
                     return;
-                }
-
-                for (auto table_data : table_navigation_t::get_table_data())
-                {
-                    if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
-                    {
-                        cerr << "Local variable declaration '" << variable_name
-                             << "' hides catalog field entity of the same name." << endl;
-                        return;
-                    }
                 }
             }
         }
@@ -2345,10 +2420,9 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
                 "\"" + g_current_ruleset + "\"");
-            g_rewriter_history
-                .push_back(
-                    {SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                     "\"" + g_current_ruleset + "\"", replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
+                 "\"" + g_current_ruleset + "\"", replace_text});
         }
 
         if (rule_expression != nullptr)
@@ -2357,10 +2431,9 @@ public:
                 SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
                 "gaia_rule_name");
             g_is_rule_context_rule_name_referenced = true;
-            g_rewriter_history
-                .push_back(
-                    {SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                     "gaia_rule_name", replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
+                 "gaia_rule_name", replace_text});
         }
 
         if (event_expression != nullptr)
@@ -2378,10 +2451,9 @@ public:
             m_rewriter.ReplaceText(
                 SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
                 "context->gaia_type");
-            g_rewriter_history
-                .push_back(
-                    {SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                     "context->gaia_type", replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
+                 "context->gaia_type", replace_text});
         }
     }
 
@@ -2406,73 +2478,89 @@ public:
         }
         const auto* expression = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
 
-        if (expression != nullptr)
-        {
-            string table_name;
-            SourceRange expression_source_range;
-            explicit_path_data_t explicit_path_data;
-            bool explicit_path_present = true;
-            string variable_name;
-            const ValueDecl* decl = expression->getDecl();
-            if (!decl->getType()->isStructureType())
-            {
-                return;
-            }
-            table_name = get_table_name(decl);
-            variable_name = decl->getNameAsString();
-            if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
-            {
-                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
-                explicit_path_present = false;
-                expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-            }
-            else
-            {
-                variable_name = get_table_from_expression(explicit_path_data.path_components.back());
-                get_variable_name(variable_name, table_name, explicit_path_data);
-                update_used_dbs(explicit_path_data);
-                expression_source_range
-                    = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
-            }
-
-            if (decl->hasAttr<GaiaFieldValueAttr>())
-            {
-                expression_source_range
-                    = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
-            }
-
-            if (expression_source_range.isValid())
-            {
-                m_rewriter.ReplaceText(expression_source_range, variable_name);
-                g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
-                auto offset
-                    = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
-                if (explicit_path_present)
-                {
-                    update_expression_explicit_path_data(
-                        result.Context,
-                        expression,
-                        explicit_path_data,
-                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
-                        m_rewriter);
-                }
-                else
-                {
-                    update_expression_used_tables(
-                        result.Context,
-                        expression,
-                        table_name,
-                        variable_name,
-                        SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
-                        m_rewriter);
-                }
-            }
-        }
-        else
+        if (expression == nullptr)
         {
             cerr << "Incorrect matched expression." << endl;
             g_is_generation_error = true;
+            return;
+        }
+        string table_name;
+        SourceRange expression_source_range;
+        explicit_path_data_t explicit_path_data;
+        bool explicit_path_present = true;
+        string variable_name;
+        const ValueDecl* decl = expression->getDecl();
+        if (!decl->getType()->isStructureType())
+        {
+            return;
+        }
+        table_name = get_table_name(decl);
+        variable_name = decl->getNameAsString();
+        if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
+        {
+            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+            explicit_path_present = false;
+            expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
+            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+        }
+        else
+        {
+            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+            get_variable_name(variable_name, table_name, explicit_path_data);
+            update_used_dbs(explicit_path_data);
+            expression_source_range
+                = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
+        }
+
+        if (decl->hasAttr<GaiaFieldValueAttr>())
+        {
+            expression_source_range
+                = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
+        }
+
+        if (expression_source_range.isValid())
+        {
+            if (g_insert_call_locations.find(expression->getBeginLoc()) != g_insert_call_locations.end())
+            {
+                if (explicit_path_present)
+                {
+                    cerr << "Insert call cannot be used with navigation." << endl;
+                    g_is_generation_error = true;
+                    return;
+                }
+
+                if (table_name == variable_name)
+                {
+                    cerr << "Insert call cannot be used with tags." << endl;
+                    g_is_generation_error = true;
+                    return;
+                }
+                return;
+            }
+            m_rewriter.ReplaceText(expression_source_range, variable_name);
+            g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
+
+            auto offset
+                = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+            if (explicit_path_present)
+            {
+                update_expression_explicit_path_data(
+                    result.Context,
+                    expression,
+                    explicit_path_data,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
+            }
+            else
+            {
+                update_expression_used_tables(
+                    result.Context,
+                    expression,
+                    table_name,
+                    variable_name,
+                    SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    m_rewriter);
+            }
         }
     }
 
@@ -2541,20 +2629,21 @@ private:
     Rewriter& m_rewriter;
 };
 
-// AST handler that is called when a declarative for.
-class declarative_for_match_handler_t : public MatchFinder::MatchCallback
+// AST handler that is called when Delete function is invoked on a table.
+class declarative_delete_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    explicit declarative_for_match_handler_t(Rewriter& r)
+    explicit declarative_delete_handler_t(Rewriter& r)
         : m_rewriter(r)
     {
     }
     void run(const MatchFinder::MatchResult& result) override
     {
-        const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
         if (expression != nullptr)
         {
-            m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
+            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
+            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()", replace_text});
         }
         else
         {
@@ -2567,6 +2656,193 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when Insert function is invoked on a table.
+class declarative_insert_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_insert_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
+        const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        if (expression == nullptr || expression_declaration == nullptr)
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        SourceLocation argument_start_location = expression->getExprLoc();
+        unordered_map<string, string> argument_map;
+        const ValueDecl* decl = expression_declaration->getDecl();
+        string table_name = get_table_name(decl);
+
+        // Parse insert call arguments to buid name value map.
+        for (auto argument : expression->arguments())
+        {
+            string raw_argument_name = m_rewriter.getRewrittenText(
+                SourceRange(argument_start_location, argument->getSourceRange().getBegin().getLocWithOffset(-1)));
+            size_t argument_name_start_position = raw_argument_name.find(',');
+            if (argument_name_start_position == string::npos)
+            {
+                argument_name_start_position = raw_argument_name.find('(');
+            }
+            size_t argument_name_end_position = raw_argument_name.find(':');
+            string argument_name = raw_argument_name.substr(
+                argument_name_start_position + 1, argument_name_end_position - argument_name_start_position - 1);
+            //Trim the argument name of whitespaces.
+            argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
+            argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
+            argument_map[argument_name] = m_rewriter.getRewrittenText(argument->getSourceRange());
+
+            argument_start_location = argument->getSourceRange().getEnd().getLocWithOffset(1);
+        }
+        string class_qualification_string = "gaia::";
+        class_qualification_string
+            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
+            .append("::")
+            .append(table_name)
+            .append("_t::");
+        string replacement_string = class_qualification_string;
+        replacement_string
+            .append("get(")
+            .append(class_qualification_string)
+            .append("insert_row(");
+        vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
+        const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
+        // Generate call arguments.
+        for (const auto& call_argument : function_arguments)
+        {
+            const auto argument_map_iterator = argument_map.find(call_argument);
+            if (argument_map_iterator == argument_map.end())
+            {
+                // Provide default parameter value.
+                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
+                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                {
+                case data_type_t::e_bool:
+                    replacement_string.append("false,");
+                    break;
+                case data_type_t::e_int8:
+                case data_type_t::e_uint8:
+                case data_type_t::e_int16:
+                case data_type_t::e_uint16:
+                case data_type_t::e_int32:
+                case data_type_t::e_uint32:
+                case data_type_t::e_int64:
+                case data_type_t::e_uint64:
+                case data_type_t::e_float:
+                case data_type_t::e_double:
+                    replacement_string.append("0,");
+                    break;
+                case data_type_t::e_string:
+                    replacement_string.append("\"\",");
+                    break;
+                }
+            }
+            else
+            {
+                // Provide value from the code.
+                replacement_string.append(argument_map_iterator->second).append(",");
+            }
+        }
+        replacement_string.resize(replacement_string.size() - 1);
+        replacement_string.append("))");
+
+        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
+        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
+        g_insert_call_locations.insert(expression->getBeginLoc());
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
+// AST handler that is called when a declarative for.
+class declarative_for_match_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_for_match_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
+        if (expression == nullptr)
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+
+        string table_name;
+        string variable_name;
+        SourceRange expression_source_range;
+        explicit_path_data_t explicit_path_data;
+        bool explicit_path_present = true;
+
+        const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
+        if (path == nullptr)
+        {
+            cerr << "Incorrect expression is used as a path in for statement." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        const ValueDecl* decl = path->getDecl();
+        table_name = get_table_name(decl);
+        if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
+        {
+            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            explicit_path_present = false;
+            expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
+        }
+        else
+        {
+            variable_name = get_table_from_expression(explicit_path_data.path_components.back());
+            get_variable_name(variable_name, table_name, explicit_path_data);
+            update_used_dbs(explicit_path_data);
+        }
+        expression_source_range.setEnd(expression->getRParenLoc().getLocWithOffset(-1));
+
+        if (expression_source_range.isValid())
+        {
+            if (explicit_path_present)
+            {
+                update_expression_explicit_path_data(
+                    result.Context,
+                    path,
+                    explicit_path_data,
+                    expression_source_range,
+                    m_rewriter);
+            }
+            else
+            {
+                update_expression_used_tables(
+                    result.Context,
+                    path,
+                    table_name,
+                    variable_name,
+                    expression_source_range,
+                    m_rewriter);
+            }
+        }
+        m_rewriter.RemoveText(SourceRange(expression->getForLoc(), expression->getRParenLoc()));
+        g_rewriter_history.push_back({SourceRange(expression->getForLoc(), expression->getRParenLoc()), "", remove_text});
+        if (expression->getNoMatch() != nullptr)
+        {
+            SourceRange nomatch_location = get_statement_source_range(expression->getNoMatch(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+            g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
+            g_nomatch_location.emplace_back(nomatch_location);
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
@@ -2582,6 +2858,8 @@ public:
         , m_if_nomatch_match_handler(r)
         , m_declarative_while_match_handler(r)
         , m_declarative_for_match_handler(r)
+        , m_declarative_delete_handler(r)
+        , m_declarative_insert_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -2718,6 +2996,20 @@ public:
                               hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("varDeclarationInit");
 
+        StatementMatcher declarative_delete_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(hasName("Delete"))),
+                  hasDescendant(table_call_matcher))
+                  .bind("DeleteCall");
+
+        StatementMatcher declarative_insert_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(hasName("Insert"))),
+                  hasDescendant(table_call_matcher))
+                  .bind("InsertCall");
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -2740,6 +3032,8 @@ public:
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
         m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
         m_matcher.addMatcher(declarative_for_matcher, &m_declarative_for_match_handler);
+        m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
+        m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -2760,6 +3054,8 @@ private:
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
     declarative_while_match_handler_t m_declarative_while_match_handler;
     declarative_for_match_handler_t m_declarative_for_match_handler;
+    declarative_delete_handler_t m_declarative_delete_handler;
+    declarative_insert_handler_t m_declarative_insert_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
@@ -2875,8 +3171,27 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(*compilation_database, source_files);
 
-    tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+    // Run the entire translation process within a single transaction.
+    int result = EXIT_FAILURE;
+
+    try
+    {
+        gaia::db::begin_session();
+        gaia::db::begin_transaction();
+
+        tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
+        result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
+
+        gaia::db::commit_transaction();
+        gaia::db::end_session();
+    }
+    catch (gaia::common::system_error& e)
+    {
+        cerr << "Can't connect to a running instance of the " << gaia::db::c_db_server_name << ": '" << e.what() << "'.\n"
+             << "Start the Gaia database server and rerun gaiat."
+             << endl;
+    }
+
     if (result == 0 && !g_is_generation_error)
     {
         return EXIT_SUCCESS;

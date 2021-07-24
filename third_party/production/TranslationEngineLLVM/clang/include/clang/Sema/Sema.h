@@ -3802,9 +3802,11 @@ public:
 
   StmtResult ActOnGaiaForStmt(SourceLocation ForLoc,
                           SourceLocation LParenLoc,
-                          Stmt *Path,
+                          Expr *Path,
                           SourceLocation RParenLoc,
-                          Stmt *Body);
+                          Stmt *Body,
+                          SourceLocation NoMatchLoc,
+                          Stmt* NoMatchStmt);
   ExprResult CheckObjCForCollectionOperand(SourceLocation forLoc,
                                            Expr *collection);
   StmtResult ActOnObjCForCollectionStmt(SourceLocation ForColLoc,
@@ -4415,7 +4417,9 @@ public:
   ExprResult ActOnCallExpr(Scope *S, Expr *Fn, SourceLocation LParenLoc,
                            MultiExprArg ArgExprs, SourceLocation RParenLoc,
                            Expr *ExecConfig = nullptr,
-                           bool IsExecConfig = false);
+                           bool IsExecConfig = false,
+                           std::string tableName = std::string(),
+                           std::vector<std::string> parameterNames = std::vector<std::string>());
   ExprResult
   BuildResolvedCallExpr(Expr *Fn, NamedDecl *NDecl, SourceLocation LParenLoc,
                         ArrayRef<Expr *> Arg, SourceLocation RParenLoc,
@@ -4628,16 +4632,21 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  // Checks if an expression contains injected declarative references.
+  bool IsExpressionInjected(const Expr* expression) const;
 private:
 
+    // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
-  QualType getFieldType (const std::string &fieldName, SourceLocation loc);
+  QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD,
+    SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr) ;
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
@@ -4665,6 +4674,8 @@ private:
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
 
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> extendedExplicitPathTagMapping;
+
+  std::unordered_set<SourceLocation> injectedVariablesLocation;
   bool isInExtendedExplicitPathScope;
 
   // A cache representing if we've fully checked the various comparison category

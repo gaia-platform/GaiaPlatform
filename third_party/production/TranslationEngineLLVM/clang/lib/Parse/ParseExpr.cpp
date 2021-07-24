@@ -157,7 +157,8 @@ Parser::ParseExpressionWithLeadingExtension(SourceLocation ExtLoc) {
 }
 
 /// Parse an expr that doesn't include (top-level) commas.
-ExprResult Parser::ParseAssignmentExpression(TypeCastState isTypeCast) {
+ExprResult Parser::ParseAssignmentExpression(TypeCastState isTypeCast,
+  bool isGaiaSpecialFunctionCall, SourceLocation expressionLocation) {
   if (Tok.is(tok::code_completion)) {
     Actions.CodeCompleteOrdinaryName(getCurScope(), Sema::PCC_Expression);
     cutOffParsing();
@@ -168,6 +169,22 @@ ExprResult Parser::ParseAssignmentExpression(TypeCastState isTypeCast) {
     return ParseThrowExpression();
   if (Tok.is(tok::kw_co_yield))
     return ParseCoyieldExpression();
+  if (isGaiaSpecialFunctionCall)
+  {
+    if (Tok.is(tok::identifier) && NextToken().is(tok::colon))
+    {
+      std::string parameterName = Tok.getIdentifierInfo()->getName().str();
+      ConsumeToken();
+      ConsumeToken();
+      insertCallParameterMap[expressionLocation].push_back(parameterName);
+    }
+    else
+    {
+      Diag(Tok, diag::err_incorrect_parameter_for_insert);
+      cutOffParsing();
+      return ExprError();
+    }
+  }
 
   ExprResult LHS = ParseCastExpression(/*isUnaryExpression=*/false,
                                        /*isAddressOfOperand=*/false,
@@ -1563,7 +1580,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   // Check to see whether Res is a function designator only. If it is and we
   // are compiling for OpenCL, we need to return an error as this implies
   // that the address of the function is being taken, which is illegal in CL.
-
   // These can be followed by postfix-expr pieces.
   Res = ParsePostfixExpressionSuffix(Res);
   if (getLangOpts().OpenCL)
@@ -1604,6 +1620,8 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
   // Now that the primary-expression piece of the postfix-expression has been
   // parsed, see if there are any postfix-expression pieces here.
   SourceLocation Loc;
+  bool isGaiaSpecialFunctionCall = false;
+  SourceLocation GaiaCallLocation;
   while (1) {
     switch (Tok.getKind()) {
     case tok::code_completion:
@@ -1772,7 +1790,7 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
                     getCurScope(), LHS.get(), ArgExprs, PT.getOpenLocation());
                 CalledSignatureHelp = true;
                 Actions.CodeCompleteExpression(getCurScope(), PreferredType);
-              })) {
+              }, isGaiaSpecialFunctionCall, GaiaCallLocation)) {
             (void)Actions.CorrectDelayedTyposInExpr(LHS);
             // If we got an error when parsing expression list, we don't call
             // the CodeCompleteCall handler inside the parser. So call it here
@@ -1813,9 +1831,26 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         assert((ArgExprs.size() == 0 ||
                 ArgExprs.size()-1 == CommaLocs.size())&&
                "Unexpected number of commas!");
+
+        std::string tableName;
+        std::vector<std::string> parameterNames;
+        if (GaiaCallLocation.isValid())
+        {
+          tableName = insertCallTableMap[GaiaCallLocation];
+          std::unordered_map<std::string, std::string> tagMapping = Actions.getTagMapping(Actions.getCurFunctionDecl(), GaiaCallLocation);
+          auto tag_iterator = tagMapping.find(tableName);
+          if (tag_iterator != tagMapping.end())
+          {
+            tableName = tag_iterator->second;
+          }
+
+          parameterNames = insertCallParameterMap[GaiaCallLocation];
+        }
+
         LHS = Actions.ActOnCallExpr(getCurScope(), LHS.get(), Loc,
                                     ArgExprs, Tok.getLocation(),
-                                    ExecConfig);
+                                    ExecConfig, false, tableName, parameterNames);
+
         PT.consumeClose();
       }
 
@@ -1823,6 +1858,12 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
     }
     case tok::arrow:
     case tok::period: {
+      std::string table;
+      if (getPreviousToken(Tok).is(tok::identifier))
+      {
+        table = getPreviousToken(Tok).getIdentifierInfo()->getName().str();
+      }
+
       // postfix-expression: p-e '->' template[opt] id-expression
       // postfix-expression: p-e '.' template[opt] id-expression
       tok::TokenKind OpKind = Tok.getKind();
@@ -1851,9 +1892,22 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         if (LHS.isInvalid())
           break;
 
+        IdentifierInfo *LastII = nullptr;
+
         ParseOptionalCXXScopeSpecifier(SS, ObjectType,
                                        /*EnteringContext=*/false,
-                                       &MayBePseudoDestructor);
+                                       &MayBePseudoDestructor,
+                                       false,
+                                       nullptr,
+                                       false,
+                                       &LastII);
+        isGaiaSpecialFunctionCall =
+          Actions.IsExpressionInjected(Base) && LastII != nullptr && isGaiaSpecialFunction(LastII->getName());
+        if (isGaiaSpecialFunctionCall)
+        {
+          insertCallTableMap[Base->getExprLoc()] = table;
+          GaiaCallLocation = Base->getExprLoc();
+        }
         if (SS.isNotEmpty())
           ObjectType = nullptr;
       }
@@ -2945,7 +2999,9 @@ ExprResult Parser::ParseFoldExpression(ExprResult LHS,
 /// \endverbatim
 bool Parser::ParseExpressionList(SmallVectorImpl<Expr *> &Exprs,
                                  SmallVectorImpl<SourceLocation> &CommaLocs,
-                                 llvm::function_ref<void()> Completer) {
+                                 llvm::function_ref<void()> Completer,
+                                 bool isGaiaSpecialFunctionCall,
+                                 SourceLocation expressionLocation) {
   bool SawError = false;
   while (1) {
     if (Tok.is(tok::code_completion)) {
@@ -2962,7 +3018,7 @@ bool Parser::ParseExpressionList(SmallVectorImpl<Expr *> &Exprs,
       Diag(Tok, diag::warn_cxx98_compat_generalized_initializer_lists);
       Expr = ParseBraceInitializer();
     } else
-      Expr = ParseAssignmentExpression();
+      Expr = ParseAssignmentExpression(NotTypeCast, isGaiaSpecialFunctionCall, expressionLocation);
 
     if (Tok.is(tok::ellipsis))
       Expr = Actions.ActOnPackExpansion(Expr.get(), ConsumeToken());

@@ -8,8 +8,8 @@
 using namespace std;
 using namespace gaia::translation;
 
-static const char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
-static const int c_variable_length = 15;
+constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
+constexpr int c_variable_length = 15;
 
 bool table_navigation_t::m_is_initialized = false;
 unordered_map<string, table_data_t> table_navigation_t::m_table_data;
@@ -46,7 +46,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         }
         if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
         {
-            last_variable_name =  path_data.variable_name;
+            last_variable_name = path_data.variable_name;
         }
         else
         {
@@ -63,7 +63,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
             }
             else
             {
-                table =  path_data.tag_table_map[table];
+                table = path_data.tag_table_map[table];
             }
         }
 
@@ -109,15 +109,13 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         source_table_type = table;
         source_table = last_variable_name;
         source_field = field;
-
     }
 
     return return_value;
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables,
-    const unordered_map<string, string>& tags, string& last_variable_name)
+navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
 {
     ensure_initialization();
     navigation_code_data_t return_value;
@@ -288,8 +286,6 @@ void table_navigation_t::fill_table_data()
 {
     try
     {
-        db_monitor_t monitor;
-
         for (const auto& field : catalog::gaia_field_t::list())
         {
             catalog::gaia_table_t table = field.table();
@@ -311,6 +307,7 @@ void table_navigation_t::fill_table_data()
             field_data.is_active = field.active();
             field_data.position = field.position();
             field_data.is_deprecated = field.deprecated();
+            field_data.field_type = static_cast<data_type_t>(field.type());
             table_data.db_name = table.database().name();
             table_data.field_data[field.name()] = field_data;
             m_table_data[table.name()] = table_data;
@@ -587,4 +584,45 @@ void table_navigation_t::ensure_initialization()
         fill_table_data();
         m_is_initialized = true;
     }
+}
+
+vector<string> table_navigation_t::get_table_fields(const string& table)
+{
+    vector<string> return_value;
+    auto table_data = get_table_data();
+    if (table_data.empty())
+    {
+        return return_value;
+    }
+    const auto table_iterator = table_data.find(table);
+    if (table_iterator == table_data.end())
+    {
+        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        return return_value;
+    }
+
+    return_value.resize(table_iterator->second.field_data.size());
+    try
+    {
+        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
+        {
+            catalog::gaia_table_t field_table = field.table();
+            if (!field_table)
+            {
+                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
+                return vector<string>();
+            }
+            if (table == field_table.name())
+            {
+                return_value.at(field.position()) = field.name();
+            }
+        }
+    }
+    catch (const exception& e)
+    {
+        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
+        return vector<string>();
+    }
+
+    return return_value;
 }

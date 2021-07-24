@@ -143,6 +143,8 @@ void Parser::CheckForTemplateAndDigraph(Token &Next, ParsedType ObjectType,
 ///
 /// \param OnlyNamespace If true, only considers namespaces in lookup.
 ///
+/// \param LastIdentifier When non-NULL, points to an IdentifierInfo* that will be
+/// filled in with the last identifier encountered during parsing.
 /// \returns true if there was an error parsing a scope specifier
 bool Parser::ParseOptionalCXXScopeSpecifier(CXXScopeSpec &SS,
                                             ParsedType ObjectType,
@@ -150,7 +152,8 @@ bool Parser::ParseOptionalCXXScopeSpecifier(CXXScopeSpec &SS,
                                             bool *MayBePseudoDestructor,
                                             bool IsTypename,
                                             IdentifierInfo **LastII,
-                                            bool OnlyNamespace) {
+                                            bool OnlyNamespace,
+                                            IdentifierInfo **LastIdentifier) {
   assert(getLangOpts().CPlusPlus &&
          "Call sites of this function should be guarded by checking for C++");
 
@@ -180,6 +183,10 @@ bool Parser::ParseOptionalCXXScopeSpecifier(CXXScopeSpec &SS,
 
   if (LastII)
     *LastII = nullptr;
+  if (LastIdentifier)
+  {
+    *LastIdentifier = nullptr;
+  }
 
   bool HasScopeSpecifier = false;
 
@@ -382,6 +389,10 @@ bool Parser::ParseOptionalCXXScopeSpecifier(CXXScopeSpec &SS,
       break;
 
     IdentifierInfo &II = *Tok.getIdentifierInfo();
+    if (LastIdentifier)
+    {
+      *LastIdentifier = Tok.getIdentifierInfo();
+    }
 
     // nested-name-specifier:
     //   type-name '::'

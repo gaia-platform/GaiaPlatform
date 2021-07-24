@@ -1788,9 +1788,11 @@ void Sema::CheckBreakContinueBinding(Expr *E) {
 
 StmtResult Sema::ActOnGaiaForStmt(SourceLocation ForLoc,
                           SourceLocation LParenLoc,
-                          Stmt *Path,
+                          Expr *Path,
                           SourceLocation RParenLoc,
-                          Stmt *Body)
+                          Stmt *Body,
+                          SourceLocation NoMatchLoc,
+                          Stmt* NoMatchStmt)
 {
   RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
 
@@ -1807,7 +1809,7 @@ StmtResult Sema::ActOnGaiaForStmt(SourceLocation ForLoc,
   }
 
   return new (Context)
-      GaiaForStmt(Context, Path, Body, ForLoc, LParenLoc, RParenLoc);
+      GaiaForStmt(Context, Path, Body, ForLoc, LParenLoc, RParenLoc, NoMatchStmt, NoMatchLoc);
 }
 
 StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,

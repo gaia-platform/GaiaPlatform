@@ -1,5 +1,4 @@
-// RUN: echo "WARNING: Variable declaration hides a tag." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 
@@ -16,4 +15,4 @@ ruleset test11
 }
 
 // GAIAPLAT-794
-// CHECK: WARNING: Variable declaration hides a tag.
+// CHECK: Local variable declaration 'a' hides a tag of the same name

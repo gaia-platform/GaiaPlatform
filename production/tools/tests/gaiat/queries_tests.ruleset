@@ -192,8 +192,7 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-915
-// This translates without error, but translated code will not compile.
+// GAIAPLAT-915 (fixed)
 ruleset test22
 {
     OnInsert(yield)
@@ -204,7 +203,7 @@ ruleset test22
 }
 
 // GAIAPLAT-807 (fixed)
-// GAIAPLAT-892
+// GAIAPLAT-892 (fixed)
 ruleset test23
 {
     OnInsert(S:sensor)
@@ -232,7 +231,7 @@ ruleset test25
 }
 #endif
 
-// GAIAPLAT-808
+// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test26
 {
@@ -256,9 +255,9 @@ ruleset test27
     }
 }
 
-// GAIAPLAT-809
-// the query in the 'for' isn't recognized
-ruleset test28
+// GAIAPLAT-809 (fixed)
+// TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
+ruleset test28 : Table(incubator)
 {
     OnChange(actuator)
     {
@@ -300,7 +299,7 @@ ruleset test31
     }
 }
 
-// GAIAPLAT-839
+// GAIAPLAT-839 (fixed)
 ruleset test32
 {
     OnChange(yield.bushels)
@@ -363,11 +362,42 @@ ruleset test36
     }
 }
 
-// GAIAPLAT-945
+// GAIAPLAT-945 (fixed)
 ruleset test37
 {
     OnUpdate(min_temp)
     {
         sensor.value += sensor.incubator->incubator.min_temp;
+    }
+}
+
+// GAIAPLAT-1043 (fixed)
+// GAIAPLAT-1044 (fixed)
+// TESTCASE: Use a long explicit path in a for statement.
+ruleset test38
+{
+    OnUpdate(I:incubator)
+    {
+        int counter = 0;
+        int acre_total = 0;
+        for (incubator->raised->farmer->yield->C:crop)
+        {
+            acre_total += C.acres;
+            counter++;
+        }
+    }
+}
+
+// GAIAPLAT-1045 (fixed)
+// TESTCASE: No row references inside for loop
+ruleset test39
+{
+    OnUpdate(incubator)
+    {
+        int counter = 0;
+        for (actuator)
+        {
+            counter++;
+        }
     }
 }

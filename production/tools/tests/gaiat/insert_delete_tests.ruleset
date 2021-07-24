@@ -1,0 +1,68 @@
+// RUN: %gaiat %s --
+
+// TESTCASE: Delete the anchor row.
+ruleset test1
+{
+    OnInsert(sensor)
+    {
+        sensor.Delete();
+    }
+}
+
+void use_values(int, const char*);
+
+// TESTCASE: Insert two different row types.
+ruleset test2
+{
+    OnInsert(incubator)
+    {
+        auto Y = yield.Insert(bushels: 12);
+        auto S = sensor.Insert(value: 100.0, name: "Turtles");
+        use_values(Y.bushels, S.name);
+    }
+}
+
+// TESTCASE: Delete a row found by implicit query.
+ruleset test3
+{
+    OnInsert(sensor)
+    {
+        incubator.Delete();
+    }
+}
+
+// TESTCASE: Delete rows found by implicit query.
+ruleset test4
+{
+    OnInsert(incubator)
+    {
+        sensor.Delete();
+    }
+}
+
+// TESTCASE: Delete rows selected by field content, through a tag.
+// GAIAPLAT-1041 (fixed)
+ruleset test5
+{
+    OnInsert(I:incubator)
+    {
+        for(S:sensor)
+        {
+            if (S.value > 98.6)
+            {
+                // Note that this will fail in execution without disconnecting first.
+                S.Delete();
+            }
+        }
+    }
+}
+
+// It is expected that Insert will return a tagged row.
+// TESTCASE: Assign an Insert return value to a tag.
+ruleset test6
+{
+    OnInsert(sensor)
+    {
+        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: 100.0);
+    }
+}

@@ -44,6 +44,7 @@ struct field_data_t
     bool is_deprecated;
     bool is_active;
     field_position_t position;
+    data_type_t field_type;
 };
 
 struct table_data_t
@@ -70,22 +71,9 @@ public:
     static navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data);
     // Function that generates variable name for navigation code variables.
     static string get_variable_name(const string& table, const unordered_map<string, string>& tags);
+    // Function that retrieve fields for a table in DB defined order.
+    static vector<string> get_table_fields(const string& table);
 private:
-    class db_monitor_t
-    {
-    public:
-        db_monitor_t()
-        {
-            gaia::db::begin_session();
-            gaia::db::begin_transaction();
-        }
-
-        ~db_monitor_t()
-        {
-            gaia::db::commit_transaction();
-            gaia::db::end_session();
-        }
-    };
 
     struct table_link_data_t
     {
