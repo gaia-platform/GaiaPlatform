@@ -256,7 +256,8 @@ ruleset test27
 }
 
 // GAIAPLAT-809 (fixed)
-ruleset test28
+// TODO GAIAPLAT-1026: remove Table attribute once this issue is fixed
+ruleset test28 : Table(incubator)
 {
     OnChange(actuator)
     {

@@ -274,7 +274,8 @@ ruleset test79
 {
     OnInsert(S:sensor)
     {
-        actuator.value += value/2;// expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
+        actuator.value += value/2; // expected-error {{Duplicate field 'value'}} \
+                                   // expected-error {{use of undeclared identifier 'value'}}
     }
 }
 

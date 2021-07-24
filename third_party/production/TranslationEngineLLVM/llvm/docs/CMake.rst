@@ -591,6 +591,12 @@ LLVM-specific variables
   information at link time. Enabling this option can speed up GDB debugging
   startup times in Debug configurations with LLVM_USE_SPLIT_DWARF enabled.
 
+**LLVM_GENERATE_STACKTRACE_DEBUG_INFO**:BOOL
+  If enabled, add compile options to generate useful stack traces (but not
+  necessarily optimized for using a debugger). Enabling this option only affects
+  Release builds (Debug and RelWithDebInfo builds already generate enough debug
+  info for stack traces).
+
 CMake Caches
 ============
 

@@ -74,21 +74,6 @@ public:
     // Function that retrieve fields for a table in DB defined order.
     static vector<string> get_table_fields(const string& table);
 private:
-    class db_monitor_t
-    {
-    public:
-        db_monitor_t()
-        {
-            gaia::db::begin_session();
-            gaia::db::begin_transaction();
-        }
-
-        ~db_monitor_t()
-        {
-            gaia::db::commit_transaction();
-            gaia::db::end_session();
-        }
-    };
 
     struct table_link_data_t
     {
