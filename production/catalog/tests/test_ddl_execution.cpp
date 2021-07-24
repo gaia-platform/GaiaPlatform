@@ -81,3 +81,60 @@ CREATE RELATIONSHIP r1 (
         gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->parent_fields()[0],
         gaia_field_t::list().where(gaia_field_expr::name == "c1").begin()->gaia_id());
 }
+
+TEST_F(ddl_execution_test, drop_relationship)
+{
+    const string create_relationship_ddl = R"(
+DROP TABLE IF EXISTS t1;
+CREATE TABLE IF NOT EXISTS t1(c1 INT32);
+
+DROP TABLE IF EXISTS t2;
+CREATE TABLE IF NOT EXISTS t2(c2 INT32);
+
+DROP RELATIONSHIP IF EXISTS r1;
+CREATE RELATIONSHIP IF NOT EXISTS r1 (
+  t1.link1 -> t2,
+  t2.link2 -> t1
+);
+
+DROP RELATIONSHIP IF EXISTS r2;
+CREATE RELATIONSHIP IF NOT EXISTS r2 (
+  t2.link3 -> t1,
+  t1.link4 -> t2
+);
+)";
+
+    const string drop_relationship_ddl = R"(
+DROP RELATIONSHIP IF EXISTS r1;
+DROP RELATIONSHIP IF EXISTS r2;
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS t2;
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(create_relationship_ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    {
+        gaia::direct_access::auto_transaction_t txn(false);
+
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t1").size(), 1);
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t2").size(), 1);
+
+        ASSERT_EQ(gaia_relationship_t::list().where(gaia_relationship_expr::name == "r1").size(), 1);
+        ASSERT_EQ(gaia_relationship_t::list().where(gaia_relationship_expr::name == "r2").size(), 1);
+    }
+
+    ASSERT_NO_THROW(parser.parse_line(drop_relationship_ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    {
+        gaia::direct_access::auto_transaction_t txn(false);
+
+        ASSERT_EQ(gaia_relationship_t::list().where(gaia_relationship_expr::name == "r1").size(), 0);
+        ASSERT_EQ(gaia_relationship_t::list().where(gaia_relationship_expr::name == "r2").size(), 0);
+
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t1").size(), 0);
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t2").size(), 0);
+    }
+}

@@ -336,8 +336,6 @@ gaia_id_t ddl_executor_t::create_table(
 
 gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
 {
-    shared_lock lock(m_lock);
-
     gaia_id_t db_id = find_db_id_no_lock(db);
     if (db_id == c_invalid_gaia_id)
     {
@@ -359,7 +357,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     const std::optional<ddl::table_field_map_t>& field_map,
     bool throw_on_exists)
 {
-    shared_lock lock(m_lock);
+    unique_lock lock(m_lock);
 
     if (m_relationship_names.find(name) != m_relationship_names.end())
     {
@@ -488,6 +486,8 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     txn.commit();
 
+    m_relationship_names[name] = relationship_id;
+
     return relationship_id;
 }
 
@@ -510,6 +510,28 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     }
 
     relationship.delete_row();
+}
+
+void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unless_exists)
+{
+    unique_lock lock(m_lock);
+
+    if (m_relationship_names.find(name) == m_relationship_names.end())
+    {
+        if (throw_unless_exists)
+        {
+            throw relationship_not_exists(name);
+        }
+        return;
+    }
+
+    {
+        auto_transaction_t txn(false);
+        drop_relationship_no_ri(gaia_relationship_t::get(m_relationship_names[name]));
+        txn.commit();
+    }
+
+    m_relationship_names.erase(name);
 }
 
 void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_referential_integrity)

@@ -65,6 +65,8 @@ public:
 
     void drop_database(const std::string& name, bool throw_unless_exists);
 
+    void drop_relationship(const std::string& name, bool throw_unless_exists);
+
     void drop_table(const std::string& db_name, const std::string& name);
     void drop_database(const std::string& name);
 
