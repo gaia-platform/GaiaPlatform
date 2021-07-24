@@ -56,37 +56,37 @@ size_t count_set_bits(
 size_t find_first_unset_bit(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index = c_max_bit_index);
 
-// Find the first occurrence of a bitstring with given width in a bitmap and
-// return the bit index of this occurrence.
+// Find the first occurrence of a bitarray element
+// and return the bitarray index of this occurrence.
 // end_limit_bit_index can limit the search to a prefix of a large bitmap. If
 // end_limit_bit_index is not set, we'll search the entire bitmap.
-size_t find_first_bitstring(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, uint64_t bitstring,
-    size_t width, size_t end_limit_bit_index = c_max_bit_index);
+size_t find_first_bitarray_element(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, uint64_t element_value,
+    size_t element_width, size_t end_limit_bit_index = c_max_bit_index);
 
-// Read a bitstring with given width at the given bit index.
-uint64_t get_bitstring_at_index(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, size_t width);
+// Read a bitarray element with given width at the given bitarray index.
+uint64_t get_bitarray_element_at_index(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index, size_t element_width);
 
-// Set a bitstring with given width at the given bit index within a single word.
-void set_bitstring_in_word(
-    uint64_t& word, size_t bit_index, uint64_t bitstring, size_t width);
+// Atomically (using CAS) set a bitarray element with given width at the given bitarray index within a bitmap.
+void set_bitarray_element_at_index(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index, uint64_t element_value, size_t element_width);
 
-// Try to atomically (using CAS) set a bitstring with given width at the given bit index within a single word.
-bool try_set_bitstring_in_word(
-    std::atomic<uint64_t>& word, size_t bit_index, uint64_t bitstring, size_t width);
+// Set a bitarray element with given width at the given bit index within a single word.
+void set_bitarray_element_in_word(
+    uint64_t& word, size_t bit_index, uint64_t element_value, size_t element_width);
 
-// Atomically (using CAS) set a bitstring with given width at the given bit index within a single word.
-void safe_set_bitstring_in_word(
-    std::atomic<uint64_t>& word, size_t bit_index, uint64_t bitstring, size_t width);
+// Try to atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
+bool try_set_bitarray_element_in_word(
+    std::atomic<uint64_t>& word, size_t bit_index, uint64_t element_value, size_t element_width);
 
-// Atomically (using CAS) set a bitstring with given width at the given bit index within a bitmap.
-void set_bitstring_at_index(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, uint64_t bitstring, size_t width);
+// Atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
+void safe_set_bitarray_element_in_word(
+    std::atomic<uint64_t>& word, size_t bit_index, uint64_t element_value, size_t element_width);
 
 // Print a bitmap to console, for testing and debugging.
 void print_bitmap(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size);
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, bool msb_first = false);
 
 } // namespace memory_manager
 } // namespace db
