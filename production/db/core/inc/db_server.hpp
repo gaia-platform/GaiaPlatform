@@ -253,6 +253,8 @@ private:
 
     static void init_shared_memory();
 
+    static void init_indexes();
+
     static void create_local_snapshot(bool apply_logs);
 
     static void recover_db();

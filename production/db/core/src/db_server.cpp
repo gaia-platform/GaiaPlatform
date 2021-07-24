@@ -26,8 +26,10 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/db/index_builder.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
@@ -36,6 +38,7 @@
 #include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace std;
 
@@ -651,6 +654,9 @@ void server_t::init_shared_memory()
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
 
+    // Initialize indexes.
+    init_indexes();
+
     // Done with local snapshot.
     s_local_snapshot_locators.close();
 
@@ -676,6 +682,47 @@ void server_t::init_memory_manager()
         s_memory_manager.deallocate(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
+}
+
+// Initialize indexes
+void server_t::init_indexes()
+{
+    // Noop if persistence is not enabled.
+    if (s_server_conf.persistence_mode() != server_config_t::persistence_mode_t::e_disabled)
+    {
+        auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+        // Allocate new txn id for initializing indexes.
+        begin_startup_txn();
+
+        gaia_locator_t locator = 0;
+        gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+
+        std::cout << "Building indexes.." << std::endl;
+
+        while (++locator && locator <= last_locator)
+        {
+            auto obj = locator_to_ptr(locator);
+
+            // Skip system tables -- they are not indexed.
+            if (obj->type >= c_system_table_reserved_range_start)
+            {
+                continue;
+            }
+
+            gaia_id_t type_record_id
+                = type_id_mapping_t::instance().get_record_id(obj->type);
+
+            if (type_record_id == c_invalid_gaia_id)
+            {
+                throw invalid_type(obj->type);
+            }
+
+            for (auto idx : catalog_core_t::list_indexes(type_record_id))
+            {
+                index::index_builder_t::populate_index(idx.id(), obj->type, locator);
+            }
+        }
+    }
 }
 
 address_offset_t server_t::allocate_object(
@@ -2486,13 +2533,14 @@ void server_t::run(server_config_t server_conf)
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
 
         // Initialize global data structures.
-        init_shared_memory();
         txn_metadata_t::init_txn_metadata_map();
 
         // Initialize watermarks.
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
         s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
+        init_shared_memory();
 
         // Launch thread to listen for client connections and create session threads.
         std::thread client_dispatch_thread(client_dispatch_handler, server_conf.instance_name());
