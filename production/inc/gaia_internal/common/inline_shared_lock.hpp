@@ -67,198 +67,52 @@ namespace gaia
 {
 namespace common
 {
-namespace inline_shared_lock
+class inline_shared_lock
 {
+public:
+    inline bool is_free();
+    inline bool is_exclusive();
+    inline bool is_shared();
+    inline bool is_free_with_exclusive_intent();
+    inline bool is_shared_with_exclusive_intent();
 
-constexpr uint64_t c_free_lock{0};
-constexpr uint64_t c_exclusive_bit_index{63};
-constexpr uint64_t c_exclusive_mask{1ULL << c_exclusive_bit_index};
-constexpr uint64_t c_exclusive_intent_bit_index{62};
-constexpr uint64_t c_exclusive_intent_mask{1ULL << c_exclusive_intent_bit_index};
-constexpr uint64_t c_reader_count_bits{62};
-constexpr uint64_t c_reader_count_mask{(1ULL << c_reader_count_bits) - 1};
-constexpr size_t c_reader_count_max{(1ULL << c_reader_count_bits) - 1};
+    // NB: This can succeed when "exclusive intent" has been previously set by a
+    // different thread than the caller!
+    inline bool try_acquire_exclusive();
+    inline bool try_acquire_exclusive_intent();
+    inline bool try_acquire_shared();
 
-bool is_free(uint64_t lock_word)
-{
-    return (lock_word == 0);
-}
+    inline void release_exclusive();
+    inline void release_shared();
 
-bool is_exclusive(uint64_t lock_word)
-{
-    return (lock_word & c_exclusive_mask);
-}
+    // NB: This cannot be used safely in program logic without synchronization,
+    // and is intended only for logging/debugging.
+    size_t get_reader_count();
 
-bool is_shared(uint64_t lock_word)
-{
-    return !(lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
-}
+private:
+    static constexpr uint64_t c_free_lock{0};
+    static constexpr uint64_t c_exclusive_bit_index{63};
+    static constexpr uint64_t c_exclusive_mask{1ULL << c_exclusive_bit_index};
+    static constexpr uint64_t c_exclusive_intent_bit_index{62};
+    static constexpr uint64_t c_exclusive_intent_mask{1ULL << c_exclusive_intent_bit_index};
+    static constexpr uint64_t c_reader_count_bits{62};
+    static constexpr uint64_t c_reader_count_mask{(1ULL << c_reader_count_bits) - 1};
+    static constexpr size_t c_reader_count_max{(1ULL << c_reader_count_bits) - 1};
 
-bool is_free_with_exclusive_intent(uint64_t lock_word)
-{
-    return (lock_word & c_exclusive_intent_mask) && !(lock_word & c_reader_count_mask);
-}
+    std::atomic<uint64_t> m_lock_word{c_free_lock};
 
-bool is_shared_with_exclusive_intent(uint64_t lock_word)
-{
-    return (lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
-}
+    inline bool is_valid();
+    inline void check_state();
 
-bool is_valid(uint64_t lock_word)
-{
-    // All states are mutually exclusive, so exactly one state predicate must be true.
+    // These overloads are necessary to avoid races.
+    static inline bool is_free(uint64_t lock_word);
+    static inline bool is_exclusive(uint64_t lock_word);
+    static inline bool is_shared(uint64_t lock_word);
+    static inline bool is_free_with_exclusive_intent(uint64_t lock_word);
+    static inline bool is_shared_with_exclusive_intent(uint64_t lock_word);
+};
 
-    // Form a bitvector of all state predicate values.
-    uint64_t predicate_values{
-        static_cast<uint64_t>(is_free(lock_word))
-        | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL)
-        | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL)
-        | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3ULL)
-        | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4ULL)};
+#include "inline_shared_lock.inc"
 
-    // Now check that exactly one predicate is true, by separately checking that
-    // at least one predicate is true[1], and at most one predicate is true[2].
-    // If the bitvector is nonzero, then [1] is true. If the bitvector is either
-    // zero or a power of 2 (which we verify with the standard bit-twiddling
-    // trick: `x & (x - 1) == 0`), then [2] is true.
-    return (predicate_values != 0) && ((predicate_values & (predicate_values - 1)) == 0);
-}
-
-void check_state(uint64_t lock_word)
-{
-    ASSERT_INVARIANT(is_valid(lock_word), "Invalid state for lock word!");
-}
-
-// NB: This cannot be used safely in program logic without synchronization, and
-// is intended only for logging/debugging.
-size_t get_reader_count(std::atomic<uint64_t>& lock)
-{
-    size_t reader_count = 0;
-    uint64_t lock_word = lock.load();
-    if (is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word))
-    {
-        reader_count = lock_word & c_reader_count_mask;
-    }
-    return reader_count;
-}
-
-void init_lock(std::atomic<uint64_t>& lock)
-{
-    lock.store(c_free_lock);
-}
-
-// NB: This can succeed when "exclusive intent" has been previously set by a
-// different thread than the caller!
-bool try_acquire_exclusive(std::atomic<uint64_t>& lock)
-{
-    uint64_t lock_word = lock.load();
-    do
-    {
-        check_state(lock_word);
-
-        // Allowed state transitions: FREE->EXCLUSIVE,
-        // FREE_WITH_EXCLUSIVE_INTENT->EXCLUSIVE.
-        if (!is_free(lock_word) && !is_free_with_exclusive_intent(lock_word))
-        {
-            return false;
-        }
-
-    } while (!lock.compare_exchange_weak(lock_word, c_exclusive_mask));
-
-    check_state(lock_word);
-    return true;
-}
-
-bool try_acquire_shared(std::atomic<uint64_t>& lock)
-{
-    uint64_t lock_word = lock.load();
-    uint64_t reader_count;
-    do
-    {
-        check_state(lock_word);
-
-        // Allowed state transitions: FREE->SHARED, SHARED->SHARED.
-        if (!is_free(lock_word) && !is_shared(lock_word))
-        {
-            return false;
-        }
-
-        reader_count = lock_word & c_reader_count_mask;
-        ASSERT_PRECONDITION(reader_count < c_reader_count_max, "Reader count must fit into 62 bits!");
-
-        // This will never be reached unless asserts are disabled.
-        if (reader_count >= c_reader_count_max)
-        {
-            return false;
-        }
-
-        reader_count += 1;
-    } while (!lock.compare_exchange_weak(lock_word, reader_count));
-
-    check_state(lock_word);
-    return true;
-}
-
-bool try_acquire_exclusive_intent(std::atomic<uint64_t>& lock)
-{
-    uint64_t lock_word = lock.load();
-    do
-    {
-        check_state(lock_word);
-
-        // Allowed state transitions: FREE->FREE_WITH_EXCLUSIVE_INTENT,
-        // SHARED->SHARED_WITH_EXCLUSIVE_INTENT.
-        if (!is_free(lock_word) && !is_shared(lock_word))
-        {
-            return false;
-        }
-    } while (!lock.compare_exchange_weak(lock_word, lock_word | c_exclusive_intent_mask));
-
-    check_state(lock_word);
-    return true;
-}
-
-void release_shared(std::atomic<uint64_t>& lock)
-{
-    // We could just use an atomic decrement here, but that would be incorrect
-    // if other flags could be concurrently set which would invalidate our
-    // decrement (like the exclusive_intent bit invalidates an increment).
-    // An explicit CAS ensures this can't happen.
-    uint64_t lock_word = lock.load();
-    uint64_t reader_count;
-    uint64_t new_lock_word;
-    do
-    {
-        check_state(lock_word);
-
-        // Allowed state transitions: SHARED->SHARED, SHARED->FREE,
-        // SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT,
-        // SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT.
-        ASSERT_PRECONDITION(is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word), "Cannot release a shared lock that is not acquired!");
-
-        reader_count = lock_word & c_reader_count_mask;
-        ASSERT_PRECONDITION(reader_count != 0, "Reader count must be nonzero!");
-        reader_count -= 1;
-
-        // Clear the reader count.
-        new_lock_word = lock_word & ~c_reader_count_mask;
-        // Fill in the decremented reader count.
-        new_lock_word |= reader_count;
-    } while (!lock.compare_exchange_weak(lock_word, new_lock_word));
-
-    check_state(lock_word);
-}
-
-void release_exclusive(std::atomic<uint64_t>& lock)
-{
-    check_state(lock.load());
-    // Allowed state transition: EXCLUSIVE->FREE.
-    uint64_t expected_value = c_exclusive_mask;
-    bool has_released_lock = lock.compare_exchange_strong(expected_value, c_free_lock);
-    ASSERT_POSTCONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
-    check_state(lock.load());
-}
-
-} // namespace inline_shared_lock
 } // namespace common
 } // namespace gaia
