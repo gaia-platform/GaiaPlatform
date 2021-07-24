@@ -78,6 +78,9 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   # LLD/libc++ are necessary for MSan.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
   set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+  if(ENABLE_STACKTRACE)
+    set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
+  endif()
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
@@ -260,7 +263,7 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -g -funwind-tables -fno-omit-frame-pointer)
+  target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only -funwind-tables -fno-omit-frame-pointer)
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
 # Cpptoml.

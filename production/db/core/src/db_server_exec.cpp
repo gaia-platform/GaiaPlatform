@@ -23,6 +23,7 @@ static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
 static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
 static constexpr char c_conf_file_flag[] = "--configuration-file-path";
+static constexpr char c_skip_catalog_integrity_flag[] = "--skip-catalog-integrity-checks";
 
 static void usage()
 {
@@ -208,6 +209,7 @@ static server_config_t process_command_line(int argc, char* argv[])
     std::string instance_name;
     std::string data_dir;
     std::string conf_file_path;
+    bool testing = false;
 
     // TODO argument parsing needs refactoring. ATM it is unclear:
     //  - what arguments are optional/mandatory
@@ -242,6 +244,10 @@ static server_config_t process_command_line(int argc, char* argv[])
         else if ((strcmp(argv[i], c_instance_name_command_flag) == 0) && (i + 1 < argc))
         {
             instance_name = argv[++i];
+        }
+        else if ((strcmp(argv[i], c_skip_catalog_integrity_flag) == 0))
+        {
+            testing = true;
         }
         else
         {
@@ -332,7 +338,7 @@ static server_config_t process_command_line(int argc, char* argv[])
         }
     }
 
-    return server_config_t{persistence_mode, instance_name, data_dir};
+    return server_config_t{persistence_mode, instance_name, data_dir, testing};
 }
 
 int main(int argc, char* argv[])

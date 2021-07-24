@@ -25,9 +25,10 @@
 #include "clang/Tooling/Tooling.h"
 #pragma clang diagnostic pop
 
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "table_navigation.h"
 
@@ -943,6 +944,42 @@ void optimize_subscription(const string& table, int rule_count)
     }
 }
 
+// [GAIAPLAT-799]:  For the preview release we do not allow a rule to have
+// multiple anchor rows. They are not allowed to reference more than a single table or
+// reference fields from multiple tables.  Note that the g_active_fields map is a
+// map of <table, field_list> so the number of entries in the map is the number of unique
+// tables used by all active fields.
+bool has_multiple_anchors()
+{
+    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
+                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
+                                               "from different tables.";
+
+    if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    if (g_active_fields.size() > 1)
+    {
+        cerr << c_multi_anchor_fields << endl;
+        return true;
+    }
+
+    // Handle the special case of OnUpdate(table1, table2.field)
+    if (g_active_fields.size() == 1
+        && g_update_tables.size() == 1
+        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+    {
+        cerr << c_multi_anchor_tables << endl;
+        return true;
+    }
+
+    return false;
+}
+
 void generate_rules(Rewriter& rewriter)
 {
     validate_table_data();
@@ -968,6 +1005,12 @@ void generate_rules(Rewriter& rewriter)
     for (const auto& table : g_update_tables)
     {
         g_active_fields.erase(table);
+    }
+
+    if (has_multiple_anchors())
+    {
+        g_is_generation_error = true;
+        return;
     }
 
     for (const auto& field_description : g_active_fields)

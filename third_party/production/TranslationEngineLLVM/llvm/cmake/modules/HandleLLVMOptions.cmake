@@ -737,6 +737,15 @@ if (LLVM_USE_GDB_INDEX AND
   append("-Wl,--gdb-index" CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
 endif()
 
+# Generate enough debug info for stack traces
+if(LLVM_GENERATE_STACKTRACE_DEBUG_INFO)
+  add_flag_if_supported("-fno-omit-frame-pointer" FNO_OMIT_FRAME_POINTER)
+  if (NOT uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND
+      NOT uppercase_CMAKE_BUILD_TYPE STREQUAL "RELWITHDEBINFO")
+    add_flag_if_supported("-gline-tables-only" GLINE_TABLES_ONLY)
+  endif()
+endif()
+
 add_definitions( -D__STDC_CONSTANT_MACROS )
 add_definitions( -D__STDC_FORMAT_MACROS )
 add_definitions( -D__STDC_LIMIT_MACROS )

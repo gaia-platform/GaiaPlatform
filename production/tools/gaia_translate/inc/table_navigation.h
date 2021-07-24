@@ -89,7 +89,6 @@ private:
             gaia::db::end_session();
         }
     };
-
     struct navigation_data_t
     {
         string table_name;
