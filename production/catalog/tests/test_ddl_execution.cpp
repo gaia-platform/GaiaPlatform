@@ -137,4 +137,7 @@ DROP TABLE IF EXISTS t2;
         ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t1").size(), 0);
         ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t2").size(), 0);
     }
+
+    ASSERT_NO_THROW(parser.parse_line("DROP RELATIONSHIP r3;"));
+    ASSERT_THROW(execute(parser.statements), relationship_not_exists);
 }
