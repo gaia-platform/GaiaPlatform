@@ -241,6 +241,20 @@ public:
 };
 
 /**
+ * Thrown when a relationship not exists.
+ */
+class relationship_not_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit relationship_not_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The relationship '" << name << "' does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when the tables specified in the relationship definition do not match.
  */
 class tables_not_match : public gaia::common::gaia_exception
@@ -554,6 +568,7 @@ enum class drop_type_t : uint8_t
 {
     drop_table,
     drop_database,
+    drop_relationship,
 };
 
 struct drop_statement_t : statement_t
@@ -760,6 +775,15 @@ gaia::common::gaia_id_t create_relationship(
     const ddl::link_def_t& link2,
     const std::optional<ddl::table_field_map_t>& field_map,
     bool throw_on_exist);
+
+/**
+ * Delete a given relationship.
+ *
+ * @param name of the relationship
+ * @param throw_unless_exists throw an execption unless the database exists
+ * @throw table_not_exists
+ */
+void drop_relationship(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Find the database id given its name

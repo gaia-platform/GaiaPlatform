@@ -75,6 +75,11 @@ gaia_id_t create_relationship(
     return ddl_executor_t::get().create_relationship(name, link1, link2, field_map, throw_on_exists);
 }
 
+void drop_relationship(const string& name, bool throw_unless_exists)
+{
+    return ddl_executor_t::get().drop_relationship(name, throw_unless_exists);
+}
+
 gaia_id_t create_index(
     const std::string& index_name,
     bool unique,
