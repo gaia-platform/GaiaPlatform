@@ -72,6 +72,16 @@ uint64_t get_bitarray_element_at_index(
 void set_bitarray_element_at_index(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index, uint64_t element_value, size_t element_width);
 
+// Atomically (using CAS) set a bitarray element with given width at the given bitarray index within a bitmap.
+// This operation will fail if the current element value is not `expected_element_value`.
+bool conditional_set_bitarray_element_at_index(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index,
+    uint64_t expected_element_value, uint64_t desired_element_value, size_t element_width);
+
+// Get the bitarray element with given width at the given bit index within a single word.
+uint64_t get_bitarray_element_in_word(
+    uint64_t& word, size_t bit_index, size_t element_width);
+
 // Set a bitarray element with given width at the given bit index within a single word.
 void set_bitarray_element_in_word(
     uint64_t& word, size_t bit_index, uint64_t element_value, size_t element_width);
@@ -79,6 +89,11 @@ void set_bitarray_element_in_word(
 // Try to atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
 bool try_set_bitarray_element_in_word(
     std::atomic<uint64_t>& word, size_t bit_index, uint64_t element_value, size_t element_width);
+
+// This operation will fail if the current element value is not `expected_element_value`.
+bool conditional_set_bitarray_element_in_word(
+    std::atomic<uint64_t>& word, size_t bit_index, uint64_t expected_element_value,
+    uint64_t desired_element_value, size_t element_width);
 
 // Atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
 void safe_set_bitarray_element_in_word(

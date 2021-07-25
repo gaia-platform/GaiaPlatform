@@ -330,9 +330,14 @@ uint64_t get_bitarray_element_at_index(
     size_t word_index = bit_index / c_uint64_bit_count;
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
     uint64_t word = bitmap[word_index];
-    uint64_t mask = ((1ULL << element_width) - 1) << bit_index_within_word;
-    uint64_t element_value = (word & mask) >> bit_index_within_word;
 
+    return get_bitarray_element_in_word(word, bit_index_within_word, element_width);
+}
+
+uint64_t get_bitarray_element_in_word(uint64_t& word, size_t bit_index, size_t element_width)
+{
+    uint64_t mask = ((1ULL << element_width) - 1) << bit_index;
+    uint64_t element_value = (word & mask) >> bit_index;
     return element_value;
 }
 
@@ -354,6 +359,26 @@ void set_bitarray_element_at_index(
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
 
     safe_set_bitarray_element_in_word(bitmap[word_index], bit_index_within_word, element_value, element_width);
+}
+
+bool conditional_set_bitarray_element_at_index(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index,
+    uint64_t expected_element_value, uint64_t desired_element_value, size_t element_width)
+{
+    size_t bit_index = bitarray_index * element_width;
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
+    validate_bit_index(bitmap_word_size, bit_index);
+
+    // The bitarray element width must divide the word length, i.e. it must be a power of 2 <= 64.
+    ASSERT_PRECONDITION((element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0), "Bitarray element width must divide word size!");
+
+    // The bit index must be a multiple of the bitarray element width.
+    ASSERT_PRECONDITION((bit_index % element_width == 0), "Bit index must be a multiple of element width!");
+
+    size_t word_index = bit_index / c_uint64_bit_count;
+    size_t bit_index_within_word = bit_index % c_uint64_bit_count;
+
+    return conditional_set_bitarray_element_in_word(bitmap[word_index], bit_index_within_word, expected_element_value, desired_element_value, element_width);
 }
 
 void set_bitarray_element_in_word(
@@ -382,6 +407,33 @@ bool try_set_bitarray_element_in_word(
     set_bitarray_element_in_word(new_word, bit_index, element_value, element_width);
 
     return word.compare_exchange_strong(old_word, new_word);
+}
+
+bool conditional_set_bitarray_element_in_word(
+    std::atomic<uint64_t>& word, size_t bit_index, uint64_t expected_element_value,
+    uint64_t desired_element_value, size_t element_width)
+{
+    // We need to loop until we find that our element's initial value is not the
+    // expected value, retrying whenever the CAS fails due to concurrent
+    // modification of other bits in the same word.
+    uint64_t expected_word;
+    uint64_t desired_word;
+    do
+    {
+        expected_word = word.load();
+        uint64_t current_element_value = get_bitarray_element_in_word(
+            expected_word, bit_index, element_width);
+        if (current_element_value != expected_element_value)
+        {
+            return false;
+        }
+        desired_word = expected_word;
+        set_bitarray_element_in_word(
+            desired_word, bit_index, desired_element_value, element_width);
+
+    } while (!word.compare_exchange_weak(expected_word, desired_word));
+
+    return true;
 }
 
 void safe_set_bitarray_element_in_word(
