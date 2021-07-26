@@ -29,6 +29,7 @@ MAXIMUM_EXEC_INDEX = 19
 
 THREAD_LOAD_TITLE = "thread-load-percent"
 
+SOURCE_TITLE = "source"
 CONFIGURATION_TITLE = "configuration"
 ITERATIONS_TITLE = "iterations"
 RETURN_CODE_TITLE = "return-code"
@@ -39,6 +40,9 @@ PAUSE_DURATION_TITLE = "stop-pause-sec"
 WAIT_DURATION_TITLE = "wait-pause-sec"
 PRINT_DURATION_TITLE = "print-duration-sec"
 TEST_RUNS_TITLE = "test_runs"
+
+SOURCE_FILE_NAME_TITLE = "file_name"
+SOURCE_LINE_NUMBER_TITLE = "line_number"
 
 RULES_ENGINE_TITLE = "rules-engine-stats"
 RULES_ENGINE_SLICES_TITLE = "slices"
@@ -246,7 +250,7 @@ def load_output_timing_files(base_dir):
     return stop_pause_data, iterations_data, total_wait_data, total_print_data
 
 
-def load_test_result_files(suite_test):
+def load_test_result_files(suite_test_directory):
     """
     Load sets of individual results from their various sources.
 
@@ -255,8 +259,11 @@ def load_test_result_files(suite_test):
     a single file.
     """
 
-    base_dir = os.path.join(SUITE_DIRECTORY, suite_test)
-
+    base_dir = (
+        suite_test_directory
+        if os.path.isabs(suite_test_directory)
+        else os.path.join(SUITE_DIRECTORY, suite_test_directory)
+    )
     return_code_data, duration_data = load_simple_result_files(base_dir)
     (
         stop_pause_data,
@@ -281,7 +288,7 @@ def load_test_result_files(suite_test):
     )
 
 
-def load_results_for_test(suite_test):
+def load_results_for_test(suite_test_directory, source_info):
     """
     Load all the results for tests and place them in the main dictionary.
     """
@@ -295,9 +302,11 @@ def load_results_for_test(suite_test):
         total_wait_data,
         total_print_data,
         configuration_data,
-    ) = load_test_result_files(suite_test)
+    ) = load_test_result_files(suite_test_directory)
 
     new_results = {}
+    if source_info:
+        new_results[SOURCE_TITLE] = source_info
     new_results[CONFIGURATION_TITLE] = configuration_data
     new_results[ITERATIONS_TITLE] = iterations_data
     new_results[RETURN_CODE_TITLE] = return_code_data
@@ -319,13 +328,14 @@ def load_results_for_test(suite_test):
     return new_results
 
 
-def summarize_repeated_tests(suite_test_name, max_test):
+def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     """
     Create a summary dictionary for any repeated tests.
     """
 
     main_dictionary = {}
 
+    main_dictionary[SOURCE_TITLE] = source_info
     main_dictionary[ITERATIONS_TITLE] = []
     main_dictionary[RETURN_CODE_TITLE] = []
     main_dictionary[TEST_DURATION_TITLE] = []
@@ -353,9 +363,10 @@ def summarize_repeated_tests(suite_test_name, max_test):
 
     test_runs = {}
     main_dictionary[TEST_RUNS_TITLE] = test_runs
-    for test_repeat in range(1, max_test + 1):
-        recorded_name = suite_test_name + "_" + str(test_repeat)
-        new_results = load_results_for_test(recorded_name)
+    for _ in range(1, max_test + 1):
+        recorded_name = map_lines[map_line_index].strip()
+        map_line_index += 1
+        new_results = load_results_for_test(recorded_name, None)
 
         main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
         main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
@@ -385,7 +396,7 @@ def summarize_repeated_tests(suite_test_name, max_test):
         calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
         test_runs[recorded_name] = new_results
-    return main_dictionary
+    return main_dictionary, map_line_index
 
 
 def load_scenario_file():
@@ -400,27 +411,46 @@ def load_scenario_file():
     if not os.path.exists(suite_file_name) or os.path.isdir(suite_file_name):
         print(f"Suite file '{suite_file_name}' must exist and not be a directory.")
         sys.exit(1)
+
     with open(suite_file_name) as suite_file:
         suite_file_lines = suite_file.readlines()
-    return suite_file_lines
+    return suite_file_name, suite_file_lines
+
+
+def load_execution_map_file():
+    """
+    Load the contents of the generated execution map file.
+    """
+
+    execution_map_file_name = f"{SUITE_DIRECTORY}map.txt"
+    with open(execution_map_file_name) as suite_file:
+        map_file_lines = suite_file.readlines()
+    return map_file_lines
 
 
 def dump_results_dictionary(full_test_results):
     """
     Dump the full_test_results dictionary as a JSON file.
     """
-    with open(SUITE_DIRECTORY + "summary.json", "w") as write_file:
+    with open(f"{SUITE_DIRECTORY}summary.json", "w") as write_file:
         json.dump(full_test_results, write_file, indent=4)
 
 
-def execute_suite_tests(suite_file_lines):
+def execute_suite_tests(suite_file, suite_file_lines, map_lines):
     """
     Execute each of the tests specified by the lines in the suite file.
     """
     full_test_results = {}
+    map_line_index = 0
+    file_line_number = 1
     for next_suite_test in suite_file_lines:
-
         next_suite_test = next_suite_test.strip()
+
+        source_info = {}
+        source_info[SOURCE_FILE_NAME_TITLE] = suite_file
+        source_info[SOURCE_LINE_NUMBER_TITLE] = file_line_number
+        file_line_number += 1
+
         is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
         if is_repeat_test:
             next_suite_test = is_repeat_test.group(1)
@@ -431,14 +461,43 @@ def execute_suite_tests(suite_file_lines):
                     + "or equal to 1, not '{max_test}'."
                 )
                 sys.exit(1)
-            full_test_results[next_suite_test] = summarize_repeated_tests(
-                next_suite_test, max_test
+            map_line_index += 1
+
+            name_collision_avoidance_index = 1
+            original_next_suite_test = next_suite_test
+            while next_suite_test in full_test_results:
+                next_suite_test = (
+                    f"{original_next_suite_test}___{name_collision_avoidance_index}"
+                )
+                name_collision_avoidance_index += 1
+
+            (
+                full_test_results[next_suite_test],
+                map_line_index,
+            ) = summarize_repeated_tests(
+                max_test, map_lines, map_line_index, source_info
             )
+            map_line_index += 1
         else:
-            full_test_results[next_suite_test] = load_results_for_test(next_suite_test)
+            suite_test_results_directory = map_lines[map_line_index].strip()
+            simple_results_name = os.path.basename(suite_test_results_directory)
+            full_test_results[simple_results_name] = load_results_for_test(
+                suite_test_results_directory, source_info
+            )
+            map_line_index += 1
+
+    assert len(map_lines) == map_line_index
     return full_test_results
 
 
-file_lines = load_scenario_file()
-test_results = execute_suite_tests(file_lines)
-dump_results_dictionary(test_results)
+def process_script_action():
+    """
+    Process the posting of the message.
+    """
+    suite_file_name, map_file_lines = load_scenario_file()
+    map_lines = load_execution_map_file()
+    test_results = execute_suite_tests(suite_file_name, map_file_lines, map_lines)
+    dump_results_dictionary(test_results)
+
+
+sys.exit(process_script_action())

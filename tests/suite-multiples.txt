@@ -1,0 +1,7 @@
+smoke
+smoke-time-only
+smoke
+smoke repeat 2
+smoke
+smoke repeat 2
+smoke

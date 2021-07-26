@@ -248,6 +248,29 @@ level element is always the name of that test.  After that, there is some diverg
 on how the information is stored to more efficiently aggregate the information from a
 group of tests.
 
+#### JSON Blob Naming
+
+In the large majority of cases, each entry in the specified `suite-*.txt` file will
+have a unique name.  When the information for that entry is placed in the `summary.json`
+file, the name associated with the blob is the name of the test that was executed.
+Therefore, if the specified `suite-*.txt` file is:
+
+```text
+smoke
+smoke-time-only
+```
+
+it is expected that the `summary.json` file will contain one summary named `smoke`
+that contains the information for the first test and another summary named `smoke-time-only`
+that contains the information for the second test.
+
+To handle the rare cases where there are duplicates, the names of the blobs are
+adjusted to avoid collisions.  Depending on the type of blob being added, one or more
+underscore characters (`_`) are appended to the test name, followed by an index number
+to ensure that the name is unique.  To ensure that there is a direct correlation between
+a line in the `suite-*.txt` file and a specified blob, the `source` blob inside of the
+test blob identifies the exact source file and line number that generated the blob.
+
 #### Single Test JSON Blob
 
 For a single test, for example the `smoke` test, the output will look something
@@ -257,6 +280,10 @@ overall JSON blob.
 
 ```json
 "smoke": {
+  "source": {
+      "file_name": "/../tests/suite-something.txt",
+      "line_number": 1
+  },
   "configuration": {
       "thread_pool_count": 1,
       "stats_log_interval": 2,
@@ -295,6 +322,8 @@ overall JSON blob.
 
 A summary of the various fields and blobs are as follows:
 
+- `source`
+  - the source suite file and line number within that file that generated this blob
 - `configuration`
   - a summary of the relevant fields in the `incubator.conf` file
 - `iteration`
@@ -339,6 +368,10 @@ In each case, the ellipses is replaced by 0 or more data objects.
 
 ```json
     "smoke": {
+        "source": {
+            "file_name": "/../tests/suite-something.txt",
+            "line_number": 2
+        },
         "iterations": [
             1023,
             ...
@@ -616,7 +649,7 @@ code.  As a contrast, the analyzers will provide errors when an analyzer rule ha
 been violated.  To proceed to get a clean analysis by this script, any returned
 errors need to be addressed by fixing or suppression before it will continue.
 
-In addition to executing this script on its won, the command line `./build.sh --lint`
+In addition to executing this script on its own, the command line `./build.sh --lint`
 can be used to automatically execute this script after a successful build has completed.
 
 The currently implemented formatters and analyzers are:

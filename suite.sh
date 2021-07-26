@@ -191,6 +191,7 @@ install_and_build_cleanly() {
     broadcast_message "$SUITE_MODE" "Installing test suite project in temporary directory."
 
     # Remove any existing directory.
+    # shellcheck disable=SC2153
     if ! rm -rf "$TEST_DIRECTORY"; then
         complete_process 1 "Suite script failed to remove the '$(realpath "$TEST_DIRECTORY")' directory."
     fi
@@ -245,6 +246,27 @@ execute_single_test() {
     if [ -n "$REPEAT_NUMBER" ] ; then
         SUITE_TEST_DIRECTORY="$SUITE_TEST_DIRECTORY"_"$REPEAT_NUMBER"
     fi
+    if [ -d "$SUITE_TEST_DIRECTORY" ] ; then
+        MAX_ATTEMPTS=99
+        FINAL_DIRECTORY=
+        for (( DIRECTORY_SUFFIX_INDEX=1; DIRECTORY_SUFFIX_INDEX<=MAX_ATTEMPTS; DIRECTORY_SUFFIX_INDEX++ ))
+          do
+            NEXT_DIRECTORY="${SUITE_TEST_DIRECTORY}__$DIRECTORY_SUFFIX_INDEX"
+            if [ ! -d "$NEXT_DIRECTORY" ] ; then
+                FINAL_DIRECTORY=$NEXT_DIRECTORY
+                break
+            fi
+          done
+
+        if [ "$MAX_ATTEMPTS" -eq "$DIRECTORY_SUFFIX_INDEX" ] ; then
+            complete_process 1 "Failed to find a results directory for '$SUITE_TEST_DIRECTORY' test."
+        fi
+        SUITE_TEST_DIRECTORY=$FINAL_DIRECTORY
+    fi
+
+    # Make sure to record the eventual directory that we used so we can summarize it more effectively.
+    echo "$SUITE_TEST_DIRECTORY" >> "$EXECUTE_MAP_FILE"
+
     if ! mkdir "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Suite script cannot create suite test directory '$(realpath "$SUITE_TEST_DIRECTORY")' prior to test execution."
@@ -278,10 +300,13 @@ execute_suite_test() {
         fi
         broadcast_message "" "Executing suite test: $NEXT_TEST_NAME with $NUMBER_OF_REPEATS repeats."
 
+        # Make sure to record the suite so we can summarize it more effectively.
+        echo "Suite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
         for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
           do
             execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
           done
+        echo "EndSuite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
     else
         execute_single_test "$NEXT_TEST_NAME"
     fi
@@ -297,6 +322,7 @@ source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
+EXECUTE_MAP_FILE=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/map.txt
 
 # Set up any local script variables.
 PAUSE_IN_SECONDS_BEFORE_NEXT_TEST=15
