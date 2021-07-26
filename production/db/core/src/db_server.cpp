@@ -684,7 +684,7 @@ void server_t::init_memory_manager()
     register_object_deallocator(deallocate_object_fn);
 }
 
-// Initialize indexes
+// Initialize indexes.
 void server_t::init_indexes()
 {
     // Noop if persistence is not enabled.
@@ -723,6 +723,16 @@ void server_t::init_indexes()
             }
         }
     }
+}
+
+// Update indexes from s_log.
+void server_t::update_indexes_from_log()
+{
+    ASSERT_PRECONDITION(s_log != nullptr, "Logs not initialized.");
+
+    create_local_snapshot(true);
+    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+    index::index_builder_t::update_indexes_from_logs(*s_log, s_server_conf.skip_catalog_integrity_checks());
 }
 
 address_offset_t server_t::allocate_object(
@@ -2468,6 +2478,12 @@ bool server_t::txn_commit()
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
+
+    // Update in-memory shared indexes.
+    if (is_committed)
+    {
+        update_indexes_from_log();
+    }
 
     // Update the txn metadata with our commit decision.
     txn_metadata_t::update_txn_decision(commit_ts, is_committed);

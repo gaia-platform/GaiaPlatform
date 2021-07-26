@@ -267,7 +267,7 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool sk
             continue;
         }
 
-        for (auto index : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
             index::index_builder_t::update_index(index.id(), obj_type, log_record);
         }
