@@ -269,6 +269,10 @@ TEST(bitmap, set_get_find_bitarray_element)
 
     size_t found_bit_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_value, c_element_width);
     ASSERT_EQ(found_bit_index, c_bitarray_index);
+
+    // Stop the search just before the sought element.
+    found_bit_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_value, c_element_width, c_bitarray_index - 1);
+    ASSERT_EQ(found_bit_index, c_max_bit_index);
 }
 
 TEST(bitmap, conditional_set_bitarray_element)

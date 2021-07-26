@@ -67,7 +67,7 @@ void validate_bitmap_parameters(
 void validate_bit_index(
     size_t bitmap_word_size, size_t bit_index)
 {
-    ASSERT_PRECONDITION(bit_index < bitmap_word_size * c_uint64_bit_count, "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
+    ASSERT_PRECONDITION(bit_index < (bitmap_word_size * c_uint64_bit_count), "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
 }
 
 void find_bit_word_and_mask(
@@ -253,25 +253,24 @@ size_t find_first_unset_bit(
 
 size_t find_first_bitarray_element(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, uint64_t element_value,
-    size_t element_width, size_t end_limit_bit_index)
+    size_t element_width, size_t end_limit_bitarray_index)
 {
     validate_bitmap_parameters(bitmap, bitmap_word_size);
-
-    // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
-    if (end_limit_bit_index == c_max_bit_index)
-    {
-        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count - 1;
-    }
-    else
-    {
-        validate_bit_index(bitmap_word_size, end_limit_bit_index);
-    }
 
     // The element width must divide the word length, i.e. it must be a power of 2 <= 64.
     ASSERT_PRECONDITION((element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0), "Bitarray element width must divide word size!");
 
     // The element value must fit in the element width.
     ASSERT_PRECONDITION(element_value < (1ULL << element_width), "Bitarray element value must fit in element width!");
+
+    // If no limit bit index was provided, set the limit to the last bitarray index in the bitmap.
+    if (end_limit_bitarray_index == c_max_bit_index)
+    {
+        end_limit_bitarray_index = bitmap_word_size * (c_uint64_bit_count / element_width) - 1;
+    }
+
+    size_t end_limit_bit_index = (end_limit_bitarray_index + 1) * element_width - 1;
+    validate_bit_index(bitmap_word_size, end_limit_bit_index);
 
     size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
     size_t end_bit_index_within_word = end_limit_bit_index % c_uint64_bit_count;
@@ -314,7 +313,7 @@ size_t find_first_bitarray_element(
         }
     }
 
-    return (c_max_bit_index / element_width);
+    return c_max_bit_index;
 }
 
 uint64_t get_bitarray_element_at_index(

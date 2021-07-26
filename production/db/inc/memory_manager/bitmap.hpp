@@ -58,11 +58,11 @@ size_t find_first_unset_bit(
 
 // Find the first occurrence of a bitarray element
 // and return the bitarray index of this occurrence.
-// end_limit_bit_index can limit the search to a prefix of a large bitmap. If
-// end_limit_bit_index is not set, we'll search the entire bitmap.
+// end_limit_bitarray_index can limit the search to a prefix of a large bitmap. If
+// end_limit_bitarray_index is not set, we'll search the entire bitmap.
 size_t find_first_bitarray_element(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, uint64_t element_value,
-    size_t element_width, size_t end_limit_bit_index = c_max_bit_index);
+    size_t element_width, size_t end_limit_bitarray_index = c_max_bit_index);
 
 // Read a bitarray element with given width at the given bitarray index.
 uint64_t get_bitarray_element_at_index(
