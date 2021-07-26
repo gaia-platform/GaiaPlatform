@@ -1431,6 +1431,10 @@ void update_expression_explicit_path_data(
             else
             {
                 string first_component = get_table_from_expression(data.path_components.front());
+                if (data.tag_table_map.find(first_component) != data.tag_table_map.end())
+                {
+                    data.skip_implicit_path_generation = true;
+                }
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
                     data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
