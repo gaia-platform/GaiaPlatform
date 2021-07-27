@@ -53,11 +53,11 @@ protected:
     static common::gaia_id_t get_iterator_value(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
     static bool advance_iterator(std::shared_ptr<edc_base_iterator_state_t> iterator_state);
 
-    static common::gaia_id_t get_reference(common::gaia_id_t id, size_t slot);
+    static common::gaia_id_t get_reference(common::gaia_id_t id, common::reference_offset_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);
     static void update(common::gaia_id_t id, size_t data_size, const void* data);
-    static void insert_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
-    static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, size_t child_slot);
+    static void insert_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, common::reference_offset_t child_slot);
+    static void remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, common::reference_offset_t child_slot);
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
 };

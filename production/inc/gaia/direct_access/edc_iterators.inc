@@ -106,7 +106,7 @@ edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() con
     std::shared_ptr<edc_base_iterator_state_t> iterator_state
         = edc_db_t::initialize_iterator(container_type_id);
 
-    gaia::common::gaia_id_t id = common::c_invalid_gaia_id;
+    gaia::common::gaia_id_t id;
     while ((id = edc_db_t::get_iterator_value(iterator_state)) != common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
@@ -152,14 +152,14 @@ size_t edc_container_t<container_type_id, T_class>::size() const
 // Implementation for edc_set_iterator_t.
 //
 template <typename T_child>
-edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset)
+edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, common::reference_offset_t next_offset)
     : m_next_offset(next_offset)
 {
     m_child_obj = T_child::get(id);
 }
 
 template <typename T_child>
-edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset)
+edc_set_iterator_t<T_child>::edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, common::reference_offset_t next_offset)
     : m_filter_fn(filter_function)
     , m_next_offset(next_offset)
 {
@@ -270,8 +270,7 @@ reference_chain_container_t<T_child>::where(std::function<bool(const T_child&)> 
 template <typename T_child>
 edc_set_iterator_t<T_child> reference_chain_container_t<T_child>::end() const
 {
-    // REVIEW: replace the second argument with a constant.
-    return edc_set_iterator_t<T_child>(gaia::common::c_invalid_gaia_id, 0);
+    return edc_set_iterator_t<T_child>(gaia::common::c_invalid_gaia_id, common::c_invalid_reference_offset);
 }
 
 template <typename T_child>

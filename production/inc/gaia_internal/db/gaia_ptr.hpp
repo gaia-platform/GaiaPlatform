@@ -53,7 +53,7 @@ public:
     static gaia_ptr_t create(
         common::gaia_id_t id,
         common::gaia_type_t type,
-        size_t num_refs,
+        common::reference_offset_t num_refs,
         size_t data_size,
         const void* data);
 
@@ -77,7 +77,7 @@ public:
     inline char* data() const;
     inline size_t data_size() const;
     inline common::gaia_id_t* references() const;
-    inline size_t num_references() const;
+    inline common::reference_offset_t num_references() const;
 
     db_object_t* to_ptr() const;
     gaia_offset_t to_offset() const;
