@@ -244,6 +244,35 @@ void dump_db_json()
     commit_transaction();
 }
 
+bool g_is_measured_duration_timer_on;
+bool g_have_measurement;
+std::chrono::high_resolution_clock::time_point g_measured_duration_start_mark;
+std::chrono::duration<double, std::milli> g_measured_duration_in_ms;
+
+void toggle_measurement(bool is_live_user)
+{
+    if (!g_is_measured_duration_timer_on)
+    {
+        if (is_live_user)
+        {
+            printf("Measurement toggled on.");
+        }
+        g_is_measured_duration_timer_on = true;
+        g_measured_duration_start_mark = std::chrono::high_resolution_clock::now();
+    }
+    else
+    {
+        auto measured_duration_end_mark = std::chrono::high_resolution_clock::now();
+        g_is_measured_duration_timer_on = false;
+        g_have_measurement = true;
+        if (is_live_user)
+        {
+            printf("Measurement toggled off.");
+        }
+        g_measured_duration_in_ms = measured_duration_end_mark - g_measured_duration_start_mark;
+    }
+}
+
 float calc_new_temp(float curr_temp, float fan_speed)
 {
     const int c_fan_speed_step = 500;
@@ -491,6 +520,7 @@ public:
     static constexpr char c_cmd_print_state = 'p';
     static constexpr char c_cmd_print_state_json = 'j';
     static constexpr char c_cmd_manage_incubators = 'm';
+    static constexpr char c_cmd_on_off = 'o';
     static constexpr char c_cmd_wait = 'w';
     static constexpr char c_cmd_comment = '#';
     static constexpr char c_cmd_quit = 'q';
@@ -546,6 +576,7 @@ public:
             }
             printf("(%c) | list rules\n", c_cmd_list_rules);
             printf("(%c) | disable rules\n", c_cmd_disable_rules);
+            printf("(%c) | toggle measurement on and off\n", c_cmd_on_off);
             printf("(%c) | re-enable rules\n", c_cmd_reenable_rules);
             printf("(%c) | print current state as raw\n", c_cmd_print_state);
             printf("(%c) | print current state as json\n", c_cmd_print_state_json);
@@ -599,6 +630,9 @@ public:
                 break;
             case c_cmd_print_state_json:
                 dump_db_json();
+                break;
+            case c_cmd_on_off:
+                toggle_measurement(is_live_user);
                 break;
             case c_cmd_quit:
                 if (g_in_simulation)
@@ -904,9 +938,19 @@ public:
             sleep(c_sleep_time_in_seconds_after_stop);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+
+            const int c_measured_buffer_size = 100;
+            char measured_buffer[c_measured_buffer_size];
+            measured_buffer[0] = '\0';
+            if (g_have_measurement)
+            {
+                double measured_in_secs = g_measured_duration_in_ms.count() / c_milliseconds_in_second;
+                snprintf(measured_buffer, sizeof(measured_buffer), ", \"measured_in_sec\" : %.9f", measured_in_secs);
+            }
+
             printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, "
-                   "\"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f }\n",
-                   ms_double.count() / c_milliseconds_in_second, last_known_timestamp, g_total_wait_time / c_milliseconds_in_second, g_total_print_time / c_milliseconds_in_second);
+                   "\"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f%s }\n",
+                   ms_double.count() / c_milliseconds_in_second, last_known_timestamp, g_total_wait_time / c_milliseconds_in_second, g_total_print_time / c_milliseconds_in_second, measured_buffer);
         }
         return EXIT_SUCCESS;
     }

@@ -197,12 +197,16 @@ install_and_build_cleanly() {
     fi
 
     # Install a clean version into that directory.
-    echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
+    fi
     if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
         complete_process 1 "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
     fi
-    echo "Suite script installed the project into directory '$(realpath "$TEST_DIRECTORY")'."
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script installed the project into directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
     if ! pushd "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         echo "Suite script cannot push directory to '$(realpath "$TEST_DIRECTORY")'."
@@ -212,12 +216,16 @@ install_and_build_cleanly() {
     broadcast_message "$SUITE_MODE" "Building test suite project in temporary directory."
 
     # Build the executable, tracking any build information for later examination.
-    echo "Suite script building the project in directory '$(realpath "$TEST_DIRECTORY")'..."
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script building the project in directory '$(realpath "$TEST_DIRECTORY")'..."
+    fi
     if ! ./build.sh -v  > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt" 2>&1 ; then
         cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt"
         complete_process 1 "Suite script failed to build the project in directory '$(realpath "$TEST_DIRECTORY")'."
     fi
-    echo "Suite script built the project in directory '$(realpath "$TEST_DIRECTORY")'."
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script built the project in directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
 
     if ! popd > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
@@ -290,6 +298,8 @@ execute_single_test() {
 # Execute a test within the test suite.
 execute_suite_test() {
     local NEXT_TEST_NAME=$1
+    # shellcheck disable=SC2116
+    NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
     SUB="^(.*) repeat ([0-9]+)$"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
@@ -352,6 +362,7 @@ for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
     execute_suite_test "$NEXT_TEST_NAME"
 done
 
+broadcast_message "$SUITE_MODE" "Testing of the test suite completed.  Summarizing suite results."
 if ! ./python/summarize_results.py "$SUITE_FILE_NAME"; then
     complete_process 1 "Summarizing the results failed."
 fi

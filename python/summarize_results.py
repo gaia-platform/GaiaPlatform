@@ -35,6 +35,8 @@ ITERATIONS_TITLE = "iterations"
 RETURN_CODE_TITLE = "return-code"
 TEST_DURATION_TITLE = "test-duration-sec"
 ITERATION_DURATION_TITLE = "iteration-duration-sec"
+MEASURED_DURATION_TITLE = "measured-duration-sec"
+PER_MEASURED_DURATION_TITLE = "iteration-measured-duration-sec"
 TOTAL_DURATION_TITLE = "duration-sec"
 PAUSE_DURATION_TITLE = "stop-pause-sec"
 WAIT_DURATION_TITLE = "wait-pause-sec"
@@ -247,7 +249,17 @@ def load_output_timing_files(base_dir):
         total_wait_data = data["total_wait_in_sec"]
         total_print_data = data["total_print_in_sec"]
 
-    return stop_pause_data, iterations_data, total_wait_data, total_print_data
+        measured_section_data = None
+        if "measured_in_sec" in data:
+            measured_section_data = data["measured_in_sec"]
+
+    return (
+        stop_pause_data,
+        iterations_data,
+        total_wait_data,
+        total_print_data,
+        measured_section_data,
+    )
 
 
 def load_test_result_files(suite_test_directory):
@@ -270,6 +282,7 @@ def load_test_result_files(suite_test_directory):
         iterations_data,
         total_wait_data,
         total_print_data,
+        measured_section_data,
     ) = load_output_timing_files(base_dir)
 
     stats_data = process_rules_engine_stats(base_dir)
@@ -284,6 +297,7 @@ def load_test_result_files(suite_test_directory):
         iterations_data,
         total_wait_data,
         total_print_data,
+        measured_section_data,
         configuration_data,
     )
 
@@ -301,6 +315,7 @@ def load_results_for_test(suite_test_directory, source_info):
         iterations_data,
         total_wait_data,
         total_print_data,
+        measured_section_data,
         configuration_data,
     ) = load_test_result_files(suite_test_directory)
 
@@ -321,9 +336,18 @@ def load_results_for_test(suite_test_directory, source_info):
         - new_results[WAIT_DURATION_TITLE]
         - new_results[PRINT_DURATION_TITLE]
     )
-    new_results[ITERATION_DURATION_TITLE] = new_results[TEST_DURATION_TITLE] / float(
-        new_results[ITERATIONS_TITLE]
-    )
+    if new_results[ITERATIONS_TITLE] > 0:
+        new_results[ITERATION_DURATION_TITLE] = new_results[
+            TEST_DURATION_TITLE
+        ] / float(new_results[ITERATIONS_TITLE])
+
+    if measured_section_data:
+        new_results[MEASURED_DURATION_TITLE] = measured_section_data
+        if new_results[ITERATIONS_TITLE] > 0:
+            new_results[PER_MEASURED_DURATION_TITLE] = measured_section_data / float(
+                new_results[ITERATIONS_TITLE]
+            )
+
     new_results[RULES_ENGINE_TITLE] = stats_data
     return new_results
 
@@ -339,7 +363,10 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     main_dictionary[ITERATIONS_TITLE] = []
     main_dictionary[RETURN_CODE_TITLE] = []
     main_dictionary[TEST_DURATION_TITLE] = []
+    main_dictionary[MEASURED_DURATION_TITLE] = []
+
     main_dictionary[ITERATION_DURATION_TITLE] = []
+    main_dictionary[PER_MEASURED_DURATION_TITLE] = []
 
     totals = {}
     totals[SCHEDULED_TITLE] = []
@@ -368,35 +395,45 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
         map_line_index += 1
         new_results = load_results_for_test(recorded_name, None)
 
-        main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
-        main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
-        main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
-        main_dictionary[ITERATION_DURATION_TITLE].append(
-            new_results[ITERATION_DURATION_TITLE]
-        )
-
-        test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
-        totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
-        totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
-        totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
-        totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
-        totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
-        totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
-
-        test_calculations = new_results[RULES_ENGINE_TITLE][
-            RULES_ENGINE_CALCULATIONS_TITLE
-        ]
-        calculations[AVERAGE_LATENCY_TITLE].append(
-            test_calculations[AVERAGE_LATENCY_TITLE]
-        )
-        calculations[MAXIMUM_LATENCY_TITLE].append(
-            test_calculations[MAXIMUM_LATENCY_TITLE]
-        )
-        calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
-        calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
+        add_individual_test_results(main_dictionary, new_results, totals, calculations)
 
         test_runs[recorded_name] = new_results
     return main_dictionary, map_line_index
+
+
+def add_individual_test_results(main_dictionary, new_results, totals, calculations):
+    """
+    Add the approriate fields to the main aggregation list for that field.
+    """
+
+    main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
+    main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
+    main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
+    main_dictionary[MEASURED_DURATION_TITLE].append(
+        new_results[MEASURED_DURATION_TITLE]
+    )
+    if ITERATION_DURATION_TITLE in new_results:
+        main_dictionary[ITERATION_DURATION_TITLE].append(
+            new_results[ITERATION_DURATION_TITLE]
+        )
+    if PER_MEASURED_DURATION_TITLE in new_results:
+        main_dictionary[PER_MEASURED_DURATION_TITLE].append(
+            new_results[PER_MEASURED_DURATION_TITLE]
+        )
+
+    test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
+    totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
+    totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
+    totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
+    totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
+    totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
+    totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
+
+    test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
+    calculations[AVERAGE_LATENCY_TITLE].append(test_calculations[AVERAGE_LATENCY_TITLE])
+    calculations[MAXIMUM_LATENCY_TITLE].append(test_calculations[MAXIMUM_LATENCY_TITLE])
+    calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
+    calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
 
 def load_scenario_file():

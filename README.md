@@ -298,6 +298,8 @@ overall JSON blob.
   "print-duration-sec": 0.326038276,
   "test-duration-sec": 0.4688067220000003,
   "iteration-duration-sec": 0.0004582665904203326,
+  "measured-duration-sec": 0.2902219,
+  "iteration-measured-duration-sec": 0.000283696871945259,
   "rules-engine-stats": {
       "slices": [
         ...
@@ -352,6 +354,14 @@ A summary of the various fields and blobs are as follows:
 - `iteration-duration-sec`
   - `test-duration-sec` divided by `iteration`
   - approximation of the run time of a single step within the test
+  - this field will not appear if no steps were reported in the `iteration` field
+- `measured-duration-sec`
+  - optional field triggered by use of the [Toggling Measurements On and Off](#toggling-measurements-on-and-off) command
+  - duration that occurred between the measurement being toggled on and off
+- `iteration-measured-duration-sec`
+  - optional field triggered by use of the [Toggling Measurements On and Off](#toggling-measurements-on-and-off) command
+  - approximation of the time of a single step within the measurement
+  - this field will not appear if no steps were reported in the `iteration` field
 - `rules-engine-stats.slices`
   - raw slices harvested from `gaia_stats.log`
 - `totals.*`
@@ -470,6 +480,25 @@ to be executed.  This file is the redirected into the `run.sh` script as part
 of the test itself.  Each command in that file is simply the same command that
 would be entered if the user were interacting with the incubator application
 directly.
+
+#### Toggling Measurements On and Off
+
+The `o`/`toggle measurement on and off` command toggles the capturing of
+the duration measurement on and off.  While the framework currently only supports
+the capturing of a single measurement, that single measurement can be used to
+great effect.  Normally, the most accurate scope that is recorded and reported
+on is the `test-duration-sec` field of the JSON blobs (see above).  This is a
+field calculated by taking the `duration-sec` field and subtracting the
+`stop-pause-sec` field, the `wait-pause-sec` field, and the `print-duration-sec`
+field.
+
+As those are all high level measurements, taken over the entire
+debug script, and they might not provide the required accuracy.  That is where
+these commands can be used to provide that accuracy.  By toggling the measurement
+on before the interested area in the script and off when it has completed, the
+measurement is focused only on that one area of the script.  Once toggled off,
+that duration will be reported in the `measured-duration-sec` field of the
+`summary.json` file, along with its `iteration-measured-duration-sec` measurement.
 
 #### Step Commands
 
