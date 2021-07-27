@@ -77,6 +77,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
+static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -684,53 +685,55 @@ void server_t::init_memory_manager()
     register_object_deallocator(deallocate_object_fn);
 }
 
-// Initialize indexes.
+// Initialize indexes on startup.
 void server_t::init_indexes()
 {
     // Noop if persistence is not enabled.
-    if (s_server_conf.persistence_mode() != server_config_t::persistence_mode_t::e_disabled)
+    if (s_server_conf.persistence_mode() == server_config_t::persistence_mode_t::e_disabled)
     {
-        auto cleanup = make_scope_guard([]() { end_startup_txn(); });
-        // Allocate new txn id for initializing indexes.
-        begin_startup_txn();
+        return;
+    }
 
-        gaia_locator_t locator = 0;
-        gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+    auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+    // Allocate new txn id for initializing indexes.
+    begin_startup_txn();
 
-        std::cout << "Building indexes.." << std::endl;
+    gaia_locator_t locator = c_invalid_gaia_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
-        while (++locator && locator <= last_locator)
+    while (++locator && locator <= last_locator)
+    {
+        auto obj = locator_to_ptr(locator);
+
+        // Skip system objects -- they are not indexed.
+        if (obj->type >= c_system_table_reserved_range_start)
         {
-            auto obj = locator_to_ptr(locator);
+            continue;
+        }
 
-            // Skip system tables -- they are not indexed.
-            if (obj->type >= c_system_table_reserved_range_start)
-            {
-                continue;
-            }
+        gaia_id_t type_record_id
+            = type_id_mapping_t::instance().get_record_id(obj->type);
 
-            gaia_id_t type_record_id
-                = type_id_mapping_t::instance().get_record_id(obj->type);
+        if (type_record_id == c_invalid_gaia_id)
+        {
+            throw invalid_type(obj->type);
+        }
 
-            if (type_record_id == c_invalid_gaia_id)
-            {
-                throw invalid_type(obj->type);
-            }
-
-            for (auto idx : catalog_core_t::list_indexes(type_record_id))
-            {
-                index::index_builder_t::populate_index(idx.id(), obj->type, locator);
-            }
+        for (auto idx : catalog_core_t::list_indexes(type_record_id))
+        {
+            index::index_builder_t::populate_index(idx.id(), obj->type, locator);
         }
     }
 }
 
-// Update indexes from s_log.
+// On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_log()
 {
-    ASSERT_PRECONDITION(s_log != nullptr, "Logs not initialized.");
+    ASSERT_PRECONDITION(s_log != nullptr, c_message_uninitialized_txn_log);
 
-    create_local_snapshot(true);
+    bool replay_logs = true;
+
+    create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
     index::index_builder_t::update_indexes_from_logs(*s_log, s_server_conf.skip_catalog_integrity_checks());
 }
@@ -2556,6 +2559,8 @@ void server_t::run(server_config_t server_conf)
         s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
+        // init_shared_memory() needs to be here after txn_metadata initialization because
+        // the metadata is required for the startup txn and local snapshots.
         init_shared_memory();
 
         // Launch thread to listen for client connections and create session threads.
