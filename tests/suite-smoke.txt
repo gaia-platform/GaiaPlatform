@@ -1,7 +1,2 @@
 smoke
 smoke-time-only
-smoke-test
-smoke-test repeat 2
-smoke-no-steps
-smoke-no-steps repeat 2
-Smoke
