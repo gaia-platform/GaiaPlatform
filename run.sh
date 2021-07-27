@@ -163,16 +163,22 @@ handle_auto_build() {
 create_configuration_file() {
 
     local CONFIG_PATH=
+    CONFIGURATION_PATH=$(realpath "incubator.conf")
+
     if [ -z "$CONFIG_FILE" ]; then
         echo "No configuration file specified.  Generating gaia configuation file with default values."
+        ./python/generate_config.py
+        DID_FAIL=$?
     else
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
+
+        ./python/generate_config.py "$CONFIG_PATH"
+        DID_FAIL=$?
     fi
 
-    CONFIGURATION_PATH=$(realpath "incubator.conf")
-    if ! ./python/generate_config.py "$CONFIG_PATH"; then
-        echo "Generating gaia configuration file failed."
+    if [ $DID_FAIL -ne 0 ]; then
+        echo "Generating gaia configuration file '$CONFIGURATION_PATH' failed."
         complete_process 1
     else
         echo "Gaia configuration file '$CONFIGURATION_PATH' generated."

@@ -929,6 +929,7 @@ public:
             printf("]\n");
         }
         stop();
+        if (!is_live_user)
         {
             using std::chrono::duration;
             using std::chrono::high_resolution_clock;

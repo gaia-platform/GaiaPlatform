@@ -4,3 +4,4 @@ logs/*
 test-results/*
 suite-results/*
 Pipfile.lock
+incubator.conf
