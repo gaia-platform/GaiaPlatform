@@ -20,21 +20,23 @@ namespace gaia
 {
 namespace db
 {
-
+namespace persistence
+{
 enum class decision_type_t : uint8_t
 {
-    not_set = 0,
+    undecided = 0,
     commit = 1,
     abort = 2,
 };
 
 struct decision_entry_t
 {
-    gaia_txn_id_t txn_commit_ts;
+    gaia_txn_id_t commit_ts;
     decision_type_t decision;
 };
 
 typedef std::vector<decision_entry_t> decision_list_t;
 
+} // namespace persistence
 } // namespace db
 } // namespace gaia

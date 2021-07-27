@@ -115,7 +115,7 @@ target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 
 add_library(gaia_db_persistence STATIC
   src/io_uring_wrapper.cpp
-  src/persistent_log_file.cpp)
+  src/log_file.cpp)
 target_link_libraries(gaia_db_persistence PUBLIC gaia_build_options)
 target_include_directories(gaia_db_persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
