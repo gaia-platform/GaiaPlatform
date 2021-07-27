@@ -21,6 +21,7 @@
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
+#include "qp_operator.hpp"
 
 namespace gaia
 {
@@ -48,6 +49,8 @@ class client_t
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+
+    friend class gaia::qp::physical_operator_t;
 
 public:
     static inline bool is_transaction_open();

@@ -156,6 +156,8 @@ public:
      */
     void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
+    void set_locator(gaia_locator_t locator);
+
 protected:
     gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);
 
