@@ -22,10 +22,3 @@ enum class test_error_result_t
     e_tag_implicit_mismatch,
     e_tag_anchor_mismatch
 };
-
-// Test helpers
-namespace rule_test_helpers
-{
-bool wait_for_rule(bool& rule_called);
-bool wait_for_rule(std::atomic<int32_t>& count_times, int32_t expected_count);
-} // namespace rule_test_helpers

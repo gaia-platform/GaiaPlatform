@@ -23,8 +23,8 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
-#include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "schema_loader.hpp"
 

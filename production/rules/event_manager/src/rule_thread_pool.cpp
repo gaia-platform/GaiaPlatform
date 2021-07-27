@@ -44,10 +44,10 @@ rule_thread_pool_t::~rule_thread_pool_t()
     shutdown();
 }
 
-void rule_thread_pool_t::wait_for_rules_to_finish()
+void rule_thread_pool_t::wait_for_rules_to_complete()
 {
     unique_lock lock(m_lock, defer_lock);
-    wait_for_rules_to_finish(lock);
+    wait_for_rules_to_complete(lock);
     lock.unlock();
 }
 
@@ -55,7 +55,7 @@ void rule_thread_pool_t::wait_for_rules_to_finish()
 //
 // TODO[GAIAPLAT-1020]: Add a configuration setting to limit the time
 // we will wait for all rules to execute.
-void rule_thread_pool_t::wait_for_rules_to_finish(std::unique_lock<std::mutex>& lock)
+void rule_thread_pool_t::wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock)
 {
     while (true)
     {
@@ -84,7 +84,7 @@ void rule_thread_pool_t::shutdown()
     // Wait for the currently executing rules "graph" to finish executing.  This will
     // drain the work queues of any rules executing AND any rules that these rules
     // may trigger.
-    wait_for_rules_to_finish(lock);
+    wait_for_rules_to_complete(lock);
 
     m_exit = true;
     lock.unlock();

@@ -10,6 +10,7 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
@@ -21,7 +22,6 @@ using namespace gaia::prerequisites::registration_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace rule_test_helpers;
 
 extern bool g_oninsert_called;
 extern bool g_oninsert2_called;
@@ -239,7 +239,8 @@ TEST_F(test_queries_code, basic_implicit_navigation)
     sw.update_row();
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(S:student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(S:student) not called";
     // Expected value is hours of math201 (4) plus sci101 (3).
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
@@ -262,7 +263,9 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     rw.update_row();
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(registration) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(registration) not called";
+
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
@@ -305,9 +308,11 @@ TEST_F(test_queries_code, new_registration)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_insert_count, num_inserts))
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    EXPECT_EQ(g_insert_count, num_inserts)
         << "OnInsert(registration) not called '" << num_inserts << "'times.";
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 }
 
@@ -327,7 +332,8 @@ TEST_F(test_queries_code, sum_of_ages)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert2_called)) << "OnInsert(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert2_called) << "OnInsert(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert2_result) << "OnInsert failure";
 
     EXPECT_EQ(g_oninsert2_value, 281) << "Incorrect sum";
@@ -351,7 +357,8 @@ TEST_F(test_queries_code, sum_of_hours)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     EXPECT_EQ(g_oninsert_value, 5) << "Incorrect sum";
@@ -375,7 +382,8 @@ TEST_F(test_queries_code, sum_of_all_hours)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     EXPECT_EQ(g_oninsert_value, 12) << "Incorrect sum";
@@ -399,8 +407,9 @@ TEST_F(test_queries_code, tag_define_use)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(registration) not called";
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(course.hours) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(registration) not called";
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(course.hours) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     // Examinine values. We know the answers already.
@@ -442,7 +451,8 @@ TEST_F(test_queries_code, if_stmt)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     EXPECT_EQ(g_oninsert_value, 0) << "Incorrect result";
@@ -470,8 +480,9 @@ TEST_F(test_queries_code, if_stmt2)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_value, num_updates)) << "OnUpdate(course) not called '" << num_updates << "' times.";
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(course) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_EQ(g_onupdate_value, num_updates) << "OnUpdate(course) not called '" << num_updates << "' times.";
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(course) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_onupdate_value, 5) << "Incorrect result";
@@ -497,7 +508,8 @@ TEST_F(test_queries_code, if_stmt3)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(registration) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(registration) not called";
     EXPECT_EQ(g_onupdate_value, 29) << "OnUpdate(registration) incorrect result";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 }
@@ -522,7 +534,8 @@ TEST_F(test_queries_code, while_stmt)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg001cou002 ") << "Incorrect result";
@@ -547,7 +560,8 @@ TEST_F(test_queries_code, nomatch_stmt)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "found Richard") << "Incorrect result";
@@ -570,7 +584,8 @@ TEST_F(test_queries_code, nomatch_stmt2)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
@@ -595,7 +610,8 @@ TEST_F(test_queries_code, nomatch_stmt3)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnUpdate(registration) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnUpdate(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "correct nomatch") << "Incorrect result";
@@ -618,7 +634,8 @@ TEST_F(test_queries_code, nomatch_stmt4)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnUpdate(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnUpdate(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnUpdate failure";
 
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
@@ -647,7 +664,8 @@ TEST_F(test_queries_code, nomatch_function_query)
 
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
 
     EXPECT_EQ(g_string_value, "4C3 ") << "Incorrect result";
