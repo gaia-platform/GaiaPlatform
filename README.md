@@ -395,6 +395,43 @@ under the `individual` field is the identifier used to identify which rule is be
 summarized beneath it.  This field is the line number in the related `*.ruleset` file,
 with each measurement underneath it.
 
+```json
+"rules-engine-stats": {
+    "slices": [
+        {
+            "thread-load-percent": 5.32,
+            "scheduled": 1237,
+            "invoked": 1237,
+            "pending": 0,
+            "abandoned": 0,
+            "retry": 0,
+            "exception": 0,
+            "avg-latency-ms": 0.18,
+            "max-latency-ms": 1.88,
+            "avg-exec-ms": 0.01,
+            "max-exec-ms": 0.11,
+            "individual": {
+                "[25]": {
+                    "rule-line-number": "[25]",
+                    "rule-additional-name": "incubator_ruleset::1_sen~",
+                    "scheduled": 1182,
+                    "invoked": 1182,
+                    "pending": 0,
+                    "abandoned": 0,
+                    "retry": 0,
+                    "exception": 0,
+                    "avg-latency-ms": 0.18,
+                    "max-latency-ms": 1.39,
+                    "avg-exec-ms": 0.01,
+                    "max-exec-ms": 0.11
+                },
+                ...
+            }
+        }
+    ]
+}
+```
+
 #### Group Test JSON Blob
 
 For a group of single tests, repeated `smoke` tests for example, the output will look something
