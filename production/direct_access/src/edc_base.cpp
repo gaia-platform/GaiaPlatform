@@ -130,7 +130,7 @@ bool edc_db_t::get_type(gaia_id_t id, gaia_type_t& type)
     return false;
 }
 
-gaia_id_t edc_db_t::get_reference(gaia_id_t id, size_t slot)
+gaia_id_t edc_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 {
     gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
     return gaia_ptr.references()[slot];
@@ -164,7 +164,7 @@ void edc_db_t::update(gaia_id_t id, size_t data_size, const void* data)
     gaia_ptr.update_payload(data_size, data);
 }
 
-void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot)
+void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
@@ -175,7 +175,7 @@ void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, s
     parent.add_child_reference(child_id, child_slot);
 }
 
-void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot)
+void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)

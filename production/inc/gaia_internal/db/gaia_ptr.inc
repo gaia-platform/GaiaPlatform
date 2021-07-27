@@ -64,7 +64,7 @@ common::gaia_id_t* gaia_ptr_t::references() const
     return const_cast<common::gaia_id_t*>(to_ptr()->references());
 }
 
-size_t gaia_ptr_t::num_references() const
+common::reference_offset_t gaia_ptr_t::num_references() const
 {
     return to_ptr()->num_references;
 }
