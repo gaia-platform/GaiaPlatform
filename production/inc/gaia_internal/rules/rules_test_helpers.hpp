@@ -23,6 +23,8 @@ void commit_trigger(
     const db::triggers::trigger_event_t* trigger_events,
     size_t count_events);
 
+void wait_for_rules();
+
 } // namespace test
 } // namespace rules
 } // namespace gaia
