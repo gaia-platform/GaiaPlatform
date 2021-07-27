@@ -9,6 +9,11 @@
 
 #include "gaia_internal/common/retail_assert.hpp"
 
+namespace gaia
+{
+namespace common
+{
+
 // This is a reader-writer lock embedded in a single 64-bit word, which uses
 // only lock-free atomic operations, and is therefore suitable for use in shared
 // memory. The semantics are purposefully highly constrained to the needs of the
@@ -63,27 +68,23 @@
 // release_shared->void if (SHARED->SHARED) or (SHARED->FREE) or (SHARED_WITH_EXCLUSIVE_INTENT->SHARED_WITH_EXCLUSIVE_INTENT) or (SHARED_WITH_EXCLUSIVE_INTENT->FREE_WITH_EXCLUSIVE_INTENT) else assert
 // release_exclusive->void if (EXCLUSIVE->FREE) else assert
 
-namespace gaia
-{
-namespace common
-{
 class inline_shared_lock
 {
 public:
-    inline bool is_free();
-    inline bool is_exclusive();
-    inline bool is_shared();
-    inline bool is_free_with_exclusive_intent();
-    inline bool is_shared_with_exclusive_intent();
+    bool is_free();
+    bool is_exclusive();
+    bool is_shared();
+    bool is_free_with_exclusive_intent();
+    bool is_shared_with_exclusive_intent();
 
     // NB: This can succeed when "exclusive intent" has been previously set by a
     // different thread than the caller!
-    inline bool try_acquire_exclusive();
-    inline bool try_acquire_exclusive_intent();
-    inline bool try_acquire_shared();
+    bool try_acquire_exclusive();
+    bool try_acquire_exclusive_intent();
+    bool try_acquire_shared();
 
-    inline void release_exclusive();
-    inline void release_shared();
+    void release_exclusive();
+    void release_shared();
 
     // NB: This cannot be used safely in program logic without synchronization,
     // and is intended only for logging/debugging.
@@ -99,17 +100,19 @@ private:
     static constexpr uint64_t c_reader_count_mask{(1ULL << c_reader_count_bits) - 1};
     static constexpr size_t c_reader_count_max{(1ULL << c_reader_count_bits) - 1};
 
+private:
     std::atomic<uint64_t> m_lock_word{c_free_lock};
 
-    inline bool is_valid();
-    inline void check_state();
+private:
+    bool is_valid();
+    void check_state();
 
     // These overloads are necessary to avoid races.
-    static inline bool is_free(uint64_t lock_word);
-    static inline bool is_exclusive(uint64_t lock_word);
-    static inline bool is_shared(uint64_t lock_word);
-    static inline bool is_free_with_exclusive_intent(uint64_t lock_word);
-    static inline bool is_shared_with_exclusive_intent(uint64_t lock_word);
+    static bool is_free(uint64_t lock_word);
+    static bool is_exclusive(uint64_t lock_word);
+    static bool is_shared(uint64_t lock_word);
+    static bool is_free_with_exclusive_intent(uint64_t lock_word);
+    static bool is_shared_with_exclusive_intent(uint64_t lock_word);
 };
 
 #include "inline_shared_lock.inc"

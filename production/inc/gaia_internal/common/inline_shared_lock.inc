@@ -5,62 +5,62 @@
 
 #pragma once
 
-bool inline_shared_lock::is_free(uint64_t lock_word)
+inline bool inline_shared_lock::is_free(uint64_t lock_word)
 {
     return (lock_word == 0);
 }
 
-bool inline_shared_lock::is_exclusive(uint64_t lock_word)
+inline bool inline_shared_lock::is_exclusive(uint64_t lock_word)
 {
     return (lock_word & c_exclusive_mask);
 }
 
-bool inline_shared_lock::is_shared(uint64_t lock_word)
+inline bool inline_shared_lock::is_shared(uint64_t lock_word)
 {
     return !(lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
 }
 
-bool inline_shared_lock::is_free_with_exclusive_intent(uint64_t lock_word)
+inline bool inline_shared_lock::is_free_with_exclusive_intent(uint64_t lock_word)
 {
     return (lock_word & c_exclusive_intent_mask) && !(lock_word & c_reader_count_mask);
 }
 
-bool inline_shared_lock::is_shared_with_exclusive_intent(uint64_t lock_word)
+inline bool inline_shared_lock::is_shared_with_exclusive_intent(uint64_t lock_word)
 {
     return (lock_word & c_exclusive_intent_mask) && (lock_word & c_reader_count_mask);
 }
 
-bool inline_shared_lock::is_free()
+inline bool inline_shared_lock::is_free()
 {
     uint64_t lock_word = m_lock_word.load();
     return is_free(lock_word);
 }
 
-bool inline_shared_lock::is_exclusive()
+inline bool inline_shared_lock::is_exclusive()
 {
     uint64_t lock_word = m_lock_word.load();
     return is_exclusive(lock_word);
 }
 
-bool inline_shared_lock::is_shared()
+inline bool inline_shared_lock::is_shared()
 {
     uint64_t lock_word = m_lock_word.load();
     return is_shared(lock_word);
 }
 
-bool inline_shared_lock::is_free_with_exclusive_intent()
+inline bool inline_shared_lock::is_free_with_exclusive_intent()
 {
     uint64_t lock_word = m_lock_word.load();
     return is_free_with_exclusive_intent(lock_word);
 }
 
-bool inline_shared_lock::is_shared_with_exclusive_intent()
+inline bool inline_shared_lock::is_shared_with_exclusive_intent()
 {
     uint64_t lock_word = m_lock_word.load();
     return is_shared_with_exclusive_intent(lock_word);
 }
 
-bool inline_shared_lock::is_valid()
+inline bool inline_shared_lock::is_valid()
 {
     // All states are mutually exclusive, so exactly one state predicate must be true.
 
@@ -81,22 +81,23 @@ bool inline_shared_lock::is_valid()
     return (predicate_values != 0) && ((predicate_values & (predicate_values - 1)) == 0);
 }
 
-void inline_shared_lock::check_state()
+inline void inline_shared_lock::check_state()
 {
     ASSERT_INVARIANT(is_valid(), "Invalid state for lock word!");
 }
 
-size_t inline_shared_lock::get_reader_count()
+inline size_t inline_shared_lock::get_reader_count()
 {
     size_t reader_count = 0;
-    if (is_shared() || is_shared_with_exclusive_intent())
+    uint64_t lock_word = m_lock_word.load();
+    if (is_shared(lock_word) || is_shared_with_exclusive_intent(lock_word))
     {
-        reader_count = m_lock_word & c_reader_count_mask;
+        reader_count = lock_word & c_reader_count_mask;
     }
     return reader_count;
 }
 
-bool inline_shared_lock::try_acquire_exclusive()
+inline bool inline_shared_lock::try_acquire_exclusive()
 {
     uint64_t lock_word = m_lock_word.load();
     do
@@ -116,7 +117,7 @@ bool inline_shared_lock::try_acquire_exclusive()
     return true;
 }
 
-bool inline_shared_lock::try_acquire_shared()
+inline bool inline_shared_lock::try_acquire_shared()
 {
     uint64_t lock_word = m_lock_word.load();
     uint64_t reader_count;
@@ -146,7 +147,7 @@ bool inline_shared_lock::try_acquire_shared()
     return true;
 }
 
-bool inline_shared_lock::try_acquire_exclusive_intent()
+inline bool inline_shared_lock::try_acquire_exclusive_intent()
 {
     uint64_t lock_word = m_lock_word.load();
     do
@@ -165,7 +166,7 @@ bool inline_shared_lock::try_acquire_exclusive_intent()
     return true;
 }
 
-void inline_shared_lock::release_shared()
+inline void inline_shared_lock::release_shared()
 {
     // We could just use an atomic decrement here, but that would be incorrect
     // if other flags could be concurrently set which would invalidate our
@@ -196,7 +197,7 @@ void inline_shared_lock::release_shared()
     check_state();
 }
 
-void inline_shared_lock::release_exclusive()
+inline void inline_shared_lock::release_exclusive()
 {
     check_state();
     // Allowed state transition: EXCLUSIVE->FREE.
