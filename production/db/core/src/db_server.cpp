@@ -2460,6 +2460,7 @@ bool server_t::txn_commit()
 
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
+    update_indexes_from_log();
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
@@ -2481,12 +2482,6 @@ bool server_t::txn_commit()
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
-
-    // Update in-memory shared indexes.
-    if (is_committed)
-    {
-        update_indexes_from_log();
-    }
 
     // Update the txn metadata with our commit decision.
     txn_metadata_t::update_txn_decision(commit_ts, is_committed);
