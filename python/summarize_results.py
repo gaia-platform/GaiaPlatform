@@ -15,6 +15,7 @@ import configparser
 
 SUITE_DIRECTORY = "suite-results/"
 
+SLICE_NAME_INDEX = 3
 THREAD_LOAD_INDEX = 5
 SCHEDULED_INDEX = 7
 INVOKED_INDEX = 8
@@ -26,6 +27,8 @@ AVERAGE_LATENCY_INDEX = 13
 MAXIMUM_LATENCY_INDEX = 15
 AVERAGE_EXEC_INDEX = 17
 MAXIMUM_EXEC_INDEX = 19
+
+AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA = -2
 
 THREAD_LOAD_TITLE = "thread-load-percent"
 
@@ -46,6 +49,8 @@ TEST_RUNS_TITLE = "test_runs"
 SOURCE_FILE_NAME_TITLE = "file_name"
 SOURCE_LINE_NUMBER_TITLE = "line_number"
 
+INDIVIDUAL_STATS_TITLE = "individual"
+
 RULES_ENGINE_TITLE = "rules-engine-stats"
 RULES_ENGINE_SLICES_TITLE = "slices"
 RULES_ENGINE_TOTALS_TITLE = "totals"
@@ -62,6 +67,9 @@ AVERAGE_LATENCY_TITLE = "avg-latency-ms"
 MAXIMUM_LATENCY_TITLE = "max-latency-ms"
 AVERAGE_EXEC_TITLE = "avg-exec-ms"
 MAXIMUM_EXEC_TITLE = "max-exec-ms"
+
+OBJECT_ID_TITLE = "rule-line-number"
+OBJECT_NAME_TITLE = "rule-additional-name"
 
 
 def calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
@@ -106,6 +114,193 @@ def calculate_average_values(stats_slice, log_line_columns, calculations, title,
     )
 
 
+def process_indivudal_stats_line(log_line_columns, totals, calculations):
+    """
+    Given a line of a gaia_stats.log file that is not an aggregate, break it
+    apart and store the information under the aggregate totals.
+    """
+
+    individual_stats = {}
+    individual_stats[OBJECT_ID_TITLE] = log_line_columns[SLICE_NAME_INDEX]
+    individual_stats[OBJECT_NAME_TITLE] = log_line_columns[SLICE_NAME_INDEX + 1]
+
+    if INDIVIDUAL_STATS_TITLE not in totals:
+        totals[INDIVIDUAL_STATS_TITLE] = {}
+    individual_totals_item = totals[INDIVIDUAL_STATS_TITLE]
+    if individual_stats[OBJECT_ID_TITLE] not in individual_totals_item:
+        individual_totals_item[individual_stats[OBJECT_ID_TITLE]] = {}
+    individual_object_totals_item = individual_totals_item[
+        individual_stats[OBJECT_ID_TITLE]
+    ]
+
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        SCHEDULED_TITLE,
+        SCHEDULED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        INVOKED_TITLE,
+        INVOKED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        PENDING_TITLE,
+        PENDING_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        ABANDONED_TITLE,
+        ABANDONED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        RETRY_TITLE,
+        RETRY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_total_counts(
+        individual_stats,
+        log_line_columns,
+        individual_object_totals_item,
+        EXCEPTION_TITLE,
+        EXCEPTION_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+
+    if INDIVIDUAL_STATS_TITLE not in calculations:
+        calculations[INDIVIDUAL_STATS_TITLE] = {}
+    individual_calculations_item = calculations[INDIVIDUAL_STATS_TITLE]
+    if individual_stats[OBJECT_ID_TITLE] not in individual_calculations_item:
+        individual_calculations_item[individual_stats[OBJECT_ID_TITLE]] = {}
+    individual_object_calculations_item = individual_calculations_item[
+        individual_stats[OBJECT_ID_TITLE]
+    ]
+
+    calculate_average_values(
+        individual_stats,
+        log_line_columns,
+        individual_object_calculations_item,
+        AVERAGE_LATENCY_TITLE,
+        AVERAGE_LATENCY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_maximum_values(
+        individual_stats,
+        log_line_columns,
+        individual_object_calculations_item,
+        MAXIMUM_LATENCY_TITLE,
+        MAXIMUM_LATENCY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_average_values(
+        individual_stats,
+        log_line_columns,
+        individual_object_calculations_item,
+        AVERAGE_EXEC_TITLE,
+        AVERAGE_EXEC_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    calculate_maximum_values(
+        individual_stats,
+        log_line_columns,
+        individual_object_calculations_item,
+        MAXIMUM_EXEC_TITLE,
+        MAXIMUM_EXEC_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
+    )
+    return individual_stats
+
+
+def process_aggregate_stats_line(log_line_columns, totals, calculations):
+    """
+    Take care of processing a line beginning with `[thread load:` into an aggregate
+    statis slice dictionary.
+    """
+    stats_slice = {}
+    stats_slice[THREAD_LOAD_TITLE] = float(log_line_columns[THREAD_LOAD_INDEX])
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, SCHEDULED_TITLE, SCHEDULED_INDEX
+    )
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, INVOKED_TITLE, INVOKED_INDEX
+    )
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, PENDING_TITLE, PENDING_INDEX
+    )
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, ABANDONED_TITLE, ABANDONED_INDEX
+    )
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, RETRY_TITLE, RETRY_INDEX
+    )
+    calculate_total_counts(
+        stats_slice, log_line_columns, totals, EXCEPTION_TITLE, EXCEPTION_INDEX
+    )
+    calculate_average_values(
+        stats_slice,
+        log_line_columns,
+        calculations,
+        AVERAGE_LATENCY_TITLE,
+        AVERAGE_LATENCY_INDEX,
+    )
+    calculate_maximum_values(
+        stats_slice,
+        log_line_columns,
+        calculations,
+        MAXIMUM_LATENCY_TITLE,
+        MAXIMUM_LATENCY_INDEX,
+    )
+    calculate_average_values(
+        stats_slice,
+        log_line_columns,
+        calculations,
+        AVERAGE_EXEC_TITLE,
+        AVERAGE_EXEC_INDEX,
+    )
+    calculate_maximum_values(
+        stats_slice,
+        log_line_columns,
+        calculations,
+        MAXIMUM_EXEC_TITLE,
+        MAXIMUM_EXEC_INDEX,
+    )
+    return stats_slice
+
+
+def calculate_proper_averages(calculations, totals):
+    """
+    Once all the data has been collected, the weighted averages can be properly
+    calculated.
+    """
+
+    calculations[AVERAGE_LATENCY_TITLE] = calculations[AVERAGE_LATENCY_TITLE] / float(
+        totals[SCHEDULED_TITLE]
+    )
+    calculations[AVERAGE_EXEC_TITLE] = calculations[AVERAGE_EXEC_TITLE] / float(
+        totals[SCHEDULED_TITLE]
+    )
+
+    individual_totals = totals["individual"]
+    individual_calculations = calculations["individual"]
+    for next_total_name in individual_totals:
+        next_individual_total = individual_totals[next_total_name]
+        next_individual_calculation = individual_calculations[next_total_name]
+
+        next_individual_calculation[
+            AVERAGE_LATENCY_TITLE
+        ] = next_individual_calculation[AVERAGE_LATENCY_TITLE] / float(
+            next_individual_total[SCHEDULED_TITLE]
+        )
+        next_individual_calculation[AVERAGE_EXEC_TITLE] = next_individual_calculation[
+            AVERAGE_EXEC_TITLE
+        ] / float(next_individual_total[SCHEDULED_TITLE])
+
+
 def process_rules_engine_stats(base_dir):
     """
     Load up the `gaia_stats.log` file for a given test and convert it into
@@ -126,66 +321,25 @@ def process_rules_engine_stats(base_dir):
         log_line_columns = next_log_line.split(" ")
         if log_line_columns[3].startswith("--"):
             continue
-        if not log_line_columns[3].startswith("[thread"):
-            continue
-        assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(log_line_columns)
+        if log_line_columns[3].startswith("[thread"):
+            assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(
+                log_line_columns
+            )
+            stats_slice = process_aggregate_stats_line(
+                log_line_columns, totals, calculations
+            )
+            stats_slices.append(stats_slice)
+        else:
+            individual_stats = process_indivudal_stats_line(
+                log_line_columns, totals, calculations
+            )
+            individual_name = individual_stats[OBJECT_ID_TITLE]
+            owner_slice = stats_slices[-1]
+            if INDIVIDUAL_STATS_TITLE not in owner_slice:
+                owner_slice[INDIVIDUAL_STATS_TITLE] = {}
+            owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
 
-        stats_slice = {}
-        stats_slice[THREAD_LOAD_TITLE] = float(log_line_columns[THREAD_LOAD_INDEX])
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, SCHEDULED_TITLE, SCHEDULED_INDEX
-        )
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, INVOKED_TITLE, INVOKED_INDEX
-        )
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, PENDING_TITLE, PENDING_INDEX
-        )
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, ABANDONED_TITLE, ABANDONED_INDEX
-        )
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, RETRY_TITLE, RETRY_INDEX
-        )
-        calculate_total_counts(
-            stats_slice, log_line_columns, totals, EXCEPTION_TITLE, EXCEPTION_INDEX
-        )
-        calculate_average_values(
-            stats_slice,
-            log_line_columns,
-            calculations,
-            AVERAGE_LATENCY_TITLE,
-            AVERAGE_LATENCY_INDEX,
-        )
-        calculate_maximum_values(
-            stats_slice,
-            log_line_columns,
-            calculations,
-            MAXIMUM_LATENCY_TITLE,
-            MAXIMUM_LATENCY_INDEX,
-        )
-        calculate_average_values(
-            stats_slice,
-            log_line_columns,
-            calculations,
-            AVERAGE_EXEC_TITLE,
-            AVERAGE_EXEC_INDEX,
-        )
-        calculate_maximum_values(
-            stats_slice,
-            log_line_columns,
-            calculations,
-            MAXIMUM_EXEC_TITLE,
-            MAXIMUM_EXEC_INDEX,
-        )
-        stats_slices.append(stats_slice)
-
-    calculations[AVERAGE_LATENCY_TITLE] = calculations[AVERAGE_LATENCY_TITLE] / float(
-        totals[SCHEDULED_TITLE]
-    )
-    calculations[AVERAGE_EXEC_TITLE] = calculations[AVERAGE_EXEC_TITLE] / float(
-        totals[SCHEDULED_TITLE]
-    )
+    calculate_proper_averages(calculations, totals)
 
     rules_engine_stats = {}
     rules_engine_stats[RULES_ENGINE_SLICES_TITLE] = stats_slices

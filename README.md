@@ -310,13 +310,19 @@ overall JSON blob.
           "pending": 0,
           "abandoned": 0,
           "retry": 0,
-          "exception": 0
+          "exception": 0,
+          "individual": {
+            ...
+          }
       },
       "calculations": {
           "avg-latency-ms": 0.17920235878336438,
           "max-latency-ms": 1.0,
           "avg-exec-ms": 0.01,
-          "max-exec-ms": 0.17
+          "max-exec-ms": 0.17,
+          "individual": {
+            ...
+          }
       }
   }
 }
@@ -368,6 +374,26 @@ A summary of the various fields and blobs are as follows:
   - aggregated values over all `rules-engine-stats.slices`
 - `calculations.*`
   - weighted average/maximum values over all `rules-engine-stats.slices`
+
+#### Slices and Individual Fields
+
+For most examinations of the test data, the top level information is all that is
+required to complete the examination.  However, in certain cases, understanding
+the individual data that was aggregated to provide the top level information is
+required.  In those cases, the `slices` and `individual` fields are used.
+
+The `slices` field is present under the `rules-engine-stats` field, beside the
+`totals` field and the `calculations` field.  Generated from the `gaia_stats.log` file,
+the values are the standard 6 `total` fields, the standard 4 `calculations` fields, and
+the `thread-load-percent` field.  These are the source fields for the aggregated values
+under the `totals` and the `calculations` fields.
+
+Under the `slices` field, the `totals` field, and the `calculations` field are the
+sets of `individual` fields.  Those sets of `individual` fields are used to represent
+the per-ruleset statistics that are present in the `gaia_stats.log` file.  Immediately
+under the `individual` field is the identifier used to identify which rule is being
+summarized beneath it.  This field is the line number in the related `*.ruleset` file,
+with each measurement underneath it.
 
 #### Group Test JSON Blob
 
