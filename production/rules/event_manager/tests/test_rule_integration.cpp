@@ -189,7 +189,7 @@ public:
     }
     ~rule_monitor_t()
     {
-        gaia::rules::test::wait_for_rules();
+        gaia::rules::test::wait_for_rules_to_complete();
         EXPECT_EQ(g_wait_for_count, 0);
     }
 };

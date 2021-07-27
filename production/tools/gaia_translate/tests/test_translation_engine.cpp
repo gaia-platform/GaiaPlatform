@@ -84,7 +84,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     // rule-4: OnChange(sensor.value) [insert]
     // rule-2: OnUpdate(incubator.max_temp)
     // rule-2: OnUpdate(incubator.max_temp)
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     const int32_t c_count_rules_called_1 = 3;
     EXPECT_EQ(g_rule_called, c_count_rules_called_1);
@@ -126,7 +126,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     // rule-2: OnUpdate(incubator.max_temp)
     // rule-2: OnUpdate(incubator.max_temp)
     // rule-3: OnUpdate(actuator.value)
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     const int32_t c_count_rules_called_2 = c_count_rules_called_1 + 4;
     EXPECT_EQ(g_rule_called, c_count_rules_called_2);
@@ -165,7 +165,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     // rule-4: OnChange(sensor.value) [insert]
     // rule-2: OnUpdate(incubator.max_temp)
     // rule-2: OnUpdate(incubator.max_temp)
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     const int32_t c_count_rules_called_3 = c_count_rules_called_2 + 3;
     EXPECT_EQ(g_rule_called, c_count_rules_called_3);

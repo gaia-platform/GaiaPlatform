@@ -99,7 +99,7 @@ TEST_F(test_tags_code, oninsert)
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     // Check OnInsert.
     EXPECT_TRUE(g_oninsert_called) << "OnInsert(student) not called";
@@ -141,7 +141,7 @@ TEST_F(test_tags_code, onchange)
     sw.update_row();
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     // Check OnChange.
     EXPECT_TRUE(g_onchange_called) << "OnChange(student) not called";
@@ -186,7 +186,7 @@ TEST_F(test_tags_code, onupdate)
     sw.update_row();
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     // Check OnChange.
     EXPECT_TRUE(g_onchange_called) << "OnChange(student) not called";
@@ -237,7 +237,7 @@ TEST_F(test_tags_code, multi_inserts)
     student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     EXPECT_EQ(g_insert_count, num_inserts) << "OnInsert(student) parallel execution failure";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert(student) failure";
@@ -254,7 +254,7 @@ TEST_F(test_tags_code, basic_tags)
     registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
 
     EXPECT_TRUE(g_oninsert3_called) << "OnInsert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert3_result) << "OnInsert(registration) failure";

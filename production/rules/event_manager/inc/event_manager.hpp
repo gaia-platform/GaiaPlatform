@@ -148,7 +148,7 @@ private:
     // implemented in a separate source file that must be compiled into the test.
     friend void gaia::rules::test::initialize_rules_engine(const event_manager_settings_t& settings);
     friend void gaia::rules::test::commit_trigger(const db::triggers::trigger_event_t*, size_t count_events);
-    friend void gaia::rules::test::wait_for_rules();
+    friend void gaia::rules::test::wait_for_rules_to_complete();
 
     // Well known trigger function called by the database after commit.
     void commit_trigger(const db::triggers::trigger_event_list_t& event_list);

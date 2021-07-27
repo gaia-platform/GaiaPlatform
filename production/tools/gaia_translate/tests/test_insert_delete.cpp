@@ -246,7 +246,7 @@ TEST_F(test_insert_delete_code, DISABLED_implicit_delete)
     sw.update_row();
     gaia::db::commit_transaction();
 
-    gaia::rules::test::wait_for_rules();
+    gaia::rules::test::wait_for_rules_to_complete();
     EXPECT_TRUE(g_onupdate_called) << "OnUpdate(S:student) not called";
 
     // Expected value is number of registrations deleted
