@@ -688,7 +688,7 @@ void server_t::init_memory_manager()
 // Initialize indexes on startup.
 void server_t::init_indexes()
 {
-    // Noop if persistence is not enabled.
+    // No data to index-- nothing to do here.
     if (s_server_conf.persistence_mode() == server_config_t::persistence_mode_t::e_disabled)
     {
         return;
@@ -727,7 +727,7 @@ void server_t::init_indexes()
 }
 
 // On commit, update in-memory-indexes to reflect logged operations.
-void server_t::update_indexes_from_log()
+void server_t::update_indexes_from_txn_log()
 {
     ASSERT_PRECONDITION(s_log != nullptr, c_message_uninitialized_txn_log);
 
@@ -2460,7 +2460,7 @@ bool server_t::txn_commit()
 
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
-    update_indexes_from_log();
+    update_indexes_from_txn_log();
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);

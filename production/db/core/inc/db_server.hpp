@@ -259,7 +259,7 @@ private:
     static void init_indexes();
 
     // Update in-memory indexes based on the txn log.
-    static void update_indexes_from_log();
+    static void update_indexes_from_txn_log();
 
     static void create_local_snapshot(bool apply_logs);
 
