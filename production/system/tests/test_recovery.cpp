@@ -536,6 +536,43 @@ TEST_F(recovery_test, load_and_recover_test)
     load_modify_recover_test(load_size, 2, true);
 }
 
+void multiple_updates()
+{
+}
+
+TEST_F(recovery_test, multiple_updates_same_txn)
+{
+    s_server.start();
+    gaia_id_t emp_id = 0;
+    string name_first = "";
+    begin_session();
+    {
+        auto_transaction_t txn;
+        auto w1 = employee_writer();
+        w1.name_first = "-1";
+        emp_id = w1.insert_row();
+
+        for (size_t i = 0; i < 100; i++)
+        {
+            auto e = employee_t::get(emp_id);
+            auto w2 = e.writer();
+            name_first = std::to_string(i);
+            w2.name_first = name_first;
+            w2.update_row();
+        }
+        txn.commit();
+    }
+    end_session();
+
+    s_server.restart();
+    begin_session();
+    {
+        auto_transaction_t txn;
+        ASSERT_STREQ(employee_t::get(emp_id).name_first(), name_first.c_str());
+    }
+    end_session();
+}
+
 TEST_F(recovery_test, reference_create_delete_test_new)
 {
     constexpr int c_num_children = 10;
