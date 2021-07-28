@@ -75,6 +75,10 @@ inline void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             {
                 drop_relationship(drop_stmt->name, !drop_stmt->if_exists);
             }
+            else if (drop_stmt->type == ddl::drop_type_t::drop_index)
+            {
+                drop_index(drop_stmt->name, !drop_stmt->if_exists);
+            }
         }
         else if (stmt->is_type(ddl::statement_type_t::use))
         {

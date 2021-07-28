@@ -80,6 +80,11 @@ void drop_relationship(const string& name, bool throw_unless_exists)
     return ddl_executor_t::get().drop_relationship(name, throw_unless_exists);
 }
 
+void drop_index(const string& name, bool throw_unless_exists)
+{
+    return ddl_executor_t::get().drop_index(name, throw_unless_exists);
+}
+
 gaia_id_t create_index(
     const std::string& index_name,
     bool unique,
