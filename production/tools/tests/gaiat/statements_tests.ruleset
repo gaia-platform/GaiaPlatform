@@ -354,7 +354,7 @@ ruleset test20
 // TESTCASE: single-cardinality reference in for()
 ruleset test21
 {
-    OnInsert(incubator)
+    OnInsert(animal)
     {
         for (int i = 0; i < farmer.acreage; i++)
         {
@@ -419,7 +419,7 @@ ruleset test25
     OnInsert(feeding)
     {
         // Note that the translated code is not yet correct.
-        farmer->incubator->raised.birthdate += crop->yield->feeding.portion;
+        farmer.condos->incubator->raised.birthdate += crop->yield->feeding.portion;
     }
 }
 
@@ -431,7 +431,8 @@ ruleset test26
     OnInsert(feeding)
     {
         char str[200];
-        sprintf(str, "%ld,%f,%f", farmer->I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+        sprintf(str, "%ld,%f,%f", farmer.incubators->I:incubator->raised.birthdate, I->A:actuator.value,
+            A->incubator->sensor.value);
     }
 }
 
@@ -647,7 +648,7 @@ ruleset test39
 // TESTCASE: 1-to-1 navigation in a do-while is legal
 ruleset test40
 {
-    OnInsert(incubator)
+    OnInsert(raised)
     {
         int num = 0;
         do
@@ -695,7 +696,7 @@ ruleset test43
     OnInsert(farmer)
     {
         float temp = 0;
-        while (farmer->incubator->raised->animal->feeding->yield->crop.acres)
+        while (farmer.incubators->incubator->raised->animal->feeding->yield->crop.acres)
         {
             if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
             {
@@ -710,7 +711,7 @@ ruleset test44
 {
     {
         float temp = 0;
-        while (@farmer->incubator->raised->animal->feeding->yield->crop.acres)
+        while (@farmer.condos->incubator->raised->animal->feeding->yield->crop.acres)
         {
             if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
             {
@@ -730,7 +731,7 @@ ruleset test45
         long tot_age = 0;
         for (int i = 0; i < /F:farmer->R:raised->A:animal->FE:feeding->Y:yield->C:crop.acres; i++)
         {
-            tot_acres = crop.acres;
+            tot_acres = animal->feeding->yield->crop.acres;
             while (A->FE2:feeding.portion > 0)
             {
                 tot_feed += FE2.portion;
@@ -877,9 +878,9 @@ ruleset test54
     {
         do
         {
-            for (int i = 0; i < farmer.acreage; i++)
+            for (int i = 0; i < incubator.landlord->farmer.acreage; i++)
             {
-                farmer.acreage++;
+                incubator.farmer->farmer.acreage++;
             }
         } while (sensor.value > 0.0);
     }
@@ -909,7 +910,7 @@ ruleset test58
     {
         for (S:sensor)
         {
-            for (S->incubator->farmer->Y:yield)
+            for (S->incubator.farmer->farmer->Y:yield)
             {
                 if (Y.bushels > 10)
                 {
@@ -921,6 +922,7 @@ ruleset test58
     }
 }
 
+#if 0
 void printf(const char*, unsigned int);
 
 // TESTCASE: mix up declarative for with switch statement
@@ -1022,3 +1024,4 @@ ruleset test65
         while (farmer->yield.bushels < 10);
     }
 }
+#endif

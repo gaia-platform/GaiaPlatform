@@ -67,6 +67,7 @@ ruleset test06
 }
 
 // TESTCASE: Assign an Insert value from an anchor's field
+// GAIAPLAT-1113
 ruleset test07
 {
     OnInsert(incubator)
@@ -81,7 +82,7 @@ ruleset test08
 {
     OnInsert(incubator)
     {
-        for (Y:yield)
+        for (incubator.landlord->farmer->Y:yield)
         {
             int y;
             y = Y.bushels;
@@ -93,7 +94,7 @@ ruleset test08
 // TESTCASE: Perform Inserts containing implicit navigation
 ruleset test09
 {
-    OnInsert(incubator)
+    OnInsert(farmer)
     {
         feeding.Insert(portion: yield.bushels);
     }
@@ -103,17 +104,20 @@ ruleset test09
 // GAIAPLAT-1112
 ruleset test10
 {
-    OnInsert(incubator)
+    OnInsert(farmer)
     {
         farmer.Insert(name: crop.name, acreage: crop.acres);
     }
 }
 
 // TESTCASE: Perform Inserts with multiple fields from multiple implicit navigations
+// GAIAPLAT-1117
+#ifdef TEST_FAILURES
 ruleset test11
 {
-    OnInsert(incubator)
+    OnInsert(raised)
     {
-        farmer.Insert(name: crop.name, acreage: animal->feeding.portion);
+        farmer.Insert(name: crop.name, acreage: portion);
     }
 }
+#endif
