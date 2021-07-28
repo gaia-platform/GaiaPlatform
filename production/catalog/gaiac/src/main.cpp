@@ -356,13 +356,13 @@ int main(int argc, char* argv[])
 
     gaia::db::config::session_options_t session_options;
     session_options.db_instance_name = instance_name;
+    session_options.skip_catalog_integrity_check = false;
     gaia::db::config::set_default_session_options(session_options);
 
     gaia::db::begin_session();
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             gaia::db::end_session();
             if (server.is_initialized())
             {

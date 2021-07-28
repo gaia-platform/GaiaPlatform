@@ -22,6 +22,7 @@ struct server_instance_config_t
     std::filesystem::path server_exec_path;
     std::string instance_name;
     bool disable_persistence;
+    bool skip_catalog_integrity_check;
     std::string data_dir;
 
     static server_instance_config_t get_default();
@@ -98,6 +99,11 @@ public:
      * Returns the instance name.
      */
     std::string instance_name();
+
+    /**
+     * Returns true if we are skipping catalog integrity checks (for testing).
+     */
+    bool skip_catalog_integrity_check();
 
     /**
      * Returns true is start() was called.

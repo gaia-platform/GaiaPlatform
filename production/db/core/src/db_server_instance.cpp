@@ -48,6 +48,7 @@ server_instance_config_t gaia::db::server_instance_config_t::get_default()
         .server_exec_path = find_server_path(),
         .instance_name = generate_instance_name(),
         .disable_persistence = true,
+        .skip_catalog_integrity_check = false,
         .data_dir = ""};
 }
 
@@ -241,6 +242,7 @@ void server_instance_t::wait_for_init()
 
             gaia::db::config::session_options_t session_options;
             session_options.db_instance_name = instance_name();
+            session_options.skip_catalog_integrity_check = skip_catalog_integrity_check();
 
             gaia::db::config::set_default_session_options(session_options);
 
@@ -292,6 +294,11 @@ std::string server_instance_t::instance_name()
     return m_conf.instance_name;
 }
 
+bool server_instance_t::skip_catalog_integrity_check()
+{
+    return m_conf.skip_catalog_integrity_check;
+}
+
 bool server_instance_t::is_initialized()
 {
     return m_is_initialized;
@@ -317,7 +324,11 @@ std::vector<const char*> server_instance_t::get_server_command_and_argument()
         strings.push_back(m_conf.data_dir.c_str());
     }
 
-    strings.push_back("--skip-catalog-integrity-checks");
+    if (m_conf.skip_catalog_integrity_check)
+    {
+        strings.push_back("--skip-catalog-integrity-checks");
+    }
+
     strings.push_back(nullptr);
     return strings;
 }
