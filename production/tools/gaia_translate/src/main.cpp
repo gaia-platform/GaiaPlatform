@@ -829,8 +829,12 @@ void generate_table_subscription(
         {
             if (!data_iterator.is_absolute_path)
             {
-                is_absoute_path_only = false;
-                break;
+                string first_component_table = get_table_from_expression(data_iterator.path_components.front());
+                if (data_iterator.tag_table_map.find(first_component_table) == data_iterator.tag_table_map.end() || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
+                {
+                    is_absoute_path_only = false;
+                    break;
+                }
             }
         }
     }
