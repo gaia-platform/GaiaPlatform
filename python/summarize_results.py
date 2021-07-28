@@ -563,9 +563,10 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
     main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
     main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
     main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
-    main_dictionary[MEASURED_DURATION_TITLE].append(
-        new_results[MEASURED_DURATION_TITLE]
-    )
+    if MEASURED_DURATION_TITLE in new_results:
+        main_dictionary[MEASURED_DURATION_TITLE].append(
+            new_results[MEASURED_DURATION_TITLE]
+        )
     if ITERATION_DURATION_TITLE in new_results:
         main_dictionary[ITERATION_DURATION_TITLE].append(
             new_results[ITERATION_DURATION_TITLE]

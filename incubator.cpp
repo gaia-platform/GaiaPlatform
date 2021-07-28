@@ -56,7 +56,8 @@ atomic<int> g_rule_3_tracker{0};
 
 double g_total_wait_time = 0.0;
 double g_total_print_time = 0.0;
-const int c_sleep_time_in_seconds_after_stop = 6;
+const int c_default_sleep_time_in_seconds_after_stop = 6;
+int g_sleep_time_in_seconds_after_stop;
 void add_fan_control_rule();
 
 gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -936,7 +937,7 @@ public:
             using std::chrono::milliseconds;
 
             auto end_sleep_start_mark = high_resolution_clock::now();
-            sleep(c_sleep_time_in_seconds_after_stop);
+            sleep(g_sleep_time_in_seconds_after_stop);
             auto end_sleep_end_mark = high_resolution_clock::now();
             duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
@@ -986,10 +987,15 @@ int main(int argc, const char** argv)
     {
         is_sim = true;
     }
-    else if (argc == 2 && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
+    else if (argc >= 2 && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
     {
         is_sim = true;
         is_debug = true;
+        if(argc == 3) {
+            g_sleep_time_in_seconds_after_stop = atoi(argv[2]);
+        } else {
+            g_sleep_time_in_seconds_after_stop = c_default_sleep_time_in_seconds_after_stop;
+        }
     }
     else if (argc == 2 && strncmp(argv[1], c_arg_show_json, strlen(c_arg_show_json)) == 0)
     {

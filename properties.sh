@@ -57,22 +57,26 @@ export TEST_COMMAND_NAME="debug"
 # and captures any output.  Normal assumption is that the output is
 # in the form of a JSON file.
 process_debug() {
+    local DEBUG_COMMAND_FILE=$1
+    local SCRIPT_STOP_PAUSE=$2
 
     JSON_OUTPUT=$BUILD_DIRECTORY/output.json
     CSV_OUTPUT=$BUILD_DIRECTORY/output.csv
     STOP_OUTPUT=$BUILD_DIRECTORY/output.delay
 
-    if [ -z "$1" ]
+    if [ -z "$DEBUG_COMMAND_FILE" ]
     then
         echo "No debug file to execute supplied for command 'debug'."
         complete_process 1
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$1")"
+        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$DEBUG_COMMAND_FILE")"
     fi
 
     # Run the commands and produce a JSON output file.
-    if ! "$EXECUTABLE_PATH" debug < "$1" > "$JSON_OUTPUT"; then
+    echo "::$SCRIPT_STOP_PAUSE"
+    if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$DEBUG_COMMAND_FILE" > "$JSON_OUTPUT"; then
+        cat $JSON_OUTPUT
         echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
         complete_process 1
     fi
@@ -114,11 +118,11 @@ process_normal() {
 
 # Process the various commands.
 execute_commands() {
-
     GENERATE_CSV_MODE=$1
+    DEBUG_END_PAUSE=$2
 
     if [[ "${PARAMS[0]}" == "$TEST_COMMAND_NAME" ]]; then
-        process_debug "${PARAMS[1]}"
+        process_debug "${PARAMS[1]}" "$DEBUG_END_PAUSE"
     elif [[ "${PARAMS[0]}" == "watch" ]]; then
         process_watch "show"
     elif [[ "${PARAMS[0]}" == "watch-json" ]]; then

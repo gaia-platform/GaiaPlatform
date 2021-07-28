@@ -167,21 +167,23 @@ create_configuration_file() {
 
     if [ -z "$CONFIG_FILE" ]; then
         echo "No configuration file specified.  Generating gaia configuation file with default values."
-        ./python/generate_config.py
+        ./python/generate_config.py > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     else
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
 
-        ./python/generate_config.py "$CONFIG_PATH"
+        ./python/generate_config.py "$CONFIG_PATH"  > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
 
     if [ $DID_FAIL -ne 0 ]; then
+        cat "$TEMP_FILE"
         echo "Generating gaia configuration file '$CONFIGURATION_PATH' failed."
         complete_process 1
     else
         echo "Gaia configuration file '$CONFIGURATION_PATH' generated."
+        STATS_LOG_INTERVAL=$(cat "$TEMP_FILE")
     fi
 }
 
@@ -224,8 +226,7 @@ fi
 # Clean entrance into the script.
 start_process
 
-execute_commands "$GENERATE_CSV_MODE"
+execute_commands "$GENERATE_CSV_MODE" $((STATS_LOG_INTERVAL*2))
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
-
