@@ -4,7 +4,7 @@
 
 ruleset test03
 {
-    OnInsert(M:min_temp)
+    on_insert(M:min_temp)
     {
         use_float(M.min_temp);
     }

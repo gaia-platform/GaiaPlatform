@@ -2217,7 +2217,7 @@ static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
       << AL << AANT_ArgumentIdentifier;
     return;
   }
-  D->addAttr(::new (S.Context) SerialStreamAttr(
+  D->addAttr(::new (S.Context) RulesetSerializeAttr(
     AL.getRange(), S.Context, streamArg->Ident,
     AL.getAttributeSpellingListIndex()));
 }
@@ -7244,7 +7244,7 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_Rule:
     handleRuleAttr(S, D, AL);
     break;
-  case ParsedAttr::AT_SerialStream:
+  case ParsedAttr::AT_RulesetSerialize:
     handleStreamAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaOnUpdate:

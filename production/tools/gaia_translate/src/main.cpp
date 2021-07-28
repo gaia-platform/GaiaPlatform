@@ -974,7 +974,7 @@ void optimize_subscription(const string& table, int rule_count)
 bool has_multiple_anchors()
 {
     static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
-                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+                                               "'on_insert', 'on_change', or 'on_update'.";
     static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
                                                "from different tables.";
 
@@ -990,7 +990,7 @@ bool has_multiple_anchors()
         return true;
     }
 
-    // Handle the special case of OnUpdate(table1, table2.field)
+    // Handle the special case of on_update(table1, table2.field)
     if (g_active_fields.size() == 1
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
@@ -2564,14 +2564,14 @@ public:
             {
                 if (explicit_path_present)
                 {
-                    cerr << "Insert call cannot be used with navigation." << endl;
+                    cerr << "'insert' call cannot be used with navigation." << endl;
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    cerr << "Insert call cannot be used with tags." << endl;
+                    cerr << "'insert' call cannot be used with tags." << endl;
                     g_is_generation_error = true;
                     return;
                 }
@@ -2655,7 +2655,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("RemoveCall");
         if (expression != nullptr)
         {
             m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
@@ -3111,14 +3111,14 @@ public:
         StatementMatcher declarative_delete_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("Delete"))),
+                  callee(cxxMethodDecl(hasName("remove"))),
                   hasDescendant(table_call_matcher))
-                  .bind("DeleteCall");
+                  .bind("RemoveCall");
 
         StatementMatcher declarative_insert_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("Insert"))),
+                  callee(cxxMethodDecl(hasName("insert"))),
                   hasDescendant(table_call_matcher))
                   .bind("InsertCall");
 

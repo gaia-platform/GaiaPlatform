@@ -6,7 +6,7 @@
 
 ruleset test1
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         use_float(I.min_temp);
     }
@@ -14,7 +14,7 @@ ruleset test1
 
 ruleset test2
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         I.min_temp += sensor.value;
         actuator.value = I.max_temp;
@@ -23,20 +23,20 @@ ruleset test2
 
 ruleset test3
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         min_temp += sensor.value;
     }
 }
 
 // GAIAPLAT-855 (fixed)
-ruleset test4 : Table(actuator, incubator)
+ruleset test4 : tables(actuator, incubator)
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         I.min_temp += value;
     }
-    OnInsert(A:actuator)
+    on_insert(A:actuator)
     {
         A.value += incubator.max_temp;
         value += min_temp;
@@ -46,17 +46,17 @@ ruleset test4 : Table(actuator, incubator)
 ruleset test5
 {
     // One table.
-    OnChange(A:actuator)
+    on_change(A:actuator)
     {
         use_float(A.value);
     }
 }
 
 // GAIAPLAT-855 (fixed)
-ruleset test6 : Table(actuator)
+ruleset test6 : tables(actuator)
 {
     // One field.
-    OnChange(A:actuator.value)
+    on_change(A:actuator.value)
     {
         use_float(A.value);
     }
@@ -65,7 +65,7 @@ ruleset test6 : Table(actuator)
 ruleset test7
 {
     // One table.
-    OnUpdate(A:actuator)
+    on_update(A:actuator)
     {
         use_float(A.value);
         float v;
@@ -76,7 +76,7 @@ ruleset test7
 ruleset test8
 {
     // One field.
-    OnUpdate(A:actuator.value)
+    on_update(A:actuator.value)
     {
         use_float(A.value);
     }
@@ -85,7 +85,7 @@ ruleset test8
 ruleset test9
 {
     // Table & fields.
-    OnUpdate(S:sensor, V:sensor.value, sensor.name, sensor.timestamp)
+    on_update(S:sensor, V:sensor.value, sensor.name, sensor.timestamp)
     {
         float v;
         v = S.value + V.value;
@@ -94,9 +94,9 @@ ruleset test9
 }
 
 // GAIAPLAT-855 (fixed)
-ruleset test10 : Table(sensor)
+ruleset test10 : tables(sensor)
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         use_string(name);
     }
@@ -104,7 +104,7 @@ ruleset test10 : Table(sensor)
 
 ruleset test11
 {
-    OnUpdate(S:sensor, T:sensor)
+    on_update(S:sensor, T:sensor)
     {
         use_string(S.name);
         use_string(T.name);
@@ -113,7 +113,7 @@ ruleset test11
 
 ruleset test12
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         farmer->Y:yield.bushels = 0;
 
@@ -127,7 +127,7 @@ ruleset test12
 
 ruleset test14
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         // Ensure the label is a goto target using empty statement.
         LABEL:; sensor.value = max_temp - 1.0;
@@ -142,7 +142,7 @@ ruleset test15
 {
     // NOTE: the ".min_temp" field didn't cause this rule to fire, but
     // may serve as documentation for the rule's intended use.
-    OnInsert(I:incubator.min_temp)
+    on_insert(I:incubator.min_temp)
     {
         use_float(I.min_temp);
     }
@@ -151,7 +151,7 @@ ruleset test15
 // GAIAPLAT-829 (fixed)
 ruleset test16
 {
-    OnUpdate(animal)
+    on_update(animal)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -168,7 +168,7 @@ ruleset test16
 // GAIAPLAT-829 (fixed)
 ruleset test17
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -182,7 +182,7 @@ ruleset test17
 // GAIAPLAT-829 (fixed)
 ruleset test18
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -198,7 +198,7 @@ ruleset test18
 // GAIAPLAT-829 (fixed)
 ruleset test19
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -215,7 +215,7 @@ ruleset test19
 // GAIAPLAT-829 (fixed)
 ruleset test20
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -229,7 +229,7 @@ ruleset test20
 // GAIAPLAT-829 (fixed)
 ruleset test21
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -255,7 +255,7 @@ ruleset test22
 
 ruleset test23
 {
-    OnChange(A:actuator.value, B:actuator.name)
+    on_change(A:actuator.value, B:actuator.name)
     {
         use_float(A.value);
         use_float(B.value);
@@ -264,7 +264,7 @@ ruleset test23
 
 ruleset test24
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         F:incubator.farmer->farmer->yield.bushels = 0;
 

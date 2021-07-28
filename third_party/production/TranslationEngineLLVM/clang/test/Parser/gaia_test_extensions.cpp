@@ -1,8 +1,8 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump %s | FileCheck -strict-whitespace %s
 
-ruleset test : Table(sensor, incubator), SerialStream(ttt)
+ruleset test : tables(sensor, incubator), serialize(ttt)
 {
-  OnUpdate(incubator, sensor.value)
+  on_update(incubator, sensor.value)
   {
     min_temp+=@value;
     max_temp += min_temp/2;
@@ -22,7 +22,7 @@ ruleset test : Table(sensor, incubator), SerialStream(ttt)
 
 ruleset test1
 {
-  OnInsert(incubator)
+  on_insert(incubator)
   {
     incubator.min_temp +=@sensor.value;
     incubator.max_temp += incubator.min_temp/2;
@@ -52,7 +52,7 @@ typedef enum
 
 ruleset test2
 {
-  OnChange(actuator)
+  on_change(actuator)
   {
 	  if (actuator.value < 5)
 	  {
@@ -113,7 +113,7 @@ ruleset test4
 
 ruleset test5
 {
-  OnChange(a:actuator)
+  on_change(a:actuator)
   {
     if (actuator.value < 5)
     {
@@ -132,7 +132,7 @@ ruleset test5
 
 ruleset test6
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         /i:incubator->sensor.value  = i.min_temp;
         sensor->incubator->actuator.value  = 5;
@@ -147,7 +147,7 @@ ruleset test6
 
 ruleset test7
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         float v = S.value;
     }
@@ -159,7 +159,7 @@ ruleset test7
 
 ruleset test8
 {
-    OnUpdate(S:sensor, V:sensor.value)
+    on_update(S:sensor, V:sensor.value)
     {
         float v = S.value + V.value;
     }

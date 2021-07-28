@@ -3,9 +3,9 @@
 // TESTCASE: Use the wrong delete keyword.
 ruleset test1
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        sensor.delete();
+        sensor.remove();
     }
 }
 

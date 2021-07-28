@@ -22,7 +22,7 @@ ruleset test10
 ruleset test19: Table(sensor)
 {
     {
-        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
+        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in tables attribute.}}
     }
 }
 

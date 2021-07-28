@@ -3,7 +3,7 @@
 
 ruleset test21
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         I->actuator.value += 1.0;
         I->raised->A:animal->feeding.portion = 100;

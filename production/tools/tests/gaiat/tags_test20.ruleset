@@ -3,7 +3,7 @@
 
 ruleset test20
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         actuator.value += 1.0;
     }

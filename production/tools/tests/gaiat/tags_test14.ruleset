@@ -2,7 +2,7 @@
 
 ruleset test14
 {
-    OnInsert(S:sensor, A:actuator)
+    on_insert(S:sensor, A:actuator)
     {
         float v;
         v = S.value + A.value;

@@ -4,7 +4,7 @@ int strcmp(const char*, const char*);
 
 ruleset test1
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
         int i = strcmp(feeding.portion, "three");
     }

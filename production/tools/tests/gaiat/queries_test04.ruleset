@@ -2,7 +2,7 @@
 
 ruleset test16
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
         F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->(C:crop.acres) = 0;
         (/F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres) = 0;

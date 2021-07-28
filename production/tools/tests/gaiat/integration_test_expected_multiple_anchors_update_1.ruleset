@@ -2,8 +2,8 @@
 
 ruleset test
 {
-    OnUpdate(incubator, sensor)
+    on_update(incubator, sensor)
     {
     }
 }
-// CHECK: Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'OnInsert', 'OnChange', or 'OnUpdate'.
+// CHECK: Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'on_insert', 'on_change', or 'on_update'.

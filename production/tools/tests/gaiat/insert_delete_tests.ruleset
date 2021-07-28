@@ -3,9 +3,9 @@
 // TESTCASE: Delete the anchor row.
 ruleset test01
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        sensor.Delete();
+        sensor.delete();
     }
 }
 
@@ -14,10 +14,10 @@ void use_values(int, const char*);
 // TESTCASE: Insert two different row types.
 ruleset test02
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        auto Y = yield.Insert(bushels: 12);
-        auto S = sensor.Insert(value: 100.0, name: "Turtles");
+        auto Y = yield.insert(bushels: 12);
+        auto S = sensor.insert(value: 100.0, name: "Turtles");
         use_values(Y.bushels, S.name);
     }
 }
@@ -25,18 +25,18 @@ ruleset test02
 // TESTCASE: Delete a row found by implicit query.
 ruleset test03
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        incubator.Delete();
+        incubator.remove();
     }
 }
 
 // TESTCASE: Delete rows found by implicit query.
 ruleset test04
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        sensor.Delete();
+        sensor.remove();
     }
 }
 
@@ -44,14 +44,14 @@ ruleset test04
 // GAIAPLAT-1041 (fixed)
 ruleset test05
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         for(S:sensor)
         {
             if (S.value > 98.6)
             {
                 // Note that this will fail in execution without disconnecting first.
-                S.Delete();
+                S.remove();
             }
         }
     }
@@ -60,9 +60,9 @@ ruleset test05
 // TESTCASE: Assign an Insert return value to a tag
 ruleset test06
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: 100.0);
+        auto S = sensor.insert(name: "Turtles", timestamp: 1995, value: 100.0);
     }
 }
 
