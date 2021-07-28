@@ -1,5 +1,4 @@
-// RUN: echo "'continue' statement not in loop statement" | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 // TESTCASE: non-declarative if statement cannot have continue statement
 ruleset test06
