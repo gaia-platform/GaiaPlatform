@@ -301,6 +301,20 @@ public:
 };
 
 /**
+ * Thrown when the index of the given name does not exists.
+ */
+class index_not_exists : public gaia::common::gaia_exception
+{
+public:
+    explicit index_not_exists(const std::string& name)
+    {
+        std::stringstream message;
+        message << "The index '" << name << "' does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when the field map is invalid.
  */
 class invalid_field_map : public gaia::common::gaia_exception
@@ -569,6 +583,7 @@ enum class drop_type_t : uint8_t
     drop_table,
     drop_database,
     drop_relationship,
+    drop_index,
 };
 
 struct drop_statement_t : statement_t
@@ -686,7 +701,7 @@ void drop_database(const std::string& name, bool throw_unless_exists = true);
  *
  * @param db_name database name
  * @param name table name
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the table exists
  * @throw table_not_exists
  */
 void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
@@ -699,7 +714,7 @@ void drop_table(const std::string& db_name, const std::string& name, bool throw_
  * which is not available to the catalog implementation.
  *
  * @param name table name
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the table exists
  * @throw table_not_exists
  */
 void drop_table(const std::string& name, bool throw_unless_exists = true);
@@ -780,10 +795,19 @@ gaia::common::gaia_id_t create_relationship(
  * Delete a given relationship.
  *
  * @param name of the relationship
- * @param throw_unless_exists throw an execption unless the database exists
- * @throw table_not_exists
+ * @param throw_unless_exists throw an execption unless the relationship exists
+ * @throw relationship_not_exists
  */
 void drop_relationship(const std::string& name, bool throw_unless_exists = true);
+
+/**
+ * Delete a given index.
+ *
+ * @param name of the index
+ * @param throw_unless_exists throw an execption unless the index exists
+ * @throw index_not_exists
+ */
+void drop_index(const std::string& name, bool throw_unless_exists = true);
 
 /**
  * Find the database id given its name

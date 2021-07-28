@@ -1000,5 +1000,22 @@ gaia_id_t ddl_executor_t::create_index(
     return index_id;
 }
 
+void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exists)
+{
+    auto_transaction_t txn(false);
+    auto index_iter = gaia_index_t::list().where(gaia_index_expr::name == name).begin();
+    if (index_iter == gaia_index_t::list().end())
+    {
+        if (throw_unless_exists)
+        {
+            throw index_not_exists(name);
+        }
+        return;
+    }
+    index_iter->table().gaia_indexes().remove(index_iter->gaia_id());
+    index_iter->delete_row();
+    txn.commit();
+}
+
 } // namespace catalog
 } // namespace gaia

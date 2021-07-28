@@ -141,3 +141,43 @@ DROP TABLE IF EXISTS t2;
     ASSERT_NO_THROW(parser.parse_line("DROP RELATIONSHIP r3;"));
     ASSERT_THROW(execute(parser.statements), relationship_not_exists);
 }
+
+TEST_F(ddl_execution_test, drop_index)
+{
+    const string create_index_ddl = R"(
+DROP TABLE IF EXISTS t;
+CREATE TABLE IF NOT EXISTS t(c INT32);
+
+DROP INDEX IF EXISTS c_i;
+CREATE INDEX IF NOT EXISTS c_i ON t(c);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(create_index_ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    {
+        gaia::direct_access::auto_transaction_t txn(false);
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t").size(), 1);
+        ASSERT_EQ(
+            gaia_table_t::list()
+                .where(gaia::catalog::gaia_table_expr::name == "t")
+                .begin()
+                ->gaia_indexes()
+                .where(gaia_index_expr::name == "c_i")
+                .size(),
+            1);
+    }
+
+    ASSERT_NO_THROW(parser.parse_line("DROP INDEX IF EXISTS c_i;"));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    {
+        gaia::direct_access::auto_transaction_t txn(false);
+        ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t").begin()->gaia_indexes().size(), 0);
+        ASSERT_EQ(gaia_index_t::list().where(gaia_index_expr::name == "c_i").size(), 0);
+    }
+
+    ASSERT_NO_THROW(parser.parse_line("DROP INDEX c_i;"));
+    ASSERT_THROW(execute(parser.statements), index_not_exists);
+}
