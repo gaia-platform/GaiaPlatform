@@ -701,7 +701,7 @@ void drop_database(const std::string& name, bool throw_unless_exists = true);
  *
  * @param db_name database name
  * @param name table name
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the table exists
  * @throw table_not_exists
  */
 void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
@@ -714,7 +714,7 @@ void drop_table(const std::string& db_name, const std::string& name, bool throw_
  * which is not available to the catalog implementation.
  *
  * @param name table name
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the table exists
  * @throw table_not_exists
  */
 void drop_table(const std::string& name, bool throw_unless_exists = true);
@@ -795,7 +795,7 @@ gaia::common::gaia_id_t create_relationship(
  * Delete a given relationship.
  *
  * @param name of the relationship
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the relationship exists
  * @throw relationship_not_exists
  */
 void drop_relationship(const std::string& name, bool throw_unless_exists = true);
@@ -804,7 +804,7 @@ void drop_relationship(const std::string& name, bool throw_unless_exists = true)
  * Delete a given index.
  *
  * @param name of the index
- * @param throw_unless_exists throw an execption unless the database exists
+ * @param throw_unless_exists throw an execption unless the index exists
  * @throw index_not_exists
  */
 void drop_index(const std::string& name, bool throw_unless_exists = true);
