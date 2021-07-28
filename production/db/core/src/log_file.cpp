@@ -84,7 +84,10 @@ void log_file_t::allocate(size_t size)
 size_t log_file_t::get_remaining_bytes_count(size_t record_size)
 {
     ASSERT_PRECONDITION(m_file_size > 0, "Preallocated file size should be greater than 0.");
-    ASSERT_PRECONDITION(m_file_size >= (m_current_offset + record_size), "New record should fit in file.");
+    if (m_file_size < (m_current_offset + record_size))
+    {
+        return 0;
+    }
     return m_file_size - (m_current_offset + record_size);
 }
 
