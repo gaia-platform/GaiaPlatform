@@ -479,11 +479,11 @@ void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_
     {
         if (record->header.record_type == record_type_t::decision)
         {
-            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = DEC";
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = DEC" << std::endl;
         }
         else
         {
-            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = NOT SET";
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = NOT SET" << std::endl;
         }
     }
 
