@@ -101,7 +101,7 @@ public:
     std::string instance_name();
 
     /**
-     * Returns if we are skipping catalog integrity checks (for testing).
+     * Returns true if we are skipping catalog integrity checks (for testing).
      */
     bool skip_catalog_integrity_check();
 
