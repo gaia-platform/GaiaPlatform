@@ -29,6 +29,11 @@ create relationship if not exists farmer_incubators (
     incubator.farmer -> farmer
 );
 
+create relationship if not exists farmer_condos (
+    farmer.condos -> incubator[],
+    incubator.landlord -> farmer
+);
+
 CREATE TABLE if not exists  sensor (
     name STRING,
     timestamp UINT64,
@@ -82,6 +87,11 @@ create relationship if not exists farmer_yield (
 create relationship if not exists crop_yield (
     crop.yield -> yield[],
     yield.crop -> crop
+);
+
+create relationship if not exists crop_animal (
+    crop.animal -> animal[],
+    animal.crop -> crop
 );
 
 CREATE TABLE if not exists feeding (

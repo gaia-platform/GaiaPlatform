@@ -113,7 +113,7 @@ ruleset test11
 
 ruleset test12
 {
-    OnUpdate(incubator)
+    OnUpdate(raised)
     {
         farmer->Y:yield.bushels = 0;
 
@@ -148,10 +148,10 @@ ruleset test15
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test16
 {
-    OnUpdate(incubator)
+    OnUpdate(animal)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -165,10 +165,10 @@ ruleset test16
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test17
 {
-    OnUpdate(incubator)
+    OnUpdate(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -179,10 +179,10 @@ ruleset test17
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test18
 {
-    OnUpdate(incubator)
+    OnUpdate(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -195,10 +195,10 @@ ruleset test18
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test19
 {
-    OnUpdate(incubator)
+    OnUpdate(raised)
     {
         int unsigned i = 0;
         if (i == 0)
@@ -212,7 +212,7 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test20
 {
     OnUpdate(incubator)
@@ -226,7 +226,7 @@ ruleset test20
     }
 }
 
-// GAIAPLAT-829
+// GAIAPLAT-829 (fixed)
 ruleset test21
 {
     OnUpdate(incubator)
@@ -259,5 +259,19 @@ ruleset test23
     {
         use_float(A.value);
         use_float(B.value);
+    }
+}
+
+ruleset test24
+{
+    OnUpdate(incubator)
+    {
+        F:incubator.farmer->farmer->yield.bushels = 0;
+
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:incubator.landlord->farmer.acreage += 1;
+        }
     }
 }

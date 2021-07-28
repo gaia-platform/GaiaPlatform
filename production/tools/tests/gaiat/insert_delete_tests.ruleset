@@ -57,7 +57,6 @@ ruleset test05
     }
 }
 
-// It is expected that Insert will return an EDC object.
 // TESTCASE: Assign an Insert return value to a tag
 ruleset test06
 {
@@ -66,3 +65,59 @@ ruleset test06
         auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: 100.0);
     }
 }
+
+// TESTCASE: Assign an Insert value from an anchor's field
+// GAIAPLAT-1113
+ruleset test07
+{
+    OnInsert(incubator)
+    {
+        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: incubator.max_temp);
+    }
+}
+
+// TESTCASE: Perform Inserts in a navigational loop
+// GAIAPLAT-1110
+ruleset test08
+{
+    OnInsert(incubator)
+    {
+        for (incubator.landlord->farmer->Y:yield)
+        {
+            int y;
+            y = Y.bushels;
+            feeding.Insert(portion: y);
+        }
+    }
+}
+
+// TESTCASE: Perform Inserts containing implicit navigation
+ruleset test09
+{
+    OnInsert(farmer)
+    {
+        feeding.Insert(portion: yield.bushels);
+    }
+}
+
+// TESTCASE: Perform Inserts with multiple fields from implicit navigation
+// GAIAPLAT-1112
+ruleset test10
+{
+    OnInsert(farmer)
+    {
+        farmer.Insert(name: crop.name, acreage: crop.acres);
+    }
+}
+
+// TESTCASE: Perform Inserts with multiple fields from multiple implicit navigations
+// GAIAPLAT-1117
+#ifdef TEST_FAILURES
+ruleset test11
+{
+    OnInsert(raised)
+    {
+        farmer.Insert(name: crop.name, acreage: portion);
+    }
+}
+#endif
