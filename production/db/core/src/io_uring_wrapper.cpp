@@ -12,9 +12,14 @@
 
 #include "liburing.h"
 
-using namespace gaia::db;
-using namespace gaia::db::persistence;
 using namespace gaia::common;
+
+namespace gaia
+{
+namespace db
+{
+namespace persistence
+{
 
 void async_write_batch_t::setup(size_t buffer_size)
 {
@@ -42,7 +47,7 @@ void async_write_batch_t::teardown()
 io_uring_sqe* async_write_batch_t::get_submission_queue_entry()
 {
     auto sqe = io_uring_get_sqe(&m_ring);
-    ASSERT_INVARIANT(sqe, c_sqe_full_err_msg);
+    ASSERT_INVARIANT(sqe, c_get_sqe_failure_err_msg);
     return sqe;
 }
 
@@ -162,3 +167,7 @@ void async_write_batch_t::clear_decision_batch()
 {
     m_batch_decisions.clear();
 }
+
+} // namespace persistence
+} // namespace db
+} // namespace gaia

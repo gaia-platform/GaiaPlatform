@@ -113,6 +113,18 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 
+# Liburing
+# Choose static version of the library.
+message(CHECK_START "Looking for liburing")
+find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
+find_library(LIBURING_LIBRARY NAMES liburing.a)
+if (LIBURING_LIBRARY)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+  message(FATAL_ERROR "liburing is required.")
+endif()
+
 add_library(gaia_db_persistence STATIC
   src/io_uring_wrapper.cpp
   src/log_file.cpp)

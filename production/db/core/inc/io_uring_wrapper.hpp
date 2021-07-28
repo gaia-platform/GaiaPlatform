@@ -23,7 +23,8 @@ namespace db
 {
 namespace persistence
 {
-enum class uring_op_t : uint64_t
+
+enum class uring_op_t : uint8_t
 {
     not_set = 0,
     pwritev_txn = 1,
@@ -97,7 +98,7 @@ private:
     static constexpr size_t c_buffer_size = 32;
 
     static constexpr char c_setup_err_msg[] = "Failed to initialize io_uring instance (io_uring_queue_init returned error).";
-    static constexpr char c_sqe_full_err_msg[] = "io_uring submission queue out of space.";
+    static constexpr char c_get_sqe_failure_err_msg[] = "Unable to get entry from submission queue.";
 
     // io_uring instance. Each ring maintains a submission queue and a completion queue.
     io_uring m_ring;

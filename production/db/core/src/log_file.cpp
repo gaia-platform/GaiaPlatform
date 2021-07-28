@@ -14,8 +14,13 @@
 #include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
-using namespace gaia::db;
-using namespace gaia::db::persistence;
+
+namespace gaia
+{
+namespace db
+{
+namespace persistence
+{
 
 // TODO (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
 // open() operation will remain synchronous, since we need the file fd to perform other async
@@ -82,3 +87,7 @@ size_t log_file_t::get_remaining_bytes_count(size_t record_size)
     ASSERT_PRECONDITION(m_file_size >= (m_current_offset + record_size), "New record should fit in file.");
     return m_file_size - (m_current_offset + record_size);
 }
+
+} // namespace persistence
+} // namespace db
+} // namespace gaia

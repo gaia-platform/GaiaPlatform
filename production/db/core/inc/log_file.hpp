@@ -22,6 +22,7 @@ namespace db
 {
 namespace persistence
 {
+
 /**
  * Layer for persistent log file management.
  */
