@@ -220,7 +220,7 @@ void recovery_test::modify_data()
     }
 }
 
-// Method will generate an employee record of size 128 * 5 + 8 (648) bytes.
+// Method will generate an employee record of size 1024 * 5 + 8 (5128) bytes.
 employee_t recovery_test::generate_employee_record()
 {
     auto w = employee_writer();
@@ -438,7 +438,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     end_session();
 }
 
-TEST_F(recovery_test, reference_update_test)
+TEST_F(recovery_test, DISABLED_reference_update_test)
 {
     s_server.start();
     begin_session();
@@ -520,14 +520,14 @@ TEST_F(recovery_test, reference_update_test)
     end_session();
 }
 
-TEST_F(recovery_test, basic_correctness_test)
+TEST_F(recovery_test, DISABLED_basic_correctness_test)
 {
     // Basic correctness test.
     ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
     ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
 }
 
-TEST_F(recovery_test, load_and_recover_test)
+TEST_F(recovery_test, DISABLED_load_and_recover_test)
 {
     // Load & Recover test - with data size less than write buffer size;
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
@@ -540,7 +540,7 @@ void multiple_updates()
 {
 }
 
-TEST_F(recovery_test, multiple_updates_same_txn)
+TEST_F(recovery_test, DISABLED_multiple_updates_same_txn)
 {
     s_server.start();
     gaia_id_t emp_id = 0;
@@ -573,7 +573,7 @@ TEST_F(recovery_test, multiple_updates_same_txn)
     end_session();
 }
 
-TEST_F(recovery_test, reference_create_delete_test_new)
+TEST_F(recovery_test, DISABLED_reference_create_delete_test_new)
 {
     constexpr int c_num_children = 10;
     gaia_id_t parent_id;
@@ -676,7 +676,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     end_session();
 }
 
-TEST_F(recovery_test, reference_update_test_new)
+TEST_F(recovery_test, DISABLED_reference_update_test_new)
 {
     gaia_id_t parent_id;
     gaia_id_t child_id;
@@ -747,7 +747,7 @@ TEST_F(recovery_test, reference_update_test_new)
 
 // TODO (Mihir) Validate gaia_id is not recycled post crash.
 
-TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
+TEST_F(recovery_test, load_more_data_and_recover_test)
 {
     const uint64_t load_size = 16 * 1024 * 1024;
     // Load (more data) & Recover test - with data size greater than write buffer size.
