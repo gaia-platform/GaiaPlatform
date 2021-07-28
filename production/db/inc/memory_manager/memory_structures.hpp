@@ -46,7 +46,7 @@ struct memory_manager_metadata_t
 
     inline void clear()
     {
-        start_unused_memory_offset = c_invalid_slot_offset;
+        start_unused_memory_offset = c_invalid_address_offset;
         highest_deallocated_chunk_offset = c_invalid_chunk_offset;
         std::fill(chunk_bitmap, chunk_bitmap + c_chunk_bitmap_size, 0);
     }
