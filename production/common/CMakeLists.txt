@@ -49,3 +49,4 @@ add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common
 add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
 add_gtest(test_logging "tests/test_logging.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp" "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_random tests/test_random.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
+add_gtest(test_inline_shared_lock tests/test_inline_shared_lock.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
