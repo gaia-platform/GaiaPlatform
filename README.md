@@ -658,8 +658,9 @@ z1023
 ## Gaia Test Configuration
 
 While there are a number of different settings in the `gaia.conf` file, the
-test framework currently only focuses on one of those settings: the
-`thread_pool_count` setting.  The other settings are set to the following
+test framework currently only focuses on two of those settings: the
+`thread_pool_count` setting and the `stats_log_interval` setting.  The other
+settings are set to the following
 values:
 
 ```ini
@@ -668,7 +669,6 @@ data_dir = "/var/lib/gaia/db"
 instance_name="gaia_default_instance"
 [Catalog]
 [Rules]
-stats_log_interval = 2
 log_individual_rule_stats = true
 rule_retry_count = 3
 ```
@@ -677,16 +677,22 @@ These settings can be verified by examining the `incubator.conf` file in the
 `test-results` directory or the directory of a specific test within the
 `suite-results` directory.
 
+### Configuration File Locations
+
+These two configuration settings can be specified on a per-test basis or an all-test
+basis.  If the `config.json` file is in the same directory as the test's `command.txt`
+file, that configuration will take precedence and is only applied to that specific
+test.  If the `config.json` file is in the general `tests` directory, the configuration
+will be applied to any test that does not specify its own `config.json` file.
+
 ### Thread Pool Count
 
-The `thread_pool_count` setting is the only thing that is currently configurable
-on a per-test basis or an all-test basis.  This setting specifies the number of threads
-in the Rule Engine thread pool, available for processing.  This is beyond the
-thread used to make any changes to the database, kicking off the firing of rules in the
-rule engine.
+The `thread_pool_count` setting specifies the number of threads in the Rule Engine
+thread pool, available for processing.  This is beyond the thread used to make any
+changes to the database, kicking off the firing of rules in the rule engine.
 
 Valid values for this configuration value are `-1` (as many as possible) and any
-positive integer.  For example, to specify a single thread in the thread pool,
+positive integer.  To specify a single thread in the thread pool,
 use the following `config.json`:
 
 ```json
@@ -694,6 +700,26 @@ use the following `config.json`:
     "thread_pool_count" : 1
 }
 ```
+
+The default value for this setting is `-1`.
+
+### Gaia_Stats.log Interval
+
+The `stats_log_interval` setting specifies the number of seconds between
+the writing of individual "slices" in the `gaia_stats.log` file.  This
+file is the primary source of information on what has happend in the rule
+engine during the execution of a test scenario.
+
+Valid values for this configuration value are any integer between (and including)
+1 and 60.  To specify a slice duration of 5 seconds, use the following `config.json`:
+
+```json
+{
+    "stats_log_interval" : 5
+}
+```
+
+The default value for this setting is `2`.
 
 ## Below The Hood
 
