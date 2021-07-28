@@ -108,6 +108,7 @@ ruleset test10
         farmer.Insert(name: crop.name, acreage: crop.acres);
     }
 }
+
 // TESTCASE: Perform Inserts with multiple fields from multiple implicit navigations
 ruleset test11
 {
