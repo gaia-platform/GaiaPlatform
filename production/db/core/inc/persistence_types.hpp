@@ -102,7 +102,7 @@ struct record_iterator_t
 // 2) custom txn headers
 // 3) Txn decisions
 // 4) iovec entries to be supplied to the pwritev() call.
-static constexpr uint64_t c_max_helper_buf_size = 16 * 1024 * 1024;
+static constexpr uint64_t c_max_helper_buf_size = 128 * 1024;
 
 struct helper_buffer_t
 {
@@ -148,7 +148,8 @@ struct helper_buffer_t
 
     void clear()
     {
-        current_ptr = start;
+        current_ptr = &start[0];
+        remaining_size = c_max_helper_buf_size;
     }
 };
 

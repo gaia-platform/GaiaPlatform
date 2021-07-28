@@ -254,27 +254,28 @@ size_t async_disk_writer_t::handle_file_close(int fd, uint64_t log_seq)
 
 uint8_t* async_disk_writer_t::copy_into_metadata_buffer(void* source, size_t size, int file_fd)
 {
-    auto current_ptr = metadata_buffer.get_current_ptr();
-    ASSERT_PRECONDITION(current_ptr, "Invalid metadata_buffer ptr");
+    ASSERT_PRECONDITION(metadata_buffer.get_current_ptr(), "Invalid metadata_buffer ptr");
     ASSERT_PRECONDITION(size > 0, "Expected size to copy into metadata buffer must be greater than 0");
     ASSERT_PRECONDITION(source, "Source ptr must be valid.");
 
     // Call submit synchronously once the metadata buffer is full.
     if (!metadata_buffer.has_enough_space(size))
     {
-        // std::cout << "helper buffer ran out of space." << std::endl;
+        std::cout << "helper buffer ran out of space." << std::endl;
         bool sync_submit = true;
         handle_submit(file_fd, sync_submit);
-        metadata_buffer.clear();
 
+        std::cout << "CALLING CLEAR" << std::endl;
+        metadata_buffer.clear();
+        std::cout << "CLEAR DONE" << std::endl;
         // Batches have been swapped. Ensure new helper buffer for batch is empty.
         ASSERT_INVARIANT(metadata_buffer.current_ptr == metadata_buffer.start, "Should receive a new metadata buffer.");
     }
 
+    auto current_ptr = metadata_buffer.get_current_ptr();
     metadata_buffer.allocate(size);
     memcpy(current_ptr, source, size);
-
-    // Return old pointer.
+    std::cout << "MEMCPY DONE" << std::endl;
     return current_ptr;
 }
 
