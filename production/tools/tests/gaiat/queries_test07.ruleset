@@ -3,10 +3,11 @@
 // GAIAPLAT-1050
 ruleset test10
 {
-    OnUpdate(incubator)
+    OnUpdate(crop)
     {
         actuator.value += feeding.portion;
         sensor.value += acres;
     }
 }
-// CHECK: Multiple shortest paths between tables 'incubator' and 'feeding' exist.
+
+// CHECK: Multiple shortest paths between tables 'crop' and 'sensor' exist.

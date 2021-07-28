@@ -1,0 +1,11 @@
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+        sensor.value += yield->crop.acres;
+    }
+}
+
+// CHECK: There is more than one field that links 'incubator' and 'farmer'
