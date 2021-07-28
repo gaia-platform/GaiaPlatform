@@ -1,2 +1,3 @@
-smoke repeat 20
-smoke-long-stats repeat 10
+smoke repeat 10
+smoke-test repeat 5
+smoke-long-stats repeat 5

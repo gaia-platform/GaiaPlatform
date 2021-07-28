@@ -15,6 +15,8 @@ import configparser
 
 SUITE_DIRECTORY = "suite-results/"
 
+DECIMALS_PLACES_IN_NANOSECONDS = 9
+
 SLICE_NAME_INDEX = 3
 THREAD_LOAD_INDEX = 5
 SCHEDULED_INDEX = 7
@@ -278,12 +280,12 @@ def calculate_proper_averages(calculations, totals):
     calculated.
     """
 
-    calculations[AVERAGE_LATENCY_TITLE] = calculations[AVERAGE_LATENCY_TITLE] / float(
+    calculations[AVERAGE_LATENCY_TITLE] = round(calculations[AVERAGE_LATENCY_TITLE] / float(
         totals[SCHEDULED_TITLE]
-    )
-    calculations[AVERAGE_EXEC_TITLE] = calculations[AVERAGE_EXEC_TITLE] / float(
+    ), DECIMALS_PLACES_IN_NANOSECONDS)
+    calculations[AVERAGE_EXEC_TITLE] = round(calculations[AVERAGE_EXEC_TITLE] / float(
         totals[SCHEDULED_TITLE]
-    )
+    ), DECIMALS_PLACES_IN_NANOSECONDS)
 
     individual_totals = totals["individual"]
     individual_calculations = calculations["individual"]
@@ -293,12 +295,12 @@ def calculate_proper_averages(calculations, totals):
 
         next_individual_calculation[
             AVERAGE_LATENCY_TITLE
-        ] = next_individual_calculation[AVERAGE_LATENCY_TITLE] / float(
+        ] = round(next_individual_calculation[AVERAGE_LATENCY_TITLE] / float(
             next_individual_total[SCHEDULED_TITLE]
-        )
-        next_individual_calculation[AVERAGE_EXEC_TITLE] = next_individual_calculation[
+        ), DECIMALS_PLACES_IN_NANOSECONDS)
+        next_individual_calculation[AVERAGE_EXEC_TITLE] = round(next_individual_calculation[
             AVERAGE_EXEC_TITLE
-        ] / float(next_individual_total[SCHEDULED_TITLE])
+        ] / float(next_individual_total[SCHEDULED_TITLE]), DECIMALS_PLACES_IN_NANOSECONDS)
 
 
 def process_rules_engine_stats(base_dir):
@@ -484,23 +486,23 @@ def load_results_for_test(suite_test_directory, source_info):
     new_results[WAIT_DURATION_TITLE] = total_wait_data
     new_results[PRINT_DURATION_TITLE] = total_print_data
 
-    new_results[TEST_DURATION_TITLE] = (
+    new_results[TEST_DURATION_TITLE] = round(
         new_results[TOTAL_DURATION_TITLE]
         - new_results[PAUSE_DURATION_TITLE]
         - new_results[WAIT_DURATION_TITLE]
         - new_results[PRINT_DURATION_TITLE]
-    )
+    , DECIMALS_PLACES_IN_NANOSECONDS)
     if new_results[ITERATIONS_TITLE] > 0:
-        new_results[ITERATION_DURATION_TITLE] = new_results[
+        new_results[ITERATION_DURATION_TITLE] = round(new_results[
             TEST_DURATION_TITLE
-        ] / float(new_results[ITERATIONS_TITLE])
+        ] / float(new_results[ITERATIONS_TITLE]), DECIMALS_PLACES_IN_NANOSECONDS)
 
     if measured_section_data:
         new_results[MEASURED_DURATION_TITLE] = measured_section_data
         if new_results[ITERATIONS_TITLE] > 0:
-            new_results[PER_MEASURED_DURATION_TITLE] = measured_section_data / float(
+            new_results[PER_MEASURED_DURATION_TITLE] = round(measured_section_data / float(
                 new_results[ITERATIONS_TITLE]
-            )
+            ), DECIMALS_PLACES_IN_NANOSECONDS)
 
     new_results[RULES_ENGINE_TITLE] = stats_data
     return new_results
