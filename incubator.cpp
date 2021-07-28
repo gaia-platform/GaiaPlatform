@@ -247,7 +247,7 @@ void dump_db_json()
 
 bool g_is_measured_duration_timer_on;
 bool g_have_measurement;
-std::chrono::high_resolution_clock::time_point g_measured_duration_start_mark;
+std::chrono::steady_clock::time_point g_measured_duration_start_mark;
 std::chrono::duration<double, std::milli> g_measured_duration_in_ms;
 
 void toggle_measurement(bool is_live_user)
@@ -259,11 +259,11 @@ void toggle_measurement(bool is_live_user)
             printf("Measurement toggled on.");
         }
         g_is_measured_duration_timer_on = true;
-        g_measured_duration_start_mark = std::chrono::high_resolution_clock::now();
+        g_measured_duration_start_mark = std::chrono::steady_clock::now();
     }
     else
     {
-        auto measured_duration_end_mark = std::chrono::high_resolution_clock::now();
+        std::chrono::steady_clock::time_point measured_duration_end_mark = std::chrono::steady_clock::now();
         g_is_measured_duration_timer_on = false;
         g_have_measurement = true;
         if (is_live_user)
@@ -379,7 +379,7 @@ void step_and_emit_state()
 
     step();
 
-    auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point end_sleep_start_mark = std::chrono::steady_clock::now();
     bool have_no_deltas = false;
     int no_deltas_count = 0;
     const int maximum_no_delta_attempts = 25;
@@ -423,12 +423,12 @@ void step_and_emit_state()
         rule_2_sample_base = rule_2_current_sample;
         rule_3_sample_base = rule_3_current_sample;
     }
-    auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
 
     std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
     g_total_wait_time += ms_double.count();
 
-    auto print_start_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point print_start_mark = std::chrono::steady_clock::now();
     if (g_has_intermediate_state_output)
     {
         printf(",\n");
@@ -440,7 +440,7 @@ void step_and_emit_state()
     }
     dump_db_json();
 
-    auto print_end_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point print_end_mark = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
     g_total_print_time += ms_print.count();
 }
@@ -690,12 +690,12 @@ public:
 
     void handle_wait()
     {
-        auto end_sleep_start_mark = std::chrono::high_resolution_clock::now();
+        std::chrono::steady_clock::time_point end_sleep_start_mark = std::chrono::steady_clock::now();
 
         int limit = stoi(m_input.substr(1, m_input.size() - 1));
         std::this_thread::sleep_for(std::chrono::milliseconds(limit));
 
-        auto end_sleep_end_mark = std::chrono::high_resolution_clock::now();
+        std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
 
         std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
         g_total_wait_time += ms_double.count();
@@ -932,14 +932,10 @@ public:
         stop();
         if (!is_live_user)
         {
-            using std::chrono::duration;
-            using std::chrono::high_resolution_clock;
-            using std::chrono::milliseconds;
-
-            auto end_sleep_start_mark = high_resolution_clock::now();
+            std::chrono::steady_clock::time_point end_sleep_start_mark = std::chrono::steady_clock::now();
             sleep(g_sleep_time_in_seconds_after_stop);
-            auto end_sleep_end_mark = high_resolution_clock::now();
-            duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+            std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
             const int c_measured_buffer_size = 100;
             char measured_buffer[c_measured_buffer_size];
@@ -991,9 +987,12 @@ int main(int argc, const char** argv)
     {
         is_sim = true;
         is_debug = true;
-        if(argc == 3) {
+        if (argc == 3)
+        {
             g_sleep_time_in_seconds_after_stop = atoi(argv[2]);
-        } else {
+        }
+        else
+        {
             g_sleep_time_in_seconds_after_stop = c_default_sleep_time_in_seconds_after_stop;
         }
     }
