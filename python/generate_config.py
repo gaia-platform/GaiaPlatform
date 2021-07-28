@@ -23,7 +23,11 @@ log_individual_rule_stats = true
 rule_retry_count = 3
 """
 
+
 def read_thread_pool_count(data, thread_pool_count):
+    """
+    Retrive the thread_pool_count setting from the configuration file.
+    """
     if "thread_pool_count" in data:
         thread_pool_count = data["thread_pool_count"]
         if not isinstance(thread_pool_count, int):
@@ -39,7 +43,11 @@ def read_thread_pool_count(data, thread_pool_count):
             sys.exit(1)
     return thread_pool_count
 
+
 def read_stats_log_interval(data, stats_log_interval):
+    """
+    Retrive the stats_log_interval setting from the configuration file.
+    """
     if "stats_log_interval" in data:
         stats_log_interval = data["stats_log_interval"]
         if not isinstance(stats_log_interval, int):
@@ -54,6 +62,7 @@ def read_stats_log_interval(data, stats_log_interval):
             )
             sys.exit(1)
     return stats_log_interval
+
 
 def load_configuration_values_from_json_file():
     """
@@ -77,22 +86,26 @@ def load_configuration_values_from_json_file():
     return thread_pool_count, stats_log_interval
 
 
-def write_templated_output(thread_count):
+def write_templated_output(thread_count, stats_log_interval):
     """
     Realize the templated output and write it to the configuration file.
     """
 
-    templated_file_contents = CONFIGURATION_FILE_TEMPLATE\
-    .replace(
+    templated_file_contents = CONFIGURATION_FILE_TEMPLATE.replace(
         "{THREAD_POOL_COUNT}", str(thread_count)
-    ).replace(
-        "{STATS_LOG_INTERVAL}", str(stats_log_interval)
-    )
+    ).replace("{STATS_LOG_INTERVAL}", str(stats_log_interval))
 
     with open("incubator.conf", "w") as write_file:
         write_file.write(templated_file_contents)
 
 
-thread_count_value, stats_log_interval = load_configuration_values_from_json_file()
-write_templated_output(thread_count_value)
-print(str(stats_log_interval))
+def process_script_action():
+    """
+    Process the posting of the message.
+    """
+    thread_count_value, stats_log_interval = load_configuration_values_from_json_file()
+    write_templated_output(thread_count_value, stats_log_interval)
+    print(str(stats_log_interval))
+
+
+sys.exit(process_script_action())

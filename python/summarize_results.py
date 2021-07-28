@@ -280,12 +280,14 @@ def calculate_proper_averages(calculations, totals):
     calculated.
     """
 
-    calculations[AVERAGE_LATENCY_TITLE] = round(calculations[AVERAGE_LATENCY_TITLE] / float(
-        totals[SCHEDULED_TITLE]
-    ), DECIMALS_PLACES_IN_NANOSECONDS)
-    calculations[AVERAGE_EXEC_TITLE] = round(calculations[AVERAGE_EXEC_TITLE] / float(
-        totals[SCHEDULED_TITLE]
-    ), DECIMALS_PLACES_IN_NANOSECONDS)
+    calculations[AVERAGE_LATENCY_TITLE] = round(
+        calculations[AVERAGE_LATENCY_TITLE] / float(totals[SCHEDULED_TITLE]),
+        DECIMALS_PLACES_IN_NANOSECONDS,
+    )
+    calculations[AVERAGE_EXEC_TITLE] = round(
+        calculations[AVERAGE_EXEC_TITLE] / float(totals[SCHEDULED_TITLE]),
+        DECIMALS_PLACES_IN_NANOSECONDS,
+    )
 
     individual_totals = totals["individual"]
     individual_calculations = calculations["individual"]
@@ -293,14 +295,16 @@ def calculate_proper_averages(calculations, totals):
         next_individual_total = individual_totals[next_total_name]
         next_individual_calculation = individual_calculations[next_total_name]
 
-        next_individual_calculation[
-            AVERAGE_LATENCY_TITLE
-        ] = round(next_individual_calculation[AVERAGE_LATENCY_TITLE] / float(
-            next_individual_total[SCHEDULED_TITLE]
-        ), DECIMALS_PLACES_IN_NANOSECONDS)
-        next_individual_calculation[AVERAGE_EXEC_TITLE] = round(next_individual_calculation[
-            AVERAGE_EXEC_TITLE
-        ] / float(next_individual_total[SCHEDULED_TITLE]), DECIMALS_PLACES_IN_NANOSECONDS)
+        next_individual_calculation[AVERAGE_LATENCY_TITLE] = round(
+            next_individual_calculation[AVERAGE_LATENCY_TITLE]
+            / float(next_individual_total[SCHEDULED_TITLE]),
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        next_individual_calculation[AVERAGE_EXEC_TITLE] = round(
+            next_individual_calculation[AVERAGE_EXEC_TITLE]
+            / float(next_individual_total[SCHEDULED_TITLE]),
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
 
 
 def process_rules_engine_stats(base_dir):
@@ -490,19 +494,22 @@ def load_results_for_test(suite_test_directory, source_info):
         new_results[TOTAL_DURATION_TITLE]
         - new_results[PAUSE_DURATION_TITLE]
         - new_results[WAIT_DURATION_TITLE]
-        - new_results[PRINT_DURATION_TITLE]
-    , DECIMALS_PLACES_IN_NANOSECONDS)
+        - new_results[PRINT_DURATION_TITLE],
+        DECIMALS_PLACES_IN_NANOSECONDS,
+    )
     if new_results[ITERATIONS_TITLE] > 0:
-        new_results[ITERATION_DURATION_TITLE] = round(new_results[
-            TEST_DURATION_TITLE
-        ] / float(new_results[ITERATIONS_TITLE]), DECIMALS_PLACES_IN_NANOSECONDS)
+        new_results[ITERATION_DURATION_TITLE] = round(
+            new_results[TEST_DURATION_TITLE] / float(new_results[ITERATIONS_TITLE]),
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
 
     if measured_section_data:
         new_results[MEASURED_DURATION_TITLE] = measured_section_data
         if new_results[ITERATIONS_TITLE] > 0:
-            new_results[PER_MEASURED_DURATION_TITLE] = round(measured_section_data / float(
-                new_results[ITERATIONS_TITLE]
-            ), DECIMALS_PLACES_IN_NANOSECONDS)
+            new_results[PER_MEASURED_DURATION_TITLE] = round(
+                measured_section_data / float(new_results[ITERATIONS_TITLE]),
+                DECIMALS_PLACES_IN_NANOSECONDS,
+            )
 
     new_results[RULES_ENGINE_TITLE] = stats_data
     return new_results
