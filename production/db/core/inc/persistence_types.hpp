@@ -46,7 +46,6 @@ enum class record_type_t : uint8_t
     not_set = 0x0,
     txn = 0x1,
     decision = 0x2,
-    file_header = 0x3,
 };
 
 enum class decision_type_t : uint8_t

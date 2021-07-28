@@ -475,6 +475,18 @@ bool persistent_log_handler_t::write_log_file_to_persistent_store(std::string& w
 
 void persistent_log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
 {
+    if (record->header.record_type != record_type_t::txn)
+    {
+        if (record->header.record_type == record_type_t::decision)
+        {
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = DEC";
+        }
+        else
+        {
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = NOT SET";
+        }
+    }
+
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
     auto payload_ptr = reinterpret_cast<uint8_t*>(record->payload);

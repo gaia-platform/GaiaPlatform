@@ -90,6 +90,10 @@ size_t persistent_log_file_t::get_remaining_space(size_t record_size)
     ASSERT_PRECONDITION(m_file_size > 0, "Preallocated file size should be greater than 0.");
     std::cout << "CURRENT OFFSET = " << m_current_offset << std::endl;
     std::cout << "RECORD_SIZE = " << record_size << std::endl;
+    if (m_file_size <= (m_current_offset + record_size))
+    {
+        return 0;
+    }
     return m_file_size - (m_current_offset + record_size);
 }
 

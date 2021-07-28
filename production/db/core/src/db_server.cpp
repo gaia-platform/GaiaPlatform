@@ -1084,9 +1084,9 @@ void server_t::persistent_checkpoint_handler()
 
         std::cout << "CHECKPOINT DONE" << std::endl;
 
-        ASSERT_INVARIANT(last_processed_log_seq > last_deleted_log_seq, "Log files cannot be deleted out of order");
+        ASSERT_INVARIANT(max_log_seq_to_checkpoint > last_deleted_log_seq, "Log files cannot be deleted out of order");
         persistent_log_handler->destroy_persistent_log(last_processed_log_seq);
-        last_deleted_log_seq = last_processed_log_seq;
+        last_deleted_log_seq = max_log_seq_to_checkpoint;
 
         std::cout << "LOG with sequence number destroyed = " << last_processed_log_seq << std::endl;
     }
