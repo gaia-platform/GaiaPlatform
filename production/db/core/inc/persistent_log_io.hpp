@@ -65,7 +65,7 @@ private:
 
     // Persistent log writer.
     // Hardcode wal segment size for now.
-    static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
+    static constexpr uint64_t c_file_size = 0.5 * 1024 * 1024;
     static inline std::string s_wal_dir_path{};
     static inline int dir_fd = 0;
     static inline persistent_log_sequence_t file_num = 1;

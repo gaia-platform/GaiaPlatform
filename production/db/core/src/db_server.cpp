@@ -1061,6 +1061,7 @@ void server_t::persistent_checkpoint_handler()
 {
     // Wait for a persistent log file to be closed before checkpointing it.
     // This can be achieved via blocking on an eventfd read.
+    gaia_txn_id_t last_deleted_log_seq = 0;
     while (true)
     {
         // Log sequence number of file ready to be checkpointed.
@@ -1069,7 +1070,7 @@ void server_t::persistent_checkpoint_handler()
 
         // Process all existing log files.
         gaia_txn_id_t last_processed_log_seq = 0;
-        std::cout << "CHECKPOINT" << std::endl;
+        std::cout << "CHECKPOINT BEGIN" << std::endl;
         persistent_log_handler->recover_from_persistent_log(
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
@@ -1081,7 +1082,13 @@ void server_t::persistent_checkpoint_handler()
         // Flush persistent store buffer to disk.
         rdb->flush();
 
+        std::cout << "CHECKPOINT DONE" << std::endl;
+
+        ASSERT_INVARIANT(last_processed_log_seq > last_deleted_log_seq, "Log files cannot be deleted out of order");
         persistent_log_handler->destroy_persistent_log(last_processed_log_seq);
+        last_deleted_log_seq = last_processed_log_seq;
+
+        std::cout << "LOG with sequence number destroyed = " << last_processed_log_seq << std::endl;
     }
 }
 
