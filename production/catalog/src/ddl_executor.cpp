@@ -23,7 +23,6 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 
-#include "base_index.hpp"
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
