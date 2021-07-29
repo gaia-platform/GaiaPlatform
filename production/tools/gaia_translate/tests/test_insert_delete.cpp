@@ -84,9 +84,6 @@ prereq_t prereq_2;
 prereq_t prereq_3;
 prereq_t prereq_4;
 
-/**
- * Ensure that is possible to intermix cpp code with declarative code.
- */
 class test_insert_delete_code : public db_catalog_test_base_t
 {
 public:
@@ -252,4 +249,21 @@ TEST_F(test_insert_delete_code, implicit_delete)
 
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";
+}
+
+// TESTCASE: Generate database within rules
+TEST_F(test_insert_delete_code, build_database)
+{
+    gaia::rules::initialize_rules_engine();
+    // Use the rules for insert & delete.
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_insert_delete");
+
+    // Fire OnUpdate(S:student).
+    gaia::db::begin_transaction();
+    enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "OnInsert(enrollment_log) not called";
 }

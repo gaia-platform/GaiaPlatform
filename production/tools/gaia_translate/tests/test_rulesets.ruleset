@@ -423,4 +423,35 @@ ruleset test_insert_delete
         while (deleted);
         g_onupdate_called = true;
     }
+
+    OnInsert(E:enrollment_log)
+    {
+        bool found_student = false;
+
+        const char* str1;
+        const char* str2;
+        int32_t int1;
+
+        // The uncommented code is a poor workaround for this, which should get fixed soon.
+        // See GAIAPLAT-1110, GAIAPLAT-1112.
+        // auto S = student.Insert(student_id: E.log_student_id, surname: E.log_surname, E.log_age);
+        // auto C = course.Insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
+        // auto R = registration.Insert(reg_id: E.log_reg_id);
+
+        str1 = E.log_student_id;
+        str2 = E.log_surname;
+        int1 = E.log_age;
+        auto S = student.Insert(student_id: str1, surname: str2, age: int1);
+        str1 = E.log_course_id;
+        str2 = E.log_name;
+        int1 = E.log_hours;
+        auto C = course.Insert(course_id: str1, name: str2, hours: int1);
+        str1 = E.log_reg_id;
+        auto R = registration.Insert(reg_id: str1);
+
+        S.registrations().insert(R);
+        C.registrations().insert(R);
+
+        g_oninsert_called = true;
+    }
 }

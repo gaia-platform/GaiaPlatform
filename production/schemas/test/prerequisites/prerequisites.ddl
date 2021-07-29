@@ -51,3 +51,13 @@ create relationship if not exists course_prereq (
     course.requires -> prereq[],
     prereq.course -> course
 );
+
+create table if not exists enrollment_log (
+    log_student_id string,
+    log_surname string,
+    log_age int32,
+    log_course_id string,
+    log_name string,
+    log_hours int32,
+    log_reg_id string
+);
