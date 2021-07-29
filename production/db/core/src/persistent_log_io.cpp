@@ -159,7 +159,20 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     header.txn_commit_ts = 0;
     header.record_type = record_type_t::decision;
 
-    // std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND SIZE = " << total_log_space_needed << std::endl;
+    for (auto entry : txn_decisions)
+    {
+        int x = 0;
+        if (entry.decision == decision_type_t::commit)
+        {
+            x = 1;
+        }
+        else if (entry.decision == decision_type_t::abort)
+        {
+            x = 2;
+        }
+        std::cout << "DECISION TO PERSIST = " << entry.txn_commit_ts << " AND WITH TYPE = " << x << std::endl;
+    }
+    std::cout << "DECISION RECORD OFFSET = " << begin_log_offset << " AND FILE = " << current_file->get_file_fd() << std::endl;
 
     crc32_t txn_crc = 0;
     txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
@@ -308,7 +321,7 @@ void persistent_log_handler_t::create_txn_record(
     header.txn_commit_ts = commit_ts;
     header.record_type = type;
 
-    // std::cout << "TXN RECORD OFFSET = " << start_offset << " AND SIZE = " << total_log_space_needed << std::endl;
+    std::cout << "TXN RECORD OFFSET = " << start_offset << " AND FILE = " << current_file->get_file_fd() << std::endl;
 
     // Calculate CRC.
     auto txn_crc = calculate_crc32(0, &header, sizeof(record_header_t));
@@ -570,6 +583,7 @@ void persistent_log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_
             // Iterare decisions.
             for (auto decision_it = decision_index.cbegin(); decision_it != decision_index.cend();)
             {
+                std::cout << "COMMIT TS FOR DEC IS = " << decision_it->first << std::endl;
                 ASSERT_INVARIANT(txn_index.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
 
                 auto txn_it = txn_index.find(decision_it->first);
@@ -631,10 +645,14 @@ size_t persistent_log_handler_t::validate_recovered_record_crc(struct record_ite
 
     if (destination->header.payload_size == 0)
     {
+        std::cout << "CRC = " << destination->header.crc << std::endl;
+        std::cout << "PAYLOAD SIZE = " << destination->header.payload_size << std::endl;
+        // std::cout << "COMMIT TS = " << destination->header.txn_commit_ts << std::endl;
         std::cout << "halt here " << std::endl;
     }
     if (destination->header.crc == 0)
     {
+        std::cout << "halt here 2" << std::endl;
         if (is_remaining_file_empty(it->cursor, it->end))
         {
             // Stop processing the current log file.

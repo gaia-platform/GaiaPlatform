@@ -275,7 +275,6 @@ uint8_t* async_disk_writer_t::copy_into_metadata_buffer(void* source, size_t siz
     auto current_ptr = metadata_buffer.get_current_ptr();
     metadata_buffer.allocate(size);
     memcpy(current_ptr, source, size);
-    std::cout << "MEMCPY DONE" << std::endl;
     return current_ptr;
 }
 
