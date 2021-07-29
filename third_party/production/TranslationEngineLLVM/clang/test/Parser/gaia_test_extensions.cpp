@@ -77,7 +77,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test3 : Table (sensor)
+ruleset test3 : tables (sensor)
 {
   {
 	  if (@value < 5)

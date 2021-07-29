@@ -5,7 +5,7 @@ ruleset test01
 {
     on_insert(sensor)
     {
-        sensor.delete();
+        sensor.remove();
     }
 }
 

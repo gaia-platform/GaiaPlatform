@@ -70,9 +70,9 @@ ruleset test_connect_disconnect_3
 {
     on_insert(farmer)
     {
-        farmer.Connect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.Disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.incubators.Connect;  // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.incubators.Disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
+        farmer.connect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
+        farmer.disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
+        farmer.incubators.connect;  // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
+        farmer.incubators.disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
     }
 }
