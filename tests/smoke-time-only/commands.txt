@@ -11,7 +11,9 @@ m
 # Wait 5 milliseconds to allow the turn on effects to finish.
 w5
 # Take 1023 steps.
+o
 s1023
+o
 # Print out the final state.
-#w5
-#j
+w2
+j

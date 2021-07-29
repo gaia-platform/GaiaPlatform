@@ -43,10 +43,6 @@ Each updated value is contained within its own `sensor_writer` instance.
 
 When all actuators and sensors have been visited, a transaction commit is performed.
 
-## Values
-
-90.9999
-
 ## Scenario Test 1: "smoke"
 
 - [source location](https://github.com/gaia-platform/jack-test/tree/master/tests/smoke)

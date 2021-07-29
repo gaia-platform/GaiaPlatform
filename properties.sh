@@ -86,7 +86,7 @@ process_debug() {
     # For ease of graphing, also produce a CSV file if requested.
     if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
         lines_in_output_json=$(grep "" -c $JSON_OUTPUT)
-        if [ "$lines_in_output_json" -eq 1 ] ; then
+        if [ "$lines_in_output_json" -lt 100 ] ; then
             echo "Translation of the JSON output to CSV skipped. Nothing to translate."
         else
             head -n -1 $JSON_OUTPUT > $TEST_DIRECTORY/blah
