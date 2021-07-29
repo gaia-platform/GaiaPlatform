@@ -254,7 +254,7 @@ TEST(bitmap, set_get_find_bitarray_element)
     constexpr uint64_t c_element_value = 0b1101;
     constexpr size_t c_element_width = 4;
     constexpr size_t c_bitarray_index = 17;
-    set_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_value, c_element_width);
+    set_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index, c_element_value);
     // We need the same bit ordering as the binary literal representation.
     bool msb_first = true;
     print_bitmap(bitmap, c_bitmap_size, msb_first);
@@ -264,15 +264,15 @@ TEST(bitmap, set_get_find_bitarray_element)
     size_t bit_count = count_set_bits(bitmap, c_bitmap_size);
     ASSERT_EQ(bit_count, 3);
 
-    uint64_t element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_width);
+    uint64_t element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index);
     ASSERT_EQ(element_value, c_element_value);
 
-    size_t found_bit_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_value, c_element_width);
-    ASSERT_EQ(found_bit_index, c_bitarray_index);
+    size_t found_bitarray_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_width, c_element_value);
+    ASSERT_EQ(found_bitarray_index, c_bitarray_index);
 
     // Stop the search just before the sought element.
-    found_bit_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_value, c_element_width, c_bitarray_index - 1);
-    ASSERT_EQ(found_bit_index, c_max_bit_index);
+    found_bitarray_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_width, c_element_value, c_bitarray_index - 1);
+    ASSERT_EQ(found_bitarray_index, c_max_bit_index);
 }
 
 TEST(bitmap, conditional_set_bitarray_element)
@@ -286,20 +286,20 @@ TEST(bitmap, conditional_set_bitarray_element)
     constexpr size_t c_element_width = 4;
     constexpr size_t c_bitarray_index = 17;
 
-    uint64_t element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_width);
+    uint64_t element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index);
     ASSERT_EQ(element_value, c_initial_element_value);
 
     // Verify that the conditional set fails if the expected value is absent.
-    bool has_set_value = conditional_set_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_expected_element_value, c_desired_element_value, c_element_width);
+    bool has_set_value = conditional_set_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index, c_expected_element_value, c_desired_element_value);
     ASSERT_FALSE(has_set_value);
 
     // Verify that the initial value is still present.
-    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_width);
+    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index);
     ASSERT_EQ(element_value, c_initial_element_value);
 
     // Set expected value and verify it is present.
-    set_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_expected_element_value, c_element_width);
-    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_width);
+    set_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index, c_expected_element_value);
+    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index);
     ASSERT_EQ(element_value, c_expected_element_value);
 
     // We need the same bit ordering as the binary literal representation.
@@ -309,17 +309,17 @@ TEST(bitmap, conditional_set_bitarray_element)
     ASSERT_EQ(bitmap[1], c_expected_element_value << c_element_width);
 
     // Verify that the conditional set succeeds if the expected value is present.
-    has_set_value = conditional_set_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_expected_element_value, c_desired_element_value, c_element_width);
+    has_set_value = conditional_set_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index, c_expected_element_value, c_desired_element_value);
     ASSERT_TRUE(has_set_value);
 
     // Verify that the desired value is now present.
-    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_bitarray_index, c_element_width);
+    element_value = get_bitarray_element_at_index(bitmap, c_bitmap_size, c_element_width, c_bitarray_index);
     ASSERT_EQ(element_value, c_desired_element_value);
 
     print_bitmap(bitmap, c_bitmap_size, msb_first);
     ASSERT_EQ(bitmap[0], 0);
     ASSERT_EQ(bitmap[1], c_desired_element_value << c_element_width);
 
-    size_t found_bit_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_desired_element_value, c_element_width);
-    ASSERT_EQ(found_bit_index, c_bitarray_index);
+    size_t found_bitarray_index = find_first_bitarray_element(bitmap, c_bitmap_size, c_element_width, c_desired_element_value);
+    ASSERT_EQ(found_bitarray_index, c_bitarray_index);
 }

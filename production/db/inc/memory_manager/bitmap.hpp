@@ -58,25 +58,29 @@ size_t find_first_unset_bit(
 
 // Find the first occurrence of a bitarray element
 // and return the bitarray index of this occurrence.
-// end_limit_bitarray_index can limit the search to a prefix of a large bitmap. If
-// end_limit_bitarray_index is not set, we'll search the entire bitmap.
+// end_limit_element_index can limit the search to a prefix of a large bitmap. If
+// end_limit_element_index is not set, we'll search the entire bitmap.
 size_t find_first_bitarray_element(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, uint64_t element_value,
-    size_t element_width, size_t end_limit_bitarray_index = c_max_bit_index);
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, uint64_t element_value,
+    size_t end_limit_element_index = c_max_bit_index);
 
 // Read a bitarray element with given width at the given bitarray index.
 uint64_t get_bitarray_element_at_index(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index, size_t element_width);
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index);
 
 // Atomically (using CAS) set a bitarray element with given width at the given bitarray index within a bitmap.
 void set_bitarray_element_at_index(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index, uint64_t element_value, size_t element_width);
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index, uint64_t element_value);
 
 // Atomically (using CAS) set a bitarray element with given width at the given bitarray index within a bitmap.
 // This operation will fail if the current element value is not `expected_element_value`.
 bool conditional_set_bitarray_element_at_index(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bitarray_index,
-    uint64_t expected_element_value, uint64_t desired_element_value, size_t element_width);
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index,
+    uint64_t expected_element_value, uint64_t desired_element_value);
 
 // Get the bitarray element with given width at the given bit index within a single word.
 uint64_t get_bitarray_element_in_word(
@@ -84,20 +88,20 @@ uint64_t get_bitarray_element_in_word(
 
 // Set a bitarray element with given width at the given bit index within a single word.
 void set_bitarray_element_in_word(
-    uint64_t& word, size_t bit_index, uint64_t element_value, size_t element_width);
+    uint64_t& word, size_t element_width, size_t bit_index, uint64_t element_value);
 
 // Try to atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
 bool try_set_bitarray_element_in_word(
-    std::atomic<uint64_t>& word, size_t bit_index, uint64_t element_value, size_t element_width);
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index, uint64_t element_value);
 
 // This operation will fail if the current element value is not `expected_element_value`.
 bool conditional_set_bitarray_element_in_word(
-    std::atomic<uint64_t>& word, size_t bit_index, uint64_t expected_element_value,
-    uint64_t desired_element_value, size_t element_width);
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index,
+    uint64_t expected_element_value, uint64_t desired_element_value);
 
 // Atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
 void safe_set_bitarray_element_in_word(
-    std::atomic<uint64_t>& word, size_t bit_index, uint64_t element_value, size_t element_width);
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index, uint64_t element_value);
 
 // Print a bitmap to console, for testing and debugging.
 void print_bitmap(
