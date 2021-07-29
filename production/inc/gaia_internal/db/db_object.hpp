@@ -37,7 +37,7 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     // the payload is the serialized flatbuffer size plus the size of the
     // references array (num_references * sizeof(gaia_id_t)).
     uint16_t payload_size;
-    uint16_t num_references;
+    gaia::common::reference_offset_t num_references;
 
     // This contains an array of zero or more references (gaia_id_t), followed by
     // a serialized flatbuffer object.

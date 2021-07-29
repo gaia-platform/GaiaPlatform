@@ -54,7 +54,7 @@ public:
      * The number of references this type has both as parent and child.
      * Note: child references count 2X, since 2 pointers are necessary to express them.
      */
-    std::size_t num_references() const;
+    gaia::common::reference_offset_t num_references() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too

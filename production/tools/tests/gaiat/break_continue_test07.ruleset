@@ -29,5 +29,5 @@ BREAK2_TARGET:
 }
 
 // CHECK: Declarative label does not exist.
-// CHECK: Invalid declarative label.
+// CHECK: Declarative label 'BREAK2_TARGET' is defined in the incorrect scope.
 // CHECK: use of undeclared label 'BREAK2_TARGET'

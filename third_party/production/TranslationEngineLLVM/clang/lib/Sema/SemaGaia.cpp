@@ -566,8 +566,8 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
 
     // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
     //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
@@ -714,8 +714,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
     //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());

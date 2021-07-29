@@ -317,7 +317,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
     gaia_id_t id = gaia_ptr_t::generate_id();
 
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
-    size_t num_references = metadata.num_references();
+    reference_offset_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
 }
@@ -325,12 +325,12 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
-    size_t num_references = metadata.num_references();
+    reference_offset_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
 }
 
-gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t num_references, size_t data_size, const void* data)
+gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t num_references, size_t data_size, const void* data)
 {
     size_t references_size = num_references * sizeof(gaia_id_t);
     size_t total_payload_size = data_size + references_size;
@@ -377,7 +377,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& node)
     }
 
     const gaia_id_t* references = node.references();
-    for (size_t i = 0; i < node.num_references(); i++)
+    for (reference_offset_t i = 0; i < node.num_references(); i++)
     {
         if (references[i] != c_invalid_gaia_id)
         {

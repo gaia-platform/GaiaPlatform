@@ -10,6 +10,7 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
@@ -21,7 +22,6 @@ using namespace gaia::prerequisites::registration_expr;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace rule_test_helpers;
 
 extern bool g_oninsert_called;
 extern bool g_oninsert2_called;
@@ -247,7 +247,9 @@ TEST_F(test_insert_delete_code, implicit_delete)
     sw.update_row();
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(S:student) not called";
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(S:student) not called";
+
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";
 }

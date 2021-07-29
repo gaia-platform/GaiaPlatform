@@ -18,4 +18,4 @@ BREAK_TARGET:
     }
 }
 
-// CHECK: Invalid declarative label
+// CHECK:  Declarative label 'BREAK_TARGET' is defined in the incorrect scope.

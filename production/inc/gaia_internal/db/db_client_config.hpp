@@ -19,6 +19,7 @@ namespace config
 struct session_options_t
 {
     std::string db_instance_name;
+    bool skip_catalog_integrity_check;
 };
 
 /**

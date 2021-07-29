@@ -228,6 +228,14 @@ drop_statement:
       $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $4);
       $$->if_exists = $3;
   }
+| DROP RELATIONSHIP opt_if_exists IDENTIFIER {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_relationship, $4);
+      $$->if_exists = $3;
+  }
+| DROP INDEX opt_if_exists IDENTIFIER {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_index, $4);
+      $$->if_exists = $3;
+  }
 ;
 
 use_statement:

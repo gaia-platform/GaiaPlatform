@@ -29,3 +29,12 @@ void gaia::rules::test::commit_trigger(
     // execute the rules synchronously now
     event_manager_t::get().m_invocations->execute_immediate();
 }
+
+void gaia::rules::test::wait_for_rules_to_complete()
+{
+    event_manager_t& event_manager = event_manager_t::get();
+    if (event_manager.m_invocations)
+    {
+        event_manager.m_invocations->wait_for_rules_to_complete();
+    }
+}
