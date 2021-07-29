@@ -35,6 +35,7 @@ std::optional<gaia_id_t> type_generator_t::operator()()
         record_list->start(m_iterator);
 
         // Initialize local snapshot, if needed.
+        // Also, set the flag to clear the snapshot if we opened it.
         if (!server_t::s_local_snapshot_locators.is_set())
         {
             bool replay_logs = false;
