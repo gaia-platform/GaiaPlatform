@@ -7,12 +7,15 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
+using namespace gaia::catalog;
 
 // duplicated from production/db/core/inc/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
@@ -84,13 +87,14 @@ private:
         node2_id = gaia_ptr_t::generate_id();
         node3_id = gaia_ptr_t::generate_id();
         node4_id = gaia_ptr_t::generate_id();
-        type1 = 1;
-        type2 = 2;
+
+        gaia_id_t type1_table_id = create_table("test1", {});
+        gaia_id_t type2_table_id = create_table("test2", {});
 
         begin_transaction();
         {
-            type_registry_t::instance().test_get_or_create(type1);
-            type_registry_t::instance().test_get_or_create(type2);
+            type1 = gaia_table_t::get(type1_table_id).type();
+            type2 = gaia_table_t::get(type2_table_id).type();
 
             std::cerr << std::endl;
             std::cerr << "*** create test nodes" << std::endl;

@@ -3,14 +3,17 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "db_client.hpp"
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
+#include "field_access.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
@@ -438,18 +441,50 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     new_this->num_references = old_this->num_references;
     memcpy(new_this->payload + references_size, data, data_size);
 
+    auto new_data = reinterpret_cast<const uint8_t*>(data);
+    auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
+    const uint8_t* old_data_payload = old_data + references_size;
+    field_position_list_t changed_fields = compute_payload_diff(new_this->type, old_data_payload, new_data);
+
+    // For every changed field, check if the field is used in establishing a
+    // relationship where the field's table is on the child side. For every such
+    // relationship, check if the new value exists in any parent record. If
+    // yes, link the child record to the parent record.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type());
+    for (auto field_position : changed_fields)
+    {
+        for (auto relationship_view : catalog_core_t::list_relationship_to(type_record_id))
+        {
+            if (relationship_view.child_field_positions()->size() == 1
+                && relationship_view.child_field_positions()->Get(0) == field_position)
+            {
+                auto field_value = payload_types::get_field_value(type_record_id, new_data, nullptr, 0, field_position);
+                // TODO: use index to find parent record more efficiently
+                gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).type();
+                gaia_id_t parent_type_record_id = type_id_mapping_t::instance().get_record_id(type());
+                for (auto parent_record : find_all_range(parent_table_type))
+                {
+                    auto parent_field_value = payload_types::get_field_value(
+                        parent_type_record_id,
+                        reinterpret_cast<const uint8_t*>(parent_record.data()),
+                        nullptr,
+                        0,
+                        relationship_view.parent_field_positions()->Get(0));
+
+                    if (parent_field_value.compare(field_value) == 0)
+                    {
+                        update_parent_reference(parent_record.id(), relationship_view.parent_offset());
+                    }
+                }
+            }
+        }
+    }
+
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
     if (client_t::is_valid_event(new_this->type))
     {
-        auto new_data = reinterpret_cast<const uint8_t*>(data);
-        auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
-        const uint8_t* old_data_payload = old_data + references_size;
-
-        // Compute field difference.
-        field_position_list_t position_list;
-        compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
+        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_txn_id());
     }
 
     return *this;
