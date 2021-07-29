@@ -3850,7 +3850,7 @@ public:
                                    SourceLocation StarLoc,
                                    Expr *DestExp);
   StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDeclarativeContinue = false);
-  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclaraiveBreak = false);
+  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclarativeBreak = false);
 
   void ActOnCapturedRegionStart(SourceLocation Loc, Scope *CurScope,
                                 CapturedRegionKind Kind, unsigned NumParams);

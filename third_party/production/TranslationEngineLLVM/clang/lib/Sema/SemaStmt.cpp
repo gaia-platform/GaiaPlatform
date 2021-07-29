@@ -2981,8 +2981,8 @@ Sema::ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDecl
 }
 
 StmtResult
-Sema::ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclaraiveBreak) {
-  if (!isDeclaraiveBreak)
+Sema::ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclarativeBreak) {
+  if (!isDeclarativeBreak)
   {
     Scope *S = CurScope->getBreakParent();
     if (!S) {

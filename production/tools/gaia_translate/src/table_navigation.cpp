@@ -347,7 +347,7 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
     return return_value;
 }
 
-// Find shortest navigation path between 2 tables. If there are multiple shortest paths exist, return an error.
+// Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
 bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path)
 {
     if (src == dst)

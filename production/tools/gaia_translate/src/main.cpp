@@ -541,6 +541,9 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         SourceRange nomatch_range;
+        // Find correct nomatch segment for a current declarative expression.
+        // This segment will be used later to inject nomatch code at
+        // the end of navigation code wrapping the declarative expression.
         for (const auto& nomatch_source_range : g_nomatch_location)
         {
             if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
@@ -655,6 +658,23 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 g_is_generation_error = true;
                 return;
             }
+
+            // The following code
+            // l1:if (x.value>5)
+            //  break l1;
+            // else
+            //  continue l1;
+            // .............
+            // is translated into
+            // ..........Navigation code for x
+            // l1:if (x.value()>5)
+            //  goto l1_break;
+            // else
+            //  goto l1_continue;
+            // ..........................
+            // l1_continue:
+            //...............Navigation code for x
+            // l1_break:
 
             if (!break_label.empty())
             {
@@ -2750,7 +2770,7 @@ public:
         }
         replacement_string.resize(replacement_string.size() - 1);
         replacement_string.append("))");
-
+cerr<<replacement_string<<endl;
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call_locations.insert(expression->getBeginLoc());

@@ -642,7 +642,7 @@ StmtResult Parser::ParseLabeledStatement(ParsedAttributesWithRange &attrs) {
 
   if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName().str()))
   {
-    Diag(IdentTok.getLocation(), diag::err_incorrect_declarative_label_scope);
+    Diag(IdentTok.getLocation(), diag::err_incorrect_declarative_label_scope) << IdentTok.getIdentifierInfo()->getName();
     return StmtError();
   }
   // If we've not parsed a statement yet, parse one now.
@@ -2121,7 +2121,7 @@ StmtResult Parser::ParseContinueStatement() {
     LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
     if (LD->getStmt())
     {
-      Diag(Tok, diag::err_incorrect_declarative_label_scope);
+      Diag(Tok, diag::err_incorrect_declarative_label_scope) << labelIdentifier->getName();
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
@@ -2151,7 +2151,7 @@ StmtResult Parser::ParseBreakStatement() {
     LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
     if (LD->getStmt())
     {
-      Diag(Tok, diag::err_incorrect_declarative_label_scope);
+      Diag(Tok, diag::err_incorrect_declarative_label_scope) << labelIdentifier->getName();
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
