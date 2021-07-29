@@ -622,6 +622,14 @@ void server_t::init_shared_memory()
     // The listening socket must not be open.
     ASSERT_PRECONDITION(s_listening_socket == -1, "Listening socket should not be open!");
 
+    // Initialize global data structures.
+    txn_metadata_t::init_txn_metadata_map();
+
+    // Initialize watermarks.
+    s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+    s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
@@ -2546,16 +2554,6 @@ void server_t::run(server_config_t server_conf)
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
 
-        // Initialize global data structures.
-        txn_metadata_t::init_txn_metadata_map();
-
-        // Initialize watermarks.
-        s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
-        s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-        s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-
-        // init_shared_memory() needs to be here after txn_metadata initialization because
-        // the metadata is required for the startup txn and local snapshots.
         init_shared_memory();
 
         // Launch thread to listen for client connections and create session threads.
