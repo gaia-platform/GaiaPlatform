@@ -1,27 +1,27 @@
-CREATE DATABASE if not exists incubator;
+create database if not exists incubator;
 
 USE incubator;
 
-CREATE TABLE if not exists animal (
-    name STRING,
-    breed STRING,
-    age UINT64
+create table if not exists animal (
+    name string,
+    breed string,
+    age uint64
 );
 
-CREATE TABLE if not exists farmer (
-    name STRING,
-    acreage UINT32
+create table if not exists farmer (
+    name string,
+    acreage uint32
 );
 
-CREATE TABLE if not exists crop (
-    name STRING,
-    acres UINT32
+create table if not exists crop (
+    name string,
+    acres uint32
 );
 
-CREATE TABLE if not exists incubator (
-    name STRING,
-    min_temp FLOAT,
-    max_temp FLOAT
+create table if not exists incubator (
+    name string,
+    min_temp float,
+    max_temp float
 );
 
 create relationship if not exists farmer_incubators (
@@ -29,10 +29,10 @@ create relationship if not exists farmer_incubators (
     incubator.farmer -> farmer
 );
 
-CREATE TABLE if not exists  sensor (
-    name STRING,
-    timestamp UINT64,
-    value FLOAT
+create table if not exists  sensor (
+    name string,
+    timestamp uint64,
+    value float
 );
 
 create relationship if not exists incubator_sensors (
@@ -40,10 +40,10 @@ create relationship if not exists incubator_sensors (
     sensor.incubator -> incubator
 );
 
-CREATE TABLE if not exists  actuator (
-    name STRING,
-    timestamp UINT64,
-    value FLOAT
+create table if not exists  actuator (
+    name string,
+    timestamp uint64,
+    value float
 );
 
 create relationship if not exists incubator_actuators (
@@ -51,8 +51,8 @@ create relationship if not exists incubator_actuators (
     actuator.incubator -> incubator
 );
 
-CREATE TABLE if not exists raised (
-    birthdate STRING
+create table if not exists raised (
+    birthdate string
 );
 
 create relationship if not exists animal_raised (
@@ -70,8 +70,8 @@ create relationship if not exists incubator_raised (
     raised.incubator -> incubator
 );
 
-CREATE TABLE if not exists yield (
-    bushels UINT32
+create table if not exists yield (
+    bushels uint32
 );
 
 create relationship if not exists farmer_yield (
@@ -84,8 +84,8 @@ create relationship if not exists crop_yield (
     yield.crop -> crop
 );
 
-CREATE TABLE if not exists feeding (
-    portion UINT32
+create table if not exists feeding (
+    portion uint32
 );
 
 create relationship if not exists yield_feeding (
@@ -98,7 +98,24 @@ create relationship if not exists animal_feeding (
     feeding.animal -> animal
 );
 
+create table if not exists isolated (
+    age uint32
+);
 
-CREATE TABLE if not exists isolated (
-    age UINT32
+create table if not exists hyperconnected (
+    val uint32
+);
+
+create table if not exists target (
+    val uint32
+);
+
+create relationship if not exists hyperconnected_target_1 (
+    hyperconnected.link1 -> target[],
+    target.back_link1 -> hyperconnected
+);
+
+create relationship if not exists hyperconnected_target_2 (
+    hyperconnected.link2 -> target[],
+    target.back_link2 -> hyperconnected
 );

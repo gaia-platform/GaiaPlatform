@@ -16,6 +16,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/Sema.h"
+#include <clang/Sema/Lookup.h>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -456,7 +458,7 @@ void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceL
     RD->addDecl(Field);
 }
 
-void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo* Params, unsigned NumParams, AttributeFactory& attrFactory, ParsedAttributes& attrs, Scope* S, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
+void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
 {
     DeclSpec DS(attrFactory);
     const char* dummy;
@@ -478,10 +480,43 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorC
 
     DS.Finish(*this, getPrintingPolicy());
 
+    SmallVector<DeclaratorChunk::ParamInfo, 8> paramsInfo;
+    SmallVector<ParmVarDecl*, 8> params;
+
+    if (!parameterTypes.empty())
+    {
+        Declarator paramDeclarator(DS, DeclaratorContext::PrototypeContext);
+        paramDeclarator.SetRangeBegin(loc);
+        paramDeclarator.SetRangeEnd(loc);
+        paramDeclarator.ExtendWithDeclSpec(DS);
+        paramDeclarator.SetIdentifier(name, loc);
+        //        paramDeclarator.AddTypeInfo()
+
+        int paramIndex = 1;
+
+        for (QualType& type : parameterTypes)
+        {
+            // TODO we need a way to pass named params to have better diagnostics.
+            string paramName = "param_" + to_string(paramIndex);
+            ParmVarDecl* param = ParmVarDecl::Create(
+                Context, Context.getTranslationUnitDecl(), loc, loc, &Context.Idents.get(paramName),
+                Context.getAdjustedParameterType(type), nullptr, SC_None, nullptr);
+
+            //            ParmVarDecl* param2 = cast<ParmVarDecl>(ActOnParamDeclarator(getCurScope(), paramDeclarator));
+
+            paramsInfo.push_back(
+                DeclaratorChunk::ParamInfo(
+                    paramDeclarator.getIdentifier(), paramDeclarator.getIdentifierLoc(), param));
+
+            params.push_back(param);
+            paramIndex++;
+        }
+    }
+
     D.AddTypeInfo(
         DeclaratorChunk::getFunction(
-            true, false, loc, Params,
-            NumParams, isVariadic ? loc : SourceLocation(), loc,
+            true, false, loc, paramsInfo.data(),
+            paramsInfo.size(), isVariadic ? loc : SourceLocation(), loc,
             true, loc,
             /*MutableLoc=*/loc,
             EST_None, SourceRange(), nullptr,
@@ -492,12 +527,13 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, DeclaratorC
 
     DeclarationNameInfo NameInfo = GetNameForDeclarator(D);
 
-    TypeSourceInfo* tInfo = GetTypeForDeclarator(D, S);
+    TypeSourceInfo* tInfo = GetTypeForDeclarator(D, getCurScope());
 
     CXXMethodDecl* Ret = CXXMethodDecl::Create(
         Context, cast<CXXRecordDecl>(RD), SourceLocation(), NameInfo, tInfo->getType(),
         tInfo, SC_None, false, false, SourceLocation());
     Ret->setAccess(AS_public);
+    Ret->setParams(params);
     RD->addDecl(Ret);
 }
 
@@ -512,7 +548,7 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    //insert fields
+    // Insert fields.
     addField(&Context.Idents.get("ruleset_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
     addField(&Context.Idents.get("rule_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
     addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
@@ -524,7 +560,7 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc)
+QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
@@ -536,49 +572,137 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
         .append(linkName)
         .append("__type");
 
+    TagDecl* linkTypeDeclaration = lookupClass(linkTypeName, loc, getCurScope());
+
+    if (linkTypeDeclaration)
+    {
+        return Context.getTagDeclType(linkTypeDeclaration);
+    }
+
     RecordDecl* RD = Context.buildImplicitRecord(linkTypeName);
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
-    Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
-    ActOnTagStartDefinition(&S, RD);
-    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
+    PushOnScopeChains(RD, getCurScope());
+    // TODO see comment [class-decl]
+    // Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
+    // ActOnTagStartDefinition(&S, RD);
+    // ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
-    //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    string targetTableTypeName = to_table + "__type";
+    TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
 
-    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
-    ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+    if (!paramRecordDecl)
+    {
+        paramRecordDecl = CXXRecordDecl::Create(
+            getASTContext(), RecordDecl::TagKind::TTK_Struct, getCurFunctionDecl(),
+            SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
+
+        paramRecordDecl->setLexicalDeclContext(getCurFunctionDecl());
+        PushOnScopeChains(paramRecordDecl, getCurScope());
+    }
+
+    // Creates a reference parameter (incubator__type&).
+    QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl, paramRecordDecl->getPreviousDecl());
+    QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
+
+    SmallVector<QualType, 8> paramTypes;
+    paramTypes.push_back(connectDisconnectParamRef);
+
+    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
+
+    // ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
+    // ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+    RD->completeDefinition();
 
     return Context.getTagDeclType(RD);
 }
 
+TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* scope)
+{
+    DeclarationName declarationName = &Context.Idents.get(className);
+
+    LookupResult previousDeclLookup(*this, declarationName, loc, LookupTagName, forRedeclarationInCurContext());
+    LookupName(previousDeclLookup, scope);
+
+    TagDecl* classDeclaration = nullptr;
+
+    if (!previousDeclLookup.empty())
+    {
+        for (auto iter = previousDeclLookup.begin();
+             iter != previousDeclLookup.end();
+             iter++)
+        {
+            NamedDecl* foundDecl = iter.getDecl();
+            classDeclaration = cast<TagDecl>(previousDeclLookup.getFoundDecl());
+
+            if (classDeclaration->isCompleteDefinition())
+            {
+                // This class has already been declared and defined in this context.
+                return classDeclaration;
+            }
+        }
+    }
+
+    return classDeclaration;
+}
+
 QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 {
-    DeclContext* context = getCurFunctionDecl();
-    while (context)
+    DeclContext* functionDecl = getCurFunctionDecl();
+    DeclContext* rulesetContext = functionDecl;
+    while (rulesetContext)
     {
-        if (isa<RulesetDecl>(context))
+        if (isa<RulesetDecl>(rulesetContext))
         {
             break;
         }
-        context = context->getParent();
+        rulesetContext = rulesetContext->getParent();
     }
 
-    if (context == nullptr || !isa<RulesetDecl>(context))
+    if (rulesetContext == nullptr || !isa<RulesetDecl>(rulesetContext))
     {
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
+
     std::string typeName = tableName;
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     if (tagMapping.find(tableName) != tagMapping.end())
     {
         typeName = tagMapping[tableName];
     }
+
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return Context.VoidTy;
+    }
+
+    auto tableDescription = tableData.find(typeName);
+    if (tableDescription == tableData.end())
+    {
+        Diag(loc, diag::err_invalid_table_name) << typeName;
+        return Context.VoidTy;
+    }
+
+    // Look for a previous declaration of this table. There are 3 cases:
+    //  1. It finds nothing: defines the type it from scratch.
+    //  2. It finds the forward declaration: proceed with the type definition.
+    //  3. It finds the definition and returns it. This happens if this method
+    //     is called multiple times for the same table.
+
+    string className = typeName + "__type";
+
+    TagDecl* forwardDeclaration = lookupClass(className, loc, getCurScope());
+
+    if (forwardDeclaration && forwardDeclaration->isCompleteDefinition())
+    {
+        return Context.getTagDeclType(forwardDeclaration);
+    }
+
     fieldTableName = typeName;
     const Type* realType = nullptr;
 
@@ -602,7 +726,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         }
     }
 
-    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(rulesetContext);
     RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
 
     if (attr != nullptr)
@@ -623,27 +747,30 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         }
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
-    if (tableData.empty())
-    {
-        return Context.VoidTy;
-    }
-    auto tableDescription = tableData.find(typeName);
-    if (tableDescription == tableData.end())
-    {
-        Diag(loc, diag::err_invalid_table_name) << typeName;
-        return Context.VoidTy;
-    }
+    RecordDecl* RD = CXXRecordDecl::Create(
+        getASTContext(), RecordDecl::TagKind::TTK_Struct, functionDecl,
+        SourceLocation(), SourceLocation(), &Context.Idents.get(typeName + "__type"),
+        llvm::cast_or_null<CXXRecordDecl>(forwardDeclaration));
 
-    RecordDecl* RD = Context.buildImplicitRecord(typeName + "__type");
-    RD->setLexicalDeclContext(CurContext);
+    RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
-    Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
-    ActOnTagStartDefinition(&S, RD);
-    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
+    PushOnScopeChains(RD, getCurScope());
+    // TODO [class-decl] this is how we used to set-up the classes. Unfortunately this caused the following error:
+    //  clang/test/Parser/gaia_temp.cpp:43:20: error: no matching member function for call to 'Connect'
+    //            farmer.Connect(I);
+    //            ~~~~~~~^~~~~~~
+    //  clang/test/Parser/gaia_temp.cpp:43:13: note: candidate function not viable: no known conversion from 'incubator__type' to 'incubator__type &' for 1st argument
+    //            farmer.Connect(I);
+    //            ^              ~
+    //  Probably I'm missing something.
+    // Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
+    // ActOnTagStartDefinition(&S, RD);
+    // ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
+    // Adds a conversion function from the generated table type (table__type)
+    // to the EDC type (table_t).
     if (realType != nullptr)
     {
         QualType R = Context.getFunctionType(
@@ -661,6 +788,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         RD->addDecl(conversionFunctionDeclaration);
     }
 
+    // Add fields to the type.
     for (const auto& f : tableDescription->second)
     {
         string fieldName = f.first;
@@ -676,11 +804,17 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
     auto links = relationships.equal_range(typeName);
 
+    // For every relationship target table we count how many links
+    // we have from tableName. This is needed to determine whether we can
+    // have a Connect method for a given target type.
+    map<string, int> links_targets;
+
     for (auto link = links.first; link != links.second; ++link)
     {
         TableLinkData_t linkData = link->second;
-        QualType type = getLinkType(linkData.field, tableName, loc);
+        QualType type = getLinkType(linkData.field, tableName, linkData.table, loc);
         addField(&Context.Idents.get(linkData.field), type, RD, loc);
+        links_targets[linkData.table]++;
     }
 
     // TODO this is weird, we have half API upper case and the other half lower case.
@@ -688,18 +822,62 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     //   The upper case is something David uses in his spec but, as himself said,
     //   it is something we are not forced to follow.
 
-    //insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-    addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    // insert fields and methods that are not part of the schema
+    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, {}, attrFactory, attrs, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, {}, attrFactory, attrs, RD, loc);
+    addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
-    // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
-    //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    // Connect and Disconnect can be present only if the table has outgoing relationships.
+    if (!links_targets.empty())
+    {
+        // For each outgoing relationship creates an overload Connect/Disconnect to the target types. eg:
+        // incubator__type
+        //   bool Connect(actuator_type&);
+        //   bool Disconnect(actuator_type&);
+        //   bool Connect(farmer_type&);
+        //   bool Disconnect(farmer_type&);
+        //   ....
+        for (auto targetTablePair : links_targets)
+        {
+            // Connect/Disconnect are not appended to the table if there is more than one
+            // link pointing to a target type.
+            // The user will need to full qualify the relationship to use Connect/Disconnect:
+            // incubator.actuators.Connect(actuator);
+            if (targetTablePair.second > 1)
+            {
+                continue;
+            }
 
-    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
-    ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+            // Look up the target type.
+            string targetTableTypeName = targetTablePair.first + "__type";
+            TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
+
+            if (!paramRecordDecl)
+            {
+                paramRecordDecl = CXXRecordDecl::Create(
+                    getASTContext(), RecordDecl::TagKind::TTK_Struct, functionDecl,
+                    SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
+
+                paramRecordDecl->setLexicalDeclContext(functionDecl);
+                PushOnScopeChains(paramRecordDecl, getCurScope());
+            }
+
+            // Creates a reference parameter (incubator__type&).
+            QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl);
+            QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
+
+            SmallVector<QualType, 8> paramTypes;
+            paramTypes.push_back(connectDisconnectParamRef);
+
+            addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+            addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+        }
+    }
+
+    // TODO: same as above, commented out but it should work.
+    // ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
+    // ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
+    RD->completeDefinition();
 
     return Context.getTagDeclType(RD);
 }
@@ -821,7 +999,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, loc);
+                    retVal = getLinkType(linkData.field, tableName, linkData.table, loc);
                     fieldTableName = tableName;
                 }
             }
@@ -1063,6 +1241,7 @@ Decl* Sema::ActOnRulesetDefStart(Scope* S, SourceLocation RulesetLoc, SourceLoca
     PushOnScopeChains(ruleset, declRegionScope);
     ActOnDocumentableDecl(ruleset);
     PushDeclContext(S, ruleset);
+
     return ruleset;
 }
 

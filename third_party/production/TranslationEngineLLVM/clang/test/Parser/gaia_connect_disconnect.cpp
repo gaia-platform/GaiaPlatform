@@ -1,78 +1,97 @@
-// RUN: %clang_cc1 -fgaia-extensions -ast-dump -verify %s | FileCheck -strict-whitespace %s
-
-#include "barn_storage/gaia_barn_storage.h"
+// RUN: %clang_cc1 -fgaia-extensions -ast-dump -verify %s -verify-ignore-unexpected=note | FileCheck -strict-whitespace %s
 
 ruleset test_connect_disconnect_1
 {
     OnInsert(farmer)
     {
-        gaia::barn_storage::incubator_t i;
+        for (/i : incubator)
+        {
+            farmer.Connect(i);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
 
-        farmer.Connect(i);
-        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
-        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+            farmer.Disconnect(i);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
 
-        farmer.Disconnect(i);
-        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
-        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+            farmer.incubators.Connect(i);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> 'farmer_incubators__type' lvalue .incubators 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
 
-        farmer.incubators.Connect(i);
-        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> 'farmer_incubators__type' lvalue .incubators 0x{{[^ ]*}}
-        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+            farmer.incubators.Disconnect(i);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> 'farmer_incubators__type' lvalue .incubators 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
 
-        farmer.incubators.Disconnect(i);
-        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
-        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> 'farmer_incubators__type' lvalue .incubators 0x{{[^ ]*}}
-        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+            // This is not possible ATM because of this bug: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1037
+            // In order to correctly tell apart tables from links we need to improve the parsing logic.
+  //        incubators.Connect(i);
+  //        incubators.Disconnect(i);
+        }
+    }
+}
 
-        // This is not possible ATM because of this bug: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1037
-        // In order to correctly tell apart tables from links we need to improve the parsing logic.
-//        incubators.Connect(i);
-//        incubators.Disconnect(i);
+ruleset test_connect_disconnect_fail_in_isolated_table
+{
+    OnInsert(isolated)
+    {
+        int i = 1;
+        isolated.Connect(i); // expected-error {{no member named 'Connect' in 'isolated__type'}}
+        isolated.Disconnect(i); // expected-error {{no member named 'Disconnect' in 'isolated__type'}}
+    }
+};
+
+ruleset test_connect_disconnect_invalid_syntax_1
+{
+    OnInsert(crop)
+    {
+       crop.Connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}} \
+                       // expected-note {{passing argument to parameter 'param_1' here}} \
+                       // expected-note {{passing argument to parameter 'param_1' here}}
+       crop.Disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
+       crop.yield.Connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
+       crop.yield.Disconnect(); // expected-error {{too few arguments to function call, at least argument 'param_1' must be specified}}
+       crop.yield.Connect("aaaaa"); // expected-error {{non-const lvalue reference to type 'yield__type' cannot bind to a value of unrelated type 'const char [6]'}}
+       crop.yield.Disconnect(1); // expected-error {{non-const lvalue reference to type 'yield__type' cannot bind to a temporary of type 'int'}}
     }
 }
 
 
-ruleset test_connect_disconnect_invalid_syntax
+ruleset test_connect_disconnect_invalid_syntax_2
 {
-    // This is an invalid syntax. Connect()/Disconnect() are supposed to
-    // take EDC instances as parameters. We can't enforce this constraint
-    // in clang because we don't have access to the EDC types. The check
-    // will likely happen inside gaiat.
-    //
-    // This test just shows an "incorrect" behavior.
-    // Greg mentioned there are ways to make the check within SemaGaia.cpp
-    // if/when this will happen we can change this test to look for errors.
     OnInsert(farmer)
     {
-        farmer.Connect();
-        farmer.Disconnect();
-        farmer.incubators.Connect();
-        farmer.incubators.Disconnect(1, 2, 3);
+        farmer.Connect; // expected-error {{reference to non-static member function must be called}}
+        farmer.Disconnect; // expected-error {{reference to non-static member function must be called}}
+        farmer.incubators.Connect;  // expected-error {{reference to non-static member function must be called}}
+        farmer.incubators.Disconnect; // expected-error {{reference to non-static member function must be called}}
     }
 }
 
-ruleset test_connect_disconnect_3
+ruleset test_connect_disconnect_too_many_params
 {
     OnInsert(farmer)
     {
+        for (/i : incubator)
+        {
+            // Connect/Disconnect accept one parameter.
+            farmer.Connect(i, i); // expected-error {{no matching member function for call to 'Connect'}}
+            farmer.Disconnect(i, i); // expected-error {{no matching member function for call to 'Disconnect'}}
+        }
+    }
+}
+
+ruleset test_connect_disconnect_invalid_link
+{
+    OnInsert(farmer)
+    {
+        // name is a non-link field (const char *) hence should not expose the connect method.
         farmer.name.Connect(); // expected-error {{member reference base type 'const char *' is not a structure or union}}
         farmer.name.Disconnect(); // expected-error {{member reference base type 'const char *' is not a structure or union}}
-    }
-}
-
-ruleset test_connect_disconnect_3
-{
-    OnInsert(farmer)
-    {
-        farmer.Connect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.Disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.incubators.Connect;  // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
-        farmer.incubators.Disconnect; // expected-error {{reference to non-static member function must be called; did you mean to call it with no arguments?}}
     }
 }

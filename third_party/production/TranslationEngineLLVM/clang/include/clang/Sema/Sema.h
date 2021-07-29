@@ -4636,17 +4636,22 @@ public:
   bool IsExpressionInjected(const Expr* expression) const;
 private:
 
-    // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
+  // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(const std::string& linkName, const std::string& from_table, SourceLocation loc);
-  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD,
-    SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr) ;
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc);
+  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
+                 AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
+    SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
+
+  /// Lookup a class name in the given context. Returns nullptr if the class is not found.
+  /// If the class has been defined in this context (eg. "class x {};") the defined type is
+  /// returned otherwise only the forward declaration is returned (eg. "class x;").
+  TagDecl* lookupClass(std::string className, SourceLocation loc, Scope* scope);
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
