@@ -419,7 +419,7 @@ ruleset test25
     OnInsert(feeding)
     {
         // Note that the translated code is not yet correct.
-        farmer.condos->incubator->raised.birthdate += crop->yield->feeding.portion;
+        farmer.condos->incubator->raised.birthdate += animal->crop->yield->feeding.portion;
     }
 }
 
@@ -428,10 +428,10 @@ void sprintf(char*, const char*, const char*, float, float);
 
 ruleset test26
 {
-    OnInsert(feeding)
+    OnInsert(raised)
     {
         char str[200];
-        sprintf(str, "%ld,%f,%f", farmer.incubators->I:incubator->raised.birthdate, I->A:actuator.value,
+        sprintf(str, "%ld,%f,%f", yield->farmer.incubators->I:incubator->raised.birthdate, I->A:actuator.value,
             A->incubator->sensor.value);
     }
 }
@@ -903,7 +903,7 @@ ruleset test57
 }
 
 // TESTCASE: break from within a nested declarative for.
-// GAIAPLAT-1056
+// GAIAPLAT-1056 (fixed)
 ruleset test58
 {
     OnInsert(incubator)
@@ -922,7 +922,6 @@ ruleset test58
     }
 }
 
-#if 0
 void printf(const char*, unsigned int);
 
 // TESTCASE: mix up declarative for with switch statement
@@ -1024,4 +1023,3 @@ ruleset test65
         while (farmer->yield.bushels < 10);
     }
 }
-#endif
