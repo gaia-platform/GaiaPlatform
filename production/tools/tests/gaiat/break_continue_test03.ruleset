@@ -1,0 +1,15 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test03
+{
+    OnUpdate(incubator)
+    {
+        auto max = incubator.max_temp;
+        if (max > 99.0)
+        {
+            break;
+        }
+    }
+}
+
+// CHECK: 'break' statement not in loop or switch statement

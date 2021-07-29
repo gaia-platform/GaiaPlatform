@@ -74,16 +74,24 @@ public:
     // Function that retrieve fields for a table in DB defined order.
     static vector<string> get_table_fields(const string& table);
 private:
-
-    struct table_link_data_t
+    class db_monitor_t
     {
-        string table;
-        string field;
-    };
+    public:
+        db_monitor_t()
+        {
+            gaia::db::begin_session();
+            gaia::db::begin_transaction();
+        }
 
+        ~db_monitor_t()
+        {
+            gaia::db::commit_transaction();
+            gaia::db::end_session();
+        }
+    };
     struct navigation_data_t
     {
-        string name;
+        string table_name;
         string linking_field;
         bool is_parent;
     };
@@ -92,6 +100,7 @@ private:
     static void fill_table_data();
     static string get_closest_table(const unordered_map<string, int>& table_distance);
     static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path);
+    static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_multimap<string, navigation_data_t>& graph_data);
     static string generate_random_string(string::size_type length);
     static navigation_code_data_t generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables,
         const unordered_map<string, string>& tags, string& last_table);
@@ -99,8 +108,7 @@ private:
         const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
     static bool m_is_initialized;
     static unordered_map<string, table_data_t> m_table_data;
-    static unordered_multimap<string, table_link_data_t> m_table_relationship_1;
-    static unordered_multimap<string, table_link_data_t> m_table_relationship_n;
+    static unordered_multimap<string, navigation_data_t> m_table_relationship;
 };
 }
 }

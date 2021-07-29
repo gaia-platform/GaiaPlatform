@@ -115,6 +115,7 @@ protected:
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate3_result = test_error_result_t::e_none;
         g_onupdate4_result = test_error_result_t::e_none;
+        g_onupdate_value = 0;
         g_insert_count = 0;
     }
 
@@ -224,7 +225,7 @@ protected:
 };
 
 // TESTCASE: Create rows procedurally, delete them in the rule.
-TEST_F(test_insert_delete_code, DISABLED_implicit_delete)
+TEST_F(test_insert_delete_code, implicit_delete)
 {
     gaia::db::begin_transaction();
     auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));

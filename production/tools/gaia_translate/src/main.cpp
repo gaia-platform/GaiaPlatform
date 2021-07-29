@@ -56,7 +56,6 @@ SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
-constexpr char c_if_stmt[] = "if";
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -117,6 +116,8 @@ vector<SourceRange> g_nomatch_location;
 unordered_map<SourceRange, string> g_variable_declaration_location;
 unordered_set<SourceRange> g_variable_declaration_init_location;
 unordered_map<SourceRange, SourceLocation> g_nomatch_location_map;
+unordered_map<SourceRange, string> g_break_label_map;
+unordered_map<SourceRange, string> g_continue_label_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -136,8 +137,7 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr)
     {
-        SourceLocation end_location = Lexer::findLocationAfterToken(
-            return_value.getEnd(), tok::semi, source_manager, options, true);
+        SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(), tok::semi, source_manager, options, true);
         if (end_location.isValid())
         {
             return_value.setEnd(end_location.getLocWithOffset(-1));
@@ -247,7 +247,7 @@ bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& 
     return false;
 }
 
-bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
 {
     string first_table = get_table_from_expression(path_segment.path_components.front());
     for (auto& path_iterator : path)
@@ -255,15 +255,13 @@ bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
         if (is_tag_defined(path_iterator.defined_tags, first_table))
         {
             path_segment.skip_implicit_path_generation = true;
-            path.insert(path.begin(), path_segment);
-            return true;
+            return;
         }
         if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
         {
             path_iterator.skip_implicit_path_generation = true;
         }
     }
-    return false;
 }
 
 bool is_path_segment_contained_in_another_path(
@@ -542,19 +540,34 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
+        SourceRange nomatch_range;
+        // Find correct nomatch segment for a current declarative expression.
+        // This segment will be used later to inject nomatch code at
+        // the end of navigation code wrapping the declarative expression.
+        for (const auto& nomatch_source_range : g_nomatch_location)
+        {
+            if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
+            {
+                nomatch_range = nomatch_source_range;
+                break;
+            }
+        }
+        const auto break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
+        const auto continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
+        string break_label;
+        string continue_label;
+        if (break_label_iterator != g_break_label_map.end())
+        {
+            break_label = break_label_iterator->second;
+        }
+        if (continue_label_iterator != g_continue_label_map.end())
+        {
+            continue_label = continue_label_iterator->second;
+        }
         for (const auto& data_iterator : explicit_path_data_iterator.second)
         {
             string anchor_table_name = get_table_name(
                 get_table_from_expression(anchor_table), data_iterator.tag_table_map);
-            SourceRange nomatch_range;
-            for (const auto& nomatch_source_range : g_nomatch_location)
-            {
-                if (explicit_path_data_iterator.first.getEnd() == nomatch_source_range.getEnd())
-                {
-                    nomatch_range = nomatch_source_range;
-                    break;
-                }
-            }
 
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
@@ -586,10 +599,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         if (data_iterator.path_components.size() == 1
                             && table_name == anchor_table_name && !data_iterator.is_absolute_path)
                         {
-                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding()
-                                - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
-                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding()
-                                - variable_declaration_range.getBegin().getRawEncoding();
+                            auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
+                            auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
                             if (variable_declaration_range.isInvalid() || declaration_source_range_size < min_declaration_source_range_size)
                             {
                                 variable_declaration_range = variable_declaration_range_iterator.first;
@@ -648,6 +659,32 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 return;
             }
 
+            // The following code
+            // l1:if (x.value>5)
+            //  break l1;
+            // else
+            //  continue l1;
+            // .............
+            // is translated into
+            // ..........Navigation code for x
+            // l1:if (x.value()>5)
+            //  goto l1_break;
+            // else
+            //  goto l1_continue;
+            // ..........................
+            // l1_continue:
+            //...............Navigation code for x
+            // l1_break:
+
+            if (!break_label.empty())
+            {
+                navigation_code.postfix += "\n" + break_label + ":\n";
+            }
+            if (!continue_label.empty())
+            {
+                navigation_code.postfix = "\n" + continue_label + ":\n" + navigation_code.postfix;
+            }
+
             if (nomatch_range.isValid())
             {
                 string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
@@ -665,7 +702,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextBefore(
                     explicit_path_data_iterator.first.getBegin(),
                     navigation_code.prefix);
-                rewriter.InsertTextAfter(
+                rewriter.InsertTextAfterToken(
                     explicit_path_data_iterator.first.getEnd(),
                     navigation_code.postfix);
             }
@@ -810,8 +847,12 @@ void generate_table_subscription(
         {
             if (!data_iterator.is_absolute_path)
             {
-                is_absoute_path_only = false;
-                break;
+                string first_component_table = get_table_from_expression(data_iterator.path_components.front());
+                if (data_iterator.tag_table_map.find(first_component_table) == data_iterator.tag_table_map.end() || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
+                {
+                    is_absoute_path_only = false;
+                    break;
+                }
             }
         }
     }
@@ -1183,10 +1224,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
                 || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
             {
-                auto offset
-                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
                 update_expression_location(
-                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+                    return_value, expression->getSourceRange().getBegin(), expression->getSourceRange().getEnd());
             }
             return return_value;
         }
@@ -1398,20 +1437,21 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
-                if (optimize_path(expression_explicit_path_data_iterator.second, data))
-                {
-                    return;
-                }
                 if (expression_explicit_path_data_iterator.first == expression_source_range
                     || should_expression_location_be_merged(context, *node))
                 {
                     expression_explicit_path_data_iterator.second.push_back(data);
                     return;
                 }
+                optimize_path(expression_explicit_path_data_iterator.second, data);
             }
             else
             {
                 string first_component = get_table_from_expression(data.path_components.front());
+                if (data.tag_table_map.find(first_component) != data.tag_table_map.end())
+                {
+                    data.skip_implicit_path_generation = true;
+                }
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
                     data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
@@ -2579,44 +2619,16 @@ public:
 
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<IfStmt>("NoMatchIf");
         if (expression != nullptr)
         {
             SourceRange nomatch_location = get_statement_source_range(expression->getNoMatch(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
             g_nomatch_location_map[nomatch_location] = expression->getNoMatchLoc();
             g_nomatch_location.emplace_back(nomatch_location);
-        }
-        else
-        {
-            cerr << "Incorrect matched expression." << endl;
-            g_is_generation_error = true;
-        }
-    }
-
-private:
-    Rewriter& m_rewriter;
-};
-
-// AST handler that is called when a while has a declarative expression.
-class declarative_while_match_handler_t : public MatchFinder::MatchCallback
-{
-public:
-    explicit declarative_while_match_handler_t(Rewriter& r)
-        : m_rewriter(r)
-    {
-    }
-    void run(const MatchFinder::MatchResult& result) override
-    {
-        const auto* expression = result.Nodes.getNodeAs<WhileStmt>("DeclWhile");
-        if (expression != nullptr)
-        {
-            // Find the SourceRange of the "while" statement.
-            SourceLocation while_begin_loc = expression->getBeginLoc();
-            auto offset = Lexer::MeasureTokenLength(while_begin_loc, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
-            SourceRange while_source_range = SourceRange(while_begin_loc, while_begin_loc.getLocWithOffset(offset));
-
-            // Replace the text of the "while" with "if".
-            m_rewriter.ReplaceText(while_source_range, c_if_stmt);
         }
         else
         {
@@ -2639,6 +2651,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
         if (expression != nullptr)
         {
@@ -2666,6 +2682,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
@@ -2750,7 +2770,7 @@ public:
         }
         replacement_string.resize(replacement_string.size() - 1);
         replacement_string.append("))");
-
+cerr<<replacement_string<<endl;
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call_locations.insert(expression->getBeginLoc());
@@ -2770,6 +2790,10 @@ public:
     }
     void run(const MatchFinder::MatchResult& result) override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
@@ -2844,6 +2868,102 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when declarative break or continue are used in the rule.
+class declarative_break_continue_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_break_continue_handler_t(Rewriter& r)
+        : m_rewriter(r)
+    {
+    }
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+        const auto* break_expression = result.Nodes.getNodeAs<BreakStmt>("DeclBreak");
+        const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
+        if (break_expression == nullptr && continue_expression == nullptr)
+        {
+            cerr << "Incorrect matched expression." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        LabelDecl* decl;
+        SourceRange expression_source_range;
+        if (break_expression != nullptr)
+        {
+            decl = break_expression->getLabel();
+            expression_source_range = break_expression->getSourceRange();
+        }
+        else
+        {
+            decl = continue_expression->getLabel();
+            expression_source_range = continue_expression->getSourceRange();
+        }
+
+        // Handle non-declarative break/continue.
+        if (decl == nullptr)
+        {
+            return;
+        }
+
+        const LabelStmt* label_statement = decl->getStmt();
+        if (label_statement == nullptr)
+        {
+            g_is_generation_error = true;
+            return;
+        }
+
+        const Stmt* statement = label_statement->getSubStmt();
+        if (statement == nullptr)
+        {
+            g_is_generation_error = true;
+            return;
+        }
+        SourceRange statement_source_range = get_statement_source_range(statement, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+
+        string label_name;
+        if (break_expression != nullptr)
+        {
+            auto break_label_iterator = g_break_label_map.find(statement_source_range);
+            if (break_label_iterator == g_break_label_map.end())
+            {
+                label_name = table_navigation_t::get_variable_name("break", unordered_map<string, string>());
+                g_break_label_map[statement_source_range] = label_name;
+            }
+            else
+            {
+                label_name = break_label_iterator->second;
+            }
+        }
+        else
+        {
+            auto continue_label_iterator = g_continue_label_map.find(statement_source_range);
+            if (continue_label_iterator == g_continue_label_map.end())
+            {
+                label_name = table_navigation_t::get_variable_name("continue", unordered_map<string, string>());
+                g_continue_label_map[statement_source_range] = label_name;
+            }
+            else
+            {
+                label_name = continue_label_iterator->second;
+            }
+        }
+
+        auto offset
+            = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        expression_source_range.setEnd(expression_source_range.getEnd().getLocWithOffset(offset));
+        string replacement_string = "goto " + label_name;
+        m_rewriter.ReplaceText(expression_source_range, replacement_string);
+        g_rewriter_history.push_back({expression_source_range, replacement_string, replace_text});
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -2856,8 +2976,8 @@ public:
         , m_rule_context_match_handler(r)
         , m_table_call_match_handler(r)
         , m_if_nomatch_match_handler(r)
-        , m_declarative_while_match_handler(r)
         , m_declarative_for_match_handler(r)
+        , m_declarative_break_continue_handler(r)
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
     {
@@ -2973,16 +3093,6 @@ public:
                          hasNoMatch(anything())))
                   .bind("NoMatchIf");
 
-        StatementMatcher declarative_while_matcher
-            = whileStmt(allOf(
-                            hasAncestor(rule_matcher),
-                            hasCondition(anyOf(
-                                hasDescendant(field_get_matcher),
-                                hasDescendant(field_unary_operator_matcher),
-                                hasDescendant(table_field_get_matcher),
-                                hasDescendant(table_field_unary_operator_matcher)))))
-                  .bind("DeclWhile");
-
         StatementMatcher declarative_for_matcher
             = gaiaForStmt().bind("DeclFor");
 
@@ -2996,6 +3106,8 @@ public:
                               hasDescendant(table_field_unary_operator_matcher)))))
                   .bind("varDeclarationInit");
 
+        StatementMatcher declarative_break_matcher = breakStmt().bind("DeclBreak");
+        StatementMatcher declarative_continue_matcher = continueStmt().bind("DeclContinue");
         StatementMatcher declarative_delete_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
@@ -3030,8 +3142,9 @@ public:
         m_matcher.addMatcher(gaia_type_matcher, &m_rule_context_match_handler);
         m_matcher.addMatcher(table_call_matcher, &m_table_call_match_handler);
         m_matcher.addMatcher(if_no_match_matcher, &m_if_nomatch_match_handler);
-        m_matcher.addMatcher(declarative_while_matcher, &m_declarative_while_match_handler);
         m_matcher.addMatcher(declarative_for_matcher, &m_declarative_for_match_handler);
+        m_matcher.addMatcher(declarative_break_matcher, &m_declarative_break_continue_handler);
+        m_matcher.addMatcher(declarative_continue_matcher, &m_declarative_break_continue_handler);
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
     }
@@ -3052,8 +3165,8 @@ private:
     rule_context_rule_match_handler_t m_rule_context_match_handler;
     table_call_match_handler_t m_table_call_match_handler;
     if_nomatch_match_handler_t m_if_nomatch_match_handler;
-    declarative_while_match_handler_t m_declarative_while_match_handler;
     declarative_for_match_handler_t m_declarative_for_match_handler;
+    declarative_break_continue_handler_t m_declarative_break_continue_handler;
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
 };
@@ -3172,27 +3285,8 @@ int main(int argc, const char** argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(*compilation_database, source_files);
 
-    // Run the entire translation process within a single transaction.
-    int result = EXIT_FAILURE;
-
-    try
-    {
-        gaia::db::begin_session();
-        gaia::db::begin_transaction();
-
-        tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-        result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
-
-        gaia::db::commit_transaction();
-        gaia::db::end_session();
-    }
-    catch (gaia::common::system_error& e)
-    {
-        cerr << "Can't connect to a running instance of the " << gaia::db::c_db_server_name << ": '" << e.what() << "'.\n"
-             << "Start the Gaia database server and rerun gaiat."
-             << endl;
-    }
-
+    tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
+    int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
     if (result == 0 && !g_is_generation_error)
     {
         return EXIT_SUCCESS;

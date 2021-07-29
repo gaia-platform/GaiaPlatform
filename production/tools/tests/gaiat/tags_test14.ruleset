@@ -1,5 +1,4 @@
-// RUN: echo "Cannot specify more than one table in OnInsert." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test14
 {
@@ -11,4 +10,4 @@ ruleset test14
 }
 
 // GAIAPLAT-799
-// CHECK: Cannot specify more than one table in OnInsert.
+// CHECK: Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'OnInsert', 'OnChange', or 'OnUpdate'

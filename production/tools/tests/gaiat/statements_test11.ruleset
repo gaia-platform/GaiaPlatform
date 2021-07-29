@@ -1,18 +1,20 @@
-// RUN: echo "TODO error message" | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
-// TESTCASE: while() with illegal iteration
-ruleset test11
+// TESTCASE: break from within a declarative if.
+// GAIAPLAT-1053
+ruleset test55
 {
     OnInsert(incubator)
     {
-        int count = 0;
-        // illegal iteration, 1 incubator -> N sensors
-        while (sensor.value > 0.0)
+        if (S:sensor.value > 99.9)
         {
-            count += 1;
+            break;
+        }
+        else
+        {
+            S.value += 0.5;
         }
     }
 }
 
-// CHECK: TODO error message
+// CHECK: 'break' statement not in loop or switch statement

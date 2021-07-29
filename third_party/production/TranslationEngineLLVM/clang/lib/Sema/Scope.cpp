@@ -106,7 +106,7 @@ bool Scope::containedInPrototypeScope() const {
 }
 
 void Scope::AddFlags(unsigned FlagsToSet) {
-  assert((FlagsToSet & ~(BreakScope | ContinueScope)) == 0 &&
+  assert((FlagsToSet & ~(BreakScope | ContinueScope | GaiaBreakScope)) == 0 &&
          "Unsupported scope flags");
   if (FlagsToSet & BreakScope) {
     assert((Flags & BreakScope) == 0 && "Already set");
@@ -168,7 +168,8 @@ void Scope::dumpImpl(raw_ostream &OS) const {
       {SEHFilterScope, "SEHFilterScope"},
       {CompoundStmtScope, "CompoundStmtScope"},
       {ClassInheritanceScope, "ClassInheritanceScope"},
-      {GaiaRulesetScope, "GaiaRulesetScope"}};
+      {GaiaRulesetScope, "GaiaRulesetScope"},
+      {GaiaBreakScope, "GaiaBreakScope"}};
 
   for (auto Info : FlagInfo) {
     if (Flags & Info.first) {
