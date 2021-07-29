@@ -400,6 +400,21 @@ void persistent_log_handler_t::recover_from_persistent_log(
 
     // Apply txns from file.
     uint64_t max_log_file_seq_to_delete = 0;
+    std::vector<int> files_to_close;
+    std::vector<std::pair<void*, size_t>> files_to_unmap;
+
+    auto file_cleanup = scope_guard::make_scope_guard([&]() {
+        for (auto fd : files_to_close)
+        {
+            close_fd(fd);
+        }
+
+        for (auto entry : files_to_unmap)
+        {
+            unmap_file(entry.first, entry.second);
+        }
+    });
+
     for (auto file_seq : log_files)
     {
         ASSERT_PRECONDITION(file_seq > last_processed_log_seq, "Log file sequence number should be ");
@@ -415,12 +430,41 @@ void persistent_log_handler_t::recover_from_persistent_log(
             continue;
         }
 
+        // Open file.
+        std::stringstream file_name;
+        file_name << s_wal_dir_path << "/" << file_seq;
+        auto file_fd = open(file_name.str().c_str(), O_RDONLY);
+
+        // Try to close fd as soon as possible.
+        auto file_cleanup = scope_guard::make_scope_guard([&]() {
+            close_fd(file_fd);
+        });
+
+        if (file_fd < 0)
+        {
+            throw_system_error("Unable to open persistent log file.", errno);
+        }
+
+        // mmap file.
+        record_iterator_t it;
+        map_log_file(&it, file_fd, mode);
+
+        // Try to unmap file as soon as possible.
+        auto mmap_cleanup = scope_guard::make_scope_guard([&]() {
+            unmap_file(&it.begin, it.map_size);
+        });
+
         // halt_recovery is set to true in case an IO issue is encountered while reading the log.
-        auto halt_recovery = write_log_file_to_persistent_store(
-            s_wal_dir_path,
-            file_seq,
-            last_checkpointed_commit_ts,
-            mode);
+        auto halt_recovery = write_log_file_to_persistent_store(last_checkpointed_commit_ts, it);
+
+        // Skip unmapping and closing the file in case it has some unprocessed transactions.
+        if (txn_index.size() > 0)
+        {
+            files_to_close.push_back(file_fd);
+            files_to_unmap.push_back(std::pair(it.mapped, it.map_size));
+            mmap_cleanup.dismiss();
+            file_cleanup.dismiss();
+        }
 
         if (mode == recovery_mode_t::checkpoint)
         {
@@ -452,26 +496,8 @@ size_t persistent_log_handler_t::get_remaining_txns_to_checkpoint_count()
     return txn_index.size();
 }
 
-bool persistent_log_handler_t::write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode)
+bool persistent_log_handler_t::write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it)
 {
-    std::stringstream file_name;
-    file_name << wal_dir_path << "/" << file_sequence;
-    auto file_fd = open(file_name.str().c_str(), O_RDONLY);
-    auto file_close = scope_guard::make_scope_guard([&]() {
-        close_fd(file_fd);
-    });
-
-    if (file_fd < 0)
-    {
-        throw_system_error("Unable to open persistent log file.", errno);
-    }
-
-    record_iterator_t it;
-    map_log_file(&it, file_fd, recovery_mode);
-    auto mmap_cleanup = scope_guard::make_scope_guard([&]() {
-        unmap_file(&it);
-    });
-
     // Iterate over records in file and write them to persistent store.
     write_records(&it, last_checkpointed_commit_ts);
 
@@ -751,9 +777,9 @@ bool persistent_log_handler_t::is_remaining_file_empty(uint8_t* start, uint8_t* 
     return memcmp(zeroblock, start, remaining_size) == 0;
 }
 
-void persistent_log_handler_t::unmap_file(struct record_iterator_t* it)
+void persistent_log_handler_t::unmap_file(void* begin, size_t size)
 {
-    munmap(it->mapped, it->map_size);
+    munmap(begin, size);
 }
 
 } // namespace db

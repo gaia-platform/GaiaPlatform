@@ -57,11 +57,11 @@ private:
     size_t update_cursor(struct record_iterator_t* it);
     size_t validate_recovered_record_crc(struct record_iterator_t* it);
     void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
-    void unmap_file(struct record_iterator_t* it);
+    void unmap_file(void* start, size_t size);
     bool is_remaining_file_empty(uint8_t* start, uint8_t* end);
     void write_log_record_to_persistent_store(read_record_t* record);
     void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
-    bool write_log_file_to_persistent_store(std::string& wal_dir_path, uint64_t file_sequence, gaia_txn_id_t& last_checkpointed_commit_ts, recovery_mode_t recovery_mode);
+    bool write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it);
 
     // Persistent log writer.
     // Hardcode wal segment size for now.
