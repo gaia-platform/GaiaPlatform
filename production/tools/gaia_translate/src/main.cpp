@@ -247,7 +247,7 @@ bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& 
     return false;
 }
 
-bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
 {
     string first_table = get_table_from_expression(path_segment.path_components.front());
     for (auto& path_iterator : path)
@@ -255,15 +255,13 @@ bool optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
         if (is_tag_defined(path_iterator.defined_tags, first_table))
         {
             path_segment.skip_implicit_path_generation = true;
-            path.insert(path.begin(), path_segment);
-            return true;
+            return;
         }
         if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
         {
             path_iterator.skip_implicit_path_generation = true;
         }
     }
-    return false;
 }
 
 bool is_path_segment_contained_in_another_path(
@@ -1206,10 +1204,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
                 || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
             {
-                auto offset
-                    = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
                 update_expression_location(
-                    return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+                    return_value, expression->getSourceRange().getBegin(), expression->getSourceRange().getEnd());
             }
             return return_value;
         }
@@ -1421,16 +1417,13 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
-                if (optimize_path(expression_explicit_path_data_iterator.second, data))
-                {
-                    return;
-                }
                 if (expression_explicit_path_data_iterator.first == expression_source_range
                     || should_expression_location_be_merged(context, *node))
                 {
                     expression_explicit_path_data_iterator.second.push_back(data);
                     return;
                 }
+                optimize_path(expression_explicit_path_data_iterator.second, data);
             }
             else
             {
