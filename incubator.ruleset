@@ -31,12 +31,12 @@ ruleset incubator_ruleset
 
         if (sensor.value >= incubator.max_temp)
         {
-            actuator.value = min(c_fan_speed_limit, actuator.value + c_fan_speed_increment);
+            A:actuator.value = min(c_fan_speed_limit, A.value + c_fan_speed_increment);
             actuator.timestamp = g_timestamp;
         }
         else if (sensor.value <= incubator.min_temp)
         {
-            actuator.value = max(0.0f, actuator.value - (2*c_fan_speed_increment));
+            A:actuator.value = max(0.0f, A.value - (2*c_fan_speed_increment));
             actuator.timestamp   = g_timestamp;
         }
         g_rule_1_tracker++;
