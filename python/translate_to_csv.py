@@ -43,7 +43,12 @@ def process_script_action():
     """
     Process the translation of the output.json file into an output.csv file.
     """
-    with open("build/output.json") as input_file:
+    if len(sys.argv) != 2:
+        print("Input file must be specified as the second parameter.")
+        sys.exit(1)
+    input_file_name = sys.argv[1]
+
+    with open(input_file_name) as input_file:
         incubator_data = json.load(input_file)
 
     csv_lines = []

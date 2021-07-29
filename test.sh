@@ -308,12 +308,12 @@ execute_test_workflow() {
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
+        ./run.sh -v -c -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
         DID_FAIL=$?
     else
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
+        ./run.sh -v -c -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)

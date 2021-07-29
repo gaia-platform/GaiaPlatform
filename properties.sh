@@ -74,7 +74,6 @@ process_debug() {
     fi
 
     # Run the commands and produce a JSON output file.
-    echo "::$SCRIPT_STOP_PAUSE"
     if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$DEBUG_COMMAND_FILE" > "$JSON_OUTPUT"; then
         cat $JSON_OUTPUT
         echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
@@ -86,12 +85,18 @@ process_debug() {
 
     # For ease of graphing, also produce a CSV file if requested.
     if [ "$GENERATE_CSV_MODE" -ne 0 ]; then
-        if ! ./python/translate_to_csv.py > "$CSV_OUTPUT"; then
-            echo "Translation of the JSON output to CSV failed."
-            complete_process 1
-        fi
-        if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
+        lines_in_output_json=$(grep "" -c $JSON_OUTPUT)
+        if [ "$lines_in_output_json" -eq 1 ] ; then
+            echo "Translation of the JSON output to CSV skipped. Nothing to translate."
+        else
+            head -n -1 $JSON_OUTPUT > $TEST_DIRECTORY/blah
+            if ! ./python/translate_to_csv.py "$TEST_DIRECTORY/blah" > "$CSV_OUTPUT"; then
+                echo "Translation of the JSON output to CSV failed."
+                complete_process 1
+            fi
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
+            fi
         fi
     fi
 
