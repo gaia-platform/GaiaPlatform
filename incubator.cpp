@@ -365,31 +365,20 @@ void simulation_step()
     tx.commit();
 }
 
-void step()
+int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base)
 {
-    g_timestamp++;
-    simulation_step();
-}
-
-void step_and_emit_state()
-{
-    int rule_1_sample_base = g_rule_1_tracker;
-    int rule_2_sample_base = g_rule_2_tracker;
-    int rule_3_sample_base = g_rule_3_tracker;
-
-    step();
-
     std::chrono::steady_clock::time_point end_sleep_start_mark = std::chrono::steady_clock::now();
+
     bool have_no_deltas = false;
     int no_deltas_count = 0;
     const int maximum_no_delta_attempts = 25;
     const int no_delta_count_before_break = 3;
+    int current_no_delta_attempt = 0;
 
-    for (int current_no_delta_attempt = 0;
+    for (current_no_delta_attempt = 0;
          current_no_delta_attempt < maximum_no_delta_attempts;
          current_no_delta_attempt++)
     {
-
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         int rule_1_current_sample = g_rule_1_tracker;
@@ -427,6 +416,37 @@ void step_and_emit_state()
 
     std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
     g_total_wait_time += ms_double.count();
+    return current_no_delta_attempt;
+}
+
+void wait_for_processing_to_complete()
+{
+    int rule_1_sample_base = g_rule_1_tracker;
+    int rule_2_sample_base = g_rule_2_tracker;
+    int rule_3_sample_base = g_rule_3_tracker;
+
+    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
+
+    // int gh = wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
+    // int nrule_3_sample_base = g_rule_3_tracker;
+    // printf("iterations=%d,3=%d->%d\n", gh, rule_3_sample_base, nrule_3_sample_base);
+}
+
+void step()
+{
+    g_timestamp++;
+    simulation_step();
+}
+
+void step_and_emit_state()
+{
+    int rule_1_sample_base = g_rule_1_tracker;
+    int rule_2_sample_base = g_rule_2_tracker;
+    int rule_3_sample_base = g_rule_3_tracker;
+
+    step();
+
+    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
 
     std::chrono::steady_clock::time_point print_start_mark = std::chrono::steady_clock::now();
     if (g_has_intermediate_state_output)
@@ -523,6 +543,7 @@ public:
     static constexpr char c_cmd_manage_incubators = 'm';
     static constexpr char c_cmd_on_off = 'o';
     static constexpr char c_cmd_wait = 'w';
+    static constexpr char c_cmd_waitx = 'x';
     static constexpr char c_cmd_comment = '#';
     static constexpr char c_cmd_quit = 'q';
 
@@ -584,6 +605,7 @@ public:
             printf("(%c) | manage incubators\n", c_cmd_manage_incubators);
             printf("(%c) | comment line\n", c_cmd_comment);
             printf("(%c) | wait for specified milliseconds\n", c_cmd_wait);
+            printf("(%c) | waitx\n", c_cmd_waitx);
             printf("(%c) | quit\n\n", c_cmd_quit);
             printf("main> ");
         }
@@ -647,6 +669,9 @@ public:
                 return false;
                 break;
             case c_cmd_wait:
+                break;
+            case c_cmd_waitx:
+                wait_for_processing_to_complete();
                 break;
             default:
                 printf("%s\n", c_wrong_input);

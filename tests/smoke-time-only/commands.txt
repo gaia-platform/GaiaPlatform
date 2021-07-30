@@ -14,6 +14,7 @@ w5
 o
 s1023
 o
+x
 # Print out the final state.
 #w2
 #j
