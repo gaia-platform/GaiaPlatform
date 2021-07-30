@@ -799,8 +799,8 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::slash:
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
-      if (NextToken().isOneOf(tok::identifier, tok::at) &&
-        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
+      if (NextToken().is(tok::identifier) &&
+        (getPreviousToken(Tok).is(tok::at) || !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square))))
         {
           ConsumeToken();
           return ParseCastExpression(
@@ -1474,7 +1474,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
       SourceLocation atTok = ConsumeToken();
-      if (Tok.is(tok::identifier))
+      if (Tok.isOneOf(tok::identifier, tok::slash))
       {
         ExprResult expr =  ParseCastExpression(isUnaryExpression,
           isAddressOfOperand,

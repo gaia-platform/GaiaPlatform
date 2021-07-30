@@ -335,7 +335,7 @@ ruleset test35
 {
     {
         float total_temp = 0.0;
-        total_temp += /@incubator.min_temp;
+        total_temp += @/incubator.min_temp;
         total_temp += @incubator.max_temp;
     }
 }

@@ -219,7 +219,7 @@ Retry:
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
       if (Tok.is(tok::slash) && NextToken().is(tok::identifier) &&
-        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
+        (getPreviousToken(Tok).is(tok::at) || !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square))))
       {
         ConsumeToken();
         goto Retry;

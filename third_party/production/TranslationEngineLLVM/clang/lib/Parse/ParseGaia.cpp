@@ -72,10 +72,9 @@ std::string Parser::GetExplicitNavigationPath()
     {
         returnValue = "@";
         startLocation = previousPreviousToken.getLocation();
-        if (getPreviousToken(previousPreviousToken).is(tok::slash))
+        if (previousToken.is(tok::slash))
         {
-            returnValue = "/@";
-            startLocation = getPreviousToken(previousPreviousToken).getLocation();
+            returnValue = "@/";
         }
     }
     else if (previousPreviousToken.is(tok::slash))
@@ -94,17 +93,17 @@ std::string Parser::GetExplicitNavigationPath()
             {
                 returnValue = "/" + returnValue;
                 startLocation = getPreviousToken(tagToken).getLocation();
+                if (getPreviousToken(getPreviousToken(tagToken)).is(tok::at))
+                {
+                    returnValue = "@" + returnValue;;
+                    startLocation = getPreviousToken(getPreviousToken(tagToken)).getLocation();
+                }
             }
             else if (getPreviousToken(tagToken).is(tok::at))
             {
                 tagToken = getPreviousToken(tagToken);
                 returnValue = "@" + returnValue;
                 startLocation = tagToken.getLocation();
-                if (getPreviousToken(tagToken).is(tok::slash))
-                {
-                    returnValue = "/" + returnValue;;
-                    startLocation = getPreviousToken(tagToken).getLocation();
-                }
             }
         }
         else

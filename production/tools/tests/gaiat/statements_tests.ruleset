@@ -239,7 +239,7 @@ ruleset test16
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -259,7 +259,7 @@ ruleset test17
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -508,7 +508,7 @@ ruleset test31
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -811,7 +811,7 @@ ruleset test50
         {
             count += 1;
         }
-        while (/@animal.age < 10);
+        while (@/animal.age < 10);
     }
 }
 
@@ -1003,7 +1003,7 @@ ruleset test64
 {
     {
         int count = 0;
-        while (/@animal.age < 10)
+        while (@/animal.age < 10)
         {
             count += 1;
         }
