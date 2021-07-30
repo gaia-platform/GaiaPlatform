@@ -1850,6 +1850,11 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         LHS = Actions.ActOnCallExpr(getCurScope(), LHS.get(), Loc,
                                     ArgExprs, Tok.getLocation(),
                                     ExecConfig, false, tableName, parameterNames);
+        if (LHS.isInvalid())
+        {
+          for (auto &E : ArgExprs)
+            Actions.CorrectDelayedTyposInExpr(E);
+        }
 
         PT.consumeClose();
       }
