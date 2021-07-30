@@ -16,7 +16,7 @@ ruleset test : tables(sensor, incubator), serialize(ttt)
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:16> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'max_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:17> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
-// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:3, col:35> incubator sensor
+// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:3, col:36> incubator sensor
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:3>
 
 
@@ -38,7 +38,7 @@ ruleset test1
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:37> 'float' lvalue .min_temp 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:21> incubator
+// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:22> incubator
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:26:3>
 
 
