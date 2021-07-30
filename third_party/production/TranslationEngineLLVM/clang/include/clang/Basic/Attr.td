@@ -3172,7 +3172,7 @@ def ObjCExternallyRetained : InheritableAttr {
   let Documentation = [ObjCExternallyRetainedDocs];
 }
 
-def RulesetTable : Attr {
+def RulesetTables : Attr {
     let Spellings = [Keyword<"tables">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];

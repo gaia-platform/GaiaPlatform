@@ -2032,7 +2032,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     }
     tables.push_back(tableArg->Ident);
   }
-  D->addAttr(::new (S.Context) RulesetTableAttr(
+  D->addAttr(::new (S.Context) RulesetTablesAttr(
     AL.getRange(), S.Context, tables.data(), tables.size(),
     AL.getAttributeSpellingListIndex()));
 }
@@ -7238,7 +7238,7 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     handleObjCExternallyRetainedAttr(S, D, AL);
     break;
 
-  case ParsedAttr::AT_RulesetTable:
+  case ParsedAttr::AT_RulesetTables:
     handleRulesetTableAttr(S, D, AL);
     break;
   case ParsedAttr::AT_Rule:

@@ -622,7 +622,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     }
 
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {
@@ -770,7 +770,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     }
     vector<string> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {
