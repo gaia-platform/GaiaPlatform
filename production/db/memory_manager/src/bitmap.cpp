@@ -80,7 +80,7 @@ void validate_element_index(
         "validate_element_index() was called with arguments that exceed the range of the input bitarray!");
 }
 
-void find_word_and_mask(
+void find_bit_word_and_mask(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, std::atomic<uint64_t>*& word, uint64_t& mask)
 {
     validate_bitmap_parameters(bitmap, bitmap_word_size);
@@ -98,7 +98,7 @@ bool is_bit_set(
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     return ((word->load() & mask) != 0);
 }
 
@@ -107,7 +107,7 @@ void set_bit_value(
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     apply_mask_to_word(*word, mask, value);
 }
 
@@ -116,7 +116,7 @@ bool try_set_bit_value(
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     return try_apply_mask_to_word(*word, mask, value);
 }
 
