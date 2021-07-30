@@ -9,8 +9,8 @@ ruleset test : tables(sensor, incubator), serialize(ttt)
   }
 }
 // CHECK:      RulesetDecl{{.*}} test
-// CHECK-NEXT:     RulesetTablesAttr 0x{{[^ ]*}} <col:16, col:39> 0x{{[^ ]*}} 0x{{[^ ]*}}
-// CHECK-NEXT:     -RulesetSerializeAttr 0x{{[^ ]*}} <col:42, col:58> ttt
+// CHECK-NEXT:     RulesetTablesAttr 0x{{[^ ]*}} <col:16, col:40> 0x{{[^ ]*}} 0x{{[^ ]*}}
+// CHECK-NEXT:     -RulesetSerializeAttr 0x{{[^ ]*}} <col:43, col:56> ttt
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:16> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
