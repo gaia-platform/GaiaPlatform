@@ -448,21 +448,25 @@ gaia_id_t ddl_executor_t::create_relationship(
             throw invalid_field_map("The field's table(s) do not match the tables of the relationship");
         }
 
-        for (gaia_id_t field_id : child_field_ids)
+        for (gaia_id_t field_id : parent_field_ids)
         {
-            if (!gaia_field_t::get(field_id).unique())
+            auto field = gaia_field_t::get(field_id);
+            if (!field.unique())
             {
-                throw invalid_field_map("The field on the one side of the relationship must be unique.");
+                throw invalid_field_map(
+                    string("The field '") + string(field.name()) + "' used in the relationship must be unique.");
             }
         }
 
         if (link1.cardinality == relationship_cardinality_t::one)
         {
-            for (gaia_id_t field_id : parent_field_ids)
+            for (gaia_id_t field_id : child_field_ids)
             {
-                if (!gaia_field_t::get(field_id).unique())
+                auto field = gaia_field_t::get(field_id);
+                if (!field.unique())
                 {
-                    throw invalid_field_map("The field on the one side of relationship must be unique.");
+                    throw invalid_field_map(
+                        string("The field '") + string(field.name()) + "' used in the relationship must be unique.");
                 }
             }
         }
