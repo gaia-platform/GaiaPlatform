@@ -160,7 +160,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         searchStartPosition = 1;
     }
-    if (pathString.rfind("/@") == 0)
+    if (pathString.rfind("@/") == 0)
     {
         searchStartPosition = 2;
     }
