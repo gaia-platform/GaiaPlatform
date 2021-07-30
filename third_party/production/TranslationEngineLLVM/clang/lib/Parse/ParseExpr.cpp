@@ -1850,7 +1850,7 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         LHS = Actions.ActOnCallExpr(getCurScope(), LHS.get(), Loc,
                                     ArgExprs, Tok.getLocation(),
                                     ExecConfig, false, tableName, parameterNames);
-        if (LHS.isInvalid())
+        if (LHS.isInvalid() && GaiaCallLocation.isValid())
         {
           for (auto &E : ArgExprs)
             Actions.CorrectDelayedTyposInExpr(E);
