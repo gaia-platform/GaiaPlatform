@@ -272,6 +272,11 @@ execute_single_test() {
         SUITE_TEST_DIRECTORY=$FINAL_DIRECTORY
     fi
 
+    TEST_THREADS_ARGUMENT=
+    if [ -n "$NUMBER_OF_THREADS" ] ; then
+        TEST_THREADS_ARGUMENT="-nt $NUMBER_OF_THREADS"
+    fi
+
     # Make sure to record the eventual directory that we used so we can summarize it more effectively.
     echo "$SUITE_TEST_DIRECTORY" >> "$EXECUTE_MAP_FILE"
 
@@ -283,7 +288,9 @@ execute_single_test() {
     # Execute the test in question.  Note that we do not complete the script
     # if there are any errors, we just make sure that information is noted in
     # the return_code.json file.
-    ./test.sh -vv -ni "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
+
+    # shellcheck disable=SC2086
+    ./test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
     TEST_RETURN_CODE=$?
     echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$TEST_RESULTS_DIRECTORY/return_code.json"
 
@@ -301,7 +308,16 @@ execute_suite_test() {
     # shellcheck disable=SC2116
     NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
-    SUB="^(.*) repeat ([0-9]+)$"
+    NUMBER_OF_THREADS=
+    SUB="^(.*)[[:space:]]+threads[[:space:]]+([0-9]+)(.*)$"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+        NEXT_TEST_NAME="${BASH_REMATCH[1]}"
+        NUMBER_OF_THREADS="${BASH_REMATCH[2]}"
+        REMAINING_TEXT="${BASH_REMATCH[3]}"
+        NEXT_TEST_NAME="$NEXT_TEST_NAME$REMAINING_TEXT"
+    fi
+
+    SUB="^(.*)[[:space:]]+repeat[[:space:]]+([0-9]+)$"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
         NEXT_TEST_NAME="${BASH_REMATCH[1]}"
         NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"

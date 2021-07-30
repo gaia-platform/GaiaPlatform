@@ -37,11 +37,15 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -a,--auto           Automatically build the project before execution, if needed."
-    echo "  -c,--csv            Generate a CSV output file if applicable."
-    echo "  -g,--config <file>  Generate a configuration file specific to this run."
-    echo "  -v,--verbose        Show lots of information while executing the project."
-    echo "  -h,--help           Display this help text."
+    echo "  -a,--auto                   Automatically build the project before execution, if needed."
+    echo "  -c,--csv                    Generate a CSV output file if applicable."
+    echo "  -g,--config <file>          Generate a configuration file specific to this run."
+    echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine. If specified,"
+    echo "                              this overrides any configuration in a specified configuration"
+    echo "                              file. If '0' is specified, then the number of threads is set"
+    echo "                              to maximum."
+    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -h,--help                   Display this help text."
     echo ""
     show_usage_commands
     exit 1
@@ -53,6 +57,7 @@ parse_command_line() {
     AUTO_BUILD_MODE=0
     GENERATE_CSV_MODE=0
     CONFIG_FILE=
+    NUMBER_OF_THREADS=-1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -72,7 +77,20 @@ parse_command_line() {
             else
                 echo "Error: Argument for $1 is missing" >&2
                 exit 1
-        fi
+            fi
+        ;;
+        -nt|--num-threads)
+            # shellcheck disable=SC2086
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                regex_to_match='^[0-9]+$'
+                if ! [[ $2 =~ $regex_to_match ]] ; then
+                    echo "Error: Argument for $1 is not a non-negative integer." >&2; exit 1
+                fi
+                NUMBER_OF_THREADS=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing." >&2; exit 1
+            fi
         ;;
         -v|--verbose)
             VERBOSE_MODE=1
@@ -165,15 +183,21 @@ create_configuration_file() {
     local CONFIG_PATH=
     CONFIGURATION_PATH=$(realpath "incubator.conf")
 
+    THREADS_ARGUMENT=
+    if [ "$NUMBER_OF_THREADS" -ge 0 ] ; then
+        THREADS_ARGUMENT="--threads $NUMBER_OF_THREADS"
+    fi
+
     if [ -z "$CONFIG_FILE" ]; then
         echo "No configuration file specified.  Generating gaia configuation file with default values."
-        ./python/generate_config.py > "$TEMP_FILE" 2>&1
+        # shellcheck disable=SC2086
+        ./python/generate_config.py $THREADS_ARGUMENT > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     else
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
-
-        ./python/generate_config.py "$CONFIG_PATH"  > "$TEMP_FILE" 2>&1
+        # shellcheck disable=SC2086
+        ./python/generate_config.py $THREADS_ARGUMENT --config "$CONFIG_PATH"  > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
 

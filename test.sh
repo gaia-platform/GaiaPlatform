@@ -46,13 +46,15 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
-    echo "  -l,--list           List all available tests for this project."
-    echo "  -ni,--no-init       Do not initialize the test data before executing the test."
-    echo "  -vv,--very-verbose  Verbose for this script and any top level scripts it calls."
-    echo "  -v,--verbose        Show lots of information while executing the project."
-    echo "  -h,--help           Display this help text."
+    echo "  -l,--list                   List all available tests for this project."
+    echo "  -ni,--no-init               Do not initialize the test data before executing the test."
+    echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine.  If '0' is"
+    echo "                              specified, then the number of threads is set to maximum."
+    echo "  -vv,--very-verbose          Verbose for this script and any top level scripts it calls."
+    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -h,--help                   Display this help text."
     echo "Arguments:"
-    echo "  test-name           Optional name of the test to run.  (Default: 'smoke')"
+    echo "  test-name                   Optional name of the test to run.  (Default: 'smoke')"
     exit 1
 }
 
@@ -75,6 +77,7 @@ parse_command_line() {
     VERY_VERBOSE_MODE=0
     NO_INIT_MODE=0
     LIST_MODE=0
+    NUMBER_OF_THREADS=-1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -86,6 +89,19 @@ parse_command_line() {
         -ni|--no-init)
             NO_INIT_MODE=1
             shift
+        ;;
+        -nt|--num-threads)
+            # shellcheck disable=SC2086
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                regex_to_match='^[0-9]+$'
+                if ! [[ $2 =~ $regex_to_match ]] ; then
+                    echo "Error: Argument for $1 is not a non-negative integer." >&2; exit 1
+                fi
+                NUMBER_OF_THREADS=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing." >&2; exit 1
+            fi
         ;;
         -l|--list)
             LIST_MODE=1
@@ -295,9 +311,15 @@ execute_test_workflow() {
     else
         echo "No configuration specified.  Using default configuration."
     fi
+
     CONFIG_ARGUMENT=
     if [ -n "$CONFIG_PATH" ] ; then
         CONFIG_ARGUMENT="--config $CONFIG_PATH"
+    fi
+
+    THREAD_ARGUMENT=
+    if [ "$NUMBER_OF_THREADS" -ge 0 ] ; then
+        THREAD_ARGUMENT="-nt $NUMBER_OF_THREADS"
     fi
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -308,12 +330,12 @@ execute_test_workflow() {
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -c -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
+        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
         DID_FAIL=$?
     else
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -c -a $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
+        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)

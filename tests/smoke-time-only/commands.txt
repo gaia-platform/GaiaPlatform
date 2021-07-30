@@ -15,5 +15,5 @@ o
 s1023
 o
 # Print out the final state.
-w2
-j
+#w2
+#j
