@@ -176,7 +176,7 @@ private:
 
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
-    static void update_parent_reference_impl(
+    static void update_parent_reference_internal(
         common::gaia_id_t child_id,
         common::gaia_type_t child_type,
         common::gaia_id_t* child_references,
