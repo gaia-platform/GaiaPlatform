@@ -570,7 +570,7 @@ Token Parser::getPreviousToken(Token token) const
     {
         location = Lexer::GetBeginningOfToken(location, sourceManager, langOptions);
         if (!Lexer::getRawToken(location, returnToken, sourceManager, langOptions) &&
-            !returnToken.is(tok::comment))
+            returnToken.isNot(tok::comment))
         {
             break;
         }

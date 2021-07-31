@@ -128,6 +128,26 @@ static void print_version(raw_ostream& stream)
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
+SourceLocation get_previous_token_location(SourceLocation location, const Rewriter& rewriter)
+{
+    Token token;
+    token.setLocation(SourceLocation());
+    token.setKind(tok::unknown);
+    location = location.getLocWithOffset(-1);
+    auto start_of_file = rewriter.getSourceMgr().getLocForStartOfFile(rewriter.getSourceMgr().getFileID(location));
+    while (location != start_of_file)
+    {
+        location = Lexer::GetBeginningOfToken(location, rewriter.getSourceMgr(), rewriter.getLangOpts());
+        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) &&
+            token.isNot(tok::comment))
+        {
+            break;
+        }
+        location = location.getLocWithOffset(-1);
+    }
+    return token.getLocation();
+}
+
 SourceRange get_statement_source_range(const Stmt* expression, const SourceManager& source_manager, const LangOptions& options)
 {
     if (expression == nullptr)
@@ -2695,30 +2715,24 @@ public:
             g_is_generation_error = true;
             return;
         }
-        SourceLocation argument_start_location = expression->getExprLoc();
+        SourceLocation argument_start_location;
         unordered_map<string, string> argument_map;
         const ValueDecl* decl = expression_declaration->getDecl();
         string table_name = get_table_name(decl);
-
         // Parse insert call arguments to buid name value map.
         for (auto argument : expression->arguments())
         {
+            argument_start_location = get_previous_token_location(
+                get_previous_token_location(argument->getSourceRange().getBegin(), m_rewriter), m_rewriter);
+
             string raw_argument_name = m_rewriter.getRewrittenText(
-                SourceRange(argument_start_location, argument->getSourceRange().getBegin().getLocWithOffset(-1)));
-            size_t argument_name_start_position = raw_argument_name.find(',');
-            if (argument_name_start_position == string::npos)
-            {
-                argument_name_start_position = raw_argument_name.find('(');
-            }
+                SourceRange(argument_start_location, argument->getSourceRange().getEnd()));
             size_t argument_name_end_position = raw_argument_name.find(':');
-            string argument_name = raw_argument_name.substr(
-                argument_name_start_position + 1, argument_name_end_position - argument_name_start_position - 1);
+            string argument_name = raw_argument_name.substr(0, argument_name_end_position - 1);
             //Trim the argument name of whitespaces.
             argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
             argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
             argument_map[argument_name] = m_rewriter.getRewrittenText(argument->getSourceRange());
-
-            argument_start_location = argument->getSourceRange().getEnd().getLocWithOffset(1);
         }
         string class_qualification_string = "gaia::";
         class_qualification_string
