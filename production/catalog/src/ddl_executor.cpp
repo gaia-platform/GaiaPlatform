@@ -470,22 +470,15 @@ gaia_id_t ddl_executor_t::create_relationship(
                 }
             }
         }
-        transform(
-            parent_field_ids.begin(),
-            parent_field_ids.end(),
-            back_inserter(parent_field_positions),
-            [](uint64_t field_id) -> field_position_t
-            {
-                return gaia_field_t::get(field_id).position();
-            });
-        transform(
-            child_field_ids.begin(),
-            child_field_ids.end(),
-            back_inserter(child_field_positions),
-            [](uint64_t field_id) -> field_position_t
-            {
-                return gaia_field_t::get(field_id).position();
-            });
+
+        for (gaia_id_t field_id : parent_field_ids)
+        {
+            parent_field_positions.push_back(gaia_field_t::get(field_id).position());
+        }
+        for (gaia_id_t field_id : child_field_ids)
+        {
+            child_field_positions.push_back(gaia_field_t::get(field_id).position());
+        }
     }
 
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
