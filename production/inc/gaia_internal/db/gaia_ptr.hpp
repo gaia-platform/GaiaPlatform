@@ -183,12 +183,26 @@ private:
         common::gaia_id_t new_parent_id,
         common::reference_offset_t parent_offset);
 
+    /**
+     * Try to auto connect a record to matching parent side record(s).
+     *
+     * @param child_id The record id
+     * @param child_type The record type
+     * @param child_references The record references
+     * @param candidate_fields The list of candidate fields' positions.
+     */
     static void auto_connect_to_parent(
         common::gaia_id_t child_id,
         common::gaia_type_t child_type,
         common::gaia_id_t* child_references,
         const uint8_t* child_payload,
-        const common::field_position_list_t& fields);
+        const common::field_position_list_t& candidate_fields);
+
+    static void auto_connect_to_parent(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t* child_references,
+        const uint8_t* child_payload);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};

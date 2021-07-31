@@ -23,6 +23,22 @@ protected:
         : db_catalog_test_base_t("airport.ddl"){};
 };
 
+TEST_F(auto_connect_test, child_insert)
+{
+    const int32_t flight_number = 1701;
+    auto_transaction_t txn;
+    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
+    txn.commit();
+
+    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
+
+    gaia_id_t passenger_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
+    txn.commit();
+
+    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_t::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+}
+
 TEST_F(auto_connect_test, child_update)
 {
     const int32_t flight_number = 1701;

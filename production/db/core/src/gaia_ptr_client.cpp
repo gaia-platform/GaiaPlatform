@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/triggers.hpp"
@@ -376,6 +377,13 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
 
+    auto_connect_to_parent(
+        id,
+        type,
+        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+        const_cast<gaia_id_t*>(obj_ptr->references()),
+        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
     obj.create_insert_trigger(type, id);
     return obj;
 }
@@ -422,19 +430,52 @@ gaia_ptr_t& gaia_ptr_t::clone()
 
     return *this;
 }
+void gaia_ptr_t::auto_connect_to_parent(
+    gaia_id_t child_id,
+    gaia_type_t child_type,
+    gaia_id_t* child_references,
+    const uint8_t* child_payload)
+{
+    // Skip system tables.
+    //
+    // This implementation relies on the following catalog tables in place to work:
+    //   - gaia_table
+    //   - gaia_field
+    //   - gaia_relationship
+    //
+    // These tables will not be available during bootstrap when they are being
+    // populated themselves. We can skip all system tabeles safely as no system
+    // tables use the auto connection feature.
+    if (child_type >= c_system_table_reserved_range_start)
+    {
+        return;
+    }
+    field_position_list_t candidate_fields;
+    gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(child_type);
+    for (auto field_view : catalog_core_t::list_fields(table_id))
+    {
+        candidate_fields.push_back(field_view.position());
+    }
+    auto_connect_to_parent(child_id, child_type, child_references, child_payload, candidate_fields);
+}
 
 void gaia_ptr_t::auto_connect_to_parent(
     gaia_id_t child_id,
     gaia_type_t child_type,
     gaia_id_t* child_references,
     const uint8_t* child_payload,
-    const field_position_list_t& field_position_list)
+    const field_position_list_t& candidate_fields)
 {
+    // Skip system tables. See notes in the other method of the same name.
+    if (child_type >= c_system_table_reserved_range_start)
+    {
+        return;
+    }
     // For every field, check if the field is used in establishing a
     // relationship where the field's table is on the child side. For every such
     // relationship, check if the new value exists in any parent record. If yes,
     // link the child record to the parent record.
-    for (auto field_position : field_position_list)
+    for (auto field_position : candidate_fields)
     {
         gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(child_type);
         for (auto relationship_view : catalog_core_t::list_relationship_to(table_id))
