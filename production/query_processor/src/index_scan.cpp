@@ -29,16 +29,15 @@ std::nullptr_t index_scan_t::end()
 }
 
 index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id)
-    : m_index_id(index_id)
+    : m_index_id(index_id), m_scan_impl(base_index_scan_impl_t::get(m_index_id))
 {
-    m_scan_impl = base_index_scan_impl_t::get(m_index_id);
-    m_gaia_ptr.set_locator(m_scan_impl->locator());
+    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator(), false);
 }
 
 index_scan_iterator_t index_scan_iterator_t::operator++()
 {
     m_scan_impl->next_visible_locator();
-    m_gaia_ptr.set_locator(m_scan_impl->locator());
+    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator(), false);
     return *this;
 }
 
@@ -87,10 +86,10 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
     physical_operator_t::rebuild_local_indexes();
 
     // Get type of index.
-    auto iter = db::get_indexes()->find(index_id);
+    auto it = db::get_indexes()->find(index_id);
 
     // The index has not been touched this txn. Create an empty index entry.
-    if (iter == db::get_indexes()->end())
+    if (it == db::get_indexes()->end())
     {
         auto view_ptr = db::id_to_ptr(index_id);
 
@@ -100,9 +99,9 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
         }
 
         auto index_view = db::index_view_t(view_ptr);
-        iter = db::index::index_builder_t::create_empty_index(index_id, index_view.type());
+        it = db::index::index_builder_t::create_empty_index(index_id, index_view.type());
     }
-    auto index = iter->second;
+    auto index = it->second;
 
     switch (index->type())
     {

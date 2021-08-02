@@ -29,13 +29,10 @@ target_link_libraries(gaia_qp PRIVATE gaia_db_client)
 target_link_libraries(gaia_qp PRIVATE gaia_catalog)
 target_link_libraries(gaia_qp PRIVATE gaia_index)
 
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_qp PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-set (QP_TEST_INCLUDES
+set(QP_TEST_INCLUDES
   ${GAIA_QP_PRIVATE_INCLUDES}
   ${GAIA_GENERATED_SCHEMAS}
 )
 
 add_gtest(test_qp tests/test_index_scan.cpp
-          "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;edc_index_sandbox;flatbuffers")
+      "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;edc_index_sandbox;flatbuffers")

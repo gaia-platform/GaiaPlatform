@@ -31,9 +31,9 @@ gaia_txn_id_t physical_operator_t::get_current_txn_id()
 void physical_operator_t::rebuild_local_indexes()
 {
     // Clear the indexes.
-    for (const auto& idx : client_t::s_local_indexes)
+    for (const auto& index : client_t::s_local_indexes)
     {
-        idx.second->clear();
+        index.second->clear();
     }
 
     index::index_builder_t::update_indexes_from_logs(*client_t::s_log.data(), client_t::s_session_options.skip_catalog_integrity_check);

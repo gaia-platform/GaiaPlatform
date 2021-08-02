@@ -29,8 +29,10 @@ class gaia_ptr_t
 public:
     gaia_ptr_t() = default;
     explicit gaia_ptr_t(common::gaia_id_t id);
+    gaia_ptr_t(gaia_locator_t locator, bool);
 
-    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool
+    operator==(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
@@ -155,8 +157,6 @@ public:
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
     void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
-
-    void set_locator(gaia_locator_t locator);
 
 protected:
     gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);

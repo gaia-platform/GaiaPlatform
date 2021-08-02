@@ -28,9 +28,6 @@ namespace scan
  **/
 class index_scan_t
 {
-private:
-    common::gaia_id_t m_index_id;
-
 public:
     explicit index_scan_t(common::gaia_id_t index_id)
         : m_index_id(index_id)
@@ -38,20 +35,16 @@ public:
     }
     index_scan_iterator_t begin();
     std::nullptr_t end();
+
+private:
+    common::gaia_id_t m_index_id;
 };
 
 /**
- * Iterator interface over the index scan object
+ * Iterator interface over the index scan object.
  **/
 class index_scan_iterator_t
 {
-private:
-    common::gaia_id_t m_index_id;
-    std::shared_ptr<base_index_scan_impl_t> m_scan_impl;
-    db::gaia_ptr_t m_gaia_ptr;
-
-    index_scan_iterator_t() = default;
-
 public:
     explicit index_scan_iterator_t(common::gaia_id_t index_id);
 
@@ -65,6 +58,13 @@ public:
     bool operator==(std::nullptr_t) const;
     bool operator!=(const index_scan_iterator_t&) const;
     bool operator!=(std::nullptr_t) const;
+
+private:
+    common::gaia_id_t m_index_id;
+    std::shared_ptr<base_index_scan_impl_t> m_scan_impl;
+    db::gaia_ptr_t m_gaia_ptr;
+
+    index_scan_iterator_t() = default;
 };
 
 } // namespace scan

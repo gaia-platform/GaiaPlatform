@@ -26,6 +26,11 @@ gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
     m_locator = db_hash_map::find(id);
 }
 
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, bool)
+{
+    m_locator = locator;
+}
+
 gaia_id_t gaia_ptr_t::generate_id()
 {
     return allocate_id();
@@ -109,11 +114,6 @@ generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(
     gaia_type_t type)
 {
     return range_from_generator_iterator(find_all_iterator(type));
-}
-
-void gaia_ptr_t::set_locator(gaia_locator_t locator)
-{
-    m_locator = locator;
 }
 
 } // namespace db
