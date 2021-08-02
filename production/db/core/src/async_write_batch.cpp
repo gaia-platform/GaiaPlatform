@@ -99,23 +99,23 @@ void async_write_batch_t::close_all_files_in_batch()
 {
     for (log_file_info_t file_info : m_files_to_close)
     {
-        close_fd(file_info.second);
+        close_fd(file_info.file_fd);
     }
-    
+
     m_files_to_close.clear();
 }
 
-void async_write_batch_t::append_file_to_batch(int fd, uint64_t log_seq)
+void async_write_batch_t::append_file_to_batch(int fd, file_sequence_t log_seq)
 {
     log_file_info_t info{log_seq, fd};
     m_files_to_close.push_back(info);
 }
 
-uint64_t async_write_batch_t::get_max_file_seq_to_close()
+file_sequence_t async_write_batch_t::get_max_file_seq_to_close()
 {
     if (m_files_to_close.size() > 0)
     {
-        return m_files_to_close.back().first;
+        return m_files_to_close.back().sequence;
     }
     return 0;
 }

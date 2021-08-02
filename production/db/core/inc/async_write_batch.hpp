@@ -31,8 +31,7 @@ enum class uring_op_t : uint8_t
     pwritev_decision = 2,
     pwritev_eventfd_flush = 3,
     pwritev_eventfd_validate = 4,
-    fdatasync_log = 5,
-    fdatasync_decision = 6,
+    fdatasync = 5,
 };
 
 /**
@@ -53,9 +52,9 @@ public:
     /**
      * Add file to the batch that should be closed once all of its pending writes have finished.
      */
-    void append_file_to_batch(int fd, uint64_t log_seq);
+    void append_file_to_batch(int fd, file_sequence_t log_seq);
 
-    uint64_t get_max_file_seq_to_close();
+    file_sequence_t get_max_file_seq_to_close();
 
     /**
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
