@@ -10,6 +10,9 @@ bool base_index_scan_impl_t::is_visible(const db::index::index_record_t& rec)
     return db::locator_exists(rec.locator) && db::locator_to_offset(rec.locator) == rec.offset;
 }
 
+// This method initializes the physical index scan.
+// Initialization is fairly expensive and complicated (RPC, locking on structures in the server)
+// So we delay it until we need it.
 template <typename T_index, typename T_iter>
 void index_scan_impl_t<T_index, T_iter>::init()
 {
@@ -80,14 +83,14 @@ bool index_scan_impl_t<T_index, T_iter>::remote_end() const
 
 // Ordering matters for range iterators.
 template <>
-bool index_scan_impl_t<db::index::range_index_t, db::index::range_index_iterator_t>::select_local_for_merge() const
+bool index_scan_impl_t<db::index::range_index_t, db::index::range_index_iterator_t>::should_merge_local() const
 {
     return record_to_key(m_local_iter->second) <= record_to_key(*m_remote_iter);
 }
 
 // Ignore ordering for other iterators.
 template <typename T_index, typename T_iter>
-bool index_scan_impl_t<T_index, T_iter>::select_local_for_merge() const
+bool index_scan_impl_t<T_index, T_iter>::should_merge_local() const
 {
     return true;
 }
@@ -99,7 +102,7 @@ bool index_scan_impl_t<T_index, T_iter>::has_more()
     {
         init();
     }
-    return !remote_end() && !local_end();
+    return !remote_end() || !local_end();
 }
 
 template <typename T_index, typename T_iter>
@@ -114,7 +117,7 @@ void index_scan_impl_t<T_index, T_iter>::next_visible_locator()
 {
     if (!local_end() && !remote_end())
     {
-        if (select_local_for_merge())
+        if (should_merge_local())
         {
             m_locator = m_local_iter->second.locator;
             advance_local();

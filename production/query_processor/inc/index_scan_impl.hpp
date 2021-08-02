@@ -88,7 +88,7 @@ private:
 
     void init();
     db::index::index_key_t record_to_key(const db::index::index_record_t& record) const;
-    bool select_local_for_merge() const;
+    bool should_merge_local() const;
     void advance_remote();
     void advance_local();
     bool remote_end() const;
