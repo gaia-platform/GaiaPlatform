@@ -1764,6 +1764,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
       explicitNavigationExpression = ParseExpression();
       if (explicitNavigationExpression.get() == nullptr)
       {
+        Actions.CorrectDelayedTyposInExpr(explicitNavigationExpression);
         cutOffParsing();
         return StmtError();
       }
