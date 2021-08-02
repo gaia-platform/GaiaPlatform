@@ -2785,7 +2785,7 @@ public:
         }
         replacement_string.resize(replacement_string.size() - 1);
         replacement_string.append("))");
-cerr<<replacement_string<<endl;
+
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call_locations.insert(expression->getBeginLoc());
