@@ -59,7 +59,7 @@ protected:
 /**
  * Templated implementation.
  * */
-template <typename T_index, typename T_iter>
+template <typename T_index, typename T_index_iterator>
 class index_scan_impl_t : public base_index_scan_impl_t
 {
 public:
@@ -78,9 +78,9 @@ protected:
 
 private:
     db::index::db_index_t m_index;
-    T_iter m_local_iter;
-    T_iter m_local_iter_end;
-    remote_scan_iterator_t m_remote_iter;
+    T_index_iterator m_local_it;
+    T_index_iterator m_local_it_end;
+    remote_scan_iterator_t m_remote_it;
 
     common::gaia_id_t m_index_id;
     db::gaia_locator_t m_locator;

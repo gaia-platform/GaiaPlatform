@@ -13,13 +13,13 @@ bool base_index_scan_impl_t::is_visible(const db::index::index_record_t& rec)
 // This method initializes the physical index scan.
 // Initialization is fairly expensive and complicated (RPC, locking on structures in the server)
 // So we delay it until we need it.
-template <typename T_index, typename T_iter>
-void index_scan_impl_t<T_index, T_iter>::init()
+template <typename T_index, typename T_index_iterator>
+void index_scan_impl_t<T_index, T_index_iterator>::init()
 {
     auto rec_generator = db::client_t::get_record_generator_for_index(m_index_id, physical_operator_t::get_current_txn_id());
 
     // Only return visible records from remote.
-    m_remote_iter = remote_scan_iterator_t(
+    m_remote_it = remote_scan_iterator_t(
         rec_generator,
         is_visible);
 
@@ -29,11 +29,11 @@ void index_scan_impl_t<T_index, T_iter>::init()
 
     m_index = idx_iter->second;
 
-    m_local_iter = static_cast<T_index*>(m_index.get())->begin();
-    m_local_iter_end = static_cast<T_index*>(m_index.get())->end();
+    m_local_it = static_cast<T_index*>(m_index.get())->begin();
+    m_local_it_end = static_cast<T_index*>(m_index.get())->end();
 
     // Advance local iterator to first visible record.
-    if (!local_end() && !is_visible(m_local_iter->second))
+    if (!local_end() && !is_visible(m_local_it->second))
         advance_local();
 
     // Assign the first visible locator.
@@ -41,8 +41,8 @@ void index_scan_impl_t<T_index, T_iter>::init()
     m_initialized = true;
 }
 
-template <typename T_index, typename T_iter>
-db::gaia_locator_t index_scan_impl_t<T_index, T_iter>::locator()
+template <typename T_index, typename T_index_iterator>
+db::gaia_locator_t index_scan_impl_t<T_index, T_index_iterator>::locator()
 {
     if (!m_initialized)
     {
@@ -51,52 +51,52 @@ db::gaia_locator_t index_scan_impl_t<T_index, T_iter>::locator()
     return m_locator;
 }
 
-template <typename T_index, typename T_iter>
-void index_scan_impl_t<T_index, T_iter>::advance_local()
+template <typename T_index, typename T_index_iterator>
+void index_scan_impl_t<T_index, T_index_iterator>::advance_local()
 {
     do
     {
-        ++m_local_iter;
-    } while (!local_end() && !is_visible(m_local_iter->second));
+        ++m_local_it;
+    } while (!local_end() && !is_visible(m_local_it->second));
 }
 
-template <typename T_index, typename T_iter>
-bool index_scan_impl_t<T_index, T_iter>::local_end() const
+template <typename T_index, typename T_index_iterator>
+bool index_scan_impl_t<T_index, T_index_iterator>::local_end() const
 {
-    return m_local_iter == m_local_iter_end;
+    return m_local_it == m_local_it_end;
 }
 
-template <typename T_index, typename T_iter>
-void index_scan_impl_t<T_index, T_iter>::advance_remote()
+template <typename T_index, typename T_index_iterator>
+void index_scan_impl_t<T_index, T_index_iterator>::advance_remote()
 {
     if (!remote_end())
     {
-        ++m_remote_iter;
+        ++m_remote_it;
     }
 }
 
-template <typename T_index, typename T_iter>
-bool index_scan_impl_t<T_index, T_iter>::remote_end() const
+template <typename T_index, typename T_index_iterator>
+bool index_scan_impl_t<T_index, T_index_iterator>::remote_end() const
 {
-    return !static_cast<bool>(m_remote_iter);
+    return !static_cast<bool>(m_remote_it);
 }
 
 // Ordering matters for range iterators.
 template <>
 bool index_scan_impl_t<db::index::range_index_t, db::index::range_index_iterator_t>::should_merge_local() const
 {
-    return record_to_key(m_local_iter->second) <= record_to_key(*m_remote_iter);
+    return record_to_key(m_local_it->second) <= record_to_key(*m_remote_it);
 }
 
 // Ignore ordering for other iterators.
-template <typename T_index, typename T_iter>
-bool index_scan_impl_t<T_index, T_iter>::should_merge_local() const
+template <typename T_index, typename T_index_iterator>
+bool index_scan_impl_t<T_index, T_index_iterator>::should_merge_local() const
 {
     return true;
 }
 
-template <typename T_index, typename T_iter>
-bool index_scan_impl_t<T_index, T_iter>::has_more()
+template <typename T_index, typename T_index_iterator>
+bool index_scan_impl_t<T_index, T_index_iterator>::has_more()
 {
     if (!m_initialized)
     {
@@ -105,37 +105,37 @@ bool index_scan_impl_t<T_index, T_iter>::has_more()
     return !remote_end() || !local_end();
 }
 
-template <typename T_index, typename T_iter>
-db::index::index_key_t index_scan_impl_t<T_index, T_iter>::record_to_key(const db::index::index_record_t& record) const
+template <typename T_index, typename T_index_iterator>
+db::index::index_key_t index_scan_impl_t<T_index, T_index_iterator>::record_to_key(const db::index::index_record_t& record) const
 {
     auto obj = db::locator_to_ptr(record.locator);
     return db::index::index_builder_t::make_key(m_index_id, obj->type, reinterpret_cast<const uint8_t*>(obj->payload));
 }
 
-template <typename T_index, typename T_iter>
-void index_scan_impl_t<T_index, T_iter>::next_visible_locator()
+template <typename T_index, typename T_index_iterator>
+void index_scan_impl_t<T_index, T_index_iterator>::next_visible_locator()
 {
     if (!local_end() && !remote_end())
     {
         if (should_merge_local())
         {
-            m_locator = m_local_iter->second.locator;
+            m_locator = m_local_it->second.locator;
             advance_local();
         }
         else
         {
-            m_locator = m_remote_iter->locator;
+            m_locator = m_remote_it->locator;
             advance_remote();
         }
     }
     else if (local_end() && !remote_end())
     {
-        m_locator = m_remote_iter->locator;
+        m_locator = m_remote_it->locator;
         advance_remote();
     }
     else if (remote_end() && !local_end())
     {
-        m_locator = m_local_iter->second.locator;
+        m_locator = m_local_it->second.locator;
         advance_local();
     }
     else // No visible record here.
