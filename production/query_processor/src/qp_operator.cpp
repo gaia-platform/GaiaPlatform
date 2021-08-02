@@ -14,7 +14,7 @@ using namespace gaia::db;
 
 namespace gaia
 {
-namespace qp
+namespace query_processor
 {
 
 void physical_operator_t::verify_txn_active()
@@ -39,5 +39,5 @@ void physical_operator_t::rebuild_local_indexes()
     index::index_builder_t::update_indexes_from_logs(*client_t::s_log.data(), client_t::s_session_options.skip_catalog_integrity_check);
 }
 
-} // namespace qp
+} // namespace query_processor
 } // namespace gaia

@@ -24,7 +24,7 @@
 
 namespace gaia
 {
-namespace qp
+namespace query_processor
 {
 namespace scan
 {
@@ -37,7 +37,7 @@ class index_scan_iterator_t;
  * **/
 class base_index_scan_impl_t : public physical_operator_t
 {
-    friend class gaia::qp::scan::index_scan_iterator_t;
+    friend class gaia::query_processor::scan::index_scan_iterator_t;
 
 public:
     base_index_scan_impl_t() = default;
@@ -100,5 +100,5 @@ typedef index_scan_impl_t<db::index::hash_index_t, db::index::hash_index_iterato
 #include "index_scan_impl.inc"
 
 } // namespace scan
-} // namespace qp
+} // namespace query_processor
 } // namespace gaia

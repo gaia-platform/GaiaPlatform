@@ -50,7 +50,7 @@ class client_t
         gaia_locator_t locator,
         size_t size);
 
-    friend class gaia::qp::physical_operator_t;
+    friend class gaia::query_processor::physical_operator_t;
 
 public:
     static inline bool is_transaction_open();

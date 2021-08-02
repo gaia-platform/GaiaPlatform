@@ -17,7 +17,7 @@
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
-using namespace gaia::qp::scan;
+using namespace gaia::query_processor::scan;
 
 constexpr size_t c_num_initial_rows = 20;
 

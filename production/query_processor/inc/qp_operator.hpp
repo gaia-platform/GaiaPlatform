@@ -11,7 +11,7 @@
 
 namespace gaia
 {
-namespace qp
+namespace query_processor
 {
 
 /**
@@ -30,5 +30,5 @@ protected:
     static void rebuild_local_indexes();
 };
 
-} // namespace qp
+} // namespace query_processor
 } // namespace gaia

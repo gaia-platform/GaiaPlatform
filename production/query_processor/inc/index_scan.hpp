@@ -18,7 +18,7 @@
 
 namespace gaia
 {
-namespace qp
+namespace query_processor
 {
 namespace scan
 {
@@ -68,5 +68,5 @@ public:
 };
 
 } // namespace scan
-} // namespace qp
+} // namespace query_processor
 } // namespace gaia

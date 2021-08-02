@@ -14,7 +14,7 @@ using namespace gaia::db::index;
 
 namespace gaia
 {
-namespace qp
+namespace query_processor
 {
 namespace scan
 {
@@ -118,5 +118,5 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
 }
 
 } // namespace scan
-} // namespace qp
+} // namespace query_processor
 } // namespace gaia
