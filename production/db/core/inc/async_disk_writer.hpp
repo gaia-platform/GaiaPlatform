@@ -58,7 +58,7 @@ public:
      * Create a single pwritev() request and enqueue it to the in_progress batch.
      * This API is used when iov_count is guaranteed to be lesser than or equal to IOV_MAX.
      */
-    size_t enqueue_pwritev_request(
+    void enqueue_pwritev_request(
         const struct iovec* iovec_array,
         size_t iov_count,
         int file_fd,
@@ -86,13 +86,13 @@ public:
      * and submit the IO requests in the in_flight batch to the kernel. Note that this API
      * will block on any other IO batches to finish disk flush before proceeding.
      */
-    size_t submit_and_swap_in_progress_batch(int file_fd, bool sync_submit = false);
+    void submit_and_swap_in_progress_batch(int file_fd, bool should_wait_for_completion = false);
 
     /**
      * Append fdatasync to the in_progress_batch and update batch with file fd so that the file 
      * can be closed once the kernel has processed it.
      */
-    size_t perform_file_close_operations(int file_fd, file_sequence_t log_seq);
+    void perform_file_close_operations(int file_fd, file_sequence_t log_seq);
 
     /**
      * Copy any temporary writes (which don't exist in gaia shared memory) into the metadata buffer.
@@ -113,11 +113,6 @@ public:
      */
     void map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_efd);
 
-    /**
-     * Register the function to make txn durable.
-     */
-    void register_txn_durable_fn(std::function<void(gaia_txn_id_t)> txn_durable_fn);
-
 private:
     // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;
@@ -130,16 +125,13 @@ private:
     static inline int s_flush_efd = -1;
 
     // eventfd to signal that the IO results belonging to a batch are ready to be validated.
-    static inline int s_validate_flush_efd = -1;
+    int m_validate_flush_efd = -1;
 
     // eventfd to signal that a file is ready to be checkpointed.
-    static inline int s_signal_checkpoint_efd = -1;
+    int m_signal_checkpoint_efd = -1;
 
     // Keep track of session threads to unblock.
     std::unordered_map<gaia_txn_id_t, int> m_ts_to_session_decision_fd_map;
-
-    // Function to mark txn durable.
-    std::function<void(gaia_txn_id_t)> m_txn_durable_fn{};
 
     // Writes are batched and we maintain two buffers so that writes to a buffer
     // can still proceed when the other buffer is getting flushed to disk.
@@ -156,8 +148,8 @@ private:
 
 private:
     void teardown();
-    bool submit_if_full(int file_fd, size_t required_size);
-    size_t finish_and_submit_batch(int file_fd, bool wait);
+    void submit_if_full(int file_fd, size_t required_size);
+    void finish_and_submit_batch(int file_fd, bool wait);
 };
 
 } // namespace persistence
