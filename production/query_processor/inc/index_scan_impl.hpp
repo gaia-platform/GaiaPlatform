@@ -20,6 +20,7 @@
 #include "db_helpers.hpp"
 #include "hash_index.hpp"
 #include "index.hpp"
+#include "qp_operator.hpp"
 #include "range_index.hpp"
 
 namespace gaia
@@ -30,6 +31,7 @@ namespace scan
 {
 
 typedef common::iterators::generator_iterator_t<db::index::index_record_t> remote_scan_iterator_t;
+
 class index_scan_iterator_t;
 
 /**
@@ -57,7 +59,6 @@ protected:
 /**
  * Templated implementation.
  * */
-
 template <typename T_index, typename T_iter>
 class index_scan_impl_t : public base_index_scan_impl_t
 {

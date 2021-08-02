@@ -22,7 +22,6 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
-  "${GAIA_REPO}/production/query_processor/inc"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PRIVATE_INCLUDES=${GAIA_DB_CORE_PRIVATE_INCLUDES}")

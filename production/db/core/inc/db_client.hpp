@@ -21,10 +21,14 @@
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
-#include "qp_operator.hpp"
 
 namespace gaia
 {
+
+namespace query_processor
+{
+class physical_operator_t;
+}
 
 namespace db
 {

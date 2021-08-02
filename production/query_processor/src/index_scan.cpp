@@ -87,10 +87,10 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
     physical_operator_t::rebuild_local_indexes();
 
     // Get type of index.
-    auto idx_iter = db::get_indexes()->find(index_id);
+    auto iter = db::get_indexes()->find(index_id);
 
-    // Index not touched this txn. Create an empty index entry.
-    if (idx_iter == db::get_indexes()->end())
+    // The index has not been touched this txn. Create an empty index entry.
+    if (iter == db::get_indexes()->end())
     {
         auto view_ptr = db::id_to_ptr(index_id);
 
@@ -100,11 +100,11 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
         }
 
         auto index_view = db::index_view_t(view_ptr);
-        idx_iter = db::index::index_builder_t::create_empty_index(index_id, index_view.type());
+        iter = db::index::index_builder_t::create_empty_index(index_id, index_view.type());
     }
-    auto idx = idx_iter->second;
+    auto index = iter->second;
 
-    switch (idx->type())
+    switch (index->type())
     {
     case catalog::index_type_t::range:
         return std::make_shared<range_scan_impl_t>(index_id);
