@@ -30,7 +30,7 @@ namespace db
 
 namespace query_processor
 {
-class physical_operator_t;
+class db_client_proxy_t;
 }
 
 class client_t
@@ -54,7 +54,7 @@ class client_t
         gaia_locator_t locator,
         size_t size);
 
-    friend class gaia::db::query_processor::physical_operator_t;
+    friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
     static inline bool is_transaction_open();

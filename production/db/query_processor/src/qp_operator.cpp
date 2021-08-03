@@ -19,18 +19,18 @@ namespace db
 namespace query_processor
 {
 
-void physical_operator_t::verify_txn_active()
+void db_client_proxy_t::verify_txn_active()
 {
     db::client_t::verify_txn_active();
 }
 
-gaia_txn_id_t physical_operator_t::get_current_txn_id()
+gaia_txn_id_t db_client_proxy_t::get_current_txn_id()
 {
     verify_txn_active();
     return client_t::s_txn_id;
 }
 
-void physical_operator_t::rebuild_local_indexes()
+void db_client_proxy_t::rebuild_local_indexes()
 {
     // Clear the indexes.
     for (const auto& index : client_t::s_local_indexes)

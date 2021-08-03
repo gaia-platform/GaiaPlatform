@@ -85,8 +85,8 @@ bool index_scan_iterator_t::operator!=(std::nullptr_t) const
 std::shared_ptr<base_index_scan_impl_t>
 base_index_scan_impl_t::get(common::gaia_id_t index_id)
 {
-    physical_operator_t::verify_txn_active();
-    physical_operator_t::rebuild_local_indexes();
+    db_client_proxy_t::verify_txn_active();
+    db_client_proxy_t::rebuild_local_indexes();
 
     // Get type of index.
     auto it = db::get_indexes()->find(index_id);
