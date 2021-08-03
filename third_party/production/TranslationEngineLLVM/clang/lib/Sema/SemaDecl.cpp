@@ -1814,11 +1814,7 @@ void Sema::ActOnPopScope(SourceLocation Loc, Scope *S) {
         constexpr char gaiaTypeNameSuffix[] = "__type";
         if (typeName.endswith(gaiaTypeNameSuffix))
         {
-          std::unordered_set<std::string> tableData = getCatalogTableList(Loc);
-          if (tableData.find(typeName.take_front(typeName.size() - sizeof(gaiaTypeNameSuffix) + 1)) != tableData.end())
-          {
-            S->RemoveDecl(declaration);
-          }
+          S->RemoveDecl(declaration);
         }
       }
     }

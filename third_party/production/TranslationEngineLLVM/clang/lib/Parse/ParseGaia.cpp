@@ -107,6 +107,11 @@ std::string Parser::GetExplicitNavigationPath()
                 }
             }
         }
+        else
+        {
+            // ':' token that is not related to tag definition.
+            startLocation = previousToken.getLocation();
+        }
     }
     else
     {

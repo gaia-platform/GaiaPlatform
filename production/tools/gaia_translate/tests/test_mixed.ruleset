@@ -28,7 +28,7 @@ void f2(gaia::barn_storage::incubator_t& i)
     i.actuators().insert(actuator_t::insert_row("TestActuator3", 0, 0.0));
 }
 
-ruleset test_mixed : Table(incubator)
+ruleset test_mixed
 {
     OnInsert(i:incubator)
     {

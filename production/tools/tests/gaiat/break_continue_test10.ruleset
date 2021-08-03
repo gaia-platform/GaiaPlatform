@@ -1,0 +1,19 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: break within declarative if
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+        if (S:sensor.value > 99.0)
+        {
+            if (S.value > 100.0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+// CHECK: 'break' statement not in loop or switch statement
+// GAIAPLAT-1067 (fixed)

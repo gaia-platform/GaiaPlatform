@@ -3849,8 +3849,8 @@ public:
   StmtResult ActOnIndirectGotoStmt(SourceLocation GotoLoc,
                                    SourceLocation StarLoc,
                                    Expr *DestExp);
-  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope);
-  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope);
+  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDeclarativeContinue = false);
+  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclarativeBreak = false);
 
   void ActOnCapturedRegionStart(SourceLocation Loc, Scope *CurScope,
                                 CapturedRegionKind Kind, unsigned NumParams);
@@ -4632,6 +4632,8 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  bool IsExplicitPathInRange(SourceRange range) const;
+  bool ValidateLabel(const LabelDecl *label);
   // Checks if an expression contains injected declarative references.
   bool IsExpressionInjected(const Expr* expression) const;
 private:
@@ -4655,7 +4657,9 @@ private:
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
-  bool does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc);
+  bool doesPathIncludesTags(const std::vector<std::string>& path, SourceLocation loc);
+  void ActOnStartDeclarativeLabel(const std::string& label);
+  bool ActOnStartLabel(const std::string& label);
 
   struct ExplicitPathData_t
   {
@@ -4671,6 +4675,9 @@ private:
     std::string table;
     std::string field;
   };
+
+  std::unordered_set<std::string> labelsInProcess;
+  std::unordered_set<std::string> declarativeLabelsInProcess;
 
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 

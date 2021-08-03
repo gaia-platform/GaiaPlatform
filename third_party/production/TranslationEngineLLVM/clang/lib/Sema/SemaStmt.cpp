@@ -2967,29 +2967,33 @@ static void CheckJumpOutOfSEHFinally(Sema &S, SourceLocation Loc,
 }
 
 StmtResult
-Sema::ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope) {
-  Scope *S = CurScope->getContinueParent();
-  if (!S) {
-    // C99 6.8.6.2p1: A break shall appear only in or as a loop body.
-    return StmtError(Diag(ContinueLoc, diag::err_continue_not_in_loop));
+Sema::ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDeclarativeContinue) {
+  if (!isDeclarativeContinue)
+  {
+    Scope *S = CurScope->getContinueParent();
+    if (!S) {
+      // C99 6.8.6.2p1: A break shall appear only in or as a loop body.
+      return StmtError(Diag(ContinueLoc, diag::err_continue_not_in_loop));
+    }
+    CheckJumpOutOfSEHFinally(*this, ContinueLoc, *S);
   }
-  CheckJumpOutOfSEHFinally(*this, ContinueLoc, *S);
-
   return new (Context) ContinueStmt(ContinueLoc);
 }
 
 StmtResult
-Sema::ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope) {
-  Scope *S = CurScope->getBreakParent();
-  if (!S) {
-    // C99 6.8.6.3p1: A break shall appear only in or as a switch/loop body.
-    return StmtError(Diag(BreakLoc, diag::err_break_not_in_loop_or_switch));
-  }
-  if (S->isOpenMPLoopScope())
-    return StmtError(Diag(BreakLoc, diag::err_omp_loop_cannot_use_stmt)
+Sema::ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclarativeBreak) {
+  if (!isDeclarativeBreak)
+  {
+    Scope *S = CurScope->getBreakParent();
+    if (!S) {
+      // C99 6.8.6.3p1: A break shall appear only in or as a switch/loop body.
+      return StmtError(Diag(BreakLoc, diag::err_break_not_in_loop_or_switch));
+    }
+    if (S->isOpenMPLoopScope())
+      return StmtError(Diag(BreakLoc, diag::err_omp_loop_cannot_use_stmt)
                      << "break");
-  CheckJumpOutOfSEHFinally(*this, BreakLoc, *S);
-
+    CheckJumpOutOfSEHFinally(*this, BreakLoc, *S);
+  }
   return new (Context) BreakStmt(BreakLoc);
 }
 

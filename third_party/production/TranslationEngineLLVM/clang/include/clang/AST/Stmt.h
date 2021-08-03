@@ -2473,9 +2473,11 @@ public:
 
 /// ContinueStmt - This represents a continue.
 class ContinueStmt : public Stmt {
+  LabelDecl *label;
 public:
   ContinueStmt(SourceLocation CL) : Stmt(ContinueStmtClass) {
     setContinueLoc(CL);
+    setLabel(nullptr);
   }
 
   /// Build an empty continue statement.
@@ -2486,6 +2488,9 @@ public:
 
   SourceLocation getBeginLoc() const { return getContinueLoc(); }
   SourceLocation getEndLoc() const { return getContinueLoc(); }
+
+  LabelDecl *getLabel() const { return label; }
+  void setLabel(LabelDecl *L) { label = L; }
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == ContinueStmtClass;
@@ -2499,9 +2504,11 @@ public:
 
 /// BreakStmt - This represents a break.
 class BreakStmt : public Stmt {
+  LabelDecl *label;
 public:
   BreakStmt(SourceLocation BL) : Stmt(BreakStmtClass) {
     setBreakLoc(BL);
+    setLabel(nullptr);
   }
 
   /// Build an empty break statement.
@@ -2512,6 +2519,9 @@ public:
 
   SourceLocation getBeginLoc() const { return getBreakLoc(); }
   SourceLocation getEndLoc() const { return getBreakLoc(); }
+
+  LabelDecl *getLabel() const { return label; }
+  void setLabel(LabelDecl *L) { label = L; }
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == BreakStmtClass;

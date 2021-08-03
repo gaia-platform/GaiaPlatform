@@ -514,33 +514,6 @@ TEST_F(test_queries_code, if_stmt3)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
 }
 
-TEST_F(test_queries_code, while_stmt)
-{
-    populate_db();
-
-    gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
-    gaia::rules::unsubscribe_rules();
-    gaia::rules::subscribe_ruleset("test_query_5");
-
-    // @hours - active variable.
-    // Rule causes forward chanining, but terminates after 4 calls.
-    g_string_value = "";
-    gaia::db::begin_transaction();
-
-    auto sw = student_1.writer();
-    sw.gpa = 3.5;
-    sw.update_row();
-
-    gaia::db::commit_transaction();
-
-    gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
-
-    EXPECT_EQ(g_string_value, "stu001reg002cou004 stu001reg001cou002 ") << "Incorrect result";
-}
-
 TEST_F(test_queries_code, nomatch_stmt)
 {
     populate_db();
