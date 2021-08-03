@@ -7,6 +7,8 @@
 
 #include <liburing.h>
 
+#include <climits>
+
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -69,7 +71,7 @@ void async_disk_writer_t::teardown()
 
 uint64_t get_enum_value(uring_op_t op)
 {
-    return static_cast<std::underlying_type<uring_op_t>::type>(op);
+    return static_cast<std::underlying_type_t<uring_op_t>>(op);
 }
 
 void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t user_data)
@@ -185,8 +187,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
 
 void async_disk_writer_t::perform_file_close_operations(int file_fd, file_sequence_t log_seq)
 {
-    size_t submission_entries_needed = 1;
-    submit_if_full(file_fd, submission_entries_needed);
+    submit_if_full(file_fd, c_single_submission_entry_count);
 
     // Call fdatasync on the file before closing it.
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_DRAIN);
@@ -217,9 +218,9 @@ unsigned char* async_disk_writer_t::copy_into_metadata_buffer(void* source, size
     return current_ptr;
 }
 
-size_t async_disk_writer_t::get_total_pwritev_size_in_bytes(const iovec* iov_array, size_t count)
+size_t async_disk_writer_t::get_total_pwritev_size_in_bytes(void* iov_array, size_t count)
 {
-    auto ptr = iov_array;
+    auto ptr = reinterpret_cast<const iovec*>(iov_array);
 
     size_t size_in_bytes = 0;
     for (size_t i = 0; i < count; i++)
@@ -238,56 +239,57 @@ void async_disk_writer_t::enqueue_pwritev_requests(
 {
     ASSERT_PRECONDITION(!writes_to_submit.empty(), "Cannot enqueue 0 writes to the submission queue!");
 
-    auto required_size_bytes = sizeof(iovec) * writes_to_submit.size();
-    auto current_helper_ptr = copy_into_metadata_buffer(writes_to_submit.data(), required_size_bytes, file_fd);
+    size_t required_size_bytes = sizeof(iovec) * writes_to_submit.size();
+    unsigned char* current_helper_ptr = copy_into_metadata_buffer(writes_to_submit.data(), required_size_bytes, file_fd);
 
-    // Each pwritev call can accomodate __IOV_MAX entries at most.
-    auto num_pwrites = writes_to_submit.size() / __IOV_MAX + 1;
+    // Each pwritev call can accomodate IOV_MAX entries at most.
+    size_t num_pwrites = writes_to_submit.size() / IOV_MAX + 1;
 
     ASSERT_PRECONDITION(num_pwrites > 0, "Cannot enqueue 0 writes to the submission queue!");
 
-    auto remaining_size = required_size_bytes;
-    auto remaining_count = writes_to_submit.size();
+    size_t remaining_size_bytes = required_size_bytes;
+    size_t remaining_count = writes_to_submit.size();
 
-    for (size_t i = 1; i <= num_pwrites; i++)
+    for (size_t i = 0; i < num_pwrites; i++)
     {
-        auto ptr_to_write = current_helper_ptr;
+        unsigned char* ptr_to_write = current_helper_ptr;
 
-        if (remaining_count <= __IOV_MAX)
+        if (remaining_count <= IOV_MAX)
         {
-            enqueue_pwritev_request(reinterpret_cast<const iovec*>(ptr_to_write), remaining_count, file_fd, current_log_file_offset, type);
+            enqueue_pwritev_request(ptr_to_write, remaining_count, file_fd, current_log_file_offset, type);
             break;
         }
         else
         {
-            enqueue_pwritev_request(reinterpret_cast<const iovec*>(ptr_to_write), __IOV_MAX, file_fd, current_log_file_offset, type);
-            current_log_file_offset += get_total_pwritev_size_in_bytes(reinterpret_cast<const iovec*>(current_helper_ptr), __IOV_MAX);
-            remaining_size -= __IOV_MAX * sizeof(iovec);
-            current_helper_ptr += __IOV_MAX * sizeof(iovec);
-            remaining_count -= __IOV_MAX;
+            enqueue_pwritev_request(ptr_to_write, IOV_MAX, file_fd, current_log_file_offset, type);
+            current_log_file_offset += get_total_pwritev_size_in_bytes(current_helper_ptr, IOV_MAX);
+            size_t max_iovec_array_size_bytes = IOV_MAX * sizeof(iovec);
+            remaining_size_bytes -= c_max_iovec_array_size_bytes;
+            current_helper_ptr += c_max_iovec_array_size_bytes;
+            remaining_count -= IOV_MAX;
         }
     }
 }
 
 void async_disk_writer_t::submit_if_full(int file_fd, size_t required_entries)
 {
-    bool to_submit = m_in_progress_batch.get()->get_unused_submission_entries_count() - c_submit_batch_sqe_count - required_entries <= 0;
-    if (to_submit)
+    required_entries = c_submit_batch_sqe_count + required_entries;
+    bool should_submit = m_in_progress_batch.get()->get_unused_submission_entries_count() <= required_entries;
+    if (should_submit)
     {
         submit_and_swap_in_progress_batch(file_fd);
     }
 }
 
 void async_disk_writer_t::enqueue_pwritev_request(
-    const struct iovec* iovec_array,
+    void* iovec_array,
     size_t iovcnt,
     int file_fd,
     uint64_t current_offset,
     uring_op_t type)
 {
-    size_t submission_entries_needed = 1;
-    submit_if_full(file_fd, submission_entries_needed);
-    m_in_progress_batch->add_pwritev_op_to_batch(iovec_array, iovcnt, file_fd, current_offset, get_enum_value(type), 0);
+    submit_if_full(file_fd, c_single_submission_entry_count);
+    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<const iovec*>(iovec_array), iovcnt, file_fd, current_offset, get_enum_value(type), 0);
 }
 
 void async_disk_writer_t::swap_batches()

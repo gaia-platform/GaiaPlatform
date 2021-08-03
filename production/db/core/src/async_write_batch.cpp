@@ -117,7 +117,7 @@ file_sequence_t async_write_batch_t::get_max_file_seq_to_close()
     {
         return m_files_to_close.back().sequence;
     }
-    return 0;
+    return c_invalid_file_sequence_number;
 }
 
 size_t async_write_batch_t::get_unsubmitted_entries_count()

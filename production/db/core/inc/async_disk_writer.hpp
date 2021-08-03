@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <climits>
 #include <cstddef>
 
 #include <atomic>
@@ -59,7 +60,7 @@ public:
      * This API is used when iov_count is guaranteed to be lesser than or equal to IOV_MAX.
      */
     void enqueue_pwritev_request(
-        const struct iovec* iovec_array,
+        void* iovec_array,
         size_t iov_count,
         int file_fd,
         uint64_t current_offset,
@@ -79,7 +80,7 @@ public:
     /**
      * Calculate the total write size of an iovec array in bytes.
      */
-    size_t get_total_pwritev_size_in_bytes(const iovec* iovec_array, size_t count);
+    size_t get_total_pwritev_size_in_bytes(void* iovec_array, size_t count);
 
     /**
      * Append fdatasync to the in_progress_batch, empty the in_progress batch into the in_flight batch 
@@ -116,9 +117,11 @@ public:
 private:
     // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;
+    static constexpr size_t c_single_submission_entry_count = 1;
     static constexpr size_t c_async_batch_size = 32;
     static constexpr eventfd_t c_default_flush_efd_value = 1;
     static constexpr iovec c_default_iov = {(void*)&c_default_flush_efd_value, sizeof(eventfd_t)};
+    static constexpr size_t c_max_iovec_array_size_bytes = IOV_MAX * sizeof(iovec);
 
     // eventfd to signal that a batch flush has completed.
     // Used to block new writes to disk when a batch is already getting flushed.
