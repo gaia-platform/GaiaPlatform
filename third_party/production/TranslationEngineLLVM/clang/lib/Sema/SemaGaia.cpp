@@ -16,7 +16,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -509,8 +508,6 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector
         paramDeclarator.SetRangeEnd(loc);
         paramDeclarator.ExtendWithDeclSpec(DS);
         paramDeclarator.SetIdentifier(name, loc);
-        //        paramDeclarator.AddTypeInfo()
-
         int paramIndex = 1;
 
         for (QualType& type : parameterTypes)
@@ -520,8 +517,6 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector
             ParmVarDecl* param = ParmVarDecl::Create(
                 Context, Context.getTranslationUnitDecl(), loc, loc, &Context.Idents.get(paramName),
                 Context.getAdjustedParameterType(type), nullptr, SC_None, nullptr);
-
-            //            ParmVarDecl* param2 = cast<ParmVarDecl>(ActOnParamDeclarator(getCurScope(), paramDeclarator));
 
             paramsInfo.push_back(
                 DeclaratorChunk::ParamInfo(
@@ -715,14 +710,14 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     string className = typeName + "__type";
 
-    TagDecl* forwardDeclaration = lookupClass(className, loc, getCurScope());
+    TagDecl* previousDeclaration = lookupClass(className, loc, getCurScope());
+    fieldTableName = typeName;
 
-    if (forwardDeclaration && forwardDeclaration->isCompleteDefinition())
+    if (previousDeclaration && previousDeclaration->isCompleteDefinition())
     {
-        return Context.getTagDeclType(forwardDeclaration);
+        return Context.getTagDeclType(previousDeclaration);
     }
 
-    fieldTableName = typeName;
     const Type* realType = nullptr;
 
     auto& types = Context.getTypes();
@@ -768,8 +763,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     RecordDecl* RD = CXXRecordDecl::Create(
         getASTContext(), RecordDecl::TagKind::TTK_Struct, functionDecl,
-        SourceLocation(), SourceLocation(), &Context.Idents.get(typeName + "__type"),
-        llvm::cast_or_null<CXXRecordDecl>(forwardDeclaration));
+        SourceLocation(), SourceLocation(), &Context.Idents.get(className),
+        llvm::cast_or_null<CXXRecordDecl>(previousDeclaration));
 
     RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
