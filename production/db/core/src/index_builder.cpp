@@ -262,12 +262,12 @@ void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool sk
 
         // System tables are not indexed.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (obj_type >= c_system_table_reserved_range_start || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
+        if (is_system_object(obj_type) || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
         }
 
-        for (auto index : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
             index::index_builder_t::update_index(index.id(), obj_type, log_record);
         }
