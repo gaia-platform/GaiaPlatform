@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
@@ -173,6 +175,36 @@ private:
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+
+    static void update_parent_reference(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t* child_references,
+        common::gaia_id_t new_parent_id,
+        common::reference_offset_t parent_offset);
+
+    /**
+     * Try to auto connect a record to matching parent side record(s).
+     *
+     * @param child_id The record id
+     * @param child_type The record type
+     * @param child_type The record id of the child table type
+     * @param child_references The record references
+     * @param candidate_fields The list of candidate fields' positions.
+     */
+    static void auto_connect_to_parent(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t child_type_id,
+        common::gaia_id_t* child_references,
+        const uint8_t* child_payload,
+        const common::field_position_list_t& candidate_fields);
+
+    static void auto_connect_to_parent(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t* child_references,
+        const uint8_t* child_payload);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};

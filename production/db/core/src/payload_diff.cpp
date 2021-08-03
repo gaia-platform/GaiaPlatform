@@ -21,14 +21,12 @@ namespace db
 {
 
 // TODO: Add unit tests for this function.
-void compute_payload_diff(
+field_position_list_t compute_payload_diff(
     gaia_type_t type_id,
     const uint8_t* payload1,
-    const uint8_t* payload2,
-    field_position_list_t* changed_fields)
+    const uint8_t* payload2)
 {
-    // Make sure caller passes valid pointer to changed_fields.
-    ASSERT_PRECONDITION(changed_fields, "compute_payload_diff() was called with an unexpected null 'changed_fields' argument!");
+    field_position_list_t changed_fields;
 
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
 
@@ -48,9 +46,10 @@ void compute_payload_diff(
         if (!payload_types::are_field_values_equal(
                 type_id, payload1, payload2, schema->data(), schema->size(), field_position))
         {
-            changed_fields->push_back(field_position);
+            changed_fields.push_back(field_position);
         }
     }
+    return changed_fields;
 }
 
 } // namespace db
