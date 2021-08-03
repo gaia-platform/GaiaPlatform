@@ -253,7 +253,7 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
     parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference_internal(
+void gaia_ptr_t::update_parent_reference(
     gaia_id_t child_id,
     gaia_type_t child_type,
     gaia_id_t* child_references,
@@ -301,7 +301,7 @@ void gaia_ptr_t::update_parent_reference_internal(
 
 void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    update_parent_reference_internal(id(), type(), references(), new_parent_id, parent_offset);
+    update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
 }
 
 db_object_t* gaia_ptr_t::to_ptr() const
@@ -507,7 +507,7 @@ void gaia_ptr_t::auto_connect_to_parent(
 
                     if (parent_field_value.compare(field_value) == 0)
                     {
-                        update_parent_reference_internal(
+                        update_parent_reference(
                             child_id,
                             child_type,
                             child_references,
