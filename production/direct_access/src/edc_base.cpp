@@ -210,7 +210,7 @@ template const gaia_ptr_t* edc_base_t::to_const_ptr() const;
 
 edc_base_t::edc_base_t(gaia_id_t id)
 {
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(id);
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::open(id);
 }
 
 gaia_id_t edc_base_t::gaia_id() const
@@ -246,7 +246,7 @@ gaia_id_t* edc_base_t::references() const
 
 void edc_base_t::set_record(common::gaia_id_t new_id)
 {
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t(new_id);
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::open(new_id);
 }
 
 //

@@ -67,7 +67,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     // Check types.
 
-    auto child_ptr = gaia_ptr_t(child_id);
+    auto child_ptr = gaia_ptr_t::open(child_id);
 
     if (!child_ptr)
     {
@@ -137,7 +137,7 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    auto parent_ptr = gaia_ptr_t(parent_id);
+    auto parent_ptr = gaia_ptr_t::open(parent_id);
 
     if (!parent_ptr)
     {
@@ -163,7 +163,7 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     //   We prefer to fail because calling this method with wrong arguments means there
     //   is something seriously ill in the caller code.
 
-    auto child_ptr = gaia_ptr_t(child_id);
+    auto child_ptr = gaia_ptr_t::open(child_id);
 
     if (!child_ptr)
     {
@@ -197,13 +197,13 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     while (curr_child != child_id && curr_child != c_invalid_gaia_id)
     {
         prev_child = curr_child;
-        curr_child = gaia_ptr_t(prev_child).references()[relationship->next_child_offset];
+        curr_child = gaia_ptr_t::open(prev_child).references()[relationship->next_child_offset];
     }
 
     // Match found.
     if (curr_child == child_id)
     {
-        auto curr_ptr = gaia_ptr_t(curr_child);
+        auto curr_ptr = gaia_ptr_t::open(curr_child);
 
         if (!prev_child)
         {
@@ -213,7 +213,7 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         else
         {
             // Non-first child in the linked list, update the previous child.
-            auto prev_ptr = gaia_ptr_t(prev_child);
+            auto prev_ptr = gaia_ptr_t::open(prev_child);
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
         }
@@ -238,7 +238,7 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    auto parent_ptr = gaia_ptr_t(parent_id);
+    auto parent_ptr = gaia_ptr_t::open(parent_id);
 
     if (!parent_ptr)
     {
@@ -261,7 +261,7 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    auto new_parent_ptr = gaia_ptr_t(new_parent_id);
+    auto new_parent_ptr = gaia_ptr_t::open(new_parent_id);
 
     if (!new_parent_ptr)
     {
@@ -285,7 +285,7 @@ void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offs
 
     if (references()[parent_offset])
     {
-        auto old_parent_ptr = gaia_ptr_t(references()[parent_offset]);
+        auto old_parent_ptr = gaia_ptr_t::open(references()[parent_offset]);
         old_parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
     }
 

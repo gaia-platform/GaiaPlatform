@@ -28,8 +28,7 @@ class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
-    explicit gaia_ptr_t(common::gaia_id_t id);
-    gaia_ptr_t(gaia_locator_t locator, bool);
+    explicit gaia_ptr_t(gaia_locator_t locator);
 
     inline bool
     operator==(const gaia_ptr_t& other) const;
@@ -59,7 +58,7 @@ public:
         size_t data_size,
         const void* data);
 
-    inline static gaia_ptr_t open(
+    static gaia_ptr_t open(
         common::gaia_id_t id);
 
     // TODO this should either accept a gaia_id_t or be an instance method.

@@ -31,13 +31,13 @@ std::nullptr_t index_scan_t::end()
 index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id)
     : m_index_id(index_id), m_scan_impl(base_index_scan_impl_t::get(m_index_id))
 {
-    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator(), false);
+    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
 }
 
 index_scan_iterator_t index_scan_iterator_t::operator++()
 {
     m_scan_impl->next_visible_locator();
-    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator(), false);
+    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
     return *this;
 }
 
