@@ -35,6 +35,7 @@ struct decision_entry_t
     decision_type_t decision;
 };
 
+// Pair of log file sequence number and file fd.
 typedef std::vector<decision_entry_t> decision_list_t;
 typedef size_t file_sequence_t;
 file_sequence_t c_invalid_file_sequence_number = 0;

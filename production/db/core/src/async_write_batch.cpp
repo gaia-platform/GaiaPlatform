@@ -101,7 +101,6 @@ void async_write_batch_t::close_all_files_in_batch()
     {
         close_fd(file_info.file_fd);
     }
-
     m_files_to_close.clear();
 }
 

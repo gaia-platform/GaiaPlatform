@@ -263,7 +263,6 @@ void async_disk_writer_t::enqueue_pwritev_requests(
         {
             enqueue_pwritev_request(ptr_to_write, IOV_MAX, file_fd, current_log_file_offset, type);
             current_log_file_offset += get_total_pwritev_size_in_bytes(current_helper_ptr, IOV_MAX);
-            size_t max_iovec_array_size_bytes = IOV_MAX * sizeof(iovec);
             remaining_size_bytes -= c_max_iovec_array_size_bytes;
             current_helper_ptr += c_max_iovec_array_size_bytes;
             remaining_count -= IOV_MAX;
