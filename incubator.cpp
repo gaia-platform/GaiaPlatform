@@ -45,6 +45,7 @@ constexpr float c_puppy_min = 85.0;
 constexpr float c_puppy_max = 100.0;
 
 const double c_milliseconds_in_second = 1000.0;
+const double c_microseconds_in_second = 1000000.0;
 
 atomic<bool> g_in_simulation{false};
 atomic<int> g_timestamp{0};
@@ -54,10 +55,15 @@ atomic<int> g_rule_1_tracker{0};
 atomic<int> g_rule_2_tracker{0};
 atomic<int> g_rule_3_tracker{0};
 
-double g_total_wait_time = 0.0;
-double g_total_print_time = 0.0;
 const int c_default_sleep_time_in_seconds_after_stop = 6;
+const int c_default_sim_with_wait_pause_in_microseconds = 1000;
+
+double g_total_wait_time_in_milliseconds = 0.0;
+double g_total_print_time_in_milliseconds = 0.0;
+double g_t_pause_total_in_microseconds = 0.0;
+long g_t_pause_requested_in_microseconds = 0;
 int g_sleep_time_in_seconds_after_stop;
+int g_sim_with_wait_pause_in_microseconds = c_default_sim_with_wait_pause_in_microseconds;
 void add_fan_control_rule();
 
 gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -248,7 +254,7 @@ void dump_db_json()
 bool g_is_measured_duration_timer_on;
 bool g_have_measurement;
 std::chrono::steady_clock::time_point g_measured_duration_start_mark;
-std::chrono::duration<double, std::milli> g_measured_duration_in_ms;
+std::chrono::duration<double, std::micro> g_measured_duration_in_microseconds;
 
 void toggle_measurement(bool is_live_user)
 {
@@ -270,7 +276,7 @@ void toggle_measurement(bool is_live_user)
         {
             printf("Measurement toggled off.");
         }
-        g_measured_duration_in_ms = measured_duration_end_mark - g_measured_duration_start_mark;
+        g_measured_duration_in_microseconds = measured_duration_end_mark - g_measured_duration_start_mark;
     }
 }
 
@@ -415,7 +421,7 @@ int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_ba
     std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
 
     std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-    g_total_wait_time += ms_double.count();
+    g_total_wait_time_in_milliseconds += ms_double.count();
     return current_no_delta_attempt;
 }
 
@@ -462,7 +468,7 @@ void step_and_emit_state()
 
     std::chrono::steady_clock::time_point print_end_mark = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> ms_print = print_end_mark - print_start_mark;
-    g_total_print_time += ms_print.count();
+    g_total_print_time_in_milliseconds += ms_print.count();
 }
 
 void simulation()
@@ -534,6 +540,8 @@ public:
     static constexpr char c_cmd_begin_sim = 'b';
     static constexpr char c_cmd_end_sim = 'e';
     static constexpr char c_cmd_step_sim = 's';
+    static constexpr char c_cmd_step_sim_with_wait = 't';
+    static constexpr char c_cmd_step_sim_with_wait_set = 'T';
     static constexpr char c_cmd_step_and_emit_state_sim = 'z';
     static constexpr char c_cmd_list_rules = 'l';
     static constexpr char c_cmd_disable_rules = 'd';
@@ -594,6 +602,9 @@ public:
             else
             {
                 printf("(%c) | step simulation\n", c_cmd_step_sim);
+                printf("(%c) | step simulation with 1ns pause after\n", c_cmd_step_sim_with_wait);
+                printf("(%c) | set pause for ^^^\n", c_cmd_step_sim_with_wait_set);
+
                 printf("(%c) | step simulation and emit state\n", c_cmd_step_and_emit_state_sim);
             }
             printf("(%c) | list rules\n", c_cmd_list_rules);
@@ -630,6 +641,13 @@ public:
                 break;
             case c_cmd_step_sim:
                 step();
+                break;
+            case c_cmd_step_sim_with_wait_set:
+                g_sim_with_wait_pause_in_microseconds = 1;
+                break;
+            case c_cmd_step_sim_with_wait:
+                step();
+                t_pause();
                 break;
             case c_cmd_step_and_emit_state_sim:
                 step_and_emit_state();
@@ -678,9 +696,18 @@ public:
                 break;
             }
         }
-        else if (m_input.size() > 1 && (m_input[0] == c_cmd_step_and_emit_state_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
+        else if (m_input.size() > 1 && (m_input[0] == c_cmd_step_and_emit_state_sim || m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_step_sim_with_wait || m_input[0] == c_cmd_step_sim_with_wait_set || m_input[0] == c_cmd_wait || m_input[0] == c_cmd_comment))
         {
-            if (m_input[0] == c_cmd_wait)
+            if (m_input[0] == c_cmd_step_sim_with_wait_set)
+            {
+                char* input = m_input.data();
+                int new_number = atoi(input + 1);
+                if (new_number > 0)
+                {
+                    g_sim_with_wait_pause_in_microseconds = new_number;
+                }
+            }
+            else if (m_input[0] == c_cmd_wait)
             {
                 handle_wait();
             }
@@ -696,15 +723,30 @@ public:
         return true;
     }
 
+    void t_pause()
+    {
+        std::chrono::steady_clock::time_point pause_start_mark = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(std::chrono::microseconds(g_sim_with_wait_pause_in_microseconds));
+        std::chrono::steady_clock::time_point pause_end_mark = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::micro> printx = pause_end_mark - pause_start_mark;
+        g_t_pause_total_in_microseconds += printx.count();
+        g_t_pause_requested_in_microseconds += g_sim_with_wait_pause_in_microseconds;
+    }
+
     void handle_multiple_steps()
     {
-        bool is_step = m_input[0] == c_cmd_step_sim;
+        bool is_step = m_input[0] == c_cmd_step_sim || m_input[0] == c_cmd_step_sim_with_wait;
+        bool is_step_with_pause = m_input[0] == c_cmd_step_sim_with_wait;
         int limit = stoi(m_input.substr(1, m_input.size() - 1));
         for (int i = 0; i < limit; i++)
         {
             if (is_step)
             {
                 step();
+                if (is_step_with_pause)
+                {
+                    t_pause();
+                }
             }
             else
             {
@@ -723,7 +765,7 @@ public:
         std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
 
         std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
-        g_total_wait_time += ms_double.count();
+        g_total_wait_time_in_milliseconds += ms_double.count();
     }
 
     // Return false if EOF is reached.
@@ -960,20 +1002,32 @@ public:
             std::chrono::steady_clock::time_point end_sleep_start_mark = std::chrono::steady_clock::now();
             sleep(g_sleep_time_in_seconds_after_stop);
             std::chrono::steady_clock::time_point end_sleep_end_mark = std::chrono::steady_clock::now();
-            std::chrono::duration<double, std::milli> ms_double = end_sleep_end_mark - end_sleep_start_mark;
+            std::chrono::duration<double, std::micro> ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
             const int c_measured_buffer_size = 100;
             char measured_buffer[c_measured_buffer_size];
             measured_buffer[0] = '\0';
             if (g_have_measurement)
             {
-                double measured_in_secs = g_measured_duration_in_ms.count() / c_milliseconds_in_second;
+                double measured_in_secs = g_measured_duration_in_microseconds.count() / c_microseconds_in_second;
                 snprintf(measured_buffer, sizeof(measured_buffer), ", \"measured_in_sec\" : %.9f", measured_in_secs);
             }
+            const int c_pause_buffer_size = 100;
+            char pause_buffer[c_pause_buffer_size];
+            pause_buffer[0] = '\0';
+            if (g_t_pause_requested_in_microseconds > 0)
+            {
+                snprintf(pause_buffer, sizeof(pause_buffer), ", \"requested_t_pause_in_microseconds\" : %d", g_sim_with_wait_pause_in_microseconds);
+            }
 
-            printf("{ \"stop_pause_in_sec\" : %.9f, \"iterations\" : %d, "
-                   "\"total_wait_in_sec\" : %.9f, \"total_print_in_sec\" : %.9f%s }\n",
-                   ms_double.count() / c_milliseconds_in_second, last_known_timestamp, g_total_wait_time / c_milliseconds_in_second, g_total_print_time / c_milliseconds_in_second, measured_buffer);
+            printf("{ \"stop_pause_in_sec\" : %.9f, "
+                   "\"iterations\" : %d, "
+                   "\"total_wait_in_sec\" : %.9f, "
+                   "\"t_pause_in_sec\" : %.9f, "
+                   "\"t_requested_in_sec\" : %.9f, "
+                   "\"total_print_in_sec\" : %.9f%s%s "
+                   "}\n",
+                   ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_wait_time_in_milliseconds / c_milliseconds_in_second, g_t_pause_total_in_microseconds / c_microseconds_in_second, static_cast<double>(g_t_pause_requested_in_microseconds) / c_microseconds_in_second, g_total_print_time_in_milliseconds / c_milliseconds_in_second, measured_buffer, pause_buffer);
         }
         return EXIT_SUCCESS;
     }

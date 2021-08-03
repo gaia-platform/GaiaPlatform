@@ -308,6 +308,11 @@ execute_suite_test() {
     # shellcheck disable=SC2116
     NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
+    SUB="^[[:space:]]*#"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+        return
+    fi
+
     NUMBER_OF_THREADS=
     SUB="^(.*)[[:space:]]+threads[[:space:]]+([0-9]+)(.*)$"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then

@@ -203,7 +203,7 @@ lint_python_scipts() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Analyzing the Python parts of the $PROJECT_NAME project using Flake8."
     fi
-    if ! pipenv run flake8 --ignore=E501,W503 python > "$TEMP_FILE" 2>&1; then
+    if ! pipenv run flake8 --ignore=E203,E501,W503 python > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Python Flake8 scanner revealed issues with scripts."
     fi

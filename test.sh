@@ -168,6 +168,15 @@ clear_test_output() {
         fi
     fi
 
+    MAIN_LOG=$LOG_DIRECTORY/gaia.log
+    if [ -f "$MAIN_LOG" ]; then
+        if ! rm "$MAIN_LOG" > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            echo "Test script cannot remove general log '$MAIN_LOG' before running test."
+            complete_process 1
+        fi
+    fi
+
     STATS_LOG=$LOG_DIRECTORY/gaia_stats.log
     if [ -f "$STATS_LOG" ]; then
         if ! rm "$STATS_LOG" > "$TEMP_FILE" 2>&1; then
@@ -215,9 +224,15 @@ copy_test_output() {
             complete_process 2
         fi
 
+        if ! cp "$LOG_DIRECTORY/gaia.log" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy intermediate gaia log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
+
         if ! cp "$LOG_DIRECTORY/gaia_stats.log" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot copy intermediate log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            echo "Test script cannot copy intermediate stats log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
         fi
 

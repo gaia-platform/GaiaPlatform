@@ -48,6 +48,13 @@ WAIT_DURATION_TITLE = "wait-pause-sec"
 PRINT_DURATION_TITLE = "print-duration-sec"
 TEST_RUNS_TITLE = "test_runs"
 
+T_PAUSE_TITLE = "t-requested-pause-microseconds"
+T_OVER_PERCENT_TITLE = "t-over-percent"
+T_PAUSE_SECONDS_TITLE = "t-pause-sec"
+T_REQUESTED_SECONDS_TITLE = "t-requested-sec"
+T_EXCESS_NANOSECONDS_TITLE = "t-excess-microsec"
+T_PER_EXCESS_NANOSECONDS_TITLE = "t-individual-excess-microsec"
+
 SOURCE_FILE_NAME_TITLE = "file_name"
 SOURCE_LINE_NUMBER_TITLE = "line_number"
 
@@ -57,6 +64,7 @@ RULES_ENGINE_TITLE = "rules-engine-stats"
 RULES_ENGINE_SLICES_TITLE = "slices"
 RULES_ENGINE_TOTALS_TITLE = "totals"
 RULES_ENGINE_CALCULATIONS_TITLE = "calculations"
+RULES_ENGINE_EXCEPTIONS_TITLE = "logged-exceptions"
 
 SCHEDULED_TITLE = "scheduled"
 INVOKED_TITLE = "invoked"
@@ -307,6 +315,26 @@ def calculate_proper_averages(calculations, totals):
         )
 
 
+def process_rules_engine_logs(base_dir):
+    """
+    Load up the `gaia.log` file for a given test and specifically
+    extract any information about exceptions logged in that log.
+    """
+
+    log_path = os.path.join(base_dir, "gaia.log")
+    with open(log_path) as input_file:
+        log_file_lines = input_file.readlines()
+
+    exception_lines = []
+    search_for = "exception: "
+    for next_log_line in log_file_lines:
+        next_log_line = next_log_line.strip()
+        found_index = next_log_line.find(search_for)
+        if found_index != -1:
+            exception_lines.append(next_log_line[found_index + len(search_for) :])
+    return exception_lines
+
+
 def process_rules_engine_stats(base_dir):
     """
     Load up the `gaia_stats.log` file for a given test and convert it into
@@ -408,10 +436,15 @@ def load_output_timing_files(base_dir):
         iterations_data = data["iterations"]
         total_wait_data = data["total_wait_in_sec"]
         total_print_data = data["total_print_in_sec"]
+        t_pause_data = data["t_pause_in_sec"]
+        t_requested_data = data["t_requested_in_sec"]
 
         measured_section_data = None
         if "measured_in_sec" in data:
             measured_section_data = data["measured_in_sec"]
+        t_config_data = None
+        if "requested_t_pause_in_microseconds" in data:
+            t_config_data = data["requested_t_pause_in_microseconds"]
 
     return (
         stop_pause_data,
@@ -419,6 +452,9 @@ def load_output_timing_files(base_dir):
         total_wait_data,
         total_print_data,
         measured_section_data,
+        t_pause_data,
+        t_requested_data,
+        t_config_data,
     )
 
 
@@ -443,9 +479,14 @@ def load_test_result_files(suite_test_directory):
         total_wait_data,
         total_print_data,
         measured_section_data,
+        t_pause_data,
+        t_requested_data,
+        t_config_data,
     ) = load_output_timing_files(base_dir)
 
     stats_data = process_rules_engine_stats(base_dir)
+
+    log_data = process_rules_engine_logs(base_dir)
 
     configuration_data = process_configuration_file(base_dir)
 
@@ -454,14 +495,39 @@ def load_test_result_files(suite_test_directory):
         duration_data,
         stop_pause_data,
         stats_data,
+        log_data,
         iterations_data,
         total_wait_data,
         total_print_data,
         measured_section_data,
         configuration_data,
+        t_pause_data,
+        t_requested_data,
+        t_config_data,
     )
 
 
+def __handle_t_data(
+    new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
+):
+    if t_config_data:
+        new_results[T_PAUSE_TITLE] = t_config_data
+    if t_pause_data > 0.00001:
+        new_results[T_PAUSE_SECONDS_TITLE] = t_pause_data
+        new_results[T_REQUESTED_SECONDS_TITLE] = t_requested_data
+        new_results[T_EXCESS_NANOSECONDS_TITLE] = int(
+            (t_pause_data - t_requested_data) * 1000000.0
+        )
+        new_results[T_OVER_PERCENT_TITLE] = round(
+            ((t_pause_data - t_requested_data) / t_pause_data) * 100.0, 3
+        )
+        if iterations_data > 0:
+            new_results[T_PER_EXCESS_NANOSECONDS_TITLE] = int(
+                ((t_pause_data - t_requested_data) / iterations_data) * 1000000.0
+            )
+
+
+# pylint: disable=too-many-locals
 def load_results_for_test(suite_test_directory, source_info):
     """
     Load all the results for tests and place them in the main dictionary.
@@ -472,11 +538,15 @@ def load_results_for_test(suite_test_directory, source_info):
         duration_data,
         stop_pause_data,
         stats_data,
+        log_data,
         iterations_data,
         total_wait_data,
         total_print_data,
         measured_section_data,
         configuration_data,
+        t_pause_data,
+        t_requested_data,
+        t_config_data,
     ) = load_test_result_files(suite_test_directory)
 
     new_results = {}
@@ -489,6 +559,9 @@ def load_results_for_test(suite_test_directory, source_info):
     new_results[PAUSE_DURATION_TITLE] = stop_pause_data
     new_results[WAIT_DURATION_TITLE] = total_wait_data
     new_results[PRINT_DURATION_TITLE] = total_print_data
+    __handle_t_data(
+        new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
+    )
 
     new_results[TEST_DURATION_TITLE] = round(
         new_results[TOTAL_DURATION_TITLE]
@@ -512,7 +585,11 @@ def load_results_for_test(suite_test_directory, source_info):
             )
 
     new_results[RULES_ENGINE_TITLE] = stats_data
+    new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
     return new_results
+
+
+# pylint: enable=too-many-locals
 
 
 def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
@@ -530,6 +607,7 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
 
     main_dictionary[ITERATION_DURATION_TITLE] = []
     main_dictionary[PER_MEASURED_DURATION_TITLE] = []
+    main_dictionary[T_OVER_PERCENT_TITLE] = []
 
     totals = {}
     totals[SCHEDULED_TITLE] = []
@@ -561,6 +639,10 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
         add_individual_test_results(main_dictionary, new_results, totals, calculations)
 
         test_runs[recorded_name] = new_results
+
+    test_value = main_dictionary[T_OVER_PERCENT_TITLE]
+    if not test_value:
+        del main_dictionary[T_OVER_PERCENT_TITLE]
     return main_dictionary, map_line_index
 
 
@@ -584,6 +666,8 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
         main_dictionary[PER_MEASURED_DURATION_TITLE].append(
             new_results[PER_MEASURED_DURATION_TITLE]
         )
+    if T_OVER_PERCENT_TITLE in new_results:
+        main_dictionary[T_OVER_PERCENT_TITLE].append(new_results[T_OVER_PERCENT_TITLE])
 
     test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
     totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
@@ -651,6 +735,10 @@ def execute_suite_tests(suite_file, suite_file_lines, map_lines):
         source_info[SOURCE_FILE_NAME_TITLE] = suite_file
         source_info[SOURCE_LINE_NUMBER_TITLE] = file_line_number
         file_line_number += 1
+
+        is_repeat_test = re.search("^#", next_suite_test)
+        if is_repeat_test:
+            continue
 
         is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
         if is_repeat_test:
