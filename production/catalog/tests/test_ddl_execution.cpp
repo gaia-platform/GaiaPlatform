@@ -75,11 +75,11 @@ CREATE RELATIONSHIP r1 (
 
     gaia::direct_access::auto_transaction_t txn(false);
     ASSERT_EQ(
-        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->child_fields()[0],
-        gaia_field_t::list().where(gaia_field_expr::name == "c2").begin()->gaia_id());
+        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->child_field_positions()[0],
+        gaia_field_t::list().where(gaia_field_expr::name == "c2").begin()->position());
     ASSERT_EQ(
-        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->parent_fields()[0],
-        gaia_field_t::list().where(gaia_field_expr::name == "c1").begin()->gaia_id());
+        gaia_relationship_t::list().where(gaia_relationship_expr::to_child_link_name == "link1").begin()->parent_field_positions()[0],
+        gaia_field_t::list().where(gaia_field_expr::name == "c1").begin()->position());
 }
 
 TEST_F(ddl_execution_test, drop_relationship)
