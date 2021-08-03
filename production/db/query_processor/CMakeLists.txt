@@ -7,7 +7,7 @@ project(query_processor)
 
 # Build sources.
 
-add_library(gaia_qp SHARED
+add_library(gaia_qp STATIC
   src/qp_operator.cpp
   src/index_scan.cpp)
 

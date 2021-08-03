@@ -14,6 +14,8 @@ using namespace gaia::db;
 
 namespace gaia
 {
+namespace db
+{
 namespace query_processor
 {
 
@@ -40,4 +42,5 @@ void physical_operator_t::rebuild_local_indexes()
 }
 
 } // namespace query_processor
+} // namespace db
 } // namespace gaia

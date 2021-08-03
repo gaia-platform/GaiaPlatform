@@ -8,11 +8,14 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
+#include "index_scan_impl.hpp"
 #include "qp_operator.hpp"
 
 using namespace gaia::db::index;
 
 namespace gaia
+{
+namespace db
 {
 namespace query_processor
 {
@@ -118,4 +121,5 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
 
 } // namespace scan
 } // namespace query_processor
+} // namespace db
 } // namespace gaia

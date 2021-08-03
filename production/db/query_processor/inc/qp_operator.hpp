@@ -11,6 +11,8 @@
 
 namespace gaia
 {
+namespace db
+{
 namespace query_processor
 {
 
@@ -31,4 +33,5 @@ protected:
 };
 
 } // namespace query_processor
+} // namespace db
 } // namespace gaia
