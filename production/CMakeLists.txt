@@ -311,7 +311,6 @@ endif()
 
 # Query processors.
 add_subdirectory(sql)
-add_subdirectory(query_processor)
 
 # SDK
 # Be sure to add the SDK directory after the sql directory because the package mechanism
