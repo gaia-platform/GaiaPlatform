@@ -444,7 +444,7 @@ void gaia_ptr_t::auto_connect_to_parent(
     //   - gaia_relationship
     //
     // These tables will not be available during bootstrap when they are being
-    // populated themselves. We can skip all system tabeles safely as no system
+    // populated themselves. We can skip all system tables safely as no system
     // tables use the auto connection feature.
     if (child_type >= c_system_table_reserved_range_start)
     {
@@ -456,12 +456,13 @@ void gaia_ptr_t::auto_connect_to_parent(
     {
         candidate_fields.push_back(field_view.position());
     }
-    auto_connect_to_parent(child_id, child_type, child_references, child_payload, candidate_fields);
+    auto_connect_to_parent(child_id, child_type, table_id, child_references, child_payload, candidate_fields);
 }
 
 void gaia_ptr_t::auto_connect_to_parent(
     gaia_id_t child_id,
     gaia_type_t child_type,
+    gaia_id_t child_type_id,
     gaia_id_t* child_references,
     const uint8_t* child_payload,
     const field_position_list_t& candidate_fields)
@@ -477,15 +478,14 @@ void gaia_ptr_t::auto_connect_to_parent(
     // link the child record to the parent record.
     for (auto field_position : candidate_fields)
     {
-        gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(child_type);
-        for (auto relationship_view : catalog_core_t::list_relationship_to(table_id))
+        for (auto relationship_view : catalog_core_t::list_relationship_to(child_type_id))
         {
             if (relationship_view.child_field_positions()->size() == 1
                 && relationship_view.child_field_positions()->Get(0) == field_position)
             {
-                auto schema = catalog_core_t::get_table(table_id).binary_schema();
+                auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
                 auto field_value = payload_types::get_field_value(
-                    table_id,
+                    child_type_id,
                     child_payload,
                     schema->data(),
                     schema->size(),
@@ -566,7 +566,13 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     const uint8_t* old_data_payload = old_data + references_size;
     field_position_list_t changed_fields = compute_payload_diff(new_this->type, old_data_payload, new_data);
 
-    auto_connect_to_parent(id(), type(), references(), new_data, changed_fields);
+    auto_connect_to_parent(
+        id(),
+        type(),
+        type_id_mapping_t::instance().get_record_id(type()),
+        references(),
+        new_data,
+        changed_fields);
 
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
