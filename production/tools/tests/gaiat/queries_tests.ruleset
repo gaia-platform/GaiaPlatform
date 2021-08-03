@@ -401,7 +401,7 @@ void printf(const char*, float);
 // TESTCASE: use link names together with table names
 ruleset test40
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         for (incubator.sensors->S:sensor)
         {
@@ -413,7 +413,7 @@ ruleset test40
 // TESTCASE: use link names together with table names in long explicit navigation
 ruleset test41
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
         /farmer.incubators->incubator.raised->raised.animal->animal->feeding->yield->crop.acres = 10;
     }
@@ -422,7 +422,7 @@ ruleset test41
 // TESTCASE: equal-length path from incubator to feeding, qualified to avoid multiple link issue
 ruleset test42
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int tot_acres = 0;
         tot_acres += animal->feeding.portion;

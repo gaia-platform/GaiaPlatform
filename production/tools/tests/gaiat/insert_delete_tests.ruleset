@@ -70,9 +70,9 @@ ruleset test06
 // GAIAPLAT-1113
 ruleset test07
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: incubator.max_temp);
+        auto S = sensor.insert(name: "Turtles", timestamp: 1995, value: incubator.max_temp);
     }
 }
 
@@ -80,13 +80,13 @@ ruleset test07
 // GAIAPLAT-1110
 ruleset test08
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (incubator.landlord->farmer->Y:yield)
         {
             int y;
             y = Y.bushels;
-            feeding.Insert(portion: y);
+            feeding.insert(portion: y);
         }
     }
 }
@@ -94,9 +94,9 @@ ruleset test08
 // TESTCASE: Perform Inserts containing implicit navigation
 ruleset test09
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
-        feeding.Insert(portion: yield.bushels);
+        feeding.insert(portion: yield.bushels);
     }
 }
 
@@ -104,9 +104,9 @@ ruleset test09
 // GAIAPLAT-1112
 ruleset test10
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
-        farmer.Insert(name: crop.name, acreage: crop.acres);
+        farmer.insert(name: crop.name, acreage: crop.acres);
     }
 }
 
@@ -115,9 +115,9 @@ ruleset test10
 #ifdef TEST_FAILURES
 ruleset test11
 {
-    OnInsert(raised)
+    on_insert(raised)
     {
-        farmer.Insert(name: crop.name, acreage: portion);
+        farmer.insert(name: crop.name, acreage: portion);
     }
 }
 #endif
