@@ -21,6 +21,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
+  "${FLATBUFFERS_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
 
