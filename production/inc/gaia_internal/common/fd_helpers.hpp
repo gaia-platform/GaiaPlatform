@@ -169,17 +169,8 @@ inline int make_eventfd()
     return eventfd;
 }
 
-inline void signal_eventfd(int eventfd, uint64_t efd_value = 0)
+inline void signal_eventfd(int eventfd, uint64_t efd_counter_val)
 {
-    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-    constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
-
-    auto efd_counter_val = (efd_value > 0) ? efd_value : c_max_semaphore_count;
-
-    // Signal the eventfd by writing a nonzero value.
-    // This value is large enough that no thread will
-    // decrement it to zero, so every waiting thread
-    // should see a nonzero value.
     ssize_t bytes_written = ::write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
     if (bytes_written == -1)
     {
@@ -190,7 +181,25 @@ inline void signal_eventfd(int eventfd, uint64_t efd_value = 0)
     ASSERT_POSTCONDITION(bytes_written == sizeof(efd_counter_val), "Failed to fully write data!");
 }
 
-inline void consume_eventfd(int eventfd, bool skip_value_check = false, size_t val_to_expect = 1)
+inline void signal_eventfd_single_thread(int eventfd)
+{
+    // Signal the eventfd by writing 1.
+    signal_eventfd(eventfd, 1);
+}
+
+inline void signal_eventfd_multiple_threads(int eventfd)
+{
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
+    constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
+
+    // Signal the eventfd by writing a nonzero value.
+    // This value is large enough that no thread will
+    // decrement it to zero, so every waiting thread
+    // should see a nonzero value.
+    signal_eventfd(eventfd, c_max_semaphore_count);
+}
+
+inline void consume_eventfd(int eventfd)
 {
     // We should always read the value 1 from a semaphore eventfd.
     uint64_t val;
@@ -202,10 +211,7 @@ inline void consume_eventfd(int eventfd, bool skip_value_check = false, size_t v
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");
-    if (!skip_value_check)
-    {
-        ASSERT_POSTCONDITION(val == val_to_expect, "Unexpected value!");
-    }
+    ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
 }
 
 } // namespace common

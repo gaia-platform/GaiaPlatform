@@ -127,7 +127,7 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         // Unblock session thread.
         auto itr = m_ts_to_session_decision_fd_map.find(decision.commit_ts);
         ASSERT_INVARIANT(itr != m_ts_to_session_decision_fd_map.end(), "Unable to find session durability eventfd from committing txn's commit_ts");
-        signal_eventfd(itr->second, 1);
+        signal_eventfd_single_thread(itr->second);
         m_ts_to_session_decision_fd_map.erase(itr);
     }
 
@@ -155,8 +155,8 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     {
         swap_batches();
 
-        // Nothing to submit; reset the flush efd that got burnt in handle_submit() function.
-        signal_eventfd(s_flush_efd, 1);
+        // Nothing to submit; reset the flush efd that got burnt in submit_and_swap_in_progress_batch() function.
+        signal_eventfd_single_thread(s_flush_efd);
 
         // Reset metadata buffer.
         m_metadata_buffer.clear();

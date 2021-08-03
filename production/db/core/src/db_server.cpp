@@ -845,7 +845,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
 
     cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
 
-    signal_eventfd(s_server_shutdown_eventfd);
+    signal_eventfd_multiple_threads(s_server_shutdown_eventfd);
 }
 
 void server_t::init_listening_socket(const std::string& socket_name)
@@ -1142,7 +1142,7 @@ void server_t::session_handler(int session_socket)
     s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
-        signal_eventfd(s_session_shutdown_eventfd);
+        signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
