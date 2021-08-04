@@ -38,9 +38,6 @@ async_disk_writer_t::async_disk_writer_t(int validate_flush_efd, int signal_chec
     ASSERT_PRECONDITION(validate_flush_efd >= 0, "Invalid validate flush eventfd");
     ASSERT_PRECONDITION(signal_checkpoint_efd >= 0, "Invalid signal checkpoint eventfd");
 
-    m_in_progress_batch = std::make_unique<async_write_batch_t>();
-    m_in_flight_batch = std::make_unique<async_write_batch_t>();
-
     m_validate_flush_efd = validate_flush_efd;
     m_signal_checkpoint_efd = signal_checkpoint_efd;
 
@@ -77,10 +74,10 @@ uint64_t get_enum_value(uring_op_t op)
 void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t user_data)
 {
     std::stringstream ss;
-    ss << err_msg << "; with operation return code = " << err;
+    ss << err_msg << "\n with operation return code = " << err;
     if (user_data != 0)
     {
-        ss << "; with cqe data = " << user_data;
+        ss << "\n with cqe data = " << user_data;
     }
     throw_system_error(ss.str(), err);
 }
@@ -293,7 +290,7 @@ void async_disk_writer_t::enqueue_pwritev_request(
 
 void async_disk_writer_t::swap_batches()
 {
-    m_in_flight_batch.swap(m_in_progress_batch);
+    std::swap(m_in_flight_batch, m_in_progress_batch);
 }
 
 } // namespace persistence
