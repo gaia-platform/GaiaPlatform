@@ -262,8 +262,32 @@ TEST_F(test_insert_delete_code, build_database)
     // Fire OnUpdate(S:student).
     gaia::db::begin_transaction();
     enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
+    enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
+    enrollment_log_t::insert_row("stu003", "Ward", 56, "cou003", "math201", 3, "reg003");
+    enrollment_log_t::insert_row("stu004", "Walter", 65, "cou004", "engl101", 4, "reg004");
+    enrollment_log_t::insert_row("stu005", "Warren", 67, "cou005", "engl201", 3, "reg005");
+    enrollment_log_t::insert_row("stu006", "Waldo", 37, "cou006", "sosc101", 5, "reg006");
+    enrollment_log_t::insert_row("stu007", "Wilma", 44, "cou007", "sosc201", 5, "reg007");
+    enrollment_log_t::insert_row("stu008", "Wesley", 12, "cou086", "csci302", 5, "reg008");
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
     EXPECT_TRUE(g_oninsert_called) << "OnInsert(enrollment_log) not called";
+
+    int row_count = 0;
+    gaia::db::begin_transaction();
+    for (auto student : gaia::prerequisites::student_t::list())
+    {
+        for (auto registration : student.registrations())
+        {
+            row_count++;
+            auto course = registration.registered_course();
+            EXPECT_EQ(student.total_hours() * 2, course.hours());
+            EXPECT_STREQ(student.surname(), registration.status());
+            EXPECT_STREQ(registration.grade(), "D+");
+        }
+    }
+    gaia::db::commit_transaction();
+
+    EXPECT_EQ(row_count, 8) << "OnInsert(enrollment_log) failed to create connections";
 }
