@@ -406,7 +406,7 @@ ruleset test_query_9
     }
 }
 
-ruleset test_insert_delete
+ruleset test_insert_delete_1
 {
     on_update(S:student)
     {
@@ -427,7 +427,10 @@ ruleset test_insert_delete
         while (deleted);
         g_onupdate_called = true;
     }
+}
 
+ruleset test_insert_delete_2
+{
     // GAIAPLAT-1110
     // GAIAPLAT-1112
     on_insert(E:enrollment_log)

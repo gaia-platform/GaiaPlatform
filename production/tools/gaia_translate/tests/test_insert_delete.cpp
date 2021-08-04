@@ -235,7 +235,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
     gaia::rules::unsubscribe_rules();
-    gaia::rules::subscribe_ruleset("test_insert_delete");
+    gaia::rules::subscribe_ruleset("test_insert_delete_1");
 
     // Fire on_update(S:student).
     gaia::db::begin_transaction();
@@ -257,7 +257,7 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
     gaia::rules::unsubscribe_rules();
-    gaia::rules::subscribe_ruleset("test_insert_delete");
+    gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
     // Fire OnUpdate(S:student).
     gaia::db::begin_transaction();
