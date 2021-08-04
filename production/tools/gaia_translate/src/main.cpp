@@ -43,8 +43,24 @@ using namespace gaia::common;
 using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
+
 cl::opt<string> g_translation_engine_output_option(
     "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+
+cl::alias g_translation_engine_output_option_alias(
+    "o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
+
+// An alias cannot be made for the -help option,
+// so instead this cl::opt pretends to be the cl::alias for -help.
+cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
+
+cl::list<std::string> g_source_files(
+    cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
+    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+
+cl::opt<std::string> g_instance_name(
+    "n", cl::desc("DB instance name"), cl::Optional,
+    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
 
 std::string g_current_ruleset;
 bool g_is_generation_error = false;
@@ -2770,7 +2786,7 @@ public:
         }
         replacement_string.resize(replacement_string.size() - 1);
         replacement_string.append("))");
-cerr<<replacement_string<<endl;
+        cerr << replacement_string << endl;
         m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
         g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call_locations.insert(expression->getBeginLoc());
@@ -3232,46 +3248,48 @@ private:
 
 int main(int argc, const char** argv)
 {
-    cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
-    cl::list<std::string> source_files(
-        cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-    cl::opt<std::string> instance_name(
-        "n", cl::desc("DB instance name"), cl::Optional,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
-    std::string error_message;
-    llvm::raw_string_ostream stream(error_message);
-    std::unique_ptr<CompilationDatabase> compilation_database
-        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &stream))
+    std::string compilation_db_error_msg = "";
+    std::unique_ptr<CompilationDatabase> compilation_database
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, compilation_db_error_msg);
+
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets"))
     {
-        stream.flush();
         return EXIT_FAILURE;
     }
 
-    cl::PrintOptionValues();
+    if (!compilation_db_error_msg.empty())
+    {
+        cerr << compilation_db_error_msg << endl;
+    }
 
-    if (source_files.empty())
+    if (g_help_option_alias)
+    {
+        // For some reason, this does not print -help-list as an available option.
+        // Only -help instead of -h will do that.
+        cl::PrintHelpMessage(false, true);
+        return EXIT_SUCCESS;
+    }
+
+    if (g_source_files.empty())
     {
         cl::PrintHelpMessage();
         return EXIT_SUCCESS;
     }
 
-    if (source_files.size() > 1)
+    if (g_source_files.size() > 1)
     {
         cerr << "Translation Engine does not support more than one source ruleset." << endl;
         return EXIT_FAILURE;
     }
 
-    if (!instance_name.empty())
+    if (!g_instance_name.empty())
     {
         gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
-        session_options.db_instance_name = instance_name.getValue();
+        session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;
         gaia::db::config::set_default_session_options(session_options);
     }
@@ -3283,7 +3301,7 @@ int main(int argc, const char** argv)
     }
 
     // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(*compilation_database, source_files);
+    ClangTool tool(*compilation_database, g_source_files);
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
