@@ -43,23 +43,17 @@ using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 
-cl::opt<string> g_translation_engine_output_option(
-    "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+cl::opt<string> g_translation_engine_output_option("output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
 
-cl::alias g_translation_engine_output_option_alias(
-    "o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
+cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
 
 // An alias cannot be made for the -help option,
 // so instead this cl::opt pretends to be the cl::alias for -help.
 cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
 
-cl::list<std::string> g_source_files(
-    cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
-cl::opt<std::string> g_instance_name(
-    "n", cl::desc("DB instance name"), cl::Optional,
-    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 bool g_is_generation_error = false;
@@ -3386,8 +3380,9 @@ int main(int argc, const char** argv)
 
     if (g_help_option_alias)
     {
-        // For some reason, this does not print -help-list as an available option.
-        // Only -help instead of -h will do that.
+        // "-help-list" is omitted from the help text because using the categorized mode of
+        // PrintHelpMessage() behaves the same as -help-list.
+        // This is the only way -h and -help differ.
         cl::PrintHelpMessage(false, true);
         return EXIT_SUCCESS;
     }
