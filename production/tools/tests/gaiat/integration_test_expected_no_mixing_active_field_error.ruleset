@@ -2,7 +2,7 @@
 
 ruleset test
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         actuator.value = @sensor.value + 5;
     }

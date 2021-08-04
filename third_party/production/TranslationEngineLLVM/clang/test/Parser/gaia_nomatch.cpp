@@ -3,7 +3,7 @@
 // GAIAPLAT-947
 ruleset test123
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int i = 0;
         if (sensor.value > 99.0)
@@ -23,7 +23,7 @@ ruleset test123
 
 ruleset test124
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int i = 0;
         if (sensor.value > 99.0)
@@ -40,7 +40,7 @@ ruleset test124
 // GAIAPLAT-948
 ruleset test125
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;

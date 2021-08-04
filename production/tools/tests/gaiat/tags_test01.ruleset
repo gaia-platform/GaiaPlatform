@@ -4,7 +4,7 @@
 
 ruleset test01
 {
-    OnChange(value:sensor.value)
+    on_change(value:sensor.value)
     {
         use_float(sensor.value);
     }

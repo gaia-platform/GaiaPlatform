@@ -5,7 +5,7 @@
 // TESTCASE: break within declarative for
 ruleset test3
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         for (S:sensor)
         {
@@ -20,7 +20,7 @@ ruleset test3
 // TESTCASE: continue within declarative for
 ruleset test4
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         for (S:sensor)
         {
@@ -36,7 +36,7 @@ ruleset test4
 // GAIAPLAT-1073
 ruleset test5
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         for (S:sensor)
         {
@@ -52,7 +52,7 @@ ruleset test5
 // GAIAPLAT-1073
 ruleset test6
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
         for (S:sensor)
         {
@@ -67,7 +67,7 @@ ruleset test6
 // TESTCASE: break within declarative if to label
 ruleset test9
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
 BREAK_TARGET:
         if (S:sensor.value > 99.0)
@@ -83,7 +83,7 @@ BREAK_TARGET:
 // TESTCASE: continue within declarative if to label
 ruleset test10
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
 CONTINUE_TARGET:
         if (S:sensor.value > 99.0)
@@ -99,7 +99,7 @@ CONTINUE_TARGET:
 // TESTCASE: break to label from multiple outer loops from implicit query
 ruleset test11
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 BREAK_TARGET:
         for (S:sensor)
@@ -115,7 +115,7 @@ BREAK_TARGET:
 // TESTCASE: continue to label from multiple outer loops from implicit query
 ruleset test12
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 CONTINUE_TARGET:
         for (S:sensor)
@@ -134,7 +134,7 @@ int strcmp(const char*, const char*);
 // GAIAPLAT-1074
 ruleset test13
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 BREAK1_TARGET:
         for (I:incubator)
@@ -167,7 +167,7 @@ BREAK4_TARGET:
 // GAIAPLAT-1074
 ruleset test14
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 CONTINUE1_TARGET:
         for (I:incubator)
@@ -199,7 +199,7 @@ CONTINUE4_TARGET:
 // TESTCASE: deep combination if declarative for and if with break
 ruleset test15
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 BREAK1_TARGET:
         if (incubator->raised->animal->feeding->yield->crop.acres == 15)
@@ -227,7 +227,7 @@ BREAK2_TARGET:
 // TESTCASE: break and continue to the same target
 ruleset test16
 {
-    OnUpdate(raised)
+    on_update(raised)
     {
 BREAK_TARGET:
         if (incubator->raised->animal->feeding->yield->crop.acres == 15)

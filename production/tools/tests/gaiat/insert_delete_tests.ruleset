@@ -3,9 +3,9 @@
 // TESTCASE: Delete the anchor row.
 ruleset test01
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        sensor.Delete();
+        sensor.remove();
     }
 }
 
@@ -14,10 +14,10 @@ void use_values(int, const char*);
 // TESTCASE: Insert two different row types.
 ruleset test02
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        auto Y = yield.Insert(bushels: 12);
-        auto S = sensor.Insert(value: 100.0, name: "Turtles");
+        auto Y = yield.insert(bushels: 12);
+        auto S = sensor.insert(value: 100.0, name: "Turtles");
         use_values(Y.bushels, S.name);
     }
 }
@@ -25,18 +25,18 @@ ruleset test02
 // TESTCASE: Delete a row found by implicit query.
 ruleset test03
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        incubator.Delete();
+        incubator.remove();
     }
 }
 
 // TESTCASE: Delete rows found by implicit query.
 ruleset test04
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        sensor.Delete();
+        sensor.remove();
     }
 }
 
@@ -44,14 +44,14 @@ ruleset test04
 // GAIAPLAT-1041 (fixed)
 ruleset test05
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         for(S:sensor)
         {
             if (S.value > 98.6)
             {
                 // Note that this will fail in execution without disconnecting first.
-                S.Delete();
+                S.remove();
             }
         }
     }
@@ -60,9 +60,9 @@ ruleset test05
 // TESTCASE: Assign an Insert return value to a tag
 ruleset test06
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
-        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: 100.0);
+        auto S = sensor.insert(name: "Turtles", timestamp: 1995, value: 100.0);
     }
 }
 
@@ -70,9 +70,9 @@ ruleset test06
 // GAIAPLAT-1113
 ruleset test07
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        auto S = sensor.Insert(name: "Turtles", timestamp: 1995, value: incubator.max_temp);
+        auto S = sensor.insert(name: "Turtles", timestamp: 1995, value: incubator.max_temp);
     }
 }
 
@@ -80,13 +80,13 @@ ruleset test07
 // GAIAPLAT-1110
 ruleset test08
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (incubator.landlord->farmer->Y:yield)
         {
             int y;
             y = Y.bushels;
-            feeding.Insert(portion: y);
+            feeding.insert(portion: y);
         }
     }
 }
@@ -94,9 +94,9 @@ ruleset test08
 // TESTCASE: Perform Inserts containing implicit navigation
 ruleset test09
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
-        feeding.Insert(portion: yield.bushels);
+        feeding.insert(portion: yield.bushels);
     }
 }
 
@@ -104,9 +104,9 @@ ruleset test09
 // GAIAPLAT-1112
 ruleset test10
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
-        farmer.Insert(name: crop.name, acreage: crop.acres);
+        farmer.insert(name: crop.name, acreage: crop.acres);
     }
 }
 
@@ -115,9 +115,9 @@ ruleset test10
 #ifdef TEST_FAILURES
 ruleset test11
 {
-    OnInsert(raised)
+    on_insert(raised)
     {
-        farmer.Insert(name: crop.name, acreage: portion);
+        farmer.insert(name: crop.name, acreage: portion);
     }
 }
 #endif

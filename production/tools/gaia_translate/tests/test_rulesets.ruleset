@@ -40,7 +40,7 @@ ruleset test_tags
 {
     // test_tags_code.oninsert
     // test_tags_code.multi_inserts
-    OnInsert(student)
+    on_insert(student)
     {
         g_insert_count++;
         g_oninsert_result = test_error_result_t::e_none;
@@ -48,7 +48,7 @@ ruleset test_tags
     }
 
     // test_tags_code.oninsert
-    OnInsert(S:student)
+    on_insert(S:student)
     {
         g_oninsert2_value = S.age;
         g_oninsert2_result = test_error_result_t::e_none;
@@ -56,7 +56,7 @@ ruleset test_tags
     }
 
     // test_tags_code.basic_tags
-    OnInsert(R:registration)
+    on_insert(R:registration)
     {
         // Check common field references.
         if (strcmp(R.reg_id, reg_id) != 0)
@@ -76,7 +76,7 @@ ruleset test_tags
     // test_tags_code.oninsert
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnChange(student)
+    on_change(student)
     {
         g_onchange_result = test_error_result_t::e_none;
         g_onchange_called = true;
@@ -84,7 +84,7 @@ ruleset test_tags
 
     // test_tags_code.oninsert
     // test_tags_code.onupdate
-    OnChange(student.age)
+    on_change(student.age)
     {
         g_onchange2_result = test_error_result_t::e_none;
         g_onchange2_called = true;
@@ -92,21 +92,21 @@ ruleset test_tags
 
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnUpdate(student)
+    on_update(student)
     {
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }
 
     // test_tags_code.onchange
-    OnUpdate(student.surname)
+    on_update(student.surname)
     {
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate2_called = true;
     }
 
     // test_tags_code.onupdate
-    OnUpdate(student.age)
+    on_update(student.age)
     {
         g_onupdate3_value = age;
         g_onupdate3_result = test_error_result_t::e_none;
@@ -115,7 +115,7 @@ ruleset test_tags
 
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnUpdate(student.age, student.surname)
+    on_update(student.age, student.surname)
     {
         g_onupdate4_result = test_error_result_t::e_none;
         g_onupdate4_called = true;
@@ -129,9 +129,9 @@ ruleset test_queries
     // translator is done.
 
     // test_queries_code.new_registration
-    OnInsert(R:registration)
+    on_insert(R:registration)
     {
-        // printf("OnInsert(registration) = %s\n", registration.reg_id);
+        // printf("on_insert(registration) = %s\n", registration.reg_id);
         // printf("course name=%s\n", course.name);
         status = "Ineligible";
         // Has this student taken all prerequisites?
@@ -164,7 +164,7 @@ ruleset test_queries
     }
 
     // test_queries_code.sum_of_ages
-    OnInsert(S:student)
+    on_insert(S:student)
     {
         int32_t age_sum = 0;
         age_sum += /student.age;
@@ -175,7 +175,7 @@ ruleset test_queries
 
     // test_queries_code.basic_implicit_navigation
     // test_queries_code.basic_implicit_fork
-    OnUpdate(S:student)
+    on_update(S:student)
     {
         // Implicit query from student to course.
         // Result should be the total of hours for all courses taken by student.
@@ -186,7 +186,7 @@ ruleset test_queries
         g_onupdate_called = true;
     }
 
-    OnUpdate (registration)
+    on_update (registration)
     {
         g_onupdate_value = total_hours + hours;
         g_onupdate_called = true;
@@ -197,7 +197,7 @@ ruleset test_query_1
 {
     // test_queries_code.sum_of_hours
     // Auto-sum of student hours.
-    OnInsert(registration)
+    on_insert(registration)
     {
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
@@ -213,7 +213,7 @@ ruleset test_query_2
 {
     // test_queries_code.sum_of_all_hours
     // Auto-sum of student hours.
-    OnInsert(registration)
+    on_insert(registration)
     {
         total_hours = 0;
         // Visit all courses in which the student is registered.
@@ -228,7 +228,7 @@ ruleset test_query_2
 ruleset test_query_3
 {
     // test_queries_code.tag_define_use
-    OnInsert(registration)
+    on_insert(registration)
     {
         // Visit all courses in which the student is registered. Use the tags.
         S:student->R:registration->C:course.hours = S.total_hours + C.hours;
@@ -238,7 +238,7 @@ ruleset test_query_3
         g_oninsert_called = true;
     }
 
-    OnUpdate(course.hours)
+    on_update(course.hours)
     {
         // When this rule is fired, we know that the commit for the
         // insertion of a registration rule fired and can proceed with verifying
@@ -250,7 +250,7 @@ ruleset test_query_3
 ruleset test_query_4
 {
     // test_queries_code.if_stmt
-    OnInsert(student)
+    on_insert(student)
     {
         int a = 0;
         if (total_hours > 10)
@@ -301,7 +301,7 @@ ruleset test_query_4
 
 ruleset test_query_6
 {
-    OnUpdate(student)
+    on_update(student)
     {
         if (strcmp(surname, "Richard") == 0)
         {
@@ -319,7 +319,7 @@ ruleset test_query_6
         g_onupdate_called = true;
     }
 
-    OnInsert(student)
+    on_insert(student)
     {
         if (student->registration->course.hours > 0)
         {
@@ -340,7 +340,7 @@ ruleset test_query_6
 
 ruleset test_query_7
 {
-    OnInsert(registration)
+    on_insert(registration)
     {
         if (student.total_hours == 0)
         {
@@ -370,7 +370,7 @@ ruleset test_query_7
 
 ruleset test_query_8
 {
-    OnInsert(student)
+    on_insert(student)
     {
         // This student will have no registrations. The nomatch should execute.
         if (strcmp(student->registration.grade, "F") == 0)
@@ -392,7 +392,7 @@ ruleset test_query_8
 
 ruleset test_query_9
 {
-    OnInsert(student)
+    on_insert(student)
     {
         char str[200];
         sprintf(str, "%d%s%d ", S:student.total_hours, S->R:registration.grade, R->course.hours);
@@ -404,7 +404,7 @@ ruleset test_query_9
 
 ruleset test_insert_delete
 {
-    OnUpdate(S:student)
+    on_update(S:student)
     {
         // This is a technique for deleting members of an iteration.
         // It restarts the iterator after obtaining each first member.
@@ -414,7 +414,7 @@ ruleset test_insert_delete
             deleted = false;
             for (/R:registration)
             {
-                R.Delete();
+                R.remove();
                 deleted = true;
                 g_onupdate_value++;
                 break;

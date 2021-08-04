@@ -2,7 +2,7 @@
 
 ruleset test1
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
         portion = 3.5;
     }

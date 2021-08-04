@@ -113,16 +113,6 @@ private:
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
     thread_local static inline std::vector<gaia::db::memory_manager::chunk_manager_t> s_previous_chunk_managers{};
 
-    // Maintain a static filter in the client to disable generating events
-    // for system types.
-    static constexpr common::gaia_type_t c_trigger_excluded_types[] = {
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_table),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_field),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_relationship),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_ruleset),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_rule),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::event_log)};
-
 private:
     static void init_memory_manager();
 

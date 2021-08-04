@@ -237,7 +237,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete");
 
-    // Fire OnUpdate(S:student).
+    // Fire on_update(S:student).
     gaia::db::begin_transaction();
     auto sw = student_1.writer();
     sw.age = 46;
@@ -245,7 +245,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_onupdate_called) << "OnUpdate(S:student) not called";
+    EXPECT_TRUE(g_onupdate_called) << "on_update(S:student) not called";
 
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";

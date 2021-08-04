@@ -1,28 +1,28 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump %s | FileCheck -strict-whitespace %s
 
-ruleset test : Table(sensor, incubator), SerialStream(ttt)
+ruleset test : tables(sensor, incubator), serialize(ttt)
 {
-  OnUpdate(incubator, sensor.value)
+  on_update(incubator, sensor.value)
   {
     min_temp+=@value;
     max_temp += min_temp/2;
   }
 }
 // CHECK:      RulesetDecl{{.*}} test
-// CHECK-NEXT:     RulesetTableAttr 0x{{[^ ]*}} <col:16, col:39> 0x{{[^ ]*}} 0x{{[^ ]*}}
-// CHECK-NEXT:     -SerialStreamAttr 0x{{[^ ]*}} <col:42, col:58> ttt
+// CHECK-NEXT:     RulesetTablesAttr 0x{{[^ ]*}} <col:16, col:40> 0x{{[^ ]*}} 0x{{[^ ]*}}
+// CHECK-NEXT:     -RulesetSerializeAttr 0x{{[^ ]*}} <col:43, col:56> ttt
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:16> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'max_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:17> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
-// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:3, col:35> incubator sensor
+// CHECK:     GaiaOnUpdateAttr 0x{{[^ ]*}} <line:5:3, col:36> incubator sensor
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:6:3>
 
 
 ruleset test1
 {
-  OnInsert(incubator)
+  on_insert(incubator)
   {
     incubator.min_temp +=@sensor.value;
     incubator.max_temp += incubator.min_temp/2;
@@ -38,7 +38,7 @@ ruleset test1
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:37> 'float' lvalue .min_temp 0x{{[^ ]*}}
 // CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
-// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:21> incubator
+// CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:22> incubator
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:26:3>
 
 
@@ -52,7 +52,7 @@ typedef enum
 
 ruleset test2
 {
-  OnChange(actuator)
+  on_change(actuator)
   {
 	  if (actuator.value < 5)
 	  {
@@ -77,7 +77,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test3 : Table (sensor)
+ruleset test3 : tables (sensor)
 {
   {
 	  if (@value < 5)
@@ -113,7 +113,7 @@ ruleset test4
 
 ruleset test5
 {
-  OnChange(a:actuator)
+  on_change(a:actuator)
   {
     if (actuator.value < 5)
     {
@@ -132,7 +132,7 @@ ruleset test5
 
 ruleset test6
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         /i:incubator->sensor.value  = i.min_temp;
         sensor->incubator->actuator.value  = 5;
@@ -147,7 +147,7 @@ ruleset test6
 
 ruleset test7
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         float v = S.value;
     }
@@ -159,7 +159,7 @@ ruleset test7
 
 ruleset test8
 {
-    OnUpdate(S:sensor, V:sensor.value)
+    on_update(S:sensor, V:sensor.value)
     {
         float v = S.value + V.value;
     }
