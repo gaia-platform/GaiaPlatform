@@ -5,7 +5,7 @@
 
 ruleset test90
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         long i = actuator.timestamp;
         long j = /incubator->actuator.timestamp;
@@ -14,7 +14,7 @@ ruleset test90
 
 ruleset test91
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         long i = actuator->timestamp; // expected-error {{Tag refers to an invalid table 'timestamp'.}}
         // expected-error@-1 {{use of undeclared identifier 'actuator'}}
@@ -23,7 +23,7 @@ ruleset test91
 
 ruleset test92
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int i = 0;
         if (/incubator->raised->animal->feeding.portion > 10)
@@ -152,7 +152,7 @@ ruleset test131
 #ifdef TEST_FAILURES
 ruleset test132
 {
-    OnInsert(animal)
+    on_insert(animal)
     {
         animal->feeding->portion = 5;
     }
@@ -164,7 +164,7 @@ ruleset test132
 #ifdef TEST_FAILURES
 ruleset test133
 {
-    OnInsert(animal)
+    on_insert(animal)
     {
         animal->feeding = 5;
     }
@@ -174,7 +174,7 @@ ruleset test133
 // GAIAPLAT-821 (fixed)
 ruleset test129
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         if (/@incubator.min_temp)
         {

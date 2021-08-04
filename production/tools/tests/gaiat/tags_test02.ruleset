@@ -4,7 +4,7 @@
 
 ruleset test02
 {
-    OnUpdate(A:actuator, A:actuator.name)
+    on_update(A:actuator, A:actuator.name)
     {
         use_float(A.value);
     }

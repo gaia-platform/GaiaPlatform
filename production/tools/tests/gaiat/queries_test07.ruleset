@@ -3,7 +3,7 @@
 // GAIAPLAT-1050
 ruleset test10
 {
-    OnUpdate(crop)
+    on_update(crop)
     {
         actuator.value += feeding.portion;
         sensor.value += acres;

@@ -5,7 +5,7 @@
 
 ruleset test09
 {
-    OnChange(a:actuator)
+    on_change(a:actuator)
     {
         float a;
         use_float(a.value);

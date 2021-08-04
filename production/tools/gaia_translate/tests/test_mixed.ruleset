@@ -30,7 +30,7 @@ void f2(gaia::barn_storage::incubator_t& i)
 
 ruleset test_mixed
 {
-    OnInsert(i:incubator)
+    on_insert(i:incubator)
     {
         f(incubator);
         f1(incubator);
@@ -42,7 +42,7 @@ ruleset test_mixed
     }
 
     // The sensor was deleted, but this rule is still fired.
-    OnInsert(S:sensor)
+    on_insert(S:sensor)
     {
         S.value += 1.0;
         if (S.value > 1.0)

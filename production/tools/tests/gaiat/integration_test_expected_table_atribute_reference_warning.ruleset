@@ -1,10 +1,10 @@
 // RUN: %gaiat %s -- 2>&1| FileCheck  %s
 
-ruleset test : Table(sensor)
+ruleset test : tables(sensor)
 {
     {
         actuator.value += @value / 2;
     }
 }
 
-// CHECK: :6:9: warning: Table 'actuator' is not referenced in table attribute.
+// CHECK: :6:9: warning: Table 'actuator' is not referenced in tables attribute.

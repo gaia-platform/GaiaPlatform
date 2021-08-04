@@ -5,7 +5,7 @@
 // GAIAPLAT-914
 ruleset test27
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         // label:tag:table works for both label and tag.
         LABEL:I:incubator->sensor.value = I.max_temp - 1.0;

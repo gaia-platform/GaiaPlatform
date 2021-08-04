@@ -4,7 +4,7 @@
 
 ruleset test04
 {
-    OnUpdate(N:name, T:timestamp)
+    on_update(N:name, T:timestamp)
     {
         T.timestamp += use_string(N.name);
     }

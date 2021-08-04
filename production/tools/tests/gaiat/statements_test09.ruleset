@@ -4,7 +4,7 @@
 // TESTCASE: forbid using a tag in the do{} before it is declared in the while()
 ruleset test09
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         int val = 0;
         do
