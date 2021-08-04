@@ -42,8 +42,24 @@ using namespace gaia::common;
 using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
+
 cl::opt<string> g_translation_engine_output_option(
     "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+
+cl::alias g_translation_engine_output_option_alias(
+    "o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
+
+// An alias cannot be made for the -help option,
+// so instead this cl::opt pretends to be the cl::alias for -help.
+cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
+
+cl::list<std::string> g_source_files(
+    cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
+    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
+
+cl::opt<std::string> g_instance_name(
+    "n", cl::desc("DB instance name"), cl::Optional,
+    cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
 
 std::string g_current_ruleset;
 bool g_is_generation_error = false;
@@ -2833,7 +2849,60 @@ public:
             insert_data.argument_map[argument_name] = argument->getSourceRange();
             insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
         }
-        g_insert_data.push_back(insert_data);
+        string class_qualification_string = "gaia::";
+        class_qualification_string
+            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
+            .append("::")
+            .append(table_name)
+            .append("_t::");
+        string replacement_string = class_qualification_string;
+        replacement_string
+            .append("get(")
+            .append(class_qualification_string)
+            .append("insert_row(");
+        vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
+        const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
+        // Generate call arguments.
+        for (const auto& call_argument : function_arguments)
+        {
+            const auto argument_map_iterator = argument_map.find(call_argument);
+            if (argument_map_iterator == argument_map.end())
+            {
+                // Provide default parameter value.
+                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
+                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                {
+                case data_type_t::e_bool:
+                    replacement_string.append("false,");
+                    break;
+                case data_type_t::e_int8:
+                case data_type_t::e_uint8:
+                case data_type_t::e_int16:
+                case data_type_t::e_uint16:
+                case data_type_t::e_int32:
+                case data_type_t::e_uint32:
+                case data_type_t::e_int64:
+                case data_type_t::e_uint64:
+                case data_type_t::e_float:
+                case data_type_t::e_double:
+                    replacement_string.append("0,");
+                    break;
+                case data_type_t::e_string:
+                    replacement_string.append("\"\",");
+                    break;
+                }
+            }
+            else
+            {
+                // Provide value from the code.
+                replacement_string.append(argument_map_iterator->second).append(",");
+            }
+        }
+        replacement_string.resize(replacement_string.size() - 1);
+        replacement_string.append("))");
+        cerr << replacement_string << endl;
+        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
+        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
         g_insert_call_locations.insert(expression->getBeginLoc());
     }
 
@@ -3297,46 +3366,48 @@ private:
 
 int main(int argc, const char** argv)
 {
-    cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
-    cl::list<std::string> source_files(
-        cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-    cl::opt<std::string> instance_name(
-        "n", cl::desc("DB instance name"), cl::Optional,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
-    std::string error_message;
-    llvm::raw_string_ostream stream(error_message);
-    std::unique_ptr<CompilationDatabase> compilation_database
-        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &stream))
+    std::string compilation_db_error_msg = "";
+    std::unique_ptr<CompilationDatabase> compilation_database
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, compilation_db_error_msg);
+
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets"))
     {
-        stream.flush();
         return EXIT_FAILURE;
     }
 
-    cl::PrintOptionValues();
+    if (!compilation_db_error_msg.empty())
+    {
+        cerr << compilation_db_error_msg << endl;
+    }
 
-    if (source_files.empty())
+    if (g_help_option_alias)
+    {
+        // For some reason, this does not print -help-list as an available option.
+        // Only -help instead of -h will do that.
+        cl::PrintHelpMessage(false, true);
+        return EXIT_SUCCESS;
+    }
+
+    if (g_source_files.empty())
     {
         cl::PrintHelpMessage();
         return EXIT_SUCCESS;
     }
 
-    if (source_files.size() > 1)
+    if (g_source_files.size() > 1)
     {
         cerr << "Translation Engine does not support more than one source ruleset." << endl;
         return EXIT_FAILURE;
     }
 
-    if (!instance_name.empty())
+    if (!g_instance_name.empty())
     {
         gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
-        session_options.db_instance_name = instance_name.getValue();
+        session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;
         gaia::db::config::set_default_session_options(session_options);
     }
@@ -3348,7 +3419,7 @@ int main(int argc, const char** argv)
     }
 
     // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(*compilation_database, source_files);
+    ClangTool tool(*compilation_database, g_source_files);
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
