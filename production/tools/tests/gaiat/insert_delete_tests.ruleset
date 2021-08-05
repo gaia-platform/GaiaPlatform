@@ -112,12 +112,10 @@ ruleset test10
 
 // TESTCASE: Perform Inserts with multiple fields from multiple implicit navigations
 // GAIAPLAT-1117
-#ifdef TEST_FAILURES
 ruleset test11
 {
     OnInsert(raised)
     {
-        farmer.Insert(name: crop.name, acreage: portion);
+        farmer.Insert(name: crop.name, acreage: feeding.portion);
     }
 }
-#endif

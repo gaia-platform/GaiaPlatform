@@ -79,17 +79,6 @@ ruleset test9
     }
 }
 
-#ifdef TEST_FAILURES
-ruleset test10
-{
-    OnUpdate(incubator)
-    {
-        actuator.value += animal->feeding.portion;
-        sensor.value += acres;
-    }
-}
-#endif
-
 ruleset test11
 {
     OnUpdate(crop)
