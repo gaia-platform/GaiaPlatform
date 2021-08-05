@@ -2,7 +2,7 @@
 
 ruleset test22
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         A:animal->feeding.portion = A.age + 1;
         if (actuator.value > 3.0)

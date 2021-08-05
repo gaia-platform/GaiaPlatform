@@ -2,7 +2,7 @@
 
 ruleset test18
 {
-    OnUpdate(F:farmer)
+    on_update(F:farmer)
     {
         int unsigned i = 0;
         if (i == 0)

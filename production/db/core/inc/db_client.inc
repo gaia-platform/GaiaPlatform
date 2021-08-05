@@ -22,8 +22,7 @@ inline gaia_txn_id_t client_t::get_txn_id()
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
 {
-    constexpr const common::gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
-    return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
+    return (s_txn_commit_trigger && type < common::c_system_table_reserved_range_start);
 }
 
 inline void client_t::verify_txn_active()

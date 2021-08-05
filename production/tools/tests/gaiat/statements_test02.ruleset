@@ -2,7 +2,7 @@
 
 ruleset test1
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         if (incubator)
         {

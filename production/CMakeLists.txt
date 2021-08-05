@@ -263,7 +263,11 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only -funwind-tables -fno-omit-frame-pointer)
+  target_compile_options(gaia_stack_trace INTERFACE -funwind-tables -fno-omit-frame-pointer)
+  # Only append this option for Release builds, or it will disable all other debug info generation.
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
+  endif()
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
 # Cpptoml.

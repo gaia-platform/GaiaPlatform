@@ -33,7 +33,7 @@ ruleset incubator_ruleset
 {
     // Rule 1:  Verify the temperature is kept in range if the
     // incubator temperature limits change. 
-    OnUpdate(incubator.max_temp, incubator.min_temp)
+    on_update(incubator.max_temp, incubator.min_temp)
     {
         if (!incubator.is_on)
         {
@@ -53,7 +53,7 @@ ruleset incubator_ruleset
     }
 
     // Rule 2:  Keep the temperature in range of the incubator limits.
-    OnUpdate(sensor.value)
+    on_update(sensor.value)
     {
         if (!incubator.is_on)
         {
@@ -81,7 +81,7 @@ ruleset incubator_ruleset
 
     // Rule 4:  If the fan is at 70% of its limit and the temperature is still too hot then
     // set the fan to its maximum speed.
-    OnUpdate(actuator.value)
+    on_update(actuator.value)
     {
         if (actuator.value == c_fan_speed_limit)
         {
