@@ -44,7 +44,7 @@ using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
 
-cl::opt<string> g_translation_engine_output_option("output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
 
 cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
 
@@ -52,6 +52,8 @@ cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -out
 // so instead this cl::opt pretends to be the cl::alias for -help.
 cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
 
+// This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly
+// and single-option statements like gaiat -h would print that error because of a missing source file.
 cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
 cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
@@ -3257,13 +3259,13 @@ int main(int argc, const char** argv)
 
     if (!compilation_db_error_msg.empty())
     {
-        cerr << compilation_db_error_msg << endl;
+        std::cerr << compilation_db_error_msg << std::endl;
     }
 
     if (g_help_option_alias)
     {
-        // "-help-list" is omitted from the help text because using the categorized mode of
-        // PrintHelpMessage() behaves the same as -help-list.
+        // -help-list is omitted from the output because the categorized mode
+        // of PrintHelpMessage() behaves the same as -help-list.
         // This is the only way -h and -help differ.
         cl::PrintHelpMessage(false, true);
         return EXIT_SUCCESS;
@@ -3277,7 +3279,7 @@ int main(int argc, const char** argv)
 
     if (g_source_files.size() > 1)
     {
-        cerr << "Translation Engine does not support more than one source ruleset." << endl;
+        std::cerr << "Translation Engine does not support more than one source ruleset." << std::endl;
         return EXIT_FAILURE;
     }
 
