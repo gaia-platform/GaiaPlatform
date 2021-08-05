@@ -8,4 +8,4 @@ ruleset test
     }
 }
 
-// CHECK: Since a rule attribute was provided, specifying active fields inside the rule is not supported.
+// CHECK: Since 'on_insert', 'on_change', or 'on_update' was provided, specifying active fields using '@' inside the rule is not supported.

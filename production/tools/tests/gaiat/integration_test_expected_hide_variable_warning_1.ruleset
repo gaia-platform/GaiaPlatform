@@ -11,4 +11,4 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration 'value' hides catalog field entity of the same name.
+// CHECK: Local variable declaration 'value' hides a database field defined with the same name.

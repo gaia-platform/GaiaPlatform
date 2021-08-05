@@ -9549,7 +9549,7 @@ def err_declarative_label_does_not_exist : Error<
 def err_declarative_label_statement_is_invalid : Error<
   "The statement of the declarative label is invalid. Only a declarative 'if' or 'for' statement may have a declarative label.">;
 def err_declarative_label_wrong_statement : Error<
-  "The statement of the declarative label is not a declarative if or for.">;
+  "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_parameter_names_numbers_different_from_parameter: Error<
   "%0 parameter names are specified and %1 parameters passed.">;
 def err_unknown_parameter_name : Error<
