@@ -13,8 +13,6 @@
 
 #include "db_shared_data.hpp"
 
-// This object is the physical scan query node for indexes.
-
 namespace gaia
 {
 namespace db
@@ -28,6 +26,12 @@ class base_index_scan_impl_t;
 
 /**
  * Iterator interface over the index scan object.
+ *
+ * Returns gaia_ptr_t from the index implementation.
+ *
+ * Instantiating the iterator will cause the init() method
+ * of the implementation to be called.
+ *
  **/
 class index_scan_iterator_t
 {
@@ -48,13 +52,22 @@ public:
 private:
     common::gaia_id_t m_index_id;
     std::shared_ptr<base_index_scan_impl_t> m_scan_impl;
-    db::gaia_ptr_t m_gaia_ptr;
+    gaia_ptr_t m_gaia_ptr;
 
     index_scan_iterator_t() = default;
 };
 
 /**
- * Physical index scan operator.
+ *  This method is a point of entry and is compatible with C++'s range-based for loop.
+ *
+ * Example usage:
+ *
+ *   index_scan_t scan (index_id);
+ *   for (const auto& it: scan)
+ *   {
+ *     ...
+ *   }
+ *
  **/
 class index_scan_t
 {
