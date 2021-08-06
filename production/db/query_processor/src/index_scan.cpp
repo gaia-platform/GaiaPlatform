@@ -113,7 +113,7 @@ base_index_scan_impl_t::get(common::gaia_id_t index_id)
     case catalog::index_type_t::hash:
         return std::make_shared<hash_scan_impl_t>(index_id);
     default:
-        ASSERT_UNREACHABLE("Index not found.");
+        ASSERT_UNREACHABLE("Index type not found.");
     }
 
     return nullptr;
