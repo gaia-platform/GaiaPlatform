@@ -39,16 +39,16 @@ class index_scan_iterator_t;
 /**
  * Polymorphic index scan.
  * **/
-class base_index_scan_impl_t : public physical_operator_t
+class base_index_scan_physical_t : public physical_operator_t
 {
     friend class gaia::db::query_processor::scan::index_scan_iterator_t;
 
 public:
-    base_index_scan_impl_t() = default;
-    explicit base_index_scan_impl_t(common::gaia_id_t);
+    base_index_scan_physical_t() = default;
+    explicit base_index_scan_physical_t(common::gaia_id_t);
 
-    static std::shared_ptr<base_index_scan_impl_t> open(common::gaia_id_t index_id);
-    virtual ~base_index_scan_impl_t() = default;
+    static std::shared_ptr<base_index_scan_physical_t> open(common::gaia_id_t index_id);
+    virtual ~base_index_scan_physical_t() = default;
 
 protected:
     static bool is_visible(const db::index::index_record_t&);
@@ -70,16 +70,16 @@ protected:
  *
  * */
 template <typename T_index, typename T_index_iterator>
-class index_scan_impl_t : public base_index_scan_impl_t
+class index_scan_physical_t : public base_index_scan_physical_t
 {
 public:
-    index_scan_impl_t() = default;
-    explicit index_scan_impl_t(common::gaia_id_t index_id)
+    index_scan_physical_t() = default;
+    explicit index_scan_physical_t(common::gaia_id_t index_id)
         : m_index_id(index_id), m_initialized(false)
     {
     }
 
-    ~index_scan_impl_t() override = default;
+    ~index_scan_physical_t() override = default;
 
 protected:
     void next_visible_locator() override;
@@ -105,10 +105,10 @@ private:
     bool local_end() const;
 };
 
-typedef index_scan_impl_t<db::index::range_index_t, db::index::range_index_iterator_t> range_scan_impl_t;
-typedef index_scan_impl_t<db::index::hash_index_t, db::index::hash_index_iterator_t> hash_scan_impl_t;
+typedef index_scan_physical_t<db::index::range_index_t, db::index::range_index_iterator_t> range_scan_impl_t;
+typedef index_scan_physical_t<db::index::hash_index_t, db::index::hash_index_iterator_t> hash_scan_impl_t;
 
-#include "index_scan_impl.inc"
+#include "index_scan_physical.inc"
 
 } // namespace scan
 } // namespace query_processor

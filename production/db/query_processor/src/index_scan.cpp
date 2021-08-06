@@ -8,7 +8,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
-#include "index_scan_impl.hpp"
+#include "index_scan_physical.hpp"
 #include "qp_operator.hpp"
 
 using namespace gaia::db::index;
@@ -32,7 +32,7 @@ std::nullptr_t index_scan_t::end()
 }
 
 index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id)
-    : m_index_id(index_id), m_scan_impl(base_index_scan_impl_t::open(m_index_id))
+    : m_index_id(index_id), m_scan_impl(base_index_scan_physical_t::open(m_index_id))
 {
     // This will result in the index scan init() method being called.
     m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
@@ -84,8 +84,8 @@ bool index_scan_iterator_t::operator!=(std::nullptr_t) const
 
 // Factory method. This method looks up the type of index associated with the index_id
 // and returns the appropriate index scan type.
-std::shared_ptr<base_index_scan_impl_t>
-base_index_scan_impl_t::open(common::gaia_id_t index_id)
+std::shared_ptr<base_index_scan_physical_t>
+base_index_scan_physical_t::open(common::gaia_id_t index_id)
 {
     db_client_proxy_t::verify_txn_active();
     db_client_proxy_t::rebuild_local_indexes();

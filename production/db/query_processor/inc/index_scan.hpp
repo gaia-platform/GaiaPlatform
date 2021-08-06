@@ -22,7 +22,7 @@ namespace query_processor
 namespace scan
 {
 
-class base_index_scan_impl_t;
+class base_index_scan_physical_t;
 
 /**
  * Iterator interface over the index scan object.
@@ -51,7 +51,7 @@ public:
 
 private:
     common::gaia_id_t m_index_id;
-    std::shared_ptr<base_index_scan_impl_t> m_scan_impl;
+    std::shared_ptr<base_index_scan_physical_t> m_scan_impl;
     gaia_ptr_t m_gaia_ptr;
 
     index_scan_iterator_t() = default;
