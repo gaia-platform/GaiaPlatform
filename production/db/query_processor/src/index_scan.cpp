@@ -32,7 +32,7 @@ std::nullptr_t index_scan_t::end()
 }
 
 index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id)
-    : m_index_id(index_id), m_scan_impl(base_index_scan_impl_t::get(m_index_id))
+    : m_index_id(index_id), m_scan_impl(base_index_scan_impl_t::open(m_index_id))
 {
     m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
 }
@@ -83,7 +83,7 @@ bool index_scan_iterator_t::operator!=(std::nullptr_t) const
 
 // Factory for the base impl for index scans.
 std::shared_ptr<base_index_scan_impl_t>
-base_index_scan_impl_t::get(common::gaia_id_t index_id)
+base_index_scan_impl_t::open(common::gaia_id_t index_id)
 {
     db_client_proxy_t::verify_txn_active();
     db_client_proxy_t::rebuild_local_indexes();

@@ -47,7 +47,7 @@ public:
     base_index_scan_impl_t() = default;
     explicit base_index_scan_impl_t(common::gaia_id_t);
 
-    static std::shared_ptr<base_index_scan_impl_t> get(common::gaia_id_t index_id);
+    static std::shared_ptr<base_index_scan_impl_t> open(common::gaia_id_t index_id);
     virtual ~base_index_scan_impl_t() = default;
 
 protected:
@@ -60,6 +60,14 @@ protected:
 
 /**
  * Templated implementation.
+ *
+ * This class contains the actual implementation details of the index scan.
+ *
+ * It contains:
+ * - The RPC calls to the server for initialization.
+ * - Merge operation between local and remote.
+ * - Visibility resolution of locators.
+ *
  * */
 template <typename T_index, typename T_index_iterator>
 class index_scan_impl_t : public base_index_scan_impl_t
