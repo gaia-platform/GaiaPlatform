@@ -5,4 +5,4 @@ ruleset test
     {
     }
 }
-// CHECK: No active fields for the rule.
+// CHECK: No active fields were referenced in this rule.  Ensure your rule references at least one active field or table.

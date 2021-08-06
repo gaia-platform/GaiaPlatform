@@ -29,6 +29,7 @@
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
+#include "errors.h"
 #include "table_navigation.h"
 
 using namespace std;
@@ -147,40 +148,6 @@ unordered_map<SourceRange, string> g_continue_label_map;
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 static const char c_ident[] = "    ";
-
-// Error messages.  Error messages can take arguments which are denoted by a % character in the string.
-// These parameters are replaced by calling the print_error() function with arguments.
-static const char c_err_active_field_not_supported[] = "Since 'on_insert', 'on_change', or 'on_update' was provided, specifying active fields using '@' "
-                                                       "inside the rule is not supported.";
-static const char c_err_edc_init[] = "Initialization of a declared variable with an EDC object is not supported.";
-static const char c_err_field_deprecated[] = "Field '%' of table '%' is deprecated in the catalog.";
-static const char c_err_field_hidden[] = "Local variable declaration '%' hides a database field defined with the same name.";
-static const char c_err_field_not_found[] = "Field '%' of table '%' was not found in the catalog.";
-static const char c_err_duplicate_ruleset[] = "Ruleset names must be unique. Ruleset '%' has been found multiple times.";
-
-// TODO: how does the user correct these 'incorrect' errors?
-static const char c_err_incorrect_base_type[] = "Incorrect base type of generated type.";
-static const char c_err_incorrect_matched_expression[] = "Incorrect matched expression.";
-static const char c_err_incorrect_matched_operator[] = "Incorrect matched operator.";
-static const char c_err_incorrect_operator_expression[] = "Incorrect operator expression.";
-static const char c_err_incorrect_operator_expression_type[] = "Incorrect operator expression type.";
-static const char c_err_incorrect_operator_code[] = "Incorrect operator code '%'.";
-static const char c_err_incorrect_operator_type[] = "Incorrect operator type.";
-
-static const char c_err_incorrect_for_expression[] = "Incorrect expression is used as a path in a 'for' statement.";
-
-static const char c_err_insert_with_explicit_nav[] = "The 'insert' method cannot be used in an explicit navigation path.";
-static const char c_err_insert_with_tag[] = "The 'insert' method cannot be used with a tag.";
-
-static const char c_err_multi_anchor_tables[] = "A rule may not specify multiple tables or active fields from different tables in "
-                                                "'on_insert', 'on_change', or 'on_update'.";
-static const char c_err_multi_anchor_fields[] = "A rule may not specify active fields from different tables.";
-static const char c_err_multiple_ruleset_files[] = "The Translation Engine does not support more than one source ruleset file.";
-static const char c_err_no_fields_referenced_by_table[] = "No fields referenced by table '%'.";
-static const char c_err_no_active_fields[] = "No active fields for the rule.";
-static const char c_err_table_hidden[] = "Local variable declaration '%' hides a database table defined with the same name.";
-static const char c_err_table_not_found[] = "Table '%' was not found in the catalog.";
-static const char c_err_tag_hidden[] = "Local variable declaration '%' hides a tag defined with the same name.";
 
 void print_error(const char* format)
 {
