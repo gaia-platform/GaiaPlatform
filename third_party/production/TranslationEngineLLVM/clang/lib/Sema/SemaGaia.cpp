@@ -478,6 +478,7 @@ void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceL
 
 void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
 {
+    DeclContext* functionDecl = getCurFunctionDecl();
     DeclSpec DS(attrFactory);
     const char* dummy;
     unsigned diagId;
@@ -597,10 +598,6 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     PushOnScopeChains(RD, getCurScope());
-    // TODO see comment [class-decl]
-    // Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
-    // ActOnTagStartDefinition(&S, RD);
-    // ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
@@ -610,7 +607,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     if (!paramRecordDecl)
     {
         paramRecordDecl = CXXRecordDecl::Create(
-            getASTContext(), RecordDecl::TagKind::TTK_Struct, getCurFunctionDecl(),
+            getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
             SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
 
         paramRecordDecl->setLexicalDeclContext(getCurFunctionDecl());
@@ -627,8 +624,6 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
     addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
 
-    // ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
-    // ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
     RD->completeDefinition();
 
     return Context.getTagDeclType(RD);
@@ -683,7 +678,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     }
 
     std::string typeName = tableName;
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(functionDecl, loc);
     if (tagMapping.find(tableName) != tagMapping.end())
     {
         typeName = tagMapping[tableName];
@@ -762,24 +757,13 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     }
 
     RecordDecl* RD = CXXRecordDecl::Create(
-        getASTContext(), RecordDecl::TagKind::TTK_Struct, functionDecl,
+        getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
         SourceLocation(), SourceLocation(), &Context.Idents.get(className),
         llvm::cast_or_null<CXXRecordDecl>(previousDeclaration));
 
     RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
     PushOnScopeChains(RD, getCurScope());
-    // TODO [class-decl] this is how we used to set-up the classes. Unfortunately this caused the following error:
-    //  clang/test/Parser/gaia_temp.cpp:43:20: error: no matching member function for call to 'Connect'
-    //            farmer.Connect(I);
-    //            ~~~~~~~^~~~~~~
-    //  clang/test/Parser/gaia_temp.cpp:43:13: note: candidate function not viable: no known conversion from 'incubator__type' to 'incubator__type &' for 1st argument
-    //            farmer.Connect(I);
-    //            ^              ~
-    //  Probably I'm missing something.
-    // Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
-    // ActOnTagStartDefinition(&S, RD);
-    // ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc, false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
@@ -819,8 +803,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     auto links = relationships.equal_range(typeName);
 
     // For every relationship target table we count how many links
-    // we have from tableName. This is needed to determine whether we can
-    // have a Connect method for a given target type.
+    // we have from tableName. This is needed to determine if we can
+    // have a Connect/Disconnect method for a given target type.
     map<string, int> links_targets;
 
     for (auto link = links.first; link != links.second; ++link)
@@ -869,7 +853,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
             if (!paramRecordDecl)
             {
                 paramRecordDecl = CXXRecordDecl::Create(
-                    getASTContext(), RecordDecl::TagKind::TTK_Struct, functionDecl,
+                    getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
                     SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
 
                 paramRecordDecl->setLexicalDeclContext(functionDecl);
@@ -888,9 +872,6 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         }
     }
 
-    // TODO: same as above, commented out but it should work.
-    // ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
-    // ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
     RD->completeDefinition();
 
     return Context.getTagDeclType(RD);
@@ -1329,8 +1310,7 @@ bool Sema::IsExplicitPathInRange(SourceRange range) const
 {
     if (range.isValid())
     {
-        return extendedExplicitPathTagMapping.lower_bound(range.getBegin()) != extendedExplicitPathTagMapping.end() ||
-            extendedExplicitPathTagMapping.upper_bound(range.getEnd()) != extendedExplicitPathTagMapping.end();
+        return extendedExplicitPathTagMapping.lower_bound(range.getBegin()) != extendedExplicitPathTagMapping.end() || extendedExplicitPathTagMapping.upper_bound(range.getEnd()) != extendedExplicitPathTagMapping.end();
     }
     return false;
 }
@@ -1350,7 +1330,7 @@ bool Sema::ActOnStartLabel(const string& label)
     return true;
 }
 
-bool Sema::ValidateLabel(const LabelDecl *label)
+bool Sema::ValidateLabel(const LabelDecl* label)
 {
     string labelName = label->getName().str();
 
@@ -1370,7 +1350,7 @@ bool Sema::ValidateLabel(const LabelDecl *label)
         labelsInProcess.erase(labelName);
         return true;
     }
-    const LabelStmt *LabelStatement = label->getStmt();
+    const LabelStmt* LabelStatement = label->getStmt();
     if (LabelStatement == nullptr)
     {
         Diag(label->getLocation(), diag::err_declarative_label_statement_is_invalid);

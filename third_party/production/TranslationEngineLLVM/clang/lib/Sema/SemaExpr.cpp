@@ -11323,36 +11323,43 @@ static void DiagnoseRecursiveConstFields(Sema &S, const Expr *E,
 static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   assert(!E->hasPlaceholderType(BuiltinType::PseudoObject));
 
-if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
-{
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
+  if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
+  {
+      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(E);
 
-    if (exp != nullptr)
-    {
-        ValueDecl *decl = exp->getDecl();
+      if (exp != nullptr)
+      {
+          ValueDecl* decl = exp->getDecl();
 
-        if (decl->hasAttr<GaiaFieldAttr>() ||
-            decl->hasAttr<GaiaFieldValueAttr>() ||
-            decl->hasAttr<FieldTableAttr>())
-        {
-            decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-        }
-    }
-    else
-    {
-        MemberExpr *memberExp = dyn_cast<MemberExpr>(E);
-        if (memberExp != nullptr)
-        {
-            ValueDecl *decl = memberExp->getMemberDecl();
-            if (decl->hasAttr<GaiaFieldAttr>() ||
-                decl->hasAttr<GaiaFieldValueAttr>() ||
-                decl->hasAttr<FieldTableAttr>())
-            {
-                decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-            }
-        }
-    }
-}
+          if (decl->hasAttr<GaiaFieldAttr>()
+              || decl->hasAttr<GaiaFieldValueAttr>()
+              || decl->hasAttr<FieldTableAttr>())
+          {
+              decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+          }
+      }
+      else
+      {
+          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
+
+          if (memberExp != nullptr)
+          {
+              DeclRefExpr* declRefExpr = dyn_cast<DeclRefExpr>(memberExp->getBase());
+
+              if (declRefExpr != nullptr)
+              {
+                  ValueDecl* decl = declRefExpr->getDecl();
+
+                  if (decl->hasAttr<GaiaFieldAttr>()
+                      || decl->hasAttr<GaiaFieldValueAttr>()
+                      || decl->hasAttr<FieldTableAttr>())
+                  {
+                      decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+                  }
+              }
+          }
+      }
+  }
 
   S.CheckShadowingDeclModification(E, Loc);
 

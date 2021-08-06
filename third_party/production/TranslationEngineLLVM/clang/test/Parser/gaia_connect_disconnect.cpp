@@ -1,21 +1,30 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump -verify %s -verify-ignore-unexpected=note | FileCheck -strict-whitespace %s
 
-ruleset test_connect_disconnect_1
+ruleset test_connect_disconnect_on_table
+{
+    OnInsert(farmer)
+    {
+        for (/r : raised)
+        {
+            farmer.Connect(r);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+
+            farmer.Disconnect(r);
+            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
+            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+        }
+    }
+}
+
+ruleset test_connect_disconnect_on_link
 {
     OnInsert(farmer)
     {
         for (/i : incubator)
         {
-            farmer.Connect(i);
-            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
-            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
-
-            farmer.Disconnect(i);
-            // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
-            // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Disconnect 0x{{[^ ]*}}
-            // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
-
             farmer.incubators.Connect(i);
             // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
             // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .Connect 0x{{[^ ]*}}
@@ -50,12 +59,10 @@ ruleset test_connect_disconnect_invalid_syntax_1
 {
     OnInsert(crop)
     {
-       crop.Connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}} \
-                       // expected-note {{passing argument to parameter 'param_1' here}} \
-                       // expected-note {{passing argument to parameter 'param_1' here}}
-       crop.Disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
+       crop.Connect(); // expected-error {{no matching member function for call to 'Connect'}}
+       crop.Disconnect(); // expected-error {{no matching member function for call to 'Disconnect'}}
        crop.yield.Connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
-       crop.yield.Disconnect(); // expected-error {{too few arguments to function call, at least argument 'param_1' must be specified}}
+       crop.yield.Disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
        crop.yield.Connect("aaaaa"); // expected-error {{non-const lvalue reference to type 'yield__type' cannot bind to a value of unrelated type 'const char [6]'}}
        crop.yield.Disconnect(1); // expected-error {{non-const lvalue reference to type 'yield__type' cannot bind to a temporary of type 'int'}}
     }

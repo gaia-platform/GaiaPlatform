@@ -26,7 +26,6 @@
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
-#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
@@ -3064,10 +3063,12 @@ public:
                           hasAttr(attr::GaiaField),
                           unless(hasAttr(attr::GaiaFieldLValue)))),
                   hasDescendant(declRefExpr(
-                      to(varDecl(anyOf(
-                          hasAttr(attr::GaiaField),
-                          hasAttr(attr::FieldTable),
-                          hasAttr(attr::GaiaFieldValue)))))))
+                      to(varDecl(
+                          anyOf(
+                              hasAttr(attr::GaiaField),
+                              hasAttr(attr::FieldTable),
+                              hasAttr(attr::GaiaFieldValue)),
+                          unless(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("tableFieldGet");
         StatementMatcher table_field_set_matcher
             = binaryOperator(
@@ -3076,7 +3077,9 @@ public:
                       isAssignmentOperator(),
                       hasLHS(
                           memberExpr(
-                              member(hasAttr(attr::GaiaFieldLValue))))))
+                              hasDescendant(
+                                  declRefExpr(
+                                      to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
                   .bind("fieldSet");
         StatementMatcher table_field_unary_operator_matcher
             = unaryOperator(allOf(
