@@ -19,10 +19,10 @@ ruleset test10
 }
 
 
-ruleset test19: Table(sensor)
+ruleset test19: tables(sensor)
 {
     {
-        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
+        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in tables attribute.}}
     }
 }
 

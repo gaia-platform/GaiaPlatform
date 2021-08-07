@@ -2,7 +2,7 @@
 
 ruleset test
 {
-    OnUpdate(incubator.max_temp, sensor.value)
+    on_update(incubator.max_temp, sensor.value)
     {
     }
 }

@@ -21,14 +21,14 @@ namespace db
 namespace memory_manager
 {
 
-inline void apply_mask_to_word(
+void apply_mask_to_word(
     uint64_t& word, uint64_t mask, bool set)
 {
     // See: https://graphics.stanford.edu/~seander/bithacks.html#ConditionalSetOrClearBitsWithoutBranching
     word ^= (-set ^ word) & mask;
 }
 
-inline void apply_mask_to_word(
+void apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set)
 {
     uint64_t word_copy = word;
@@ -36,7 +36,7 @@ inline void apply_mask_to_word(
     word = word_copy;
 }
 
-inline bool try_apply_mask_to_word(
+bool try_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set)
 {
     // We read the word once, because other threads may be updating it.
@@ -48,7 +48,7 @@ inline bool try_apply_mask_to_word(
     return word.compare_exchange_strong(old_word, new_word);
 }
 
-inline void safe_apply_mask_to_word(
+void safe_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set)
 {
     while (!try_apply_mask_to_word(word, mask, set))
@@ -57,24 +57,34 @@ inline void safe_apply_mask_to_word(
     }
 }
 
-inline void validate_bitmap_parameters(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size)
+void validate_bitmap_parameters(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size)
 {
     ASSERT_PRECONDITION(bitmap != nullptr, "validate_bitmap_parameters() was called with a null bitmap!");
-    ASSERT_PRECONDITION(bitmap_size > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
+    ASSERT_PRECONDITION(bitmap_word_size > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
 }
 
-inline void validate_bit_index(
-    size_t bitmap_size, size_t bit_index)
+void validate_bit_index(
+    size_t bitmap_word_size, size_t bit_index)
 {
-    ASSERT_PRECONDITION(bit_index < bitmap_size * c_uint64_bit_count, "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
+    ASSERT_PRECONDITION(
+        bit_index < (bitmap_word_size * c_uint64_bit_count),
+        "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
 }
 
-inline void find_bit_word_and_mask(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t bit_index, std::atomic<uint64_t>*& word, uint64_t& mask)
+void validate_element_index(
+    size_t bitarray_word_size, size_t element_index, size_t element_width)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size);
-    validate_bit_index(bitmap_size, bit_index);
+    ASSERT_PRECONDITION(
+        element_index < (bitarray_word_size * (c_uint64_bit_count / element_width)),
+        "validate_element_index() was called with arguments that exceed the range of the input bitarray!");
+}
+
+void find_bit_word_and_mask(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, std::atomic<uint64_t>*& word, uint64_t& mask)
+{
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
+    validate_bit_index(bitmap_word_size, bit_index);
 
     size_t word_index = bit_index / c_uint64_bit_count;
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
@@ -84,44 +94,44 @@ inline void find_bit_word_and_mask(
 }
 
 bool is_bit_set(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t bit_index)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index)
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     return ((word->load() & mask) != 0);
 }
 
 void set_bit_value(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t bit_index, bool value)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, bool value)
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     apply_mask_to_word(*word, mask, value);
 }
 
 bool try_set_bit_value(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t bit_index, bool value)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index, bool value)
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
-    find_bit_word_and_mask(bitmap, bitmap_size, bit_index, word, mask);
+    find_bit_word_and_mask(bitmap, bitmap_word_size, bit_index, word, mask);
     return try_apply_mask_to_word(*word, mask, value);
 }
 
 void safe_set_bit_range_value(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t start_bit_index, size_t bit_count, bool value)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t start_bit_index, size_t bit_count, bool value)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size);
-    validate_bit_index(bitmap_size, start_bit_index);
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
+    validate_bit_index(bitmap_word_size, start_bit_index);
 
     ASSERT_PRECONDITION(bit_count > 0, "safe_set_bit_range_value() was called with a 0 bit count!");
     ASSERT_PRECONDITION(
         start_bit_index + bit_count - 1 >= start_bit_index,
         "safe_set_bit_range_value() was called with arguments that cause an integer overflow!");
 
-    validate_bit_index(bitmap_size, start_bit_index + bit_count - 1);
+    validate_bit_index(bitmap_word_size, start_bit_index + bit_count - 1);
 
     size_t start_word_index = start_bit_index / c_uint64_bit_count;
     size_t start_bit_index_within_word = start_bit_index % c_uint64_bit_count;
@@ -166,18 +176,18 @@ void safe_set_bit_range_value(
 }
 
 size_t count_set_bits(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t end_limit_bit_index)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size);
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
 
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_size * c_uint64_bit_count - 1;
+        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count - 1;
     }
     else
     {
-        validate_bit_index(bitmap_size, end_limit_bit_index);
+        validate_bit_index(bitmap_word_size, end_limit_bit_index);
     }
 
     size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
@@ -205,18 +215,18 @@ size_t count_set_bits(
 }
 
 size_t find_first_unset_bit(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size, size_t end_limit_bit_index)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size);
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
 
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_size * c_uint64_bit_count - 1;
+        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count - 1;
     }
     else
     {
-        validate_bit_index(bitmap_size, end_limit_bit_index);
+        validate_bit_index(bitmap_word_size, end_limit_bit_index);
     }
 
     size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
@@ -251,16 +261,240 @@ size_t find_first_unset_bit(
     return c_max_bit_index;
 }
 
-void print_bitmap(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size)
+size_t find_first_element(
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, uint64_t element_value,
+    size_t end_limit_element_index)
 {
-    validate_bitmap_parameters(bitmap, bitmap_size);
+    validate_bitmap_parameters(bitarray, bitarray_word_size);
+
+    // The element width must divide the word length, i.e. it must be a power of 2 <= 64.
+    ASSERT_PRECONDITION(
+        (element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0),
+        "Bitarray element width must divide word size!");
+
+    // The element value must fit in the element width.
+    ASSERT_PRECONDITION(element_value < (1ULL << element_width), "Bitarray element value must fit in element width!");
+
+    // If no limit bit index was provided, set the limit to the last bitarray index in the bitmap.
+    if (end_limit_element_index == c_max_bit_index)
+    {
+        end_limit_element_index = bitarray_word_size * (c_uint64_bit_count / element_width) - 1;
+    }
+
+    size_t end_limit_bit_index = (end_limit_element_index + 1) * element_width - 1;
+    validate_element_index(bitarray_word_size, end_limit_element_index, element_width);
+
+    size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
+    size_t end_bit_index_within_word = end_limit_bit_index % c_uint64_bit_count;
+
+    // The element width must divide the number of available bits in the final word.
+    ASSERT_PRECONDITION(
+        (end_bit_index_within_word + 1) % element_width == 0,
+        "Bitarray element width must divide available bits in final word!");
+
+    for (size_t word_index = 0; word_index <= end_word_index; ++word_index)
+    {
+        uint64_t word = bitarray[word_index];
+
+        // We can assume that the bitarray element is always aligned on natural
+        // boundaries, i.e., on the element width, and that it never spans
+        // words.
+
+        // Construct a mask with the element width and shift it over all possible aligned positions within the word.
+        uint64_t mask = (1ULL << element_width) - 1;
+        size_t position_count = c_uint64_bit_count / element_width;
+
+        // Only scan up to the final bit.
+        if (word_index == end_word_index)
+        {
+            position_count = (end_bit_index_within_word + 1) / element_width;
+        }
+
+        // Scan for a match at each aligned position of the bitarray element within the current word.
+        for (size_t position = 0; position < position_count; ++position)
+        {
+            // Shift the mask to the current position.
+            size_t position_shift = element_width * position;
+            uint64_t position_mask = mask << position_shift;
+
+            // Mask out the bitarray element to match at this position and shift it to its final position.
+            uint64_t bitarray_element_to_match = (word & position_mask) >> position_shift;
+            if (bitarray_element_to_match == element_value)
+            {
+                size_t match_element_index = (word_index * (c_uint64_bit_count / element_width)) + position;
+                return match_element_index;
+            }
+        }
+    }
+
+    return c_max_bit_index;
+}
+
+// Get the bitarray element with given width at the given bit index within a single word.
+uint64_t get_element_in_word(uint64_t& word, size_t element_width, size_t bit_index)
+{
+    uint64_t mask = ((1ULL << element_width) - 1) << bit_index;
+    uint64_t element_value = (word & mask) >> bit_index;
+    return element_value;
+}
+
+// Set a bitarray element with given width at the given bit index within a single word.
+void set_element_in_word(
+    uint64_t& word, size_t element_width, size_t bit_index, uint64_t element_value)
+{
+    ASSERT_PRECONDITION(element_value < (1ULL << element_width), "Bitarray element value must fit into element width!");
+    ASSERT_PRECONDITION(bit_index + element_width <= c_uint64_bit_count, "Bitarray element must fit into word!");
+    ASSERT_PRECONDITION((bit_index % element_width == 0), "Bit index must be a multiple of bitarray element width!");
+
+    uint64_t word_copy = word;
+
+    // Clear all bits in the bitarray element's range.
+    uint64_t mask = ((1ULL << element_width) - 1) << bit_index;
+    word_copy &= ~mask;
+
+    // Copy the bitarray element into its range.
+    word_copy |= (element_value << bit_index);
+    word = word_copy;
+}
+
+// Try to atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
+bool try_set_element_in_word(
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index, uint64_t element_value)
+{
+    // We read the word once, because other threads may be updating it.
+    uint64_t old_word = word;
+    uint64_t new_word = old_word;
+
+    set_element_in_word(new_word, bit_index, element_width, element_value);
+
+    return word.compare_exchange_strong(old_word, new_word);
+}
+
+// This operation will fail if the current element value is not `expected_element_value`.
+void safe_set_element_in_word(
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index, uint64_t element_value)
+{
+    while (!try_set_element_in_word(word, bit_index, element_width, element_value))
+    {
+        // Someone else made an update; retry after reading updated word value.
+    }
+}
+
+// Atomically (using CAS) set a bitarray element with given width at the given bit index within a single word.
+bool conditional_set_element_in_word(
+    std::atomic<uint64_t>& word, size_t element_width, size_t bit_index,
+    uint64_t expected_element_value, uint64_t desired_element_value)
+{
+    // We need to loop until we find that our element's initial value is not the
+    // expected value, retrying whenever the CAS fails due to concurrent
+    // modification of other bits in the same word.
+    uint64_t expected_word;
+    uint64_t desired_word;
+    do
+    {
+        expected_word = word.load();
+        uint64_t current_element_value = get_element_in_word(
+            expected_word, bit_index, element_width);
+        if (current_element_value != expected_element_value)
+        {
+            return false;
+        }
+        desired_word = expected_word;
+        set_element_in_word(
+            desired_word, bit_index, element_width, desired_element_value);
+
+    } while (!word.compare_exchange_weak(expected_word, desired_word));
+
+    return true;
+}
+
+uint64_t get_element_at_index(
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index)
+{
+    size_t bit_index = element_index * element_width;
+    validate_bitmap_parameters(bitarray, bitarray_word_size);
+    validate_element_index(bitarray_word_size, element_index, element_width);
+
+    // The bitarray element width must divide the word length, i.e. it must be a power of 2 <= 64.
+    ASSERT_PRECONDITION(
+        (element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0),
+        "Bitarray element width must divide word size!");
+
+    size_t word_index = bit_index / c_uint64_bit_count;
+    size_t bit_index_within_word = bit_index % c_uint64_bit_count;
+    uint64_t word = bitarray[word_index];
+
+    return get_element_in_word(word, bit_index_within_word, element_width);
+}
+
+// This function is threadsafe; we could also have a non-threadsafe equivalent if needed.
+void set_element_at_index(
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index, uint64_t element_value)
+{
+    size_t bit_index = element_index * element_width;
+    validate_bitmap_parameters(bitarray, bitarray_word_size);
+    validate_element_index(bitarray_word_size, element_index, element_width);
+
+    // The bitarray element width must divide the word length, i.e. it must be a power of 2 <= 64.
+    ASSERT_PRECONDITION(
+        (element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0),
+        "Bitarray element width must divide word size!");
+
+    // The bit index must be a multiple of the bitarray element width.
+    ASSERT_PRECONDITION((bit_index % element_width == 0), "Bit index must be a multiple of element width!");
+
+    size_t word_index = bit_index / c_uint64_bit_count;
+    size_t bit_index_within_word = bit_index % c_uint64_bit_count;
+
+    safe_set_element_in_word(bitarray[word_index], bit_index_within_word, element_width, element_value);
+}
+
+bool conditional_set_element_at_index(
+    std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
+    size_t element_width, size_t element_index,
+    uint64_t expected_element_value, uint64_t desired_element_value)
+{
+    size_t bit_index = element_index * element_width;
+    validate_bitmap_parameters(bitarray, bitarray_word_size);
+    validate_element_index(bitarray_word_size, element_index, element_width);
+
+    // The bitarray element width must divide the word length, i.e. it must be a power of 2 <= 64.
+    ASSERT_PRECONDITION(
+        (element_width <= c_uint64_bit_count) && (c_uint64_bit_count % element_width == 0),
+        "Bitarray element width must divide word size!");
+
+    // The bit index must be a multiple of the bitarray element width.
+    ASSERT_PRECONDITION((bit_index % element_width == 0), "Bit index must be a multiple of element width!");
+
+    size_t word_index = bit_index / c_uint64_bit_count;
+    size_t bit_index_within_word = bit_index % c_uint64_bit_count;
+
+    return conditional_set_element_in_word(
+        bitarray[word_index], bit_index_within_word, element_width, expected_element_value, desired_element_value);
+}
+
+void print_bitmap(
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, bool msb_first)
+{
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
 
     cout << "\nBitmap value:" << endl;
 
-    for (size_t word_index = 0; word_index < bitmap_size; ++word_index)
+    for (size_t word_index = 0; word_index < bitmap_word_size; ++word_index)
     {
         uint64_t word = bitmap[word_index];
+
+        // By default, print bits in word from LSB to MSB (for compatibility
+        // with sequential ordering of bits in array).
+        // Optionally, print bits in word from MSB to LSB (for compatibility
+        // with usual binary representation of word).
+        if (msb_first)
+        {
+            word = __builtin_bitreverse64(word);
+        }
 
         for (size_t bit_index = 0; bit_index < c_uint64_bit_count; ++bit_index)
         {
@@ -270,8 +504,9 @@ void print_bitmap(
             }
 
             uint64_t bit_value = word & 1;
-
             cout << bit_value << " ";
+
+            // Insert line breaks between groups of 16 bits.
             if (((bit_index + 1) % (sizeof(uint16_t) * CHAR_BIT)) == 0)
             {
                 cout << endl;

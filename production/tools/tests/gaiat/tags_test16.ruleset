@@ -2,7 +2,7 @@
 
 ruleset test16
 {
-    OnUpdate(A:actuator)
+    on_update(A:actuator)
     {
         use_float(A:actuator.value);
     }

@@ -1,6 +1,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
-ruleset test07 : Table (sensor.value, incubator)
+ruleset test07 : tables (sensor.value, incubator)
 {
     {
         if (@value < 5)

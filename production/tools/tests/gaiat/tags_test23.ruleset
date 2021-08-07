@@ -2,7 +2,7 @@
 
 ruleset test23
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         // Ensure the label is a goto target using empty statement.
         // E.g. LABEL:; raised...

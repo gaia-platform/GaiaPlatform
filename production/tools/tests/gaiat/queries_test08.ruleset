@@ -2,7 +2,7 @@
 
 ruleset test10
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         sensor.value += yield->crop.acres;
     }

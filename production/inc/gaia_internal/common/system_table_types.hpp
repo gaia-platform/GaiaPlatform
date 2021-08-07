@@ -48,5 +48,10 @@ enum class system_table_type_t : gaia_type_t
     event_log = c_system_table_reserved_range_start,
 };
 
+inline bool is_system_object(gaia_type_t type)
+{
+    return type >= c_system_table_reserved_range_start && type <= c_system_table_reserved_range_end;
+}
+
 } // namespace common
 } // namespace gaia

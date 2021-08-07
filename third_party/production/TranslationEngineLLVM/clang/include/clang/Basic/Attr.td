@@ -3172,8 +3172,8 @@ def ObjCExternallyRetained : InheritableAttr {
   let Documentation = [ObjCExternallyRetainedDocs];
 }
 
-def RulesetTable : Attr {
-    let Spellings = [Keyword<"Table">];
+def RulesetTables : Attr {
+    let Spellings = [Keyword<"tables">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
     let Args = [VariadicIdentifierArgument<"tables">];
@@ -3197,8 +3197,8 @@ def GaiaFieldValue : Attr {
   let Documentation = [Undocumented];
 }
 
-def SerialStream : Attr {
-    let Spellings = [Keyword<"SerialStream">];
+def RulesetSerialize : Attr {
+    let Spellings = [Keyword<"serialize">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
     let Args = [IdentifierArgument<"stream">];
@@ -3218,21 +3218,21 @@ def FieldTable : Attr {
 }
 
 def GaiaOnUpdate : Attr {
-    let Spellings = [Keyword<"OnUpdate">];
+    let Spellings = [Keyword<"on_update">];
     let Subjects = SubjectList<[Function]>;
     let Documentation = [Undocumented];
     let Args = [VariadicStringArgument<"tables">];
 }
 
 def GaiaOnInsert : Attr {
-    let Spellings = [Keyword<"OnInsert">];
+    let Spellings = [Keyword<"on_insert">];
     let Subjects = SubjectList<[Function]>;
     let Documentation = [Undocumented];
     let Args = [VariadicStringArgument<"tables">];
 }
 
 def GaiaOnChange : Attr {
-    let Spellings = [Keyword<"OnChange">];
+    let Spellings = [Keyword<"on_change">];
     let Subjects = SubjectList<[Function]>;
     let Documentation = [Undocumented];
     let Args = [VariadicStringArgument<"tables">];

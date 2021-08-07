@@ -253,6 +253,14 @@ private:
 
     static void init_shared_memory();
 
+    // Server-side index maintenance methods.
+
+    // Initialize index maintenance on startup.
+    static void init_indexes();
+
+    // Update in-memory indexes based on the txn log.
+    static void update_indexes_from_txn_log();
+
     static void create_local_snapshot(bool apply_logs);
 
     static void recover_db();
