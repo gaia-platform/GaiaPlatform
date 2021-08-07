@@ -82,7 +82,7 @@ std::string Parser::GetExplicitNavigationPath()
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
     }
-    else if (previousPreviousToken.is(tok::colon))
+    else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
         if (tagToken.is(tok::identifier))
