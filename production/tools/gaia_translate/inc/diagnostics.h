@@ -102,9 +102,9 @@ static const char c_err_tag_hidden[] =
     "Rename your local variable declaration or tag declaration so that they do not conflict.";
 
 // Error print helpers.  The print_error method takes its template parameters
-// and creates a tuple out of them to pass to this internal method.  This method
-// then calls itself recursively to process each parameter and output it out as
-// it encounters the placeholders in the error format string..
+// and creates a tuple to pass to this internal method.  This method
+// then calls itself recursively to process each parameter and output it as
+// it encounters the placeholders in the error format string.
 template <size_t T_index = 0, typename... T_args>
 constexpr void print_error_internal(const char* format, std::tuple<T_args...> args)
 {
