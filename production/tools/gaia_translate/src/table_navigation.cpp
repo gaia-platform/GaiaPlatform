@@ -1,9 +1,16 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "table_navigation.h"
 
 #include <climits>
 
 #include <iostream>
 #include <random>
+
+#include "diagnostics.h"
 
 using namespace std;
 using namespace gaia::translation;
@@ -166,7 +173,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     }
     if (m_table_relationship.find(anchor_table_name) == m_table_relationship.end())
     {
-        cerr << "No path between '" << anchor_table << "' and other tables." << endl;
+        print_error(c_err_no_anchor_path, anchor_table);
         return navigation_code_data_t();
     }
     auto table_itr = m_table_relationship.equal_range(anchor_table_name);
@@ -200,7 +207,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
 
                 if (is_1_relationship || is_n_relationship)
                 {
-                    cerr << "There is more than one field that links '" << anchor_table << "' and '" << table << "'." << endl;
+                    print_error(c_err_ambiguous_path, anchor_table, table);
                     return navigation_code_data_t();
                 }
                 if (it->second.is_parent)
@@ -276,7 +283,9 @@ void table_navigation_t::fill_table_data()
             catalog::gaia_table_t table = field.table();
             if (!table)
             {
-                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
+                // TODO: Add better message.  I think this can happen if you have databases with
+                // the same table names in them.
+                print_error(c_err_incorrect_table, field.name());
                 m_table_data.clear();
                 return;
             }
@@ -289,7 +298,9 @@ void table_navigation_t::fill_table_data()
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
-                cerr << "Duplicate field '" << field.name() << "'." << endl;
+                // TODO: Add better message.  I think this can happen if you have databases with
+                // the same table names in them.
+                print_error(c_err_duplicate_field, field.name(), table.name());
                 m_table_data.clear();
                 return;
             }
@@ -308,7 +319,8 @@ void table_navigation_t::fill_table_data()
             catalog::gaia_table_t child_table = relationship.child();
             if (!child_table)
             {
-                cerr << "Incorrect child table in the relationship '" << relationship.name() << "'." << endl;
+                // TODO:  what is the action a user can take?
+                print_error(c_err_incorrect_child_table, relationship.name());
                 m_table_data.clear();
                 return;
             }
@@ -321,7 +333,8 @@ void table_navigation_t::fill_table_data()
             catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
-                cerr << "Incorrect parent table in the relationship '" << relationship.name() << "'." << endl;
+                // TODO:  what is the action a user can take?
+                print_error(c_err_incorrect_parent_table, relationship.name());
                 m_table_data.clear();
                 return;
             }
@@ -340,7 +353,7 @@ void table_navigation_t::fill_table_data()
     }
     catch (const exception& e)
     {
-        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
+        print_error(c_err_catalog_exception, e.what());
         m_table_data.clear();
         return;
     }
@@ -373,7 +386,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     bool return_value = find_navigation_path(src, dst, current_path, m_table_relationship);
     if (!return_value)
     {
-        cerr << "No path between tables '" << src << "' and '" << dst << "'." << endl;
+        print_error(c_err_no_path, src, dst);
         return false;
     }
 
@@ -403,7 +416,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         {
             if (path.size() == path_length)
             {
-                cerr << "Multiple shortest paths between tables '" << src << "' and '" << dst << "' exist." << endl;
+                print_error(c_err_multiple_shortest_paths, src, dst);
                 return false;
             }
         }
@@ -541,7 +554,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
             {
                 if (is_1_relationship || is_n_relationship)
                 {
-                    cerr << "There is more than one field that links '" << source_table << "' and '" << destination_table << "'." << endl;
+                    print_error(c_err_ambiguous_path, source_table, destination_table);
                     return false;
                 }
                 if (it->second.is_parent)
@@ -559,7 +572,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
 
     if (!is_n_relationship && !is_1_relationship)
     {
-        cerr << "No relationship between '" << source_table << "' and '" << destination_table << "'." << endl;
+        print_error(c_err_no_relationship, source_table, destination_table);
         return false;
     }
     if (is_1_relationship)
@@ -613,7 +626,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     const auto table_iterator = table_data.find(table);
     if (table_iterator == table_data.end())
     {
-        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        print_error(c_err_table_not_found, table);
         return return_value;
     }
 
@@ -626,7 +639,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
             catalog::gaia_table_t field_table = field.table();
             if (!field_table)
             {
-                cerr << "Incorrect table for field '" << field.name() << "'." << endl;
+                print_error(c_err_incorrect_table, field.name());
                 return vector<string>();
             }
 
@@ -643,7 +656,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     }
     catch (const exception& e)
     {
-        cerr << "An exception has occurred while processing the catalog: '" << e.what() << "'." << endl;
+        print_error(c_err_catalog_exception, e.what());
         return vector<string>();
     }
 

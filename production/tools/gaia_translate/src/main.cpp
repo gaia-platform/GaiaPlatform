@@ -29,7 +29,7 @@
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
-#include "errors.h"
+#include "diagnostics.h"
 #include "table_navigation.h"
 
 using namespace std;
@@ -149,31 +149,11 @@ unordered_map<SourceRange, string> g_continue_label_map;
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 static const char c_ident[] = "    ";
 
-void print_error(const char* format)
-{
-    cerr << format;
-}
-
-template <typename T_arg, typename... T_args>
-void print_error(const char* format, T_arg value, T_args... args)
-{
-    cerr << "error: ";
-    for (; *format != '\0'; format++)
-    {
-        if (*format == '%')
-        {
-            cerr << value;
-            print_error(format + 1, args...);
-            return;
-        }
-        cerr << *format;
-    }
-    cerr << endl;
-}
-
 static void print_version(raw_ostream& stream)
 {
-    stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+    // Note that the clang::raw_ostream does not support 'endl'.
+    stream << c_gaiat << " " << gaia_full_version() << "\n";
+    stream << c_copyright << "\n";
 }
 
 // Get location of a token before the current location.
