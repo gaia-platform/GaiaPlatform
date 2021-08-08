@@ -11327,6 +11327,16 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   {
       DeclRefExpr* exp = dyn_cast<DeclRefExpr>(E);
 
+      if (exp == nullptr)
+      {
+          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
+
+          if (memberExp != nullptr)
+          {
+              exp = dyn_cast<DeclRefExpr>(memberExp->getBase());
+          }
+      }
+
       if (exp != nullptr)
       {
           ValueDecl* decl = exp->getDecl();
@@ -11336,27 +11346,6 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
               || decl->hasAttr<FieldTableAttr>())
           {
               decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-          }
-      }
-      else
-      {
-          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
-
-          if (memberExp != nullptr)
-          {
-              DeclRefExpr* declRefExpr = dyn_cast<DeclRefExpr>(memberExp->getBase());
-
-              if (declRefExpr != nullptr)
-              {
-                  ValueDecl* decl = declRefExpr->getDecl();
-
-                  if (decl->hasAttr<GaiaFieldAttr>()
-                      || decl->hasAttr<GaiaFieldValueAttr>()
-                      || decl->hasAttr<FieldTableAttr>())
-                  {
-                      decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-                  }
-              }
           }
       }
   }

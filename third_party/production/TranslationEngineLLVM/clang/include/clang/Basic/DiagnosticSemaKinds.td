@@ -9560,6 +9560,4 @@ def err_argument_type_mismatch : Error<
   "Cannot convert from '%0' to '%1' for parameter '%2'.">;
 def err_argument_type_not_supported : Error<
   "Type '%0' is not supported.">;
-def err_internal_type_not_found : Error<
-  "Impossible to find type '%0'.">;
 } // end of sema component.
