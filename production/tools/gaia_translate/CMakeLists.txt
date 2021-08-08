@@ -18,6 +18,11 @@ set(TRANSLATION_ENGINE_INCLUDES
 set(GAIAT_SRCS
   src/main.cpp
   src/table_navigation.cpp
+  src/gaia_ast_frontend_action.cpp
+  src/gaia_ast_handlers.cpp
+  src/gaiat_state.cpp
+  src/gaiat_helpers.cpp
+  src/suppini.cpp
 )
 
 link_directories(
