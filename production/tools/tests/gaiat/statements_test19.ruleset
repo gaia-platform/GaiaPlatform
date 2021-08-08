@@ -4,7 +4,7 @@
 //           The non-conditional portion causes error.
 ruleset test19
 {       
-    OnInsert(sensor)
+    on_insert(sensor)
     {   
         if (sensor->incubator && sensor->incubator.min_temp < 95.0)
         {   

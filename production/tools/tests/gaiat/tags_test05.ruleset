@@ -2,7 +2,7 @@
 
 ruleset test05
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         float v = P.value;
     }

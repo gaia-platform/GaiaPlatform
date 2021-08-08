@@ -2,7 +2,7 @@
 
 ruleset test17
 {
-    OnUpdate(actuator)
+    on_update(actuator)
     {
         /I:incubator->I:sensor.value = 0;
     }

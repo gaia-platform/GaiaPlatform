@@ -2,7 +2,7 @@
 
 ruleset test10
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int tot_acres = 0;
         tot_acres += yield->crop.acres;

@@ -621,8 +621,8 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     SmallVector<QualType, 8> paramTypes;
     paramTypes.push_back(connectDisconnectParamRef);
 
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
+    addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+    addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
 
     RD->completeDefinition();
 
@@ -736,7 +736,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     }
 
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(rulesetContext);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {
@@ -804,7 +804,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
-    // have a Connect/Disconnect method for a given target type.
+    // have a connect/disconnect method for a given target type.
     map<string, int> links_targets;
 
     for (auto link = links.first; link != links.second; ++link)
@@ -815,32 +815,28 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         links_targets[linkData.table]++;
     }
 
-    // TODO this is weird, we have half API upper case and the other half lower case.
-    //   IMHO we should stick to lower/snake case as we do for all the other APIs.
-    //   The upper case is something David uses in his spec but, as himself said,
-    //   it is something we are not forced to follow.
-
-    // insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, {}, attrFactory, attrs, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, {}, attrFactory, attrs, RD, loc);
+    // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
+    // avoid conflicting with the C++ 'delete' keyword.
+    addMethod(&Context.Idents.get("insert"), DeclSpec::TST_typename, {}, attrFactory, attrs, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("remove"), DeclSpec::TST_void, {}, attrFactory, attrs, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
-    // Connect and Disconnect can be present only if the table has outgoing relationships.
+    // connect and disconnect can be present only if the table has outgoing relationships.
     if (!links_targets.empty())
     {
-        // For each outgoing relationship creates an overload Connect/Disconnect to the target types. eg:
+        // For each outgoing relationship creates an overload connect/disconnect to the target types. eg:
         // incubator__type
-        //   bool Connect(actuator_type&);
-        //   bool Disconnect(actuator_type&);
-        //   bool Connect(farmer_type&);
-        //   bool Disconnect(farmer_type&);
+        //   bool connect(actuator_type&);
+        //   bool disconnect(actuator_type&);
+        //   bool connect(farmer_type&);
+        //   bool disconnect(farmer_type&);
         //   ....
         for (auto targetTablePair : links_targets)
         {
-            // Connect/Disconnect are not appended to the table if there is more than one
+            // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
-            // The user will need to full qualify the relationship to use Connect/Disconnect:
-            // incubator.actuators.Connect(actuator);
+            // The user will need to full qualify the relationship to use connect/disconnect:
+            // incubator.actuators.connect(actuator);
             if (targetTablePair.second > 1)
             {
                 continue;
@@ -867,8 +863,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
             SmallVector<QualType, 8> paramTypes;
             paramTypes.push_back(connectDisconnectParamRef);
 
-            addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-            addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+            addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
         }
     }
 
@@ -928,7 +924,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     }
     vector<string> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {

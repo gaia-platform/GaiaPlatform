@@ -21,5 +21,5 @@ ruleset test117 { {animal->.age=5;} } // expected-error {{expected expression}}
 ruleset test118 { {3:animal.age=5;} } // expected-error {{expected expression}}
 ruleset test119 { {animal[age]=actuator[timestamp];} } // expected-error {{expected expression}}
 ruleset test120 { {animal(age)=actuator(timestamp);} } // expected-error {{expected expression}}
-ruleset test121 { OnInsert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
+ruleset test121 { on_insert(A:animal) {animal.age=age:A;} }  // expected-error {{expected expression}}
 #endif

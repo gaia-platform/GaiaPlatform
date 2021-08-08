@@ -2,7 +2,7 @@
 
 ruleset test14
 {
-    OnInsert(S:sensor, A:actuator)
+    on_insert(S:sensor, A:actuator)
     {
         float v;
         v = S.value + A.value;
@@ -10,4 +10,4 @@ ruleset test14
 }
 
 // GAIAPLAT-799
-// CHECK: Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'OnInsert', 'OnChange', or 'OnUpdate'
+// CHECK: Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in 'on_insert', 'on_change', or 'on_update'

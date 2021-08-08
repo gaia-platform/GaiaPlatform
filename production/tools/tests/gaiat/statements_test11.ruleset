@@ -4,7 +4,7 @@
 // GAIAPLAT-1053
 ruleset test55
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         if (S:sensor.value > 99.9)
         {

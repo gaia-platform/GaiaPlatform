@@ -4,7 +4,7 @@
 
 ruleset test00
 {
-    OnInsert(sensor:sensor)
+    on_insert(sensor:sensor)
     {
         use_float(sensor.value);
     }

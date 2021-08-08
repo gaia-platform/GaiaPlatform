@@ -2,7 +2,7 @@
 
 ruleset test07
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         if (I:incubator.max_temp > 99.8)
         {
