@@ -177,6 +177,7 @@ ExprResult Parser::ParseAssignmentExpression(TypeCastState isTypeCast,
       ConsumeToken();
       ConsumeToken();
       insertCallParameterMap[expressionLocation].push_back(parameterName);
+      insertCallParameterLocations.emplace(Tok.getLocation());
     }
     else
     {

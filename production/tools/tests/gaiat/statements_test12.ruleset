@@ -3,7 +3,7 @@
 // TESTCASE: break from within the nomatch block of a declarative if.
 ruleset test56
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         if (S:sensor.value > 99.9)
         {

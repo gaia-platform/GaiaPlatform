@@ -377,6 +377,10 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
                 Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
+            if (tbl.is_system())
+            {
+                continue;
+            }
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
@@ -409,6 +413,10 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
                 Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_set<string>();
             }
+            if (tbl.is_system())
+            {
+                continue;
+            }
             retVal.emplace(tbl.name());
         }
     }
@@ -436,11 +444,21 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
                 return unordered_multimap<string, Sema::TableLinkData_t>();
             }
 
+            if (child_table.is_system())
+            {
+                continue;
+            }
+
             catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
                 Diag(loc, diag::err_invalid_parent_table) << relationship.name();
                 return unordered_multimap<string, Sema::TableLinkData_t>();
+            }
+
+            if (parent_table.is_system())
+            {
+                continue;
             }
 
             TableLinkData_t link_data_1;
@@ -564,10 +582,10 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
+    // TODO we could introspect the catalog and add connect/disconnect only when necessary
     //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
@@ -622,7 +640,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     }
 
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {
@@ -702,20 +720,16 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(linkData.field), type, RD, loc);
     }
 
-    // TODO this is weird, we have half API upper case and the other half lower case.
-    //   IMHO we should stick to lower/snake case as we do for all the other APIs.
-    //   The upper case is something David uses in his spec but, as himself said,
-    //   it is something we are not forced to follow.
-
-    //insert fields and methods that are not part of the schema
-    addMethod(&Context.Idents.get("Insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
-    addMethod(&Context.Idents.get("Delete"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to 
+    // avoid conflicting with the C++ 'delete' keyword.
+    addMethod(&Context.Idents.get("insert"), DeclSpec::TST_typename, nullptr, 0, attrFactory, attrs, &S, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
+    addMethod(&Context.Idents.get("remove"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     // TODO we could introspect the catalog and add Connect/Disconnect only when necessary
     //  and accept only the necessary types. Will address in next PR.
-    addMethod(&Context.Idents.get("Connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
-    addMethod(&Context.Idents.get("Disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
+    addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, nullptr, 0, attrFactory, attrs, &S, RD, loc, true);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
@@ -774,7 +788,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     }
     vector<string> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-    RulesetTableAttr* attr = rulesetDecl->getAttr<RulesetTableAttr>();
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
     if (attr != nullptr)
     {

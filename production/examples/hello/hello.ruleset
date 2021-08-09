@@ -14,7 +14,7 @@ ruleset hello_ruleset
 {
     // Rule 1: Whenever a name is inserted,
     // insert a new greeting into the greetings table.
-    OnInsert(names)
+    on_insert(names)
     {
         // Form the greeting using the name.
         string new_greeting = "Hello " + string(names.name) + "!";
@@ -24,7 +24,7 @@ ruleset hello_ruleset
     }
     // Rule 2: Whenever a greeting is inserted,
     // output it to the console.
-    OnInsert(greetings)
+    on_insert(greetings)
     {
         // Output the greeting to the console.
         cout << endl << greetings.greeting << endl;

@@ -5,7 +5,7 @@
 // TESTCASE: for() with a table scan
 ruleset test01
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         for (/I:incubator)
@@ -19,7 +19,7 @@ ruleset test01
 // TESTCASE: Use for statement to scan a table near the anchor.
 ruleset test02
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         for (/S:sensor)
@@ -43,7 +43,7 @@ ruleset test02
 // GAIAPLAT-1050 (fixed)
 ruleset test03
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int total_portion = 0;
         for (animal->F:feeding)
@@ -56,7 +56,7 @@ ruleset test03
 // TESTCASE: Use for statement to scan a table not near the anchor.
 ruleset test04
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int total_portion = 0;
         for (/F:feeding)
@@ -70,7 +70,7 @@ ruleset test04
 // GAIAPLAT-1005 (fixed)
 ruleset test05
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         if (sensor->incubator.min_temp < 95.0)
         {
@@ -86,7 +86,7 @@ ruleset test05
 // TESTCASE: Path moves from M to 1 in if without nomatch.
 ruleset test06
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         if (sensor->incubator.min_temp < 95.0)
         {
@@ -144,10 +144,10 @@ ruleset test10
     }
 }
 
-// TESTCASE: if() with implicit iteration and OnInsert
+// TESTCASE: if() with implicit iteration and on_insert
 ruleset test11
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator.min_temp < 50.0)
@@ -160,7 +160,7 @@ ruleset test11
 // TESTCASE: if-else with implicit iteration in both closures
 ruleset test12
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator.min_temp < 50.0)
@@ -178,7 +178,7 @@ ruleset test12
 ruleset test13
 {
     // Questionable code generation on this one.
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         // Navigates down to a child row (sensor), then back up to the parent (incubator),
@@ -197,7 +197,7 @@ ruleset test13
 // TESTCASE: if-else-nomatch with navigation
 ruleset test14
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (sensor->incubator->actuator.value > 0.0)
@@ -220,7 +220,7 @@ ruleset test14
 // TESTCASE: if-else navigation with tags
 ruleset test15
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (S:sensor->I:incubator->A:actuator.value > 0.0)
@@ -296,10 +296,10 @@ ruleset test18
     }
 }
 
-// TESTCASE: else-ifs with table scans unrelated to the OnInsert anchor row's table.
+// TESTCASE: else-ifs with table scans unrelated to the on_insert anchor row's table.
 ruleset test19
 {
-    OnInsert(isolated)
+    on_insert(isolated)
     {
         int answer;
         if (/incubator->actuator.value > 0.5)
@@ -320,7 +320,7 @@ ruleset test19
 // TESTCASE: multiple else-ifs with sequential nomatches.
 ruleset test20
 {
-    OnInsert(isolated)
+    on_insert(isolated)
     {
         int answer;
         if (/incubator->actuator.value > 0.5)
@@ -354,7 +354,7 @@ ruleset test20
 // TESTCASE: single-cardinality reference in for()
 ruleset test21
 {
-    OnInsert(animal)
+    on_insert(animal)
     {
         for (int i = 0; i < farmer.acreage; i++)
         {
@@ -366,7 +366,7 @@ ruleset test21
 // TESTCASE: multiple-cardinality reference in for() with tag declaration
 ruleset test22
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (float f = 0.0; f < S:sensor.value; f += 1.3)
         {
@@ -378,7 +378,7 @@ ruleset test22
 // TESTCASE: braceless nested if-else-nomatches with implicit iteration
 ruleset test23
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         bool here = false;
         if (incubator.max_temp > 99.0)
@@ -400,7 +400,7 @@ ruleset test23
 // TESTCASE: prodcedural for() but with a query on all three of its header statements
 ruleset test24
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
         // Another convoluted set of queries.
         // Note that the translated code is not yet correct.
@@ -416,7 +416,7 @@ ruleset test24
 // TESTCASE: expression with navigation on both sides
 ruleset test25
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
         // Note that the translated code is not yet correct.
         farmer.condos->incubator->raised.birthdate += animal->crop->yield->feeding.portion;
@@ -428,7 +428,7 @@ void sprintf(char*, const char*, const char*, float, float);
 
 ruleset test26
 {
-    OnInsert(raised)
+    on_insert(raised)
     {
         char str[200];
         sprintf(str, "%ld,%f,%f", yield->farmer.incubators->I:incubator->raised.birthdate, I->A:actuator.value,
@@ -436,10 +436,10 @@ ruleset test26
     }
 }
 
-// TESTCASE: declaring a tag in the OnInsert statement
+// TESTCASE: declaring a tag in the on_insert statement
 ruleset test27
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         if (incubator.max_temp > 99.8)
         {
@@ -455,7 +455,7 @@ ruleset test27
 // TESTCASE: implicit iteration in if-else-nomatch from a navigation path
 ruleset test28
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator->raised->animal->feeding.portion > 1)
@@ -476,7 +476,7 @@ ruleset test28
 // TESTCASE: checking if procedural while() and if() still work
 ruleset test29
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;
@@ -494,7 +494,7 @@ ruleset test29
 // TESTCASE: declarative statement inside a braceless procedural while()
 ruleset test30
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;
@@ -531,7 +531,7 @@ ruleset test31
 // TESTCASE: procedural do-while that does not reference any rows
 ruleset test32
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int count = 0;
         do
@@ -555,10 +555,10 @@ ruleset test33
     }
 }
 
-// TESTCASE: procedural do-while using a tag declared in the OnInsert
+// TESTCASE: procedural do-while using a tag declared in the on_insert
 ruleset test34
 {
-    OnInsert(A:animal)
+    on_insert(A:animal)
     {
         int count = 0;
         do
@@ -572,7 +572,7 @@ ruleset test34
 // TESTCASE: procedural do-while with a tag used in the do{} but not the while()
 ruleset test35
 {
-    OnInsert(A:animal)
+    on_insert(A:animal)
     {
         int count = 0;
         do
@@ -617,7 +617,7 @@ ruleset test37
 // TESTCASE: declaring and using a tag inside the do{} of a do-while
 ruleset test38
 {
-    OnInsert(animal)
+    on_insert(animal)
     {
         int num = 0;
         do
@@ -634,7 +634,7 @@ ruleset test38
 // TESTCASE: 1-to-1 navigation in a while() is legal
 ruleset test39
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int count = 0;
         while (sensor.value > 0.0)
@@ -648,7 +648,7 @@ ruleset test39
 // TESTCASE: 1-to-1 navigation in a do-while is legal
 ruleset test40
 {
-    OnInsert(raised)
+    on_insert(raised)
     {
         int num = 0;
         do
@@ -662,7 +662,7 @@ ruleset test40
 // TESTCASE: while() with navigation and tags
 ruleset test41
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         while (S:sensor->I:incubator->A:actuator.value > 0.0)
@@ -675,7 +675,7 @@ ruleset test41
 // TESTCASE: nested while() loops with navigation and tags
 ruleset test42
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         while (S:sensor->I:incubator->A:actuator.value > 0.0)
@@ -690,10 +690,10 @@ ruleset test42
     }
 }
 
-// TESTCASE: if() inside of while(), both with complex navigation, using OnInsert
+// TESTCASE: if() inside of while(), both with complex navigation, using on_insert
 ruleset test43
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
         float temp = 0;
         while (farmer.incubators->incubator->raised->animal->feeding->yield->crop.acres)
@@ -724,7 +724,7 @@ ruleset test44
 // TESTCASE: arbitrarily deep navigation with tags in a for() containing a while()
 ruleset test45
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         long tot_acres = 0;
         long tot_feed = 0;
@@ -744,7 +744,7 @@ ruleset test45
 // TESTCASE: braceless while() with tag declarations
 ruleset test46
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         while (S:sensor->I:incubator->A:actuator.value > 0.0)
@@ -755,7 +755,7 @@ ruleset test46
 // TESTCASE: nested procedural and declarative while()s and an if()
 ruleset test47
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;
@@ -774,7 +774,7 @@ ruleset test47
 // TESTCASE: declarative do-while containing an if() that declares a tag
 ruleset test48
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int count = 0;
         do
@@ -791,7 +791,7 @@ ruleset test48
 // TESTCASE: declarative do-while with a full-table scan
 ruleset test49
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int count = 0;
         do
@@ -818,7 +818,7 @@ ruleset test50
 // TESTCASE: do-while with a table scan in the while() over the child table of the anchor row's table
 ruleset test51
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         int count = 0;
         do
@@ -832,7 +832,7 @@ ruleset test51
 // TESTCASE: nested declarative do-while loops
 ruleset test52
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         int count_a = 0;
         do
@@ -860,7 +860,7 @@ ruleset test52
 // TESTCASE: arbitrarily complex navigation in the while() statement of a do-while
 ruleset test53
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
         int count = 0;
         do
@@ -874,7 +874,7 @@ ruleset test53
 // TESTCASE: procedural for() with a declarative query inside a do-while
 ruleset test54
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         do
         {
@@ -889,7 +889,7 @@ ruleset test54
 // TESTCASE: break from within a declarative for.
 ruleset test57
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (S:sensor) if (S.value > 99.9)
         {
@@ -906,7 +906,7 @@ ruleset test57
 // GAIAPLAT-1056 (fixed)
 ruleset test58
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (S:sensor)
         {
@@ -928,7 +928,7 @@ void printf(const char*, unsigned int);
 // GAIAPLAT-1084 (fixed)
 ruleset test59
 {
-    OnUpdate(farmer)
+    on_update(farmer)
     {
         for (F:feeding)
         {
@@ -945,7 +945,7 @@ ruleset test59
 // TESTCASE: while with an anchor field condition
 ruleset test60
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         while (incubator.max_temp < 100.0)
         {
@@ -956,7 +956,7 @@ ruleset test60
 
 ruleset test61
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         int maxtemp = incubator.max_temp;
         while (maxtemp < 100.0)
@@ -969,7 +969,7 @@ ruleset test61
 
 ruleset test62
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         for (S:sensor)
         {
@@ -983,7 +983,7 @@ ruleset test62
 
 ruleset test63
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         for (S:sensor)
         {
@@ -1013,7 +1013,7 @@ ruleset test64
 // TESTCASE: legal navigation in a do-while() statement
 ruleset test65
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
         int count = 0;
         do

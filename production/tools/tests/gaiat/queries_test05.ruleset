@@ -3,7 +3,7 @@
 // GAIAPLAT-948 (fixed)
 ruleset test124
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;

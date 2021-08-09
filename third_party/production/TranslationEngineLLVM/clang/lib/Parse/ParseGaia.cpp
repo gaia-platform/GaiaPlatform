@@ -82,7 +82,7 @@ std::string Parser::GetExplicitNavigationPath()
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
     }
-    else if (previousPreviousToken.is(tok::colon))
+    else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
         if (tagToken.is(tok::identifier))
@@ -215,12 +215,12 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs, GaiaA
     {
         if (attributeType == Ruleset)
         {
-            if (Tok.getIdentifierInfo()->getName().equals("Table"))
+            if (Tok.getIdentifierInfo()->getName().equals("tables"))
             {
                 return ParseRulesetTable(attrs, EndLoc);
             }
 
-            if (Tok.getIdentifierInfo()->getName().equals("SerialStream"))
+            if (Tok.getIdentifierInfo()->getName().equals("serialize"))
             {
                 return ParseRulesetSerialStream(attrs, EndLoc);
             }
@@ -373,7 +373,7 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs, GaiaAttribute
 bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("SerialStream") && "Not a SerialStream attribute!");
+    assert(Tok.getIdentifierInfo()->getName().equals("serialize") && "Not a 'serialize' attribute!");
 
     ArgsVector argExprs;
 
@@ -419,7 +419,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("Table") && "Not a ruleset table!");
+    assert(Tok.getIdentifierInfo()->getName().equals("tables") && "Not a 'tables' attribute!");
 
     ArgsVector argExprs;
 
@@ -600,7 +600,7 @@ void Parser::ParseRule(Declarator &D)
 
 bool Parser::isGaiaSpecialFunction(StringRef name) const
 {
-    if (name == "Insert")
+    if (name == "insert")
     {
         return true;
     }

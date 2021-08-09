@@ -2489,12 +2489,13 @@ private:
     Rule
   };
 
-  static constexpr char c_on_update_rule_attribute[] = "OnUpdate";
-  static constexpr char c_on_insert_rule_attribute[] = "OnInsert";
-  static constexpr char c_on_change_rule_attribute[] = "OnChange";
+  static constexpr char c_on_update_rule_attribute[] = "on_update";
+  static constexpr char c_on_insert_rule_attribute[] = "on_insert";
+  static constexpr char c_on_change_rule_attribute[] = "on_change";
 
   std::unordered_map<SourceLocation, std::string> insertCallTableMap;
   std::unordered_map<SourceLocation, std::vector<std::string>> insertCallParameterMap;
+  std::unordered_set<SourceLocation> insertCallParameterLocations;
 
   bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
                             GaiaAttributeType attributeType,

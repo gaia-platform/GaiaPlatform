@@ -111,6 +111,15 @@ struct rewriter_history_t
     rewriter_operation_t operation;
 };
 
+struct insert_data_t
+{
+    SourceRange expression_range;
+    string table_name;
+    unordered_map<string, SourceRange> argument_map;
+    unordered_map<SourceRange, string> argument_replacement_map;
+};
+
+vector<insert_data_t> g_insert_data;
 vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
 unordered_map<SourceRange, string> g_variable_declaration_location;
@@ -138,8 +147,7 @@ SourceLocation get_previous_token_location(SourceLocation location, const Rewrit
     while (location != start_of_file)
     {
         location = Lexer::GetBeginningOfToken(location, rewriter.getSourceMgr(), rewriter.getLangOpts());
-        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) &&
-            token.isNot(tok::comment))
+        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) && token.isNot(tok::comment))
         {
             break;
         }
@@ -556,6 +564,63 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
     if (g_is_generation_error)
     {
         return;
+    }
+
+    for (auto& insert_data : g_insert_data)
+    {
+        string class_qualification_string = "gaia::";
+        class_qualification_string
+            .append(table_navigation_t::get_table_data().find(insert_data.table_name)->second.db_name)
+            .append("::")
+            .append(insert_data.table_name)
+            .append("_t::");
+        string replacement_string = class_qualification_string;
+        replacement_string
+            .append("get(")
+            .append(class_qualification_string)
+            .append("insert_row(");
+        vector<string> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        const auto table_data_iterator = table_navigation_t::get_table_data().find(insert_data.table_name);
+        // Generate call arguments.
+        for (const auto& call_argument : function_arguments)
+        {
+            const auto argument_map_iterator = insert_data.argument_map.find(call_argument);
+            if (argument_map_iterator == insert_data.argument_map.end())
+            {
+                // Provide default parameter value.
+                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
+                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                {
+                case data_type_t::e_bool:
+                    replacement_string.append("false,");
+                    break;
+                case data_type_t::e_int8:
+                case data_type_t::e_uint8:
+                case data_type_t::e_int16:
+                case data_type_t::e_uint16:
+                case data_type_t::e_int32:
+                case data_type_t::e_uint32:
+                case data_type_t::e_int64:
+                case data_type_t::e_uint64:
+                case data_type_t::e_float:
+                case data_type_t::e_double:
+                    replacement_string.append("0,");
+                    break;
+                case data_type_t::e_string:
+                    replacement_string.append("\"\",");
+                    break;
+                }
+            }
+            else
+            {
+                // Provide value from the code.
+                replacement_string.append(insert_data.argument_replacement_map[argument_map_iterator->second]).append(",");
+            }
+        }
+        replacement_string.resize(replacement_string.size() - 1);
+        replacement_string.append("))");
+
+        rewriter.ReplaceText(insert_data.expression_range, replacement_string);
     }
 
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
@@ -994,7 +1059,7 @@ void optimize_subscription(const string& table, int rule_count)
 bool has_multiple_anchors()
 {
     static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
-                                               "'OnInsert', 'OnChange', or 'OnUpdate'.";
+                                               "'on_insert', 'on_change', or 'on_update'.";
     static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
                                                "from different tables.";
 
@@ -1010,7 +1075,7 @@ bool has_multiple_anchors()
         return true;
     }
 
-    // Handle the special case of OnUpdate(table1, table2.field)
+    // Handle the special case of on_update(table1, table2.field)
     if (g_active_fields.size() == 1
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
@@ -1525,8 +1590,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     {
         return false;
     }
-    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") ||
-        explicit_path_attribute->getPath().startswith("@/");
+    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
     vector<string> path_components;
@@ -1725,9 +1789,20 @@ public:
         }
         if (expression_source_range.isValid())
         {
+            string replacement = variable_name + "." + field_name + "()";
+            for (auto& insert_data : g_insert_data)
+            {
+                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                {
+                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
+                    {
+                        insert_data_argument_range_iterator.second = replacement;
+                    }
+                }
+            }
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-            m_rewriter.ReplaceText(expression_source_range, variable_name + "." + field_name + "()");
-            g_rewriter_history.push_back({expression_source_range, variable_name + "." + field_name + "()", replace_text});
+            m_rewriter.ReplaceText(expression_source_range, replacement);
+            g_rewriter_history.push_back({expression_source_range, replacement, replace_text});
             auto offset
                 = Lexer::MeasureTokenLength(
                       expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts())
@@ -2221,6 +2296,7 @@ public:
         g_rewriter_history.clear();
         g_nomatch_location.clear();
         g_nomatch_location_map.clear();
+        g_insert_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -2335,6 +2411,7 @@ public:
         g_rewriter_history.clear();
         g_nomatch_location.clear();
         g_nomatch_location_map.clear();
+        g_insert_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -2585,14 +2662,14 @@ public:
             {
                 if (explicit_path_present)
                 {
-                    cerr << "Insert call cannot be used with navigation." << endl;
+                    cerr << "'insert' call cannot be used with navigation." << endl;
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    cerr << "Insert call cannot be used with tags." << endl;
+                    cerr << "'insert' call cannot be used with tags." << endl;
                     g_is_generation_error = true;
                     return;
                 }
@@ -2676,7 +2753,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("DeleteCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("RemoveCall");
         if (expression != nullptr)
         {
             m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
@@ -2715,10 +2792,11 @@ public:
             g_is_generation_error = true;
             return;
         }
+        insert_data_t insert_data;
+        insert_data.expression_range = SourceRange(expression->getBeginLoc(), expression->getEndLoc());
         SourceLocation argument_start_location;
-        unordered_map<string, string> argument_map;
         const ValueDecl* decl = expression_declaration->getDecl();
-        string table_name = get_table_name(decl);
+        insert_data.table_name = get_table_name(decl);
         // Parse insert call arguments to buid name value map.
         for (auto argument : expression->arguments())
         {
@@ -2728,66 +2806,14 @@ public:
             string raw_argument_name = m_rewriter.getRewrittenText(
                 SourceRange(argument_start_location, argument->getSourceRange().getEnd()));
             size_t argument_name_end_position = raw_argument_name.find(':');
-            string argument_name = raw_argument_name.substr(0, argument_name_end_position - 1);
+            string argument_name = raw_argument_name.substr(0, argument_name_end_position);
             //Trim the argument name of whitespaces.
             argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
             argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
-            argument_map[argument_name] = m_rewriter.getRewrittenText(argument->getSourceRange());
+            insert_data.argument_map[argument_name] = argument->getSourceRange();
+            insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
         }
-        string class_qualification_string = "gaia::";
-        class_qualification_string
-            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
-            .append("::")
-            .append(table_name)
-            .append("_t::");
-        string replacement_string = class_qualification_string;
-        replacement_string
-            .append("get(")
-            .append(class_qualification_string)
-            .append("insert_row(");
-        vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
-        const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
-        // Generate call arguments.
-        for (const auto& call_argument : function_arguments)
-        {
-            const auto argument_map_iterator = argument_map.find(call_argument);
-            if (argument_map_iterator == argument_map.end())
-            {
-                // Provide default parameter value.
-                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
-                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
-                {
-                case data_type_t::e_bool:
-                    replacement_string.append("false,");
-                    break;
-                case data_type_t::e_int8:
-                case data_type_t::e_uint8:
-                case data_type_t::e_int16:
-                case data_type_t::e_uint16:
-                case data_type_t::e_int32:
-                case data_type_t::e_uint32:
-                case data_type_t::e_int64:
-                case data_type_t::e_uint64:
-                case data_type_t::e_float:
-                case data_type_t::e_double:
-                    replacement_string.append("0,");
-                    break;
-                case data_type_t::e_string:
-                    replacement_string.append("\"\",");
-                    break;
-                }
-            }
-            else
-            {
-                // Provide value from the code.
-                replacement_string.append(argument_map_iterator->second).append(",");
-            }
-        }
-        replacement_string.resize(replacement_string.size() - 1);
-        replacement_string.append("))");
-
-        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
-        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
+        g_insert_data.push_back(insert_data);
         g_insert_call_locations.insert(expression->getBeginLoc());
     }
 
@@ -3126,14 +3152,14 @@ public:
         StatementMatcher declarative_delete_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("Delete"))),
+                  callee(cxxMethodDecl(hasName("remove"))),
                   hasDescendant(table_call_matcher))
-                  .bind("DeleteCall");
+                  .bind("RemoveCall");
 
         StatementMatcher declarative_insert_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("Insert"))),
+                  callee(cxxMethodDecl(hasName("insert"))),
                   hasDescendant(table_call_matcher))
                   .bind("InsertCall");
 

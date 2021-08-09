@@ -1,6 +1,6 @@
 // RUN: %clang_cc1 -fsyntax-only -verify -fgaia-extensions %s
 
-ruleset test_table Table(sensor, incubator) // expected-error {{expected '{'}}
+ruleset test_table tables(sensor, incubator) // expected-error {{expected '{'}}
 {
     {
         min_temp += @value;
@@ -9,7 +9,7 @@ ruleset test_table Table(sensor, incubator) // expected-error {{expected '{'}}
 }
 
 // expected-note@+1 {{to match this '('}}
-ruleset test_table_1 : Table(sensor incubator) // expected-error {{expected ')'}}
+ruleset test_table_1 : tables(sensor incubator) // expected-error {{expected ')'}}
 {
     {
         min_temp += @value;
@@ -25,7 +25,7 @@ ruleset test_table_2 : table123(sensor, incubator) // expected-error {{Invalid G
     }
 }
 
-ruleset test_table_3 : Table(sensor, incubator) Table(sensor, incubator) // expected-error {{Invalid Gaia attribute.}}
+ruleset test_table_3 : tables(sensor, incubator) tables(sensor, incubator) // expected-error {{Invalid Gaia attribute.}}
 {
     {
         min_temp += @value;
@@ -33,14 +33,14 @@ ruleset test_table_3 : Table(sensor, incubator) Table(sensor, incubator) // expe
     }
 }
 
-ruleset test_table_4 : Table() { // expected-error {{Invalid Gaia ruleset attribute.}}
+ruleset test_table_4 : tables() { // expected-error {{Invalid Gaia ruleset attribute.}}
     {
         min_temp += @value;
         max_temp += min_temp / 2;
     }
 }
 
-ruleset test_table_5 : Table("cbcbc") // expected-error {{expected identifier}}
+ruleset test_table_5 : tables("cbcbc") // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -48,7 +48,7 @@ ruleset test_table_5 : Table("cbcbc") // expected-error {{expected identifier}}
     }
 }
 
-ruleset test_table_6 : Table(345) // expected-error {{expected identifier}}
+ruleset test_table_6 : tables(345) // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -63,7 +63,7 @@ ruleset test_table_7 : { // expected-error {{Invalid Gaia attribute.}}
     }
 }
 
-ruleset test_table_8 : Table(, ) // expected-error {{expected identifier}}
+ruleset test_table_8 : tables(, ) // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -71,14 +71,14 @@ ruleset test_table_8 : Table(, ) // expected-error {{expected identifier}}
     }
 }
 
-ruleset test_table_9: Table(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog.}}
+ruleset test_table_9: tables(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog.}}
 {
     {
         max_temp += min_temp/2;
     }
 }
 
-ruleset test_serial_stream_1 : Table(sensor, incubator), SerialStream() // expected-error {{expected identifier}}
+ruleset test_serial_stream_1 : tables(sensor, incubator), serialize() // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -86,7 +86,7 @@ ruleset test_serial_stream_1 : Table(sensor, incubator), SerialStream() // expec
     }
 }
 // expected-note@+1 {{to match this '('}}
-ruleset test_serial_stream_2 : Table(sensor, incubator), SerialStream(sdfdf, sfdfsf) // expected-error {{expected ')'}}
+ruleset test_serial_stream_2 : tables(sensor, incubator), serialize(sdfdf, sfdfsf) // expected-error {{expected ')'}}
 {
     {
         min_temp += @value;
@@ -94,7 +94,7 @@ ruleset test_serial_stream_2 : Table(sensor, incubator), SerialStream(sdfdf, sfd
     }
 }
 
-ruleset test_serial_stream_3 : Table(sensor, incubator), SerialStream(, ) // expected-error {{expected identifier}}
+ruleset test_serial_stream_3 : tables(sensor, incubator), serialize(, ) // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -103,7 +103,7 @@ ruleset test_serial_stream_3 : Table(sensor, incubator), SerialStream(, ) // exp
 }
 
 // expected-note@+1 {{to match this '('}}
-ruleset test_serial_stream_4 : Table(sensor, incubator), SerialStream(sdsdf, ) // expected-error {{expected ')'}}
+ruleset test_serial_stream_4 : tables(sensor, incubator), serialize(sdsdf, ) // expected-error {{expected ')'}}
 {
     {
         min_temp += @value;
@@ -111,7 +111,7 @@ ruleset test_serial_stream_4 : Table(sensor, incubator), SerialStream(sdsdf, ) /
     }
 }
 
-ruleset test105 Table[actuator] // expected-error {{expected '{'}}
+ruleset test105 tables[actuator] // expected-error {{expected '{'}}
 {
     {
         actuator.value=.5;
@@ -125,7 +125,7 @@ ruleset test109 Fable(actuator) // expected-error {{expected '{'}}
     }
 }
 
-ruleset test110 Table{actuator} // expected-error {{expected '{'}}
+ruleset test110 tables{actuator} // expected-error {{expected '{'}}
 { // expected-error {{expected unqualified-id}}
     {
         actuator.value=.5;

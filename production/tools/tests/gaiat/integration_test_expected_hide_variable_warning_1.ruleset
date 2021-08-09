@@ -2,7 +2,7 @@
 
 ruleset test
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
         if (sensor.value == 5)
         {

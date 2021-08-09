@@ -21,7 +21,7 @@ namespace db
 {
 
 type_generator_t::type_generator_t(gaia_type_t type)
-    : m_type(type), m_iterator(), m_is_initialized(false)
+    : m_type(type), m_iterator(), m_is_initialized(false), m_manage_local_snapshot(false)
 {
 }
 
@@ -33,8 +33,15 @@ std::optional<gaia_id_t> type_generator_t::operator()()
     {
         std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(m_type);
         record_list->start(m_iterator);
-        bool replay_logs = false;
-        server_t::create_local_snapshot(replay_logs);
+
+        // Initialize local snapshot, if needed.
+        // Also, set the flag to clear the snapshot if we opened it.
+        if (!server_t::s_local_snapshot_locators.is_set())
+        {
+            bool replay_logs = false;
+            server_t::create_local_snapshot(replay_logs);
+            m_manage_local_snapshot = true;
+        }
         m_is_initialized = true;
     }
 
@@ -63,7 +70,7 @@ std::optional<gaia_id_t> type_generator_t::operator()()
 
 type_generator_t::~type_generator_t()
 {
-    if (m_is_initialized)
+    if (m_manage_local_snapshot)
     {
         server_t::s_local_snapshot_locators.close();
     }

@@ -2,7 +2,7 @@
 
 ruleset test06
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         float v = S.notavalue;
     }

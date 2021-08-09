@@ -26,8 +26,10 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/db/index_builder.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
@@ -36,6 +38,7 @@
 #include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace std;
 
@@ -74,6 +77,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
+static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -618,6 +622,14 @@ void server_t::init_shared_memory()
     // The listening socket must not be open.
     ASSERT_PRECONDITION(s_listening_socket == -1, "Listening socket should not be open!");
 
+    // Initialize global data structures.
+    txn_metadata_t::init_txn_metadata_map();
+
+    // Initialize watermarks.
+    s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+    s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
 
@@ -651,6 +663,9 @@ void server_t::init_shared_memory()
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
 
+    // Initialize indexes.
+    init_indexes();
+
     // Done with local snapshot.
     s_local_snapshot_locators.close();
 
@@ -676,6 +691,59 @@ void server_t::init_memory_manager()
         s_memory_manager.deallocate(get_address_offset(offset));
     };
     register_object_deallocator(deallocate_object_fn);
+}
+
+// Initialize indexes on startup.
+void server_t::init_indexes()
+{
+    // No data to index-- nothing to do here.
+    if (s_server_conf.persistence_mode() == server_config_t::persistence_mode_t::e_disabled)
+    {
+        return;
+    }
+
+    auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+    // Allocate new txn id for initializing indexes.
+    begin_startup_txn();
+
+    gaia_locator_t locator = c_invalid_gaia_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+
+    while (++locator && locator <= last_locator)
+    {
+        auto obj = locator_to_ptr(locator);
+
+        // Skip system objects -- they are not indexed.
+        if (is_system_object(obj->type))
+        {
+            continue;
+        }
+
+        gaia_id_t type_record_id
+            = type_id_mapping_t::instance().get_record_id(obj->type);
+
+        if (type_record_id == c_invalid_gaia_id)
+        {
+            throw invalid_type(obj->type);
+        }
+
+        for (auto idx : catalog_core_t::list_indexes(type_record_id))
+        {
+            index::index_builder_t::populate_index(idx.id(), obj->type, locator);
+        }
+    }
+}
+
+// On commit, update in-memory-indexes to reflect logged operations.
+void server_t::update_indexes_from_txn_log()
+{
+    ASSERT_PRECONDITION(s_log != nullptr, c_message_uninitialized_txn_log);
+
+    bool replay_logs = true;
+
+    create_local_snapshot(replay_logs);
+    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+    index::index_builder_t::update_indexes_from_logs(*s_log, s_server_conf.skip_catalog_integrity_checks());
 }
 
 address_offset_t server_t::allocate_object(
@@ -2402,6 +2470,7 @@ bool server_t::txn_commit()
 
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
+    update_indexes_from_txn_log();
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
@@ -2487,14 +2556,7 @@ void server_t::run(server_config_t server_conf)
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
 
-        // Initialize global data structures.
         init_shared_memory();
-        txn_metadata_t::init_txn_metadata_map();
-
-        // Initialize watermarks.
-        s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
-        s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-        s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
         // Launch thread to listen for client connections and create session threads.
         std::thread client_dispatch_thread(client_dispatch_handler, server_conf.instance_name());

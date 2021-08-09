@@ -1527,10 +1527,23 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
             {
                 if (FD->hasAttr<RuleAttr>())
                 {
-                  auto tableData = Actions.getCatalogTableList(NameLoc);
+                  auto tableData = Actions.getTableData(NameLoc);
+                  // Check if the identifier is a table name.
                   if (tableData.find(Name->getName()) != tableData.end())
                   {
                     useTypoCorrection = false;
+                  }
+                  else
+                  {
+                    // Check if the identifier is a field.
+                    for (const auto& tableIterator : tableData)
+                    {
+                      if (tableIterator.second.find(Name->getName()) != tableIterator.second.end())
+                      {
+                        useTypoCorrection = false;
+                        break;
+                      }
+                    }
                   }
                 }
             }
