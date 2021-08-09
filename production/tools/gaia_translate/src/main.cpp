@@ -1794,7 +1794,7 @@ public:
             string replacement = variable_name + "." + field_name + "()";
             for (auto& insert_data : g_insert_data)
             {
-                for ( auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
                 {
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
