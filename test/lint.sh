@@ -163,7 +163,7 @@ lint_c_plus_plus_code() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Analyzing the C++ parts of the $PROJECT_NAME project."
     fi
-    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./incubator.cpp" -- -I/opt/gaia/include -I/home/jack/incubator/build/gaia_generated/edc/incubator > "$TEMP_FILE" 2>&1; then
+    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./incubator.cpp" -- -I/opt/gaia/include "-I$SCRIPTPATH/build/gaia_generated/edc/incubator" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "File 'incubator.cpp' contains some lint errors."
     fi
@@ -184,7 +184,7 @@ verify_correct_pipenv_installed() {
     # Due to the Pipfile, when synced, the following libraries should be loaded into pipenv:
     #
     # black==21.7b0, flake8==3.9.2, pylint==2.9.5
-    if ! pipenv sync > "$TEMP_FILE" 2>&1; then
+    if ! pipenv lock > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Cannot sync pipenv for verification of Python scripts."
     fi

@@ -410,7 +410,7 @@ int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_ba
         int rule_3_current_sample = g_rule_3_tracker;
         int rule_4_current_sample = g_rule_4_tracker;
 
-        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base+ rule_4_current_sample - rule_4_sample_base;
+        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base + rule_4_current_sample - rule_4_sample_base;
         if (delta_u == 0)
         {
             if (have_no_deltas)
