@@ -55,6 +55,22 @@ ruleset test_connect_disconnect_fail_in_isolated_table
     }
 };
 
+ruleset test_connect_disconnect_fail_with_wrong_param_types
+{
+    on_insert(farmer)
+    {
+        for (/i : isolated)
+        {
+            // I believe the difference in messages between the table and the links is that in the link type we have only one override
+            // while in the table we have multiple.
+            farmer.connect(i); // expected-error {{no matching member function for call to 'connect'}}
+            farmer.disconnect(i); // expected-error {{no matching member function for call to 'disconnect'}}
+            farmer.incubators.connect(i); // expected-error {{non-const lvalue reference to type 'incubator__type' cannot bind to a value of unrelated type 'isolated__type'}}
+            farmer.incubators.connect(i); // expected-error {{non-const lvalue reference to type 'incubator__type' cannot bind to a value of unrelated type 'isolated__type'}}
+        }
+    }
+};
+
 ruleset test_connect_disconnect_invalid_syntax_1
 {
     on_insert(crop)
