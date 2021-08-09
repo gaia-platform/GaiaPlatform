@@ -13,15 +13,22 @@ please check out the sections on
 
 ## Introduction
 
-This is a modified version of the
-[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/master/production/examples/incubator).
-It has been altered to provide for integration test functionality.
-
-The goal of this project is to take a simple example and turn it into
+The main goal of this project is to take a simple example and turn it into
 an integration test suite that is predictable, maintainable, portable,
 and observable.  Given that statement, if asked why we decided to take
 a given route on solving an issue, the explanation will always
 focus on one of those four goals.
+
+This is a modified version of the
+[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/master/production/examples/incubator).
+It has been altered to provide for integration test functionality.
+The main focus of this framework is to provide for a comprehensive set
+of performance tests and integration tests that can be used in
+various forms as part of a CI/CD pipeline.  Because of the multithreaded
+nature of the product, a lot of the testing centers on performance
+testing, and that is a big concern.  However, in cases where correctness
+is available, the framework provides functionality to help ensure that
+a given test executes with predictable results.
 
 To that extent, a lot of the changes and commands described in the
 following sections are there to provide closer alignment with those goals.
@@ -117,8 +124,24 @@ of commands switches to the incubators menu (`m`), selects chickens (`c`),
 enabled the chicken incubator (`on`), and then returns to the main menu (`m`).
 The second group of commands performs the same action, but on the puppy (`p`)
 incubator instead.
-Once that setup is completed, the `w5` waits for 5 milliseconds, and then
-invokes the `step` function `1023` times before exiting the simulation.
+
+At that point, the second part of the file takes over.  This is the part of
+the file that was use the
+[incubator modifications](#modifications-to-the-incubator-example)
+to more accurately control the incubator's behavior.  To start with,
+the `w5`commands waits for 5 milliseconds to ensure that any rules triggered
+by the setup will complete before the testing continues.  This may not be
+100% necessary, but it provides a good buffer to ensure the isolation of
+test measurements.
+
+With that pause completed, the test then invokes the `step_and_emit_state` function `1023` times
+before exiting the simulation.  As detailed in the section on
+[incubator modifications](#modifications-to-the-incubator-example),
+a step is a single loop of processing for the incubator simulation. In particular,
+the `step_and_emit_state` method invokes the step, waits until any rules
+from the Rules Engine have fired, and then outputs the step.  This allows
+a picture of the database along an entire run of the test to be collected
+and compared to the `expected_output.json` file for that test.
 
 ### Test Output
 
@@ -238,7 +261,9 @@ this means that 5 directories would be created, `test-result/smoke_1` to
 
 To try and ensure that the timing results from one test within a suite does not
 affect another test within the same suite, suite tests are executed with a
-15 second pause before each test.  Currently, this is not configurable.
+15 second pause before each test.  Currently, this is not configurable.  While
+15 seconds may seem like a long time, it is worth it to ensure that isolate between
+the various test suites in maintained.
 
 ### Summary.json File
 

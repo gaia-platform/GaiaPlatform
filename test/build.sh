@@ -94,10 +94,10 @@ parse_command_line() {
 generate_makefile() {
     if [ $VERBOSE_MODE -ne 0 ]; then
         echo "Generating the makefile..."
-        cmake -B build
+        cmake -B "$BUILD_DIRECTORY"
         DID_FAIL=$?
     else
-        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >"$TEMP_FILE" 2>&1
+        cmake -B "$BUILD_DIRECTORY" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >"$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     if [ $DID_FAIL -ne 0 ]; then
@@ -114,7 +114,7 @@ invoke_makefile() {
     if [ $VERBOSE_MODE -ne 0 ]; then
         echo "Building the executable..."
     fi
-    if ! make -C build --silent; then
+    if ! make -C "$BUILD_DIRECTORY" --silent; then
         echo "Build of the executable failed."
         complete_process 1
     fi
@@ -164,6 +164,7 @@ handle_optional_flags() {
         echo "drop database $DATABASE_NAME" > "$TEMP_FILE"
         echo "exit" >> "$TEMP_FILE"
         gaiac -i < "$TEMP_FILE" > /dev/null
+        rm -rf "$BUILD_DIRECTORY/gaia_generated/edc"
     fi
 }
 
