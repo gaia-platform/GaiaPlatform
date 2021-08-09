@@ -15,7 +15,7 @@ bool base_index_scan_physical_t::is_visible(const db::index::index_record_t& rec
 
 // This method initializes the physical index scan.
 // Initialization is fairly expensive and complicated (RPC, locking on structures in the server)
-// So we delay the intialization until it is needed.
+// So we delay the initialization until it is needed.
 template <typename T_index, typename T_index_iterator>
 void index_scan_physical_t<T_index, T_index_iterator>::init()
 {
