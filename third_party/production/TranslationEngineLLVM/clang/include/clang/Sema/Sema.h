@@ -4648,7 +4648,7 @@ private:
   QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
-    SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
+                 SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
 
   /// Lookup a class name in the given context. Returns nullptr if the class is not found.
   /// If the class has been defined in this context (eg. "class x {};") the defined type is

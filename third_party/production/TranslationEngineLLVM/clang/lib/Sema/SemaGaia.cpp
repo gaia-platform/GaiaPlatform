@@ -631,12 +631,12 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
 
 TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* scope)
 {
-    DeclarationName declarationName = &Context.Idents.get(className);
+    DeclarationName declName = &Context.Idents.get(className);
 
-    LookupResult previousDeclLookup(*this, declarationName, loc, LookupTagName, forRedeclarationInCurContext());
+    LookupResult previousDeclLookup(*this, declName, loc, LookupTagName, forRedeclarationInCurContext());
     LookupName(previousDeclLookup, scope);
 
-    TagDecl* classDeclaration = nullptr;
+    TagDecl* classDecl = nullptr;
 
     if (!previousDeclLookup.empty())
     {
@@ -645,17 +645,17 @@ TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* sco
              iter++)
         {
             NamedDecl* foundDecl = iter.getDecl();
-            classDeclaration = cast<TagDecl>(previousDeclLookup.getFoundDecl());
+            classDecl = cast<TagDecl>(previousDeclLookup.getFoundDecl());
 
-            if (classDeclaration->isCompleteDefinition())
+            if (classDecl->isCompleteDefinition())
             {
                 // This class has already been declared and defined in this context.
-                return classDeclaration;
+                return classDecl;
             }
         }
     }
 
-    return classDeclaration;
+    return classDecl;
 }
 
 QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
