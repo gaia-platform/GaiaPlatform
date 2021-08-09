@@ -1,0 +1,22 @@
+# Turn chicken portion on.
+m
+c
+on
+m
+# Turn puppy portion on.
+m
+p
+on
+m
+# Set up pause, anything less than 1000 microseconds has too much noise.
+T200
+# Wait 5 milliseconds to allow the turn on effects to finish.
+w5
+# Take 1023 steps.
+o
+t1023
+o
+x
+# Print out the final state.
+#w2
+#j
