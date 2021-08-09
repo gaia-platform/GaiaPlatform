@@ -59,6 +59,7 @@ bool g_has_intermediate_state_output = false;
 atomic<int> g_rule_1_tracker{0};
 atomic<int> g_rule_2_tracker{0};
 atomic<int> g_rule_3_tracker{0};
+atomic<int> g_rule_4_tracker{0};
 
 const int c_default_sleep_time_in_seconds_after_stop = 6;
 const int c_default_sim_with_wait_pause_in_microseconds = 1000;
@@ -387,7 +388,7 @@ void simulation_step()
     tx.commit();
 }
 
-int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base)
+int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base, int rule_4_sample_base)
 {
     my_time_point end_sleep_start_mark = my_clock::now();
 
@@ -407,8 +408,9 @@ int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_ba
         int rule_1_current_sample = g_rule_1_tracker;
         int rule_2_current_sample = g_rule_2_tracker;
         int rule_3_current_sample = g_rule_3_tracker;
+        int rule_4_current_sample = g_rule_4_tracker;
 
-        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base;
+        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base+ rule_4_current_sample - rule_4_sample_base;
         if (delta_u == 0)
         {
             if (have_no_deltas)
@@ -447,8 +449,9 @@ void wait_for_processing_to_complete()
     int rule_1_sample_base = g_rule_1_tracker;
     int rule_2_sample_base = g_rule_2_tracker;
     int rule_3_sample_base = g_rule_3_tracker;
+    int rule_4_sample_base = g_rule_4_tracker;
 
-    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
+    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
 
     // int gh = wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
     // int nrule_3_sample_base = g_rule_3_tracker;
@@ -466,10 +469,11 @@ void step_and_emit_state(bool emit_text)
     int rule_1_sample_base = g_rule_1_tracker;
     int rule_2_sample_base = g_rule_2_tracker;
     int rule_3_sample_base = g_rule_3_tracker;
+    int rule_4_sample_base = g_rule_4_tracker;
 
     step();
 
-    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
+    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
 
     if (emit_text)
     {
