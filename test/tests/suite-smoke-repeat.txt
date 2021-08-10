@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #
 # Simple test suite to run repeated smoke tests.
 #
@@ -6,3 +7,8 @@
 #
 smoke repeat 5
 smoke-time-only repeat 5
+=======
+smoke repeat 5
+smoke-test repeat 5
+smoke-long-stats repeat 5
+>>>>>>> d31281a66a34357638d8003ce6da8e53241a55a2

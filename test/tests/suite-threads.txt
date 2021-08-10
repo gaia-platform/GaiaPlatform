@@ -1,20 +1,29 @@
+<<<<<<< HEAD
 #
 # Simple test suite with both of the standard smoke tests.
 #
 
 # `Smoke` suite with different threads
+=======
+>>>>>>> d31281a66a34357638d8003ce6da8e53241a55a2
 smoke threads 1 repeat 3
 smoke threads 2 repeat 3
 smoke threads 3 repeat 3
 smoke threads 4 repeat 3
+<<<<<<< HEAD
 
 # `Smoke` suite with no pauses at all and different threads
+=======
+>>>>>>> d31281a66a34357638d8003ce6da8e53241a55a2
 smoke-time-only threads 1 repeat 3
 smoke-time-only threads 2 repeat 3
 smoke-time-only threads 3 repeat 3
 smoke-time-only threads 4 repeat 3
+<<<<<<< HEAD
 
 # `Smoke` suite with constant pause and different threads
+=======
+>>>>>>> d31281a66a34357638d8003ce6da8e53241a55a2
 smoke-time-test threads 1 repeat 3
 smoke-time-test threads 2 repeat 3
 smoke-time-test threads 3 repeat 3

@@ -21,14 +21,20 @@ namespace gaia
 namespace db
 {
 
-gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator)
+    : m_locator(locator)
 {
-    m_locator = db_hash_map::find(id);
 }
 
 gaia_id_t gaia_ptr_t::generate_id()
 {
     return allocate_id();
+}
+
+gaia_ptr_t gaia_ptr_t::open(
+    common::gaia_id_t id)
+{
+    return gaia_ptr_t(db_hash_map::find(id));
 }
 
 gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
