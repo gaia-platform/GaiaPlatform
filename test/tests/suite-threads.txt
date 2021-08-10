@@ -1,0 +1,12 @@
+smoke threads 1 repeat 3
+smoke threads 2 repeat 3
+smoke threads 3 repeat 3
+smoke threads 4 repeat 3
+smoke-time-only threads 1 repeat 3
+smoke-time-only threads 2 repeat 3
+smoke-time-only threads 3 repeat 3
+smoke-time-only threads 4 repeat 3
+smoke-time-test threads 1 repeat 3
+smoke-time-test threads 2 repeat 3
+smoke-time-test threads 3 repeat 3
+smoke-time-test threads 4 repeat 3
