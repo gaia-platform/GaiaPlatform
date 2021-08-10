@@ -17,12 +17,6 @@ diagnostic_t::diagnostic_t(const char* message)
 
 diagnostic_t::~diagnostic_t()
 {
-    /*
-    if (*m_message != '\0')
-    {
-        std::cerr << m_message;
-    }
-    */
     std::cerr << m_message << std::endl;
 }
 
