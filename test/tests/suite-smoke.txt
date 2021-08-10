@@ -1,2 +1,6 @@
+#
+# Simple test suite with both of the standard smoke tests.
+#
+
 smoke
 smoke-time-only
