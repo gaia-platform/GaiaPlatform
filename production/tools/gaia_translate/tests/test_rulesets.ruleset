@@ -7,6 +7,7 @@
 #include <cstring>
 #include <atomic>
 
+#include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
 bool g_oninsert_called;
@@ -199,6 +200,7 @@ ruleset test_query_1
     // Auto-sum of student hours.
     on_insert(registration)
     {
+        // GAIAPLAT-1124 (fixed)
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
@@ -405,22 +407,13 @@ ruleset test_query_9
 // This ruleset is not used, but its translation must compile with C++.
 ruleset test_compile
 {
-    // GAIAPLAT-1140
-#ifdef TEST_FAILURES
-    on_update(student)
+    // GAIAPLAT-1112
+    on_insert(student)
     {
-BREAK_TARGET:
-        while (age < 13)
-        {
-            break BREAK_TARGET;
-        }
-        int i = 0;
-        i++;
+        student.insert(surname: course.name, total_hours: course.hours);
     }
-#endif
 
     // GAIAPLAT-1142
-#ifdef TEST_FAILURES
     on_update(student)
     {
     BREAK1_TARGET:
@@ -441,6 +434,32 @@ BREAK_TARGET:
                 break BREAK2_TARGET;
             }
         }
+    }
+
+    // GAIAPLAT-564 (tentative)
+    // TESTCASE: use field name same as a catalog field name, expect no conflict
+    on_insert(course)
+    {
+        printf("%s\n", name);
+    }
+
+    // Same as above, but a longer navigation.
+    on_insert(student)
+    {
+        printf("%s\n", name);
+    }
+
+    // GAIAPLAT-1140
+#if TEST_FAILURES
+    on_update(student)
+    {
+    BREAK_TARGET:
+        while (age < 13)
+        {
+            break BREAK_TARGET;
+        }
+        int i = 0;
+        i++;
     }
 #endif
 

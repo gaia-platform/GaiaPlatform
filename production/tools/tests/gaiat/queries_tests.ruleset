@@ -417,3 +417,14 @@ ruleset test42
         tot_acres += animal->feeding.portion;
     }
 }
+
+// TESTCASE: observe scope of a declared variable assigned from field
+// GAIAPLAT-1119 (fixed)
+ruleset test43
+{
+    on_update(crop)
+    {
+        int acre = crop.acres;
+        printf("%d\n", acre);
+    }
+}

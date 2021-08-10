@@ -131,7 +131,7 @@ CONTINUE_TARGET:
 int strcmp(const char*, const char*);
 
 // TESTCASE: break to multiple labels
-// GAIAPLAT-1074
+// GAIAPLAT-1074 (fixed)
 ruleset test13
 {
     on_update(raised)
@@ -164,7 +164,7 @@ BREAK4_TARGET:
 }
 
 // TESTCASE: continue to multiple labels
-// GAIAPLAT-1074
+// GAIAPLAT-1074 (fixed)
 ruleset test14
 {
     on_update(raised)
@@ -246,17 +246,19 @@ BREAK_TARGET:
 
 // TESTCASE: break from non-declarative if within declarative while
 // GAIAPLAT-1140
+#ifdef TEST_FAILURES
 ruleset test17
 {
     on_update(crop)
     {
 BREAK_TARGET:
-        if (acres < 13)
+        while (acres < 13)
         {
             break BREAK_TARGET;
         }
     }
 }
+#endif
 
 
 // TESTCASE: break from an if condition with two navigations
@@ -272,3 +274,16 @@ BREAK_TARGET:
         }
     }
 }
+
+#ifdef TEST_FAILURES
+// GAIAPLAT-1151
+ruleset test19
+{
+#ifdef TEST_IFDEF
+#endif
+    on_update(crop)
+    {
+        crop.acres = 0;
+    }
+}
+#endif

@@ -151,6 +151,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${RULESETS} -output ${RULESETS_OUT} --
     -I ${GAIA_INC}
     -I ${FLATBUFFERS_INC}
+    -I ${GAIA_GENERATED_CODE}/prerequisites
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
   COMMAND pkill -f -KILL gaia_db_server &
