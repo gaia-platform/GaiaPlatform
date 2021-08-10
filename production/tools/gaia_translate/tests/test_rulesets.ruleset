@@ -402,6 +402,50 @@ ruleset test_query_9
     }
 }
 
+// This ruleset is not used, but its translation must compile with C++.
+ruleset test_compile
+{
+    // GAIAPLAT-1140
+#ifdef TEST_FAILURES
+    on_update(student)
+    {
+BREAK_TARGET:
+        while (age < 13)
+        {
+            break BREAK_TARGET;
+        }
+        int i = 0;
+        i++;
+    }
+#endif
+
+    // GAIAPLAT-1142
+#ifdef TEST_FAILURES
+    on_update(student)
+    {
+    BREAK1_TARGET:
+        for (R:registration)
+        {
+    BREAK2_TARGET:
+            for (R->C:course)
+            {
+    BREAK3_TARGET:
+                for (C.required_by->P:prereq)
+                {
+                    break BREAK1_TARGET;
+                    for (P.prereq->course)
+                    {
+                        break BREAK3_TARGET;
+                    }
+                }
+                break BREAK2_TARGET;
+            }
+        }
+    }
+#endif
+
+}
+
 ruleset test_insert_delete
 {
     on_update(S:student)
