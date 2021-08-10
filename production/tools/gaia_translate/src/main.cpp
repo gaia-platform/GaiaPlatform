@@ -111,6 +111,7 @@ struct rewriter_history_t
     rewriter_operation_t operation;
 };
 
+// Data structure to hold data for code generation for insert function calls.
 struct insert_data_t
 {
     SourceRange expression_range;
@@ -119,6 +120,8 @@ struct insert_data_t
     unordered_map<SourceRange, string> argument_replacement_map;
 };
 
+// Vector to contain all the data to properly generate code for insert function call.
+// The generation deferred to allow proper code generation for declarative references as arguments for insert call.
 vector<insert_data_t> g_insert_data;
 vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
@@ -137,6 +140,7 @@ static void print_version(raw_ostream& stream)
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
+// Get location of a token before the current location.
 SourceLocation get_previous_token_location(SourceLocation location, const Rewriter& rewriter)
 {
     Token token;
@@ -2219,6 +2223,18 @@ public:
                     + ";w.update_row(); return w." + field_name + ";}()";
             }
         }
+
+        for (auto& insert_data : g_insert_data)
+        {
+            for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+            {
+                if (is_range_contained_in_another_range(SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)), insert_data_argument_range_iterator.first))
+                {
+                    insert_data_argument_range_iterator.second = replace_string;
+                }
+            }
+        }
+
         m_rewriter.ReplaceText(
             SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
             replace_string);
@@ -2555,45 +2571,50 @@ public:
         const auto* event_expression = result.Nodes.getNodeAs<MemberExpr>("event_type");
         const auto* type_expression = result.Nodes.getNodeAs<MemberExpr>("gaia_type");
 
+        string replacement_text;
+        SourceRange expression_source_range;
+
         if (ruleset_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                "\"" + g_current_ruleset + "\"");
-            g_rewriter_history.push_back(
-                {SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                 "\"" + g_current_ruleset + "\"", replace_text});
+            expression_source_range = SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc());
+            replacement_text = "\"" + g_current_ruleset + "\"";
         }
 
         if (rule_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                "gaia_rule_name");
+            expression_source_range = SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc());
+            replacement_text = "gaia_rule_name";
             g_is_rule_context_rule_name_referenced = true;
-            g_rewriter_history.push_back(
-                {SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                 "gaia_rule_name", replace_text});
         }
 
         if (event_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
-                "context->event_type");
-            g_rewriter_history.push_back(
-                {SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
-                 "context->event_type", replace_text});
+            expression_source_range = SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc());
+            replacement_text = "context->event_type";
         }
 
         if (type_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                "context->gaia_type");
+            expression_source_range = SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc());
+            replacement_text = "context->gaia_type";
+        }
+
+        if (expression_source_range.isValid())
+        {
+            m_rewriter.ReplaceText(expression_source_range, replacement_text);
             g_rewriter_history.push_back(
-                {SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                 "context->gaia_type", replace_text});
+                {expression_source_range, replacement_text, replace_text});
+
+            for (auto& insert_data : g_insert_data)
+            {
+                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                {
+                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
+                    {
+                        insert_data_argument_range_iterator.second = replacement_text;
+                    }
+                }
+            }
         }
     }
 
