@@ -29,9 +29,19 @@ table table_scan_info_t {
     type_id: uint64;
 }
 
+enum index_query_type_t:uint8 {
+    POINT_READ
+}
+
+table index_range_query_t {
+    query_type : index_query_type_t;
+    key : [byte];
+}
+
 table index_scan_info_t {
     index_id: uint64;
     txn_id : uint64;
+    queries : [index_range_query_t];
 }
 
 union request_data_t {
