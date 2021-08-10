@@ -135,21 +135,21 @@ Datum convert_to_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+        return Int16GetDatum(static_cast<int16_t>(value.m_hold.integer_value));
 
     case reflection::Int:
     case reflection::UInt:
-        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+        return Int32GetDatum(static_cast<int32_t>(value.m_hold.integer_value));
 
     case reflection::Long:
     case reflection::ULong:
-        return Int64GetDatum(value.hold.integer_value);
+        return Int64GetDatum(value.m_hold.integer_value);
 
     case reflection::Float:
-        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+        return Float4GetDatum(static_cast<float>(value.m_hold.float_value));
 
     case reflection::Double:
-        return Float8GetDatum(value.hold.float_value);
+        return Float8GetDatum(value.m_hold.float_value);
 
     default:
         ereport(
@@ -168,20 +168,20 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 
     if (value.type == reflection::String)
     {
-        if (value.hold.string_value == nullptr)
+        if (value.m_hold.string_value == nullptr)
         {
             nullable_datum.isnull = true;
             return nullable_datum;
         }
 
-        size_t string_length = strlen(value.hold.string_value);
+        size_t string_length = strlen(value.m_hold.string_value);
         size_t pg_text_length = string_length + VARHDRSZ;
         text* pg_text = reinterpret_cast<text*>(palloc(pg_text_length));
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
         SET_VARSIZE(pg_text, pg_text_length);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-        memcpy(VARDATA(pg_text), value.hold.string_value, string_length);
+        memcpy(VARDATA(pg_text), value.m_hold.string_value, string_length);
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
         nullable_datum.value = CStringGetDatum(pg_text);
@@ -245,30 +245,30 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
     case data_type_t::e_int8:
     case data_type_t::e_uint16:
     case data_type_t::e_int16:
-        data_holder.hold.integer_value = DatumGetInt16(value);
+        data_holder.m_hold.integer_value = DatumGetInt16(value);
         break;
 
     case data_type_t::e_uint32:
     case data_type_t::e_int32:
-        data_holder.hold.integer_value = DatumGetInt32(value);
+        data_holder.m_hold.integer_value = DatumGetInt32(value);
         break;
 
     case data_type_t::e_uint64:
     case data_type_t::e_int64:
-        data_holder.hold.integer_value = DatumGetInt64(value);
+        data_holder.m_hold.integer_value = DatumGetInt64(value);
         break;
 
     case data_type_t::e_float:
-        data_holder.hold.float_value = DatumGetFloat4(value);
+        data_holder.m_hold.float_value = DatumGetFloat4(value);
         break;
 
     case data_type_t::e_double:
-        data_holder.hold.float_value = DatumGetFloat8(value);
+        data_holder.m_hold.float_value = DatumGetFloat8(value);
         break;
 
     case data_type_t::e_string:
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-        data_holder.hold.string_value = TextDatumGetCString(value);
+        data_holder.m_hold.string_value = TextDatumGetCString(value);
         break;
 
     default:

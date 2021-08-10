@@ -15,6 +15,7 @@
 #include "field_access.hpp"
 #include "hash_index.hpp"
 #include "range_index.hpp"
+#include "reflection.hpp"
 #include "txn_metadata.hpp"
 #include "type_id_mapping.hpp"
 
@@ -68,11 +69,36 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
 
-    auto& fields = *(index_view.fields());
+    const auto& fields = *(index_view.fields());
     for (auto field_id : fields)
     {
         field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
         k.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
+    }
+
+    return k;
+}
+
+void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
+{
+    for (const auto& k : key.values())
+    {
+        k.serialize(buffer);
+    }
+}
+
+index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer)
+{
+    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
+
+    index_key_t k;
+    auto index_view = index_view_t(id_to_ptr(index_id));
+
+    const auto& fields = *(index_view.fields());
+    for (auto field_id : fields)
+    {
+        data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
+        k.insert(payload_types::data_holder_t(buffer, gaia_to_fb_type(type)));
     }
 
     return k;

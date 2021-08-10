@@ -16,6 +16,8 @@
 
 #include "gaia/exception.hpp"
 
+#include "data_buffer.hpp"
+
 namespace gaia
 {
 namespace db
@@ -61,25 +63,26 @@ union value_holder_t
 // of the encapsulated data type.
 struct data_holder_t
 {
-    reflection::BaseType type;
-    value_holder_t hold;
+    reflection::BaseType m_type;
+    value_holder_t m_hold;
 
     data_holder_t();
     data_holder_t(const data_holder_t&) = default;
     data_holder_t(data_holder_t&&) = default;
+    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type);
 
     // Convenience ctors to allow implicit conversion from native types.
     template <typename T>
     data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>>* = nullptr)
     {
-        type = reflection::Int;
-        hold.integer_value = value;
+        m_type = reflection::Int;
+        m_hold.integer_value = value;
     }
     template <typename T>
     data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && !std::is_signed_v<T>>* = nullptr)
     {
-        type = reflection::UInt;
-        hold.integer_value = value;
+        m_type = reflection::UInt;
+        m_hold.integer_value = value;
     }
     data_holder_t(float value);
     data_holder_t(double value);
@@ -90,6 +93,8 @@ struct data_holder_t
 
     int compare(const data_holder_t& other) const;
     data_hash_t hash() const;
+
+    void serialize(data_write_buffer_t& buffer) const;
 
     // Convenience implicit conversions to native types.
     operator int32_t() const;

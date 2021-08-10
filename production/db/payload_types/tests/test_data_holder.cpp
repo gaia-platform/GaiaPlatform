@@ -39,9 +39,9 @@ TEST(payload_types, type_holder_string)
     data_holder_t value;
     data_holder_t other_value;
 
-    value.type = other_value.type = reflection::String;
-    value.hold.string_value = "Alice";
-    other_value.hold.string_value = "Alyssa";
+    value.m_type = other_value.m_type = reflection::String;
+    value.m_hold.string_value = "Alice";
+    other_value.m_hold.string_value = "Alyssa";
 
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
@@ -53,22 +53,22 @@ TEST(payload_types, type_holder_vector)
     data_holder_t value;
     data_holder_t other_value;
 
-    value.type = other_value.type = reflection::Vector;
-    value.hold.vector_value = "Aloha";
-    other_value.hold.vector_value = "Hello";
+    value.m_type = other_value.m_type = reflection::Vector;
+    value.m_hold.vector_value = "Aloha";
+    other_value.m_hold.vector_value = "Hello";
 
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
     ASSERT_EQ(0, value.compare(value));
 
-    value.hold.vector_value = "BATMAN";
-    other_value.hold.vector_value = "NANANANANANA";
+    value.m_hold.vector_value = "BATMAN";
+    other_value.m_hold.vector_value = "NANANANANANA";
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
     ASSERT_EQ(0, value.compare(value));
 
-    value.hold.vector_value = "";
-    other_value.hold.vector_value = "A";
+    value.m_hold.vector_value = "";
+    other_value.m_hold.vector_value = "A";
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
     ASSERT_EQ(0, value.compare(value));
@@ -80,9 +80,9 @@ TEST(payload_types, type_holder_signed_integer)
     data_holder_t other_value;
 
     // Test signed comparison.
-    value.type = other_value.type = reflection::Int;
-    value.hold.integer_value = c_negated_integer_value;
-    other_value.hold.integer_value = c_integer_value;
+    value.m_type = other_value.m_type = reflection::Int;
+    value.m_hold.integer_value = c_negated_integer_value;
+    other_value.m_hold.integer_value = c_integer_value;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));
@@ -95,9 +95,9 @@ TEST(payload_types, type_holder_unsigned_integer)
     data_holder_t other_value;
 
     // Test unsigned comparison.
-    value.type = other_value.type = reflection::UInt;
-    value.hold.integer_value = c_negated_integer_value;
-    other_value.hold.integer_value = c_integer_value;
+    value.m_type = other_value.m_type = reflection::UInt;
+    value.m_hold.integer_value = c_negated_integer_value;
+    other_value.m_hold.integer_value = c_integer_value;
 
     ASSERT_EQ(1, value.compare(other_value));
     ASSERT_EQ(-1, other_value.compare(value));
@@ -109,9 +109,9 @@ TEST(payload_types, type_holder_float)
     data_holder_t value;
     data_holder_t other_value;
 
-    value.type = other_value.type = reflection::Float;
-    value.hold.float_value = c_float_value;
-    other_value.hold.float_value = c_another_float_value;
+    value.m_type = other_value.m_type = reflection::Float;
+    value.m_hold.float_value = c_float_value;
+    other_value.m_hold.float_value = c_another_float_value;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));
