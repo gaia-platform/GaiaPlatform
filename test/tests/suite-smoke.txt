@@ -1,9 +1,6 @@
-<<<<<<< HEAD
 #
 # Simple test suite with both of the standard smoke tests.
 #
 
-=======
->>>>>>> d31281a66a34357638d8003ce6da8e53241a55a2
 smoke
 smoke-time-only
