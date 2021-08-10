@@ -1,7 +1,22 @@
+#
+# Simple test suite with examples of the different ways the tests for
+# the suite can be started.
+#
+
+# Tests by their own name
 smoke
 smoke-time-only
-smoke-test
-smoke-test repeat 2
-smoke-no-steps
+
+# Repeat a given test X times
+smoke-time-only repeat 2
 smoke-no-steps repeat 2
+
+# Capitalization is not important
 Smoke
+
+# Set the number of threads to execute with.
+smoke-time-only threads 2
+
+# Set the number of threads and the the number of repeats.
+# Note that they must be done in this order.
+smoke-time-test threads 1 repeat 3

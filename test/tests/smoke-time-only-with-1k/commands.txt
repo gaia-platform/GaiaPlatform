@@ -10,7 +10,8 @@ on
 m
 # Wait 5 milliseconds to allow the turn on effects to finish.
 w5
-# Take 1023 steps.
+# Take 1,000 steps.
 o
-s1023
+s1000
 o
+x

@@ -309,7 +309,7 @@ execute_suite_test() {
     NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
     SUB="^[[:space:]]*#"
-    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then
         return
     fi
 
