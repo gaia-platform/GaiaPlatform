@@ -518,7 +518,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        print_error(c_err_active_field_not_supported);
+        diag_err(c_err_active_field_not_supported);
         g_is_generation_error = true;
         return false;
     }
@@ -532,7 +532,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
-        print_error(c_err_table_not_found, table_name);
+        diag_err(c_err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -541,14 +541,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        print_error(c_err_field_not_found, field_name, table_name);
+        diag_err(c_err_field_not_found) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
-        print_error(c_err_field_deprecated, field_name, table_name);
+        diag_err(c_err_field_deprecated) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -680,7 +680,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 string variable_name = variable_declaration_range_iterator.second;
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
-                    print_error(c_err_tag_hidden, variable_name);
+                    diag_err(c_err_tag_hidden) << variable_name;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -688,7 +688,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
-                        print_error(c_err_tag_hidden, variable_name);
+                        diag_err(c_err_tag_hidden) << variable_name;
                     }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
@@ -711,7 +711,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            print_error(c_err_edc_init);
+                            diag_err(c_err_edc_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -824,7 +824,7 @@ void generate_table_subscription(
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
-        print_error(c_err_table_not_found, table);
+        diag_err(c_err_table_not_found) << table;
         g_is_generation_error = true;
         return;
     }
@@ -1078,13 +1078,13 @@ bool has_multiple_anchors()
 {
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
-        print_error(c_err_multi_anchor_tables);
+        diag_err(c_err_multi_anchor_tables);
         return true;
     }
 
     if (g_active_fields.size() > 1)
     {
-        print_error(c_err_multi_anchor_fields);
+        diag_err(c_err_multi_anchor_fields);
         return true;
     }
 
@@ -1093,7 +1093,7 @@ bool has_multiple_anchors()
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
-        print_error(c_err_multi_anchor_tables);
+        diag_err(c_err_multi_anchor_tables);
         return true;
     }
 
@@ -1113,7 +1113,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
-        print_error(c_err_no_active_fields);
+        diag_err(c_err_no_active_fields);
         g_is_generation_error = true;
         return;
     }
@@ -1144,7 +1144,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (field_description.second.empty())
         {
-            print_error(c_err_no_fields_referenced_by_table, table);
+            diag_err(c_err_no_fields_referenced_by_table) << table;
             g_is_generation_error = true;
             return;
         }
@@ -1168,7 +1168,7 @@ void generate_rules(Rewriter& rewriter)
         {
             if (fields.find(field) == fields.end())
             {
-                print_error(c_err_field_not_found, field, table);
+                diag_err(c_err_field_not_found) << field << table;
                 g_is_generation_error = true;
                 return;
             }
@@ -1789,14 +1789,14 @@ public:
             }
             else
             {
-                print_error(c_err_incorrect_base_type);
+                diag_err(c_err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
         }
         else
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1876,14 +1876,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op == nullptr)
         {
-            print_error(c_err_incorrect_matched_operator);
+            diag_err(c_err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
-            print_error(c_err_incorrect_operator_expression);
+            diag_err(c_err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1899,7 +1899,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            print_error(c_err_incorrect_operator_expression_type);
+            diag_err(c_err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -1931,7 +1931,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                print_error(c_err_incorrect_base_type);
+                diag_err(c_err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2015,7 +2015,7 @@ public:
             break;
         }
         default:
-            print_error(c_err_incorrect_operator_type);
+            diag_err(c_err_incorrect_operator_type);
             g_is_generation_error = true;
             return;
         }
@@ -2094,7 +2094,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            print_error(c_err_incorrect_operator_code, op_code);
+            diag_err(c_err_incorrect_operator_code) << op_code;
             g_is_generation_error = true;
             return "";
         }
@@ -2120,14 +2120,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op == nullptr)
         {
-            print_error(c_err_incorrect_matched_operator);
+            diag_err(c_err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
-            print_error(c_err_incorrect_operator_expression);
+            diag_err(c_err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2136,7 +2136,7 @@ public:
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            print_error(c_err_incorrect_operator_expression_type);
+            diag_err(c_err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -2177,7 +2177,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                print_error(c_err_incorrect_base_type);
+                diag_err(c_err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2463,7 +2463,7 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                print_error(c_err_duplicate_ruleset, g_current_ruleset);
+                diag_err(c_err_duplicate_ruleset) << g_current_ruleset;
                 g_is_generation_error = true;
                 return;
             }
@@ -2539,7 +2539,7 @@ public:
 
             if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
             {
-                print_error(c_err_table_hidden, variable_name);
+                diag_err(c_err_table_hidden) << variable_name;
                 return;
             }
 
@@ -2547,7 +2547,7 @@ public:
             {
                 if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
-                    print_error(c_err_field_hidden, variable_name);
+                    diag_err(c_err_field_hidden) << variable_name;
                     return;
                 }
             }
@@ -2644,7 +2644,7 @@ public:
 
         if (expression == nullptr)
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2688,14 +2688,14 @@ public:
             {
                 if (explicit_path_present)
                 {
-                    print_error(c_err_insert_with_explicit_nav);
+                    diag_err(c_err_insert_with_explicit_nav);
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    print_error(c_err_insert_with_tag);
+                    diag_err(c_err_insert_with_tag);
                     g_is_generation_error = true;
                     return;
                 }
@@ -2756,7 +2756,7 @@ public:
         }
         else
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2787,7 +2787,7 @@ public:
         }
         else
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2814,7 +2814,7 @@ public:
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2864,7 +2864,7 @@ public:
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2878,7 +2878,7 @@ public:
         const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
         if (path == nullptr)
         {
-            print_error(c_err_incorrect_for_expression);
+            diag_err(c_err_incorrect_for_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2953,7 +2953,7 @@ public:
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
         {
-            print_error(c_err_incorrect_matched_expression);
+            diag_err(c_err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -3346,7 +3346,7 @@ int main(int argc, const char** argv)
 
     if (g_source_files.size() > 1)
     {
-        print_error(c_err_multiple_ruleset_files);
+        diag_err(c_err_multiple_ruleset_files);
         return EXIT_FAILURE;
     }
 

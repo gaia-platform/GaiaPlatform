@@ -10,4 +10,4 @@ ruleset test10
     }
 }
 
-// CHECK: Multiple shortest paths exist between tables 'crop' and 'sensor'. Explicitly define the navigation path between these two tables to resolve the ambiguity.
+// CHECK: Multiple shortest paths exist between tables 'crop' and 'sensor'. Explicitly specify the navigation path between these two tables to resolve the ambiguity.

@@ -16,6 +16,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 )
 
 set(GAIAT_SRCS
+  src/diagnostics.cpp
   src/main.cpp
   src/table_navigation.cpp
 )

@@ -8,4 +8,5 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration 'incubator' hides a database table defined with the same name.
+// CHECK: Local variable 'incubator' hides a database table with the same name. Rename your local variable so that it doesn't conflict with an existing database table name.
+

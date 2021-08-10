@@ -11,4 +11,4 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration 'value' hides a database field defined with the same name.
+// CHECK: Local variable 'value' hides a database field with the same name. Rename your local variable so that it doesn't conflict with an existing database field name.

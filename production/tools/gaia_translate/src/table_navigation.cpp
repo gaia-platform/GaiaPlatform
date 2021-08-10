@@ -173,7 +173,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     }
     if (m_table_relationship.find(anchor_table_name) == m_table_relationship.end())
     {
-        print_error(c_err_no_anchor_path, anchor_table);
+        diag_err(c_err_no_anchor_path) << anchor_table;
         return navigation_code_data_t();
     }
     auto table_itr = m_table_relationship.equal_range(anchor_table_name);
@@ -207,7 +207,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
 
                 if (is_1_relationship || is_n_relationship)
                 {
-                    print_error(c_err_ambiguous_path, anchor_table, table);
+                    diag_err(c_err_ambiguous_path) << anchor_table << table;
                     return navigation_code_data_t();
                 }
                 if (it->second.is_parent)
@@ -283,9 +283,8 @@ void table_navigation_t::fill_table_data()
             catalog::gaia_table_t table = field.table();
             if (!table)
             {
-                // TODO: Add better message.  I think this can happen if you have databases with
-                // the same table names in them.
-                print_error(c_err_incorrect_table, field.name());
+                // TODO: Add better message. How does this happen?
+                diag_err(c_err_incorrect_table) << field.name();
                 m_table_data.clear();
                 return;
             }
@@ -298,9 +297,7 @@ void table_navigation_t::fill_table_data()
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
-                // TODO: Add better message.  I think this can happen if you have databases with
-                // the same table names in them.
-                print_error(c_err_duplicate_field, field.name(), table.name());
+                diag_err(c_err_duplicate_field) << field.name() << table.name();
                 m_table_data.clear();
                 return;
             }
@@ -320,7 +317,7 @@ void table_navigation_t::fill_table_data()
             if (!child_table)
             {
                 // TODO:  what is the action a user can take?
-                print_error(c_err_incorrect_child_table, relationship.name());
+                diag_err(c_err_incorrect_child_table) << relationship.name();
                 m_table_data.clear();
                 return;
             }
@@ -334,7 +331,7 @@ void table_navigation_t::fill_table_data()
             if (!parent_table)
             {
                 // TODO:  what is the action a user can take?
-                print_error(c_err_incorrect_parent_table, relationship.name());
+                diag_err(c_err_incorrect_parent_table) << relationship.name();
                 m_table_data.clear();
                 return;
             }
@@ -353,7 +350,7 @@ void table_navigation_t::fill_table_data()
     }
     catch (const exception& e)
     {
-        print_error(c_err_catalog_exception, e.what());
+        diag_err(c_err_catalog_exception) << e.what();
         m_table_data.clear();
         return;
     }
@@ -386,7 +383,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     bool return_value = find_navigation_path(src, dst, current_path, m_table_relationship);
     if (!return_value)
     {
-        print_error(c_err_no_path, src, dst);
+        diag_err(c_err_no_path) << src << dst;
         return false;
     }
 
@@ -416,7 +413,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         {
             if (path.size() == path_length)
             {
-                print_error(c_err_multiple_shortest_paths, src, dst);
+                diag_err(c_err_multiple_shortest_paths) << src << dst;
                 return false;
             }
         }
@@ -554,7 +551,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
             {
                 if (is_1_relationship || is_n_relationship)
                 {
-                    print_error(c_err_ambiguous_path, source_table, destination_table);
+                    diag_err(c_err_ambiguous_path) << source_table << destination_table;
                     return false;
                 }
                 if (it->second.is_parent)
@@ -572,7 +569,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
 
     if (!is_n_relationship && !is_1_relationship)
     {
-        print_error(c_err_no_relationship, source_table, destination_table);
+        diag_err(c_err_no_relationship) << source_table << destination_table;
         return false;
     }
     if (is_1_relationship)
@@ -626,7 +623,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     const auto table_iterator = table_data.find(table);
     if (table_iterator == table_data.end())
     {
-        print_error(c_err_table_not_found, table);
+        diag_err(c_err_table_not_found) << table;
         return return_value;
     }
 
@@ -639,7 +636,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
             catalog::gaia_table_t field_table = field.table();
             if (!field_table)
             {
-                print_error(c_err_incorrect_table, field.name());
+                diag_err(c_err_incorrect_table) << field.name();
                 return vector<string>();
             }
 
@@ -656,7 +653,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     }
     catch (const exception& e)
     {
-        print_error(c_err_catalog_exception, e.what());
+        diag_err(c_err_catalog_exception) << e.what();
         return vector<string>();
     }
 
