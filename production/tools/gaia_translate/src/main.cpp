@@ -768,11 +768,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
             if (!break_label.empty())
             {
-                navigation_code.postfix += "\n" + break_label + ":\n";
+                navigation_code.postfix += "\n" + break_label + ":;\n";
             }
             if (!continue_label.empty())
             {
-                navigation_code.postfix = "\n" + continue_label + ":\n" + navigation_code.postfix;
+                navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
 
             if (nomatch_range.isValid())
