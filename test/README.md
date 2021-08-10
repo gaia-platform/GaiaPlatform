@@ -129,7 +129,7 @@ At that point, the second part of the file takes over.  This is the part of
 the file that was use the
 [incubator modifications](#modifications-to-the-incubator-example)
 to more accurately control the incubator's behavior.  To start with,
-the `w5`commands waits for 5 milliseconds to ensure that any rules triggered
+the `w5`command waits for 5 milliseconds to ensure that any rules triggered
 by the setup will complete before the testing continues.  This may not be
 100% necessary, but it provides a good buffer to ensure the isolation of
 test measurements.
@@ -263,7 +263,21 @@ To try and ensure that the timing results from one test within a suite does not
 affect another test within the same suite, suite tests are executed with a
 15 second pause before each test.  Currently, this is not configurable.  While
 15 seconds may seem like a long time, it is worth it to ensure that isolate between
-the various test suites in maintained.
+the various test suites is maintained.
+
+To be clear with any readers, this 15 second pause is my (Jack's) entirely paranoid
+pause.  Its purpose is to ensure that operating system level processing and any
+leftover test processing from any previous tests is extinguished before the next test
+begins.  There are many things
+that the test framework cannot control: other applications, running in a VM versus
+bare metal, a slack message coming to me during the middle of tests.  Each of these
+will have an effect on any performance measurements.  That is why during any normal
+measurements, multiple tests are executed and the average are taken.
+
+The 15 second pause may indeed be paranoid, but it is a paranoid decision that I
+can easily defend.  It may be more time than is needed, but I am confident that
+it is at least enough time (under 98% of situations) to let the system cool down
+before another test.
 
 ### Summary.json File
 
