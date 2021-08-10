@@ -805,7 +805,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
     // have a connect/disconnect method for a given target type.
-    map<string, int> links_targets;
+    unordered_map<string, int> links_targets;
 
     for (auto link = links.first; link != links.second; ++link)
     {
