@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test10
+{
+    OnUpdate(incubator)
+    {
+        actuator.value += animal->feeding.portion;
+        sensor.value += acres;
+    }
+}
+
+// CHECK: Multiple shortest paths between tables 'incubator' and 'crop' exist
