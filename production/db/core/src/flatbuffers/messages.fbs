@@ -34,14 +34,15 @@ enum index_query_type_t:uint8 {
 }
 
 table index_range_query_t {
-    query_type : index_query_type_t;
-    key : [byte];
+    query_type: index_query_type_t;
+    lower_key: [byte];
+    upper_key: [byte]; // For range queries.
 }
 
 table index_scan_info_t {
     index_id: uint64;
-    txn_id : uint64;
-    queries : [index_range_query_t];
+    txn_id: uint64;
+    queries: index_range_query_t;
 }
 
 union request_data_t {
