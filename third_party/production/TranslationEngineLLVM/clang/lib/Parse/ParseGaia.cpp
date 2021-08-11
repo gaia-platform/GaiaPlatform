@@ -72,10 +72,9 @@ std::string Parser::GetExplicitNavigationPath()
     {
         returnValue = "@";
         startLocation = previousPreviousToken.getLocation();
-        if (getPreviousToken(previousPreviousToken).is(tok::slash))
+        if (previousToken.is(tok::slash))
         {
-            returnValue = "/@";
-            startLocation = getPreviousToken(previousPreviousToken).getLocation();
+            returnValue = "@/";
         }
     }
     else if (previousPreviousToken.is(tok::slash))
@@ -83,7 +82,7 @@ std::string Parser::GetExplicitNavigationPath()
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
     }
-    else if (previousPreviousToken.is(tok::colon))
+    else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
         if (tagToken.is(tok::identifier))
@@ -94,17 +93,17 @@ std::string Parser::GetExplicitNavigationPath()
             {
                 returnValue = "/" + returnValue;
                 startLocation = getPreviousToken(tagToken).getLocation();
+                if (getPreviousToken(getPreviousToken(tagToken)).is(tok::at))
+                {
+                    returnValue = "@" + returnValue;;
+                    startLocation = getPreviousToken(getPreviousToken(tagToken)).getLocation();
+                }
             }
             else if (getPreviousToken(tagToken).is(tok::at))
             {
                 tagToken = getPreviousToken(tagToken);
                 returnValue = "@" + returnValue;
                 startLocation = tagToken.getLocation();
-                if (getPreviousToken(tagToken).is(tok::slash))
-                {
-                    returnValue = "/" + returnValue;;
-                    startLocation = getPreviousToken(tagToken).getLocation();
-                }
             }
         }
         else
@@ -571,7 +570,7 @@ Token Parser::getPreviousToken(Token token) const
     {
         location = Lexer::GetBeginningOfToken(location, sourceManager, langOptions);
         if (!Lexer::getRawToken(location, returnToken, sourceManager, langOptions) &&
-            !returnToken.is(tok::comment))
+            returnToken.isNot(tok::comment))
         {
             break;
         }

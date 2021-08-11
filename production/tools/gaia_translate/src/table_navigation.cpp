@@ -281,6 +281,11 @@ void table_navigation_t::fill_table_data()
                 return;
             }
 
+            if (table.is_system())
+            {
+                continue;
+            }
+
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
@@ -308,6 +313,11 @@ void table_navigation_t::fill_table_data()
                 return;
             }
 
+            if (child_table.is_system())
+            {
+                continue;
+            }
+
             catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
@@ -315,6 +325,12 @@ void table_navigation_t::fill_table_data()
                 m_table_data.clear();
                 return;
             }
+
+            if (parent_table.is_system())
+            {
+                continue;
+            }
+
             navigation_data_t link_data_1 = {parent_table.name(), relationship.to_parent_link_name(), true};
             navigation_data_t link_data_n = {child_table.name(), relationship.to_child_link_name(), false};
 
@@ -366,7 +382,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
         vector<navigation_data_t> path;
-        unordered_multimap<string, navigation_data_t> graph_data (m_table_relationship);
+        unordered_multimap<string, navigation_data_t> graph_data(m_table_relationship);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
         auto graph_itr = graph_data.equal_range(edge_src.table_name);
@@ -613,6 +629,12 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
                 cerr << "Incorrect table for field '" << field.name() << "'." << endl;
                 return vector<string>();
             }
+
+            if (field_table.is_system())
+            {
+                continue;
+            }
+
             if (table == field_table.name())
             {
                 return_value.at(field.position()) = field.name();

@@ -111,6 +111,18 @@ struct rewriter_history_t
     rewriter_operation_t operation;
 };
 
+// Data structure to hold data for code generation for insert function calls.
+struct insert_data_t
+{
+    SourceRange expression_range;
+    string table_name;
+    unordered_map<string, SourceRange> argument_map;
+    unordered_map<SourceRange, string> argument_replacement_map;
+};
+
+// Vector to contain all the data to properly generate code for insert function call.
+// The generation deferred to allow proper code generation for declarative references as arguments for insert call.
+vector<insert_data_t> g_insert_data;
 vector<rewriter_history_t> g_rewriter_history;
 vector<SourceRange> g_nomatch_location;
 unordered_map<SourceRange, string> g_variable_declaration_location;
@@ -126,6 +138,26 @@ static const char c_ident[] = "    ";
 static void print_version(raw_ostream& stream)
 {
     stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+}
+
+// Get location of a token before the current location.
+SourceLocation get_previous_token_location(SourceLocation location, const Rewriter& rewriter)
+{
+    Token token;
+    token.setLocation(SourceLocation());
+    token.setKind(tok::unknown);
+    location = location.getLocWithOffset(-1);
+    auto start_of_file = rewriter.getSourceMgr().getLocForStartOfFile(rewriter.getSourceMgr().getFileID(location));
+    while (location != start_of_file)
+    {
+        location = Lexer::GetBeginningOfToken(location, rewriter.getSourceMgr(), rewriter.getLangOpts());
+        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) && token.isNot(tok::comment))
+        {
+            break;
+        }
+        location = location.getLocWithOffset(-1);
+    }
+    return token.getLocation();
 }
 
 SourceRange get_statement_source_range(const Stmt* expression, const SourceManager& source_manager, const LangOptions& options)
@@ -538,6 +570,63 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
         return;
     }
 
+    for (auto& insert_data : g_insert_data)
+    {
+        string class_qualification_string = "gaia::";
+        class_qualification_string
+            .append(table_navigation_t::get_table_data().find(insert_data.table_name)->second.db_name)
+            .append("::")
+            .append(insert_data.table_name)
+            .append("_t::");
+        string replacement_string = class_qualification_string;
+        replacement_string
+            .append("get(")
+            .append(class_qualification_string)
+            .append("insert_row(");
+        vector<string> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        const auto table_data_iterator = table_navigation_t::get_table_data().find(insert_data.table_name);
+        // Generate call arguments.
+        for (const auto& call_argument : function_arguments)
+        {
+            const auto argument_map_iterator = insert_data.argument_map.find(call_argument);
+            if (argument_map_iterator == insert_data.argument_map.end())
+            {
+                // Provide default parameter value.
+                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
+                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                {
+                case data_type_t::e_bool:
+                    replacement_string.append("false,");
+                    break;
+                case data_type_t::e_int8:
+                case data_type_t::e_uint8:
+                case data_type_t::e_int16:
+                case data_type_t::e_uint16:
+                case data_type_t::e_int32:
+                case data_type_t::e_uint32:
+                case data_type_t::e_int64:
+                case data_type_t::e_uint64:
+                case data_type_t::e_float:
+                case data_type_t::e_double:
+                    replacement_string.append("0,");
+                    break;
+                case data_type_t::e_string:
+                    replacement_string.append("\"\",");
+                    break;
+                }
+            }
+            else
+            {
+                // Provide value from the code.
+                replacement_string.append(insert_data.argument_replacement_map[argument_map_iterator->second]).append(",");
+            }
+        }
+        replacement_string.resize(replacement_string.size() - 1);
+        replacement_string.append("))");
+
+        rewriter.ReplaceText(insert_data.expression_range, replacement_string);
+    }
+
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         SourceRange nomatch_range;
@@ -676,13 +765,13 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty())
+            if (!break_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
             {
-                navigation_code.postfix += "\n" + break_label + ":\n";
+                navigation_code.postfix += "\n" + break_label + ":;\n";
             }
-            if (!continue_label.empty())
+            if (!continue_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
             {
-                navigation_code.postfix = "\n" + continue_label + ":\n" + navigation_code.postfix;
+                navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
 
             if (nomatch_range.isValid())
@@ -1505,7 +1594,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     {
         return false;
     }
-    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/");
+    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
     vector<string> path_components;
@@ -1704,9 +1793,20 @@ public:
         }
         if (expression_source_range.isValid())
         {
+            string replacement = variable_name + "." + field_name + "()";
+            for (auto& insert_data : g_insert_data)
+            {
+                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                {
+                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
+                    {
+                        insert_data_argument_range_iterator.second = replacement;
+                    }
+                }
+            }
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
-            m_rewriter.ReplaceText(expression_source_range, variable_name + "." + field_name + "()");
-            g_rewriter_history.push_back({expression_source_range, variable_name + "." + field_name + "()", replace_text});
+            m_rewriter.ReplaceText(expression_source_range, replacement);
+            g_rewriter_history.push_back({expression_source_range, replacement, replace_text});
             auto offset
                 = Lexer::MeasureTokenLength(
                       expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts())
@@ -2121,6 +2221,18 @@ public:
                     + ";w.update_row(); return w." + field_name + ";}()";
             }
         }
+
+        for (auto& insert_data : g_insert_data)
+        {
+            for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+            {
+                if (is_range_contained_in_another_range(SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)), insert_data_argument_range_iterator.first))
+                {
+                    insert_data_argument_range_iterator.second = replace_string;
+                }
+            }
+        }
+
         m_rewriter.ReplaceText(
             SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
             replace_string);
@@ -2200,6 +2312,7 @@ public:
         g_rewriter_history.clear();
         g_nomatch_location.clear();
         g_nomatch_location_map.clear();
+        g_insert_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -2314,6 +2427,7 @@ public:
         g_rewriter_history.clear();
         g_nomatch_location.clear();
         g_nomatch_location_map.clear();
+        g_insert_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
@@ -2455,45 +2569,50 @@ public:
         const auto* event_expression = result.Nodes.getNodeAs<MemberExpr>("event_type");
         const auto* type_expression = result.Nodes.getNodeAs<MemberExpr>("gaia_type");
 
+        string replacement_text;
+        SourceRange expression_source_range;
+
         if (ruleset_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                "\"" + g_current_ruleset + "\"");
-            g_rewriter_history.push_back(
-                {SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc()),
-                 "\"" + g_current_ruleset + "\"", replace_text});
+            expression_source_range = SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc());
+            replacement_text = "\"" + g_current_ruleset + "\"";
         }
 
         if (rule_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                "gaia_rule_name");
+            expression_source_range = SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc());
+            replacement_text = "gaia_rule_name";
             g_is_rule_context_rule_name_referenced = true;
-            g_rewriter_history.push_back(
-                {SourceRange(rule_expression->getBeginLoc(), rule_expression->getEndLoc()),
-                 "gaia_rule_name", replace_text});
         }
 
         if (event_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
-                "context->event_type");
-            g_rewriter_history.push_back(
-                {SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc()),
-                 "context->event_type", replace_text});
+            expression_source_range = SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc());
+            replacement_text = "context->event_type";
         }
 
         if (type_expression != nullptr)
         {
-            m_rewriter.ReplaceText(
-                SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                "context->gaia_type");
+            expression_source_range = SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc());
+            replacement_text = "context->gaia_type";
+        }
+
+        if (expression_source_range.isValid())
+        {
+            m_rewriter.ReplaceText(expression_source_range, replacement_text);
             g_rewriter_history.push_back(
-                {SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc()),
-                 "context->gaia_type", replace_text});
+                {expression_source_range, replacement_text, replace_text});
+
+            for (auto& insert_data : g_insert_data)
+            {
+                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                {
+                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
+                    {
+                        insert_data_argument_range_iterator.second = replacement_text;
+                    }
+                }
+            }
         }
     }
 
@@ -2694,85 +2813,28 @@ public:
             g_is_generation_error = true;
             return;
         }
-        SourceLocation argument_start_location = expression->getExprLoc();
-        unordered_map<string, string> argument_map;
+        insert_data_t insert_data;
+        insert_data.expression_range = SourceRange(expression->getBeginLoc(), expression->getEndLoc());
+        SourceLocation argument_start_location;
         const ValueDecl* decl = expression_declaration->getDecl();
-        string table_name = get_table_name(decl);
-
+        insert_data.table_name = get_table_name(decl);
         // Parse insert call arguments to buid name value map.
         for (auto argument : expression->arguments())
         {
+            argument_start_location = get_previous_token_location(
+                get_previous_token_location(argument->getSourceRange().getBegin(), m_rewriter), m_rewriter);
+
             string raw_argument_name = m_rewriter.getRewrittenText(
-                SourceRange(argument_start_location, argument->getSourceRange().getBegin().getLocWithOffset(-1)));
-            size_t argument_name_start_position = raw_argument_name.find(',');
-            if (argument_name_start_position == string::npos)
-            {
-                argument_name_start_position = raw_argument_name.find('(');
-            }
+                SourceRange(argument_start_location, argument->getSourceRange().getEnd()));
             size_t argument_name_end_position = raw_argument_name.find(':');
-            string argument_name = raw_argument_name.substr(
-                argument_name_start_position + 1, argument_name_end_position - argument_name_start_position - 1);
+            string argument_name = raw_argument_name.substr(0, argument_name_end_position);
             //Trim the argument name of whitespaces.
             argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
             argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
-            argument_map[argument_name] = m_rewriter.getRewrittenText(argument->getSourceRange());
-
-            argument_start_location = argument->getSourceRange().getEnd().getLocWithOffset(1);
+            insert_data.argument_map[argument_name] = argument->getSourceRange();
+            insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
         }
-        string class_qualification_string = "gaia::";
-        class_qualification_string
-            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
-            .append("::")
-            .append(table_name)
-            .append("_t::");
-        string replacement_string = class_qualification_string;
-        replacement_string
-            .append("get(")
-            .append(class_qualification_string)
-            .append("insert_row(");
-        vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
-        const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
-        // Generate call arguments.
-        for (const auto& call_argument : function_arguments)
-        {
-            const auto argument_map_iterator = argument_map.find(call_argument);
-            if (argument_map_iterator == argument_map.end())
-            {
-                // Provide default parameter value.
-                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
-                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
-                {
-                case data_type_t::e_bool:
-                    replacement_string.append("false,");
-                    break;
-                case data_type_t::e_int8:
-                case data_type_t::e_uint8:
-                case data_type_t::e_int16:
-                case data_type_t::e_uint16:
-                case data_type_t::e_int32:
-                case data_type_t::e_uint32:
-                case data_type_t::e_int64:
-                case data_type_t::e_uint64:
-                case data_type_t::e_float:
-                case data_type_t::e_double:
-                    replacement_string.append("0,");
-                    break;
-                case data_type_t::e_string:
-                    replacement_string.append("\"\",");
-                    break;
-                }
-            }
-            else
-            {
-                // Provide value from the code.
-                replacement_string.append(argument_map_iterator->second).append(",");
-            }
-        }
-        replacement_string.resize(replacement_string.size() - 1);
-        replacement_string.append("))");
-cerr<<replacement_string<<endl;
-        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
-        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
+        g_insert_data.push_back(insert_data);
         g_insert_call_locations.insert(expression->getBeginLoc());
     }
 
