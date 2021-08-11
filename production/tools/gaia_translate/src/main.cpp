@@ -766,11 +766,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty())
+            if (!break_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix += "\n" + break_label + ":;\n";
             }
-            if (!continue_label.empty())
+            if (!continue_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
