@@ -26,7 +26,6 @@
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
-#include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
@@ -2828,7 +2827,7 @@ public:
                 SourceRange(argument_start_location, argument->getSourceRange().getEnd()));
             size_t argument_name_end_position = raw_argument_name.find(':');
             string argument_name = raw_argument_name.substr(0, argument_name_end_position);
-            //Trim the argument name of whitespaces.
+            // Trim the argument name of whitespaces.
             argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
             argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
             insert_data.argument_map[argument_name] = argument->getSourceRange();
@@ -3126,10 +3125,12 @@ public:
                           hasAttr(attr::GaiaField),
                           unless(hasAttr(attr::GaiaFieldLValue)))),
                   hasDescendant(declRefExpr(
-                      to(varDecl(anyOf(
-                          hasAttr(attr::GaiaField),
-                          hasAttr(attr::FieldTable),
-                          hasAttr(attr::GaiaFieldValue)))))))
+                      to(varDecl(
+                          anyOf(
+                              hasAttr(attr::GaiaField),
+                              hasAttr(attr::FieldTable),
+                              hasAttr(attr::GaiaFieldValue)),
+                          unless(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("tableFieldGet");
         StatementMatcher table_field_set_matcher
             = binaryOperator(
@@ -3138,7 +3139,9 @@ public:
                       isAssignmentOperator(),
                       hasLHS(
                           memberExpr(
-                              member(hasAttr(attr::GaiaFieldLValue))))))
+                              hasDescendant(
+                                  declRefExpr(
+                                      to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
                   .bind("fieldSet");
         StatementMatcher table_field_unary_operator_matcher
             = unaryOperator(allOf(
