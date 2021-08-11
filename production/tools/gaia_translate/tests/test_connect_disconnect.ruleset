@@ -1,0 +1,17 @@
+
+ruleset test
+{
+    on_update(incubator)
+    {
+       for(/s : sensor)
+       {
+           incubator.connect(s);
+           incubator.sensors.connect(s);
+       }
+    }
+
+    on_insert(gaia_table)
+    {
+        gaia_table.name = "a";
+    }
+}

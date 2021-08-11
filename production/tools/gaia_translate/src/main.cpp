@@ -3025,6 +3025,90 @@ private:
     Rewriter& m_rewriter;
 };
 
+// AST handler that is called when declarative break or continue are used in the rule.
+class declarative_connect_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_connect_handler_t(Rewriter& r)
+        : m_rewriter(r){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        //        CXXMemberCallExpr 0x56375b914f70 '_Bool'
+        //        |-MemberExpr 0x56375b914f40 '<bound member function type>' .connect 0x56375b914048
+        //        | `-DeclRefExpr 0x56375b914320 'struct incubator__type' lvalue Var 0x56375b914260 'incubator' 'struct incubator__type'
+        //        `-DeclRefExpr 0x56375b914f20 'struct sensor__type' lvalue Var 0x56375b9143b0 's' 'struct sensor__type'
+
+        //        DeclRefExpr 0x56375b914f20 'struct sensor__type' lvalue Var 0x56375b9143b0 's' 'struct sensor__type'
+
+        //        MemberExpr 0x56375b914f40 '<bound member function type>' .connect 0x56375b914048
+        //        `-DeclRefExpr 0x56375b914320 'struct incubator__type' lvalue Var 0x56375b914260 'incubator' 'struct incubator__type'
+
+        // -------------------------------------------------
+
+        //        CXXMemberCallExpr 0x56375b915350 '_Bool'
+        //        |-MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
+        //        | `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
+        //        |   `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
+        //        `-DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+
+        //        DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+
+        //        MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
+        //        `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
+        //          `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
+
+        const auto* connect_member_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("ConnectCall");
+        connect_member_call_expr->dump();
+
+        // MemberExpr 0x56020c3b3960 '<bound member function type>' .connect 0x56020c3b29e8
+        auto* connect_expr = dyn_cast<MemberExpr>(connect_member_call_expr->getCallee());
+
+        // Check if this is a call from a table: table.connect()
+        auto* link_ref_expr = dyn_cast<MemberExpr>(connect_expr->getBase());
+
+        //        if (table_ref_expr == nullptr)
+        //        {
+        //            // check if this is a call from a link: table.link.connect()
+        //            auto* link_expr = dyn_cast<MemberExpr>(connect_expr->getBase());
+        //
+        //            if (link_expr == nullptr)
+        //            {
+        //                cerr << "Unexpected AST structure." << endl;
+        //                g_is_generation_error = true;
+        //                return;
+        //            }
+        //
+        //            table_ref_expr = dyn_cast<DeclRefExpr>(link_expr->getBase());
+        //        }
+
+        //        connect_call->dump();
+
+        //        DiagnosticsEngine& Diagnostics = result.Context->getDiagnostics();
+        //        unsigned DiagID = Diagnostics.getCustomDiagID(
+        //            DiagnosticsEngine::Error,
+        //            "Let's highlight the damn connect() method");
+        //        Diagnostics.Report(connect_call->getExprLoc(), DiagID);
+
+        //        auto DiagBuilder =
+        //            diag(Member->getMemberLoc(),
+        //                 "accessing an element of the container does not require a call to "
+        //                 "'data()'; did you mean to use 'operator[]'?");
+        //
+        //        DiagBuilder <<
+        //        tidy::DiagEngine.Report(CE->getLocStart(), DiagID)
+        //            << FixItHint::CreateRemoval({CE->getLocStart(), CE->getLocEnd()});
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -3041,6 +3125,7 @@ public:
         , m_declarative_break_continue_handler(r)
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
+        , m_declarative_connect_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -3187,6 +3272,26 @@ public:
                   hasDescendant(table_call_matcher))
                   .bind("InsertCall");
 
+        StatementMatcher declarative_connect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(hasName("connect"))),
+                  hasDescendant(table_call_matcher))
+                  .bind("ConnectCall");
+
+        StatementMatcher declarative_disconnect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(hasName("disconnect"))),
+                  on(table_call_matcher))
+                  .bind("DisconnectCall");
+
+        //        CXXMemberCallExpr 0x56375b915350 '_Bool'
+        //        |-MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
+        //        | `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
+        //        |   `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
+        //        `-DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -3212,6 +3317,8 @@ public:
         m_matcher.addMatcher(declarative_continue_matcher, &m_declarative_break_continue_handler);
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
+
+        m_matcher.addMatcher(declarative_connect_matcher, &m_declarative_connect_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -3234,6 +3341,7 @@ private:
     declarative_break_continue_handler_t m_declarative_break_continue_handler;
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
+    declarative_connect_handler_t m_declarative_connect_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
