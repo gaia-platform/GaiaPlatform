@@ -3,7 +3,7 @@
 // TESTCASE: attempt declarative break from while statement
 ruleset test09
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
 BREAK_TARGET:
         int i = 10;
