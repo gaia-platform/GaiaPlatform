@@ -2495,6 +2495,7 @@ private:
 
   std::unordered_map<SourceLocation, std::string> insertCallTableMap;
   std::unordered_map<SourceLocation, std::vector<std::string>> insertCallParameterMap;
+  std::unordered_set<SourceLocation> insertCallParameterLocations;
 
   bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
                             GaiaAttributeType attributeType,

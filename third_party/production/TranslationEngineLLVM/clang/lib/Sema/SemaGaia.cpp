@@ -161,7 +161,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         searchStartPosition = 1;
     }
-    if (pathString.rfind("/@") == 0)
+    if (pathString.rfind("@/") == 0)
     {
         searchStartPosition = 2;
     }
@@ -378,6 +378,10 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
                 Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
+            if (tbl.is_system())
+            {
+                continue;
+            }
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
@@ -410,6 +414,10 @@ unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
                 Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_set<string>();
             }
+            if (tbl.is_system())
+            {
+                continue;
+            }
             retVal.emplace(tbl.name());
         }
     }
@@ -437,11 +445,21 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
                 return unordered_multimap<string, Sema::TableLinkData_t>();
             }
 
+            if (child_table.is_system())
+            {
+                continue;
+            }
+
             catalog::gaia_table_t parent_table = relationship.parent();
             if (!parent_table)
             {
                 Diag(loc, diag::err_invalid_parent_table) << relationship.name();
                 return unordered_multimap<string, Sema::TableLinkData_t>();
+            }
+
+            if (parent_table.is_system())
+            {
+                continue;
             }
 
             TableLinkData_t link_data_1;

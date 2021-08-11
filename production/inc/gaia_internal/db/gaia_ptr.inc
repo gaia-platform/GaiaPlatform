@@ -25,12 +25,6 @@ gaia_ptr_t::operator bool() const
     return to_ptr();
 }
 
-gaia_ptr_t gaia_ptr_t::open(
-    common::gaia_id_t id)
-{
-    return gaia_ptr_t(id);
-}
-
 bool gaia_ptr_t::is_null() const
 {
     return m_locator == c_invalid_gaia_locator;

@@ -79,17 +79,6 @@ ruleset test9
     }
 }
 
-#ifdef TEST_FAILURES
-ruleset test10
-{
-    on_update(incubator)
-    {
-        actuator.value += animal->feeding.portion;
-        sensor.value += acres;
-    }
-}
-#endif
-
 ruleset test11
 {
     on_update(crop)
@@ -334,7 +323,7 @@ ruleset test35
 {
     {
         float total_temp = 0.0;
-        total_temp += /@incubator.min_temp;
+        total_temp += @/incubator.min_temp;
         total_temp += @incubator.max_temp;
     }
 }
@@ -426,5 +415,16 @@ ruleset test42
     {
         int tot_acres = 0;
         tot_acres += animal->feeding.portion;
+    }
+}
+
+// TESTCASE: observe scope of a declared variable assigned from field
+// GAIAPLAT-1119 (fixed)
+ruleset test43
+{
+    on_update(crop)
+    {
+        int acre = crop.acres;
+        printf("%d\n", acre);
     }
 }
