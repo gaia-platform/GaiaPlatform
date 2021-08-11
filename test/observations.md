@@ -537,6 +537,7 @@ pause = 10000 microsecond = 10 ms
 
 ### Scenario Test 7
 
+- specifically `suite-scaling` related tests
 - suite: `threads`, `smoke-time-test threads 1` to `smoke-time-test threads 4`
   - specifically `smoke-time-test` related tests
 - test 5, but with internal `my_sleep_for`
@@ -567,3 +568,58 @@ pause = 200 microsecond
 | 2 | 0.55s | 0.13 | 3129,3131,3129 | 57,59,57 | 0 | 4 | 140,154,141 | 0 |
 | 3 | 0.45s | 0.09 | 3131,3130,3130 | 59,58,58 | 0 | 4 | 121 | 0 |
 | 4 | 0.54s | 0.17 | 3134,3128,3130 | 62,56,58 | 0 | 4 | 124,124,134 | 0 |
+
+
+### Scenario Test 8
+
+- specifically `suite-scaling` related tests
+  - suite `smoke-time-only` with 100, 1k, 10k, 100k
+
+Series 1
+
+| Iterations | 1 | 2 | 3 | Average |
+|---| --- | --- | --- | --- |
+| 100 | 0.000278766 | 0.00028581 | 0.000273879 | 280 microseconds |
+| 1,000 | 0.000254969 | 0.000353093 | 0.000267675 | 292 microseconds |
+| 10,000 | 0.000269671 | 0.00026799 | 0.000273914 | 271 microseconds |
+| 100,000 | 0.000266862 | 0.000270386 | 0.000274332 | 271 microseconds |
+
+Series 2
+
+| Iterations | 1 | 2 | 3 | Average |
+|---| --- | --- | --- | --- |
+| 100 | 0.000524871 | 0.000267696 | 0.000286255 | 360 microseconds |
+| 1,000 | 0.000268402 | 0.000274721 | 0.000252329 | 265 microseconds |
+| 10,000 | 0.000267622 | 0.000274532 | 0.000271222 | 271 microseconds |
+| 100,000 | 0.000271981 | 0.000270047 | 0.000269838 | 271 microseconds |
+
+Series 3
+
+| Iterations | 1 | 2 | 3 | Average |
+|---| --- | --- | --- | --- |
+| 100 | 0.000254793 | 0.000481039 | 0.00030608 | 347 microseconds |
+| 1,000 | 0.000274207 | 0.000284762 | 0.000276683 | 279 microseconds |
+| 10,000 | 0.000276676 | 0.000274231 | 0.000274375 | 275 microseconds |
+| 100,000 | 0.000268597 | 0.000272426 | 0.000273895 | 272 microseconds |
+
+### Scenario Test 9
+
+- specifically `suite-large-scale` related tests
+  - suite `smoke-time-only` with 1m
+  - `smoke-time-only-with-1m`
+
+Series 1
+
+| Iterations | 1 | 2 | 3 | Total Average |
+|---| --- | --- | --- | --- |
+| 1,000,000 | 268.036950807 | rc=5 | rc=5 | 268 microseconds |
+
+Series 2
+
+| Iterations | 1 | 2 | 3 | Total Average |
+|---| --- | --- | --- | --- |
+| 1,000,000 | 268.036950807 | 338.658779802 | rc=5 | 303 microseconds |
+
+- talked with [Tobin](https://gaiaplatform.slack.com/archives/CNUDLV95J/p1628616593181200)
+  - there is an issue with memory management that he is currently working on
+  - until that is fixed, not viable to test

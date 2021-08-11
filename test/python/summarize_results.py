@@ -335,6 +335,7 @@ def process_rules_engine_logs(base_dir):
     return exception_lines
 
 
+# pylint: disable=broad-except
 def process_rules_engine_stats(base_dir):
     """
     Load up the `gaia_stats.log` file for a given test and convert it into
@@ -345,41 +346,46 @@ def process_rules_engine_stats(base_dir):
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
-    stats_slices = []
-    totals = {}
-    calculations = {}
-    for next_log_line in log_file_lines:
-        next_log_line = next_log_line.strip()
-        while "  " in next_log_line:
-            next_log_line = next_log_line.replace("  ", " ")
-        log_line_columns = next_log_line.split(" ")
-        if log_line_columns[3].startswith("--"):
-            continue
-        if log_line_columns[3].startswith("[thread"):
-            assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(
-                log_line_columns
-            )
-            stats_slice = process_aggregate_stats_line(
-                log_line_columns, totals, calculations
-            )
-            stats_slices.append(stats_slice)
-        else:
-            individual_stats = process_indivudal_stats_line(
-                log_line_columns, totals, calculations
-            )
-            individual_name = individual_stats[OBJECT_ID_TITLE]
-            owner_slice = stats_slices[-1]
-            if INDIVIDUAL_STATS_TITLE not in owner_slice:
-                owner_slice[INDIVIDUAL_STATS_TITLE] = {}
-            owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
-
-    calculate_proper_averages(calculations, totals)
+    try:
+        stats_slices = []
+        totals = {}
+        calculations = {}
+        for next_log_line in log_file_lines:
+            next_log_line = next_log_line.strip()
+            while "  " in next_log_line:
+                next_log_line = next_log_line.replace("  ", " ")
+            log_line_columns = next_log_line.split(" ")
+            if log_line_columns[3].startswith("--"):
+                continue
+            if log_line_columns[3].startswith("[thread"):
+                assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(
+                    log_line_columns
+                )
+                stats_slice = process_aggregate_stats_line(
+                    log_line_columns, totals, calculations
+                )
+                stats_slices.append(stats_slice)
+            else:
+                individual_stats = process_indivudal_stats_line(
+                    log_line_columns, totals, calculations
+                )
+                individual_name = individual_stats[OBJECT_ID_TITLE]
+                owner_slice = stats_slices[-1]
+                if INDIVIDUAL_STATS_TITLE not in owner_slice:
+                    owner_slice[INDIVIDUAL_STATS_TITLE] = {}
+                owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
+        calculate_proper_averages(calculations, totals)
+    except Exception:
+        stats_slices = "Slices could not be parsed from original gaia_stats.log file."
 
     rules_engine_stats = {}
     rules_engine_stats[RULES_ENGINE_SLICES_TITLE] = stats_slices
     rules_engine_stats[RULES_ENGINE_TOTALS_TITLE] = totals
     rules_engine_stats[RULES_ENGINE_CALCULATIONS_TITLE] = calculations
     return rules_engine_stats
+
+
+# pylint: enable=broad-except
 
 
 def process_configuration_file(base_dir):
@@ -404,6 +410,7 @@ def process_configuration_file(base_dir):
     return rules_configuration
 
 
+# pylint: disable=broad-except
 def load_simple_result_files(base_dir):
     """
     Load the simple, one value, result files.
@@ -417,11 +424,20 @@ def load_simple_result_files(base_dir):
         data = json.load(input_file)
         return_code_data = data[RETURN_CODE_TITLE]
 
+    duration_data = 0.0
     json_path = os.path.join(base_dir, "duration.json")
-    with open(json_path) as input_file:
-        data = json.load(input_file)
-        duration_data = data["duration"]
+    try:
+        with open(json_path) as input_file:
+            data = json.load(input_file)
+            duration_data = data["duration"]
+    except Exception:
+        duration_data = (
+            f"Duration data could not be loaded from original '{json_path}' file."
+        )
     return return_code_data, duration_data
+
+
+# pylint: enable=broad-except
 
 
 def load_output_timing_files(base_dir):
@@ -429,22 +445,34 @@ def load_output_timing_files(base_dir):
     Load the 'output.delay' file generated from the main executable.
     """
 
-    json_path = os.path.join(base_dir, "output.delay")
-    with open(json_path) as input_file:
-        data = json.load(input_file)
-        stop_pause_data = data["stop_pause_in_sec"]
-        iterations_data = data["iterations"]
-        total_wait_data = data["total_wait_in_sec"]
-        total_print_data = data["total_print_in_sec"]
-        t_pause_data = data["t_pause_in_sec"]
-        t_requested_data = data["t_requested_in_sec"]
+    (
+        stop_pause_data,
+        iterations_data,
+        total_wait_data,
+        total_print_data,
+        measured_section_data,
+        t_pause_data,
+        t_requested_data,
+        t_config_data,
+    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None)
 
-        measured_section_data = None
-        if "measured_in_sec" in data:
-            measured_section_data = data["measured_in_sec"]
-        t_config_data = None
-        if "requested_t_pause_in_microseconds" in data:
-            t_config_data = data["requested_t_pause_in_microseconds"]
+    json_path = os.path.join(base_dir, "output.delay")
+    if os.path.exists(json_path):
+        with open(json_path) as input_file:
+            data = json.load(input_file)
+            stop_pause_data = data["stop_pause_in_sec"]
+            iterations_data = data["iterations"]
+            total_wait_data = data["total_wait_in_sec"]
+            total_print_data = data["total_print_in_sec"]
+            t_pause_data = data["t_pause_in_sec"]
+            t_requested_data = data["t_requested_in_sec"]
+
+            measured_section_data = None
+            if "measured_in_sec" in data:
+                measured_section_data = data["measured_in_sec"]
+            t_config_data = None
+            if "requested_t_pause_in_microseconds" in data:
+                t_config_data = data["requested_t_pause_in_microseconds"]
 
     return (
         stop_pause_data,
@@ -563,18 +591,19 @@ def load_results_for_test(suite_test_directory, source_info):
         new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
     )
 
-    new_results[TEST_DURATION_TITLE] = round(
-        new_results[TOTAL_DURATION_TITLE]
-        - new_results[PAUSE_DURATION_TITLE]
-        - new_results[WAIT_DURATION_TITLE]
-        - new_results[PRINT_DURATION_TITLE],
-        DECIMALS_PLACES_IN_NANOSECONDS,
-    )
-    if new_results[ITERATIONS_TITLE] > 0:
-        new_results[ITERATION_DURATION_TITLE] = round(
-            new_results[TEST_DURATION_TITLE] / float(new_results[ITERATIONS_TITLE]),
+    if not isinstance(new_results[TOTAL_DURATION_TITLE], str):
+        new_results[TEST_DURATION_TITLE] = round(
+            new_results[TOTAL_DURATION_TITLE]
+            - new_results[PAUSE_DURATION_TITLE]
+            - new_results[WAIT_DURATION_TITLE]
+            - new_results[PRINT_DURATION_TITLE],
             DECIMALS_PLACES_IN_NANOSECONDS,
         )
+        if new_results[ITERATIONS_TITLE] > 0:
+            new_results[ITERATION_DURATION_TITLE] = round(
+                new_results[TEST_DURATION_TITLE] / float(new_results[ITERATIONS_TITLE]),
+                DECIMALS_PLACES_IN_NANOSECONDS,
+            )
 
     if measured_section_data:
         new_results[MEASURED_DURATION_TITLE] = measured_section_data
@@ -653,7 +682,10 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
 
     main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
     main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
-    main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
+    if TEST_DURATION_TITLE in new_results:
+        main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
+    else:
+        main_dictionary[TEST_DURATION_TITLE].append(None)
     if MEASURED_DURATION_TITLE in new_results:
         main_dictionary[MEASURED_DURATION_TITLE].append(
             new_results[MEASURED_DURATION_TITLE]
@@ -670,18 +702,24 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
         main_dictionary[T_OVER_PERCENT_TITLE].append(new_results[T_OVER_PERCENT_TITLE])
 
     test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
-    totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
-    totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
-    totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
-    totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
-    totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
-    totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
+    if SCHEDULED_TITLE in test_totals:
+        totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
+        totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
+        totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
+        totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
+        totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
+        totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
 
     test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
-    calculations[AVERAGE_LATENCY_TITLE].append(test_calculations[AVERAGE_LATENCY_TITLE])
-    calculations[MAXIMUM_LATENCY_TITLE].append(test_calculations[MAXIMUM_LATENCY_TITLE])
-    calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
-    calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
+    if AVERAGE_LATENCY_TITLE in test_calculations:
+        calculations[AVERAGE_LATENCY_TITLE].append(
+            test_calculations[AVERAGE_LATENCY_TITLE]
+        )
+        calculations[MAXIMUM_LATENCY_TITLE].append(
+            test_calculations[MAXIMUM_LATENCY_TITLE]
+        )
+        calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
+        calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
 
 def load_scenario_file():
@@ -737,7 +775,7 @@ def execute_suite_tests(suite_file, suite_file_lines, map_lines):
         file_line_number += 1
 
         is_repeat_test = re.search("^#", next_suite_test)
-        if is_repeat_test:
+        if is_repeat_test or not next_suite_test.strip():
             continue
 
         is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
