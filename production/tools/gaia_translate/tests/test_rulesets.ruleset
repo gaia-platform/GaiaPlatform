@@ -194,6 +194,8 @@ ruleset test_queries
     }
 }
 
+// WLW TODO - change 'student.total_hours' back to 'total_hours'.
+// GAIAPLAT-1124 - the "student." qualification on this implicit navigation
 ruleset test_query_1
 {
     // test_queries_code.sum_of_hours
@@ -204,8 +206,8 @@ ruleset test_query_1
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
-        total_hours += hours;
-        g_oninsert_value = total_hours;
+        student.total_hours += hours;
+        g_oninsert_value = student.total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -217,16 +219,16 @@ ruleset test_query_2
     // Auto-sum of student hours.
     on_insert(registration)
     {
-        total_hours = 0;
+        student.total_hours = 0;
         // Visit all courses in which the student is registered.
-        total_hours += student->registration->course.hours;
-        g_oninsert_value = total_hours;
+        student.total_hours += student->registration->course.hours;
+        g_oninsert_value = student.total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
 }
 
-// GAIAPLAT-950
+// GAIAPLAT-950 (fixed)
 ruleset test_query_3
 {
     // test_queries_code.tag_define_use
@@ -255,7 +257,7 @@ ruleset test_query_4
     on_insert(student)
     {
         int a = 0;
-        if (total_hours > 10)
+        if (student.total_hours > 10)
         {
             a += age;
         }
@@ -270,7 +272,7 @@ ruleset test_query_4
         if (@hours > 1)
         {
             hours -= 1;
-            total_hours += 1;
+            student.total_hours += 1;
         }
         else
         {
@@ -485,5 +487,60 @@ ruleset test_insert_delete
         }
         while (deleted);
         g_onupdate_called = true;
+    }
+}
+
+ruleset test_insert_delete_2
+{
+    // GAIAPLAT-1110
+    // GAIAPLAT-1112
+    on_insert(E:enrollment_log)
+    {
+        const char* str1 = nullptr;
+        const char* str2 = nullptr;
+        int32_t int1 = 0;
+
+        // WLW TODO - when bugs are fixed, use the tagged parameters.
+        // The uncommented code is a poor workaround for this, which should get fixed soon.
+        // auto S = student.insert(student_id: E.log_student_id, surname: E.log_surname, E.log_age);
+        // auto C = course.insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
+        // auto R = registration.insert(reg_id: E.log_reg_id);
+
+        str1 = E.log_student_id;
+        str2 = E.log_surname;
+        int1 = E.log_age;
+        gaia::prerequisites::student_t S = student.insert(student_id: str1, surname: str2, age: int1);
+        str1 = E.log_course_id;
+        str2 = E.log_name;
+        int1 = E.log_hours;
+        gaia::prerequisites::course_t C = course.insert(course_id: str1, name: str2, hours: int1);
+        str1 = E.log_reg_id;
+        gaia::prerequisites::registration_t R = registration.insert(reg_id: str1);
+
+        // WLW TODO - when declarative connect() is ready, use it rather than EDC.
+        S.registrations().insert(R);
+        C.registrations().insert(R);
+
+        g_oninsert_called = true;
+    }
+
+    on_insert(student)
+    {
+        student.total_hours += course.hours;
+    }
+
+    on_insert(course)
+    {
+        hours *= 2;
+    }
+
+    on_insert(registration)
+    {
+        status = surname;
+    }
+
+    on_update(status)
+    {
+        grade = "D+";
     }
 }

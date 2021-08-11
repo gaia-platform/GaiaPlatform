@@ -28,6 +28,11 @@ namespace gaia
 namespace db
 {
 
+namespace query_processor
+{
+class db_client_proxy_t;
+}
+
 class client_t
 {
     friend class gaia_ptr_t;
@@ -48,6 +53,8 @@ class client_t
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+
+    friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
     static inline bool is_transaction_open();
