@@ -3248,19 +3248,20 @@ int main(int argc, const char** argv)
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
 
-    std::string compilation_db_error_msg = "";
+    std::string error_msg;
     std::unique_ptr<CompilationDatabase> compilation_database
-        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, compilation_db_error_msg);
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_msg);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets"))
+    llvm::raw_string_ostream error_msg_stream(error_msg);
+
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
     {
+        error_msg_stream.flush();
+        std::cerr << error_msg;
         return EXIT_FAILURE;
     }
 
-    if (!compilation_db_error_msg.empty())
-    {
-        std::cerr << compilation_db_error_msg << std::endl;
-    }
+    cl::PrintOptionValues();
 
     if (g_help_option_alias)
     {
