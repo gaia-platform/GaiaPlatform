@@ -151,8 +151,7 @@ SourceLocation get_previous_token_location(SourceLocation location, const Rewrit
     while (location != start_of_file)
     {
         location = Lexer::GetBeginningOfToken(location, rewriter.getSourceMgr(), rewriter.getLangOpts());
-        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) &&
-            token.isNot(tok::comment))
+        if (!Lexer::getRawToken(location, token, rewriter.getSourceMgr(), rewriter.getLangOpts()) && token.isNot(tok::comment))
         {
             break;
         }
@@ -1595,8 +1594,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     {
         return false;
     }
-    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") ||
-        explicit_path_attribute->getPath().startswith("@/");
+    data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
     vector<string> path_components;

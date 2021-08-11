@@ -382,7 +382,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
         vector<navigation_data_t> path;
-        unordered_multimap<string, navigation_data_t> graph_data (m_table_relationship);
+        unordered_multimap<string, navigation_data_t> graph_data(m_table_relationship);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
         auto graph_itr = graph_data.equal_range(edge_src.table_name);
