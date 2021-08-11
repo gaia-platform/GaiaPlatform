@@ -1,2 +1,2 @@
-basic_with_100k repeat 5
+smoke-time-only-with-100k repeat 5
 smoke repeat 10

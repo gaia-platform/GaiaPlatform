@@ -68,16 +68,23 @@ const int c_processing_pause_in_microseconds = 100;
 double g_total_wait_time_in_microseconds = 0.0;
 double g_total_print_time_in_microseconds = 0.0;
 double g_t_pause_total_in_microseconds = 0.0;
+
+double g_total_start_transaction_duration_in_microseconds = 0.0;
+double g_total_inside_transaction_duration_in_microseconds = 0.0;
+double g_total_end_transaction_duration_in_microseconds = 0.0;
+double g_update_row_duration_in_microseconds = 0.0;
+
 long g_t_pause_requested_in_microseconds = 0;
 int g_sleep_time_in_seconds_after_stop;
 int g_sim_with_wait_pause_in_microseconds = c_default_sim_with_wait_pause_in_microseconds;
-void add_fan_control_rule();
 
 // Used to get a more accurate measurement using the toggle on/off (o) command.
 bool g_is_measured_duration_timer_on;
 bool g_have_measurement;
 my_time_point g_measured_duration_start_mark;
 my_duration_in_microseconds g_measured_duration_in_microseconds;
+
+void add_fan_control_rule();
 
 void my_sleep_for(long parse_for_microsecond)
 {
@@ -335,8 +342,9 @@ void set_power(bool is_on)
 
 void simulation_step()
 {
-
+    my_time_point start_transaction_start_mark = my_clock::now();
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    my_time_point inside_transaction_start_mark = my_clock::now();
 
     float new_temp = 0.0;
     float fan_a = 0.0;
@@ -367,7 +375,6 @@ void simulation_step()
             new_temp = calc_new_temp(s.value(), fan_a);
             w.value = new_temp;
             w.timestamp = g_timestamp;
-            w.update_row();
         }
         else if (strcmp(s.name(), c_sensor_b) == 0)
         {
@@ -375,17 +382,29 @@ void simulation_step()
             new_temp = calc_new_temp(new_temp, fan_c);
             w.value = new_temp;
             w.timestamp = g_timestamp;
-            w.update_row();
         }
         else if (strcmp(s.name(), c_sensor_c) == 0)
         {
             new_temp = calc_new_temp(s.value(), fan_a);
             w.value = new_temp;
             w.timestamp = g_timestamp;
-            w.update_row();
         }
+        my_time_point update_start_mark = my_clock::now();
+        w.update_row();
+        my_time_point update_end_mark = my_clock::now();
+        my_duration_in_microseconds update_duration = update_end_mark - update_start_mark;
+        g_update_row_duration_in_microseconds += update_duration.count();
     }
+    my_time_point inside_transaction_end_mark = my_clock::now();
     tx.commit();
+    my_time_point commit_transaction_end_mark = my_clock::now();
+
+    my_duration_in_microseconds start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
+    my_duration_in_microseconds inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
+    my_duration_in_microseconds end_transaction_duration = commit_transaction_end_mark - inside_transaction_end_mark;
+    g_total_start_transaction_duration_in_microseconds += start_transaction_duration.count();
+    g_total_inside_transaction_duration_in_microseconds += inside_transaction_duration.count();
+    g_total_end_transaction_duration_in_microseconds += end_transaction_duration.count();
 }
 
 int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base, int rule_4_sample_base)
@@ -1062,12 +1081,16 @@ public:
 
             printf("{ \"stop_pause_in_sec\" : %.9f, "
                    "\"iterations\" : %d, "
+                   "\"start_transaction_in_sec\" : %.9f, "
+                   "\"inside_transaction_in_sec\" : %.9f, "
+                   "\"end_transaction_in_sec\" : %.9f, "
+                   "\"update_row_in_sec\" : %.9f, "
                    "\"total_wait_in_sec\" : %.9f, "
                    "\"t_pause_in_sec\" : %.9f, "
                    "\"t_requested_in_sec\" : %.9f, "
-                   "\"total_print_in_sec\" : %.9f%s%s "
-                   "}\n",
-                   ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_wait_time_in_microseconds / c_microseconds_in_second, g_t_pause_total_in_microseconds / c_microseconds_in_second, static_cast<double>(g_t_pause_requested_in_microseconds) / c_microseconds_in_second, g_total_print_time_in_microseconds / c_microseconds_in_second, measured_buffer, pause_buffer);
+                   "\"total_print_in_sec\" : %.9f"
+                   "%s%s }\n",
+                   ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second, g_update_row_duration_in_microseconds / c_microseconds_in_second, g_total_wait_time_in_microseconds / c_microseconds_in_second, g_t_pause_total_in_microseconds / c_microseconds_in_second, static_cast<double>(g_t_pause_requested_in_microseconds) / c_microseconds_in_second, g_total_print_time_in_microseconds / c_microseconds_in_second, measured_buffer, pause_buffer);
         }
         return EXIT_SUCCESS;
     }
