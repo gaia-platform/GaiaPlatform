@@ -380,8 +380,8 @@ def process_rules_engine_stats(base_dir):
                     owner_slice[INDIVIDUAL_STATS_TITLE] = {}
                 owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
         calculate_proper_averages(calculations, totals)
-    except Exception:
-        stats_slices = "Slices could not be parsed from original gaia_stats.log file."
+    except Exception as my_exception:
+        stats_slices = f"Slices could not be parsed from original gaia_stats.log file ({my_exception})."
 
     rules_engine_stats = {}
     rules_engine_stats[RULES_ENGINE_SLICES_TITLE] = stats_slices
@@ -435,9 +435,9 @@ def load_simple_result_files(base_dir):
         with open(json_path) as input_file:
             data = json.load(input_file)
             duration_data = data["duration"]
-    except Exception:
+    except Exception as my_exception:
         duration_data = (
-            f"Duration data could not be loaded from original '{json_path}' file."
+            f"Duration data could not be loaded from original '{json_path}' file ({my_exception})."
         )
     return return_code_data, duration_data
 
