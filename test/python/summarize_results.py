@@ -48,6 +48,11 @@ WAIT_DURATION_TITLE = "wait-pause-sec"
 PRINT_DURATION_TITLE = "print-duration-sec"
 TEST_RUNS_TITLE = "test_runs"
 
+START_TRANSACTION_DURATION_TITLE = "start-transaction-sec"
+INSIDE_TRANSACTION_DURATION_TITLE = "inside-transaction-sec"
+END_TRANSACTION_DURATION_TITLE = "end-transaction-sec"
+UPDATE_ROW_DURATION_TITLE = "update-row-sec"
+
 T_PAUSE_TITLE = "t-requested-pause-microseconds"
 T_OVER_PERCENT_TITLE = "t-over-percent"
 T_PAUSE_SECONDS_TITLE = "t-pause-sec"
@@ -440,6 +445,7 @@ def load_simple_result_files(base_dir):
 # pylint: enable=broad-except
 
 
+# pylint: disable=too-many-locals
 def load_output_timing_files(base_dir):
     """
     Load the 'output.delay' file generated from the main executable.
@@ -454,7 +460,11 @@ def load_output_timing_files(base_dir):
         t_pause_data,
         t_requested_data,
         t_config_data,
-    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None)
+        start_transaction_data,
+        inside_transaction_data,
+        end_transaction_data,
+        update_row_data,
+    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None, 0.0, 0.0, 0.0, 0.0)
 
     json_path = os.path.join(base_dir, "output.delay")
     if os.path.exists(json_path):
@@ -466,6 +476,11 @@ def load_output_timing_files(base_dir):
             total_print_data = data["total_print_in_sec"]
             t_pause_data = data["t_pause_in_sec"]
             t_requested_data = data["t_requested_in_sec"]
+
+            start_transaction_data = data["start_transaction_in_sec"]
+            inside_transaction_data = data["inside_transaction_in_sec"]
+            end_transaction_data = data["end_transaction_in_sec"]
+            update_row_data = data["update_row_in_sec"]
 
             measured_section_data = None
             if "measured_in_sec" in data:
@@ -483,9 +498,17 @@ def load_output_timing_files(base_dir):
         t_pause_data,
         t_requested_data,
         t_config_data,
+        start_transaction_data,
+        inside_transaction_data,
+        end_transaction_data,
+        update_row_data,
     )
 
 
+# pylint: enable=too-many-locals
+
+
+# pylint: disable=too-many-locals
 def load_test_result_files(suite_test_directory):
     """
     Load sets of individual results from their various sources.
@@ -510,6 +533,10 @@ def load_test_result_files(suite_test_directory):
         t_pause_data,
         t_requested_data,
         t_config_data,
+        start_transaction_data,
+        inside_transaction_data,
+        end_transaction_data,
+        update_row_data,
     ) = load_output_timing_files(base_dir)
 
     stats_data = process_rules_engine_stats(base_dir)
@@ -532,7 +559,14 @@ def load_test_result_files(suite_test_directory):
         t_pause_data,
         t_requested_data,
         t_config_data,
+        start_transaction_data,
+        inside_transaction_data,
+        end_transaction_data,
+        update_row_data,
     )
+
+
+# pylint: enable=too-many-locals
 
 
 def __handle_t_data(
@@ -575,6 +609,10 @@ def load_results_for_test(suite_test_directory, source_info):
         t_pause_data,
         t_requested_data,
         t_config_data,
+        start_transaction_data,
+        inside_transaction_data,
+        end_transaction_data,
+        update_row_data,
     ) = load_test_result_files(suite_test_directory)
 
     new_results = {}
@@ -590,6 +628,10 @@ def load_results_for_test(suite_test_directory, source_info):
     __handle_t_data(
         new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
     )
+    new_results[START_TRANSACTION_DURATION_TITLE] = start_transaction_data
+    new_results[INSIDE_TRANSACTION_DURATION_TITLE] = inside_transaction_data
+    new_results[END_TRANSACTION_DURATION_TITLE] = end_transaction_data
+    new_results[UPDATE_ROW_DURATION_TITLE] = update_row_data
 
     if not isinstance(new_results[TOTAL_DURATION_TITLE], str):
         new_results[TEST_DURATION_TITLE] = round(
@@ -633,6 +675,11 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     main_dictionary[RETURN_CODE_TITLE] = []
     main_dictionary[TEST_DURATION_TITLE] = []
     main_dictionary[MEASURED_DURATION_TITLE] = []
+
+    main_dictionary[START_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[INSIDE_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[END_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[UPDATE_ROW_DURATION_TITLE] = []
 
     main_dictionary[ITERATION_DURATION_TITLE] = []
     main_dictionary[PER_MEASURED_DURATION_TITLE] = []
@@ -700,6 +747,19 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
         )
     if T_OVER_PERCENT_TITLE in new_results:
         main_dictionary[T_OVER_PERCENT_TITLE].append(new_results[T_OVER_PERCENT_TITLE])
+
+    main_dictionary[START_TRANSACTION_DURATION_TITLE].append(
+        new_results[START_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[INSIDE_TRANSACTION_DURATION_TITLE].append(
+        new_results[INSIDE_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[END_TRANSACTION_DURATION_TITLE].append(
+        new_results[END_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[UPDATE_ROW_DURATION_TITLE].append(
+        new_results[UPDATE_ROW_DURATION_TITLE]
+    )
 
     test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
     if SCHEDULED_TITLE in test_totals:
