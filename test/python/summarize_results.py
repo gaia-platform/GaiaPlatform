@@ -16,6 +16,7 @@ import configparser
 SUITE_DIRECTORY = "suite-results/"
 
 DECIMALS_PLACES_IN_NANOSECONDS = 9
+MICROSEC_PER_SEC = 1000000
 
 SLICE_NAME_INDEX = 3
 THREAD_LOAD_INDEX = 5
@@ -52,6 +53,11 @@ START_TRANSACTION_DURATION_TITLE = "start-transaction-sec"
 INSIDE_TRANSACTION_DURATION_TITLE = "inside-transaction-sec"
 END_TRANSACTION_DURATION_TITLE = "end-transaction-sec"
 UPDATE_ROW_DURATION_TITLE = "update-row-sec"
+
+AVG_START_TRANSACTION_DURATION_TITLE = "average-start-transaction-microsec"
+AVG_INSIDE_TRANSACTION_DURATION_TITLE = "average-inside-transaction-microsec"
+AVG_END_TRANSACTION_DURATION_TITLE = "average-end-transaction-microsec"
+AVG_UPDATE_ROW_DURATION_TITLE = "average-update-row-microsec"
 
 T_PAUSE_TITLE = "t-requested-pause-microseconds"
 T_OVER_PERCENT_TITLE = "t-over-percent"
@@ -381,7 +387,10 @@ def process_rules_engine_stats(base_dir):
                 owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
         calculate_proper_averages(calculations, totals)
     except Exception as my_exception:
-        stats_slices = f"Slices could not be parsed from original gaia_stats.log file ({my_exception})."
+        stats_slices = (
+            "Slices could not be parsed from original "
+            + f"gaia_stats.log file ({my_exception})."
+        )
 
     rules_engine_stats = {}
     rules_engine_stats[RULES_ENGINE_SLICES_TITLE] = stats_slices
@@ -437,7 +446,8 @@ def load_simple_result_files(base_dir):
             duration_data = data["duration"]
     except Exception as my_exception:
         duration_data = (
-            f"Duration data could not be loaded from original '{json_path}' file ({my_exception})."
+            "Duration data could not be loaded from "
+            + f"original '{json_path}' file ({my_exception})."
         )
     return return_code_data, duration_data
 
@@ -628,10 +638,34 @@ def load_results_for_test(suite_test_directory, source_info):
     __handle_t_data(
         new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
     )
+
     new_results[START_TRANSACTION_DURATION_TITLE] = start_transaction_data
     new_results[INSIDE_TRANSACTION_DURATION_TITLE] = inside_transaction_data
     new_results[END_TRANSACTION_DURATION_TITLE] = end_transaction_data
     new_results[UPDATE_ROW_DURATION_TITLE] = update_row_data
+
+    if new_results[ITERATIONS_TITLE] > 0:
+        new_results[AVG_START_TRANSACTION_DURATION_TITLE] = round(
+            (start_transaction_data / float(new_results[ITERATIONS_TITLE]))
+            * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        new_results[AVG_INSIDE_TRANSACTION_DURATION_TITLE] = round(
+            inside_transaction_data
+            / float(new_results[ITERATIONS_TITLE])
+            * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        new_results[AVG_END_TRANSACTION_DURATION_TITLE] = round(
+            end_transaction_data
+            / float(new_results[ITERATIONS_TITLE])
+            * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        new_results[AVG_UPDATE_ROW_DURATION_TITLE] = round(
+            update_row_data / float(new_results[ITERATIONS_TITLE]) * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
 
     if not isinstance(new_results[TOTAL_DURATION_TITLE], str):
         new_results[TEST_DURATION_TITLE] = round(
@@ -680,6 +714,11 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     main_dictionary[INSIDE_TRANSACTION_DURATION_TITLE] = []
     main_dictionary[END_TRANSACTION_DURATION_TITLE] = []
     main_dictionary[UPDATE_ROW_DURATION_TITLE] = []
+
+    main_dictionary[AVG_START_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[AVG_INSIDE_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[AVG_END_TRANSACTION_DURATION_TITLE] = []
+    main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE] = []
 
     main_dictionary[ITERATION_DURATION_TITLE] = []
     main_dictionary[PER_MEASURED_DURATION_TITLE] = []
@@ -759,6 +798,19 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
     )
     main_dictionary[UPDATE_ROW_DURATION_TITLE].append(
         new_results[UPDATE_ROW_DURATION_TITLE]
+    )
+
+    main_dictionary[AVG_START_TRANSACTION_DURATION_TITLE].append(
+        new_results[AVG_START_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[AVG_INSIDE_TRANSACTION_DURATION_TITLE].append(
+        new_results[AVG_INSIDE_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[AVG_END_TRANSACTION_DURATION_TITLE].append(
+        new_results[AVG_END_TRANSACTION_DURATION_TITLE]
+    )
+    main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE].append(
+        new_results[AVG_UPDATE_ROW_DURATION_TITLE]
     )
 
     test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
