@@ -663,10 +663,8 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
     //  ....
 
-    auto& types = Context.getTypes();
-    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
+    for (Type* type : Context.getTypes())
     {
-        const Type* type = types[typeIdx];
         RecordDecl* record = type->getAsRecordDecl();
         if (record != nullptr)
         {
@@ -702,6 +700,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
 
     targetTypes.push_back(implicitTargetTypeDecl);
 
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
     // Lookup the EDC class type (table_t)
     string edcTableTypeName = targetTableName + "_t";
     TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);

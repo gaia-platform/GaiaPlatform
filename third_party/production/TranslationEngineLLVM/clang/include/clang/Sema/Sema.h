@@ -4656,7 +4656,7 @@ private:
   TagDecl* lookupClass(std::string className, SourceLocation loc, Scope* scope);
 
   /// Look up a Gaia EDC class using the EDC class name.
-  /// Note: the lookup logic does not follow the Clang way of doing it (see lookupClass).
+  /// TODO [GAIAPLAT-1028]: the lookup logic does not follow the Clang way of doing it (see lookupClass).
   ///  The class name will be searched everywhere regardless of the namespace. If the class
   ///  name appears multiple times in different namespaces the first occurrence is returned.
   ///  This is inline with the fact that the translation process is unaware of databases.
