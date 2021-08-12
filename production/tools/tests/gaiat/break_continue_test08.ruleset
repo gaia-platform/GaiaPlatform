@@ -3,7 +3,7 @@
 // TESTCASE: break to a misplaced label
 ruleset test08
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
         for (animal->F:feeding)
         {

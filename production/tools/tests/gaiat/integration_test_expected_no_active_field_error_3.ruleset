@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    {
+        if (/@F:farmer.acreage > 10)
+        {
+            F.acreage = 5;
+        }
+    }
+}
+
+// CHECK: No active fields for the rule
