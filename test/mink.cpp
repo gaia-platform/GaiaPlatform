@@ -18,7 +18,7 @@
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
-#include "gaia_incubator.h"
+#include "gaia_mink.h"
 
 using namespace std;
 
@@ -26,13 +26,16 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::direct_access;
-using namespace gaia::incubator;
+using namespace gaia::mink;
 using namespace gaia::rules;
 
 typedef std::chrono::steady_clock my_clock;
 typedef my_clock::time_point my_time_point;
 typedef std::chrono::microseconds microseconds;
 typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds;
+
+const char* g_gaia_ruleset = "mink_ruleset";
+const char* g_configuration_file_name = "mink.conf";
 
 const char c_sensor_a[] = "Temp A";
 const char c_sensor_b[] = "Temp B";
@@ -194,7 +197,7 @@ void dump_db()
 {
     begin_transaction();
     printf("\n");
-    for (const gaia::incubator::incubator_t& i : incubator_t::list())
+    for (const gaia::mink::incubator_t& i : incubator_t::list())
     {
         printf("-----------------------------------------\n");
         printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
@@ -219,7 +222,7 @@ void dump_db_json()
     begin_transaction();
     printf("{\n");
     bool is_first = true;
-    for (const gaia::incubator::incubator_t& i : incubator_t::list())
+    for (const gaia::mink::incubator_t& i : incubator_t::list())
     {
         if (is_first)
         {
@@ -559,7 +562,7 @@ void add_fan_control_rule()
 {
     try
     {
-        subscribe_ruleset("incubator_ruleset");
+        subscribe_ruleset(g_gaia_ruleset);
     }
     catch (const duplicate_rule&)
     {
@@ -1205,8 +1208,7 @@ int main(int argc, const char** argv)
     else
     {
         simulation_t sim;
-        const char* configuration_file_name = "incubator.conf";
-        gaia::system::initialize(configuration_file_name, nullptr);
+        gaia::system::initialize(g_configuration_file_name, nullptr);
 
         if (is_live_user)
         {

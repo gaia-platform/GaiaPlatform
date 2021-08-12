@@ -12,6 +12,8 @@ import os
 import json
 import argparse
 
+GENERATED_CONFIGUATION_FILE = "mink.conf"
+
 CONFIGURATION_FILE_TEMPLATE = """
 [Database]
 data_dir = "/var/lib/gaia/db"
@@ -140,7 +142,7 @@ def write_templated_output(thread_count, stats_log_interval):
         "{THREAD_POOL_COUNT}", str(thread_count)
     ).replace("{STATS_LOG_INTERVAL}", str(stats_log_interval))
 
-    with open("incubator.conf", "w") as write_file:
+    with open(GENERATED_CONFIGUATION_FILE, "w") as write_file:
         write_file.write(templated_file_contents)
 
 

@@ -374,7 +374,7 @@ clear_suite_output
 
 install_and_build_cleanly
 
-broadcast_message "$SUITE_MODE" "Testing of the incubator test suite started."
+broadcast_message "$SUITE_MODE" "Testing of the test suite started."
 DID_REPORT_START=1
 
 # shellcheck disable=SC2016

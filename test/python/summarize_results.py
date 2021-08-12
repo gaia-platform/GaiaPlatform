@@ -15,6 +15,8 @@ import configparser
 
 SUITE_DIRECTORY = "suite-results/"
 
+GENERATED_CONFIGUATION_FILE = "mink.conf"
+
 DECIMALS_PLACES_IN_NANOSECONDS = 9
 MICROSEC_PER_SEC = 1000000
 
@@ -408,7 +410,7 @@ def process_configuration_file(base_dir):
     "Rules" portion into a JSON blob.
     """
 
-    json_path = os.path.join(base_dir, "incubator.conf")
+    json_path = os.path.join(base_dir, GENERATED_CONFIGUATION_FILE)
     config = configparser.ConfigParser()
     config.read(json_path)
     assert "Rules" in config

@@ -149,23 +149,41 @@ verify_correct_clang_tidy_installed() {
     fi
 }
 
+# Build the project.  Without this, the C++ lint information may be out of date.
+build_project() {
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Building the $PROJECT_NAME project."
+    fi
+    if ! ./build.sh -v > "$TEMP_FILE" 2>&1 ; then
+        cat "$TEMP_FILE"
+        echo "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
+        complete_process 1
+    fi
+}
+
 # Lint the C++ code.
 lint_c_plus_plus_code() {
+
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Building the $PROJECT_NAME project to ensure the C++ components to scan are current."
+    fi
+    build_project
+
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Applying formatting to the C++ parts of the $PROJECT_NAME project."
     fi
 
-    if ! clang-format -i "./incubator.cpp" --style=file > "$TEMP_FILE" 2>&1; then
+    if ! clang-format -i "./mink.cpp" --style=file > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
-        complete_process 1 "Formatting of 'incubator.cpp' failed."
+        complete_process 1 "Formatting of 'mink.cpp' failed."
     fi
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Analyzing the C++ parts of the $PROJECT_NAME project."
     fi
-    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./incubator.cpp" -- -I/opt/gaia/include "-I$SCRIPTPATH/build/gaia_generated/edc/incubator" > "$TEMP_FILE" 2>&1; then
+    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./mink.cpp" -- -I/opt/gaia/include "-I$SCRIPTPATH/build/gaia_generated/edc/mink" > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
-        complete_process 1 "File 'incubator.cpp' contains some lint errors."
+        complete_process 1 "File 'mink.cpp' contains some lint errors."
     fi
 }
 

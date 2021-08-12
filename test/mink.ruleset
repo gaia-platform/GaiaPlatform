@@ -18,7 +18,7 @@ constexpr float c_fan_speed_limit = 5000.0;
 constexpr float c_fan_speed_increment = 500.0;
 constexpr float c_fan_threshold = 0.7f;
 
-ruleset incubator_ruleset
+ruleset mink_ruleset
 {
     // Rule 1:  keep the temperature with the range of the minimum and
     // maximum limits of the incubator.

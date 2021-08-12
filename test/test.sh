@@ -206,9 +206,9 @@ copy_test_output() {
     fi
 
     if [ "$DID_PUSHD" -ne 0 ]; then
-        if ! cp -r "$TEST_DIRECTORY/incubator.conf" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+        if ! cp -r "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
             cat "$TEMP_FILE"
-            echo "Test script cannot copy incubator configuration from '$(realpath "$TEST_DIRECTORY"/incubator.conf)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/incubator.conf)'."
+            echo "Test script cannot copy generated configuration from '$(realpath "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/$GENERATED_CONFIGURATION_FILE")'."
             complete_process 2
         fi
 
