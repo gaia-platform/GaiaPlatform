@@ -3,7 +3,7 @@
 // TESTCASE: break targets outside the scope of the break
 ruleset test07
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
 BREAK1_TARGET:
         if (incubator->raised->animal->feeding->yield->crop.acres == 15)

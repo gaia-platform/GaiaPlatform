@@ -2,7 +2,7 @@
 
 ruleset test03
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         auto max = incubator.max_temp;
         if (max > 99.0)

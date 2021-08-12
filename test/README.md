@@ -1,4 +1,4 @@
-# Gaia Platform - Incubator Integration Test Suite
+# Gaia Platform - Integration Test Suite
 
 As much as possible, this project has been engineered to be copied to
 another directory and used for other integration tests, with a minimal
@@ -19,16 +19,16 @@ and observable.  Given that statement, if asked why we decided to take
 a given route on solving an issue, the explanation will always
 focus on one of those four goals.
 
-This is a modified version of the
-[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/master/production/examples/incubator).
-It has been altered to provide for integration test functionality.
-The main focus of this framework is to provide for a comprehensive set
-of performance tests and integration tests that can be used in
-various forms as part of a CI/CD pipeline.  Because of the multithreaded
-nature of the product, a lot of the testing centers on performance
+This framework provides performance and integration tests that can be
+part of a CI/CD pipeline.  It is a version of the
+[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/master/production/examples/incubator)
+altered for testing purposes.  Because of the multithreaded nature of
+the product, a lot of the testing centers on performance
 testing, and that is a big concern.  However, in cases where correctness
 is available, the framework provides functionality to help ensure that
 a given test executes with predictable results.
+
+## A New Name For The Incubator Application
 
 To that extent, a lot of the changes and commands described in the
 following sections are there to provide closer alignment with those goals.
@@ -36,6 +36,11 @@ The substantial change is that the "1 second timer" part of the Incubator exampl
 has been amended to include a debug mode.  This debug mode allows for
 the frequency between updates to be controlled by the test, instead of
 waiting for another second to pass.
+
+After these changes were made, a decision was made to rename the
+"Incubator Example" to the "Mink Application".  For more information
+on what else changed and why this decision was made, see
+[incubator modifications](#modifications-to-the-incubator-example).
 
 ## Composition of the Tests
 
@@ -73,9 +78,9 @@ the entire system is doing.
 High level tests are driven by specifying two files in a unique directory under `tests`:
 
 - `commands.txt`
-  - input to push through the various levels of menus in the incubator application
+  - input to push through the various levels of menus in the mink application
 - `expected_output.json`
-  - output that is expected from the incubator application
+  - output that is expected from the mink application
 
 For more information on these files, refer to the following section on
 [Creating a Test](#creating-a-test).
@@ -92,9 +97,9 @@ Each test is assigned the unique name of the directory containing the
 `commands.txt` and the `expected_output.json` files.
 
 The `commands.txt` file is a simple file with a single command on each line.
-Those commands, exception for
+Those commands, except for
 [a few added commands](#main-menu-commands),
-are the same as the commands for the standard Incubator example. For example,
+are the same as the commands for the mink application. For example,
 look at the file `smoke\commands.txt`:
 
 ```
@@ -117,18 +122,18 @@ z1023
 there are two distinct parts of the file, separated by the `w5` command and
 the comment preceding it.
 
-If you place this file where you can see it and engage the incubator in
+If you place this file where you can see it and engage the application in
 normal mode in a separate window, you can type each one of these commands
 on a line, hit enter, and follow what each one is doing.  The first group
-of commands switches to the incubators menu (`m`), selects chickens (`c`),
+of commands switches to the incubator menu (`m`), selects chickens (`c`),
 enabled the chicken incubator (`on`), and then returns to the main menu (`m`).
 The second group of commands performs the same action, but on the puppy (`p`)
 incubator instead.
 
 At that point, the second part of the file takes over.  This is the part of
-the file that was use the
+the file that uses the
 [incubator modifications](#modifications-to-the-incubator-example)
-to more accurately control the incubator's behavior.  To start with,
+to more accurately control the application's behavior.  To start with,
 the `w5`command waits for 5 milliseconds to ensure that any rules triggered
 by the setup will complete before the testing continues.  This may not be
 100% necessary, but it provides a good buffer to ensure the isolation of
@@ -137,7 +142,7 @@ test measurements.
 With that pause completed, the test then invokes the `step_and_emit_state` function `1023` times
 before exiting the simulation.  As detailed in the section on
 [incubator modifications](#modifications-to-the-incubator-example),
-a step is a single loop of processing for the incubator simulation. In particular,
+a step is a single loop of processing for the simulation. In particular,
 the `step_and_emit_state` method invokes the step, waits until any rules
 from the Rules Engine have fired, and then outputs the step.  This allows
 a picture of the database along an entire run of the test to be collected
@@ -158,14 +163,23 @@ Common files to see in this directory are:
   - captured around the `run.sh` script using `date +%s.%N`
 - `expected.diff`
   - simple file created by `diff`ing the test's `expected_output.json` file with the generated `output.json` file
+- `gaia.log`
+  - clean version of the log file generated by the rule engine
 - `gaia_stats.log`
   - clean version of the log file generated by the rule engine
-- `incubator.conf`
+- `mink.conf`
   - configuration file generated from the `config.json` file
+- `output.csv`
+  - experimental, for output to spreadsheets
+  - various test measurements, mostly various time-based delays, in CSV format
 - `output.delay`
-  - various test measurements, mostly various time-based delays, in JSON format
+ - various test measurements, mostly various time-based delays, in JSON format
 - `output.json`
   - output file generated by executing the commands
+- `output.txt`
+  - log of the results of the `test.sh` script in `-v`/verbose mode
+- `return_code.json`
+  - simple file with the return code emitted by the test
 
 ## Test Return Codes
 
@@ -186,12 +200,6 @@ A full set of available suites can be found by executing
 `./suite.sh -l`, and a specific suite can be executed by executing
 `./suite.sh <suite-name>`.
 
-As these test suites are intended to be executed as part of a CI/CD pipeline,
-broadcasting the information to a monitoring channel is advantageous.  To start,
-that channel is the `#test` channel on the Gaia Team's Slack.  Publishing the
-ongoing information about a suite's execution can be enabled by adding
-the `-s`/`--slack` flag to the command line used to execute the suite.
-
 ### Suite Input
 
 Like test input, the suite input occurs under the `tests` directory.
@@ -208,7 +216,26 @@ smoke-time-only
 This instructs the `smoke` suite to execute the tests `smoke` and `smoke-time-only`,
 in that order, and then exit.
 
-#### Repeating A Test
+#### Readability
+
+To make sure that these files are readable and maintainable, blank lines and line
+comments are supported.  Both will not affect tests. It is recommended that
+scenario tests start with some manner of prolog like:
+
+```text
+#
+# Simple test suite to ...
+#
+# This test ...
+
+```
+
+The *title* should be expanded on in the first line to provide a more expansive,
+but still simple, description of the test.  If there is still some ambiguity about
+what the test does or information that can help the reader, the `this test...`
+paragraph should explain the test as concisely as possible.
+
+#### Specifying Repeats For A Test
 
 In specific cases, there is a need to run a given test multiple times within a suite.
 When that is required, the following format is required:
@@ -218,6 +245,29 @@ smoke repeat 5
 ```
 
 That line with execute the `smoke` test 5 times as part of the current suite.
+
+#### Specifying Threads For A Test
+
+By default, the [Gaia Test Configuration File](#gaia-test-configuration) specifies
+the number of threads to use when executing any of the tests.  On a per-test
+basis, this can be changed to provide comparisons for a given workload with
+a changing thread count.
+
+For example, part of the `suite-threads.txt` file looks like this:
+
+```text
+smoke threads 1 repeat 3
+smoke threads 2 repeat 3
+smoke threads 3 repeat 3
+smoke threads 4 repeat 3
+```
+
+This instructs the `suite.sh` script to execute the `smoke` test 3 times,
+one group for a thread count between `1` and `4`.
+
+Note that if specifying the `threads` modifier and `repeat` modifier for
+the same test, the `threads` modifier must come before the `repeat` modifier,
+and be separated from each other by at least one whitespace character.
 
 #### Creating a Test Suite
 
@@ -271,8 +321,8 @@ leftover test processing from any previous tests is extinguished before the next
 begins.  There are many things
 that the test framework cannot control: other applications, running in a VM versus
 bare metal, a slack message coming to me during the middle of tests.  Each of these
-will have an effect on any performance measurements.  That is why during any normal
-measurements, multiple tests are executed and the average are taken.
+will influence any performance measurements.  That is why during any normal
+measurements, multiple tests are executed and the averages are taken.
 
 The 15 second pause may indeed be paranoid, but it is a paranoid decision that I
 can easily defend.  It may be more time than is needed, but I am confident that
@@ -282,14 +332,14 @@ before another test.
 ### Summary.json File
 
 The elements in the `summary.json` file are organized by the name of the test that
-they are executing.  Regardless if it is a single test or a group of tests, that first
-level element is always the name of that test.  After that, there is some divergence
+they are executing.  Regardless of whether it is a single test or a group of tests, that first
+element is always the name of that test.  After that, there is some divergence
 on how the information is stored to more efficiently aggregate the information from a
 group of tests.
 
 #### JSON Blob Naming
 
-In the large majority of cases, each entry in the specified `suite-*.txt` file will
+In most cases, each entry in the specified `suite-*.txt` file will
 have a unique name.  When the information for that entry is placed in the `summary.json`
 file, the name associated with the blob is the name of the test that was executed.
 Therefore, if the specified `suite-*.txt` file is:
@@ -337,6 +387,9 @@ overall JSON blob.
   "print-duration-sec": 0.326038276,
   "test-duration-sec": 0.4688067220000003,
   "iteration-duration-sec": 0.0004582665904203326,
+  "start-transaction-sec": 0.046970413,
+  "inside-transaction-sec": 0.145943434,
+  "end-transaction-sec": 0.07774411,
   "measured-duration-sec": 0.2902219,
   "iteration-measured-duration-sec": 0.000283696871945259,
   "rules-engine-stats": {
@@ -372,7 +425,7 @@ A summary of the various fields and blobs are as follows:
 - `source`
   - the source suite file and line number within that file that generated this blob
 - `configuration`
-  - a summary of the relevant fields in the `incubator.conf` file
+  - a summary of the relevant fields in the `mink.conf` file
 - `iteration`
   - harvested from `output.delay`
   - number of steps that were enacted as part of the test
@@ -400,6 +453,15 @@ A summary of the various fields and blobs are as follows:
   - `test-duration-sec` divided by `iteration`
   - approximation of the run time of a single step within the test
   - this field will not appear if no steps were reported in the `iteration` field
+- `start-transaction-sec`
+  - harvested from `output.delay`
+  - amount of time spent in each step starting the transaction for the step
+- `inside-transaction-sec`
+  - harvested from `output.delay`
+  - amount of time spent performing the workload for the step
+- `end-transaction-sec`
+  - harvested from `output.delay`
+  - amount of time spent in each step committing the transaction for the step
 - `measured-duration-sec`
   - optional field triggered by use of the [Toggling Measurements On and Off](#toggling-measurements-on-and-off) command
   - duration that occurred between the measurement being toggled on and off
@@ -416,9 +478,9 @@ A summary of the various fields and blobs are as follows:
 
 #### Slices and Individual Fields
 
-For most examinations of the test data, the top level information is all that is
+For most examinations of the test data, the top-level information is all that is
 required to complete the examination.  However, in certain cases, understanding
-the individual data that was aggregated to provide the top level information is
+the individual data that was aggregated to provide the top-level information is
 required.  In those cases, the `slices` and `individual` fields are used.
 
 The `slices` field is present under the `rules-engine-stats` field, beside the
@@ -496,8 +558,28 @@ In each case, the ellipses is replaced by 0 or more data objects.
             0.46579434499999983,
             ...
         ],
+        "measured-duration-sec": [
+            28.814934225,
+            ...
+        ],
+        "start-transaction-sec": [
+            5.018328143,
+            ...
+        ],
+        "inside-transaction-sec": [
+            15.364705248,
+            ...
+        ],
+        "end-transaction-sec": [
+            8.407552821,
+            ...
+        ],
         "iteration-duration-sec": [
             0.00045532194037145634,
+            ...
+        ],
+        "iteration-measured-duration-sec": [
+            0.000268875,
             ...
         ],
         "rules-engine-stats": {
@@ -546,7 +628,9 @@ be `smoke_10`.
 As the Incubator example is a common example that everyone has experience with,
 it made sense to use it as a base for the first integration test.  However, to
 be used as the base application for this integration test suite, some small
-modifications were required.
+modifications were required.  While the codebases are still closely related,
+sharing common code, this application has been renamed to `Mink` or "Modified
+INKubator" to remind test framework users of the difference.
 
 ### Command Line
 
@@ -580,8 +664,7 @@ As part of the testing framework, the usual use of the debug command mode is
 for each test to provide for a `commands.txt` file that contains one line for each command
 to be executed.  This file is the redirected into the `run.sh` script as part
 of the test itself.  Each command in that file is simply the same command that
-would be entered if the user were interacting with the incubator application
-directly.
+would be entered if the user were interacting with the application directly.
 
 #### Toggling Measurements On and Off
 
@@ -594,8 +677,8 @@ field calculated by taking the `duration-sec` field and subtracting the
 `stop-pause-sec` field, the `wait-pause-sec` field, and the `print-duration-sec`
 field.
 
-As those are all high level measurements, taken over the entire
-debug script, and they might not provide the required accuracy.  That is where
+As those are all high-level measurements, taken over the entire
+debug script, they might not provide the required accuracy.  That is where
 these commands can be used to provide that accuracy.  By toggling the measurement
 on before the interested area in the script and off when it has completed, the
 measurement is focused only on that one area of the script.  Once toggled off,
@@ -712,7 +795,7 @@ log_individual_rule_stats = true
 rule_retry_count = 3
 ```
 
-These settings can be verified by examining the `incubator.conf` file in the
+These settings can be verified by examining the `mink.conf` file in the
 `test-results` directory or the directory of a specific test within the
 `suite-results` directory.
 
@@ -780,7 +863,7 @@ source "$SCRIPTPATH/properties.sh"
 The `install.sh` script file takes one argument which is the directory to install the
 project to.  To ensure that the state of the project can be properly contained,
 this script is used within the integration tests to install the project into the
-`/tmp/test_$PROJECT_NAME` directory, which is `/tmp/test_incubator` for this project.
+`/tmp/test_$PROJECT_NAME` directory, which is `/tmp/test_mink` for this project.
 By following this practice, any unintended dependencies are avoided, improving
 the reproducibility of the tests.
 

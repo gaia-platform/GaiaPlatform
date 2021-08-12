@@ -1,5 +1,7 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump -verify %s -verify-ignore-unexpected=note | FileCheck -strict-whitespace %s
 
+#include "barn_storage/gaia_barn_storage.h"
+
 ruleset test_connect_disconnect_on_table
 {
     on_insert(farmer)
@@ -16,6 +18,23 @@ ruleset test_connect_disconnect_on_table
             // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .disconnect 0x{{[^ ]*}}
             // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
         }
+
+        // This won't work because of https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
+        // the workaround is to have the raised_t type available.
+//        farmer.connect(raised.insert(birthdate: "2 Aug 1990"));
+
+        auto birthday = raised.insert(birthdate: "2 Aug 1990");
+        // CHECK: <{{.*}}>
+        farmer.connect(birthday);
+        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .connect 0x{{[^ ]*}}
+        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'raised__type':'raised__type' lvalue Var 0x{{[^ ]*}} 'birthday' 'raised__type':'raised__type'
+        farmer.disconnect(birthday);
+        // CHECK:    CXXMemberCallExpr 0x{{[^ ]*}} <{{.*}}> 'bool'
+        // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .disconnect 0x{{[^ ]*}}
+        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
+        // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'raised__type':'raised__type' lvalue Var 0x{{[^ ]*}} 'birthday' 'raised__type':'raised__type'
     }
 }
 
@@ -42,6 +61,15 @@ ruleset test_connect_disconnect_on_link
   //        incubators.connect(i);
   //        incubators.disconnect(i);
         }
+
+        // This works because incubator_t is available hence the translation engine is able to
+        // convert incubator__type into incubator_t.
+        farmer.incubators.connect(incubator.insert(name: "Zombies"));
+
+        // Not putting any checks here because for some reason it does not work...
+        auto birthday = raised.insert(birthdate: "2 Aug 1990");
+        farmer.raised.connect(birthday);
+        farmer.raised.disconnect(birthday);
     }
 }
 
@@ -65,8 +93,8 @@ ruleset test_connect_disconnect_fail_with_wrong_param_types
             // while in the table we have multiple.
             farmer.connect(i); // expected-error {{no matching member function for call to 'connect'}}
             farmer.disconnect(i); // expected-error {{no matching member function for call to 'disconnect'}}
-            farmer.incubators.connect(i); // expected-error {{non-const lvalue reference to type 'incubator__type' cannot bind to a value of unrelated type 'isolated__type'}}
-            farmer.incubators.connect(i); // expected-error {{non-const lvalue reference to type 'incubator__type' cannot bind to a value of unrelated type 'isolated__type'}}
+            farmer.incubators.connect(i); // expected-error {{no matching member function for call to 'connect'}}
+            farmer.incubators.disconnect(i); // expected-error {{no matching member function for call to 'disconnect'}}
         }
     }
 };

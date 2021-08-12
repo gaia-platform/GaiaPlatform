@@ -3,7 +3,7 @@
 // TESTCASE: non-declarative if statement cannot have continue statement
 ruleset test06
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         auto max = incubator.max_temp;
         if (max > 99.0)

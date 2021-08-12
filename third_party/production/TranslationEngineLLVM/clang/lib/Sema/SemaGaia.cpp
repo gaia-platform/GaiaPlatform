@@ -619,28 +619,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    string targetTableTypeName = to_table + "__type";
-    TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
-
-    if (!paramRecordDecl)
-    {
-        paramRecordDecl = CXXRecordDecl::Create(
-            getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-            SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
-
-        paramRecordDecl->setLexicalDeclContext(getCurFunctionDecl());
-        PushOnScopeChains(paramRecordDecl, getCurScope());
-    }
-
-    // Creates a reference parameter (incubator__type&).
-    QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl, paramRecordDecl->getPreviousDecl());
-    QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
-
-    SmallVector<QualType, 8> paramTypes;
-    paramTypes.push_back(connectDisconnectParamRef);
-
-    addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-    addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
+    addConnectDisconnect(RD, to_table, loc, attrFactory, attrs);
 
     RD->completeDefinition();
 
@@ -674,6 +653,76 @@ TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* sco
     }
 
     return classDecl;
+}
+
+TagDecl* Sema::lookupEDCClass(std::string className)
+{
+    // TODO do a search bound to a namespace:
+    //   LookupResult gaiaNS(
+    //       *this, &Context.Idents.get("gaia"), loc, LookupNamespaceName);
+    //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
+    //  ....
+
+    for (Type* type : Context.getTypes())
+    {
+        RecordDecl* record = type->getAsRecordDecl();
+        if (record != nullptr)
+        {
+            const IdentifierInfo* id = record->getIdentifier();
+            if (id && id->getName().equals(className))
+            {
+                return llvm::cast_or_null<TagDecl>(record);
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+{
+    SmallVector<TagDecl*, 2> targetTypes;
+
+    // Look up the implicit class type (table__type).
+    string implicitTableTypeName = targetTableName + "__type";
+    TagDecl* implicitTargetTypeDecl = lookupClass(implicitTableTypeName, loc, getCurScope());
+
+    if (!implicitTargetTypeDecl)
+    {
+        // The implicit type hasn't been declared yet. Creates a forward declaration.
+        implicitTargetTypeDecl = CXXRecordDecl::Create(
+            getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
+            SourceLocation(), SourceLocation(), &Context.Idents.get(implicitTableTypeName));
+
+        implicitTargetTypeDecl->setLexicalDeclContext(getCurFunctionDecl());
+        PushOnScopeChains(implicitTargetTypeDecl, getCurScope());
+    }
+
+    targetTypes.push_back(implicitTargetTypeDecl);
+
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
+    // Lookup the EDC class type (table_t)
+    string edcTableTypeName = targetTableName + "_t";
+    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
+
+    if (edcTargetTypeDecl)
+    {
+        targetTypes.push_back(edcTargetTypeDecl);
+    }
+
+    // Add connect/disconnect both for the implicit class and EDC class (if available).
+    for (TagDecl* targetType : targetTypes)
+    {
+        // Creates a reference parameter (eg. incubator__type&).
+        QualType connectDisconnectParam = Context.getTypeDeclType(targetType);
+        QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0), true, loc, DeclarationName());
+
+        SmallVector<QualType, 8> parameters;
+        parameters.push_back(connectDisconnectParamRef);
+
+        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+    }
 }
 
 QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
@@ -721,36 +770,14 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     //  3. It finds the definition and returns it. This happens if this method
     //     is called multiple times for the same table.
 
-    string className = typeName + "__type";
+    string implicitClassName = typeName + "__type";
 
-    TagDecl* previousDeclaration = lookupClass(className, loc, getCurScope());
+    TagDecl* previousDeclaration = lookupClass(implicitClassName, loc, getCurScope());
     fieldTableName = typeName;
 
     if (previousDeclaration && previousDeclaration->isCompleteDefinition())
     {
         return Context.getTagDeclType(previousDeclaration);
-    }
-
-    const Type* realType = nullptr;
-
-    auto& types = Context.getTypes();
-    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
-    {
-        const auto* type = types[typeIdx];
-        const RecordDecl* record = type->getAsRecordDecl();
-        if (record != nullptr)
-        {
-            const auto* id = record->getIdentifier();
-            if (id != nullptr)
-            {
-                // Check if EDC type is defined.
-                if (id->getName().equals(typeName + "_t"))
-                {
-                    realType = type;
-                    break;
-                }
-            }
-        }
     }
 
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(rulesetContext);
@@ -776,7 +803,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     RecordDecl* RD = CXXRecordDecl::Create(
         getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-        SourceLocation(), SourceLocation(), &Context.Idents.get(className),
+        SourceLocation(), SourceLocation(), &Context.Idents.get(implicitClassName),
         llvm::cast_or_null<CXXRecordDecl>(previousDeclaration));
 
     RD->setLexicalDeclContext(functionDecl);
@@ -787,10 +814,12 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    if (realType != nullptr)
+    string edcClassName = tableName + "_t";
+    TagDecl* edcType = lookupEDCClass(edcClassName);
+    if (edcType != nullptr)
     {
         QualType R = Context.getFunctionType(
-            BuildReferenceType(QualType(realType, 0), true, loc, DeclarationName()),
+            BuildReferenceType(Context.getTagDeclType(edcType), true, loc, DeclarationName()),
             None, FunctionProtoType::ExtProtoInfo());
         CanQualType ClassType = Context.getCanonicalType(R);
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
@@ -860,29 +889,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
                 continue;
             }
 
-            // Look up the target type.
-            string targetTableTypeName = targetTablePair.first + "__type";
-            TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
-
-            if (!paramRecordDecl)
-            {
-                paramRecordDecl = CXXRecordDecl::Create(
-                    getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-                    SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
-
-                paramRecordDecl->setLexicalDeclContext(functionDecl);
-                PushOnScopeChains(paramRecordDecl, getCurScope());
-            }
-
-            // Creates a reference parameter (incubator__type&).
-            QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl);
-            QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
-
-            SmallVector<QualType, 8> paramTypes;
-            paramTypes.push_back(connectDisconnectParamRef);
-
-            addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+            addConnectDisconnect(RD, targetTablePair.first, loc, attrFactory, attrs);
         }
     }
 

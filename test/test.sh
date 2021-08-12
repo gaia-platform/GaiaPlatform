@@ -206,9 +206,9 @@ copy_test_output() {
     fi
 
     if [ "$DID_PUSHD" -ne 0 ]; then
-        if ! cp -r "$TEST_DIRECTORY/incubator.conf" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+        if ! cp -r "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
             cat "$TEMP_FILE"
-            echo "Test script cannot copy incubator configuration from '$(realpath "$TEST_DIRECTORY"/incubator.conf)' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/incubator.conf)'."
+            echo "Test script cannot copy generated configuration from '$(realpath "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/$GENERATED_CONFIGURATION_FILE")'."
             complete_process 2
         fi
 
@@ -327,6 +327,11 @@ execute_test_workflow() {
         echo "No configuration specified.  Using default configuration."
     fi
 
+    # Get rid of the reporting files in the build directory.
+    rm "$BUILD_DIRECTORY/output.delay"
+    rm "$BUILD_DIRECTORY/output.json"
+    rm "$BUILD_DIRECTORY/output.csv"
+
     CONFIG_ARGUMENT=
     if [ -n "$CONFIG_PATH" ] ; then
         CONFIG_ARGUMENT="--config $CONFIG_PATH"
@@ -354,6 +359,12 @@ execute_test_workflow() {
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)
+
+    # Make sure to calculate the runtime and store it in the `duration.json` file.
+    TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
+    echo "Test executed in $TEST_RUNTIME ms."
+    echo " { \"duration\" : $TEST_RUNTIME }" > "$TEST_RESULTS_DIRECTORY/duration.json"
+
     if [ "$DID_FAIL" -ne 0 ]; then
         if [ "$VERY_VERBOSE_MODE" -eq 0 ]; then
             cat "$TEMP_FILE"
@@ -361,11 +372,6 @@ execute_test_workflow() {
         echo "Test script cannot run the project in directory '$(realpath "$TEST_DIRECTORY")'."
         complete_process 5
     fi
-
-    # Make sure to calculate the runtime and store it in the `duration.json` file.
-    TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
-    echo "Test executed in $TEST_RUNTIME ms."
-    echo " { \"duration\" : $TEST_RUNTIME }" > "$TEST_RESULTS_DIRECTORY/duration.json"
 
     # Figure out if the expected results and the actual output match.
     if [ "$VERBOSE_MODE" -ne 0 ]; then

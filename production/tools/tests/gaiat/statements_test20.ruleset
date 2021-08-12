@@ -1,9 +1,8 @@
-// RUN: echo "'incubator' table in the explicit path has no relationship to 'farmer'" | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test58
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         for (S:sensor)
         {
@@ -18,4 +17,5 @@ ruleset test58
     }
 }
 
-CHECK: 'incubator' table in the explicit path has no relationship to 'farmer'
+// CHECK: 'incubator' table in the explicit path has no relationship to 'farmer'
+// GAIAPLAT-1118

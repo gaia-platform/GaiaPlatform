@@ -10,19 +10,21 @@
 # ----------------------------------------------------
 
 # Name of the project.  Safe to include in filenames, etc.
-export PROJECT_NAME="incubator"
+export PROJECT_NAME="mink"
 
 # Name of the project's executable within the build directory.
-export EXECUTABLE_NAME="incubator"
+export EXECUTABLE_NAME="mink"
 
 # Name of the project's database.
-export DATABASE_NAME="incubator"
+export DATABASE_NAME="mink"
 
 # Various parts that are built to generate the executable.
 # Used for allowing an "autobuild" option on run.sh.
-export RULESET_PATHS=("incubator.ruleset")
-export DDL_PATHS=("incubator.ddl")
-export SOURCE_PATHS=("incubator.cpp")
+export RULESET_PATHS=("mink.ruleset")
+export DDL_PATHS=("mink.ddl")
+export SOURCE_PATHS=("mink.cpp")
+
+export GENERATED_CONFIGURATION_FILE=("mink.conf")
 
 # ----------------------------------------------------
 # Variables that are general to this group of scripts.

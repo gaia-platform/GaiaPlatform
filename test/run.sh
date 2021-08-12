@@ -181,7 +181,7 @@ handle_auto_build() {
 create_configuration_file() {
 
     local CONFIG_PATH=
-    CONFIGURATION_PATH=$(realpath "incubator.conf")
+    CONFIGURATION_PATH=$(realpath "mink.conf")
 
     THREADS_ARGUMENT=
     if [ "$NUMBER_OF_THREADS" -ge 0 ] ; then

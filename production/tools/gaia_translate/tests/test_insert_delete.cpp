@@ -259,7 +259,7 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
-    // Fire OnUpdate(S:student).
+    // Fire on_update(S:student).
     gaia::db::begin_transaction();
     enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
     enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
@@ -272,7 +272,7 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_oninsert_called) << "OnInsert(enrollment_log) not called";
+    EXPECT_TRUE(g_oninsert_called) << "on_insert(enrollment_log) not called";
 
     int row_count = 0;
     gaia::db::begin_transaction();
@@ -289,5 +289,5 @@ TEST_F(test_insert_delete_code, build_database)
     }
     gaia::db::commit_transaction();
 
-    EXPECT_EQ(row_count, 8) << "OnInsert(enrollment_log) failed to create connections";
+    EXPECT_EQ(row_count, 8) << "on_insert(enrollment_log) failed to create connections";
 }

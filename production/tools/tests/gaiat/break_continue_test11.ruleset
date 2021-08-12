@@ -3,7 +3,7 @@
 // TESTCASE: continue within declarative if
 ruleset test11
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         if (S:sensor.value > 99.0)
         {
