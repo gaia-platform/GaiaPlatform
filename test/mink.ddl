@@ -3,9 +3,9 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create database if not exists incubator;
+create database if not exists mink;
 
-use incubator;
+use mink;
 
 create table if not exists incubator (
       name string,

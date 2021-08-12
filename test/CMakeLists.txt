@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Set the project name.
-project(incubator)
+project(mink)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -31,21 +31,21 @@ else()
 endif()
 
 include("/opt/gaia/cmake/gaia.cmake")
-set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
-set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
+set(MINK_DDL ${PROJECT_SOURCE_DIR}/mink.ddl)
+set(MINK_RULESET ${PROJECT_SOURCE_DIR}/mink.ruleset)
 
 # --- Generate EDC from DDL---
-process_schema(DDL_FILE ${INCUBATOR_DDL})
+process_schema(DDL_FILE ${MINK_DDL})
 
 # -- Translate ruleset into CPP --
-translate_ruleset(RULESET_FILE ${INCUBATOR_RULESET})
+translate_ruleset(RULESET_FILE ${MINK_RULESET})
 
-add_executable(incubator
-    incubator.cpp
+add_executable(mink
+    mink.cpp
 )
 
-target_add_gaia_generated_sources(incubator)
-add_dependencies(incubator translate_incubator_ruleset)
-target_include_directories(incubator PRIVATE ${GAIA_INC})
-target_link_directories(incubator PRIVATE ${GAIA_LIB_DIR})
-target_link_libraries(incubator PRIVATE gaia rt Threads::Threads)
+target_add_gaia_generated_sources(mink)
+add_dependencies(mink translate_mink_ruleset)
+target_include_directories(mink PRIVATE ${GAIA_INC})
+target_link_directories(mink PRIVATE ${GAIA_LIB_DIR})
+target_link_libraries(mink PRIVATE gaia rt Threads::Threads)

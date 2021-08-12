@@ -49,15 +49,15 @@ def process_script_action():
     input_file_name = sys.argv[1]
 
     with open(input_file_name) as input_file:
-        incubator_data = json.load(input_file)
+        data_dictionary = json.load(input_file)
 
     csv_lines = []
     for next_path in convert_paths:
         csv_lines.append(next_path)
 
-    for next_incubator_sample in incubator_data:
+    for next_sample in data_dictionary:
         for index, next_path in enumerate(convert_paths):
-            final_object = traverse(next_incubator_sample, next_path)
+            final_object = traverse(next_sample, next_path)
             line_so_far = csv_lines[index] + "," + str(final_object)
             csv_lines[index] = line_so_far
 
