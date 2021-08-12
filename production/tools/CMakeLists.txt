@@ -7,7 +7,16 @@
 project(tools)
 
 if(BUILD_GAIA_RELEASE)
+  # clang-tidy takes 1:10 minutes on gaiat, for this reason, I disabled it for non-Release builds.
+  # TODO Created this task to find a better solution: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1169
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    unset(CMAKE_CXX_CLANG_TIDY)
+  endif()
   add_subdirectory(gaia_translate)
+
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+  endif()
 endif()
 
 add_subdirectory(gaia_dump)
