@@ -138,10 +138,6 @@ parse_command_line() {
         echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
         complete_process 1
     fi
-    if [ ! -f "$TEST_SOURCE_DIRECTORY/expected_output.json" ]; then
-        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'expected_output.json' file."
-        complete_process 1
-    fi
 }
 
 # Clear the test output directory, making sure it exists for the test execution.
@@ -373,14 +369,21 @@ execute_test_workflow() {
         complete_process 5
     fi
 
-    # Figure out if the expected results and the actual output match.
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Verifying expected results against actual results."
-    fi
-    if ! diff -w "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
-        echo "Test results were not as expected."
-        echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
-        complete_process 6
+    # If there is an expected output file, figure out if the expected results and
+    # the actual output match.
+    if [ -f "tests/$TEST_MODE/expected_output.json" ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Verifying expected results against actual results."
+        fi
+        if ! diff -w "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
+            echo "Test results were not as expected."
+            echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
+            complete_process 6
+        fi
+    else
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "No expected results to verify against."
+        fi
     fi
 }
 
