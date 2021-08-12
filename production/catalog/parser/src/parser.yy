@@ -150,7 +150,7 @@ statement_list:
       $$ = std::make_unique<statement_list_t>();
       $$->push_back(std::move($1));
   }
-| statement_list ";" statement {
+| statement_list opt_semicolon statement ";" {
       $1->push_back(std::move($3));
       $$ = std::move($1);
   }
