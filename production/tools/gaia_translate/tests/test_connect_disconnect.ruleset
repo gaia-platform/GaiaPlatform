@@ -9,9 +9,4 @@ ruleset test
            incubator.sensors.connect(s);
        }
     }
-
-    on_insert(gaia_table)
-    {
-        gaia_table.name = "a";
-    }
 }

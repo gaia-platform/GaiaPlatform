@@ -3063,6 +3063,9 @@ public:
         //        `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
         //          `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
 
+        llvm::errs() << "------------------------\n";
+        const auto* tableCall = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        //        tableCall->du
         const auto* connect_member_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("ConnectCall");
         connect_member_call_expr->dump();
 
@@ -3276,7 +3279,7 @@ public:
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("connect"))),
-                  hasDescendant(table_call_matcher))
+                  on(table_call_matcher))
                   .bind("ConnectCall");
 
         StatementMatcher declarative_disconnect_matcher
