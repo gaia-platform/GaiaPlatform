@@ -51,8 +51,10 @@ cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -out
 // so instead this cl::opt pretends to be the cl::alias for -help.
 cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
 
-// This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly
-// and single-option statements like gaiat -h would print that error because of a missing source file.
+// This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly:
+// "gaiat: Not enough positional command line arguments specified! Must specify at least 1 positional argument: See: ./gaiat -help"
+// Single-option statements like gaiat -h would print that error because the "Required" positional argument is missing.
+// The number of source files is enforced manually instead of using llvm::cl parameters.
 cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
 cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
@@ -3367,6 +3369,9 @@ int main(int argc, const char** argv)
     cl::HideUnrelatedOptions(g_translation_engine_category);
 
     std::string error_msg;
+
+    // This loads compilation commands after "--" in the command line: gaiat <sourceFile> -- <compileCommands>
+    // Errors in these commands will be visible later when the ClangTool is run.
     std::unique_ptr<CompilationDatabase> compilation_database
         = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_msg);
 
@@ -3374,6 +3379,8 @@ int main(int argc, const char** argv)
 
     if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
     {
+        // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
+        // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.
         error_msg_stream.flush();
         std::cerr << error_msg;
         return EXIT_FAILURE;
@@ -3383,8 +3390,7 @@ int main(int argc, const char** argv)
 
     if (g_help_option_alias)
     {
-        // -help-list is omitted from the output because the categorized mode
-        // of PrintHelpMessage() behaves the same as -help-list.
+        // -help-list is omitted from the output because the categorized mode of PrintHelpMessage() behaves the same as -help-list.
         // This is the only way -h and -help differ.
         cl::PrintHelpMessage(false, true);
         return EXIT_SUCCESS;
@@ -3392,6 +3398,9 @@ int main(int argc, const char** argv)
 
     if (g_source_files.empty())
     {
+        // This is considered success instead of failure because it happens if a new user explores gaiat by
+        // typing "gaiat" into their terminal with no file arguments. They didn't do anything bad
+        // to deserve an EXIT_FAILURE.
         cl::PrintHelpMessage();
         return EXIT_SUCCESS;
     }
