@@ -2847,60 +2847,7 @@ public:
             insert_data.argument_map[argument_name] = argument->getSourceRange();
             insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
         }
-        string class_qualification_string = "gaia::";
-        class_qualification_string
-            .append(table_navigation_t::get_table_data().find(table_name)->second.db_name)
-            .append("::")
-            .append(table_name)
-            .append("_t::");
-        string replacement_string = class_qualification_string;
-        replacement_string
-            .append("get(")
-            .append(class_qualification_string)
-            .append("insert_row(");
-        vector<string> function_arguments = table_navigation_t::get_table_fields(table_name);
-        const auto table_data_iterator = table_navigation_t::get_table_data().find(table_name);
-        // Generate call arguments.
-        for (const auto& call_argument : function_arguments)
-        {
-            const auto argument_map_iterator = argument_map.find(call_argument);
-            if (argument_map_iterator == argument_map.end())
-            {
-                // Provide default parameter value.
-                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
-                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
-                {
-                case data_type_t::e_bool:
-                    replacement_string.append("false,");
-                    break;
-                case data_type_t::e_int8:
-                case data_type_t::e_uint8:
-                case data_type_t::e_int16:
-                case data_type_t::e_uint16:
-                case data_type_t::e_int32:
-                case data_type_t::e_uint32:
-                case data_type_t::e_int64:
-                case data_type_t::e_uint64:
-                case data_type_t::e_float:
-                case data_type_t::e_double:
-                    replacement_string.append("0,");
-                    break;
-                case data_type_t::e_string:
-                    replacement_string.append("\"\",");
-                    break;
-                }
-            }
-            else
-            {
-                // Provide value from the code.
-                replacement_string.append(argument_map_iterator->second).append(",");
-            }
-        }
-        replacement_string.resize(replacement_string.size() - 1);
-        replacement_string.append("))");
-        cerr << replacement_string << endl;
-        m_rewriter.ReplaceText(SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string);
-        g_rewriter_history.push_back({SourceRange(expression->getBeginLoc(), expression->getEndLoc()), replacement_string, replace_text});
+        g_insert_data.push_back(insert_data);
         g_insert_call_locations.insert(expression->getBeginLoc());
     }
 
