@@ -336,6 +336,122 @@ can easily defend.  It may be more time than is needed, but I am confident that
 it is at least enough time (under 98% of situations) to let the system cool down
 before another test.
 
+### Suite Summaries
+
+Unless the `suite.sh` script is started with the `-n`/`--no-stats` flag,
+the script will print out a summary of each test in the suite that was executed.
+
+As the granularity of most measurements is in nanoseconds, unless explicitly stated,
+all measurements are presented in microseconds.  This was decided on to allow for
+the values to line up nicely, with a standard 3 digits to the right of the decimal
+place.
+
+For any tests that are not executed with the `repeat` keyword text is output
+that looks like the following:
+
+```text
+---
+Suite: smoke-time-only
+---
+  Source            /tests/suite-smoke.txt:6
+  Steps/Iterations  1023
+  Test Results      Sucess
+
+    Measure         Value
+    ----------  ---------
+    iter-total  314.721µs
+    start        52.436µs
+    inside      159.048µs
+    commit      102.958µs
+    update-row   21.277µs
+    wait          0.000µs
+    print         0.000µs
+
+    Measure           Value
+    -----------  ----------
+    avg-latency   270.000µs
+    max-latency  1540.000µs
+    avg-exec       10.000µs
+    max-exec      150.000µs
+```
+
+For any tests that are executed with the `repeat` keyword text is output
+that looks like the following:
+
+```text
+---
+Suite: smoke-time-only-with-100k
+---
+  Source            /tests/suite-scaling.txt:10
+  Steps/Iterations  100000
+  Test Results      Success=3/3
+
+    Measure           Min        Max    Range  TP50 (Med)       TP90
+    ----------  ---------  ---------  -------  ----------  ---------
+    iter-total  271.942µs  272.415µs  0.473µs   272.060µs  272.344µs
+    start        48.423µs   48.868µs  0.445µs    48.496µs   48.794µs
+    inside      143.811µs  144.285µs  0.474µs   144.184µs  144.265µs
+    commit       78.916µs   79.557µs  0.641µs    79.153µs   79.476µs
+    update-row   19.714µs   20.010µs  0.296µs    19.760µs   19.960µs
+    wait          0.000µs    0.000µs  0.000µs     0.000µs    0.000µs
+    print         0.000µs    0.000µs  0.000µs     0.000µs    0.000µs
+
+    Measure             Min         Max       Range  TP50 (Med)        TP90
+    -----------  ----------  ----------  ----------  ----------  ----------
+    avg-latency   265.458µs   292.546µs    27.088µs   286.386µs   291.314µs
+    max-latency  2140.000µs  9970.000µs  7830.000µs  3390.000µs  8654.000µs
+    avg-exec       10.000µs    10.000µs     0.000µs    10.000µs    10.000µs
+    max-exec      430.000µs   590.000µs   160.000µs   580.000µs   588.000µs
+```
+
+All this information is available is raw form in the `summary.json` file
+detailed in the [section](#summary.json-file) describing the file, but is
+aggregated for simplicity.
+
+#### Available Measures
+
+For all tests, the following general rows are reported.  More information
+on these fields are available [in this section](#single-test-json-blob).
+
+- `iter-total`
+  - aggregation of the `iteration-measured-duration-sec` file from `summary.json`
+- `start`
+  - aggregation of the `average-start-transaction-microsec` file from `summary.json`
+- `inside`
+  - aggregation of the `average-inside-transaction-microsec` file from `summary.json`
+- `commit`
+  - aggregation of the `average-end-transaction-microsec` file from `summary.json`
+- `update-row`
+  - aggregation of the `average-update-row-microsec` file from `summary.json`
+- `wait`
+  - aggregation of the `average-wait-microsec` file from `summary.json`
+- `print`
+  - aggregation of the `average-print-microsec` file from `summary.json`
+
+- `avg-latency`
+  - aggregation of the `rules-engine-stats.calculations.avg-latency-ms` file from `summary.json`
+- `max-latency`
+  - aggregation of the `rules-engine-stats.calculations.max-latency-ms` file from `summary.json`
+- `avg-exec`
+  - aggregation of the `rules-engine-stats.calculations.avg-exec-ms` file from `summary.json`
+- `max-exec`
+  - aggregation of the `rules-engine-stats.calculations.max-exec-ms` file from `summary.json`
+
+#### Available Measure Aggregations
+
+For tests that were repeated, the following columns are reported:
+
+- `min`
+  - the minimum value over all samples
+- `max`
+  - the maximum value over all samples
+- `range`
+  - the range between the `min` value and the `max` value
+- `TP50 (Med)`
+  - percentile 50% measurement
+- `TP90`
+  - percentile 90% measurement
+
 ### Summary.json File
 
 The elements in the `summary.json` file are organized by the name of the test that
@@ -392,12 +508,20 @@ overall JSON blob.
   "stop-pause-sec": 6.000195129,
   "wait-pause-sec": 4.435873457,
   "print-duration-sec": 0.326038276,
-  "test-duration-sec": 0.4688067220000003,
-  "iteration-duration-sec": 0.0004582665904203326,
   "start-transaction-sec": 0.046970413,
   "inside-transaction-sec": 0.145943434,
   "end-transaction-sec": 0.07774411,
+  "update-row-sec": 0.016623276,
+  "average-start-transaction-microsec": 32.230933529,
+  "average-inside-transaction-microsec": 120.894697947,
+  "average-end-transaction-microsec": 64.898587488,
+  "average-update-row-microsec": 16.249536657,
+  "average-wait-microsec": 515.813130987,
+  "average-print-microsec": 168.943209189,
+  "test-duration-sec": 0.4688067220000003,
+  "iteration-duration-sec": 0.0004582665904203326,
   "measured-duration-sec": 0.2902219,
+  "explicit_wait_in_sec" : 0.0050000,
   "iteration-measured-duration-sec": 0.000283696871945259,
   "rules-engine-stats": {
       "slices": [
@@ -449,6 +573,9 @@ A summary of the various fields and blobs are as follows:
   - allows time for any information in `gaia_stats.log` to be written
 - `wait-pause-sec`
   - harvested from `output.delay`
+  - sum of total time used by waits performed after the `step` commands
+- `explicit_wait_in_sec`
+  - harvested from `output.delay`
   - sum of total time used by the `w`ait command from the `commands.txt` file
 - `print-duration-sec`
   - harvested from `output.delay`
@@ -469,6 +596,21 @@ A summary of the various fields and blobs are as follows:
 - `end-transaction-sec`
   - harvested from `output.delay`
   - amount of time spent in each step committing the transaction for the step
+- `update-row-sec`
+  - harvested from `output.delay`
+  - amount of time spent in each step updating database rows
+- `average-start-transaction-microsec`
+  - calculated by dividing the `start-transaction-sec` metric by `iteration`
+- `average-inside-transaction-microsec`
+  - calculated by dividing the `iteration-duration-sec` metric by `iteration`
+- `average-end-transaction-microsec`
+  - calculated by dividing the `end-transaction-sec` metric by `iteration`
+- `update-row-sec`
+  - calculated by dividing the `end-transaction-sec` metric by `iteration`
+- `average-wait-microsec`
+  - calculated by dividing the `wait-pause-sec` metric by `iteration`
+- `average-print-microsec`
+  - calculated by dividing the `print-duration-sec` metric by `iteration`
 - `measured-duration-sec`
   - optional field triggered by use of the [Toggling Measurements On and Off](#toggling-measurements-on-and-off) command
   - duration that occurred between the measurement being toggled on and off
@@ -482,6 +624,19 @@ A summary of the various fields and blobs are as follows:
   - aggregated values over all `rules-engine-stats.slices`
 - `calculations.*`
   - weighted average/maximum values over all `rules-engine-stats.slices`
+
+  - aggregation of the `average-start-transaction-microsec` file from `summary.json`
+- `inside`
+  - aggregation of the `average-inside-transaction-microsec` file from `summary.json`
+- `commit`
+  - aggregation of the `average-end-transaction-microsec` file from `summary.json`
+- `update-row`
+  - aggregation of the `average-update-row-microsec` file from `summary.json`
+- `wait`
+  - aggregation of the `average-wait-microsec` file from `summary.json`
+- `print`
+  - aggregation of the `average-print-microsec` file from `summary.json`
+
 
 #### Slices and Individual Fields
 

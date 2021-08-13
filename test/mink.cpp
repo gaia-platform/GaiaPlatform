@@ -68,6 +68,7 @@ const int c_default_sleep_time_in_seconds_after_stop = 6;
 const int c_default_sim_with_wait_pause_in_microseconds = 1000;
 const int c_processing_pause_in_microseconds = 100;
 
+double g_explicit_wait_time_in_microseconds = 0.0;
 double g_total_wait_time_in_microseconds = 0.0;
 double g_total_print_time_in_microseconds = 0.0;
 double g_t_pause_total_in_microseconds = 0.0;
@@ -410,7 +411,7 @@ void simulation_step()
     g_total_end_transaction_duration_in_microseconds += end_transaction_duration.count();
 }
 
-int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base, int rule_4_sample_base)
+int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_base, int rule_2_sample_base, int rule_3_sample_base, int rule_4_sample_base)
 {
     my_time_point end_sleep_start_mark = my_clock::now();
 
@@ -462,7 +463,14 @@ int wait_for_processing_to_complete(int rule_1_sample_base, int rule_2_sample_ba
     my_time_point end_sleep_end_mark = my_clock::now();
 
     my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
-    g_total_wait_time_in_microseconds += ms_double.count();
+    if (is_explicit_pause)
+    {
+        g_explicit_wait_time_in_microseconds += ms_double.count();
+    }
+    else
+    {
+        g_total_wait_time_in_microseconds += ms_double.count();
+    }
     return current_no_delta_attempt;
 }
 
@@ -473,11 +481,7 @@ void wait_for_processing_to_complete()
     int rule_3_sample_base = g_rule_3_tracker;
     int rule_4_sample_base = g_rule_4_tracker;
 
-    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
-
-    // int gh = wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base);
-    // int nrule_3_sample_base = g_rule_3_tracker;
-    // printf("iterations=%d,3=%d->%d\n", gh, rule_3_sample_base, nrule_3_sample_base);
+    wait_for_processing_to_complete(true, rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
 }
 
 void step()
@@ -495,7 +499,7 @@ void step_and_emit_state(bool emit_text)
 
     step();
 
-    wait_for_processing_to_complete(rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
+    wait_for_processing_to_complete(false, rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
 
     if (emit_text)
     {
@@ -786,7 +790,6 @@ public:
     void t_pause()
     {
         my_time_point pause_start_mark = my_clock::now();
-        //std::this_thread::sleep_for(microseconds(g_sim_with_wait_pause_in_microseconds));
         my_sleep_for(g_sim_with_wait_pause_in_microseconds);
         my_time_point pause_end_mark = my_clock::now();
         my_duration_in_microseconds printx = pause_end_mark - pause_start_mark;
@@ -827,7 +830,7 @@ public:
         my_time_point end_sleep_end_mark = my_clock::now();
 
         my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
-        g_total_wait_time_in_microseconds += ms_double.count();
+        g_explicit_wait_time_in_microseconds += ms_double.count();
     }
 
     // Return false if EOF is reached.
@@ -1089,11 +1092,12 @@ public:
                    "\"end_transaction_in_sec\" : %.9f, "
                    "\"update_row_in_sec\" : %.9f, "
                    "\"total_wait_in_sec\" : %.9f, "
+                   "\"explicit_wait_in_sec\" : %.9f, "
                    "\"t_pause_in_sec\" : %.9f, "
                    "\"t_requested_in_sec\" : %.9f, "
                    "\"total_print_in_sec\" : %.9f"
                    "%s%s }\n",
-                   ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second, g_update_row_duration_in_microseconds / c_microseconds_in_second, g_total_wait_time_in_microseconds / c_microseconds_in_second, g_t_pause_total_in_microseconds / c_microseconds_in_second, static_cast<double>(g_t_pause_requested_in_microseconds) / c_microseconds_in_second, g_total_print_time_in_microseconds / c_microseconds_in_second, measured_buffer, pause_buffer);
+                   ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second, g_update_row_duration_in_microseconds / c_microseconds_in_second, g_total_wait_time_in_microseconds / c_microseconds_in_second, g_explicit_wait_time_in_microseconds / c_microseconds_in_second, g_t_pause_total_in_microseconds / c_microseconds_in_second, static_cast<double>(g_t_pause_requested_in_microseconds) / c_microseconds_in_second, g_total_print_time_in_microseconds / c_microseconds_in_second, measured_buffer, pause_buffer);
         }
         return EXIT_SUCCESS;
     }
