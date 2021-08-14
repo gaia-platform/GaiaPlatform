@@ -78,6 +78,31 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     return k;
 }
 
+void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
+{
+    for (const auto& k : key.values())
+    {
+        k.serialize(buffer);
+    }
+}
+
+index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer)
+{
+    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
+
+    index_key_t k;
+    auto index_view = index_view_t(id_to_ptr(index_id));
+
+    const auto& fields = *(index_view.fields());
+    for (auto field_id : fields)
+    {
+        data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
+        k.insert(payload_types::data_holder_t(buffer, gaia_to_reflection_type(type)));
+    }
+
+    return k;
+}
+
 index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
 {
     bool is_delete = false;
