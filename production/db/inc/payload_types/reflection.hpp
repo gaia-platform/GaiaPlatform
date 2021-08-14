@@ -5,16 +5,17 @@
 
 #pragma once
 
-#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/reflection.h"
 
 #include "gaia/common.hpp"
+#include "gaia/exception.hpp"
 
 namespace gaia
 {
 namespace db
 {
 
-inline reflection::BaseType gaia_to_fb_type(common::data_type_t type)
+inline reflection::BaseType gaia_to_reflection_type(common::data_type_t type)
 {
     switch (type)
     {
