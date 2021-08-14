@@ -112,7 +112,7 @@ public:
     static inline void set_txn_durable(gaia_txn_id_t commit_ts);
     static inline bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
-    static gaia_txn_id_t txn_begin();
+    static gaia_txn_id_t register_begin_ts();
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
 
     static void dump_txn_metadata_at_ts(gaia_txn_id_t ts);

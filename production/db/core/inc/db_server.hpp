@@ -125,8 +125,8 @@ private:
     static inline index::indexes_t s_global_indexes{};
 
     // These fields have transaction lifetime.
-    thread_local static inline int s_fd_log = -1;
-    thread_local static inline txn_log_t* s_log = nullptr;
+
+    thread_local static inline mapped_log_t s_log{};
 
     // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
@@ -245,7 +245,7 @@ private:
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
-        size_t log_fd_count = 0);
+        size_t log_fds_to_apply_count = 0);
 
     static void clear_shared_memory();
 
@@ -289,6 +289,8 @@ private:
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
+
+    static void txn_begin(std::vector<int>& txn_log_fds_for_snapshot);
 
     static void txn_rollback();
 
@@ -334,6 +336,7 @@ private:
     // their entries in the txn table.
     static void end_startup_txn();
 
+    static void sort_log();
     class invalid_log_fd : public common::gaia_exception
     {
     public:
@@ -351,10 +354,11 @@ private:
         gaia_txn_id_t m_commit_ts{c_invalid_gaia_txn_id};
     };
 
-    // This class allows txn code to safely use a txn log fd embedded in a commit_ts
-    // metadata even while it is concurrently invalidated (i.e. the fd is closed and
-    // its embedded value set to -1). The constructor throws an invalid_log_fd
-    // exception if the fd is invalidated during construction.
+    // This class allows txn code to safely use a txn log fd embedded in a
+    // commit_ts metadata entry even while it is concurrently invalidated (i.e.,
+    // the fd is closed and its embedded value is set to -1). The constructor
+    // throws an invalid_log_fd exception if the fd is invalidated during
+    // construction.
     class safe_fd_from_ts_t
     {
     public:

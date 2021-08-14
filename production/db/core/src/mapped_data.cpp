@@ -37,7 +37,7 @@ void mapped_log_t::create(const char* name)
     this->m_is_set = true;
 }
 
-void mapped_log_t::open(int fd)
+void mapped_log_t::open(int fd, bool read_only)
 {
     ASSERT_PRECONDITION(
         !this->m_is_set,
@@ -45,13 +45,16 @@ void mapped_log_t::open(int fd)
 
     ASSERT_PRECONDITION(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
+    // We deliberately do not set this->m_fd = fd, because we don't need ownership of the fd.
+    // (The memory mapping retains an implicit reference to the file object until it's destroyed,
+    // so callers can safely close the fd after they call this method.)
     this->m_mapped_data_size = common::get_fd_size(fd);
 
     common::map_fd_data(
         this->m_data,
         this->m_mapped_data_size,
-        PROT_READ,
-        MAP_PRIVATE,
+        read_only ? PROT_READ : (PROT_READ | PROT_WRITE),
+        read_only ? MAP_PRIVATE : MAP_SHARED,
         fd,
         0);
 
@@ -63,34 +66,35 @@ void mapped_log_t::open_shared(int)
     ASSERT_UNREACHABLE("This method should never be called on a mapped_log_t instance!");
 }
 
-void mapped_log_t::truncate_seal_and_close(int& fd, size_t& log_size)
+int mapped_log_t::unmap_truncate_seal_fd()
 {
     ASSERT_PRECONDITION(
         this->m_is_set,
-        "Calling truncate_seal_and_close() on an unset mapped_log_t instance!");
+        "Calling unmap_truncate_seal_fd() on an unset mapped_log_t instance!");
 
     ASSERT_PRECONDITION(
         this->m_fd != -1,
-        "truncate_seal_and_close() was called on a mapped_log_t instance that lacks a valid fd!");
+        "unmap_truncate_seal_fd() was called on a mapped_log_t instance that lacks a valid fd!");
 
-    fd = this->m_fd;
-    log_size = this->m_data->size();
-
+    size_t truncated_size = this->m_data->size();
     common::unmap_fd_data(this->m_data, this->m_mapped_data_size);
     this->m_mapped_data_size = 0;
 
-    common::truncate_fd(this->m_fd, log_size);
+    common::truncate_fd(this->m_fd, truncated_size);
 
-    // Seal the txn log memfd for writes/resizing before sending it to the server.
+    // Seal the txn log memfd for writes/resizing.
     if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
         common::throw_system_error(
-            "fcntl(F_ADD_SEALS) failed in mapped_log_t::truncate_seal_and_close()!");
+            "fcntl(F_ADD_SEALS) failed in mapped_log_t::unmap_truncate_seal_fd()!");
     }
 
+    // We give up our ownership of the log fd, although it is still valid.
+    int fd = this->m_fd;
     this->m_fd = -1;
-
     this->m_is_set = false;
+
+    return fd;
 }
 
 } // namespace db

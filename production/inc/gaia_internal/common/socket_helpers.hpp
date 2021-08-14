@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <ostream>
 #include <stdexcept>
 
 #include <sys/file.h>

@@ -125,13 +125,11 @@ public:
     void create(const char* name) override;
 
     // Opens a memory-mapped log structure using a file descriptor.
-    void open(int fd);
+    void open(int fd, bool read_only = true);
 
-    // Truncates and seals a memory-mapped log structure.
-    // Closes the mapped_log_t instance in the sense that it is left in an uninitialized state.
-    // The file descriptor is *NOT* closed - its ownership is transferred to the caller.
-    // Passes back the file descriptor and the size of the log.
-    void truncate_seal_and_close(int& fd, size_t& log_size);
+    // Unmaps a memory-mapped log structure, truncates and seals its fd, and
+    // relinquishes ownership of the fd.
+    int unmap_truncate_seal_fd();
 
 protected:
     void open_shared(int fd) override;
