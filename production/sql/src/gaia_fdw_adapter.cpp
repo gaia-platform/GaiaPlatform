@@ -21,7 +21,6 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "field_access.hpp"
-#include "reflection.hpp"
 
 using namespace std;
 
@@ -195,11 +194,49 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
     return nullable_datum;
 }
 
+reflection::BaseType convert_to_reflection_type(data_type_t type)
+{
+    switch (type)
+    {
+    case data_type_t::e_bool:
+        return reflection::Bool;
+    case data_type_t::e_uint8:
+        return reflection::UByte;
+    case data_type_t::e_int8:
+        return reflection::Byte;
+    case data_type_t::e_uint16:
+        return reflection::UShort;
+    case data_type_t::e_int16:
+        return reflection::Short;
+    case data_type_t::e_uint32:
+        return reflection::UInt;
+    case data_type_t::e_int32:
+        return reflection::Int;
+    case data_type_t::e_uint64:
+        return reflection::ULong;
+    case data_type_t::e_int64:
+        return reflection::Long;
+    case data_type_t::e_float:
+        return reflection::Float;
+    case data_type_t::e_double:
+        return reflection::Double;
+    case data_type_t::e_string:
+        return reflection::String;
+
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg(c_message_fdw_internal_error, __func__),
+             errhint("Unhandled data_type_t '%d'.", type)));
+    }
+}
+
 data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 {
     data_holder_t data_holder;
 
-    data_holder.type = gaia_to_reflection_type(value_type);
+    data_holder.type = convert_to_reflection_type(value_type);
 
     switch (value_type)
     {
