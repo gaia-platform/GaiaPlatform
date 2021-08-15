@@ -45,8 +45,8 @@ void mapped_log_t::open(int fd, bool read_only)
 
     ASSERT_PRECONDITION(fd != -1, "mapped_log_t::open() was called with an invalid fd!");
 
-    // We deliberately do not set this->m_fd = fd, because we don't need ownership of the fd.
-    // (The memory mapping retains an implicit reference to the file object until it's destroyed,
+    // We deliberately do not assign fd to this->m_fd, because we don't need ownership of the fd.
+    // (The memory mapping retains an implicit reference to the memfd object until it's destroyed,
     // so callers can safely close the fd after they call this method.)
     this->m_mapped_data_size = common::get_fd_size(fd);
 
@@ -76,13 +76,13 @@ int mapped_log_t::unmap_truncate_seal_fd()
         this->m_fd != -1,
         "unmap_truncate_seal_fd() was called on a mapped_log_t instance that lacks a valid fd!");
 
-    size_t truncated_size = this->m_data->size();
+    size_t actual_log_size = this->m_data->size();
     common::unmap_fd_data(this->m_data, this->m_mapped_data_size);
     this->m_mapped_data_size = 0;
 
-    common::truncate_fd(this->m_fd, truncated_size);
+    common::truncate_fd(this->m_fd, actual_log_size);
 
-    // Seal the txn log memfd for writes/resizing.
+    // Seal the txn log memfd to prevent writes and resizing.
     if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
         common::throw_system_error(

@@ -128,7 +128,7 @@ public:
     void open(int fd, bool read_only = true);
 
     // Unmaps a memory-mapped log structure, truncates and seals its fd, and
-    // relinquishes ownership of the fd.
+    // relinquishes ownership of the fd, returning it to the caller.
     int unmap_truncate_seal_fd();
 
 protected:

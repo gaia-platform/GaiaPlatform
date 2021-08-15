@@ -451,8 +451,9 @@ void client_t::begin_transaction()
         s_private_locators.close();
     });
 
-    // Send a TXN_BEGIN request to the server and receive the begin_ts, log_fd,
-    // and committed txn logs to apply for this txn.
+    // Send a TXN_BEGIN request to the server and receive a new txn ID,
+    // the fd of a new txn log, and txn log fds for all committed txns within
+    // the snapshot window.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
 
@@ -460,7 +461,7 @@ void client_t::begin_transaction()
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
     int log_fd = client_messenger.received_fd(client_messenger_t::c_index_txn_log_fd);
     // We can unconditionally close the log fd, because the memory mapping owns
-    // an implicit reference to the file object.
+    // an implicit reference to the memfd object.
     auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(log_fd);
     });

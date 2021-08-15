@@ -337,6 +337,7 @@ private:
     static void end_startup_txn();
 
     static void sort_log();
+
     class invalid_log_fd : public common::gaia_exception
     {
     public:

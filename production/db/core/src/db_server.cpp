@@ -370,7 +370,9 @@ void server_t::handle_decide_txn(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     // We need to clear transactional state after the decision has been
-    // returned, but we don't close the log fd (even for an abort decision).
+    // returned, but we don't close the log fd (even for an abort decision),
+    // because GC needs the log in order to properly deallocate all allocations
+    // made by this txn when they become obsolete.
     auto cleanup = make_scope_guard([&]() {
         s_txn_id = c_invalid_gaia_txn_id;
     });
