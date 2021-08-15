@@ -226,7 +226,6 @@ TEST_F(test_queries_code, basic_implicit_navigation)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
@@ -250,7 +249,6 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
@@ -276,7 +274,6 @@ TEST_F(test_queries_code, new_registration)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
@@ -321,7 +318,6 @@ TEST_F(test_queries_code, sum_of_ages)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
@@ -344,7 +340,6 @@ TEST_F(test_queries_code, sum_of_hours)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_1");
 
@@ -369,7 +364,6 @@ TEST_F(test_queries_code, sum_of_all_hours)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_2");
 
@@ -394,7 +388,6 @@ TEST_F(test_queries_code, tag_define_use)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_3");
 
@@ -440,7 +433,6 @@ TEST_F(test_queries_code, if_stmt)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
@@ -465,7 +457,6 @@ TEST_F(test_queries_code, if_stmt2)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
@@ -493,7 +484,6 @@ TEST_F(test_queries_code, if_stmt3)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
@@ -519,7 +509,6 @@ TEST_F(test_queries_code, nomatch_stmt)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_6");
 
@@ -545,7 +534,6 @@ TEST_F(test_queries_code, nomatch_stmt2)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_6");
 
@@ -569,7 +557,6 @@ TEST_F(test_queries_code, nomatch_stmt3)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_7");
 
@@ -595,7 +582,6 @@ TEST_F(test_queries_code, nomatch_stmt4)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_8");
 
@@ -619,11 +605,9 @@ TEST_F(test_queries_code, nomatch_function_query)
     populate_db();
 
     gaia::rules::initialize_rules_engine();
-    // Use the second set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_9");
 
-    // on_insert(student) will look for class hours, which don't exist - nomatch!
     g_string_value = "";
     gaia::db::begin_transaction();
 
@@ -642,6 +626,43 @@ TEST_F(test_queries_code, nomatch_function_query)
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert failure";
 
     EXPECT_EQ(g_string_value, "4C3 ") << "Incorrect result";
+}
+
+TEST_F(test_queries_code, one_to_one)
+{
+    gaia::db::begin_transaction();
+    student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
+    student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
+    student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+    student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+
+    // Create and connect 1:1 parents for 3 of the students.
+    auto parents_1 = parents_t::get(parents_t::insert_row("Lawrence", "Elizabeth"));
+    auto parents_2 = parents_t::get(parents_t::insert_row("Clarence", "Pauline"));
+    auto parents_3 = parents_t::get(parents_t::insert_row("George", "Irvie"));
+
+    student_1.parents().connect(parents_1);
+    student_3.parents().connect(parents_2);
+    student_5.parents().connect(parents_3);
+    gaia::db::commit_transaction();
+
+    gaia::rules::initialize_rules_engine();
+    gaia::rules::unsubscribe_rules();
+    gaia::rules::subscribe_ruleset("test_query_10");
+
+    g_string_value = "";
+    gaia::db::begin_transaction();
+    fprintf(stderr, "HERE %d!\n", __LINE__);
+    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    fprintf(stderr, "HERE %d!\n", __LINE__);
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+    EXPECT_TRUE(g_oninsert_called) << "on_update(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_update failure";
+
+    EXPECT_EQ(g_oninsert_value, 3) << "Incorrect result";
 }
 
 // Query tests:

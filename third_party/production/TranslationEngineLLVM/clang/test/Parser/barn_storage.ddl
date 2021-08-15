@@ -61,7 +61,7 @@ create table if not exists raised (
 );
 
 create relationship if not exists animal_raised (
-    animal.raised -> raised[],
+    animal.raised -> raised,
     raised.animal -> animal
 );
 
