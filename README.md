@@ -96,7 +96,7 @@ Start with the `[apt]` section in `production/gdev.cfg`. Install all the package
 sudo apt install clang-format-10 clang-tidy-10 debhelper ...
 ```
 
-Then move to the `third_party/production/` folder and then follow the instruction of each `gdev.cfg` file in each subdirectory:
+Then move to the `third_party/production/` folder and follow the instructions in the `gdev.cfg` file within each subdirectory:
 
 For instance, let's consider `daemonize/gdev.cfg`:
 
