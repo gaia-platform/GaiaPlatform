@@ -90,7 +90,7 @@ As an alternative to `gdev`, you can compile the project locally. The disadvanta
 
 ### Install dependencies
 
-Start with the [apt] section in `third_party/production/cmake/gdev.cfg`. Install all the packages with `apt install`:
+Start with the `[apt]` section in `production/gdev.cfg`. Install all the packages with `apt install`:
 
 ```bash
 sudo apt install clang-format-10 clang-tidy-10 debhelper ...
