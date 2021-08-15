@@ -9,7 +9,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 #include "chunk_manager.hpp"
 #include "memory_manager.hpp"

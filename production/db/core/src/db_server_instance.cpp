@@ -23,10 +23,10 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/random.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"

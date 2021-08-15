@@ -17,8 +17,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/memory_allocation_error.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"

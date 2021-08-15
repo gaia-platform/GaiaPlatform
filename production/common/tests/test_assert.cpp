@@ -5,16 +5,16 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, retail_assert)
+TEST(common, assert)
 {
     try
     {
-        ASSERT_INVARIANT(true, "Unexpected triggering of retail assert!");
+        ASSERT_INVARIANT(true, "Unexpected triggering of assert!");
         EXPECT_EQ(true, true);
     }
     catch (const std::exception& e)
@@ -24,7 +24,7 @@ TEST(common, retail_assert)
 
     try
     {
-        ASSERT_INVARIANT(false, "Expected triggering of retail assert.");
+        ASSERT_INVARIANT(false, "Expected triggering of assert.");
         EXPECT_EQ(true, false);
     }
     catch (const std::exception& e)

@@ -9,7 +9,7 @@
 
 #include <sstream>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 #include "memory_types.hpp"
 #include "structures.hpp"

@@ -8,7 +8,7 @@
 #include <functional>
 #include <string_view>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 #include "field_access.hpp"
 

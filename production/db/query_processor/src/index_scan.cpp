@@ -5,7 +5,7 @@
 
 #include "index_scan.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "index_scan_physical.hpp"

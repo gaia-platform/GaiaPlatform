@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
 #include "db_hash_map.hpp"

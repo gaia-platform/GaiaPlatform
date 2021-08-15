@@ -7,8 +7,8 @@
 
 #include <cstring>
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace std;
@@ -238,7 +238,7 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
             }
         }
     }
-    catch (const gaia::common::retail_assertion_failure& e)
+    catch (const gaia::common::assertion_failure& e)
     {
         // Always rethrow internal asserts.  Do not eat them and
         // do not pass them along to the user's exception handler.

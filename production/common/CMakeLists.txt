@@ -44,7 +44,7 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
 
 # Tests.
-add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
+add_gtest(test_assert tests/test_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
 add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc_addr_book")
 add_gtest(test_logging "tests/test_logging.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp" "${GAIA_COMMON_INCLUDES}" "gaia_common")

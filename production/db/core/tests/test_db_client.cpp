@@ -526,7 +526,7 @@ TEST_F(db_client_test, null_payload_check)
 
         std::cerr << std::endl;
         std::cerr << "*** Creating a node with no payload and non-zero payload size (error):" << std::endl;
-        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), type1, c_num_refs, c_test_payload_size, nullptr), retail_assertion_failure);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), type1, c_num_refs, c_test_payload_size, nullptr), assertion_failure);
     }
     commit_transaction();
 }
