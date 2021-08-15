@@ -56,6 +56,9 @@ bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
 
+constexpr size_t c_connect_length = 7;
+constexpr size_t c_disconnect_length = 10;
+
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
 unordered_set<string> g_insert_tables;
@@ -2773,7 +2776,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("RemoveCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("removeCall");
         if (expression != nullptr)
         {
             m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
@@ -2804,7 +2807,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("insertCall");
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
@@ -3039,73 +3042,97 @@ public:
             return;
         }
 
-        //        CXXMemberCallExpr 0x56375b914f70 '_Bool'
-        //        |-MemberExpr 0x56375b914f40 '<bound member function type>' .connect 0x56375b914048
-        //        | `-DeclRefExpr 0x56375b914320 'struct incubator__type' lvalue Var 0x56375b914260 'incubator' 'struct incubator__type'
-        //        `-DeclRefExpr 0x56375b914f20 'struct sensor__type' lvalue Var 0x56375b9143b0 's' 'struct sensor__type'
+        string src_table_name;
+        string dest_table_name;
+        string link_name;
+        bool need_link_field = false;
 
-        //        DeclRefExpr 0x56375b914f20 'struct sensor__type' lvalue Var 0x56375b9143b0 's' 'struct sensor__type'
+        const auto* connect_method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectCall");
 
-        //        MemberExpr 0x56375b914f40 '<bound member function type>' .connect 0x56375b914048
-        //        `-DeclRefExpr 0x56375b914320 'struct incubator__type' lvalue Var 0x56375b914260 'incubator' 'struct incubator__type'
+        const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        src_table_name = get_table_name(table_call->getDecl());
 
-        // -------------------------------------------------
+        const auto* param = result.Nodes.getNodeAs<DeclRefExpr>("tableConnectParam");
+        const auto* table_attr = param->getType()->getAsRecordDecl()->getAttr<GaiaTableAttr>();
+        dest_table_name = table_attr->getTable()->getName().str();
 
-        //        CXXMemberCallExpr 0x56375b915350 '_Bool'
-        //        |-MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
-        //        | `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
-        //        |   `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
-        //        `-DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+        const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        //        DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+        unordered_map<string, table_data_t> table_data = table_navigation_t::get_table_data();
 
-        //        MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
-        //        `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
-        //          `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
+        auto src_table_iter = table_data.find(src_table_name);
+        if (src_table_iter == table_data.end())
+        {
+            cerr << "Table '" << src_table_name << "' was not found in the catalog." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t src_table_data = src_table_iter->second;
 
-        llvm::errs() << "------------------------\n";
-        const auto* tableCall = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
-        //        tableCall->du
-        const auto* connect_member_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("ConnectCall");
-        connect_member_call_expr->dump();
+        auto dest_table_iter = table_data.find(dest_table_name);
+        if (dest_table_iter == table_data.end())
+        {
+            cerr << "Table '" << dest_table_name << "' was not found in the catalog." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t dest_table_data = dest_table_iter->second;
 
-        // MemberExpr 0x56020c3b3960 '<bound member function type>' .connect 0x56020c3b29e8
-        auto* connect_expr = dyn_cast<MemberExpr>(connect_member_call_expr->getCallee());
+        link_data_t link_data;
 
-        // Check if this is a call from a table: table.connect()
-        auto* link_ref_expr = dyn_cast<MemberExpr>(connect_expr->getBase());
+        // If the link_expr is not null this is a call in the form table.link.connect()
+        // hence we don't need to look up the name. Otherwise, this is in the form
+        // table.connect() and we have to infer the link name from the catalog.
+        if (link_expr)
+        {
+            link_name = link_expr->getMemberNameInfo().getName().getAsString();
+        }
+        else
+        {
+            // Search what link connect src_table to dest_table.
+            // We can assume that the link is unique because the check
+            // has already been performed in SemaGaia.
+            for (const auto& link_data_pair : src_table_data.link_data)
+            {
+                if (link_data_pair.second.target_table == dest_table_name)
+                {
+                    link_name = link_data_pair.first;
+                }
+            }
 
-        //        if (table_ref_expr == nullptr)
-        //        {
-        //            // check if this is a call from a link: table.link.connect()
-        //            auto* link_expr = dyn_cast<MemberExpr>(connect_expr->getBase());
-        //
-        //            if (link_expr == nullptr)
-        //            {
-        //                cerr << "Unexpected AST structure." << endl;
-        //                g_is_generation_error = true;
-        //                return;
-        //            }
-        //
-        //            table_ref_expr = dyn_cast<DeclRefExpr>(link_expr->getBase());
-        //        }
+            // We will need to add the field name.
+            need_link_field = true;
+        }
 
-        //        connect_call->dump();
+        if (link_name.empty())
+        {
+            cerr << "Impossible to find a link between table " << src_table_name << " and table " << dest_table_name << endl;
+            g_is_generation_error = true;
+            return;
+        }
 
-        //        DiagnosticsEngine& Diagnostics = result.Context->getDiagnostics();
-        //        unsigned DiagID = Diagnostics.getCustomDiagID(
-        //            DiagnosticsEngine::Error,
-        //            "Let's highlight the damn connect() method");
-        //        Diagnostics.Report(connect_call->getExprLoc(), DiagID);
+        auto link_data_iter = src_table_data.link_data.find(link_name);
+        if (link_data_iter == src_table_data.link_data.end())
+        {
+            cerr << "Table link '" << src_table_name << "." << link_name << "' was not found in the catalog." << endl;
+            g_is_generation_error = true;
+            return;
+        }
+        link_data = link_data_iter->second;
 
-        //        auto DiagBuilder =
-        //            diag(Member->getMemberLoc(),
-        //                 "accessing an element of the container does not require a call to "
-        //                 "'data()'; did you mean to use 'operator[]'?");
-        //
-        //        DiagBuilder <<
-        //        tidy::DiagEngine.Report(CE->getLocStart(), DiagID)
-        //            << FixItHint::CreateRemoval({CE->getLocStart(), CE->getLocEnd()});
+        if (link_data.cardinality == gaia::catalog::relationship_cardinality_t::many)
+        {
+            // Changes connect() to insert() for 1:N relationships.
+            // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
+            m_rewriter.ReplaceText(connect_method_call_expr->getExprLoc(), c_connect_length, "insert");
+        }
+
+        if (need_link_field)
+        {
+            // Inserts the link name between the table name and the connect method:
+            // table.link_name().connect().
+            m_rewriter.InsertTextBefore(connect_method_call_expr->getExprLoc(), link_name + "().");
+        }
     }
 
 private:
@@ -3206,6 +3233,7 @@ public:
                           hasOperatorName("--")),
                       hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldUnaryOp");
+
         StatementMatcher table_field_get_matcher
             = memberExpr(
                   member(
@@ -3213,13 +3241,15 @@ public:
                           hasAttr(attr::GaiaField),
                           unless(hasAttr(attr::GaiaFieldLValue)))),
                   hasDescendant(declRefExpr(
-                      to(varDecl(
-                          anyOf(
-                              hasAttr(attr::GaiaField),
-                              hasAttr(attr::FieldTable),
-                              hasAttr(attr::GaiaFieldValue)),
-                          unless(hasAttr(attr::GaiaFieldLValue)))))))
+                                    to(varDecl(
+                                        anyOf(
+                                            hasAttr(attr::GaiaField),
+                                            hasAttr(attr::FieldTable),
+                                            hasAttr(attr::GaiaFieldValue)),
+                                        unless(hasAttr(attr::GaiaFieldLValue)))))
+                                    .bind("tableCall")))
                   .bind("tableFieldGet");
+
         StatementMatcher table_field_set_matcher
             = binaryOperator(
                   allOf(
@@ -3266,28 +3296,39 @@ public:
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("remove"))),
                   hasDescendant(table_call_matcher))
-                  .bind("RemoveCall");
+                  .bind("removeCall");
 
         StatementMatcher declarative_insert_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("insert"))),
                   hasDescendant(table_call_matcher))
-                  .bind("InsertCall");
+                  .bind("insertCall");
 
-        StatementMatcher declarative_connect_matcher
+        // Matches an expression in the form: table.connect().
+        StatementMatcher declarative_table_connect_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("connect"))),
+                  hasArgument(0, declRefExpr().bind("tableConnectParam")),
                   on(table_call_matcher))
-                  .bind("ConnectCall");
+                  .bind("connectCall");
+
+        // Matches an expression in the form: table.link.connect().
+        StatementMatcher declarative_link_connect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(hasName("connect"))),
+                  hasArgument(0, declRefExpr().bind("tableConnectParam")),
+                  on(table_field_get_matcher))
+                  .bind("connectCall");
 
         StatementMatcher declarative_disconnect_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("disconnect"))),
                   on(table_call_matcher))
-                  .bind("DisconnectCall");
+                  .bind("disconnectCall");
 
         //        CXXMemberCallExpr 0x56375b915350 '_Bool'
         //        |-MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
@@ -3321,7 +3362,8 @@ public:
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
 
-        m_matcher.addMatcher(declarative_connect_matcher, &m_declarative_connect_handler);
+        m_matcher.addMatcher(declarative_table_connect_matcher, &m_declarative_connect_handler);
+        m_matcher.addMatcher(declarative_link_connect_matcher, &m_declarative_connect_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override

@@ -1,12 +1,32 @@
+#include "gaia_barn_storage.h"
 
-ruleset test
+using namespace gaia::barn_storage;
+
+ruleset test_connect_disconnect
 {
     on_update(incubator)
     {
-       for(/s : sensor)
-       {
-           incubator.connect(s);
-           incubator.sensors.connect(s);
-       }
+        auto s1 = sensor.insert(name: "temp1");
+        incubator.connect(s1);
+        incubator.sensors.connect(s1);
+
+        for(/s2 : sensor)
+        {
+            incubator.connect(s2);
+            incubator.sensors.connect(s2);
+        }
+
+        sensor_t s3 = sensor.insert(name: "temp2");
+        incubator.sensors.connect(s3);
+        incubator.connect(s3);
+
+        sensor_writer w;
+        w.name = "tmep3";
+        sensor_t s4 = sensor_t::get(w.insert_row());
+        incubator.connect(s3);
+        incubator.sensors.connect(s3);
+
+        incubator.connect(sensor.insert(name: "temp4"));
+        incubator.sensors.connect(sensor.insert(name: "temp5"));
     }
-}
+};

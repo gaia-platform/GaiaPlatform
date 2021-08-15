@@ -544,3 +544,34 @@ ruleset test_insert_delete_2
         grade = "D+";
     }
 }
+
+
+ruleset test_connect_disconnect
+{
+    on_insert(student)
+    {
+        auto r1 = registration.insert(reg_id: "reg001");
+        student.connect(r1);
+        student.registrations.connect(r1);
+
+        for(/r2 : registration)
+        {
+            student.connect(r2);
+            student.registrations.connect(r2);
+        }
+
+        gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
+        student.registrations.connect(r3);
+        student.connect(r3);
+
+        gaia::prerequisites::registration_writer w;
+        w.reg_id = "reg003";
+        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
+        student.connect(r4);
+        student.registrations.connect(r4);
+
+        // TODO not working yet.
+//        student.connect(registration.insert(reg_id: "reg004"));
+//        student.registrations.connect(registration.insert(reg_id: "reg005"));
+    }
+};

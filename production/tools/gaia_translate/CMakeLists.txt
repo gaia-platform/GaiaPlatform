@@ -191,3 +191,10 @@ add_gtest(test_insert_delete_ruleset
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
 )
+
+add_gtest(test_connect_disconnect_ruleset
+    "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS};${RULESETS_OUT}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
+    "generate_rulesets_rules" ""
+)

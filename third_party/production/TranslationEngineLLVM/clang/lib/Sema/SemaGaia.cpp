@@ -694,6 +694,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
             getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
             SourceLocation(), SourceLocation(), &Context.Idents.get(implicitTableTypeName));
 
+        implicitTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
         implicitTargetTypeDecl->setLexicalDeclContext(getCurFunctionDecl());
         PushOnScopeChains(implicitTargetTypeDecl, getCurScope());
     }
@@ -708,6 +709,8 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     if (edcTargetTypeDecl)
     {
         targetTypes.push_back(edcTargetTypeDecl);
+        // TODO ideally we should apply this to all EDC classes...
+        edcTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
     }
 
     // Add connect/disconnect both for the implicit class and EDC class (if available).
@@ -808,6 +811,12 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
+
+    // The attribute may have already been set in the forward declaration.
+    if (!RD->hasAttr<GaiaTableAttr>())
+    {
+        RD->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(typeName)));
+    }
     PushOnScopeChains(RD, getCurScope());
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
@@ -825,7 +834,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 
-        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
+        auto* conversionFunctionDeclaration = CXXConversionDecl::Create(
             Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
             nullptr, false, false, false, SourceLocation());
 
