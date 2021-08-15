@@ -39,7 +39,7 @@ namespace common
 //
 // NOTE: This assert should not be used within public functions. Public functions should expect to
 // be called incorrectly and should handle such incorrect calls with regular errors or exceptions.
-#ifdef DISABLE_ASSERT_PRECONDITION
+#ifdef DISABLE_ASSERTS
 #define ASSERT_PRECONDITION(c, m)
 #else
 #define ASSERT_PRECONDITION(c, m) gaia::common::assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
@@ -50,7 +50,7 @@ namespace common
 //
 // This is arguably the most important ASSERT to use, because it can surface
 // algorithmic errors which would otherwise be very difficult to detect.
-#ifdef DISABLE_ASSERT_INVARIANT
+#ifdef DISABLE_ASSERTS
 #define ASSERT_INVARIANT(c, m)
 #else
 #define ASSERT_INVARIANT(c, m) gaia::common::assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
@@ -60,7 +60,7 @@ namespace common
 // has completed execution.
 //
 // This should be used to validate that functions produce the expected outcome.
-#ifdef DISABLE_ASSERT_POSTCONDITION
+#ifdef DISABLE_ASSERTS
 #define ASSERT_POSTCONDITION(c, m)
 #else
 #define ASSERT_POSTCONDITION(c, m) gaia::common::assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
