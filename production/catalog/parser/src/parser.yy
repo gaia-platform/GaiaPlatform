@@ -85,6 +85,7 @@
 %token END 0
 
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
+%type <std::unique_ptr<gaia::catalog::ddl::create_list_t>> create_list
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_database_t>> create_database
 %type <std::unique_ptr<gaia::catalog::ddl::create_table_t>> create_table
@@ -124,6 +125,7 @@
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
+%printer { yyo << "create_list[" << $$->statements.size() << "]"; } create_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
@@ -138,7 +140,7 @@
 %start input;
 
 input:
-  statement_list opt_semicolon {
+  statement_list {
       gaia_parser.statements = std::move(*$1);
   }
 ;
@@ -146,12 +148,12 @@ input:
 opt_semicolon: ";" | ;
 
 statement_list:
-  statement {
+  statement ";" {
       $$ = std::make_unique<statement_list_t>();
       $$->push_back(std::move($1));
   }
-| statement_list opt_semicolon statement ";" {
-      $1->push_back(std::move($3));
+| statement_list statement ";" {
+      $1->push_back(std::move($2));
       $$ = std::move($1);
   }
 ;
@@ -161,9 +163,20 @@ opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
-  create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+  create_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | use_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+;
+
+create_list:
+  create_statement {
+      $$ = std::make_unique<create_list_t>();
+      $$->statements.push_back(std::move($1));
+  }
+| create_list create_statement {
+      $1->statements.push_back(std::move($2));
+      $$ = std::move($1);
+  }
 ;
 
 create_statement:

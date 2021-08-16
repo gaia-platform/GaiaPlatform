@@ -26,13 +26,16 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_REPO}/production/db/inc/index
+  ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
+  ${PROJECT_SOURCE_DIR}/parser/inc
 )
 
 message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}")
 
 add_library(gaia_catalog STATIC
+  src/ddl_execution.cpp
   src/ddl_executor.cpp
   src/fbs_generator.cpp
   src/json_generator.cpp

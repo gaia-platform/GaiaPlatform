@@ -18,9 +18,10 @@ TEST(catalog_ddl_parser_test, create_table)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -33,9 +34,10 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -48,9 +50,10 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
 
@@ -121,9 +124,10 @@ TEST(catalog_ddl_parser_test, create_active_field)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
 
@@ -155,9 +159,10 @@ TEST(catalog_ddl_parser_test, create_database)
     ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE db;"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
@@ -170,9 +175,10 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists)
     ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
@@ -185,9 +191,10 @@ TEST(catalog_ddl_parser_test, create_table_in_database)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE d.t (id INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
 
@@ -278,9 +285,10 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t ();"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
 
@@ -303,8 +311,9 @@ CREATE RELATIONSHIP r (
 )";
     ASSERT_NO_THROW(parser.parse_line(ddl_text_full_db));
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     const string ddl_text_no_db = R"(
@@ -315,8 +324,9 @@ CREATE RELATIONSHIP r (
 )";
     ASSERT_NO_THROW(parser.parse_line(ddl_text_no_db));
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
-    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
+    create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     const string ddl_text_partial_db = R"(
@@ -327,8 +337,9 @@ CREATE RELATIONSHIP r (
 )";
     ASSERT_NO_THROW(parser.parse_line(ddl_text_partial_db));
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
-    create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
+    create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     const string ddl_text_negative_case_no_name = R"(
@@ -353,9 +364,10 @@ TEST(catalog_ddl_parser_test, create_index)
     ASSERT_NO_THROW(parser.parse_line("CREATE INDEX IF NOT EXISTS idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
 
@@ -374,9 +386,10 @@ TEST(catalog_ddl_parser_test, create_unique_index)
     ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
 
@@ -395,9 +408,10 @@ TEST(catalog_ddl_parser_test, create_hash_index)
     ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
 
@@ -416,9 +430,10 @@ TEST(catalog_ddl_parser_test, create_range_index)
     ASSERT_NO_THROW(parser.parse_line("CREATE RANGE INDEX IF NOT EXISTS idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_index);
 
@@ -443,7 +458,8 @@ CREATE RELATIONSHIP r (
 )";
 
     ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
@@ -478,7 +494,8 @@ CREATE RELATIONSHIP r (
 )";
 
     ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
@@ -507,9 +524,10 @@ TEST(catalog_ddl_parser_test, create_unique_field)
     ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id UINT64 UNIQUE, name STRING UNIQUE ACTIVE, ssn STRING ACTIVE UNIQUE);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
 
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
 
@@ -558,7 +576,8 @@ CREATE RELATIONSHIP r (
 )";
 
     ASSERT_NO_THROW(parser.parse_line(create_relationship_ddl));
-    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
 
     auto create_rel = dynamic_cast<create_relationship_t*>(create_stmt);
