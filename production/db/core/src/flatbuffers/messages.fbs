@@ -29,9 +29,34 @@ table table_scan_info_t {
     type_id: uint64;
 }
 
+union index_query_t {index_range_query_t, index_point_read_query_t, index_equal_range_query_t}
+
+// Range queries return all results between the lower bound (inclusive) and the upper bound (inclusive).
+// For range queries, unspecified keys mean that there is no lower/upper-bound.
+// If both keys are unspecified, this query will be equivalent to a full scan.
+//
+// For exclusive bounds, do additional filtering on the client.
+table index_range_query_t {
+    lower_bound_key: [byte];
+    upper_bound_key: [byte];
+}
+
+// A point read query returns at most a single result matching the specified key.
+// The query can return no results.
+
+table index_point_read_query_t {
+    key: [byte];
+}
+
+// Returns all results matching a specified key.
+table index_equal_range_query_t {
+    key: [byte];
+}
+
 table index_scan_info_t {
     index_id: uint64;
-    txn_id : uint64;
+    txn_id: uint64;
+    query: index_query_t;
 }
 
 union request_data_t {
