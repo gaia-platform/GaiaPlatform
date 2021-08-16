@@ -64,7 +64,7 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
     echo "  -l,--list           List all available suites for this project."
-    echo "  -s,--slack          Publish status and results to slack."
+    echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
     echo "  -v,--verbose        Show lots of information while executing the suite of tests."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
@@ -105,6 +105,7 @@ parse_command_line() {
     VERBOSE_MODE=0
     SLACK_MODE=0
     LIST_MODE=0
+    SHOW_STATS=1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -114,6 +115,10 @@ parse_command_line() {
         ;;
         -s|--slack)
             SLACK_MODE=1
+            shift
+        ;;
+        -n|--no-stats)
+            SHOW_STATS=0
             shift
         ;;
         -v|--verbose)
@@ -386,6 +391,12 @@ done
 broadcast_message "$SUITE_MODE" "Testing of the test suite completed.  Summarizing suite results."
 if ! ./python/summarize_results.py "$SUITE_FILE_NAME"; then
     complete_process 1 "Summarizing the results failed."
+fi
+
+if [ $SHOW_STATS -ne 0 ] ; then
+    if ! ./python/summary_stats.py; then
+        complete_process 1 "Displaying statistics for the suite failed."
+    fi
 fi
 
 if [ $SLACK_MODE -ne 0 ] ; then
