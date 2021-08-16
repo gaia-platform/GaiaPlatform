@@ -72,6 +72,34 @@ namespace common
 // there should never be a need to disable such an assert - even for debugging purposes.
 #define ASSERT_UNREACHABLE(m) gaia::common::assert_do_not_call_directly(false, m, __FILE__, __LINE__, __func__)
 
+// The following DEBUG_ASSERT macros are equivalent to the ASSERT macros, except that they are disabled by default in non-debug builds.
+// They are intended for validation code that is too expensive to enable in production.
+// These macros are disabled if the NDEBUG macro is defined, which is consistent with the behavior of assert() in the C and C++ standards.
+
+#ifdef NDEBUG
+#define DEBUG_ASSERT_PRECONDITION(c, m) ((void)0)
+#else
+#define DEBUG_ASSERT_PRECONDITION(c, m) ASSERT_PRECONDITION(c, m)
+#endif
+
+#ifdef NDEBUG
+#define DEBUG_ASSERT_INVARIANT(c, m) ((void)0)
+#else
+#define DEBUG_ASSERT_INVARIANT(c, m) ASSERT_INVARIANT(c, m)
+#endif
+
+#ifdef NDEBUG
+#define DEBUG_ASSERT_POSTCONDITION(c, m) ((void)0)
+#else
+#define DEBUG_ASSERT_POSTCONDITION(c, m) ASSERT_POSTCONDITION(c, m)
+#endif
+
+#ifdef NDEBUG
+#define DEBUG_ASSERT_UNREACHABLE(m) ((void)0)
+#else
+#define DEBUG_ASSERT_UNREACHABLE(m) ASSERT_UNREACHABLE(m)
+#endif
+
 /**
  * Thrown when an assert check has failed.
  */
