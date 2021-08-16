@@ -286,7 +286,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::insert(T_child& child_edc)
+void reference_chain_container_t<T_child>::insert(const T_child& child_edc)
 {
     insert(child_edc.gaia_id());
 }
@@ -298,7 +298,7 @@ void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::remove(T_child& child_edc)
+void reference_chain_container_t<T_child>::remove(const T_child& child_edc)
 {
     remove(child_edc.gaia_id());
 }
