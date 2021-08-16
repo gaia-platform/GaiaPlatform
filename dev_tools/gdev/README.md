@@ -283,7 +283,7 @@ the image by providing the `--force` (or equivalently the `-f`) flag.
 cameron@host:~/GaiaPlatform/production$ gdev build -f
 ```
 
-Note: you may see the following error messages in the gdev output, you can ignore them.
+Note; you may see the following error messages in the gdev output, you can ignore them.
 ```text
 => ERROR importing cache manifest from 192.168.0.250:5000/third_party__production__daemonize__run:latest
 ```
