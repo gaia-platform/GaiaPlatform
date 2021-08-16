@@ -37,6 +37,8 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -s,--stop                   Stop the database service only, but do not restart it."
+    echo "  -d,--database               Reset any database files while database is shutdown."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
@@ -47,11 +49,16 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     RESET_DATABASE=0
+    STOP_DATABASE_ONLY=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
         -d|--database)
             RESET_DATABASE=1
+            shift
+        ;;
+        -s|--stop)
+            STOP_DATABASE_ONLY=1
             shift
         ;;
         -v|--verbose)
@@ -163,40 +170,6 @@ remove_data_store() {
     fi
 }
 
-# If an install file was specified, make sure it is present and looks like a debian install file.
-verify_install_file_if_present() {
-    INSTALL_FILE=${PARAMS[0]}
-    if [ -n "$INSTALL_FILE" ] ; then
-
-        # Make sure it exists.
-        if [ ! -f "$INSTALL_FILE" ]; then
-            echo "Install file '$(realpath "$INSTALL_FILE")' does not exist."
-            complete_process 1
-        fi
-
-        if [[ ! "$INSTALL_FILE" == *.deb ]] ; then
-            echo "Install file '$(realpath "$INSTALL_FILE")' does not end with the required suffix '.deb'."
-            complete_process 1
-        fi
-
-        echo "Installation of new packages requires resetting of the database.  Option selected."
-        RESET_DATABASE=1
-    fi
-}
-
-# Remove the old package and install the new package.
-install_new_package() {
-    if ! sudo apt --assume-yes remove gaia ; then
-        echo "Removal of old Gaia package did not complete.  Gaia may be in an undefined state."
-        complete_process 1
-    fi
-
-    if ! sudo apt --assume-yes install "$INSTALL_FILE" ; then
-        echo "Installation of new Gaia package did not complete.  Gaia may be in an undefined state."
-        complete_process 1
-    fi
-}
-
 # Set up any global script variables.
 # shellcheck disable=SC2164
 #SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -211,8 +184,6 @@ service_name=gaia
 # Parse any command line values.
 parse_command_line "$@"
 
-verify_install_file_if_present
-
 
 # Clean entrance into the script.
 start_process
@@ -223,11 +194,9 @@ if [ $RESET_DATABASE -ne 0 ] ; then
     remove_data_store
 fi
 
-if [ -n "$INSTALL_FILE" ] ; then
-    install_new_package
+if [ $STOP_DATABASE_ONLY -eq 0 ]; then
+    start_database_service
 fi
-
-start_database_service
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
