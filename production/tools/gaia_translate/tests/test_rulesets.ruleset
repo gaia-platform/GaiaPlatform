@@ -406,6 +406,30 @@ ruleset test_query_9
     }
 }
 
+
+ruleset test_query_10
+{
+    on_insert(student)
+    {
+        int count = 0;
+        for (/parents->student)
+        {
+            count++;
+        }
+#ifdef GAIAPLAT_1180
+        // When issue is fixed, this should count to 3 as well.
+        for (/student->parents)
+        {
+            count++;
+        }
+        count -= 3;
+#endif
+        g_oninsert_value = count;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
 // This ruleset is not used, but its translation must compile with C++.
 ruleset test_compile
 {

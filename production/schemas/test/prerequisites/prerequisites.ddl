@@ -15,6 +15,16 @@ create table if not exists student (
     gpa float
 );
 
+create table if not exists parents (
+    name_father string,
+    name_mother string
+);
+
+create relationship if not exists student_parents (
+    student.parents -> parents,
+    parents.student -> student
+);
+
 create table if not exists course (
     course_id string,
     name string,
