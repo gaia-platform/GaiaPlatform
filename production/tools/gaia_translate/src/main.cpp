@@ -45,11 +45,11 @@ cl::OptionCategory g_translation_engine_category("Use translation engine options
 
 cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
 
-cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option));
+cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option), cl::NotHidden, cl::cat(g_translation_engine_category));
 
 // An alias cannot be made for the -help option,
 // so instead this cl::opt pretends to be the cl::alias for -help.
-cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::Hidden, cl::ValueDisallowed, cl::cat(g_translation_engine_category));
+cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDisallowed, cl::cat(g_translation_engine_category));
 
 // This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly:
 // "gaiat: Not enough positional command line arguments specified! Must specify at least 1 positional argument: See: ./gaiat -help"
