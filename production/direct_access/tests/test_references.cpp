@@ -955,3 +955,19 @@ TEST_F(gaia_references_test, test_refernece_container_size)
 
     commit_transaction();
 }
+
+TEST_F(gaia_references_test, test_temporary_object)
+{
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_writer ew;
+    ew.name_first = "Hidalgo";
+    employee_t emp = employee_t::get(ew.insert_row());
+
+    // Ensure that we can pass a temporary object to the insert method.
+    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
+    emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
+
+    commit_transaction();
+}

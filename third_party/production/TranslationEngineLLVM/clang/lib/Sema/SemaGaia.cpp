@@ -715,7 +715,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     {
         // Creates a reference parameter (eg. incubator__type&).
         QualType connectDisconnectParam = Context.getTypeDeclType(targetType);
-        QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0), true, loc, DeclarationName());
+        QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0).withConst(), true, loc, DeclarationName());
 
         SmallVector<QualType, 8> parameters;
         parameters.push_back(connectDisconnectParamRef);
