@@ -283,6 +283,11 @@ the image by providing the `--force` (or equivalently the `-f`) flag.
 cameron@host:~/GaiaPlatform/production$ gdev build -f
 ```
 
+Note: you may see the following error messages in the gdev output, you can ignore them.
+```text
+=> ERROR importing cache manifest from 192.168.0.250:5000/third_party__production__daemonize__run:latest
+```
+
 ### Running programs
 You can run programs in the built docker image. Note that running programs will run `gdev build` if
 the correct docker image is not already built.
