@@ -60,7 +60,7 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
 {
     ASSERT_PRECONDITION(payload, "Cannot compute key on null payloads.");
 
-    index_key_t k;
+    index_key_t index_key;
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
     ASSERT_INVARIANT(
         type_record_id != c_invalid_gaia_id,
@@ -70,20 +70,20 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     auto index_view = index_view_t(id_to_ptr(index_id));
 
     const auto& fields = *(index_view.fields());
-    for (auto field_id : fields)
+    for (gaia_id_t field_id : fields)
     {
         field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
-        k.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
+        index_key.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
     }
 
-    return k;
+    return index_key;
 }
 
 void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
 {
-    for (const auto& k : key.values())
+    for (const payload_types::data_holder_t& key_value : key.values())
     {
-        k.serialize(buffer);
+        key_value.serialize(buffer);
     }
 }
 
@@ -91,17 +91,17 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_re
 {
     ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
 
-    index_key_t k;
+    index_key_t index_key;
     auto index_view = index_view_t(id_to_ptr(index_id));
 
     const auto& fields = *(index_view.fields());
     for (auto field_id : fields)
     {
         data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
-        k.insert(payload_types::data_holder_t(buffer, gaia_to_reflection_type(type)));
+        index_key.insert(payload_types::data_holder_t(buffer, gaia_to_reflection_type(type)));
     }
 
-    return k;
+    return index_key;
 }
 
 index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
