@@ -19,10 +19,6 @@ ruleset test_connect_disconnect_on_table
             // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
         }
 
-        // This won't work because of https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
-        // the workaround is to have the raised_t type available.
-//        farmer.connect(raised.insert(birthdate: "2 Aug 1990"));
-
         auto birthday = raised.insert(birthdate: "2 Aug 1990");
         // CHECK: <{{.*}}>
         farmer.connect(birthday);
@@ -35,6 +31,11 @@ ruleset test_connect_disconnect_on_table
         // CHECK-NEXT:    MemberExpr 0x{{[^ ]*}} <{{.*}}> '<bound member function type>' .disconnect 0x{{[^ ]*}}
         // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'farmer__type' lvalue Var 0x{{[^ ]*}} 'farmer' 'farmer__type'
         // CHECK-NEXT:    DeclRefExpr 0x{{[^ ]*}} <{{.*}}> 'raised__type':'raised__type' lvalue Var 0x{{[^ ]*}} 'birthday' 'raised__type':'raised__type'
+
+        // This won't work because of https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
+        // the workaround is to have the raised_t type available.
+        farmer.connect(raised.insert(birthdate: "2 Aug 1990"));
+        // CHECK: <{{.*}}>
     }
 }
 
