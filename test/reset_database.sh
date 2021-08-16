@@ -37,6 +37,8 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -s,--stop                   Stop the database service only, but do not restart it."
+    echo "  -d,--database               Reset any database files while database is shutdown."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
@@ -47,11 +49,16 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     RESET_DATABASE=0
+    STOP_DATABASE_ONLY=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
         -d|--database)
             RESET_DATABASE=1
+            shift
+        ;;
+        -s|--stop)
+            STOP_DATABASE_ONLY=1
             shift
         ;;
         -v|--verbose)
@@ -113,7 +120,7 @@ stop_database_service() {
         echo "Service $service_name is currently $service_state."
     fi
 
-    if ! [ "$service_state" == "inactive" ] ; then
+    if [ "$service_state" != "inactive" ] && [ "$service_state" != "failed" ]; then
         echo "Setting service $service_name to 'inactive'."
         if ! sudo systemctl stop gaia ; then
             echo "Service $service_name cannot be stopped."
@@ -177,6 +184,7 @@ service_name=gaia
 # Parse any command line values.
 parse_command_line "$@"
 
+
 # Clean entrance into the script.
 start_process
 
@@ -185,10 +193,10 @@ stop_database_service
 if [ $RESET_DATABASE -ne 0 ] ; then
     remove_data_store
 fi
-#sudo apt remove gaia
-#sudo apt install ./2021Aug05-gaia-0.1.0_amd64.deb
 
-start_database_service
+if [ $STOP_DATABASE_ONLY -eq 0 ]; then
+    start_database_service
+fi
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
