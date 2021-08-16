@@ -8,13 +8,19 @@ GaiaPlatform - Main repository
 * Use empty lines for separation of titles, paragraphs, examples, etc. They are ignored when rendering the files, but make them easier to read when editing them.
 * Use `back-quoting` to emphasize tool names, path names, environment variable names and values, etc. Basically, anything that is closer to coding should be emphasized this way.
 * Use **bold** or *italics* for other situations that require emphasis. Bold can be used when introducing new concepts, like **Quantum Build**. Italics could be used when quoting titles of documents, such as *The Art of Programming*. These situations should be rarer.
-* Use links to reference other project files like the [production README](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/README.md), for example.
+* Use links to reference other project files like the [production README](production/README.md), for example.
 
 ## Environment requirements
 
+The `GAIA_REPO` environment variable is used to refer to the root of the project. Add the following lines to your `.bashrc`:
+
+```bash
+export GAIA_REPO=<path_to_your_repoes>/GaiaPlatform
+```
+
 This repository is meant to be built with `clang-10`. To ensure `clang-10` use, add the following lines to your `.bashrc`:
 
-```
+```bash
 export CC=/usr/bin/clang-10
 export CPP=/usr/bin/clang-cpp-10
 export CXX=/usr/bin/clang++-10
@@ -82,7 +88,7 @@ Use the following copyright note with your code. Several language specific versi
 
 `gdev` is a command line tool that creates repeatable builds in the GaiaPlatform repo. The builds are isolated within Docker images and do not depend on any installed packages or configuration on your host.
 
-Look at the [gdev docker build CLI README](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/gdev/README.md), to see how to use `gdev`.
+Look at the [gdev docker build CLI README](dev_tools/gdev/README.md), to see how to use `gdev`.
 
 ## Compile locally
 
@@ -90,12 +96,17 @@ As an alternative to `gdev`, you can compile the project locally. The disadvanta
 
 ### Install dependencies
 
-To install all the dependencies, go to the `GaiaPlatform/third_party/production/` folder and then follow the instruction of each `gdev.cfg` file.
+Start with the `[apt]` section in [production gdev.cfg](production/gdev.cfg). Install all the packages with `apt install`:
+
+```bash
+sudo apt install clang-format-10 clang-tidy-10 debhelper ...
+```
+
+Then move to the `$GAIA_REPO/third_party/production/` folder and follow the instructions in the `gdev.cfg` file within each subdirectory:
 
 For instance, let's consider `daemonize/gdev.cfg`:
 
-```
-text
+```text
 [apt]
 build-essential
 
@@ -112,8 +123,7 @@ make install
 You will need to run the following commands:
 
 
-```
-bash
+```bash
 sudo apt-get install build-essential
 
 git clone --single-branch --branch release-1.7.8 https://github.com/bmc/daemonize.git
@@ -130,7 +140,7 @@ Same thing for all the other dependencies.
 
 ### Build
 
-To build with `cmake`, follow the instructions from the [production README](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/README.md).
+To build with `cmake`, follow the instructions from the [production README](production/README.md).
 
 ### Run Tests
 
@@ -148,15 +158,15 @@ ctest -R storage
 
 ### Configure Clion
 
-The following steps assume that you have all the Gaia dependencies installed locally. If not, go to `GaiaPlatform/third_party/production` and follow the instructions from each and every `gdev.cfg`.
+The following steps assume that you have all the Gaia dependencies installed locally. If not, go to `third_party/production` and follow the instructions from each and every `gdev.cfg`.
 
-Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore you need to select `GaiaPlatform/production` as the root of the project.
+Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't have it. Therefore, you need to select `production` as the root of the project.
 
 1. Open Clion
    - New CMake project from sources.
-   - Select the `GaiaPlatform/production` directory.
+   - Select the `production` directory.
 2. Build
-   - Build ->  Build project.
+   - Build -> Build project.
 3. Run
    - Run `gaia_se_server` from the top right corner. This should always be running while running other tests.
    - Open a test file (3 time shift and type `test_direct_access.cpp`).
