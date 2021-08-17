@@ -15,7 +15,14 @@ namespace gaia
 namespace db
 {
 
-inline reflection::BaseType gaia_to_reflection_type(common::data_type_t type)
+class data_type_not_handled_t : public gaia::common::gaia_exception
+{
+public:
+    explicit data_type_not_handled_t(common::data_type_t type);
+};
+
+inline reflection::BaseType
+gaia_to_reflection_type(common::data_type_t type)
 {
     switch (type)
     {
@@ -43,6 +50,8 @@ inline reflection::BaseType gaia_to_reflection_type(common::data_type_t type)
         return reflection::Double;
     case common::data_type_t::e_string:
         return reflection::String;
+    default:
+        throw data_type_not_handled_t(type);
     }
 }
 
