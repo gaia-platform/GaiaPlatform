@@ -81,13 +81,13 @@ data_holder_t::data_holder_t(data_read_buffer_t& buffer, reflection::BaseType ty
         size_t length;
         buffer >> length;
 
-        if (length != 0)
+        if (length == 0)
         {
-            m_hold.vector_value = {buffer.read(length), length};
+            m_hold.vector_value = {nullptr, 0};
         }
         else
         {
-            m_hold.vector_value = {nullptr, 0};
+            m_hold.vector_value = {buffer.read(length), length};
         }
     }
     else
@@ -311,7 +311,7 @@ void data_holder_t::serialize(data_write_buffer_t& buffer) const
         }
         else
         {
-            length = strlen(m_hold.string_value) + 1; // +1 for nul terminator
+            length = strlen(m_hold.string_value) + 1; // +1 for null terminator
             buffer << length;
             buffer.write(m_hold.string_value, length);
         }

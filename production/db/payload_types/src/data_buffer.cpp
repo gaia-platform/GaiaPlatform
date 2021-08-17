@@ -18,7 +18,6 @@ data_write_buffer_t::data_write_buffer_t(flatbuffers::FlatBufferBuilder& builder
 
 data_read_buffer_t::data_read_buffer_t(const serialization_buffer_t& buffer)
     : m_buffer_ptr(reinterpret_cast<const char*>(buffer.Data()))
-
 {
 }
 
