@@ -515,7 +515,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        cerr << "Since a rule attribute was provided, specifying active fields inside the rule is not supported." << endl;
+        llvm::errs() << "Since a rule attribute was provided, specifying active fields inside the rule is not supported.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -529,7 +529,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
+        llvm::errs() << "Table '" << table_name << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -538,14 +538,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
+        llvm::errs() << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog." << endl;
+        llvm::errs() << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -677,8 +677,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 string variable_name = variable_declaration_range_iterator.second;
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides a tag of the same name." << endl;
+                    llvm::errs() << "Local variable declaration '" << variable_name
+                                 << "' hides a tag of the same name.\n";
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -686,8 +686,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
-                        cerr << "Local variable declaration '" << variable_name
-                             << "' hides a tag of the same name." << endl;
+                        llvm::errs() << "Local variable declaration '" << variable_name
+                                     << "' hides a tag of the same name.\n";
                     }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
@@ -710,7 +710,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                            llvm::errs() << "Initialization of declared variable with EDC objects is not supported.\n";
                             g_is_generation_error = true;
                             return;
                         }
@@ -823,7 +823,7 @@ void generate_table_subscription(
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        llvm::errs() << "Table '" << table << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return;
     }
@@ -1082,13 +1082,13 @@ bool has_multiple_anchors()
 
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
-        cerr << c_multi_anchor_tables << endl;
+        llvm::errs() << c_multi_anchor_tables << "\n";
         return true;
     }
 
     if (g_active_fields.size() > 1)
     {
-        cerr << c_multi_anchor_fields << endl;
+        llvm::errs() << c_multi_anchor_fields << "\n";
         return true;
     }
 
@@ -1097,7 +1097,7 @@ bool has_multiple_anchors()
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
-        cerr << c_multi_anchor_tables << endl;
+        llvm::errs() << c_multi_anchor_tables << "\n";
         return true;
     }
 
@@ -1117,7 +1117,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
-        cerr << "No active fields for the rule." << endl;
+        llvm::errs() << "No active fields for the rule.\n";
         g_is_generation_error = true;
         return;
     }
@@ -1148,7 +1148,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (field_description.second.empty())
         {
-            cerr << "No fields referenced by table '" << table << "'." << endl;
+            llvm::errs() << "No fields referenced by table '" << table << "'.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1172,7 +1172,7 @@ void generate_rules(Rewriter& rewriter)
         {
             if (fields.find(field) == fields.end())
             {
-                cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
+                llvm::errs() << "Field '" << field << "' of table '" << table << "' was not found in the catalog.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -1793,14 +1793,14 @@ public:
             }
             else
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1880,14 +1880,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            llvm::errs() << "Incorrect matched operator.\n";
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression" << endl;
+            llvm::errs() << "Incorrect operator expression\n";
             g_is_generation_error = true;
             return;
         }
@@ -1903,7 +1903,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            llvm::errs() << "Incorrect operator expression type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1935,7 +1935,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2019,7 +2019,7 @@ public:
             break;
         }
         default:
-            cerr << "Incorrect operator type." << endl;
+            llvm::errs() << "Incorrect operator type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2098,7 +2098,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            cerr << "Incorrect operator code " << op_code << "." << endl;
+            llvm::errs() << "Incorrect operator code " << op_code << ".\n";
             g_is_generation_error = true;
             return "";
         }
@@ -2124,14 +2124,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            llvm::errs() << "Incorrect matched operator.\n";
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression." << endl;
+            llvm::errs() << "Incorrect operator expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2140,7 +2140,7 @@ public:
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            llvm::errs() << "Incorrect operator expression type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2181,7 +2181,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2467,9 +2467,9 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                cerr << "Ruleset names must be unique - '"
-                     << g_current_ruleset
-                     << "' has been found multiple times." << endl;
+                llvm::errs() << "Ruleset names must be unique - '"
+                             << g_current_ruleset
+                             << "' has been found multiple times.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2545,8 +2545,8 @@ public:
 
             if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
             {
-                cerr << "Local variable declaration '" << variable_name
-                     << "' hides database table of the same name." << endl;
+                llvm::errs() << "Local variable declaration '" << variable_name
+                             << "' hides database table of the same name.\n";
                 return;
             }
 
@@ -2554,8 +2554,8 @@ public:
             {
                 if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides catalog field entity of the same name." << endl;
+                    llvm::errs() << "Local variable declaration '" << variable_name
+                                 << "' hides catalog field entity of the same name.\n";
                     return;
                 }
             }
@@ -2652,7 +2652,7 @@ public:
 
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2696,14 +2696,14 @@ public:
             {
                 if (explicit_path_present)
                 {
-                    cerr << "'insert' call cannot be used with navigation." << endl;
+                    llvm::errs() << "'insert' call cannot be used with navigation.\n";
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    cerr << "'insert' call cannot be used with tags." << endl;
+                    llvm::errs() << "'insert' call cannot be used with tags.\n";
                     g_is_generation_error = true;
                     return;
                 }
@@ -2764,7 +2764,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
         }
     }
@@ -2795,7 +2795,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
         }
     }
@@ -2822,7 +2822,7 @@ public:
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2872,7 +2872,7 @@ public:
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2886,7 +2886,7 @@ public:
         const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
         if (path == nullptr)
         {
-            cerr << "Incorrect expression is used as a path in for statement." << endl;
+            llvm::errs() << "Incorrect expression is used as a path in for statement.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2961,7 +2961,7 @@ public:
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -3329,7 +3329,7 @@ int main(int argc, const char** argv)
         // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
         // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.
         error_msg_stream.flush();
-        std::cerr << error_msg;
+        llvm::errs() << error_msg;
         return EXIT_FAILURE;
     }
 
@@ -3354,7 +3354,7 @@ int main(int argc, const char** argv)
 
     if (g_source_files.size() > 1)
     {
-        std::cerr << "Translation Engine does not support more than one source ruleset." << std::endl;
+        llvm::errs() << "Translation Engine does not support more than one source ruleset.\n";
         return EXIT_FAILURE;
     }
 
