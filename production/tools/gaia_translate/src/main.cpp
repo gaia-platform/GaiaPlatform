@@ -17,9 +17,12 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
+#include "clang/Basic/DiagnosticOptions.h"
+#include "clang/Basic/DiagnosticSema.h"
 #include "clang/Driver/Options.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
@@ -109,6 +112,8 @@ const FunctionDecl* g_current_rule_declaration = nullptr;
 string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
+
+SourceLocation g_last_rule_location;
 
 enum rewriter_operation_t
 {
@@ -518,7 +523,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        diag_err(c_err_active_field_not_supported);
+        gaiat::diag().emit(diag::err_active_field_not_supported);
         g_is_generation_error = true;
         return false;
     }
@@ -532,7 +537,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
-        diag_err(c_err_table_not_found) << table_name;
+        gaiat::diag().emit(diag::err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -541,14 +546,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        diag_err(c_err_field_not_found) << field_name << table_name;
+        gaiat::diag().emit(diag::err_field_not_found) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
-        diag_err(c_err_field_deprecated) << field_name << table_name;
+        gaiat::diag().emit(diag::err_field_deprecated) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -680,7 +685,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 string variable_name = variable_declaration_range_iterator.second;
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
-                    diag_err(c_err_tag_hidden) << variable_name;
+                    gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::warn_tag_hidden) << variable_name;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -688,7 +693,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
-                        diag_err(c_err_tag_hidden) << variable_name;
+                        gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::warn_tag_hidden) << variable_name;
                     }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
@@ -711,7 +716,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            diag_err(c_err_edc_init);
+                            gaiat::diag().emit(diag::err_edc_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -754,6 +759,9 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 continue;
             }
 
+            // Set the source location to print out diagnostics on a line close to where an error
+            // might be reported.
+            gaiat::diag().set_location(explicit_path_data_iterator.first.getBegin());
             navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                 anchor_table, data_iterator);
             if (navigation_code.prefix.empty())
@@ -824,7 +832,7 @@ void generate_table_subscription(
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
-        diag_err(c_err_table_not_found) << table;
+        gaiat::diag().emit(diag::err_table_not_found) << table;
         g_is_generation_error = true;
         return;
     }
@@ -939,10 +947,10 @@ void generate_table_subscription(
                                    .append(c_nolint_identifier_naming)
                                    .append("\nvoid ")
                                    .append(rule_name);
-    bool is_absoute_path_only = true;
+    bool is_absolute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
-        if (!is_absoute_path_only)
+        if (!is_absolute_path_only)
         {
             break;
         }
@@ -953,14 +961,14 @@ void generate_table_subscription(
                 string first_component_table = get_table_from_expression(data_iterator.path_components.front());
                 if (data_iterator.tag_table_map.find(first_component_table) == data_iterator.tag_table_map.end() || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
                 {
-                    is_absoute_path_only = false;
+                    is_absolute_path_only = false;
                     break;
                 }
             }
         }
     }
 
-    if (!g_is_rule_context_rule_name_referenced && (is_absoute_path_only || g_expression_explicit_path_data.empty()))
+    if (!g_is_rule_context_rule_name_referenced && (is_absolute_path_only || g_expression_explicit_path_data.empty()))
     {
         function_prologue.append("(const gaia::rules::rule_context_t*)\n");
     }
@@ -1078,13 +1086,13 @@ bool has_multiple_anchors()
 {
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
-        diag_err(c_err_multi_anchor_tables);
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
     }
 
     if (g_active_fields.size() > 1)
     {
-        diag_err(c_err_multi_anchor_fields);
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_fields);
         return true;
     }
 
@@ -1093,7 +1101,7 @@ bool has_multiple_anchors()
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
-        diag_err(c_err_multi_anchor_tables);
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
     }
 
@@ -1113,7 +1121,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
-        diag_err(c_err_no_active_fields);
+        gaiat::diag().emit(g_last_rule_location, diag::err_no_active_fields);
         g_is_generation_error = true;
         return;
     }
@@ -1144,7 +1152,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (field_description.second.empty())
         {
-            diag_err(c_err_no_fields_referenced_by_table) << table;
+            gaiat::diag().emit(diag::err_no_fields_referenced_by_table) << table;
             g_is_generation_error = true;
             return;
         }
@@ -1168,7 +1176,7 @@ void generate_rules(Rewriter& rewriter)
         {
             if (fields.find(field) == fields.end())
             {
-                diag_err(c_err_field_not_found) << field << table;
+                gaiat::diag().emit(diag::err_field_not_found) << field << table;
                 g_is_generation_error = true;
                 return;
             }
@@ -1780,7 +1788,7 @@ public:
                             = SourceRange(
                                 expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                     }
-
+                    gaiat::diag().set_location(expression_source_range.getBegin());
                     if (!validate_and_add_active_field(table_name, field_name, true))
                     {
                         return;
@@ -1789,14 +1797,14 @@ public:
             }
             else
             {
-                diag_err(c_err_incorrect_base_type);
+                gaiat::diag().emit(member_expression->getBeginLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
         }
         else
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1876,14 +1884,16 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op == nullptr)
         {
-            diag_err(c_err_incorrect_matched_operator);
+            // TODO:  Can we find a better location here?  If we don't have
+            // our operator, then we'll just report the rule location.
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
-            diag_err(c_err_incorrect_operator_expression);
+            gaiat::diag().emit(op->getExprLoc(), diag::err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1899,7 +1909,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            diag_err(c_err_incorrect_operator_expression_type);
+            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -1931,7 +1941,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                diag_err(c_err_incorrect_base_type);
+                gaiat::diag().emit(member_expression->getExprLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2015,12 +2025,12 @@ public:
             break;
         }
         default:
-            diag_err(c_err_incorrect_operator_type);
+            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_type);
             g_is_generation_error = true;
             return;
         }
 
-        replacement_text += convert_compound_binary_opcode(op->getOpcode());
+        replacement_text += convert_compound_binary_opcode(op);
 
         if (left_declaration_expression != nullptr)
         {
@@ -2067,9 +2077,10 @@ public:
     }
 
 private:
-    string convert_compound_binary_opcode(BinaryOperator::Opcode op_code)
+    string convert_compound_binary_opcode(const BinaryOperator* op)
     {
-        switch (op_code)
+
+        switch (op->getOpcode())
         {
         case BO_Assign:
             return "=";
@@ -2094,7 +2105,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            diag_err(c_err_incorrect_operator_code) << op_code;
+            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_code) << op->getOpcode();
             g_is_generation_error = true;
             return "";
         }
@@ -2120,14 +2131,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op == nullptr)
         {
-            diag_err(c_err_incorrect_matched_operator);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
-            diag_err(c_err_incorrect_operator_expression);
+            gaiat::diag().emit(op->getExprLoc(), diag::err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2136,7 +2147,7 @@ public:
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            diag_err(c_err_incorrect_operator_expression_type);
+            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -2177,7 +2188,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                diag_err(c_err_incorrect_base_type);
+                gaiat::diag().emit(member_expression->getExprLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2294,10 +2305,14 @@ public:
         }
 
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        if (rule_declaration)
+        {
+            g_last_rule_location = rule_declaration->getSourceRange().getBegin();
+        }
         const GaiaOnUpdateAttr* update_attribute = rule_declaration->getAttr<GaiaOnUpdateAttr>();
         const GaiaOnInsertAttr* insert_attribute = rule_declaration->getAttr<GaiaOnInsertAttr>();
         const GaiaOnChangeAttr* change_attribute = rule_declaration->getAttr<GaiaOnChangeAttr>();
-
+        gaiat::diag().set_location(rule_declaration->getSourceRange().getBegin());
         generate_rules(m_rewriter);
         if (g_is_generation_error)
         {
@@ -2332,6 +2347,7 @@ public:
         {
             g_rule_attribute_source_range = update_attribute->getRange();
             g_is_rule_prolog_specified = true;
+            gaiat::diag().set_location(g_rule_attribute_source_range.getBegin());
             for (const auto& table_iterator : update_attribute->tables())
             {
                 string table, field, tag;
@@ -2379,6 +2395,7 @@ public:
         {
             g_is_rule_prolog_specified = true;
             g_rule_attribute_source_range = change_attribute->getRange();
+            gaiat::diag().set_location(g_rule_attribute_source_range.getBegin());
             for (const auto& table_iterator : change_attribute->tables())
             {
                 string table, field, tag;
@@ -2422,6 +2439,11 @@ public:
         {
             return;
         }
+        const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
+        if (ruleset_declaration)
+        {
+            gaiat::diag().set_location(ruleset_declaration->getBeginLoc());
+        }
         generate_rules(m_rewriter);
         if (g_is_generation_error)
         {
@@ -2442,7 +2464,6 @@ public:
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
-        const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (ruleset_declaration == nullptr)
         {
             return;
@@ -2463,7 +2484,7 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                diag_err(c_err_duplicate_ruleset) << g_current_ruleset;
+                gaiat::diag().emit(diag::err_duplicate_ruleset) << g_current_ruleset;
                 g_is_generation_error = true;
                 return;
             }
@@ -2536,10 +2557,10 @@ public:
         if (variable_name != "")
         {
             g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
-
+            gaiat::diag().set_location(variable_declaration->getSourceRange().getBegin());
             if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
             {
-                diag_err(c_err_table_hidden) << variable_name;
+                gaiat::diag().emit(diag::warn_table_hidden) << variable_name;
                 return;
             }
 
@@ -2547,7 +2568,7 @@ public:
             {
                 if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
-                    diag_err(c_err_field_hidden) << variable_name;
+                    gaiat::diag().emit(diag::warn_field_hidden) << variable_name;
                     return;
                 }
             }
@@ -2641,10 +2662,9 @@ public:
             return;
         }
         const auto* expression = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
-
         if (expression == nullptr)
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2686,16 +2706,17 @@ public:
         {
             if (g_insert_call_locations.find(expression->getBeginLoc()) != g_insert_call_locations.end())
             {
+                gaiat::diag().set_location(expression->getBeginLoc());
                 if (explicit_path_present)
                 {
-                    diag_err(c_err_insert_with_explicit_nav);
+                    gaiat::diag().emit(diag::err_insert_with_explicit_nav);
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    diag_err(c_err_insert_with_tag);
+                    gaiat::diag().emit(diag::err_insert_with_tag);
                     g_is_generation_error = true;
                     return;
                 }
@@ -2756,7 +2777,7 @@ public:
         }
         else
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2787,7 +2808,7 @@ public:
         }
         else
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2814,7 +2835,7 @@ public:
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2864,7 +2885,7 @@ public:
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2875,10 +2896,12 @@ public:
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
 
+        gaiat::diag().set_location(expression->getBeginLoc());
+
         const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
         if (path == nullptr)
         {
-            diag_err(c_err_incorrect_for_expression);
+            gaiat::diag().emit(diag::err_incorrect_for_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2953,7 +2976,7 @@ public:
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
         {
-            diag_err(c_err_incorrect_matched_expression);
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -3242,27 +3265,46 @@ private:
     declarative_insert_handler_t m_declarative_insert_handler;
 };
 
-class translation_engine_action_t : public clang::ASTFrontendAction
+// This class allows us to generate diagnostics with source file information
+// right up to the point where we are about to call EndSourceFile() for the DiagnosticConsumer.
+// The Translation Engine will generate code for the last rule when it gets a
+// ASTFrontEndAction::EndSourceFileAction() call.  Unfortunately, this callback occurs after the DiagnosticConsumer
+// EndSourceFile() gets called so we were losing all source line information for the last
+// ruleset.  By creating a diagnostic consumer, we can override the EndSourceFile() call,
+// generate the code for the last rule, and ensure we have good source info.
+// See DiagnosticConsumer.h for information on BeginSourceFile and EndSourceFile.
+class gaiat_diagnostic_consumer_t : public clang::TextDiagnosticPrinter
 {
 public:
-    std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-        clang::CompilerInstance& compiler, llvm::StringRef) override
+    gaiat_diagnostic_consumer_t()
+        : TextDiagnosticPrinter(llvm::errs(), new DiagnosticOptions())
     {
-        m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
-        return std::unique_ptr<clang::ASTConsumer>(
-            new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
-    void EndSourceFileAction() override
+
+    void set_rewriter(Rewriter* rewriter)
+    {
+        m_rewriter = rewriter;
+    }
+
+    void EndSourceFile() override
     {
         if (!g_translation_engine_output_option.empty())
         {
             std::remove(g_translation_engine_output_option.c_str());
         }
-        generate_rules(m_rewriter);
+        Rewriter& rewriter = *m_rewriter;
+
+        // Always call the TextDiagnosticPrinter's EndSourceFile() method.
+        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] {
+            TextDiagnosticPrinter::EndSourceFile();
+        });
+
+        generate_rules(rewriter);
         if (g_is_generation_error)
         {
             return;
         }
+
         g_generated_subscription_code
             += "namespace " + g_current_ruleset
             + "{\nvoid subscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription + "}\n"
@@ -3270,7 +3312,7 @@ public:
             + "} // namespace " + g_current_ruleset + "\n"
             + generate_general_subscription_code();
 
-        if (!shouldEraseOutputFiles() && !g_is_generation_error && !g_translation_engine_output_option.empty())
+        if (!m_rewriter->getSourceMgr().getDiagnostics().hasErrorOccurred() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
             llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);
@@ -3288,13 +3330,36 @@ public:
                     output_file << "#include \"gaia_" << db << ".h\"\n";
                 }
 
-                m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
+                m_rewriter->getEditBuffer(m_rewriter->getSourceMgr().getMainFileID())
                     .write(output_file);
                 output_file << g_generated_subscription_code;
             }
 
             output_file.close();
         }
+    }
+
+private:
+    // Pointer to the Rewriter instance owned by the
+    // translation_engine_action_t class. Do not free.
+    // It is guaranteed to live until EndSourceFileAction() which
+    // occurs after EndSourceFile().
+    Rewriter* m_rewriter;
+};
+
+gaiat_diagnostic_consumer_t g_diagnostic_consumer;
+
+class translation_engine_action_t : public clang::ASTFrontendAction
+{
+public:
+    std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+        clang::CompilerInstance& compiler, llvm::StringRef) override
+    {
+        m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
+        g_diagnostic_consumer.set_rewriter(&m_rewriter);
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler.getSourceManager().getDiagnostics());
+        return std::unique_ptr<clang::ASTConsumer>(
+            new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
 
 private:
@@ -3346,7 +3411,7 @@ int main(int argc, const char** argv)
 
     if (g_source_files.size() > 1)
     {
-        diag_err(c_err_multiple_ruleset_files);
+        llvm::errs() << c_err_multiple_ruleset_files;
         return EXIT_FAILURE;
     }
 
@@ -3366,6 +3431,7 @@ int main(int argc, const char** argv)
 
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(*compilation_database, g_source_files);
+    tool.setDiagnosticConsumer(&g_diagnostic_consumer);
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());

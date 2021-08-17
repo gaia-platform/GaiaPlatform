@@ -7,6 +7,4 @@ ruleset test
         actuator.value = @sensor.value + 5;
     }
 }
-
-// CHECK: Since one of 'on_insert', 'on_change', or 'on_update' was provided as part of the rule definition, specifying active fields using '@' inside the rule is not supported. Ensure you are specifying active fields using either the '@' sign in the rule or one of the rule definition attributes.
-
+// CHECK: Mixed use of 'on_' attributes (on_insert, on_change, or on_update) and specifying active fields using '@' is not supported. Use either an 'on_' attribute at the start of the rule or '@' in the rule.

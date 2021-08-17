@@ -9,4 +9,4 @@ ruleset test
         }
     }
 }
-// CHECK: No navigation path exists between table 'isolated' and other tables. Ensure your schema has a relationship between the tables you are referencing.
+// CHECK: No navigation path exists between table 'isolated' and other tables. Ensure that your schema has a relationship between the tables you are referencing.

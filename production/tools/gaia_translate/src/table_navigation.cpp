@@ -3,16 +3,21 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "table_navigation.h"
-
 #include <climits>
 
 #include <iostream>
 #include <random>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#include "clang/Basic/DiagnosticSema.h"
+#pragma clang diagnostic pop
+
 #include "diagnostics.h"
+#include "table_navigation.h"
 
 using namespace std;
+using namespace clang;
 using namespace gaia::translation;
 
 constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
@@ -121,7 +126,8 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
 }
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
-navigation_code_data_t table_navigation_t::generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
+navigation_code_data_t table_navigation_t::generate_navigation_code(
+    const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
 {
     ensure_initialization();
     navigation_code_data_t return_value;
@@ -173,7 +179,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     }
     if (m_table_relationship.find(anchor_table_name) == m_table_relationship.end())
     {
-        diag_err(c_err_no_anchor_path) << anchor_table;
+        gaiat::diag().emit(diag::err_no_anchor_path) << anchor_table;
         return navigation_code_data_t();
     }
     auto table_itr = m_table_relationship.equal_range(anchor_table_name);
@@ -207,7 +213,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
 
                 if (is_1_relationship || is_n_relationship)
                 {
-                    diag_err(c_err_ambiguous_path) << anchor_table << table;
+                    gaiat::diag().emit(diag::err_ambiguous_path) << anchor_table << table;
                     return navigation_code_data_t();
                 }
                 if (it->second.is_parent)
@@ -284,7 +290,7 @@ void table_navigation_t::fill_table_data()
             if (!table)
             {
                 // TODO: Add better message. How does this happen?
-                diag_err(c_err_incorrect_table) << field.name();
+                gaiat::diag().emit(diag::err_incorrect_table) << field.name();
                 m_table_data.clear();
                 return;
             }
@@ -297,7 +303,7 @@ void table_navigation_t::fill_table_data()
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
-                diag_err(c_err_duplicate_field) << field.name() << table.name();
+                gaiat::diag().emit(diag::err_duplicate_field) << field.name() << table.name();
                 m_table_data.clear();
                 return;
             }
@@ -317,7 +323,7 @@ void table_navigation_t::fill_table_data()
             if (!child_table)
             {
                 // TODO:  what is the action a user can take?
-                diag_err(c_err_incorrect_child_table) << relationship.name();
+                gaiat::diag().emit(diag::err_invalid_child_table) << relationship.name();
                 m_table_data.clear();
                 return;
             }
@@ -331,7 +337,7 @@ void table_navigation_t::fill_table_data()
             if (!parent_table)
             {
                 // TODO:  what is the action a user can take?
-                diag_err(c_err_incorrect_parent_table) << relationship.name();
+                gaiat::diag().emit(diag::err_invalid_parent_table) << relationship.name();
                 m_table_data.clear();
                 return;
             }
@@ -350,7 +356,7 @@ void table_navigation_t::fill_table_data()
     }
     catch (const exception& e)
     {
-        diag_err(c_err_catalog_exception) << e.what();
+        gaiat::diag().emit(diag::err_catalog_exception) << e.what();
         m_table_data.clear();
         return;
     }
@@ -383,7 +389,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     bool return_value = find_navigation_path(src, dst, current_path, m_table_relationship);
     if (!return_value)
     {
-        diag_err(c_err_no_path) << src << dst;
+        gaiat::diag().emit(diag::err_no_path) << src << dst;
         return false;
     }
 
@@ -413,7 +419,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         {
             if (path.size() == path_length)
             {
-                diag_err(c_err_multiple_shortest_paths) << src << dst;
+                gaiat::diag().emit(diag::err_multiple_shortest_paths) << src << dst;
                 return false;
             }
         }
@@ -551,7 +557,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
             {
                 if (is_1_relationship || is_n_relationship)
                 {
-                    diag_err(c_err_ambiguous_path) << source_table << destination_table;
+                    gaiat::diag().emit(diag::err_ambiguous_path) << source_table << destination_table;
                     return false;
                 }
                 if (it->second.is_parent)
@@ -569,7 +575,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
 
     if (!is_n_relationship && !is_1_relationship)
     {
-        diag_err(c_err_no_relationship) << source_table << destination_table;
+        gaiat::diag().emit(diag::err_no_relationship) << source_table << destination_table;
         return false;
     }
     if (is_1_relationship)
@@ -623,7 +629,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     const auto table_iterator = table_data.find(table);
     if (table_iterator == table_data.end())
     {
-        diag_err(c_err_table_not_found) << table;
+        gaiat::diag().emit(diag::err_table_not_found) << table;
         return return_value;
     }
 
@@ -636,7 +642,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
             catalog::gaia_table_t field_table = field.table();
             if (!field_table)
             {
-                diag_err(c_err_incorrect_table) << field.name();
+                gaiat::diag().emit(diag::err_incorrect_table) << field.name();
                 return vector<string>();
             }
 
@@ -653,7 +659,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
     }
     catch (const exception& e)
     {
-        diag_err(c_err_catalog_exception) << e.what();
+        gaiat::diag().emit(diag::err_catalog_exception) << e.what();
         return vector<string>();
     }
 

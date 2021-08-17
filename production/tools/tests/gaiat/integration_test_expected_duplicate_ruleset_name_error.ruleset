@@ -15,4 +15,5 @@ ruleset test
 }
 
 // GAIAPLAT-802
-// CHECK: Ruleset 'test' has been found multiple times. Ensure every ruleset has a unique name.
+// CHECK: Ruleset 'test' is defined more than once. Ruleset names must be unique.
+
