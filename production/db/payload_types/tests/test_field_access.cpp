@@ -90,9 +90,9 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::first_name);
-    cout << "\tfirst_name = " << first_name.m_hold.string_value << endl;
-    ASSERT_EQ(first_name.m_type, reflection::String);
-    ASSERT_EQ(0, strcmp(first_name.m_hold.string_value, c_first_name));
+    cout << "\tfirst_name = " << first_name.hold.string_value << endl;
+    ASSERT_EQ(first_name.type, reflection::String);
+    ASSERT_EQ(0, strcmp(first_name.hold.string_value, c_first_name));
 
     data_holder_t last_name = get_field_value(
         c_type_id,
@@ -100,9 +100,9 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::last_name);
-    cout << "\tlast_name = " << last_name.m_hold.string_value << endl;
-    ASSERT_EQ(last_name.m_type, reflection::String);
-    ASSERT_EQ(0, strcmp(last_name.m_hold.string_value, check_new_values ? c_new_last_name : c_last_name));
+    cout << "\tlast_name = " << last_name.hold.string_value << endl;
+    ASSERT_EQ(last_name.type, reflection::String);
+    ASSERT_EQ(0, strcmp(last_name.hold.string_value, check_new_values ? c_new_last_name : c_last_name));
 
     data_holder_t age = get_field_value(
         c_type_id,
@@ -110,9 +110,9 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::age);
-    cout << "\tage = " << age.m_hold.integer_value << endl;
-    ASSERT_EQ(age.m_type, reflection::UByte);
-    ASSERT_EQ(check_new_values ? c_new_age : c_age, age.m_hold.integer_value);
+    cout << "\tage = " << age.hold.integer_value << endl;
+    ASSERT_EQ(age.type, reflection::UByte);
+    ASSERT_EQ(check_new_values ? c_new_age : c_age, age.hold.integer_value);
 
     data_holder_t has_children = get_field_value(
         c_type_id,
@@ -120,9 +120,9 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::has_children);
-    cout << "\thas_children = " << has_children.m_hold.integer_value << endl;
-    ASSERT_EQ(has_children.m_type, reflection::Bool);
-    ASSERT_EQ(check_new_values ? c_new_has_children : c_has_children, has_children.m_hold.integer_value);
+    cout << "\thas_children = " << has_children.hold.integer_value << endl;
+    ASSERT_EQ(has_children.type, reflection::Bool);
+    ASSERT_EQ(check_new_values ? c_new_has_children : c_has_children, has_children.hold.integer_value);
 
     data_holder_t identifier = get_field_value(
         c_type_id,
@@ -130,9 +130,9 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::identifier);
-    cout << "\tidentifier = " << identifier.m_hold.integer_value << endl;
-    ASSERT_EQ(identifier.m_type, reflection::Long);
-    ASSERT_EQ(check_new_values ? c_new_identifier : c_identifier, identifier.m_hold.integer_value);
+    cout << "\tidentifier = " << identifier.hold.integer_value << endl;
+    ASSERT_EQ(identifier.type, reflection::Long);
+    ASSERT_EQ(check_new_values ? c_new_identifier : c_identifier, identifier.hold.integer_value);
 
     size_t count_known_associates = get_field_array_size(
         c_type_id,
@@ -154,8 +154,8 @@ void get_fields_data(
             pass_schema ? schema_loader.get_data_length() : 0,
             field::known_associates,
             i);
-        cout << "\t\tknown_associate[" << i << "] = " << known_associate.m_hold.integer_value << endl;
-        ASSERT_EQ(known_associate.m_type, reflection::Long);
+        cout << "\t\tknown_associate[" << i << "] = " << known_associate.hold.integer_value << endl;
+        ASSERT_EQ(known_associate.type, reflection::Long);
 
         // Skip new entries for which we do not have comparison values.
         if (i >= c_count_known_associates)
@@ -167,11 +167,11 @@ void get_fields_data(
         {
             ASSERT_EQ(
                 check_new_values ? c_new_known_associate : c_known_associates[i],
-                known_associate.m_hold.integer_value);
+                known_associate.hold.integer_value);
         }
         else
         {
-            ASSERT_EQ(c_known_associates[i], known_associate.m_hold.integer_value);
+            ASSERT_EQ(c_known_associates[i], known_associate.hold.integer_value);
         }
     }
 
@@ -195,8 +195,8 @@ void get_fields_data(
             pass_schema ? schema_loader.get_data_length() : 0,
             field::known_aliases,
             i);
-        cout << "\t\tknown_alias[" << i << "] = " << known_alias.m_hold.string_value << endl;
-        ASSERT_EQ(known_alias.m_type, reflection::String);
+        cout << "\t\tknown_alias[" << i << "] = " << known_alias.hold.string_value << endl;
+        ASSERT_EQ(known_alias.type, reflection::String);
 
         // Skip new entries for which we do not have comparison values.
         if (i >= c_count_known_aliases)
@@ -206,11 +206,11 @@ void get_fields_data(
 
         if (i == c_index_new_known_alias)
         {
-            ASSERT_EQ(0, strcmp(known_alias.m_hold.string_value, check_new_values ? c_new_known_alias : c_known_aliases[i]));
+            ASSERT_EQ(0, strcmp(known_alias.hold.string_value, check_new_values ? c_new_known_alias : c_known_aliases[i]));
         }
         else
         {
-            ASSERT_EQ(0, strcmp(known_alias.m_hold.string_value, c_known_aliases[i]));
+            ASSERT_EQ(0, strcmp(known_alias.hold.string_value, c_known_aliases[i]));
         }
     }
 
@@ -220,10 +220,10 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::sleeve_cost);
-    cout << "\tsleeve_cost = " << sleeve_cost.m_hold.float_value << endl;
-    ASSERT_EQ(sleeve_cost.m_type, reflection::Double);
-    ASSERT_TRUE(sleeve_cost.m_hold.float_value >= (check_new_values ? c_new_sleeve_cost : c_sleeve_cost));
-    ASSERT_TRUE(sleeve_cost.m_hold.float_value <= (check_new_values ? c_new_sleeve_cost : c_sleeve_cost) + 1);
+    cout << "\tsleeve_cost = " << sleeve_cost.hold.float_value << endl;
+    ASSERT_EQ(sleeve_cost.type, reflection::Double);
+    ASSERT_TRUE(sleeve_cost.hold.float_value >= (check_new_values ? c_new_sleeve_cost : c_sleeve_cost));
+    ASSERT_TRUE(sleeve_cost.hold.float_value <= (check_new_values ? c_new_sleeve_cost : c_sleeve_cost) + 1);
 
     data_holder_t monthly_sleeve_insurance = get_field_value(
         c_type_id,
@@ -231,13 +231,13 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         pass_schema ? schema_loader.get_data_length() : 0,
         field::monthly_sleeve_insurance);
-    cout << "\tmonthly_sleeve_insurance = " << monthly_sleeve_insurance.m_hold.float_value << endl;
-    ASSERT_EQ(monthly_sleeve_insurance.m_type, reflection::Float);
+    cout << "\tmonthly_sleeve_insurance = " << monthly_sleeve_insurance.hold.float_value << endl;
+    ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
     ASSERT_TRUE(
-        monthly_sleeve_insurance.m_hold.float_value
+        monthly_sleeve_insurance.hold.float_value
         >= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance));
     ASSERT_TRUE(
-        monthly_sleeve_insurance.m_hold.float_value
+        monthly_sleeve_insurance.hold.float_value
         <= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance) + 1);
 
     size_t count_credit_amounts = get_field_array_size(
@@ -260,8 +260,8 @@ void get_fields_data(
             pass_schema ? schema_loader.get_data_length() : 0,
             field::last_yearly_top_credit_amounts,
             i);
-        cout << "\t\tcredit_amount[" << i << "] = " << credit_amount.m_hold.float_value << endl;
-        ASSERT_EQ(credit_amount.m_type, reflection::Double);
+        cout << "\t\tcredit_amount[" << i << "] = " << credit_amount.hold.float_value << endl;
+        ASSERT_EQ(credit_amount.type, reflection::Double);
 
         // Skip new entries for which we do not have comparison values.
         if (i >= c_count_credit_amounts)
@@ -272,16 +272,16 @@ void get_fields_data(
         if (i == c_index_new_credit_amount)
         {
             ASSERT_TRUE(
-                credit_amount.m_hold.float_value
+                credit_amount.hold.float_value
                 >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
             ASSERT_TRUE(
-                credit_amount.m_hold.float_value
+                credit_amount.hold.float_value
                 <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
         }
         else
         {
-            ASSERT_TRUE(credit_amount.m_hold.float_value >= c_last_yearly_top_credit_amounts[i]);
-            ASSERT_TRUE(credit_amount.m_hold.float_value <= c_last_yearly_top_credit_amounts[i] + 1);
+            ASSERT_TRUE(credit_amount.hold.float_value >= c_last_yearly_top_credit_amounts[i]);
+            ASSERT_TRUE(credit_amount.hold.float_value <= c_last_yearly_top_credit_amounts[i] + 1);
         }
     }
 
@@ -412,8 +412,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating age to " << static_cast<int>(c_new_age) << "..." << endl;
     data_holder_t new_age;
-    new_age.m_type = reflection::UByte;
-    new_age.m_hold.integer_value = c_new_age;
+    new_age.type = reflection::UByte;
+    new_age.hold.integer_value = c_new_age;
     bool set_result = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -425,8 +425,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating has_children to " << static_cast<int>(c_new_has_children) << "..." << endl;
     data_holder_t new_has_children;
-    new_has_children.m_type = reflection::Bool;
-    new_has_children.m_hold.integer_value = c_new_has_children;
+    new_has_children.type = reflection::Bool;
+    new_has_children.hold.integer_value = c_new_has_children;
     set_result = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -438,8 +438,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating identifier to " << c_new_identifier << "..." << endl;
     data_holder_t new_identifier;
-    new_identifier.m_type = reflection::Long;
-    new_identifier.m_hold.integer_value = c_new_identifier;
+    new_identifier.type = reflection::Long;
+    new_identifier.hold.integer_value = c_new_identifier;
     set_result = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -452,8 +452,8 @@ void update_flatbuffers_data()
     cout << "\tupdating known_associate[" << c_index_new_known_associate
          << "] to " << c_new_known_associate << "..." << endl;
     data_holder_t new_known_associate;
-    new_known_associate.m_type = reflection::Long;
-    new_known_associate.m_hold.integer_value = c_new_known_associate;
+    new_known_associate.type = reflection::Long;
+    new_known_associate.hold.integer_value = c_new_known_associate;
     set_field_array_element(
         c_type_id,
         data_loader.get_data(),
@@ -465,8 +465,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating sleeve_cost to " << c_new_sleeve_cost << "..." << endl;
     data_holder_t new_sleeve_cost;
-    new_sleeve_cost.m_type = reflection::Double;
-    new_sleeve_cost.m_hold.float_value = c_new_sleeve_cost;
+    new_sleeve_cost.type = reflection::Double;
+    new_sleeve_cost.hold.float_value = c_new_sleeve_cost;
     set_result = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -478,8 +478,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating monthly_sleeve_insurance to " << c_new_monthly_sleeve_insurance << "..." << endl;
     data_holder_t new_monthly_sleeve_insurance;
-    new_monthly_sleeve_insurance.m_type = reflection::Float;
-    new_monthly_sleeve_insurance.m_hold.float_value = c_new_monthly_sleeve_insurance;
+    new_monthly_sleeve_insurance.type = reflection::Float;
+    new_monthly_sleeve_insurance.hold.float_value = c_new_monthly_sleeve_insurance;
     set_result = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -492,8 +492,8 @@ void update_flatbuffers_data()
     cout << "\tupdating credit_amount[" << c_index_new_credit_amount
          << "] to " << c_new_credit_amount << "..." << endl;
     data_holder_t new_credit_amount;
-    new_credit_amount.m_type = reflection::Double;
-    new_credit_amount.m_hold.float_value = c_new_credit_amount;
+    new_credit_amount.type = reflection::Double;
+    new_credit_amount.hold.float_value = c_new_credit_amount;
     set_field_array_element(
         c_type_id,
         data_loader.get_data(),
@@ -507,8 +507,8 @@ void update_flatbuffers_data()
 
     cout << "\tupdating last_name to " << c_new_last_name << "..." << endl;
     data_holder_t new_last_name;
-    new_last_name.m_type = reflection::String;
-    new_last_name.m_hold.string_value = c_new_last_name;
+    new_last_name.type = reflection::String;
+    new_last_name.hold.string_value = c_new_last_name;
     serialization = set_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -521,8 +521,8 @@ void update_flatbuffers_data()
     cout << "\tupdating known_alias[" << c_index_new_known_alias
          << "] to " << c_new_known_alias << "..." << endl;
     data_holder_t new_known_alias;
-    new_known_alias.m_type = reflection::String;
-    new_known_alias.m_hold.string_value = c_new_known_alias;
+    new_known_alias.type = reflection::String;
+    new_known_alias.hold.string_value = c_new_known_alias;
     serialization = set_field_array_element(
         c_type_id,
         serialization.data(),

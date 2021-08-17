@@ -63,8 +63,8 @@ union value_holder_t
 // of the encapsulated data type.
 struct data_holder_t
 {
-    reflection::BaseType m_type;
-    value_holder_t m_hold;
+    reflection::BaseType type;
+    value_holder_t hold;
 
     data_holder_t();
     data_holder_t(const data_holder_t&) = default;
@@ -75,14 +75,14 @@ struct data_holder_t
     template <typename T>
     data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>>* = nullptr)
     {
-        m_type = reflection::Int;
-        m_hold.integer_value = value;
+        type = reflection::Int;
+        hold.integer_value = value;
     }
     template <typename T>
     data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && !std::is_signed_v<T>>* = nullptr)
     {
-        m_type = reflection::UInt;
-        m_hold.integer_value = value;
+        type = reflection::UInt;
+        hold.integer_value = value;
     }
     data_holder_t(float value);
     data_holder_t(double value);

@@ -293,14 +293,14 @@ data_holder_t get_field_value(
 
     // Read field value according to its type.
     data_holder_t result;
-    result.m_type = field->type()->base_type();
+    result.type = field->type()->base_type();
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        result.m_hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
+        result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        result.m_hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
+        result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else if (field->type()->base_type() == reflection::String)
     {
@@ -308,7 +308,7 @@ data_holder_t get_field_value(
 
         // For null strings, the field_value will come back as nullptr,
         // so just set the string_value to nullptr as well.
-        result.m_hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
+        result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
     }
     else
     {
@@ -336,8 +336,8 @@ bool set_field_value(
         const_root_table, auto_type_information, local_type_information, field);
 
     ASSERT_PRECONDITION(
-        (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.m_type))
-            || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.m_type)),
+        (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.type))
+            || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
         c_message_attempt_to_set_value_of_incorrect_type);
 
     // We need to update the root_table, so we need to remove the const qualifier.
@@ -346,11 +346,11 @@ bool set_field_value(
     // Write field value according to its type.
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        return flatbuffers::SetAnyFieldI(root_table, *field, value.m_hold.integer_value);
+        return flatbuffers::SetAnyFieldI(root_table, *field, value.hold.integer_value);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        return flatbuffers::SetAnyFieldF(root_table, *field, value.m_hold.float_value);
+        return flatbuffers::SetAnyFieldF(root_table, *field, value.hold.float_value);
     }
     else
     {
@@ -367,9 +367,9 @@ void set_field_value(
     const data_holder_t& value)
 {
     ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
-    ASSERT_PRECONDITION(value.m_type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
-    if (value.m_hold.string_value == nullptr)
+    if (value.hold.string_value == nullptr)
     {
         throw cannot_set_null_string_value();
     }
@@ -391,7 +391,7 @@ void set_field_value(
         throw invalid_schema();
     }
 
-    string new_field_value(value.m_hold.string_value);
+    string new_field_value(value.hold.string_value);
 
     const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
     if (field_value == nullptr)
@@ -541,15 +541,15 @@ data_holder_t get_field_array_element(
 
     // Read element value according to its type.
     data_holder_t result;
-    result.m_type = field->type()->element();
+    result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {
-        result.m_hold.integer_value = flatbuffers::GetAnyVectorElemI(
+        result.hold.integer_value = flatbuffers::GetAnyVectorElemI(
             field_value, field->type()->element(), array_index);
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
-        result.m_hold.float_value = flatbuffers::GetAnyVectorElemF(
+        result.hold.float_value = flatbuffers::GetAnyVectorElemF(
             field_value, field->type()->element(), array_index);
     }
     else if (field->type()->element() == reflection::String)
@@ -563,7 +563,7 @@ data_holder_t get_field_array_element(
             throw invalid_serialized_data();
         }
 
-        result.m_hold.string_value = field_element_value->c_str();
+        result.hold.string_value = field_element_value->c_str();
     }
     else
     {
@@ -594,8 +594,8 @@ void set_field_array_element(
 
     ASSERT_PRECONDITION(array_index < const_field_value->size(), c_message_array_index_out_of_bounds);
     ASSERT_PRECONDITION(
-        (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.m_type))
-            || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.m_type)),
+        (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.type))
+            || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
         c_message_attempt_to_set_value_of_incorrect_type);
 
     // We need to update the serialization, so we need to remove the const qualifier.
@@ -605,12 +605,12 @@ void set_field_array_element(
     if (flatbuffers::IsInteger(field->type()->element()))
     {
         flatbuffers::SetAnyVectorElemI(
-            field_value, field->type()->element(), array_index, value.m_hold.integer_value);
+            field_value, field->type()->element(), array_index, value.hold.integer_value);
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
         flatbuffers::SetAnyVectorElemF(
-            field_value, field->type()->element(), array_index, value.m_hold.float_value);
+            field_value, field->type()->element(), array_index, value.hold.float_value);
     }
     else
     {
@@ -628,9 +628,9 @@ void set_field_array_element(
     const data_holder_t& value)
 {
     ASSERT_PRECONDITION(binary_schema != nullptr, "'binary_schema' argument should not be null.");
-    ASSERT_PRECONDITION(value.m_type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
+    ASSERT_PRECONDITION(value.type == reflection::String, c_message_attempt_to_set_value_of_incorrect_type);
 
-    if (value.m_hold.string_value == nullptr)
+    if (value.hold.string_value == nullptr)
     {
         throw cannot_set_null_string_value();
     }
@@ -654,7 +654,7 @@ void set_field_array_element(
         throw invalid_schema();
     }
 
-    string new_field_element_value(value.m_hold.string_value);
+    string new_field_element_value(value.hold.string_value);
 
     auto field_element_value
         = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);

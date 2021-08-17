@@ -37,7 +37,7 @@ bool verify_serialization(const data_holder_t& from)
 
     auto s = flatbuffers::GetRoot<serialization>(fbb.GetBufferPointer());
     data_read_buffer_t read_buffer(*s->data());
-    data_holder_t to(read_buffer, from.m_type);
+    data_holder_t to(read_buffer, from.type);
 
     return to.compare(from) == 0;
 }
@@ -64,14 +64,14 @@ TEST(payload_types, serialization_test)
 TEST(payload_types, null_serialization_test)
 {
     data_holder_t nullstring;
-    nullstring.m_type = reflection::String;
-    nullstring.m_hold.string_value = nullptr;
+    nullstring.type = reflection::String;
+    nullstring.hold.string_value = nullptr;
 
     ASSERT_TRUE(verify_serialization(nullstring));
 
     data_holder_t nullvector;
-    nullvector.m_type = reflection::Vector;
-    nullvector.m_hold.vector_value = {nullptr, 0};
+    nullvector.type = reflection::Vector;
+    nullvector.hold.vector_value = {nullptr, 0};
 
     ASSERT_TRUE(verify_serialization(nullvector));
 }
