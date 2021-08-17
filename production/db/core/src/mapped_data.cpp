@@ -54,6 +54,10 @@ void mapped_log_t::open(int fd, bool read_only)
         this->m_data,
         this->m_mapped_data_size,
         read_only ? PROT_READ : (PROT_READ | PROT_WRITE),
+        // The MAP_PRIVATE flag is only required because of some undocumented
+        // behavior I discovered in Linux: a memfd sealed for writes cannot be
+        // mapped with MAP_SHARED, even if PROT_READ is specified. We need to
+        // specify MAP_PRIVATE, even though we don't need a CoW mapping.
         read_only ? MAP_PRIVATE : MAP_SHARED,
         fd,
         0);

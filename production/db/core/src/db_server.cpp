@@ -215,7 +215,7 @@ void server_t::handle_begin_txn(
     std::vector<int> txn_log_fds_for_snapshot;
     auto cleanup_txn_log_fds_for_snapshot = make_scope_guard([&]() {
         // Close all the duplicated log fds in the buffer.
-        for (auto& fd : txn_log_fds_for_snapshot)
+        for (int& fd : txn_log_fds_for_snapshot)
         {
             // Each log fd should still be valid.
             ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
@@ -263,7 +263,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
     s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
-    // Update the log header with our begin timestamp and intialize it to empty.
+    // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
     s_log.data()->record_count = 0;
 }

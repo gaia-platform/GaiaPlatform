@@ -491,7 +491,6 @@ void client_t::begin_transaction()
     }
 
     // Map the txn log fd we received from the server, for read/write access.
-    ASSERT_PRECONDITION(log_fd != -1, "Uninitialized log fd!");
     bool read_only = false;
     s_log.open(log_fd, read_only);
 
