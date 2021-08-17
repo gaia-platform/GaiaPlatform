@@ -411,7 +411,7 @@ void client_t::begin_session(config::session_options_t session_options)
     auto cleanup_fd_locators = make_scope_guard([&]() {
         close_fd(fd_locators);
     });
-    auto cleanup_fd_others = make_scope_guard([&]() {
+    [[gnu::unused]] auto cleanup_fd_others = make_scope_guard([&]() {
         for (auto data_mapping : s_data_mappings)
         {
             if (data_mapping.mapping_index != data_mapping_t::index_t::locators)

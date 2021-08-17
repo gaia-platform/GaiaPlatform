@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <atomic>
+#include <vector>
 
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
@@ -570,7 +571,7 @@ ruleset test_insert_delete_2
 }
 
 
-ruleset test_connect_disconnect
+ruleset test_connect_1_n
 {
     on_insert(student)
     {
@@ -578,7 +579,7 @@ ruleset test_connect_disconnect
         student.connect(r1);
         student.registrations.connect(r1);
 
-        for(/r2 : registration)
+        for(/r2:registration)
         {
             student.connect(r2);
             student.registrations.connect(r2);
@@ -594,8 +595,91 @@ ruleset test_connect_disconnect
         student.connect(r4);
         student.registrations.connect(r4);
 
-        // TODO not working yet.
-//        student.connect(registration.insert(reg_id: "reg004"));
-//        student.registrations.connect(registration.insert(reg_id: "reg005"));
+        student.connect(registration.insert(reg_id: "reg004"));
+        student.registrations.connect(registration.insert(reg_id: "reg005"));
+    }
+};
+
+ruleset test_connect_1_1
+{
+    on_insert(student)
+    {
+        if (strcmp(student.student_id, "stu001") == 0)
+        {
+            auto p = parents.insert(name_father: "Claudio", name_mother: "Patrizia");
+            student.connect(p);
+        }
+        else
+        {
+            gaia::prerequisites::parents_writer w;
+            w.name_father = "John";
+            w.name_mother = "Jane";
+            auto p = gaia::prerequisites::parents_t::get(w.insert_row());
+            student.parents.connect(p);
+        }
+    }
+}
+
+ruleset test_disconnect_1_n
+{
+    on_insert(student)
+    {
+        if (strcmp(student.student_id, "stu001") == 0)
+        {
+            for(/r:registration)
+            {
+                student.disconnect(r);
+            }
+        }
+        else
+        {
+            // This doesn't work for the same reason as delete.
+//            student.disconnect(registration);
+        }
+    }
+
+    on_insert(course)
+    {
+        if (strcmp(course.course_id, "cou001") == 0)
+        {
+            for (/r:registration)
+            {
+                course.registrations.disconnect(r);
+            }
+        }
+        else
+        {
+            // This doesn't work for the same reason as delete.
+//            course.registrations.disconnect(registration);
+        }
+    }
+};
+
+ruleset test_disconnect_1_1
+{
+    on_insert(student)
+    {
+        if (strcmp(course.course_id, "cou001") == 0)
+        {
+            for(/p : parents)
+            {
+                student.disconnect(p);
+            }
+        }
+        else if (strcmp(course.course_id, "cou002") == 0)
+        {
+            student.disconnect(parents);
+        }
+        else if (strcmp(course.course_id, "cou003") == 0)
+        {
+            for(/p : parents)
+            {
+                student.parents.disconnect(p);
+            }
+        }
+        else
+        {
+            student.parents.disconnect(parents);
+        }
     }
 };

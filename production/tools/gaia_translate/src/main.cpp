@@ -3029,10 +3029,10 @@ private:
 };
 
 // AST handler that is called when declarative break or continue are used in the rule.
-class declarative_connect_handler_t : public MatchFinder::MatchCallback
+class declarative_connect_disconnect_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    explicit declarative_connect_handler_t(Rewriter& r)
+    explicit declarative_connect_disconnect_handler_t(Rewriter& r)
         : m_rewriter(r){};
 
     void run(const MatchFinder::MatchResult& result) override
@@ -3047,12 +3047,13 @@ public:
         string link_name;
         bool need_link_field = false;
 
-        const auto* connect_method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectCall");
+        const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectDisconnectCall");
+        bool is_connect = method_call_expr->getMethodDecl()->getName().str() == "connect";
 
         const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         src_table_name = get_table_name(table_call->getDecl());
 
-        const auto* param = result.Nodes.getNodeAs<DeclRefExpr>("tableConnectParam");
+        const auto* param = result.Nodes.getNodeAs<DeclRefExpr>("connectDisconnectParam");
         const auto* table_attr = param->getType()->getAsRecordDecl()->getAttr<GaiaTableAttr>();
         dest_table_name = table_attr->getTable()->getName().str();
 
@@ -3122,16 +3123,38 @@ public:
 
         if (link_data.cardinality == gaia::catalog::relationship_cardinality_t::many)
         {
-            // Changes connect() to insert() for 1:N relationships.
-            // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
-            m_rewriter.ReplaceText(connect_method_call_expr->getExprLoc(), c_connect_length, "insert");
+            if (is_connect)
+            {
+                // Changes connect() to insert() for 1:N relationships.
+                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_connect_length, "insert");
+            }
+            else
+            {
+                // Changes disconnect() to remove() for 1:N relationships.
+                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_disconnect_length, "remove");
+            }
+        }
+        else
+        {
+            if (!is_connect && method_call_expr->getNumArgs() > 0)
+            {
+                SourceRange param_loc(
+                    method_call_expr->getExprLoc().getLocWithOffset(c_disconnect_length + 1),
+                    method_call_expr->getEndLoc());
+
+                param_loc.dump(*result.SourceManager);
+
+                m_rewriter.RemoveText(param_loc);
+            }
         }
 
         if (need_link_field)
         {
-            // Inserts the link name between the table name and the connect method:
+            // Inserts the link name between the table name and the connect/disconnect method:
             // table.link_name().connect().
-            m_rewriter.InsertTextBefore(connect_method_call_expr->getExprLoc(), link_name + "().");
+            m_rewriter.InsertTextBefore(method_call_expr->getExprLoc(), link_name + "().");
         }
     }
 
@@ -3155,7 +3178,7 @@ public:
         , m_declarative_break_continue_handler(r)
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
-        , m_declarative_connect_handler(r)
+        , m_declarative_connect_disconnect_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -3306,35 +3329,40 @@ public:
                   .bind("insertCall");
 
         // Matches an expression in the form: table.connect().
-        StatementMatcher declarative_table_connect_matcher
+        StatementMatcher declarative_table_connect_disconnect_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("connect"))),
-                  hasArgument(0, declRefExpr().bind("tableConnectParam")),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName("connect"),
+                          hasName("disconnect")))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
                   on(table_call_matcher))
-                  .bind("connectCall");
+                  .bind("connectDisconnectCall");
 
         // Matches an expression in the form: table.link.connect().
-        StatementMatcher declarative_link_connect_matcher
+        StatementMatcher declarative_link_connect_disconnect_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("connect"))),
-                  hasArgument(0, declRefExpr().bind("tableConnectParam")),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName("connect"),
+                          hasName("disconnect")))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.link.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.link.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
                   on(table_field_get_matcher))
-                  .bind("connectCall");
-
-        StatementMatcher declarative_disconnect_matcher
-            = cxxMemberCallExpr(
-                  hasAncestor(ruleset_matcher),
-                  callee(cxxMethodDecl(hasName("disconnect"))),
-                  on(table_call_matcher))
-                  .bind("disconnectCall");
-
-        //        CXXMemberCallExpr 0x56375b915350 '_Bool'
-        //        |-MemberExpr 0x56375b9150e8 '<bound member function type>' .connect 0x56375b90f128
-        //        | `-MemberExpr 0x56375b9150b8 'struct incubator_sensors__type' lvalue .sensors 0x56375b90f330
-        //        |   `-DeclRefExpr 0x56375b915098 'struct incubator__type' lvalue Var 0x56375b914fd8 'incubator' 'struct incubator__type'
-        //        `-DeclRefExpr 0x56375b915330 'struct sensor__type' lvalue Var 0x56375b915128 's' 'struct sensor__type'
+                  .bind("connectDisconnectCall");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
@@ -3362,8 +3390,8 @@ public:
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
 
-        m_matcher.addMatcher(declarative_table_connect_matcher, &m_declarative_connect_handler);
-        m_matcher.addMatcher(declarative_link_connect_matcher, &m_declarative_connect_handler);
+        m_matcher.addMatcher(declarative_table_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
+        m_matcher.addMatcher(declarative_link_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -3386,7 +3414,7 @@ private:
     declarative_break_continue_handler_t m_declarative_break_continue_handler;
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
-    declarative_connect_handler_t m_declarative_connect_handler;
+    declarative_connect_disconnect_handler_t m_declarative_connect_disconnect_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

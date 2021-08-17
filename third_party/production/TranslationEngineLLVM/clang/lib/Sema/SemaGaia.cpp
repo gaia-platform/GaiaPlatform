@@ -465,9 +465,15 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
             TableLinkData_t link_data_1;
             link_data_1.table = parent_table.name();
             link_data_1.field = relationship.to_parent_link_name();
+            link_data_1.is_from_parent = false;
+            link_data_1.is_1_n = relationship.cardinality()
+                == static_cast<uint8_t>(catalog::relationship_cardinality_t::many);
+
             TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
             link_data_n.field = relationship.to_child_link_name();
+            link_data_n.is_from_parent = true;
+            link_data_n.is_1_n = false;
 
             retVal.emplace(child_table.name(), link_data_1);
             retVal.emplace(parent_table.name(), link_data_n);
@@ -593,7 +599,7 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc)
+QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
@@ -619,7 +625,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    addConnectDisconnect(RD, to_table, loc, attrFactory, attrs);
+    addConnectDisconnect(RD, to_table, is_one_to_many, loc, attrFactory, attrs);
 
     RD->completeDefinition();
 
@@ -679,7 +685,7 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     return nullptr;
 }
 
-void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
 {
     SmallVector<TagDecl*, 2> targetTypes;
 
@@ -724,7 +730,19 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
         parameters.push_back(connectDisconnectParamRef);
 
         addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
-        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+
+        // The disconnect with argument is available only 1:n relationships.
+        if (is_one_to_many)
+        {
+            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        }
+    }
+
+    // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
+    //  person.mother.disconnect();
+    if (!is_one_to_many && sourceTableDecl->hasAttr<GaiaTableAttr>())
+    {
+        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
 }
 
@@ -861,14 +879,21 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
     // have a connect/disconnect method for a given target type.
-    unordered_map<string, int> links_targets;
+    unordered_map<string, int> links_target_tables;
+
+    // Stores the cardinality for a given target table.
+    // true -> one-to-many, false otherwise.
+    // Note that if a table has multiple links it does not matter
+    // because the connect/disconnect methods are not generated.
+    unordered_map<string, bool> links_cardinality;
 
     for (auto link = links.first; link != links.second; ++link)
     {
         TableLinkData_t linkData = link->second;
-        QualType type = getLinkType(linkData.field, tableName, linkData.table, loc);
+        QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_1_n, loc);
         addField(&Context.Idents.get(linkData.field), type, RD, loc);
-        links_targets[linkData.table]++;
+        links_target_tables[linkData.table]++;
+        links_cardinality[linkData.table] = linkData.is_1_n;
     }
 
     // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
@@ -878,7 +903,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
     // connect and disconnect can be present only if the table has outgoing relationships.
-    if (!links_targets.empty())
+    if (!links_target_tables.empty())
     {
         // For each outgoing relationship creates an overload connect/disconnect to the target types. eg:
         // incubator__type
@@ -887,7 +912,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         //   bool connect(farmer_type&);
         //   bool disconnect(farmer_type&);
         //   ....
-        for (auto targetTablePair : links_targets)
+        for (auto targetTablePair : links_target_tables)
         {
             // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
@@ -898,7 +923,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
                 continue;
             }
 
-            addConnectDisconnect(RD, targetTablePair.first, loc, attrFactory, attrs);
+            addConnectDisconnect(RD, targetTablePair.first, links_cardinality[targetTablePair.first], loc, attrFactory, attrs);
         }
     }
 
@@ -1024,7 +1049,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, loc);
+                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_1_n, loc);
                     fieldTableName = tableName;
                 }
             }
