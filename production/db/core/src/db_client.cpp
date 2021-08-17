@@ -271,23 +271,6 @@ static void build_client_request(
     builder.Finish(message);
 }
 
-// Sort all txn log records, by locator as primary key, and by offset as
-// secondary key. This enables us to use fast binary search and binary merge
-// algorithms for conflict detection.
-void client_t::sort_log()
-{
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    // We use stable_sort() to preserve the order of multiple updates to the
-    // same locator.
-    std::stable_sort(
-        &s_log.data()->log_records[0],
-        &s_log.data()->log_records[s_log.data()->record_count],
-        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
-            return lhs.locator < rhs.locator;
-        });
-}
-
 // This function must be called before establishing a new session. It ensures
 // that if the server restarts or is reset, no session will start with a stale
 // data mapping or locator fd.
@@ -364,6 +347,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // locator shared memory segments, but we only use them if this is the client
 // process's first call to create_session(), because they are stored globally
 // rather than per-session. (The connected socket is stored per-session.)
+//
 // REVIEW: There is currently no way for the client to be asynchronously notified
 // when the server closes the session (e.g., if the server process shuts down).
 // Throwing an asynchronous exception on the session thread may not be possible,
@@ -460,18 +444,27 @@ void client_t::begin_transaction()
 
     // Map a private COW view of the locator shared memory segment.
     ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
-    auto cleanup_private_locators = make_scope_guard([&]() {
-        s_private_locators.close();
-    });
     bool manage_fd = false;
     bool is_shared = false;
     s_private_locators.open(s_fd_locators, manage_fd, is_shared);
+    auto cleanup_private_locators = make_scope_guard([&]() {
+        s_private_locators.close();
+    });
 
+    // Send a TXN_BEGIN request to the server and receive a new txn ID,
+    // the fd of a new txn log, and txn log fds for all committed txns within
+    // the snapshot window.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
+    int log_fd = client_messenger.received_fd(client_messenger_t::c_index_txn_log_fd);
+    // We can unconditionally close the log fd, because the memory mapping owns
+    // an implicit reference to the memfd object.
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(log_fd);
+    });
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
@@ -480,15 +473,8 @@ void client_t::begin_transaction()
         s_txn_id != c_invalid_gaia_txn_id,
         "Begin timestamp should not be invalid!");
 
-    // Use a local variable to ensure cleanup in case of an error.
-    mapped_log_t log;
-    log.create(gaia_fmt::format("{}{}:{}", c_gaia_mem_txn_log_prefix, s_session_options.db_instance_name, s_txn_id).c_str());
-
-    // Update the log header with our begin timestamp.
-    log.data()->begin_ts = s_txn_id;
-
     // Apply all txn logs received from the server to our snapshot, in order.
-    size_t fds_remaining_count = txn_info->log_fd_count();
+    size_t fds_remaining_count = txn_info->log_fds_to_apply_count();
     while (fds_remaining_count > 0)
     {
         client_messenger.receive_server_reply();
@@ -497,15 +483,16 @@ void client_t::begin_transaction()
         for (size_t i = 0; i < client_messenger.count_received_fds(); ++i)
         {
             int txn_log_fd = client_messenger.received_fd(i);
+            auto cleanup_txn_log_fd = make_scope_guard([&]() { close_fd(txn_log_fd); });
             apply_txn_log(txn_log_fd);
-            close_fd(txn_log_fd);
         }
 
         fds_remaining_count -= client_messenger.count_received_fds();
     }
 
-    // At this point, we can transfer ownership of local variables to static ones.
-    s_log.reset(log);
+    // Map the txn log fd we received from the server, for read/write access.
+    bool read_only = false;
+    s_log.open(log_fd, read_only);
 
     cleanup_private_locators.dismiss();
 }
@@ -517,34 +504,15 @@ void client_t::apply_txn_log(int log_fd)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    apply_logs_to_locators(s_private_locators.data(), txn_log.data());
+    apply_log_to_locators(s_private_locators.data(), txn_log.data());
 }
 
 void client_t::rollback_transaction()
 {
     verify_txn_active();
 
-    // Ensure we destroy the shared memory segment and memory mapping before we return.
+    // Clean up all transaction-local session state.
     auto cleanup = make_scope_guard(txn_cleanup);
-
-    int fd_log;
-    size_t log_size;
-    s_log.truncate_seal_and_close(fd_log, log_size);
-
-    // We now own destruction of fd_log.
-    auto cleanup_fd_log = make_scope_guard([&]() {
-        close_fd(fd_log);
-    });
-
-    int* fds = nullptr;
-    size_t fd_count = 0;
-
-    // Avoid sending the log fd to the server for read-only transactions.
-    if (log_size)
-    {
-        fds = &fd_log;
-        fd_count = 1;
-    }
 
     // TODO: For now, we do no rollback because the current logic will attempt to
     // deallocate the memory of the new objects manually in deallocate_txn_log().
@@ -552,9 +520,12 @@ void client_t::rollback_transaction()
     // will take longer to be marked as freed.
     // rollback_chunk_manager_allocations();
 
+    // We need to close our log mapping so the server can seal and truncate it.
+    s_log.close();
+
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
-    send_msg_with_fds(s_session_socket, fds, fd_count, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -573,27 +544,18 @@ void client_t::commit_transaction()
         return;
     }
 
-    // Ensure we destroy the shared memory segment and memory mapping before we return.
+    // Clean up all transaction-local session state when we exit.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // Sort log by locator for fast conflict detection.
-    sort_log();
+    // We need to close our log mapping so the server can seal and truncate it.
+    s_log.close();
 
-    int fd_log;
-    size_t log_size;
-    s_log.truncate_seal_and_close(fd_log, log_size);
-
-    // We now own destruction of fd_log.
-    auto cleanup_fd_log = make_scope_guard([&]() {
-        close_fd(fd_log);
-    });
-
-    // Send the server the commit event with the log segment fd.
+    // Send the server the commit message.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::COMMIT_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, &fd_log, 1, builder);
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();

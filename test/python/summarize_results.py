@@ -60,6 +60,8 @@ AVG_START_TRANSACTION_DURATION_TITLE = "average-start-transaction-microsec"
 AVG_INSIDE_TRANSACTION_DURATION_TITLE = "average-inside-transaction-microsec"
 AVG_END_TRANSACTION_DURATION_TITLE = "average-end-transaction-microsec"
 AVG_UPDATE_ROW_DURATION_TITLE = "average-update-row-microsec"
+AVG_WAIT_DURATION_TITLE = "average-wait-microsec"
+AVG_PRINT_DURATION_TITLE = "average-print-microsec"
 
 T_PAUSE_TITLE = "t-requested-pause-microseconds"
 T_OVER_PERCENT_TITLE = "t-over-percent"
@@ -668,6 +670,15 @@ def load_results_for_test(suite_test_directory, source_info):
             update_row_data / float(new_results[ITERATIONS_TITLE]) * MICROSEC_PER_SEC,
             DECIMALS_PLACES_IN_NANOSECONDS,
         )
+        new_results[AVG_WAIT_DURATION_TITLE] = round(
+            (total_wait_data / float(new_results[ITERATIONS_TITLE])) * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        new_results[AVG_PRINT_DURATION_TITLE] = round(
+            (total_print_data / float(new_results[ITERATIONS_TITLE]))
+            * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
 
     if not isinstance(new_results[TOTAL_DURATION_TITLE], str):
         new_results[TEST_DURATION_TITLE] = round(
@@ -721,6 +732,8 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     main_dictionary[AVG_INSIDE_TRANSACTION_DURATION_TITLE] = []
     main_dictionary[AVG_END_TRANSACTION_DURATION_TITLE] = []
     main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE] = []
+    main_dictionary[AVG_WAIT_DURATION_TITLE] = []
+    main_dictionary[AVG_PRINT_DURATION_TITLE] = []
 
     main_dictionary[ITERATION_DURATION_TITLE] = []
     main_dictionary[PER_MEASURED_DURATION_TITLE] = []
@@ -813,6 +826,12 @@ def add_individual_test_results(main_dictionary, new_results, totals, calculatio
     )
     main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE].append(
         new_results[AVG_UPDATE_ROW_DURATION_TITLE]
+    )
+    main_dictionary[AVG_WAIT_DURATION_TITLE].append(
+        new_results[AVG_WAIT_DURATION_TITLE]
+    )
+    main_dictionary[AVG_PRINT_DURATION_TITLE].append(
+        new_results[AVG_PRINT_DURATION_TITLE]
     )
 
     test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
