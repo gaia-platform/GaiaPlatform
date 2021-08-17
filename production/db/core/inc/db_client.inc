@@ -64,6 +64,8 @@ inline void client_t::txn_log(
     gaia_operation_t operation,
     common::gaia_id_t deleted_id)
 {
+    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
+
     if (operation == gaia_operation_t::remove)
     {
         ASSERT_PRECONDITION(

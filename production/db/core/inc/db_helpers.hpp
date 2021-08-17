@@ -140,11 +140,11 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id;
 }
 
-inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
+inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)
 {
-    for (size_t i = 0; i < logs->record_count; ++i)
+    for (size_t i = 0; i < log->record_count; ++i)
     {
-        auto& record = logs->log_records[i];
+        auto& record = log->log_records[i];
         (*locators)[record.locator] = record.new_offset;
     }
 }

@@ -108,7 +108,7 @@ void txn_metadata_t::init_txn_metadata_map()
 
 // This method allocates a new begin_ts and initializes its metadata in the txn
 // table.
-gaia_txn_id_t txn_metadata_t::txn_begin()
+gaia_txn_id_t txn_metadata_t::register_begin_ts()
 {
     // The newly allocated begin timestamp for the new txn.
     gaia_txn_id_t begin_ts;
@@ -139,7 +139,9 @@ gaia_txn_id_t txn_metadata_t::txn_begin()
         }
 
         // The CAS can only fail if it returns the "sealed" value.
-        ASSERT_INVARIANT(actual_value == txn_metadata_entry_t::sealed_value(), "A newly allocated timestamp cannot be concurrently initialized to any value except the sealed value!");
+        ASSERT_INVARIANT(
+            actual_value == txn_metadata_entry_t::sealed_value(),
+            "A newly allocated timestamp cannot be concurrently initialized to any value except the sealed value!");
     }
 
     return begin_ts;
@@ -178,7 +180,9 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
         }
 
         // The CAS can only fail if it returns the "sealed" value.
-        ASSERT_INVARIANT(actual_value == txn_metadata_entry_t::sealed_value(), "A newly allocated timestamp cannot be concurrently initialized to any value except the sealed value!");
+        ASSERT_INVARIANT(
+            actual_value == txn_metadata_entry_t::sealed_value(),
+            "A newly allocated timestamp cannot be concurrently initialized to any value except the sealed value!");
     }
 
     return commit_ts;
