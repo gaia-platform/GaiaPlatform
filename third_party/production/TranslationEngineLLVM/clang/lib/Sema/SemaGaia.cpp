@@ -466,14 +466,14 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
             link_data_1.table = parent_table.name();
             link_data_1.field = relationship.to_parent_link_name();
             link_data_1.is_from_parent = false;
-            link_data_1.is_1_n = relationship.cardinality()
-                == static_cast<uint8_t>(catalog::relationship_cardinality_t::many);
+            link_data_1.is_one_to_many = false;
 
             TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
             link_data_n.field = relationship.to_child_link_name();
             link_data_n.is_from_parent = true;
-            link_data_n.is_1_n = false;
+            link_data_n.is_one_to_many = static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())
+                == catalog::relationship_cardinality_t::many;
 
             retVal.emplace(child_table.name(), link_data_1);
             retVal.emplace(parent_table.name(), link_data_n);
@@ -740,7 +740,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
 
     // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
     //  person.mother.disconnect();
-    if (!is_one_to_many && sourceTableDecl->hasAttr<GaiaTableAttr>())
+    if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
     {
         addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
@@ -890,10 +890,16 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     for (auto link = links.first; link != links.second; ++link)
     {
         TableLinkData_t linkData = link->second;
-        QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_1_n, loc);
-        addField(&Context.Idents.get(linkData.field), type, RD, loc);
-        links_target_tables[linkData.table]++;
-        links_cardinality[linkData.table] = linkData.is_1_n;
+
+        // For now, connect/disconnect is supported only from the parent side
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
+        if (linkData.is_from_parent)
+        {
+            QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
+            addField(&Context.Idents.get(linkData.field), type, RD, loc);
+            links_target_tables[linkData.table]++;
+            links_cardinality[linkData.table] = linkData.is_one_to_many;
+        }
     }
 
     // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
@@ -1041,6 +1047,11 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             {
                 TableLinkData_t linkData = link->second;
 
+                if (!linkData.is_from_parent)
+                {
+                    continue;
+                }
+
                 if (linkData.field == fieldOrTagName)
                 {
                     if (retVal != Context.VoidTy)
@@ -1049,7 +1060,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_1_n, loc);
+                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
                     fieldTableName = tableName;
                 }
             }

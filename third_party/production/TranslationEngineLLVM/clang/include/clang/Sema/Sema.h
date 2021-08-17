@@ -4688,7 +4688,7 @@ private:
   {
     std::string table;
     std::string field;
-    bool is_1_n;
+    bool is_one_to_many;
     bool is_from_parent;
   };
 

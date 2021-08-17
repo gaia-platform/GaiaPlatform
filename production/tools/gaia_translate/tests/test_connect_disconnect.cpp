@@ -162,12 +162,8 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_disconnect_1_1");
 
-    // Create the registrations
     gaia::db::begin_transaction();
     gaia_id_t parents_1 = parents_t::insert_row("Winnie", "Pontus");
-    gaia::db::commit_transaction();
-
-    gaia::db::begin_transaction();
     student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
     student_1.parents().connect(parents_1);
     gaia::db::commit_transaction();
@@ -175,30 +171,6 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
-    student_t student_2 = student_t::get(student_t::insert_row("stu002", "Hazel", 45, 4, 3.0));
-    student_1.parents().connect(parents_1);
-    gaia::db::commit_transaction();
-
-    gaia::rules::test::wait_for_rules_to_complete();
-
-    gaia::db::begin_transaction();
-    student_t student_3 = student_t::get(student_t::insert_row("stu003", "Gail", 45, 4, 3.0));
-    student_1.parents().connect(parents_1);
-    gaia::db::commit_transaction();
-
-    gaia::rules::test::wait_for_rules_to_complete();
-
-    gaia::db::begin_transaction();
-    student_t student_4 = student_t::get(student_t::insert_row("stu004", "Winston", 45, 4, 3.0));
-    student_1.parents().connect(parents_1);
-    gaia::db::commit_transaction();
-
-    gaia::rules::test::wait_for_rules_to_complete();
-
-    gaia::db::begin_transaction();
     ASSERT_FALSE(student_1.parents());
-    ASSERT_FALSE(student_2.parents());
-    ASSERT_FALSE(student_3.parents());
-    ASSERT_FALSE(student_4.parents());
     gaia::db::commit_transaction();
 }
