@@ -80,6 +80,11 @@ std::size_t index_key_t::size() const
     return m_key_values.size();
 }
 
+const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values() const
+{
+    return m_key_values;
+}
+
 /*
 * Combine hash of all data holders in this key.
 * Repeatedly concatenate hash values and rehash.

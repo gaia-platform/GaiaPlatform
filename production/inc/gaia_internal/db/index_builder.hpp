@@ -10,6 +10,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 
 #include "base_index.hpp"
+#include "data_buffer.hpp"
 #include "db_internal_types.hpp"
 #include "db_object_helpers.hpp"
 #include "index.hpp"
@@ -35,6 +36,8 @@ public:
     static void update_index(common::gaia_id_t index_id, common::gaia_type_t type_id, const txn_log_t::log_record_t& log_record);
 
     static index_key_t make_key(common::gaia_id_t index_id, common::gaia_type_t type_id, const uint8_t* payload);
+    static void serialize_key(const index_key_t& key, data_write_buffer_t& buffer);
+    static index_key_t deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer);
 
     static void populate_index(common::gaia_id_t index_id, common::gaia_type_t type, gaia::db::gaia_locator_t locator);
     static void truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts);

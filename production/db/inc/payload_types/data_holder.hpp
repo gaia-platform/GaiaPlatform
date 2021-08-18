@@ -16,6 +16,8 @@
 
 #include "gaia/exception.hpp"
 
+#include "data_buffer.hpp"
+
 namespace gaia
 {
 namespace db
@@ -67,6 +69,7 @@ struct data_holder_t
     data_holder_t();
     data_holder_t(const data_holder_t&) = default;
     data_holder_t(data_holder_t&&) = default;
+    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type);
 
     // Convenience ctors to allow implicit conversion from native types.
     template <typename T>
@@ -90,6 +93,8 @@ struct data_holder_t
 
     int compare(const data_holder_t& other) const;
     data_hash_t hash() const;
+
+    void serialize(data_write_buffer_t& buffer) const;
 
     // Convenience implicit conversions to native types.
     operator int32_t() const;
