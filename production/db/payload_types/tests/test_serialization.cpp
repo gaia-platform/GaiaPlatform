@@ -29,9 +29,10 @@ bool verify_serialization(const data_holder_t& from)
     flatbuffers::FlatBufferBuilder fbb;
     data_write_buffer_t write_buffer(fbb);
     from.serialize(write_buffer);
+    auto output = write_buffer.output();
 
     serializationBuilder sb = serializationBuilder(fbb);
-    sb.add_data(write_buffer.output());
+    sb.add_data(output);
     auto offset = sb.Finish();
     fbb.Finish(offset);
 
