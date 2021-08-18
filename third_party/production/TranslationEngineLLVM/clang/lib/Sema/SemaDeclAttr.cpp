@@ -2125,7 +2125,7 @@ static bool validateRuleAttribute(StringRef attribute,
         if (returnValue)
         {
           S.Diag(AL.getLoc(), diag::err_duplicate_field)
-            << attribute;
+            << attribute << table.first;
           return false;
         }
         returnValue = true;
@@ -2144,7 +2144,7 @@ static bool validateRuleAttribute(StringRef attribute,
     if (table.second.find(attribute) != table.second.end())
     {
       S.Diag(AL.getLoc(), diag::err_duplicate_field)
-        << attribute;
+        << attribute << table.first;
       return false;
     }
   }
