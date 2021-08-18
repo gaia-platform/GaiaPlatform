@@ -33,11 +33,12 @@ public:
     }
     ~hash_index_t() = default;
 
-    hash_index_iterator_t begin();
-    hash_index_iterator_t end();
-    hash_index_iterator_t find(const index_key_t& key);
+    hash_index_iterator_t begin() override;
+    hash_index_iterator_t end() override;
+    hash_index_iterator_t find(const index_key_t& key) override;
 
-    std::pair<hash_index_iterator_t, hash_index_iterator_t> equal_range(const index_key_t& key);
+    std::pair<hash_index_iterator_t, hash_index_iterator_t> equal_range(const index_key_t& key) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) override;
 };
 
 } // namespace index

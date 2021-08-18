@@ -5,13 +5,10 @@
 
 #pragma once
 
-#include <ostream>
-#include <vector>
-
 #include "gaia_internal/db/db_types.hpp"
 
 #include "base_index.hpp"
-#include "data_holder.hpp"
+#include "index_key.hpp"
 
 namespace gaia
 {
@@ -19,52 +16,6 @@ namespace db
 {
 namespace index
 {
-
-/**
-* Reflection based logical key for the index.
-*/
-class index_key_t
-{
-    friend std::ostream& operator<<(std::ostream& os, const index_key_t& key);
-    friend struct index_key_hash;
-
-public:
-    index_key_t() = default;
-
-    template <typename... T_keys>
-    index_key_t(T_keys... keys);
-
-    template <typename T_key, typename... T_keys>
-    void multi_insert(T_key key_value, T_keys... rest);
-
-    template <typename T_key>
-    void multi_insert(T_key key_value);
-
-    void insert(gaia::db::payload_types::data_holder_t value);
-
-    bool operator<(const index_key_t& other) const;
-    bool operator<=(const index_key_t& other) const;
-    bool operator>(const index_key_t& other) const;
-    bool operator>=(const index_key_t& other) const;
-    bool operator==(const index_key_t& other) const;
-
-    const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
-    size_t size() const;
-
-private:
-    int compare(const index_key_t& other) const;
-
-private:
-    std::vector<gaia::db::payload_types::data_holder_t> m_key_values;
-};
-
-/**
-* Standard conforming hash function for index keys.
-*/
-struct index_key_hash
-{
-    gaia::db::payload_types::data_hash_t operator()(const index_key_t& key) const;
-};
 
 /**
 * RAII object class with an XLOCK on the underlying index object.
@@ -101,6 +52,7 @@ class index_generator_t : public common::iterators::generator_t<index_record_t>
 {
 public:
     index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id);
+    index_generator_t(std::recursive_mutex& mutex, typename T_structure::const_iterator begin, typename T_structure::const_iterator end, gaia_txn_id_t txn_id);
     std::optional<index_record_t> operator()() final;
 
 private:

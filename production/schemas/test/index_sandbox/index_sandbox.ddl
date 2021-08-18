@@ -15,3 +15,9 @@ CREATE TABLE if not exists sandbox (
 
 CREATE INDEX str_idx ON sandbox(str);
 CREATE HASH INDEX str_hash_idx ON sandbox(str);
+
+CREATE INDEX int_idx ON sandbox(i);
+CREATE HASH INDEX int_hash_idx ON sandbox(i);
+
+CREATE INDEX float_idx ON sandbox(f);
+CREATE HASH INDEX fload_has_idx ON sandbox(f);

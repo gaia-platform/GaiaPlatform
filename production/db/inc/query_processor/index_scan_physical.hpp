@@ -47,7 +47,7 @@ public:
     base_index_scan_physical_t() = default;
     explicit base_index_scan_physical_t(common::gaia_id_t);
 
-    static std::shared_ptr<base_index_scan_physical_t> open(common::gaia_id_t index_id);
+    static std::shared_ptr<base_index_scan_physical_t> open(common::gaia_id_t index_id, std::shared_ptr<index_predicate_t> predicate);
     virtual ~base_index_scan_physical_t() = default;
 
 protected:
@@ -74,8 +74,8 @@ class index_scan_physical_t : public base_index_scan_physical_t
 {
 public:
     index_scan_physical_t() = default;
-    explicit index_scan_physical_t(common::gaia_id_t index_id)
-        : m_index_id(index_id), m_initialized(false)
+    index_scan_physical_t(common::gaia_id_t index_id, std::shared_ptr<index_predicate_t> predicate)
+        : m_index_id(index_id), m_initialized(false), m_predicate(std::move(predicate))
     {
     }
 
@@ -95,6 +95,7 @@ private:
     common::gaia_id_t m_index_id;
     db::gaia_locator_t m_locator;
     bool m_initialized;
+    std::shared_ptr<index_predicate_t> m_predicate;
 
     void init();
     db::index::index_key_t record_to_key(const db::index::index_record_t& record) const;
