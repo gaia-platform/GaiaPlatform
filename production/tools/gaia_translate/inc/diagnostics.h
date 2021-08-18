@@ -25,8 +25,7 @@ static const char c_err_multiple_ruleset_files[] =
     "The Translation Engine does not support more than one source ruleset file. "
     "Combine your rulesets into a single ruleset file.\n";
 
-// Helper class to emit llvm diagnostics.  This class does not
-// own any of the pointers passed to it.
+// Helper class to emit llvm diagnostics.
 class diagnostic_context_t
 {
 public:

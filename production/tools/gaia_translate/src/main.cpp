@@ -113,6 +113,14 @@ string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
 
+// We use this to report the rule location when reporting diagnostics.
+// In the best caese, we'll update the location to report the exact
+// line number and column for an error.  In some cases, however, we
+// don't have this information so the least we can do here is point to
+// the rule where the error occurred.  Note also that errors can occur
+// when the translation engine starts generating code.  Code generation
+// for rule N happens when we encounter rule N+1 or the end of file
+// for the last rule.  So we need to save off this context.
 SourceLocation g_last_rule_location;
 
 enum rewriter_operation_t
@@ -1745,7 +1753,7 @@ public:
                     expression_source_range
                         = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                 }
-
+                gaiat::diag().set_location(decl->getBeginLoc());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
@@ -2305,10 +2313,7 @@ public:
         }
 
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
-        if (rule_declaration)
-        {
-            g_last_rule_location = rule_declaration->getSourceRange().getBegin();
-        }
+        g_last_rule_location = rule_declaration->getSourceRange().getBegin();
         const GaiaOnUpdateAttr* update_attribute = rule_declaration->getAttr<GaiaOnUpdateAttr>();
         const GaiaOnInsertAttr* insert_attribute = rule_declaration->getAttr<GaiaOnInsertAttr>();
         const GaiaOnChangeAttr* change_attribute = rule_declaration->getAttr<GaiaOnChangeAttr>();

@@ -9,4 +9,4 @@ ruleset test10
     }
 }
 
-// CHECK: Ambiguous navigation path detected. There is more than one field that relates 'incubator' to 'farmer'. Specify the navigation path explicitly to resolve this ambiguity.
+// CHECK: Ambiguous navigation path detected. There is more than one path that relates 'incubator' to 'farmer'. Specify the navigation path explicitly to resolve this ambiguity.
