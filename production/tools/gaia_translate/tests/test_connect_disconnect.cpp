@@ -30,6 +30,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
     }
 
     void TearDown() override
@@ -38,19 +40,10 @@ protected:
         unsubscribe_rules();
         gaia::rules::shutdown_rules_engine();
     }
-
-    void populate_db()
-    {
-        gaia::db::begin_transaction();
-
-        gaia::db::commit_transaction();
-    }
 };
 
 TEST_F(test_connect_disconnect, test_connect_1_1)
 {
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_connect_1_n");
 
     gaia::db::begin_transaction();
@@ -80,8 +73,6 @@ TEST_F(test_connect_disconnect, test_connect_1_1)
 
 TEST_F(test_connect_disconnect, test_connect_1_n)
 {
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_connect_1_1");
 
     gaia::db::begin_transaction();
@@ -106,8 +97,6 @@ TEST_F(test_connect_disconnect, test_connect_1_n)
 
 TEST_F(test_connect_disconnect, test_disconnect_1_n)
 {
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_disconnect_1_n");
 
     // Create the registrations
@@ -158,8 +147,6 @@ TEST_F(test_connect_disconnect, test_disconnect_1_n)
 
 TEST_F(test_connect_disconnect, test_disconnect_1_1)
 {
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_disconnect_1_1");
 
     gaia::db::begin_transaction();

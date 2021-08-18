@@ -56,8 +56,10 @@ bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
 
-constexpr size_t c_connect_length = 7;
-constexpr size_t c_disconnect_length = 10;
+constexpr char c_connect_keyword[] = "connect";
+constexpr char c_disconnect_keyword[] = "disconnect";
+constexpr size_t c_connect_keyword_length = 7;
+constexpr size_t c_disconnect_keyword_length = 10;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -3028,7 +3030,8 @@ private:
     Rewriter& m_rewriter;
 };
 
-// AST handler that is called when declarative break or continue are used in the rule.
+// Handles the connect/disconnect calls. Mostly the code figures out what link is between
+// table1.connect(table2) and inserts it: table1.link().connect(table2)
 class declarative_connect_disconnect_handler_t : public MatchFinder::MatchCallback
 {
 public:
@@ -3048,7 +3051,7 @@ public:
         bool need_link_field = false;
 
         const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectDisconnectCall");
-        bool is_connect = method_call_expr->getMethodDecl()->getName().str() == "connect";
+        bool is_connect = method_call_expr->getMethodDecl()->getName().str() == c_connect_keyword;
 
         const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         src_table_name = get_table_name(table_call->getDecl());
@@ -3079,8 +3082,6 @@ public:
         }
         table_data_t dest_table_data = dest_table_iter->second;
 
-        link_data_t link_data;
-
         // If the link_expr is not null this is a call in the form table.link.connect()
         // hence we don't need to look up the name. Otherwise, this is in the form
         // table.connect() and we have to infer the link name from the catalog.
@@ -3107,7 +3108,7 @@ public:
 
         if (link_name.empty())
         {
-            cerr << "Impossible to find a link between table " << src_table_name << " and table " << dest_table_name << endl;
+            cerr << "A link does not exist between table " << src_table_name << " and table " << dest_table_name << endl;
             g_is_generation_error = true;
             return;
         }
@@ -3119,7 +3120,8 @@ public:
             g_is_generation_error = true;
             return;
         }
-        link_data = link_data_iter->second;
+
+        link_data_t link_data = link_data_iter->second;
 
         if (link_data.cardinality == gaia::catalog::relationship_cardinality_t::many)
         {
@@ -3127,26 +3129,13 @@ public:
             {
                 // Changes connect() to insert() for 1:N relationships.
                 // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
-                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_connect_length, "insert");
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_connect_keyword_length, "insert");
             }
             else
             {
                 // Changes disconnect() to remove() for 1:N relationships.
                 // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
-                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_disconnect_length, "remove");
-            }
-        }
-        else
-        {
-            if (!is_connect && method_call_expr->getNumArgs() > 0)
-            {
-                SourceRange param_loc(
-                    method_call_expr->getExprLoc().getLocWithOffset(c_disconnect_length + 1),
-                    method_call_expr->getEndLoc());
-
-                param_loc.dump(*result.SourceManager);
-
-                m_rewriter.RemoveText(param_loc);
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_disconnect_keyword_length, "remove");
             }
         }
 
@@ -3334,8 +3323,8 @@ public:
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(
                       anyOf(
-                          hasName("connect"),
-                          hasName("disconnect")))),
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
                   hasArgument(
                       0,
                       anyOf(
@@ -3352,8 +3341,8 @@ public:
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(
                       anyOf(
-                          hasName("connect"),
-                          hasName("disconnect")))),
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
                   hasArgument(
                       0,
                       anyOf(

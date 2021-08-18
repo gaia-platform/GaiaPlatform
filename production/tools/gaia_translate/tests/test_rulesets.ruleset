@@ -634,6 +634,7 @@ ruleset test_disconnect_1_n
         else
         {
             // This doesn't work for the same reason as delete.
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176
 //            student.disconnect(registration);
         }
     }
