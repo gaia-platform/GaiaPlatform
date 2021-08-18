@@ -1052,4 +1052,4 @@ def NoDeref : DiagGroup<"noderef">;
 def CrossTU : DiagGroup<"ctu">;
 
 // A group for Gaia extension warnings.
-def GaiaExtensions : DiagGroup<"gaia-ext">;
+def GaiaExtensions : DiagGroup<"gaia-extensions">;
