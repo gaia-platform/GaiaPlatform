@@ -236,7 +236,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
+                Diag(loc, diag::err_table_not_found) << tagEntry.second;
                 return "";
             }
         }
@@ -781,7 +781,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
-        Diag(loc, diag::err_invalid_table_name) << typeName;
+        Diag(loc, diag::err_table_not_found) << typeName;
         return Context.VoidTy;
     }
 
@@ -1014,7 +1014,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         auto tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
-            Diag(loc, diag::err_invalid_table_name) << tableName;
+            Diag(loc, diag::err_table_not_found) << tableName;
             return Context.VoidTy;
         }
 

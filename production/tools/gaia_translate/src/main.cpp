@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -3099,10 +3098,12 @@ public:
 
         unordered_map<string, table_data_t> table_data = table_navigation_t::get_table_data();
 
+        gaiat::diag().set_location(table_call->getLocation());
+
         auto src_table_iter = table_data.find(src_table_name);
         if (src_table_iter == table_data.end())
         {
-            cerr << "Table '" << src_table_name << "' was not found in the catalog." << endl;
+            gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
             g_is_generation_error = true;
             return;
         }
@@ -3111,7 +3112,7 @@ public:
         auto dest_table_iter = table_data.find(dest_table_name);
         if (dest_table_iter == table_data.end())
         {
-            cerr << "Table '" << dest_table_name << "' was not found in the catalog." << endl;
+            gaiat::diag().emit(param->getLocation(), diag::err_table_not_found) << dest_table_name;
             g_is_generation_error = true;
             return;
         }
@@ -3143,7 +3144,7 @@ public:
 
         if (link_name.empty())
         {
-            cerr << "A link does not exist between table " << src_table_name << " and table " << dest_table_name << endl;
+            gaiat::diag().emit(diag::err_no_path) << src_table_name << dest_table_name;
             g_is_generation_error = true;
             return;
         }
@@ -3151,7 +3152,7 @@ public:
         auto link_data_iter = src_table_data.link_data.find(link_name);
         if (link_data_iter == src_table_data.link_data.end())
         {
-            cerr << "Table link '" << src_table_name << "." << link_name << "' was not found in the catalog." << endl;
+            gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
             g_is_generation_error = true;
             return;
         }
@@ -3471,9 +3472,7 @@ public:
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
-        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] {
-            TextDiagnosticPrinter::EndSourceFile();
-        });
+        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
         if (g_is_generation_error)
