@@ -16,6 +16,57 @@ namespace gaia
 namespace catalog
 {
 
+/**
+ * For a given create statement list starting from the given index, move all
+ * statements of the given type to the front.
+ */
+size_t move_to_front(
+    std::vector<std::unique_ptr<gaia::catalog::ddl::create_statement_t>>& statements,
+    ddl::create_type_t type,
+    size_t index = 0)
+{
+    if (statements.size() == 0 || index >= statements.size())
+    {
+        return index;
+    }
+    // The index used to reverse iterate the list.
+    size_t reverse_index = 1;
+    do
+    {
+        if (statements[index]->type == type)
+        {
+            index++;
+            continue;
+        }
+        if (statements[statements.size() - reverse_index]->type != type)
+        {
+            reverse_index++;
+            continue;
+        }
+        if (index < (statements.size() - reverse_index))
+        {
+            statements[index].swap(statements[statements.size() - reverse_index]);
+            index++;
+            reverse_index++;
+        }
+    } while (index + reverse_index < statements.size());
+    return index;
+}
+
+/**
+ * Rearrange the statements into the three buckets in the order of 1) create
+ * table statements, 2) create index statements, and 3) create relationship
+ * statements.
+ */
+void rearrange_create_statement_list(
+    std::vector<std::unique_ptr<gaia::catalog::ddl::create_statement_t>>& statements)
+{
+    // Move all create table statements to the front.
+    size_t index = move_to_front(statements, ddl::create_type_t::create_table);
+    // Move all create index statements before create relationship statements.
+    move_to_front(statements, ddl::create_type_t::create_index, index);
+}
+
 void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 {
     for (auto& stmt : statements)
@@ -23,6 +74,12 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
         if (stmt->is_type(ddl::statement_type_t::create_list))
         {
             auto create_list = dynamic_cast<ddl::create_list_t*>(stmt.get());
+
+            // TODO: preprocess the list to transform in-table relationship
+            //       definition into standalone create relationship statements.
+
+            rearrange_create_statement_list(create_list->statements);
+
             for (auto& sub_stmt : create_list->statements)
             {
                 auto create_stmt = dynamic_cast<ddl::create_statement_t*>(sub_stmt.get());
