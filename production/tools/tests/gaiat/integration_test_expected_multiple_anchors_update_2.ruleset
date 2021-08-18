@@ -6,4 +6,4 @@ ruleset test
     {
     }
 }
-// CHECK: Multiple anchor rows: A rule may not specify active fields from different tables.
+// CHECK: A rule may not specify active fields from different tables.

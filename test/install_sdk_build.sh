@@ -71,6 +71,7 @@ parse_command_line() {
     done
 }
 
+<<<<<<< HEAD
 # Make sure that we do not have any instances running, not even as
 # a normal execution.
 find_gaia_db_server_pid() {
@@ -85,6 +86,8 @@ find_gaia_db_server_pid() {
     gaia_db_server_pid=$(echo $gaia_output | cut -d' ' -f2)
 }
 
+=======
+>>>>>>> afddeee662d17d8bcfa4e060c91ad9336ab32af7
 # Make sure that the install file is present and looks like a debian install file.
 verify_install_file() {
     INSTALL_FILE=${PARAMS[0]}
