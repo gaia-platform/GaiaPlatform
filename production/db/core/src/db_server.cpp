@@ -795,7 +795,7 @@ void server_t::end_startup_txn()
 
     log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
-    // Update the log header with our begin timestamp and intialize it to empty.
+    // Update the log header with our begin timestamp and initialize it to empty.
     log.data()->begin_ts = s_txn_id;
     log.data()->record_count = 0;
 
@@ -803,12 +803,17 @@ void server_t::end_startup_txn()
     // The empty log will be freed by a regular GC task.
     int log_fd = log.unmap_truncate_seal_fd();
 
-    // Register the committing txn under a new commit timestamp.
+    // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
-    // Now update the active txn metadata.
+    // Mark this txn as submitted.
     txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
-    // Update the current txn's decided status.
+    // Mark this txn as committed.
     txn_metadata_t::update_txn_decision(commit_ts, true);
+    // Mark this txn durable if persistence is enabled.
+    if (rdb)
+    {
+        txn_metadata_t::set_txn_durable(commit_ts);
+    }
 
     perform_maintenance();
 
