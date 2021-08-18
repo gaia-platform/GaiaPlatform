@@ -442,9 +442,9 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
         int delta_rule_3 = rule_3_current_sample - rule_3_sample_base;
         int delta_rule_4 = rule_4_current_sample - rule_4_sample_base;
         int delta_u = delta_rule_1 + delta_rule_2 + delta_rule_3 + delta_rule_4;
-        int ty = snprintf(start_pointer, space_left, "U:%d(%d,%d,%d,%d).", delta_u, delta_rule_1, delta_rule_2, delta_rule_3, delta_rule_4);
-        space_left -= ty;
-        start_pointer += ty;
+        int amount_written = snprintf(start_pointer, space_left, "U:%d(%d,%d,%d,%d).", delta_u, delta_rule_1, delta_rule_2, delta_rule_3, delta_rule_4);
+        space_left -= amount_written;
+        start_pointer += amount_written;
 
         if (delta_u == 0)
         {
