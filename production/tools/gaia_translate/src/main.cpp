@@ -42,8 +42,22 @@ using namespace gaia::common;
 using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
-cl::opt<string> g_translation_engine_output_option(
-    "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+
+cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
+
+cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option), cl::NotHidden, cl::cat(g_translation_engine_category));
+
+// An alias cannot be made for the -help option,
+// so instead this cl::opt pretends to be the cl::alias for -help.
+cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDisallowed, cl::cat(g_translation_engine_category));
+
+// This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly:
+// "gaiat: Not enough positional command line arguments specified! Must specify at least 1 positional argument: See: ./gaiat -help"
+// Single-option statements like gaiat -h would print that error because the "Required" positional argument is missing.
+// The number of source files is enforced manually instead of using llvm::cl parameters.
+cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
+
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 bool g_is_generation_error = false;
@@ -501,7 +515,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        cerr << "Since a rule attribute was provided, specifying active fields inside the rule is not supported." << endl;
+        llvm::errs() << "Since a rule attribute was provided, specifying active fields inside the rule is not supported.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -515,7 +529,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
+        llvm::errs() << "Table '" << table_name << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -524,14 +538,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
+        llvm::errs() << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog." << endl;
+        llvm::errs() << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog.\n";
         g_is_generation_error = true;
         return false;
     }
@@ -663,8 +677,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 string variable_name = variable_declaration_range_iterator.second;
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides a tag of the same name." << endl;
+                    llvm::errs() << "Local variable declaration '" << variable_name
+                                 << "' hides a tag of the same name.\n";
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -672,8 +686,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
                         || is_tag_defined(data_iterator.defined_tags, variable_name))
                     {
-                        cerr << "Local variable declaration '" << variable_name
-                             << "' hides a tag of the same name." << endl;
+                        llvm::errs() << "Local variable declaration '" << variable_name
+                                     << "' hides a tag of the same name.\n";
                     }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
@@ -696,7 +710,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                            llvm::errs() << "Initialization of declared variable with EDC objects is not supported.\n";
                             g_is_generation_error = true;
                             return;
                         }
@@ -809,7 +823,7 @@ void generate_table_subscription(
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        llvm::errs() << "Table '" << table << "' was not found in the catalog.\n";
         g_is_generation_error = true;
         return;
     }
@@ -1068,13 +1082,13 @@ bool has_multiple_anchors()
 
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
-        cerr << c_multi_anchor_tables << endl;
+        llvm::errs() << c_multi_anchor_tables << "\n";
         return true;
     }
 
     if (g_active_fields.size() > 1)
     {
-        cerr << c_multi_anchor_fields << endl;
+        llvm::errs() << c_multi_anchor_fields << "\n";
         return true;
     }
 
@@ -1083,7 +1097,7 @@ bool has_multiple_anchors()
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
-        cerr << c_multi_anchor_tables << endl;
+        llvm::errs() << c_multi_anchor_tables << "\n";
         return true;
     }
 
@@ -1103,7 +1117,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
-        cerr << "No active fields for the rule." << endl;
+        llvm::errs() << "No active fields for the rule.\n";
         g_is_generation_error = true;
         return;
     }
@@ -1134,7 +1148,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (field_description.second.empty())
         {
-            cerr << "No fields referenced by table '" << table << "'." << endl;
+            llvm::errs() << "No fields referenced by table '" << table << "'.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1158,7 +1172,7 @@ void generate_rules(Rewriter& rewriter)
         {
             if (fields.find(field) == fields.end())
             {
-                cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
+                llvm::errs() << "Field '" << field << "' of table '" << table << "' was not found in the catalog.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -1779,14 +1793,14 @@ public:
             }
             else
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1866,14 +1880,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            llvm::errs() << "Incorrect matched operator.\n";
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression" << endl;
+            llvm::errs() << "Incorrect operator expression\n";
             g_is_generation_error = true;
             return;
         }
@@ -1889,7 +1903,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            llvm::errs() << "Incorrect operator expression type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -1921,7 +1935,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2005,7 +2019,7 @@ public:
             break;
         }
         default:
-            cerr << "Incorrect operator type." << endl;
+            llvm::errs() << "Incorrect operator type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2084,7 +2098,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            cerr << "Incorrect operator code " << op_code << "." << endl;
+            llvm::errs() << "Incorrect operator code " << op_code << ".\n";
             g_is_generation_error = true;
             return "";
         }
@@ -2110,14 +2124,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            llvm::errs() << "Incorrect matched operator.\n";
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression." << endl;
+            llvm::errs() << "Incorrect operator expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2126,7 +2140,7 @@ public:
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            llvm::errs() << "Incorrect operator expression type.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2167,7 +2181,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                llvm::errs() << "Incorrect base type of generated type.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2453,9 +2467,9 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                cerr << "Ruleset names must be unique - '"
-                     << g_current_ruleset
-                     << "' has been found multiple times." << endl;
+                llvm::errs() << "Ruleset names must be unique - '"
+                             << g_current_ruleset
+                             << "' has been found multiple times.\n";
                 g_is_generation_error = true;
                 return;
             }
@@ -2531,8 +2545,8 @@ public:
 
             if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
             {
-                cerr << "Local variable declaration '" << variable_name
-                     << "' hides database table of the same name." << endl;
+                llvm::errs() << "Local variable declaration '" << variable_name
+                             << "' hides database table of the same name.\n";
                 return;
             }
 
@@ -2540,8 +2554,8 @@ public:
             {
                 if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides catalog field entity of the same name." << endl;
+                    llvm::errs() << "Local variable declaration '" << variable_name
+                                 << "' hides catalog field entity of the same name.\n";
                     return;
                 }
             }
@@ -2638,7 +2652,7 @@ public:
 
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2682,14 +2696,14 @@ public:
             {
                 if (explicit_path_present)
                 {
-                    cerr << "'insert' call cannot be used with navigation." << endl;
+                    llvm::errs() << "'insert' call cannot be used with navigation.\n";
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    cerr << "'insert' call cannot be used with tags." << endl;
+                    llvm::errs() << "'insert' call cannot be used with tags.\n";
                     g_is_generation_error = true;
                     return;
                 }
@@ -2750,7 +2764,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
         }
     }
@@ -2781,7 +2795,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
         }
     }
@@ -2808,7 +2822,7 @@ public:
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2858,7 +2872,7 @@ public:
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2872,7 +2886,7 @@ public:
         const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
         if (path == nullptr)
         {
-            cerr << "Incorrect expression is used as a path in for statement." << endl;
+            llvm::errs() << "Incorrect expression is used as a path in for statement.\n";
             g_is_generation_error = true;
             return;
         }
@@ -2947,7 +2961,7 @@ public:
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            llvm::errs() << "Incorrect matched expression.\n";
             g_is_generation_error = true;
             return;
         }
@@ -3297,46 +3311,57 @@ private:
 
 int main(int argc, const char** argv)
 {
-    cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
-    cl::list<std::string> source_files(
-        cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-    cl::opt<std::string> instance_name(
-        "n", cl::desc("DB instance name"), cl::Optional,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
-    std::string error_message;
-    llvm::raw_string_ostream stream(error_message);
-    std::unique_ptr<CompilationDatabase> compilation_database
-        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &stream))
+    std::string error_msg;
+
+    // This loads compilation commands after "--" in the command line: gaiat <sourceFile> -- <compileCommands>
+    // Errors in these commands will be visible later when the ClangTool is run.
+    std::unique_ptr<CompilationDatabase> compilation_database
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_msg);
+
+    llvm::raw_string_ostream error_msg_stream(error_msg);
+
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
     {
-        stream.flush();
+        // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
+        // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.
+        error_msg_stream.flush();
+        llvm::errs() << error_msg;
         return EXIT_FAILURE;
     }
 
     cl::PrintOptionValues();
 
-    if (source_files.empty())
+    if (g_help_option_alias)
     {
+        // -help-list is omitted from the output because the categorized mode of PrintHelpMessage() behaves the same as -help-list.
+        // This is the only way -h and -help differ.
+        cl::PrintHelpMessage(false, true);
+        return EXIT_SUCCESS;
+    }
+
+    if (g_source_files.empty())
+    {
+        // This is considered success instead of failure because it happens if a new user explores gaiat by
+        // typing "gaiat" into their terminal with no file arguments. They didn't do anything bad
+        // to deserve an EXIT_FAILURE.
         cl::PrintHelpMessage();
         return EXIT_SUCCESS;
     }
 
-    if (source_files.size() > 1)
+    if (g_source_files.size() > 1)
     {
-        cerr << "Translation Engine does not support more than one source ruleset." << endl;
+        llvm::errs() << "Translation Engine does not support more than one source ruleset.\n";
         return EXIT_FAILURE;
     }
 
-    if (!instance_name.empty())
+    if (!g_instance_name.empty())
     {
         gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
-        session_options.db_instance_name = instance_name.getValue();
+        session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;
         gaia::db::config::set_default_session_options(session_options);
     }
@@ -3348,7 +3373,7 @@ int main(int argc, const char** argv)
     }
 
     // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(*compilation_database, source_files);
+    ClangTool tool(*compilation_database, g_source_files);
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());
