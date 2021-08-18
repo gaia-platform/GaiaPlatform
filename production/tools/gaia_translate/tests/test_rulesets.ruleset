@@ -125,10 +125,6 @@ ruleset test_tags
 
 ruleset test_queries
 {
-    // This rule is patterned after an example in the document "Paths and
-    // Tags in Declarative Rules". Pseudo-code will be used until the
-    // translator is done.
-
     // test_queries_code.new_registration
     on_insert(R:registration)
     {
@@ -137,22 +133,28 @@ ruleset test_queries
         status = "Ineligible";
 
         // Has this student taken all prerequisites?
-        for (course.requires->prereq.prereq->PC:course) {
+        for (course.requires->prereq.prereq->PC:course)
+        {
             bool taken = false;
 COURSE_TAKEN:
-            if (student->registration->course.course_id == PC.course_id) {
+            if (student->registration->course.course_id == PC.course_id)
+            {
                 taken = true;
                 break COURSE_TAKEN;
             }
-            if (!taken) {
+            if (!taken)
+            {
                 printf("student has not taken course %s\n", PC.course_id);
                 return;
             }
         }
-        
+
         // Has this student passed all prerequisites with minimum grades?
-        if (course.requires->P:prereq.prereq->course->R1:registration->student.student_id == student_id) {
-            if (R1.grade < P.min_grade) {
+        if (course.requires->P:prereq.prereq->course->R1:registration->student.student_id
+            == registration->student.student_id)
+        {
+            if (R1.grade < P.min_grade)
+            {
                 printf("student has insufficient prerequisite grade: %f, needed %f\n", R1.grade, P.min_grade);
                 return;
             }
