@@ -10,7 +10,7 @@
 #include "clang/Basic/Diagnostic.h"
 #pragma clang diagnostic pop
 
-// When adding errors strings to the translation engine, please use the llvm
+// When adding errors strings to the translation engine, please use the LLVM
 // diagnostics infrastructure.  To add an error:
 //
 // 1) Check whether an appropriate error string already exists in DiagnosticsSemaKinds.td or DiagnosticParseKinds.td.
@@ -46,12 +46,12 @@ static const char c_gaiat[] = "Gaia Translation Engine";
 static const char c_copyright[] = "Copyright (c) Gaia Platform LLC";
 
 // This is a command line error that can occur before we even get the
-// llvm diagnostic sub-system.
+// LLVM diagnostic sub-system.
 static const char c_err_multiple_ruleset_files[] = 
     "The Translation Engine does not support more than one source ruleset file. "
     "Combine your rulesets into a single ruleset file.\n";
 
-// Helper class to emit llvm diagnostics.
+// Helper class to emit LLVM diagnostics.
 class diagnostic_context_t
 {
 public:
