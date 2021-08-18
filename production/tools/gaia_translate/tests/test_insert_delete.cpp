@@ -284,7 +284,7 @@ TEST_F(test_insert_delete_code, build_database)
             auto course = registration.registered_course();
             EXPECT_EQ(student.total_hours() * 2, course.hours());
             EXPECT_STREQ(student.surname(), registration.status());
-            EXPECT_STREQ(registration.grade(), "D+");
+            EXPECT_EQ(registration.grade(), c_grade_d + c_grade_plus);
         }
     }
     gaia::db::commit_transaction();
