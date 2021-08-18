@@ -201,7 +201,7 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 
     try
     {
-        data_holder.type = gaia_to_reflection_type(value_type);
+        data_holder.type = convert_to_reflection_type(value_type);
     }
     catch (const data_type_not_handled_t& e)
     {

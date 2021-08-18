@@ -98,7 +98,7 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_re
     for (auto field_id : fields)
     {
         data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
-        index_key.insert(payload_types::data_holder_t(buffer, gaia_to_reflection_type(type)));
+        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type)));
     }
 
     return index_key;

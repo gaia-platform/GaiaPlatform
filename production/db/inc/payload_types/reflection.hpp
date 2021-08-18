@@ -22,7 +22,7 @@ public:
 };
 
 inline reflection::BaseType
-gaia_to_reflection_type(common::data_type_t type)
+convert_to_reflection_type(common::data_type_t type)
 {
     switch (type)
     {
