@@ -9,4 +9,4 @@ ruleset test10
     }
 }
 
-// CHECK: Multiple shortest paths between tables 'incubator' and 'crop' exist
+// CHECK: Multiple shortest paths exist between tables 'incubator' and 'crop'. Explicitly specify the navigation path between these two tables to resolve the ambiguity.
