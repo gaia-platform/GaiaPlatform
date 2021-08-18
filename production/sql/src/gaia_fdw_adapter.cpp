@@ -203,8 +203,49 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
     {
         data_holder.type = gaia_to_reflection_type(value_type);
     }
-    catch (data_type_not_handled_t e)
+    catch (const data_type_not_handled_t& e)
     {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg(c_message_fdw_internal_error, __func__),
+             errhint("Unhandled data_type_t '%d'.", value_type)));
+    }
+
+    switch (value_type)
+    {
+    case data_type_t::e_bool:
+    case data_type_t::e_uint8:
+    case data_type_t::e_int8:
+    case data_type_t::e_uint16:
+    case data_type_t::e_int16:
+        data_holder.hold.integer_value = DatumGetInt16(value);
+        break;
+
+    case data_type_t::e_uint32:
+    case data_type_t::e_int32:
+        data_holder.hold.integer_value = DatumGetInt32(value);
+        break;
+
+    case data_type_t::e_uint64:
+    case data_type_t::e_int64:
+        data_holder.hold.integer_value = DatumGetInt64(value);
+        break;
+
+    case data_type_t::e_float:
+        data_holder.hold.float_value = DatumGetFloat4(value);
+        break;
+
+    case data_type_t::e_double:
+        data_holder.hold.float_value = DatumGetFloat8(value);
+        break;
+
+    case data_type_t::e_string:
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+        data_holder.hold.string_value = TextDatumGetCString(value);
+        break;
+
+    default:
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
