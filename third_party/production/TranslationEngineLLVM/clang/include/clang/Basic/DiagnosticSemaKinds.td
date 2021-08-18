@@ -9526,7 +9526,7 @@ def err_duplicate_field : Error<
   "Duplicate field '%0' found in table '%1'. Qualify your field with the "
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
-  "specifing them in the ruleset 'tables' attribute.">;
+  "specifying them in the ruleset 'tables' attribute.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
 def err_duplicate_parameter_name : Error<
