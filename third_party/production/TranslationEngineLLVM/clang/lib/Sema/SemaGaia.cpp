@@ -385,7 +385,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                Diag(loc, diag::err_duplicate_field) << field.name();
+                Diag(loc, diag::err_duplicate_field) << field.name() << tbl.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
@@ -1029,7 +1029,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
+                Diag(loc, diag::err_duplicate_field) << fieldOrTagName << tableName;
                 return Context.VoidTy;
             }
 
