@@ -8,18 +8,13 @@
 #include "flatbuffers/reflection.h"
 
 #include "gaia/common.hpp"
-#include "gaia/exception.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {
 namespace db
 {
-
-class data_type_not_handled_t : public gaia::common::gaia_exception
-{
-public:
-    explicit data_type_not_handled_t(common::data_type_t type);
-};
 
 inline reflection::BaseType
 convert_to_reflection_type(common::data_type_t type)
@@ -51,7 +46,7 @@ convert_to_reflection_type(common::data_type_t type)
     case common::data_type_t::e_string:
         return reflection::String;
     default:
-        throw data_type_not_handled_t(type);
+        ASSERT_UNREACHABLE("Data type not handled.");
     }
 }
 
