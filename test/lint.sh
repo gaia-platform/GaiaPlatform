@@ -273,6 +273,10 @@ lint_shell_scripts() {
         cat "$TEMP_FILE"
         complete_process 1 "Linting of shellscript by 'shellcheck' failed."
     fi
+    if ! shellcheck ./utils/*.sh > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        complete_process 1 "Linting of shellscript by 'shellcheck' failed."
+    fi
 }
 
 

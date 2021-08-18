@@ -71,6 +71,20 @@ parse_command_line() {
     done
 }
 
+# Make sure that we do not have any instances running, not even as
+# a normal execution.
+find_gaia_db_server_pid() {
+    local gaia_output=
+
+    gaia_db_server_pid=
+    gaia_output=$(pgrep -f "gaia_db_server")
+    if [ -z "$gaia_output" ] ; then
+        return 1
+    fi
+    # shellcheck disable=SC2086
+    gaia_db_server_pid=$(echo $gaia_output | cut -d' ' -f2)
+}
+
 # Make sure that the install file is present and looks like a debian install file.
 verify_install_file() {
     INSTALL_FILE=${PARAMS[0]}
@@ -122,8 +136,17 @@ verify_install_file
 # Clean entrance into the script.
 start_process
 
+# Stop any installed `gaia` service that is running.
 if ! ./reset_database.sh --stop --database ; then
     echo "Database service stop did not complete."
+    complete_process 1
+fi
+
+# Make sure the executable isn't being run manually.
+find_gaia_db_server_pid
+if [ -n "$gaia_db_server_pid" ] ; then
+    echo "Database executable is being run manually."
+    echo "Please stop that executable before attempting again."
     complete_process 1
 fi
 

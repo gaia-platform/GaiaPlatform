@@ -421,6 +421,10 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
     const int no_delta_count_before_break = 300 / c_processing_pause_in_microseconds;
     int current_no_delta_attempt = 0;
 
+    char buffer[4096];
+    int space_left = 1024;
+    char * start_pointer = buffer;
+
     for (current_no_delta_attempt = 0;
          current_no_delta_attempt < maximum_no_delta_attempts;
          current_no_delta_attempt++)
@@ -433,7 +437,15 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
         int rule_3_current_sample = g_rule_3_tracker;
         int rule_4_current_sample = g_rule_4_tracker;
 
-        int delta_u = rule_1_current_sample - rule_1_sample_base + rule_2_current_sample - rule_2_sample_base + rule_3_current_sample - rule_3_sample_base + rule_4_current_sample - rule_4_sample_base;
+        int delta_rule_1 = rule_1_current_sample - rule_1_sample_base;
+        int delta_rule_2 = rule_2_current_sample - rule_2_sample_base;
+        int delta_rule_3 = rule_3_current_sample - rule_3_sample_base;
+        int delta_rule_4 = rule_4_current_sample - rule_4_sample_base;
+        int delta_u = delta_rule_1 + delta_rule_2 + delta_rule_3 + delta_rule_4;
+        int amount_written = snprintf(start_pointer, space_left, "U:%d(%d,%d,%d,%d).", delta_u, delta_rule_1, delta_rule_2, delta_rule_3, delta_rule_4);
+        space_left -= amount_written;
+        start_pointer += amount_written;
+
         if (delta_u == 0)
         {
             if (have_no_deltas)
@@ -459,10 +471,15 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
         rule_1_sample_base = rule_1_current_sample;
         rule_2_sample_base = rule_2_current_sample;
         rule_3_sample_base = rule_3_current_sample;
+        rule_4_sample_base = rule_4_current_sample;
     }
     my_time_point end_sleep_end_mark = my_clock::now();
-
     my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
+
+    if (current_no_delta_attempt >= maximum_no_delta_attempts) {
+        printf("...TO: %.6f:%s\n", ms_double.count(), buffer);
+    }
+
     if (is_explicit_pause)
     {
         g_explicit_wait_time_in_microseconds += ms_double.count();
