@@ -21,10 +21,12 @@
 // 2) Use 'gaiat::diag().emit(...)' to get the diagnostics engine and pass in the error string.  The IDs and other info
 // are generated from the DiagnosticsSemaKinds.td file and put into the 'diag' namespace.
 //
-// 3) You can set the source location to output the line and column number information near the diagnostic.  This can
-// be set on the global diag() object via the `diag().set_location(...)` method.  In addition, you can pass in a location in
-// the call to the emit() method itself.  A typical pattern is to set the source location on the diag() object at a higher
-// level function and then let lower level functions pass in a more specific locations as more context is gathered.
+// 3) You can set the source location to output the line and column number near where the diagnostic occurred.
+// The line and column number information is for the .ruleset file and not the generated .cpp file.  Source
+// location can be set on the global diag() object via the `diag().set_location(...)` method.  In addition, you can 
+// pass a location as an argument to the emit() method itself.  A typical pattern is to set the source location on
+// the diag() object at a higher level function and then let lower level functions pass in more specific locations
+// as more context is gathered.
 //
 // As an example, to report "table 'foo' not found" you would write:
 // gaiat::emit(diag::err_table_not_found) << table_name;
