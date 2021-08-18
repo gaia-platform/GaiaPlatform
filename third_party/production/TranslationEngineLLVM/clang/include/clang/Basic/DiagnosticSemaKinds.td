@@ -9636,14 +9636,18 @@ def note_link_reference : Note<
 def warn_field_hidden : Warning<
   "Local variable '%0' hides a database field with the same name. "
   "Rename your local variable so that it doesn't conflict with an "
-  "existing field name.">;
+  "existing field name.">,
+  InGroup<GaiaExtensions>;
 def warn_table_hidden : Warning<
   "Local variable '%0' hides a database table with the same name. "
   "Rename your local variable so that it doesn't conflict with an "
-  "existing table name.">;
+  "existing table name.">,
+  InGroup<GaiaExtensions>;
 def warn_table_referenced_not_in_table_attribute : Warning<
-  "Table '%0' is not referenced in tables attribute.">;
+  "Table '%0' is not referenced in tables attribute.">,
+  InGroup<GaiaExtensions>;
 def warn_tag_hidden : Warning<
    "Local variable '%0' hides a tag defined with the same name. "
-   "Rename your local variable or tag so that their names do not conflict.">;
+   "Rename your local variable or tag so that their names do not conflict.">,
+   InGroup<GaiaExtensions>;
 } // end of sema component.

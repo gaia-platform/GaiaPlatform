@@ -14,16 +14,17 @@
 // diagnostics infrastructure.  To add an error:
 //
 // 1) Check whether an appropriate error string already exists in DiagnosticsSemaKinds.td or DiagnosticParseKinds.td.
-// Our errors are at the bottom of the file grouped by category (error, notes, warn), and then alphabetically.  Note
-// the argument placeholders in the string (%0, %1).  If no error exists, feel free to add it.
+// Our errors are at the bottom of the file grouped by category (Error, Note, Warning), and then alphabetically.  Note
+// whether the diagnostic has argument placeholders in the string (%0, %1). If so, be sure to provide values for these
+// placeholders when reporting the diagnostic. If no suitable diagnostic exists, feel free to add it.
 //
 // 2) Use 'gaiat::diag().emit(...)' to get the diagnostics engine and pass in the error string.  The IDs and other info
 // are generated from the DiagnosticsSemaKinds.td file and put into the 'diag' namespace.
 //
-// 3) You can set the source location to give the user line and column information about the error.  This can
-// be set on the global diag() object or overriden when you call the emit() method.  A typical pattern is to set
-// the source location on the diag() object at a top level function and then let lower level functions pass in
-// a better location if they have more specific information.
+// 3) You can set the source location to output the line and column number information near the diagnostic.  This can
+// be set on the global diag() object via the `diag().set_location(...)` method.  In addition, you can pass in a location in
+// the call to the emit() method itself.  A typical pattern is to set the source location on the diag() object at a higher
+// level function and then let lower level functions pass in a more specific locations as more context is gathered.
 //
 // As an example, to report "table 'foo' not found" you would write:
 // gaiat::emit(diag::err_table_not_found) << table_name;
@@ -31,8 +32,8 @@
 // To provide source location, you could write:
 // gaiat::emit(my_source_location, diag::err_table_not_found) << table_name;
 //
-// Note that the arguments for place holders in the diagnostic string (%0, %1, ...) are provided from left to right:
-// gaiat::emit(err_two_params) << param_1 << param2;
+// Note that the arguments for placeholders in the diagnostic string (%0, %1, ...) are provided from left to right:
+// gaiat::emit(err_two_params) << param_1 << param_2;
 //
 
 namespace gaia
