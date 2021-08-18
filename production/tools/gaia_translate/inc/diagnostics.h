@@ -26,10 +26,10 @@
 // a better location if they have more specific information.
 //
 // As an example, to report "table 'foo' not found" you would write:
-// gaiat::emit(err_table_not_found) << table_name;
+// gaiat::emit(diag::err_table_not_found) << table_name;
 //
 // To provide source location, you could write:
-// gaiat::emit(my_source_location, err_table_not_found) << table_name;
+// gaiat::emit(my_source_location, diag::err_table_not_found) << table_name;
 //
 // Note that the arguments for place holders in the diagnostic string (%0, %1, ...) are provided from left to right:
 // gaiat::emit(err_two_params) << param_1 << param2;
