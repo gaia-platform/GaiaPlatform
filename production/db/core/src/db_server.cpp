@@ -713,8 +713,6 @@ void server_t::init_indexes()
 // On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_txn_log()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_txn_log);
-
     bool replay_logs = true;
 
     create_local_snapshot(replay_logs);
@@ -2416,7 +2414,9 @@ void server_t::txn_rollback()
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    // Process the txn log.
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
+
+    // Process the txn log to update record lists.
     for (size_t i = 0; i < s_log.data()->record_count; ++i)
     {
         txn_log_t::log_record_t* lr = &(s_log.data()->log_records[i]);
@@ -2436,6 +2436,8 @@ void server_t::perform_pre_commit_work_for_txn()
             record_list->add(locator);
         }
     }
+
+    update_indexes_from_txn_log();
 }
 
 // Sort all txn log records, by locator as primary key, and by offset as
@@ -2460,11 +2462,8 @@ void server_t::sort_log()
 // This method returns true for a commit decision and false for an abort decision.
 bool server_t::txn_commit()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
-
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
-    update_indexes_from_txn_log();
 
     // Before registering the log, sort by locator for fast conflict detection.
     sort_log();
