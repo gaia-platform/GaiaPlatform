@@ -71,7 +71,7 @@ size_t move_to_front(
  * table statements, 2) create index statements, and 3) create relationship
  * statements.
  */
-void rearrange_create_statement_list(
+void rearrange_create_list_statements(
     std::vector<std::unique_ptr<gaia::catalog::ddl::create_statement_t>>& statements)
 {
     // Move all create table statements to the front.
@@ -91,7 +91,7 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             // TODO: preprocess the list to transform in-table relationship
             //       definition into standalone create relationship statements.
 
-            rearrange_create_statement_list(create_list->statements);
+            rearrange_create_list_statements(create_list->statements);
 
             for (auto& sub_stmt : create_list->statements)
             {
