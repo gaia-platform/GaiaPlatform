@@ -131,7 +131,7 @@ indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, inde
         return get_indexes()->emplace(
                                 index_id,
                                 std::make_shared<range_index_t, gaia_id_t, bool>(
-                                    static_cast<gaia_id_t&&>(index_id), static_cast<bool&&>(is_unique)))
+                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
             .first;
         break;
 
@@ -139,7 +139,7 @@ indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, inde
         return get_indexes()->emplace(
                                 index_id,
                                 std::make_shared<hash_index_t, gaia_id_t, bool>(
-                                    static_cast<gaia_id_t&&>(index_id), static_cast<bool&&>(is_unique)))
+                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
             .first;
         break;
     }
