@@ -66,11 +66,6 @@ void async_disk_writer_t::teardown()
     close_fd(s_flush_efd);
 }
 
-uint64_t get_enum_value(uring_op_t op)
-{
-    return static_cast<std::underlying_type_t<uring_op_t>>(op);
-}
-
 void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t user_data)
 {
     std::stringstream ss;
@@ -164,8 +159,8 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_LINK);
 
     // Signal eventfd's as part of batch.
-    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
-    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_validate_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
+    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, m_validate_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
 
     swap_batches();
     auto flushed_batch_size = m_in_flight_batch->get_unsubmitted_entries_count();
@@ -217,7 +212,7 @@ unsigned char* async_disk_writer_t::copy_into_metadata_buffer(void* source, size
 
 size_t async_disk_writer_t::get_total_pwritev_size_in_bytes(void* iov_array, size_t count)
 {
-    auto ptr = reinterpret_cast<const iovec*>(iov_array);
+    auto ptr = static_cast<const iovec*>(iov_array);
 
     size_t size_in_bytes = 0;
     for (size_t i = 0; i < count; i++)
@@ -258,6 +253,8 @@ void async_disk_writer_t::enqueue_pwritev_requests(
         }
         else
         {
+            ASSERT_PRECONDITION(remaining_count >= IOV_MAX, "Expected iov count greater than IOV_MAX.");
+            ASSERT_PRECONDITION(remaining_size_bytes >= c_max_iovec_array_size_bytes, "Expected total pwrite size greater than max pwrite call size.");
             enqueue_pwritev_request(ptr_to_write, IOV_MAX, file_fd, current_log_file_offset, type);
             current_log_file_offset += get_total_pwritev_size_in_bytes(current_helper_ptr, IOV_MAX);
             remaining_size_bytes -= c_max_iovec_array_size_bytes;
@@ -279,13 +276,13 @@ void async_disk_writer_t::submit_if_full(int file_fd, size_t required_entries)
 
 void async_disk_writer_t::enqueue_pwritev_request(
     void* iovec_array,
-    size_t iovcnt,
+    size_t iovec_array_count,
     int file_fd,
     uint64_t current_offset,
     uring_op_t type)
 {
     submit_if_full(file_fd, c_single_submission_entry_count);
-    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<const iovec*>(iovec_array), iovcnt, file_fd, current_offset, get_enum_value(type), 0);
+    m_in_progress_batch->add_pwritev_op_to_batch(iovec_array, iovec_array_count, file_fd, current_offset, get_enum_value(type), 0);
 }
 
 void async_disk_writer_t::swap_batches()

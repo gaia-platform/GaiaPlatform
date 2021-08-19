@@ -60,7 +60,7 @@ public:
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
      */
     void add_pwritev_op_to_batch(
-        const iovec* iovecs,
+        void* iovec_array,
         size_t num_iovecs,
         int file_fd,
         uint64_t current_offset,

@@ -119,9 +119,9 @@ private:
     static constexpr size_t c_submit_batch_sqe_count = 3;
     static constexpr size_t c_single_submission_entry_count = 1;
     static constexpr size_t c_async_batch_size = 32;
-    static constexpr eventfd_t c_default_flush_efd_value = 1;
-    static constexpr iovec c_default_iov = {(void*)&c_default_flush_efd_value, sizeof(eventfd_t)};
     static constexpr size_t c_max_iovec_array_size_bytes = IOV_MAX * sizeof(iovec);
+    static inline eventfd_t c_default_flush_efd_value = 1;
+    static inline iovec c_default_iov = {static_cast<void*>(&c_default_flush_efd_value), sizeof(eventfd_t)};
 
     // eventfd to signal that a batch flush has completed.
     // Used to block new writes to disk when a batch is already getting flushed.

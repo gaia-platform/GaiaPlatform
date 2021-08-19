@@ -59,7 +59,7 @@ void async_write_batch_t::prepare_submission_queue_entry(uint64_t data, u_char f
 }
 
 void async_write_batch_t::add_pwritev_op_to_batch(
-    const iovec* iovecs,
+    void* iovec_array,
     size_t num_iovecs,
     int file_fd,
     uint64_t current_offset,
@@ -67,7 +67,7 @@ void async_write_batch_t::add_pwritev_op_to_batch(
     uint8_t flags)
 {
     auto sqe = get_submission_queue_entry();
-    io_uring_prep_writev(sqe, file_fd, iovecs, num_iovecs, current_offset);
+    io_uring_prep_writev(sqe, file_fd, static_cast<const iovec*>(iovec_array), num_iovecs, current_offset);
     prepare_submission_queue_entry(data, flags, sqe);
 }
 
