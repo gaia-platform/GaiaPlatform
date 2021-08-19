@@ -2445,7 +2445,7 @@ void server_t::perform_pre_commit_work_for_txn()
 // algorithms for conflict detection.
 void server_t::sort_log()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // We use stable_sort() to preserve the order of multiple updates to the
     // same locator.
