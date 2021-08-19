@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: Assign an Insert return value to a tag.
+ruleset test1
+{
+    on_insert(sensor)
+    {
+        S = sensor.insert(name: "Turtles", timestamp: 1995, value: 100.0);
+    }
+}
+
+// CHECK: use of undeclared identifier 'S'

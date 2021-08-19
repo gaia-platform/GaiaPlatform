@@ -1,9 +1,8 @@
-// RUN: echo "OnUpdate attributes must refer to the same table." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test13
 {
-    OnUpdate(S:sensor, A:actuator)
+    on_update(S:sensor, A:actuator)
     {
         float v;
         v = S.value + A.value;
@@ -11,4 +10,4 @@ ruleset test13
 }
 
 // GAIAPLAT-799
-// CHECK: OnUpdate attributes must refer to the same table.
+// CHECK: A rule may not specify multiple tables or active fields from different tables in 'on_' attributes (on_insert, on_change, or on_update). Ensure that all your active field references belong to the same table.

@@ -112,8 +112,8 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, size_t next_offset);
-    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, size_t next_offset);
+    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, common::reference_offset_t next_offset);
+    explicit edc_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, common::reference_offset_t next_offset);
     edc_set_iterator_t() = default;
 
     reference operator*();
@@ -126,7 +126,7 @@ public:
 private:
     T_child m_child_obj;
     std::function<bool(const T_child&)> m_filter_fn;
-    size_t m_next_offset;
+    common::reference_offset_t m_next_offset;
 };
 
 // A reference_chain_container_t is defined within each EDC that is a parent in
@@ -148,13 +148,13 @@ class reference_chain_container_t : protected edc_db_t
 {
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, size_t child_offset, size_t next_offset)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, common::reference_offset_t child_offset, common::reference_offset_t next_offset)
         : m_parent_id(parent)
         , m_filter_fn(filter_function)
         , m_child_offset(child_offset)
         , m_next_offset(next_offset){};
 
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, size_t child_offset, size_t next_offset)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, common::reference_offset_t child_offset, common::reference_offset_t next_offset)
         : m_parent_id(parent)
         , m_child_offset(child_offset)
         , m_next_offset(next_offset){};
@@ -169,11 +169,11 @@ public:
     size_t size() const;
 
     void insert(gaia::common::gaia_id_t child_id);
-    void insert(T_child& child_edc);
+    void insert(const T_child& child_edc);
 
     edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
     void remove(gaia::common::gaia_id_t child_id);
-    void remove(T_child& child_edc);
+    void remove(const T_child& child_edc);
     void clear();
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
@@ -181,8 +181,8 @@ public:
 private:
     gaia::common::gaia_id_t m_parent_id{gaia::common::c_invalid_gaia_id};
     std::function<bool(const T_child&)> m_filter_fn{};
-    size_t m_child_offset;
-    size_t m_next_offset;
+    common::reference_offset_t m_child_offset;
+    common::reference_offset_t m_next_offset;
 };
 
 /*@}*/

@@ -219,7 +219,7 @@ Retry:
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
       if (Tok.is(tok::slash) && NextToken().is(tok::identifier) &&
-        !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square)))
+        (getPreviousToken(Tok).is(tok::at) || !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square))))
       {
         ConsumeToken();
         goto Retry;
@@ -640,6 +640,11 @@ StmtResult Parser::ParseLabeledStatement(ParsedAttributesWithRange &attrs) {
     }
   }
 
+  if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName().str()))
+  {
+    Diag(IdentTok.getLocation(), diag::err_incorrect_declarative_label_scope) << IdentTok.getIdentifierInfo()->getName();
+    return StmtError();
+  }
   // If we've not parsed a statement yet, parse one now.
   if (!SubStmt.isInvalid() && !SubStmt.isUsable())
     SubStmt = ParseStatement();
@@ -653,8 +658,13 @@ StmtResult Parser::ParseLabeledStatement(ParsedAttributesWithRange &attrs) {
   Actions.ProcessDeclAttributeList(Actions.CurScope, LD, attrs);
   attrs.clear();
 
-  return Actions.ActOnLabelStmt(IdentTok.getLocation(), LD, ColonLoc,
+  auto returnValue = Actions.ActOnLabelStmt(IdentTok.getLocation(), LD, ColonLoc,
                                 SubStmt.get());
+  if (!Actions.ValidateLabel(LD))
+  {
+    return StmtError();
+  }
+  return returnValue;
 }
 
 /// ParseCaseStatement
@@ -1209,6 +1219,11 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
                                             : Sema::ConditionKind::Boolean))
       return StmtError();
   }
+
+  if (Actions.IsExplicitPathInRange(SourceRange(IfLoc, Tok.getLocation())))
+  {
+    getCurScope()->AddFlags(Scope::GaiaBreakScope);
+  }
   llvm::Optional<bool> ConstexprCondition;
   if (IsConstexpr)
     ConstexprCondition = Cond.getKnownValue();
@@ -1291,6 +1306,8 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     }
     if (Tok.is(tok::kw_nomatch))
     {
+      // Remove GaiaBreakScope in nomatch
+      getCurScope()->setFlags(getCurScope()->getFlags() & ~Scope::GaiaBreakScope);
       // Remove tags that may have been declared in the if
       SourceLocation startLocation = IfLoc;
       SourceLocation endLocation ;
@@ -1306,7 +1323,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
 
       if (!Actions.RemoveTagData(SourceRange(startLocation, endLocation)))
       {
-        Diag(startLocation, diag::err_nomatch_without_navigation);
+        Diag(startLocation, diag::err_nomatch_without_navigation) << true;
         return StmtError();
       }
 
@@ -1666,6 +1683,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   bool isGaia = getLangOpts().Gaia && getCurScope()->isInRulesetScope();
   bool isDeclarativeStatement = false;
   ExprResult explicitNavigationExpression;
+  SourceLocation NoMatchLoc, NoMatchStmtLoc;
+  StmtResult NoMatchStmt;
 
   // C99 6.8.5p5 - In C99, the for statement is a block.  This is not
   // the case for C90.  Start the loop scope.
@@ -1718,20 +1737,15 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
     // Try to determine if a first expression is a declarative statement and it is the only expression in for statement.
     ExtendedExplicitPathScopeMonitor monitor(Actions);
 
-    if (isGaia && Tok.isOneOf(tok::slash, tok::at, tok::identifier))
+    if (isGaia && Tok.isOneOf(tok::slash, tok::identifier))
     {
       RevertingTentativeParsingAction PA(*this);
-      if (Tok.isOneOf(tok::slash, tok::at))
+      if (Tok.is(tok::slash))
       {
         isDeclarativeStatement = true;
         ConsumeToken();
       }
-      // Check for /@
-      if (Tok.is(tok::at))
-      {
-        isDeclarativeStatement = true;
-        ConsumeToken();
-      }
+
       while (Tok.isOneOf(tok::arrow, tok::colon, tok::period, tok::identifier))
       {
         ConsumeToken();
@@ -1750,9 +1764,11 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
       explicitNavigationExpression = ParseExpression();
       if (explicitNavigationExpression.get() == nullptr)
       {
+        Actions.CorrectDelayedTyposInExpr(explicitNavigationExpression);
         cutOffParsing();
         return StmtError();
       }
+      getCurScope()->AddFlags(Scope::GaiaBreakScope);
     }
     else if (Tok.is(tok::semi)) {  // for (;
       ProhibitAttributes(attrs);
@@ -2002,6 +2018,37 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   if (Body.isInvalid())
     return StmtError();
+  if (Tok.is(tok::kw_nomatch))
+  {
+    // Remove GaiaBreakScope in nomatch
+    getCurScope()->setFlags(getCurScope()->getFlags() & ~Scope::GaiaBreakScope);
+    if (explicitNavigationExpression.get())
+    {
+      // Remove tags that may have been declared in the for
+
+      if (!Actions.RemoveTagData(SourceRange(T.getOpenLocation(), T.getCloseLocation())))
+      {
+        Diag(T.getOpenLocation(), diag::err_nomatch_without_navigation) << false;
+        return StmtError();
+      }
+
+      NoMatchLoc = ConsumeToken();
+      NoMatchStmtLoc = Tok.getLocation();
+
+      ParseScope InnerScope(this, Scope::DeclScope, C99orCXXorObjC,
+                          Tok.is(tok::l_brace));
+      EnterExpressionEvaluationContext PotentiallyDiscarded(
+        Actions, Sema::ExpressionEvaluationContext::DiscardedStatement, nullptr,
+        Sema::ExpressionEvaluationContextRecord::EK_Other);
+      NoMatchStmt = ParseStatement();
+      InnerScope.Exit();
+    }
+    else
+    {
+      Diag(T.getOpenLocation(), diag::err_nomatch_without_navigation) << false;
+      return StmtError();
+    }
+  }
 
   if (ForEach)
    return Actions.FinishObjCForCollectionStmt(ForEachStmt.get(),
@@ -2013,7 +2060,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   if(explicitNavigationExpression.get())
   {
     return Actions.ActOnGaiaForStmt(ForLoc, T.getOpenLocation(),
-      explicitNavigationExpression.get(), T.getCloseLocation(), Body.get());
+      explicitNavigationExpression.get(), T.getCloseLocation(), Body.get(),
+      NoMatchLoc, NoMatchStmt.get());
   }
 
   return Actions.ActOnForStmt(ForLoc, T.getOpenLocation(), FirstPart.get(),
@@ -2064,7 +2112,26 @@ StmtResult Parser::ParseGotoStatement() {
 ///
 StmtResult Parser::ParseContinueStatement() {
   SourceLocation ContinueLoc = ConsumeToken();  // eat the 'continue'.
-  return Actions.ActOnContinueStmt(ContinueLoc, getCurScope());
+  bool isDeclarativeContinue = getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier);
+  StmtResult returnValue = Actions.ActOnContinueStmt(ContinueLoc, getCurScope(), isDeclarativeContinue);
+  if (isDeclarativeContinue && !returnValue.isInvalid())
+  {
+    IdentifierInfo* labelIdentifier = Tok.getIdentifierInfo();
+    SourceLocation labelLocation = Tok.getLocation();
+    ConsumeToken();
+    LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
+    if (LD->getStmt())
+    {
+      Diag(Tok, diag::err_incorrect_declarative_label_scope) << labelIdentifier->getName();
+      SkipUntil(tok::semi, StopBeforeMatch);
+      return StmtError();
+    }
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    auto statement = returnValue.getAs<ContinueStmt>();
+    statement->setLabel(LD);
+  }
+
+  return returnValue;
 }
 
 /// ParseBreakStatement
@@ -2075,7 +2142,26 @@ StmtResult Parser::ParseContinueStatement() {
 ///
 StmtResult Parser::ParseBreakStatement() {
   SourceLocation BreakLoc = ConsumeToken();  // eat the 'break'.
-  return Actions.ActOnBreakStmt(BreakLoc, getCurScope());
+  bool isDeclarativeBreak = getCurScope()->isInGaiaBreakScope() && Tok.is(tok::identifier);
+  StmtResult returnValue = Actions.ActOnBreakStmt(BreakLoc, getCurScope(), isDeclarativeBreak);
+  if (isDeclarativeBreak && !returnValue.isInvalid())
+  {
+    IdentifierInfo* labelIdentifier = Tok.getIdentifierInfo();
+    SourceLocation labelLocation = Tok.getLocation();
+    ConsumeToken();
+    LabelDecl *LD = Actions.LookupOrCreateLabel(labelIdentifier, labelLocation);
+    if (LD->getStmt())
+    {
+      Diag(Tok, diag::err_incorrect_declarative_label_scope) << labelIdentifier->getName();
+      SkipUntil(tok::semi, StopBeforeMatch);
+      return StmtError();
+    }
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    auto statement = returnValue.getAs<BreakStmt>();
+    statement->setLabel(LD);
+  }
+
+  return returnValue;
 }
 
 /// ParseReturnStatement

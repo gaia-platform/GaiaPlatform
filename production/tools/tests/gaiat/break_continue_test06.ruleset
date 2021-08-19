@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: non-declarative if statement cannot have continue statement
+ruleset test06
+{
+    on_update(incubator)
+    {
+        auto max = incubator.max_temp;
+        if (max > 99.0)
+        {
+            continue;
+        }
+    }
+}
+
+// CHECK: 'continue' statement not in loop statement

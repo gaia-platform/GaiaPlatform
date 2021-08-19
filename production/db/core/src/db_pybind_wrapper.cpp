@@ -105,7 +105,7 @@ PYBIND11_MODULE(gaia_db_pybind, m)
             static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr_t::create))
         .def_static(
             "create",
-            static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*)>(&gaia_ptr_t::create))
+            static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, reference_offset_t, size_t, const void*)>(&gaia_ptr_t::create))
         .def_static("open", &gaia_ptr_t::open)
         .def_static("find_first", &gaia_ptr_t::find_first)
         .def_static("remove", &gaia_ptr_t::remove)

@@ -3802,9 +3802,11 @@ public:
 
   StmtResult ActOnGaiaForStmt(SourceLocation ForLoc,
                           SourceLocation LParenLoc,
-                          Stmt *Path,
+                          Expr *Path,
                           SourceLocation RParenLoc,
-                          Stmt *Body);
+                          Stmt *Body,
+                          SourceLocation NoMatchLoc,
+                          Stmt* NoMatchStmt);
   ExprResult CheckObjCForCollectionOperand(SourceLocation forLoc,
                                            Expr *collection);
   StmtResult ActOnObjCForCollectionStmt(SourceLocation ForColLoc,
@@ -3847,8 +3849,8 @@ public:
   StmtResult ActOnIndirectGotoStmt(SourceLocation GotoLoc,
                                    SourceLocation StarLoc,
                                    Expr *DestExp);
-  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope);
-  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope);
+  StmtResult ActOnContinueStmt(SourceLocation ContinueLoc, Scope *CurScope, bool isDeclarativeContinue = false);
+  StmtResult ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope, bool isDeclarativeBreak = false);
 
   void ActOnCapturedRegionStart(SourceLocation Loc, Scope *CurScope,
                                 CapturedRegionKind Kind, unsigned NumParams);
@@ -4415,7 +4417,9 @@ public:
   ExprResult ActOnCallExpr(Scope *S, Expr *Fn, SourceLocation LParenLoc,
                            MultiExprArg ArgExprs, SourceLocation RParenLoc,
                            Expr *ExecConfig = nullptr,
-                           bool IsExecConfig = false);
+                           bool IsExecConfig = false,
+                           std::string tableName = std::string(),
+                           std::vector<std::string> parameterNames = std::vector<std::string>());
   ExprResult
   BuildResolvedCallExpr(Expr *Fn, NamedDecl *NDecl, SourceLocation LParenLoc,
                         ArrayRef<Expr *> Arg, SourceLocation RParenLoc,
@@ -4628,20 +4632,48 @@ public:
   void ExitExtendedExplicitPathScope() {isInExtendedExplicitPathScope = false;}
   void EnterExtendedExplicitPathScope() {isInExtendedExplicitPathScope = true;}
   bool RemoveTagData(SourceRange range);
+  bool IsExplicitPathInRange(SourceRange range) const;
+  bool ValidateLabel(const LabelDecl *label);
+  // Checks if an expression contains injected declarative references.
+  bool IsExpressionInjected(const Expr* expression) const;
 private:
 
+  // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
-  QualType getFieldType (const std::string &fieldName, SourceLocation loc);
+  QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc);
+  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
+                 AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
+                 SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
+
+  /// Lookup a class name in the given context. Returns nullptr if the class is not found.
+  /// If the class has been defined in this context (eg. "class x {};") the defined type is
+  /// returned otherwise only the forward declaration is returned (eg. "class x;").
+  TagDecl* lookupClass(std::string className, SourceLocation loc, Scope* scope);
+
+  /// Look up a Gaia EDC class using the EDC class name.
+  /// TODO [GAIAPLAT-1028]: the lookup logic does not follow the Clang way of doing it (see lookupClass).
+  ///  The class name will be searched everywhere regardless of the namespace. If the class
+  ///  name appears multiple times in different namespaces the first occurrence is returned.
+  ///  This is inline with the fact that the translation process is unaware of databases.
+  TagDecl* lookupEDCClass(std::string className);
+
+  /// Add the connect/disconnect methods to the given sourceTable and target type (eg. source:incubator target:sensor).
+  /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
+  /// - bool incubator::connect(sensor__type&)
+  /// - bool incubator::connect(sensor_t&)
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, const std::string& targetTableName, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
-  bool does_path_includes_tags(const std::vector<std::string>& path, SourceLocation loc);
+  bool doesPathIncludesTags(const std::vector<std::string>& path, SourceLocation loc);
+  void ActOnStartDeclarativeLabel(const std::string& label);
+  bool ActOnStartLabel(const std::string& label);
 
   struct ExplicitPathData_t
   {
@@ -4658,6 +4690,9 @@ private:
     std::string field;
   };
 
+  std::unordered_set<std::string> labelsInProcess;
+  std::unordered_set<std::string> declarativeLabelsInProcess;
+
   std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 
   std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
@@ -4665,6 +4700,8 @@ private:
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
 
   std::map<SourceLocation, std::unordered_map<std::string, std::string>> extendedExplicitPathTagMapping;
+
+  std::unordered_set<SourceLocation> injectedVariablesLocation;
   bool isInExtendedExplicitPathScope;
 
   // A cache representing if we've fully checked the various comparison category

@@ -2,10 +2,11 @@
 
 ruleset test
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         int incubator = 5;
     }
 }
 
-// CHECK: Local variable declaration 'incubator' hides database table of the same name.
+// CHECK: Local variable 'incubator' hides a database table with the same name. Rename your local variable so that it doesn't conflict with an existing table name.
+

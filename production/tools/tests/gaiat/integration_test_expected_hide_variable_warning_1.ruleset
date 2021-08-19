@@ -2,7 +2,7 @@
 
 ruleset test
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
         if (sensor.value == 5)
         {
@@ -11,4 +11,4 @@ ruleset test
     }
 }
 
-// CHECK: Local variable declaration 'value' hides catalog field entity of the same name.
+// CHECK: Local variable 'value' hides a database field with the same name. Rename your local variable so that it doesn't conflict with an existing field name.

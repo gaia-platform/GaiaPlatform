@@ -1,0 +1,21 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test58
+{
+    on_insert(incubator)
+    {
+        for (S:sensor)
+        {
+            for (S->incubator.incubators->farmer->Y:yield)
+            {
+                if (Y.bushels > 10)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// CHECK: 'incubator' table in the explicit path has no relationship to 'farmer'
+// GAIAPLAT-1118

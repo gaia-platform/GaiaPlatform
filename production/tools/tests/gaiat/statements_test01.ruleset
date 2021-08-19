@@ -1,8 +1,7 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
-
 ruleset test1
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         while (farmer > 3)
         {

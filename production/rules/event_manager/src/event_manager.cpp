@@ -388,7 +388,7 @@ void event_manager_t::unsubscribe_rules()
     // rule subscriptions, we need to wait for the current rules graph to finish executing.
     if (m_invocations)
     {
-        m_invocations->wait_for_rules_to_finish();
+        m_invocations->wait_for_rules_to_complete();
 
         // Detach the commit trigger so that any new events that come in do not try
         // to look for rule subscriptions while we are removing them.
@@ -396,7 +396,7 @@ void event_manager_t::unsubscribe_rules()
 
         // Since an invocation might have snuck in between the time we finished executing
         // and the time we detached the commit trigger, wait for these to finish.
-        m_invocations->wait_for_rules_to_finish();
+        m_invocations->wait_for_rules_to_complete();
     }
 
     // Now it is safe to clear out the subscriptions and rule bindings.

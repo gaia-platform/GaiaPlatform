@@ -15,6 +15,16 @@ create table if not exists student (
     gpa float
 );
 
+create table if not exists parents (
+    name_father string,
+    name_mother string
+);
+
+create relationship if not exists student_parents (
+    student.parents -> parents,
+    parents.student -> student
+);
+
 create table if not exists course (
     course_id string,
     name string,
@@ -50,4 +60,14 @@ create relationship if not exists prereq_course (
 create relationship if not exists course_prereq (
     course.requires -> prereq[],
     prereq.course -> course
+);
+
+create table if not exists enrollment_log (
+    log_student_id string,
+    log_surname string,
+    log_age int32,
+    log_course_id string,
+    log_name string,
+    log_hours int32,
+    log_reg_id string
 );

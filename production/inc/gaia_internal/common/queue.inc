@@ -255,22 +255,28 @@ mpsc_queue_node_t<T>* mpsc_queue_t<T>::dequeue_internal()
     // Store its current value - other producers may update it.
     mpsc_queue_node_t<T>* head = m_head;
 
-    // DEVNOTE: Original code returned nullptr if head != tail.
-    // But that can only happen if a new node was inserted, in which case
-    // we should be able to continue with the removing of the tail node.
-    if (tail == head)
+    // This check detects another concurrent insertion that conflicts with our remove.
+    // The insertion needs to be allowed to complete updating the next link,
+    // so we cannot remove the last node until that happened. Hence, we abort our operation.
+    if (tail != head)
     {
-        // Push back the stub, so that we have one remaining entry in the queue.
-        enqueue_internal(&m_stub);
+        return nullptr;
     }
+
+    // Push back the stub, so that we have one remaining entry in the queue.
+    enqueue_internal(&m_stub);
 
     // Refresh the tail.next value.
     next = tail->next;
 
-    // DEVNOTE: Original code had a check on next, but we've replaced it with an assert.
-    ASSERT_INVARIANT(next, "Next node was expected to be non-null at this point!");
+    // If next comes up as null, it means that another concurrent insertion preceded ours,
+    // but did not complete the update of the next link, so again, we abort our operation.
+    if (!next)
+    {
+        return nullptr;
+    }
 
-    // Remove tail node now.
+    // The link to the next node is valid, so we can remove the tail node now.
     m_tail = next;
 
     return tail;

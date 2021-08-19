@@ -2214,6 +2214,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
             {
               R.addDecl(D);
               isVariableInjected = true;
+              injectedVariablesLocation.insert(NameLoc);
             }
           }
         }
@@ -5467,7 +5468,86 @@ tryImplicitlyCaptureThisIfImplicitMemberFunctionAccessWithDependentArgs(
 /// locations.
 ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
                                MultiExprArg ArgExprs, SourceLocation RParenLoc,
-                               Expr *ExecConfig, bool IsExecConfig) {
+                               Expr *ExecConfig, bool IsExecConfig,
+                               std::string tableName,
+                               std::vector<std::string> parameterNames) {
+
+  if (!tableName.empty())
+  {
+    auto numberOfParameters = ArgExprs.size();
+    if (numberOfParameters != parameterNames.size())
+    {
+      Diag(LParenLoc, diag::err_parameter_names_numbers_different_from_parameter) << (unsigned)parameterNames.size() << (unsigned)numberOfParameters;
+      return ExprError();
+    }
+
+    const auto catalogTableData = getTableData(LParenLoc);
+    const auto catalogTableDataIterator = catalogTableData.find(tableName);
+    if (catalogTableDataIterator == catalogTableData.end())
+    {
+      Diag(LParenLoc, diag::err_invalid_table_name) << tableName;
+      return ExprError();
+    }
+    // Perform semantic check of parameters.
+    std::unordered_set<std::string> processed_parameters;
+    for (unsigned i = 0; i != numberOfParameters; ++i)
+    {
+      const auto fieldDataIterator = catalogTableDataIterator->second.find(parameterNames[i]);
+      if (fieldDataIterator == catalogTableDataIterator->second.end())
+      {
+        Diag(LParenLoc, diag::err_unknown_parameter_name) << parameterNames[i];
+        return ExprError();
+      }
+
+      if (processed_parameters.find(parameterNames[i]) != processed_parameters.end())
+      {
+        Diag(LParenLoc, diag::err_duplicate_parameter_name);
+        return ExprError();
+      }
+      processed_parameters.insert(parameterNames[i]);
+
+      QualType parameterType = fieldDataIterator->second;
+      QualType argumentType = ArgExprs[i]->getType();
+      if (fieldDataIterator->second != argumentType)
+      {
+        if (parameterType->isBooleanType())
+        {
+          if (!argumentType->isBooleanType())
+          {
+            Diag(LParenLoc, diag::err_argument_type_mismatch)
+              << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+            return ExprError();
+          }
+        }
+        else if (parameterType->isArithmeticType())
+        {
+          if (!argumentType->isArithmeticType())
+          {
+            Diag(LParenLoc, diag::err_argument_type_mismatch)
+              << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+            return ExprError();
+          }
+        }
+        else if (parameterType->isPointerType() && parameterType->getPointeeType()->isAnyCharacterType())
+        {
+          if (!(
+            (argumentType->isPointerType() && argumentType->getPointeeType()->isAnyCharacterType()) ||
+            (argumentType->isArrayType() && argumentType->castAsArrayTypeUnsafe()->getElementType()->isAnyCharacterType())))
+          {
+            Diag(LParenLoc, diag::err_argument_type_mismatch)
+              << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+            return ExprError();
+          }
+        }
+        else
+        {
+            Diag(LParenLoc, diag::err_argument_type_not_supported) << parameterType.getAsString();
+            return ExprError();
+        }
+      }
+    }
+  }
+
   // Since this might be a postfix expression, get rid of ParenListExprs.
   ExprResult Result = MaybeConvertParenListExprToParenExpr(Scope, Fn);
   if (Result.isInvalid()) return ExprError();
@@ -11243,36 +11323,32 @@ static void DiagnoseRecursiveConstFields(Sema &S, const Expr *E,
 static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   assert(!E->hasPlaceholderType(BuiltinType::PseudoObject));
 
-if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
-{
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
+  if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
+  {
+      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(E);
 
-    if (exp != nullptr)
-    {
-        ValueDecl *decl = exp->getDecl();
+      if (exp == nullptr)
+      {
+          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
 
-        if (decl->hasAttr<GaiaFieldAttr>() ||
-            decl->hasAttr<GaiaFieldValueAttr>() ||
-            decl->hasAttr<FieldTableAttr>())
-        {
-            decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-        }
-    }
-    else
-    {
-        MemberExpr *memberExp = dyn_cast<MemberExpr>(E);
-        if (memberExp != nullptr)
-        {
-            ValueDecl *decl = memberExp->getMemberDecl();
-            if (decl->hasAttr<GaiaFieldAttr>() ||
-                decl->hasAttr<GaiaFieldValueAttr>() ||
-                decl->hasAttr<FieldTableAttr>())
-            {
-                decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
-            }
-        }
-    }
-}
+          if (memberExp != nullptr)
+          {
+              exp = dyn_cast<DeclRefExpr>(memberExp->getBase());
+          }
+      }
+
+      if (exp != nullptr)
+      {
+          ValueDecl* decl = exp->getDecl();
+
+          if (decl->hasAttr<GaiaFieldAttr>()
+              || decl->hasAttr<GaiaFieldValueAttr>()
+              || decl->hasAttr<FieldTableAttr>())
+          {
+              decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+          }
+      }
+  }
 
   S.CheckShadowingDeclModification(E, Loc);
 

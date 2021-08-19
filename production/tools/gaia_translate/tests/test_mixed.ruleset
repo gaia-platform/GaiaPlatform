@@ -7,7 +7,8 @@ int g_actuator_rule_called = 0;
 
 using namespace gaia::barn_storage;
 
-int g_text_mixed_called = 0;
+extern int g_test_mixed_called;
+extern int g_test_mixed_value;
 
 void f(gaia::barn_storage::incubator_t i)
 {
@@ -29,7 +30,7 @@ void f2(gaia::barn_storage::incubator_t& i)
 
 ruleset test_mixed
 {
-    OnInsert(i:incubator)
+    on_insert(i:incubator)
     {
         f(incubator);
         f1(incubator);
@@ -37,6 +38,23 @@ ruleset test_mixed
         f(i);
         f1(i);
         f2(i);
-        g_text_mixed_called++;
+        g_test_mixed_called++;
+    }
+
+    // The sensor was deleted, but this rule is still fired.
+    on_insert(S:sensor)
+    {
+        S.value += 1.0;
+        if (S.value > 1.0)
+        {
+            S.value = 1.0;
+            g_test_mixed_value = 1;
+        }
+        nomatch
+        {
+            // This is the correct path, since there is no S.
+            g_test_mixed_value = 2;
+        }
+        g_test_mixed_called++;
     }
 }

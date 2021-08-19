@@ -2,10 +2,10 @@
 
 ruleset test00
 {
-    OnChange(actuator.value)
+    on_change(actuator.value)
     {
         actuator.value += isolated.age;
     }
 }
 
-// CHECK: No path between tables 'actuator' and 'isolated'
+// CHECK: No navigation path exists between tables 'actuator' and 'isolated'. Ensure that your schema has a relationship between these two tables.

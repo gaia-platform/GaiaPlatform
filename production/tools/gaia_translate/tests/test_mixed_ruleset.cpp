@@ -18,7 +18,8 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
 
-extern int g_text_mixed_called;
+int g_test_mixed_called;
+int g_test_mixed_value;
 
 const int c_g_rule_execution_delay = 50000;
 const float c_g_incubator_min_temperature = 99.0;
@@ -36,6 +37,8 @@ public:
 protected:
     void SetUp() override
     {
+        g_test_mixed_called = 0;
+        g_test_mixed_value = 0;
         db_catalog_test_base_t::SetUp();
         gaia::rules::initialize_rules_engine();
     }
@@ -60,7 +63,7 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
 
     gaia::db::commit_transaction();
 
-    while (g_text_mixed_called == 0)
+    while (g_test_mixed_called == 0)
     {
         usleep(c_g_rule_execution_delay);
     }
@@ -80,4 +83,21 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
     ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
     gaia::db::commit_transaction();
+}
+
+TEST_F(test_mixed_code, insert_delete_row)
+{
+    gaia::db::begin_transaction();
+
+    auto sensor = sensor_t::get(sensor_t::insert_row("TestSensor", 20210708, 98.6));
+    sensor.delete_row();
+
+    gaia::db::commit_transaction();
+
+    while (g_test_mixed_called == 0)
+    {
+        usleep(c_g_rule_execution_delay);
+    }
+
+    ASSERT_EQ(g_test_mixed_value, 2);
 }

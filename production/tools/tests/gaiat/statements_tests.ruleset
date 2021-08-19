@@ -2,11 +2,10 @@
 
 #include "tags_test.h"
 
-// #define TEST_FAILURES
-
-ruleset test1
+// TESTCASE: for() with a table scan
+ruleset test01
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         for (/I:incubator)
@@ -16,10 +15,92 @@ ruleset test1
     }
 }
 
-ruleset test2
+// GAIAPLAT-1042 (fixed)
+// TESTCASE: Use for statement to scan a table near the anchor.
+ruleset test02
+{
+    on_insert(incubator)
+    {
+        float temp = 0;
+        for (/S:sensor)
+        {
+            temp += S.value;
+        }
+    }
+}
+
+// TESTCASE: Use an implicit query in a for statement.
+// NOTE: This implicit query from incubator to feeding goes through
+//       raised and animal. This is the same distance as a path
+//       that goes through farmer and yield. The selection of this
+//       path is arbitrary, and would produce different results if
+//       the other path was chosen. Should there be a warning?
+// NOTE: Most recent decision is to make this an error. By rearranging
+//       the order or table definitions in the DDL, the selection of
+//       the implicit path may change - that would be bad. By making
+//       this an error, the programmer can correct the code to have
+//       an explicit component to the path.
+// GAIAPLAT-1050 (fixed)
+ruleset test03
+{
+    on_insert(incubator)
+    {
+        int total_portion = 0;
+        for (animal->F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
+// TESTCASE: Use for statement to scan a table not near the anchor.
+ruleset test04
+{
+    on_insert(incubator)
+    {
+        int total_portion = 0;
+        for (/F:feeding)
+        {
+            total_portion += F.portion;
+        }
+    }
+}
+
+// TESTCASE: Path moves from M to 1 in if with nomatch.
+// GAIAPLAT-1005 (fixed)
+ruleset test05
+{
+    on_insert(sensor)
+    {
+        if (sensor->incubator.min_temp < 95.0)
+        {
+            sensor.value += 3.0;
+        }
+        nomatch
+        {
+            sensor.value += 5;
+        }
+    }
+}
+
+// TESTCASE: Path moves from M to 1 in if without nomatch.
+ruleset test06
+{
+    on_insert(sensor)
+    {
+        if (sensor->incubator.min_temp < 95.0)
+        {
+            sensor.value += 3.0;
+        }
+    }
+}
+
+// TESTCASE: for() with an active field in the braces
+ruleset test07
 {
     {
         float temp = 0;
+        // This looks like a loop, but the incubator is the anchor.
         for (incubator)
         {
             temp += @max_temp;
@@ -27,7 +108,8 @@ ruleset test2
     }
 }
 
-ruleset test3
+// TESTCASE: for-if with active field in the braces
+ruleset test08
 {
     {
         float temp = 0;
@@ -38,7 +120,8 @@ ruleset test3
     }
 }
 
-ruleset test4
+// TESTCASE: if() with active field in the braces
+ruleset test09
 {
     {
         float temp = 0;
@@ -49,7 +132,8 @@ ruleset test4
     }
 }
 
-ruleset test5
+// TESTCASE: if() with implicit iteration on an active field
+ruleset test10
 {
     {
         float temp = 0;
@@ -60,9 +144,10 @@ ruleset test5
     }
 }
 
-ruleset test6
+// TESTCASE: if() with implicit iteration and on_insert
+ruleset test11
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator.min_temp < 50.0)
@@ -72,9 +157,10 @@ ruleset test6
     }
 }
 
-ruleset test7
+// TESTCASE: if-else with implicit iteration in both closures
+ruleset test12
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator.min_temp < 50.0)
@@ -88,12 +174,15 @@ ruleset test7
     }
 }
 
-// Questionable code generation on this one.
-ruleset test8
+// TESTCASE: if-else with navigation
+ruleset test13
 {
-    OnInsert(incubator)
+    // Questionable code generation on this one.
+    on_insert(incubator)
     {
         float temp = 0;
+        // Navigates down to a child row (sensor), then back up to the parent (incubator),
+        // and back down again to another child (actuator).
         if (sensor->incubator->actuator.value > 0.0)
         {
             temp += sensor.value;
@@ -105,9 +194,10 @@ ruleset test8
     }
 }
 
-ruleset test9
+// TESTCASE: if-else-nomatch with navigation
+ruleset test14
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (sensor->incubator->actuator.value > 0.0)
@@ -119,7 +209,7 @@ ruleset test9
         {
             temp -= sensor.value;
         }
-// GAIAPLAT-988
+// GAIAPLAT-988 (fixed)
         nomatch
         {
             temp += 10.0;
@@ -127,9 +217,10 @@ ruleset test9
     }
 }
 
-ruleset test10
+// TESTCASE: if-else navigation with tags
+ruleset test15
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (S:sensor->I:incubator->A:actuator.value > 0.0)
@@ -143,67 +234,12 @@ ruleset test10
     }
 }
 
-ruleset test11
-{
-    OnInsert(incubator)
-    {
-        float temp = 0;
-        while (S:sensor->I:incubator->A:actuator.value > 0.0)
-        {
-            temp += S.value + I.min_temp + A.value;
-        }
-    }
-}
-
-ruleset test12
-{
-    OnInsert(incubator)
-    {
-        float temp = 0;
-        while (S:sensor->I:incubator->A:actuator.value > 0.0)
-        {
-            while (A->II:incubator->SS:sensor.value < 100.0)
-            {
-                temp += S.value + II.min_temp + A.value;
-            }
-        }
-    }
-}
-
-ruleset test13
-{
-    OnInsert(farmer)
-    {
-        float temp = 0;
-        while (farmer->incubator->raised->animal->feeding->yield->crop.acres)
-        {
-            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
-            {
-                temp += 1.0;
-            }
-        }
-    }
-}
-
-ruleset test14
-{
-    {
-        float temp = 0;
-        while (@farmer->incubator->raised->animal->feeding->yield->crop.acres)
-        {
-            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
-            {
-                temp += 1.0;
-            }
-        }
-    }
-}
-
-ruleset test15
+// TESTCASE: if() and else-if() both with table scans and an active field in the if()
+ruleset test16
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -218,11 +254,12 @@ ruleset test15
     }
 }
 
-ruleset test16
+// TESTCASE: if() with a table scan + active field and else-if() with navigation
+ruleset test17
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -237,9 +274,10 @@ ruleset test16
     }
 }
 
+// TESTCASE: if-elseif tag scoping, using a function inside a declarative statement
 int strcmp(const char*, const char*);
 
-ruleset test17
+ruleset test18
 {
     {
         int total_acres;
@@ -258,9 +296,10 @@ ruleset test17
     }
 }
 
-ruleset test18
+// TESTCASE: else-ifs with table scans unrelated to the on_insert anchor row's table.
+ruleset test19
 {
-    OnInsert(isolated)
+    on_insert(isolated)
     {
         int answer;
         if (/incubator->actuator.value > 0.5)
@@ -278,9 +317,10 @@ ruleset test18
     }
 }
 
-ruleset test19
+// TESTCASE: multiple else-ifs with sequential nomatches.
+ruleset test20
 {
-    OnInsert(isolated)
+    on_insert(isolated)
     {
         int answer;
         if (/incubator->actuator.value > 0.5)
@@ -295,7 +335,7 @@ ruleset test19
         {
             answer += /feeding.portion;
         }
-// GAIAPLAT-988
+// GAIAPLAT-988 (fixed)
         nomatch
         {
             answer = 15;
@@ -311,11 +351,11 @@ ruleset test19
     }
 }
 
-ruleset test20
+// TESTCASE: single-cardinality reference in for()
+ruleset test21
 {
-    OnInsert(incubator)
+    on_insert(animal)
     {
-        // Single-cardinality reference in 'for' loop.
         for (int i = 0; i < farmer.acreage; i++)
         {
             farmer.acreage++;
@@ -323,12 +363,11 @@ ruleset test20
     }
 }
 
-ruleset test21
+// TESTCASE: multiple-cardinality reference in for() with tag declaration
+ruleset test22
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        // Multiple-cardinality reference in 'for' loop.
-        // Reference a tag in the loop.
         for (float f = 0.0; f < S:sensor.value; f += 1.3)
         {
             S.timestamp++;
@@ -336,37 +375,17 @@ ruleset test21
     }
 }
 
-ruleset test22
-{
-    OnInsert(incubator)
-    {
-        // Stupidly complex rule.
-        long tot_acres = 0;
-        long tot_feed = 0;
-        long tot_age = 0;
-        for (int i = 0; i < /F:farmer->R:raised->A:animal->FE:feeding->Y:yield->C:crop.acres; i++)
-        {
-            tot_acres = crop.acres;
-            while (A->FE2:feeding.portion > 0)
-            {
-                tot_feed += FE2.portion;
-            }
-            tot_age += Y->feeding->animal.age;
-        }
-    }
-}
-
+// TESTCASE: braceless nested if-else-nomatches with implicit iteration
 ruleset test23
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
-        // Convoluted if/nomatch with no braces.
         bool here = false;
         if (incubator.max_temp > 99.0)
             if (actuator.value < 97.3)
                 if (sensor.value > 82.1)
                     here = true;
-// GAIAPLAT-988
+// GAIAPLAT-988 (fixed)
                 nomatch
                     here = false;
             else
@@ -378,11 +397,12 @@ ruleset test23
     }
 }
 
+// TESTCASE: prodcedural for() but with a query on all three of its header statements
 ruleset test24
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
-        // Another convoluted set or queries.
+        // Another convoluted set of queries.
         // Note that the translated code is not yet correct.
         long some_number = 0;
         long i = 0;
@@ -393,29 +413,33 @@ ruleset test24
     }
 }
 
+// TESTCASE: expression with navigation on both sides
 ruleset test25
 {
-    OnInsert(feeding)
+    on_insert(feeding)
     {
         // Note that the translated code is not yet correct.
-        farmer->incubator->raised.birthdate += crop->yield->feeding.portion;
+        farmer.condos->incubator->raised.birthdate += animal->crop->yield->feeding.portion;
     }
 }
 
+// TESTCASE: navigation with tags in function parameters
 void sprintf(char*, const char*, const char*, float, float);
 
 ruleset test26
 {
-    OnInsert(feeding)
+    on_insert(raised)
     {
         char str[200];
-        sprintf(str, "%ld,%f,%f", I:incubator->raised.birthdate, I->A:actuator.value, A->incubator->sensor.value);
+        sprintf(str, "%ld,%f,%f", yield->farmer.incubators->I:incubator->raised.birthdate, I->A:actuator.value,
+            A->incubator->sensor.value);
     }
 }
 
+// TESTCASE: declaring a tag in the on_insert statement
 ruleset test27
 {
-    OnInsert(I:incubator)
+    on_insert(I:incubator)
     {
         if (incubator.max_temp > 99.8)
         {
@@ -428,9 +452,10 @@ ruleset test27
     }
 }
 
+// TESTCASE: implicit iteration in if-else-nomatch from a navigation path
 ruleset test28
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         float temp = 0;
         if (incubator->raised->animal->feeding.portion > 1)
@@ -448,20 +473,10 @@ ruleset test28
     }
 }
 
+// TESTCASE: checking if procedural while() and if() still work
 ruleset test29
 {
-    OnInsert(incubator)
-    {
-        float temp = 0;
-        // Braces are omitted on purpose.
-        while (S:sensor->I:incubator->A:actuator.value > 0.0)
-            temp += S.value + I.min_temp + A.value;
-    }
-}
-
-ruleset test30
-{
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;
@@ -476,55 +491,24 @@ ruleset test30
     }
 }
 
-ruleset test31
+// TESTCASE: declarative statement inside a braceless procedural while()
+ruleset test30
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         const char* s = "just a string";
         int i = 0;
-        // Testing while/declarative-while/while/if nesting.
-        while (*s++) {
-            while (/incubator.max_temp > 0) {
-                while(*s++) {
-                    if (*s == ' ') {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-}
-
-ruleset test32
-{
-    OnInsert(incubator)
-    {
-        const char* s = "just a string";
-        int i = 0;
-        // Testing braceless delcarative statement inside while.
         while (*s++)
             max_temp += 1;
     }
 }
 
-ruleset test33
-{
-    OnInsert(incubator)
-    {
-        int count = 0;
-        do
-        {
-            count += 1;
-        }
-        while (sensor.value > 0.0);
-    }
-}
-
-ruleset test34
+// TESTCASE: delcaring a tag in an if() and using it in the else{} and nomatch{}
+ruleset test31
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }
@@ -541,5 +525,501 @@ ruleset test34
             // This nomatch is for the inner 'if' so F is in scope
             total_acres = F.acreage;
         }
+    }
+}
+
+// TESTCASE: procedural do-while that does not reference any rows
+ruleset test32
+{
+    on_insert(incubator)
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (count < 10);
+    }
+}
+
+// TESTCASE: procedural do-while referencing an active field on the anchor row
+ruleset test33
+{
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (@animal.age < 10);
+    }
+}
+
+// TESTCASE: procedural do-while using a tag declared in the on_insert
+ruleset test34
+{
+    on_insert(A:animal)
+    {
+        int count = 0;
+        do
+        {
+            count += A.age;
+        }
+        while (A.age > 0);
+    }
+}
+
+// TESTCASE: procedural do-while with a tag used in the do{} but not the while()
+ruleset test35
+{
+    on_insert(A:animal)
+    {
+        int count = 0;
+        do
+        {
+            count += A.age;
+        }
+        while (count < 10);
+    }
+}
+
+// TESTCASE: declaring a tag in an if() and using it in a while()
+ruleset test36
+{
+    {
+        if (@C:crop.acres > 10)
+        {
+            int num = 0;
+            while (C.acres > num)
+            {
+                num += C.acres;
+            }
+        }
+    }
+}
+
+// TESTCASE: declaring a tag in an if() and using it in a do-while
+ruleset test37
+{
+    {
+        if (@C:crop.acres > 10)
+        {
+            int num = 0;
+            do
+            {
+                num += C.acres;
+            }
+            while (C.acres > num);
+        }
+    }
+}
+
+// TESTCASE: declaring and using a tag inside the do{} of a do-while
+ruleset test38
+{
+    on_insert(animal)
+    {
+        int num = 0;
+        do
+        {
+            if(A:animal.age > 10)
+            {
+                num += A.age;
+            }
+        }
+        while(num < 10);
+    }
+}
+
+// TESTCASE: 1-to-1 navigation in a while() is legal
+ruleset test39
+{
+    on_insert(incubator)
+    {
+        int count = 0;
+        while (sensor.value > 0.0)
+        {
+            count += 1;
+        }
+    }
+
+}
+
+// TESTCASE: 1-to-1 navigation in a do-while is legal
+ruleset test40
+{
+    on_insert(raised)
+    {
+        int num = 0;
+        do
+        {
+            num++;
+        }
+        while(yield.bushels > 10 && num < 10);
+    }
+}
+
+// TESTCASE: while() with navigation and tags
+ruleset test41
+{
+    on_insert(incubator)
+    {
+        float temp = 0;
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+        {
+            temp += S.value + I.min_temp + A.value;
+        }
+    }
+}
+
+// TESTCASE: nested while() loops with navigation and tags
+ruleset test42
+{
+    on_insert(incubator)
+    {
+        float temp = 0;
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+        {
+            temp += I.max_temp;
+            while (A->II:incubator->SS:sensor.value < 100.0)
+            {
+                temp += S.value + II.min_temp + A.value;
+            }
+            temp -= S.value;
+        }
+    }
+}
+
+// TESTCASE: if() inside of while(), both with complex navigation, using on_insert
+ruleset test43
+{
+    on_insert(farmer)
+    {
+        float temp = 0;
+        while (farmer.incubators->incubator->raised->animal->feeding->yield->crop.acres)
+        {
+            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
+            {
+                temp += 1.0;
+            }
+        }
+    }
+}
+
+// TESTCASE: if() inside of while(), both with complex navigation, active field in the while()
+ruleset test44
+{
+    {
+        float temp = 0;
+        while (@farmer.condos->incubator->raised->animal->feeding->yield->crop.acres)
+        {
+            if (farmer->yield->feeding->animal->raised->incubator.max_temp < 100.0)
+            {
+                temp += 1.0;
+            }
+        }
+    }
+}
+
+// TESTCASE: arbitrarily deep navigation with tags in a for() containing a while()
+ruleset test45
+{
+    on_insert(incubator)
+    {
+        long tot_acres = 0;
+        long tot_feed = 0;
+        long tot_age = 0;
+        for (int i = 0; i < /F:farmer->R:raised->A:animal->FE:feeding->Y:yield->C:crop.acres; i++)
+        {
+            tot_acres = animal->feeding->yield->crop.acres;
+            while (A->FE2:feeding.portion > 0)
+            {
+                tot_feed += FE2.portion;
+            }
+            tot_age += Y->feeding->animal.age;
+        }
+    }
+}
+
+// TESTCASE: braceless while() with tag declarations
+ruleset test46
+{
+    on_insert(incubator)
+    {
+        float temp = 0;
+        while (S:sensor->I:incubator->A:actuator.value > 0.0)
+            temp += S.value + I.min_temp + A.value;
+    }
+}
+
+// TESTCASE: nested procedural and declarative while()s and an if()
+ruleset test47
+{
+    on_insert(incubator)
+    {
+        const char* s = "just a string";
+        int i = 0;
+        while (*s++) {
+            while (/incubator.max_temp > 0) {
+                while(*s++) {
+                    if (*s == ' ') {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TESTCASE: declarative do-while containing an if() that declares a tag
+ruleset test48
+{
+    on_update(incubator)
+    {
+        int count = 0;
+        do
+        {
+            if (A:actuator.value > 0.0)
+            {
+                count += 1;
+            }
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+// TESTCASE: declarative do-while with a full-table scan
+ruleset test49
+{
+    on_insert(incubator)
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (/sensor.value > 0.0);
+    }
+}
+
+// TESTCASE: do-while with an active field and a table scan in the while()
+ruleset test50
+{
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (@/animal.age < 10);
+    }
+}
+
+// TESTCASE: do-while with a table scan in the while() over the child table of the anchor row's table
+ruleset test51
+{
+    on_insert(incubator)
+    {
+        int count = 0;
+        do
+        {
+            count += 1;
+        }
+        while (/sensor.value > 0.0);
+    }
+}
+
+// TESTCASE: nested declarative do-while loops
+ruleset test52
+{
+    on_insert(I:incubator)
+    {
+        int count_a = 0;
+        do
+        {
+            int count_b = 0;
+
+            do
+            {
+                int count_c = 0;
+
+                do
+                {
+                    count_c += 1;
+                } while (strcmp(raised.birthdate, "") != 0);
+
+                count_b += 1;
+            } while (actuator.value < 10);
+
+            count_a += 1;
+        }
+        while (sensor.value > 0.0);
+    }
+}
+
+// TESTCASE: arbitrarily complex navigation in the while() statement of a do-while
+ruleset test53
+{
+    on_insert(farmer)
+    {
+        int count = 0;
+        do
+        {
+            count++;
+        }
+        while (farmer->raised->animal->feeding->yield->crop.acres < 10);
+    }
+}
+
+// TESTCASE: procedural for() with a declarative query inside a do-while
+ruleset test54
+{
+    on_insert(incubator)
+    {
+        do
+        {
+            for (int i = 0; i < incubator.landlord->farmer.acreage; i++)
+            {
+                incubator.farmer->farmer.acreage++;
+            }
+        } while (sensor.value > 0.0);
+    }
+}
+
+// TESTCASE: break from within a declarative for.
+ruleset test57
+{
+    on_insert(incubator)
+    {
+        for (S:sensor) if (S.value > 99.9)
+        {
+            break;
+        }
+        else
+        {
+            S.value += 0.5;
+        }
+    }
+}
+
+// TESTCASE: break from within a nested declarative for.
+// GAIAPLAT-1056 (fixed)
+ruleset test58
+{
+    on_insert(incubator)
+    {
+        for (S:sensor)
+        {
+            for (S->incubator.farmer->farmer->Y:yield)
+            {
+                if (Y.bushels > 10)
+                {
+                    break;
+                }
+            }
+            int i = 0;
+        }
+    }
+}
+
+void printf(const char*, unsigned int);
+
+// TESTCASE: mix up declarative for with switch statement
+// GAIAPLAT-1084 (fixed)
+ruleset test59
+{
+    on_update(farmer)
+    {
+        for (F:feeding)
+        {
+            switch (F.portion)
+            {
+            default:
+                F.portion += 1;
+                printf("%d\n", F.portion);
+            }
+        }
+    }
+}
+
+// TESTCASE: while with an anchor field condition
+ruleset test60
+{
+    on_update(incubator)
+    {
+        while (incubator.max_temp < 100.0)
+        {
+            incubator.max_temp += 5.0;
+        }
+    }
+}
+
+ruleset test61
+{
+    on_update(incubator)
+    {
+        int maxtemp = incubator.max_temp;
+        while (maxtemp < 100.0)
+        {
+            maxtemp += 5.0;
+        }
+        incubator.max_temp = maxtemp;
+    }
+}
+
+ruleset test62
+{
+    on_update(incubator)
+    {
+        for (S:sensor)
+        {
+            while (S.value < 100.0)
+            {
+                S.value += 5.0;
+            }
+        }
+    }
+}
+
+ruleset test63
+{
+    on_update(incubator)
+    {
+        for (S:sensor)
+        {
+            float val;
+            val = S.value;
+            while (val < 100.0)
+            {
+                val += 5.0;
+            }
+            S.value = val;
+        }
+    }
+}
+
+// TESTCASE: while() with an active field and a table scan
+ruleset test64
+{
+    {
+        int count = 0;
+        while (@/animal.age < 10)
+        {
+            count += 1;
+        }
+    }
+}
+
+// TESTCASE: legal navigation in a do-while() statement
+ruleset test65
+{
+    on_insert(farmer)
+    {
+        int count = 0;
+        do
+        {
+            count++;
+        }
+        while (farmer->yield.bushels < 10);
     }
 }

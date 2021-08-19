@@ -8,6 +8,7 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
@@ -17,7 +18,6 @@ using namespace gaia::prerequisites;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace rule_test_helpers;
 
 extern bool g_oninsert_called;
 extern bool g_oninsert2_called;
@@ -94,31 +94,33 @@ TEST_F(test_tags_code, oninsert)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
-    // Creating a record should fire OnInsert and OnChange, but not OnUpdate.
+    // Creating a record should fire on_insert and on_change, but not on_update.
     gaia::db::begin_transaction();
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    // Check OnInsert.
-    EXPECT_TRUE(wait_for_rule(g_oninsert_called)) << "OnInsert(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert failure";
+    gaia::rules::test::wait_for_rules_to_complete();
 
-    // Check second OnInsert.
-    EXPECT_TRUE(wait_for_rule(g_oninsert2_called)) << "Second OnInsert(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_oninsert2_result) << "OnInsert failure";
+    // Check on_insert.
+    EXPECT_TRUE(g_oninsert_called) << "on_insert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert failure";
 
-    // Check OnChange.
-    EXPECT_TRUE(wait_for_rule(g_onchange_called)) << "OnChange(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "OnChange failure";
+    // Check second on_insert.
+    EXPECT_TRUE(g_oninsert2_called) << "Second on_insert(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert2_result) << "on_insert failure";
 
-    EXPECT_TRUE(wait_for_rule(g_onchange2_called)) << "OnChange(student.age) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onchange2_result) << "OnChange failure";
+    // Check on_change.
+    EXPECT_TRUE(g_onchange_called) << "on_change(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "on_change failure";
 
-    // Check OnUpdate.
-    EXPECT_FALSE(g_onupdate_called) << "OnUpdate(student) should not be called";
-    EXPECT_FALSE(g_onupdate2_called) << "OnUpdate(student.surname) should not be called";
-    EXPECT_FALSE(g_onupdate3_called) << "OnUpdate(student.age) should not be called";
-    EXPECT_FALSE(g_onupdate4_called) << "OnUpdate(student.age, student.surname) should not be called";
+    EXPECT_TRUE(g_onchange2_called) << "on_change(student.age) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onchange2_result) << "on_change failure";
+
+    // Check on_update.
+    EXPECT_FALSE(g_onupdate_called) << "on_update(student) should not be called";
+    EXPECT_FALSE(g_onupdate2_called) << "on_update(student.surname) should not be called";
+    EXPECT_FALSE(g_onupdate3_called) << "on_update(student.age) should not be called";
+    EXPECT_FALSE(g_onupdate4_called) << "on_update(student.age, student.surname) should not be called";
 }
 
 TEST_F(test_tags_code, onchange)
@@ -132,36 +134,38 @@ TEST_F(test_tags_code, onchange)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
-    // Changing a record should fire OnChange and OnUpdate, but not OnInsert.
+    // Changing a record should fire on_change and on_update, but not on_insert.
     gaia::db::begin_transaction();
     auto sw = student.writer();
     sw.surname = "Hawkins";
     sw.update_row();
     gaia::db::commit_transaction();
 
-    // Check OnChange.
-    EXPECT_TRUE(wait_for_rule(g_onchange_called)) << "OnChange(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "OnChange failure";
+    gaia::rules::test::wait_for_rules_to_complete();
 
-    // Check OnUpdate of student.
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+    // Check on_change.
+    EXPECT_TRUE(g_onchange_called) << "on_change(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "on_change failure";
 
-    // Check OnUpdate of student.surname.
-    EXPECT_TRUE(wait_for_rule(g_onupdate2_called)) << "OnUpdate(student.surname) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate2_result) << "OnUpdate failure";
+    // Check on_update of student.
+    EXPECT_TRUE(g_onupdate_called) << "on_update(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "on_update failure";
 
-    // Check OnUpdate of student.age or student.surname.
-    EXPECT_TRUE(wait_for_rule(g_onupdate4_called)) << "OnUpdate(student.age, student.surname) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate4_result) << "OnUpdate failure";
+    // Check on_update of student.surname.
+    EXPECT_TRUE(g_onupdate2_called) << "on_update(student.surname) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate2_result) << "on_update failure";
+
+    // Check on_update of student.age or student.surname.
+    EXPECT_TRUE(g_onupdate4_called) << "on_update(student.age, student.surname) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate4_result) << "on_update failure";
 
     // Verify that these rules should *not* be called.
 
-    // Check OnInsert.
-    EXPECT_FALSE(g_oninsert_called) << "OnInsert(student) called after field write";
-    EXPECT_FALSE(g_oninsert2_called) << "Second OnInsert(student) called after field write";
-    EXPECT_FALSE(g_onchange2_called) << "OnChange(student.age) should not be called";
-    EXPECT_FALSE(g_onupdate3_called) << "OnUpdate(student.age) should not be called";
+    // Check on_insert.
+    EXPECT_FALSE(g_oninsert_called) << "on_insert(student) called after field write";
+    EXPECT_FALSE(g_oninsert2_called) << "Second on_insert(student) called after field write";
+    EXPECT_FALSE(g_onchange2_called) << "on_change(student.age) should not be called";
+    EXPECT_FALSE(g_onupdate3_called) << "on_update(student.age) should not be called";
 }
 
 TEST_F(test_tags_code, onupdate)
@@ -175,38 +179,40 @@ TEST_F(test_tags_code, onupdate)
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
-    // Changing the age field should fire OnChange and OnUpdate, but not OnInsert.
+    // Changing the age field should fire on_change and on_update, but not on_insert.
     gaia::db::begin_transaction();
     auto sw = student.writer();
     sw.age = 45;
     sw.update_row();
     gaia::db::commit_transaction();
 
-    // Check OnChange.
-    EXPECT_TRUE(wait_for_rule(g_onchange_called)) << "OnChange(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "OnChange failure";
+    gaia::rules::test::wait_for_rules_to_complete();
 
-    EXPECT_TRUE(wait_for_rule(g_onchange2_called)) << "OnChange(student.age) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onchange2_result) << "OnChange failure";
+    // Check on_change.
+    EXPECT_TRUE(g_onchange_called) << "on_change(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onchange_result) << "on_change failure";
 
-    // Check OnUpdate of student.
-    EXPECT_TRUE(wait_for_rule(g_onupdate_called)) << "OnUpdate(student) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "OnUpdate failure";
+    EXPECT_TRUE(g_onchange2_called) << "on_change(student.age) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onchange2_result) << "on_change failure";
 
-    // Check OnUpdate of student.age.
-    EXPECT_TRUE(wait_for_rule(g_onupdate3_called)) << "OnUpdate(student.age) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate3_result) << "OnUpdate failure";
+    // Check on_update of student.
+    EXPECT_TRUE(g_onupdate_called) << "on_update(student) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "on_update failure";
 
-    // Check OnUpdate of student.age or student.surname.
-    EXPECT_TRUE(wait_for_rule(g_onupdate4_called)) << "OnUpdate(student.age, student.surname) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_onupdate4_result) << "OnUpdate failure";
+    // Check on_update of student.age.
+    EXPECT_TRUE(g_onupdate3_called) << "on_update(student.age) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate3_result) << "on_update failure";
 
-    // Check OnUpdate of student.surname.
-    EXPECT_FALSE(g_onupdate2_called) << "OnUpdate(student.surname) not called";
+    // Check on_update of student.age or student.surname.
+    EXPECT_TRUE(g_onupdate4_called) << "on_update(student.age, student.surname) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_onupdate4_result) << "on_update failure";
 
-    // Check OnInsert.
-    EXPECT_FALSE(g_oninsert_called) << "OnInsert(student) called after field write";
-    EXPECT_FALSE(g_oninsert2_called) << "Second OnInsert(student) called after field write";
+    // Check on_update of student.surname.
+    EXPECT_FALSE(g_onupdate2_called) << "on_update(student.surname) not called";
+
+    // Check on_insert.
+    EXPECT_FALSE(g_oninsert_called) << "on_insert(student) called after field write";
+    EXPECT_FALSE(g_oninsert2_called) << "Second on_insert(student) called after field write";
 }
 
 TEST_F(test_tags_code, multi_inserts)
@@ -231,8 +237,10 @@ TEST_F(test_tags_code, multi_inserts)
     student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_insert_count, num_inserts)) << "OnInsert(student) parallel execution failure";
-    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "OnInsert(student) failure";
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    EXPECT_EQ(g_insert_count, num_inserts) << "on_insert(student) parallel execution failure";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert(student) failure";
 }
 
 TEST_F(test_tags_code, basic_tags)
@@ -246,6 +254,8 @@ TEST_F(test_tags_code, basic_tags)
     registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
     gaia::db::commit_transaction();
 
-    EXPECT_TRUE(wait_for_rule(g_oninsert3_called)) << "OnInsert(registration) not called";
-    EXPECT_EQ(test_error_result_t::e_none, g_oninsert3_result) << "OnInsert(registration) failure";
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    EXPECT_TRUE(g_oninsert3_called) << "on_insert(registration) not called";
+    EXPECT_EQ(test_error_result_t::e_none, g_oninsert3_result) << "on_insert(registration) failure";
 }

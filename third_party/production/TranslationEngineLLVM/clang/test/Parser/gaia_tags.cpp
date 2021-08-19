@@ -5,7 +5,7 @@
 
 ruleset test80
 {
-    OnInsert(S:sensor)
+    on_insert(S:sensor)
     {
         actuator.value += S.value/2;
     }
@@ -13,7 +13,7 @@ ruleset test80
 
 ruleset test81
 {
-    OnUpdate(S:sensor)
+    on_update(S:sensor)
     {
         float v = S.value;
     }
@@ -21,7 +21,7 @@ ruleset test81
 
 ruleset test82
 {
-    OnUpdate(S:sensor, V:sensor.value)
+    on_update(S:sensor, V:sensor.value)
     {
         float v = S.value + V.value;
     }
@@ -31,9 +31,9 @@ ruleset test82
 // The 'value' is not duplicated, but qualified by 'sensor'.
 // GAIALAT-796
 #ifdef TEST_FAILURES
-ruleset test83 : Table(sensor)
+ruleset test83 : tables(sensor)
 {
-    OnUpdate(value)
+    on_update(value)
     {
         float v;
         v = value * 2.0;
@@ -43,36 +43,36 @@ ruleset test83 : Table(sensor)
 
 ruleset test84
 {
-    OnInsert(I::incubator) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_insert(I::incubator) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test85
 {
-    OnInsert(I:incubator:sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    on_insert(I:incubator:sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}})
     {
     }
 }
 
 ruleset test86
 {
-    OnInsert(incubator:) // expected-error {{expected identifier}}
+    on_insert(incubator:) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test87
 {
-    OnInsert(incubator:I) // expected-error {{Tag 'incubator' cannot have the same name as a table or a field.}}
+    on_insert(incubator:I) // expected-error {{Tag 'incubator' cannot have the same name as a table or a field.}}
     {
     }
 }
 
 
-ruleset test89 : Table(actuator)
+ruleset test89 : tables(actuator)
 {
-    OnUpdate(A:actuator)
+    on_update(A:actuator)
     {
     }
 }
@@ -81,7 +81,7 @@ ruleset test89 : Table(actuator)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test126
 {
-    OnChange(I:incubator)
+    on_change(I:incubator)
     {
         if (/I:incubator.max_temp == 100.0) // expected-error {{Tag 'I' is already defined.}}
         // expected-error@-1  {{use of undeclared identifier 'I'}}
@@ -94,7 +94,7 @@ ruleset test126
 // GAIAPLAT-922
 ruleset test127
 {
-    OnChange(actuator)
+    on_change(actuator)
     {
         if (/I:incubator.max_temp == 100.0)
         {
@@ -107,7 +107,7 @@ ruleset test127
 // GAIAPLAT-808
 ruleset test128
 {
-    OnChange(actuator)
+    on_change(actuator)
     {
         if (/I:incubator.max_temp == 100.0)
         {
@@ -121,7 +121,7 @@ ruleset test128
 // GAIAPLAT-827
 ruleset test122
 {
-    OnChange(sensor.value)
+    on_change(sensor.value)
     {
         if (S:sensor.value > 100.0)
         {

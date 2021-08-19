@@ -10,7 +10,7 @@ ruleset test
 
 ruleset test1
 {
-    OnUpdate(min_temp)
+    on_update(min_temp)
     {
         min_temp += 1;
     }
@@ -18,7 +18,7 @@ ruleset test1
 
 ruleset test2
 {
-    OnUpdate(max_temp)
+    on_update(max_temp)
     {
         max_temp++;
     }
@@ -26,17 +26,9 @@ ruleset test2
 
 ruleset test3
 {
-    OnUpdate(animal.age)
+    on_update(animal.age)
     {
         animal.age++;
-    }
-}
-
-ruleset test4
-{
-    OnInsert(sensor)
-    {
-        sensor.delete_row();
     }
 }
 
@@ -65,7 +57,7 @@ typedef enum
     defs = 2
 } testEnum;
 
-ruleset test6 : Table(sensor)
+ruleset test6 : tables(sensor)
 {
     {
         if (@value < 5)
@@ -86,7 +78,7 @@ public:
 // GAIAPLAT-911
 ruleset test7
 {
-    OnChange(sensor)
+    on_change(sensor)
     {
         auto t = sensor.gaia_id();
         if (sensor.value == 5)
@@ -106,27 +98,27 @@ ruleset test8
         auto context_event_type = rule_context.event_type;
         auto gaia_type = rule_context.gaia_type;
 
-        if (@actuator.value < 5 && @sensor.value > 10)
+        if (@actuator.value < 5 && sensor.value > 10)
         {
             actuator.value = 5;
         }
     }
 }
 
-void OnUpdate()
+void on_update()
 {}
 
 ruleset test9
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
-        OnUpdate();
+        on_update();
     }
 }
 
 ruleset test10
 {
-    OnInsert(incubator)
+    on_insert(incubator)
     {
         min_temp = 98.6;
     }
@@ -135,9 +127,9 @@ ruleset test10
 // This is legal? But has error (duplicate 'name' fields).
 // GAIAPLAT-796
 #ifdef TEST_FAILURES
-ruleset test11 : Table(sensor)
+ruleset test11 : tables(sensor)
 {
-    OnUpdate(name)
+    on_update(name)
     {
         use_string(name);
     }
@@ -146,7 +138,7 @@ ruleset test11 : Table(sensor)
 
 ruleset test12
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         int i = 0;
         if (incubator.max_temp > 99.0)
@@ -157,6 +149,46 @@ ruleset test12
         nomatch
         {
             i = 2;
+        }
+    }
+}
+
+// Verify that these are all allowable rule constructs and don't
+// incorrectly cause the translation engine to think that these
+// are multi-anchor rules.
+ruleset test13
+{
+    on_insert(sensor.value, sensor.timestamp)
+    {
+    }
+
+    on_insert(sensor, sensor)
+    {
+    }
+
+    on_change(sensor, sensor.timestamp)
+    {
+    }
+
+    on_change(min_temp, max_temp)
+    {
+    }
+
+    on_update(min_temp, max_temp)
+    {
+    }
+
+    on_update(actuator, actuator)
+    {
+    }
+
+    on_update(actuator, actuator.timestamp)
+    {
+    }
+
+    {
+        if (@actuator.value > 0 && @actuator.timestamp == 0)
+        {
         }
     }
 }

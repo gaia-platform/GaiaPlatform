@@ -199,15 +199,15 @@ string usage()
 {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -n|--instance-name <name> Specify the database instance name.\n"
-          "                            If not specified will use "
-       << c_default_instance_name << ".\n"
-       << "                            If 'rnd' is specified will use a random name.\n"
           "  -d|--db-name <dbname>     Specify the database name.\n"
           "  -i|--interactive          Interactive prompt, as a REPL.\n"
           "  -g|--generate             Generate direct access API header files.\n"
           "  -o|--output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
+          "  -n|--instance-name <name> Specify the database instance name.\n"
+          "                            If not specified will use "
+       << c_default_instance_name << ".\n"
+       << "                            If 'rnd' is specified will use a random name.\n"
           "  -p|--parse-trace          Print parsing trace.\n"
           "  -s|--scan-trace           Print scanning trace.\n"
           "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
@@ -356,13 +356,13 @@ int main(int argc, char* argv[])
 
     gaia::db::config::session_options_t session_options;
     session_options.db_instance_name = instance_name;
+    session_options.skip_catalog_integrity_check = false;
     gaia::db::config::set_default_session_options(session_options);
 
     gaia::db::begin_session();
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             gaia::db::end_session();
             if (server.is_initialized())
             {

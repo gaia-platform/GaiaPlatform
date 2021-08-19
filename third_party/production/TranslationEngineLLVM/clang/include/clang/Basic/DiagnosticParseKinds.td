@@ -1271,7 +1271,11 @@ def err_duplicate_tag_defined: Error<
 def err_tag_not_allowed: Error<
   "Tag not allowed in a Table attribute.">;
 def err_nomatch_without_navigation : Error<
-    "A non-declarative 'if' statement may not use nomatch.">;
+  "A non-declarative '%select{for|if}0' statement may not use nomatch.">;
+def err_incorrect_declarative_label_scope: Error<
+  "Declarative label '%0' is defined in the incorrect scope.">;
+def err_incorrect_parameter_for_insert : Error<
+  "Incorrect parameter is specified for Insert function.">;
 }
 
 } // end of Parser diagnostics

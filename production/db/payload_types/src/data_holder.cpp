@@ -50,6 +50,52 @@ data_holder_t::data_holder_t(const char* value, std::size_t len)
     hold.vector_value = {value, len};
 }
 
+data_holder_t::data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type)
+{
+    this->type = type;
+
+    if (flatbuffers::IsInteger(type))
+    {
+        buffer >> hold.integer_value;
+    }
+    else if (flatbuffers::IsFloat(type))
+    {
+        buffer >> hold.float_value;
+    }
+    else if (type == reflection::String)
+    {
+        size_t length;
+        buffer >> length;
+
+        if (length == 0)
+        {
+            hold.string_value = nullptr;
+        }
+        else
+        {
+            hold.string_value = buffer.read(length);
+        }
+    }
+    else if (type == reflection::Vector)
+    {
+        size_t length;
+        buffer >> length;
+
+        if (length == 0)
+        {
+            hold.vector_value = {nullptr, 0};
+        }
+        else
+        {
+            hold.vector_value = {buffer.read(length), length};
+        }
+    }
+    else
+    {
+        throw unhandled_field_type(type);
+    }
+}
+
 data_holder_t::operator uint64_t() const
 {
     if (!flatbuffers::IsInteger(type) || is_signed_integer(type))
@@ -245,11 +291,57 @@ std::size_t data_holder_t::hash() const
     }
 }
 
+void data_holder_t::serialize(data_write_buffer_t& buffer) const
+{
+    if (flatbuffers::IsInteger(type))
+    {
+        buffer << hold.integer_value;
+    }
+    else if (flatbuffers::IsFloat(type))
+    {
+        buffer << hold.float_value;
+    }
+    else if (type == reflection::String)
+    {
+        size_t length;
+        if (hold.string_value == nullptr)
+        {
+            length = 0;
+            buffer << length;
+        }
+        else
+        {
+            length = strlen(hold.string_value) + 1; // +1 for null terminator
+            buffer << length;
+            buffer.write(hold.string_value, length);
+        }
+    }
+    else if (type == reflection::Vector)
+    {
+        size_t length;
+
+        if (hold.vector_value.data() == nullptr)
+        {
+            length = 0;
+            buffer << length;
+        }
+        else
+        {
+            length = hold.vector_value.size();
+            buffer << length;
+            buffer.write(hold.vector_value.data(), length);
+        }
+    }
+    else
+    {
+        throw unhandled_field_type(type);
+    }
+}
+
 std::ostream& operator<<(std::ostream& os, const data_holder_t& data)
 {
     if (flatbuffers::IsInteger(data.type))
     {
-
         if (is_signed_integer(data.type))
         {
             os << data.hold.integer_value;

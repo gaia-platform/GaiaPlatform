@@ -7,6 +7,7 @@
 #include <cstring>
 #include <atomic>
 
+#include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
 bool g_oninsert_called;
@@ -40,7 +41,7 @@ ruleset test_tags
 {
     // test_tags_code.oninsert
     // test_tags_code.multi_inserts
-    OnInsert(student)
+    on_insert(student)
     {
         g_insert_count++;
         g_oninsert_result = test_error_result_t::e_none;
@@ -48,7 +49,7 @@ ruleset test_tags
     }
 
     // test_tags_code.oninsert
-    OnInsert(S:student)
+    on_insert(S:student)
     {
         g_oninsert2_value = S.age;
         g_oninsert2_result = test_error_result_t::e_none;
@@ -56,7 +57,7 @@ ruleset test_tags
     }
 
     // test_tags_code.basic_tags
-    OnInsert(R:registration)
+    on_insert(R:registration)
     {
         // Check common field references.
         if (strcmp(R.reg_id, reg_id) != 0)
@@ -76,7 +77,7 @@ ruleset test_tags
     // test_tags_code.oninsert
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnChange(student)
+    on_change(student)
     {
         g_onchange_result = test_error_result_t::e_none;
         g_onchange_called = true;
@@ -84,7 +85,7 @@ ruleset test_tags
 
     // test_tags_code.oninsert
     // test_tags_code.onupdate
-    OnChange(student.age)
+    on_change(student.age)
     {
         g_onchange2_result = test_error_result_t::e_none;
         g_onchange2_called = true;
@@ -92,21 +93,21 @@ ruleset test_tags
 
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnUpdate(student)
+    on_update(student)
     {
         g_onupdate_result = test_error_result_t::e_none;
         g_onupdate_called = true;
     }
 
     // test_tags_code.onchange
-    OnUpdate(student.surname)
+    on_update(student.surname)
     {
         g_onupdate2_result = test_error_result_t::e_none;
         g_onupdate2_called = true;
     }
 
     // test_tags_code.onupdate
-    OnUpdate(student.age)
+    on_update(student.age)
     {
         g_onupdate3_value = age;
         g_onupdate3_result = test_error_result_t::e_none;
@@ -115,7 +116,7 @@ ruleset test_tags
 
     // test_tags_code.onchange
     // test_tags_code.onupdate
-    OnUpdate(student.age, student.surname)
+    on_update(student.age, student.surname)
     {
         g_onupdate4_result = test_error_result_t::e_none;
         g_onupdate4_called = true;
@@ -129,9 +130,9 @@ ruleset test_queries
     // translator is done.
 
     // test_queries_code.new_registration
-    OnInsert(R:registration)
+    on_insert(R:registration)
     {
-        // printf("OnInsert(registration) = %s\n", registration.reg_id);
+        // printf("on_insert(registration) = %s\n", registration.reg_id);
         // printf("course name=%s\n", course.name);
         status = "Ineligible";
         // Has this student taken all prerequisites?
@@ -164,7 +165,7 @@ ruleset test_queries
     }
 
     // test_queries_code.sum_of_ages
-    OnInsert(S:student)
+    on_insert(S:student)
     {
         int32_t age_sum = 0;
         age_sum += /student.age;
@@ -175,7 +176,7 @@ ruleset test_queries
 
     // test_queries_code.basic_implicit_navigation
     // test_queries_code.basic_implicit_fork
-    OnUpdate(S:student)
+    on_update(S:student)
     {
         // Implicit query from student to course.
         // Result should be the total of hours for all courses taken by student.
@@ -186,24 +187,27 @@ ruleset test_queries
         g_onupdate_called = true;
     }
 
-    OnUpdate (registration)
+    on_update (registration)
     {
         g_onupdate_value = total_hours + hours;
         g_onupdate_called = true;
     }
 }
 
+// WLW TODO - change 'student.total_hours' back to 'total_hours'.
+// GAIAPLAT-1124 - the "student." qualification on this implicit navigation
 ruleset test_query_1
 {
     // test_queries_code.sum_of_hours
     // Auto-sum of student hours.
-    OnInsert(registration)
+    on_insert(registration)
     {
+        // GAIAPLAT-1124 (fixed)
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
-        total_hours += hours;
-        g_oninsert_value = total_hours;
+        student.total_hours += hours;
+        g_oninsert_value = student.total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
@@ -213,22 +217,22 @@ ruleset test_query_2
 {
     // test_queries_code.sum_of_all_hours
     // Auto-sum of student hours.
-    OnInsert(registration)
+    on_insert(registration)
     {
-        total_hours = 0;
+        student.total_hours = 0;
         // Visit all courses in which the student is registered.
-        total_hours += student->registration->course.hours;
-        g_oninsert_value = total_hours;
+        student.total_hours += student->registration->course.hours;
+        g_oninsert_value = student.total_hours;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
     }
 }
 
-// GAIAPLAT-950
+// GAIAPLAT-950 (fixed)
 ruleset test_query_3
 {
     // test_queries_code.tag_define_use
-    OnInsert(registration)
+    on_insert(registration)
     {
         // Visit all courses in which the student is registered. Use the tags.
         S:student->R:registration->C:course.hours = S.total_hours + C.hours;
@@ -238,7 +242,7 @@ ruleset test_query_3
         g_oninsert_called = true;
     }
 
-    OnUpdate(course.hours)
+    on_update(course.hours)
     {
         // When this rule is fired, we know that the commit for the
         // insertion of a registration rule fired and can proceed with verifying
@@ -250,10 +254,10 @@ ruleset test_query_3
 ruleset test_query_4
 {
     // test_queries_code.if_stmt
-    OnInsert(student)
+    on_insert(student)
     {
         int a = 0;
-        if (total_hours > 10)
+        if (student.total_hours > 10)
         {
             a += age;
         }
@@ -268,7 +272,7 @@ ruleset test_query_4
         if (@hours > 1)
         {
             hours -= 1;
-            total_hours += 1;
+            student.total_hours += 1;
         }
         else
         {
@@ -299,27 +303,9 @@ ruleset test_query_4
     }
 }
 
-ruleset test_query_5
-{
-    OnUpdate(S:student)
-    {
-// GAIAPLAT-989
-        while (student->R:registration->C:course.hours > 0)
-        {
-            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
-        }
-        g_onupdate_result = test_error_result_t::e_none;
-        g_onupdate_called = true;
-    }
-}
-// NOTE: alter above to
-//        while (S:student->R:registration->C:course.hours > 0)
-//        {
-//            g_string_value += std::string(S.student_id) + std::string(R.reg_id) + std::string(C.course_id) + " ";
-
 ruleset test_query_6
 {
-    OnUpdate(student)
+    on_update(student)
     {
         if (strcmp(surname, "Richard") == 0)
         {
@@ -337,7 +323,7 @@ ruleset test_query_6
         g_onupdate_called = true;
     }
 
-    OnInsert(student)
+    on_insert(student)
     {
         if (student->registration->course.hours > 0)
         {
@@ -358,7 +344,7 @@ ruleset test_query_6
 
 ruleset test_query_7
 {
-    OnInsert(registration)
+    on_insert(registration)
     {
         if (student.total_hours == 0)
         {
@@ -388,7 +374,7 @@ ruleset test_query_7
 
 ruleset test_query_8
 {
-    OnInsert(student)
+    on_insert(student)
     {
         // This student will have no registrations. The nomatch should execute.
         if (strcmp(student->registration.grade, "F") == 0)
@@ -410,12 +396,175 @@ ruleset test_query_8
 
 ruleset test_query_9
 {
-    OnInsert(student)
+    on_insert(student)
     {
         char str[200];
         sprintf(str, "%d%s%d ", S:student.total_hours, S->R:registration.grade, R->course.hours);
         g_string_value = std::string(str);
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
+    }
+}
+
+
+ruleset test_query_10
+{
+    on_insert(student)
+    {
+        int count = 0;
+        for (/parents->student)
+        {
+            count++;
+        }
+#ifdef GAIAPLAT_1180
+        // When issue is fixed, this should count to 3 as well.
+        for (/student->parents)
+        {
+            count++;
+        }
+        count -= 3;
+#endif
+        g_oninsert_value = count;
+        g_oninsert_result = test_error_result_t::e_none;
+        g_oninsert_called = true;
+    }
+}
+
+// This ruleset is not used, but its translation must compile with C++.
+ruleset test_compile
+{
+    // GAIAPLAT-1112
+    on_insert(student)
+    {
+        student.insert(surname: course.name, total_hours: course.hours);
+    }
+
+    // GAIAPLAT-1142
+    on_update(student)
+    {
+    BREAK1_TARGET:
+        for (R:registration)
+        {
+    BREAK2_TARGET:
+            for (R->C:course)
+            {
+    BREAK3_TARGET:
+                for (C.required_by->P:prereq)
+                {
+                    break BREAK1_TARGET;
+                    for (P.prereq->course)
+                    {
+                        break BREAK3_TARGET;
+                    }
+                }
+                break BREAK2_TARGET;
+            }
+        }
+    }
+
+    // GAIAPLAT-564 (tentative)
+    // TESTCASE: use field name same as a catalog field name, expect no conflict
+    on_insert(course)
+    {
+        printf("%s\n", name);
+    }
+
+    // Same as above, but a longer navigation.
+    on_insert(student)
+    {
+        printf("%s\n", name);
+    }
+
+    // GAIAPLAT-1140
+#if TEST_FAILURES
+    on_update(student)
+    {
+    BREAK_TARGET:
+        while (age < 13)
+        {
+            break BREAK_TARGET;
+        }
+        int i = 0;
+        i++;
+    }
+#endif
+
+}
+
+ruleset test_insert_delete
+{
+    on_update(S:student)
+    {
+        // This is a technique for deleting members of an iteration.
+        // It restarts the iterator after obtaining each first member.
+        bool deleted;
+        do
+        {
+            deleted = false;
+            for (/R:registration)
+            {
+                R.remove();
+                deleted = true;
+                g_onupdate_value++;
+                break;
+            }
+        }
+        while (deleted);
+        g_onupdate_called = true;
+    }
+}
+
+ruleset test_insert_delete_2
+{
+    // GAIAPLAT-1110
+    // GAIAPLAT-1112
+    on_insert(E:enrollment_log)
+    {
+        const char* str1 = nullptr;
+        const char* str2 = nullptr;
+        int32_t int1 = 0;
+
+        // WLW TODO - when bugs are fixed, use the tagged parameters.
+        // The uncommented code is a poor workaround for this, which should get fixed soon.
+        // auto S = student.insert(student_id: E.log_student_id, surname: E.log_surname, E.log_age);
+        // auto C = course.insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
+        // auto R = registration.insert(reg_id: E.log_reg_id);
+
+        str1 = E.log_student_id;
+        str2 = E.log_surname;
+        int1 = E.log_age;
+        gaia::prerequisites::student_t S = student.insert(student_id: str1, surname: str2, age: int1);
+        str1 = E.log_course_id;
+        str2 = E.log_name;
+        int1 = E.log_hours;
+        gaia::prerequisites::course_t C = course.insert(course_id: str1, name: str2, hours: int1);
+        str1 = E.log_reg_id;
+        gaia::prerequisites::registration_t R = registration.insert(reg_id: str1);
+
+        // WLW TODO - when declarative connect() is ready, use it rather than EDC.
+        S.registrations().insert(R);
+        C.registrations().insert(R);
+
+        g_oninsert_called = true;
+    }
+
+    on_insert(student)
+    {
+        student.total_hours += course.hours;
+    }
+
+    on_insert(course)
+    {
+        hours *= 2;
+    }
+
+    on_insert(registration)
+    {
+        status = surname;
+    }
+
+    on_update(status)
+    {
+        grade = "D+";
     }
 }
