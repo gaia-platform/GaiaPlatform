@@ -26,7 +26,7 @@ namespace persistence
 
 enum class uring_op_t : uint8_t
 {
-    not_set = 0,
+    nop = 0,
     pwritev_txn = 1,
     pwritev_decision = 2,
     pwritev_eventfd_flush = 3,
@@ -50,7 +50,7 @@ public:
     void close_all_files_in_batch();
 
     /**
-     * Add file to the batch that should be closed once all of its pending writes have finished.
+     * Add file fd to the batch that should be closed once all of its pending writes have finished.
      */
     void append_file_to_batch(int fd, file_sequence_t log_seq);
 

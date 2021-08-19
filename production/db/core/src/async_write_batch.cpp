@@ -106,6 +106,7 @@ void async_write_batch_t::close_all_files_in_batch()
 
 void async_write_batch_t::append_file_to_batch(int fd, file_sequence_t log_seq)
 {
+    // Add file info to the batch that should be closed once all of its pending writes have finished.
     log_file_info_t info{log_seq, fd};
     m_files_to_close.push_back(info);
 }
@@ -140,7 +141,7 @@ void async_write_batch_t::validate_next_completion_event()
     {
         std::stringstream ss;
         ss << "CQE completion failure for op: " << cqe->user_data;
-        throw_system_error(ss.str(), -cqe->res);
+        throw_system_error(ss.str(), -(cqe->res));
     }
 
     // Mark completion as seen.
