@@ -119,8 +119,8 @@ template <typename T_structure, typename T_iterator>
 class index_t : public base_index_t
 {
 public:
-    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type)
-        : base_index_t(index_id, index_type)
+    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, bool is_unique)
+        : base_index_t(index_id, index_type, is_unique)
     {
     }
     virtual ~index_t() override = default;
@@ -146,9 +146,6 @@ protected:
     T_structure m_data;
 
 private:
-    gaia::common::gaia_id_t m_index_id;
-    catalog::index_type_t m_index_type;
-
     // Find physical key corresponding to a logical_key + record or return the end iterator.
     // Returns the iterator type of the underlying structure.
     typename T_structure::iterator find_physical_key(index_key_t& key, index_record_t& record);
