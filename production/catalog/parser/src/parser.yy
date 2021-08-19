@@ -86,6 +86,7 @@
 
 %type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_list_t>> create_list
+%type <std::unique_ptr<gaia::catalog::ddl::create_list_t>> create_db_list
 %type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
 %type <std::unique_ptr<gaia::catalog::ddl::create_database_t>> create_database
 %type <std::unique_ptr<gaia::catalog::ddl::create_table_t>> create_table
@@ -126,6 +127,7 @@
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "create_list[" << $$->statements.size() << "]"; } create_list
+%printer { yyo << "create_db_list[" << $$->statements.size() << "]"; } create_db_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << "scalar_type: " << static_cast<uint8_t>($$); } scalar_type
 %printer { yyo << "index_type: " << static_cast<uint8_t>($$); } opt_index_type
@@ -163,7 +165,8 @@ opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
-  create_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+  create_db_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| create_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | use_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 ;
@@ -179,9 +182,19 @@ create_list:
   }
 ;
 
+create_db_list:
+  create_database {
+      $$ = std::make_unique<create_list_t>();
+      $$->statements.emplace_back(std::move($1));
+  }
+| create_database create_list {
+      $2->statements.insert($2->statements.begin(), std::move($1));
+      $$ = std::move($2);
+  }
+;
+
 create_statement:
-  create_database { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
-| create_table { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
+  create_table { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
 | create_relationship { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
 | create_index { $$ = std::unique_ptr<create_statement_t>{std::move($1)}; }
 ;

@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "gaia_internal/catalog/ddl_execution.hpp"
 
 #include <filesystem>
@@ -18,31 +19,43 @@ namespace catalog
 
 /**
  * For a given create statement list starting from the given index, move all
- * statements of the given type to the front.
+ * statements of the given type to the front (starting from the index). Return
+ * the index of the first element not of the give type after moving.
  */
 size_t move_to_front(
     std::vector<std::unique_ptr<gaia::catalog::ddl::create_statement_t>>& statements,
     ddl::create_type_t type,
     size_t index = 0)
 {
-    if (statements.size() == 0 || index >= statements.size())
+    if (statements.size() == 0)
+    {
+        return 0;
+    }
+    else if (index >= statements.size())
     {
         return index;
     }
+
     // The index used to reverse iterate the list.
     size_t reverse_index = 1;
     do
     {
+        // Advance index past statements of expected type.
         if (statements[index]->type == type)
         {
             index++;
             continue;
         }
+
+        // Move back reverse index across statements of different type.
         if (statements[statements.size() - reverse_index]->type != type)
         {
             reverse_index++;
             continue;
         }
+
+        // At this point index must point to a different type and reverse_index
+        // to the expected type, so we'll exchange the statements.
         if (index < (statements.size() - reverse_index))
         {
             statements[index].swap(statements[statements.size() - reverse_index]);

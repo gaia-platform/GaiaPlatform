@@ -635,3 +635,90 @@ CREATE RELATIONSHIP r (
     EXPECT_THROW(parser.parse_line(negative_2), parsing_error);
     EXPECT_THROW(parser.parse_line(negative_3), parsing_error);
 }
+
+TEST(catalog_ddl_parser_test, create_statement_list)
+{
+    parser_t parser;
+
+    const string create_list_ddl = R"(
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2[],
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+)
+CREATE table t1 (
+  c1 int32
+)
+CREATE table  t2(
+  c2 int32
+)
+;
+)";
+    const string create_db_list_ddl = R"(
+CREATE DATABASE d1
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2[],
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+)
+CREATE table t1 (
+  c1 int32
+)
+CREATE table  t2(
+  c2 int32
+)
+;
+)";
+
+    ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
+    ASSERT_NO_THROW(parser.parse_line(create_db_list_ddl));
+
+    // Negative test cases.
+    const string negative_1 = R"(
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2[],
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+)
+CREATE DATABASE d1
+CREATE table t1 (
+  c1 int32
+)
+CREATE table  t2(
+  c2 int32
+)
+;
+)";
+    const string negative_2 = R"(
+CREATE DATABASE d1
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2[],
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+)
+CREATE DATABASE d2
+CREATE table t1 (
+  c1 int32
+)
+CREATE table  t2(
+  c2 int32
+)
+;
+)";
+    const string negative_3 = R"(
+CREATE RELATIONSHIP r (
+  t1.link1 -> t2[],
+  t2.link2 -> t1,
+  USING t1(c1), t2(c2)
+)
+CREATE table t1 (
+  c1 int32
+)
+CREATE table  t2(
+  c2 int32
+)
+)";
+    ASSERT_THROW(parser.parse_line(negative_1), parsing_error);
+    ASSERT_THROW(parser.parse_line(negative_2), parsing_error);
+    ASSERT_THROW(parser.parse_line(negative_3), parsing_error);
+}
