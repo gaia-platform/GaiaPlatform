@@ -181,3 +181,19 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
     ASSERT_NO_THROW(parser.parse_line("DROP INDEX c_i;"));
     ASSERT_THROW(execute(parser.statements), index_not_exists);
 }
+
+TEST_F(ddl_execution_test, create_list)
+{
+    const string create_list_ddl = R"(
+CREATE RELATIONSHIP r (
+  t2.link1 -> t1,
+  t1.link2 -> t2
+)
+CREATE INDEX idx1 ON t1(c1)
+CREATE TABLE t1(c1 INT32)
+CREATE TABLE t2(c2 INT32);
+)";
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+}

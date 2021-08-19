@@ -341,6 +341,7 @@ enum class statement_type_t : uint8_t
     drop,
     alter,
     use,
+    create_list,
 };
 
 struct statement_t
@@ -576,6 +577,16 @@ struct create_index_t : create_statement_t
     std::string index_table;
 
     std::vector<std::string> index_fields;
+};
+
+struct create_list_t : statement_t
+{
+    explicit create_list_t()
+        : statement_t(statement_type_t::create_list)
+    {
+    }
+
+    std::vector<std::unique_ptr<gaia::catalog::ddl::create_statement_t>> statements;
 };
 
 enum class drop_type_t : uint8_t

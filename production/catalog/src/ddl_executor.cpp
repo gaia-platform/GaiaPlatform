@@ -265,6 +265,7 @@ void ddl_executor_t::create_system_tables()
 
 void ddl_executor_t::reset()
 {
+    auto_transaction_t txn(false);
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
@@ -272,6 +273,7 @@ void ddl_executor_t::reset()
     // Tables created without specifying a database name will belong to the global database.
     m_empty_db_id = create_database(c_empty_db_name, false);
     m_db_context = c_empty_db_name;
+    txn.commit();
 }
 
 void ddl_executor_t::clear_cache()
@@ -286,7 +288,6 @@ void ddl_executor_t::reload_cache()
 
     clear_cache();
 
-    gaia::db::begin_transaction();
     for (const auto& db : gaia_database_t::list())
     {
         m_db_names[db.name()] = db.gaia_id();
@@ -301,7 +302,6 @@ void ddl_executor_t::reload_cache()
     {
         m_relationship_names[relationship.name()] = relationship.gaia_id();
     }
-    gaia::db::commit_transaction();
 }
 
 gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exist)
@@ -318,9 +318,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
             return m_db_names.at(name);
         }
     }
-    gaia::db::begin_transaction();
     gaia_id_t id = gaia_database_t::insert_row(name.c_str());
-    gaia::db::commit_transaction();
     m_db_names[name] = id;
     return id;
 }
@@ -393,8 +391,6 @@ gaia_id_t ddl_executor_t::create_relationship(
     // The first link defines the parent and child in the relationship.
     gaia_id_t parent_table_id = link1_src_table_id;
     gaia_id_t child_table_id = link1_dest_table_id;
-
-    auto_transaction_t txn(false);
 
     uint8_t parent_available_offset = find_available_offset(parent_table_id);
     uint8_t child_available_offset;
@@ -496,8 +492,6 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
     gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
-
-    txn.commit();
 
     m_relationship_names[name] = relationship_id;
 
@@ -836,7 +830,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
     const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
     const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
 
-    gaia::db::begin_transaction();
     gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? allocate_type() : fixed_type;
 
     gaia_id_t table_id = gaia_table_t::insert_row(
@@ -877,7 +870,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
         data_field_position++;
     }
-    gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
     return table_id;
@@ -972,8 +964,6 @@ gaia_id_t ddl_executor_t::create_index(
 
     gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
 
-    auto_transaction_t txn(false);
-
     for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
     {
         if (index.name() == index_name)
@@ -1009,7 +999,6 @@ gaia_id_t ddl_executor_t::create_index(
         field_writer.update_row();
     }
 
-    txn.commit();
     return index_id;
 }
 
