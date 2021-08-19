@@ -2,11 +2,9 @@
 
 #include "tags_test.h"
 
-// #define TEST_FAILURES
-
 ruleset test1
 {
-    OnChange(actuator.value)
+    on_change(actuator.value)
     {
         actuator.value += sensor.value;
     }
@@ -14,7 +12,7 @@ ruleset test1
 
 ruleset test2
 {
-    OnChange(sensor.value)
+    on_change(sensor.value)
     {
         actuator.value = sensor.value;
     }
@@ -46,7 +44,7 @@ ruleset test5
 
 ruleset test6
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         // Implicit query.
         if (incubator->actuator.value > 95.0)
@@ -58,7 +56,7 @@ ruleset test6
 
 ruleset test7
 {
-    OnChange(min_temp)
+    on_change(min_temp)
     {
         min_temp += incubator->sensor.value;
         max_temp -= incubator->actuator.value;
@@ -81,26 +79,17 @@ ruleset test9
     }
 }
 
-ruleset test10
-{
-    OnUpdate(incubator)
-    {
-        actuator.value += feeding.portion;
-        sensor.value += acres;
-    }
-}
-
 ruleset test11
 {
-    OnUpdate(crop)
+    on_update(crop)
     {
-        use_float(crop->yield->feeding->animal->raised->farmer->incubator.min_temp);
+        use_float(crop->yield->feeding->animal->raised->farmer.condos->incubator.min_temp);
     }
 }
 
 ruleset test12
 {
-    OnChange(actuator.value)
+    on_change(actuator.value)
     {
         use_float(actuator.value += sensor.value);
     }
@@ -116,46 +105,49 @@ ruleset test13
 
 ruleset test14
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
-        farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
-        /farmer->incubator->raised->animal->feeding->yield->crop.acres = 10;
+        farmer.incubators->incubator->raised->animal->feeding->yield->crop.acres = 10;
+        /farmer.condos->incubator->raised->animal->feeding->yield->crop.acres = 10;
     }
 }
 
 ruleset test15
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
-        I:incubator->A:actuator.value = I.min_temp;
+        // Note that full qualification, including link "incubators", is necessary
+        // because there are multiple paths from farmer to incubator.
+        farmer.incubators->I:incubator->A:actuator.value = I.min_temp;
         /I:incubator->A:actuator.value = I.min_temp;
     }
 }
 
 ruleset test16
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
-        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
-        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+        F:farmer.condos->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
+        /F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres = 0;
     }
 }
 
 ruleset test17
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
-        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
-        /F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+        F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+        /F:farmer.condos->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
     }
 }
 
 ruleset test18
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
-        F : farmer -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield -> C : crop . acres ++;
-        / F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
+        F : farmer.condos -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield 
+            -> C : crop . acres ++;
+        / F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
     }
 }
 
@@ -175,7 +167,7 @@ ruleset test19
 // In this test, the navigation fans out in the 1:M direction.
 ruleset test20
 {
-    OnInsert(yield)
+    on_insert(yield)
     {
         int daily = 0;
         daily += /farmer->yield->feeding.portion;
@@ -186,17 +178,16 @@ ruleset test20
 // In this test, the navigation is in the M:1 direction.
 ruleset test21
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
         use_string(/feeding->yield->farmer.name);
     }
 }
 
-// GAIAPLAT-915
-// This translates without error, but translated code will not compile.
+// GAIAPLAT-915 (fixed)
 ruleset test22
 {
-    OnInsert(yield)
+    on_insert(yield)
     {
         int daily = 0;
         daily += /feeding.portion;
@@ -204,10 +195,10 @@ ruleset test22
 }
 
 // GAIAPLAT-807 (fixed)
-// GAIAPLAT-892
+// GAIAPLAT-892 (fixed)
 ruleset test23
 {
-    OnInsert(S:sensor)
+    on_insert(S:sensor)
     {
         S->incubator.min_temp += S.value;
     }
@@ -215,7 +206,7 @@ ruleset test23
 
 ruleset test24
 {
-    OnUpdate(min_temp)
+    on_update(min_temp)
     {
         sensor.value += sensor->incubator.min_temp;
     }
@@ -232,11 +223,11 @@ ruleset test25
 }
 #endif
 
-// GAIAPLAT-808
+// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test26
 {
-    OnChange(actuator)
+    on_change(actuator)
     {
         if (/I:incubator.max_temp == 100.0)
         {
@@ -247,7 +238,7 @@ ruleset test26
 
 ruleset test27
 {
-    OnChange(actuator)
+    on_change(actuator)
     {
         while (/I:incubator.max_temp == 100.0)
         {
@@ -256,11 +247,10 @@ ruleset test27
     }
 }
 
-// GAIAPLAT-809
-// the query in the 'for' isn't recognized
+// GAIAPLAT-809 (fixed)
 ruleset test28
 {
-    OnChange(actuator)
+    on_change(actuator)
     {
         for (/I:incubator)
         {
@@ -272,7 +262,7 @@ ruleset test28
 // GAIAPLAT-825 (fixed)
 ruleset test29
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         use_float(/I:incubator->actuator.value + I.min_temp);
         use_float(I:incubator->actuator.value + I.max_temp);
@@ -282,7 +272,7 @@ ruleset test29
 // GAIAPLAT-827 (fixed)
 ruleset test30
 {
-    OnChange(sensor.value)
+    on_change(sensor.value)
     {
         if (S:sensor.value > 100.0)
         {
@@ -294,46 +284,36 @@ ruleset test30
 // GAIAPLAT-828 (fixed)
 ruleset test31
 {
-    OnChange(incubator)
+    on_change(incubator)
     {
         S:sensor.value = S.value * 1.01;
     }
 }
 
-// GAIAPLAT-839
+// GAIAPLAT-839 (fixed)
 ruleset test32
 {
-    OnChange(yield.bushels)
+    on_change(yield.bushels)
     {
-        F:farmer->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
+        F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres
             = A.age + F.acreage + Y.bushels + D.portion + C.acres;
     }
 }
 
-// GAIAPLAT-832
-#ifdef TEST_FAILURES
+// GAIAPLAT-832 (fixed)
+// TESTCASE: Ternary operator with implicit navigation
 ruleset test33
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         float v = 0;
-        // The ternary expression below is equivalent to this 'if' statement.
-        // if (sensor.value > 99.0)
-        // {
-        //     v += actuator.value;
-        // }
-        // else
-        // {
-        //     v += 99.0;
-        // }
-        v += sensor.value > 99.0 ? actuator.value : 99.0;
+        v += S:sensor.value > 99.0 ? 99.0 : S.value;
     }
 }
-#endif
 
 ruleset test34
 {
-    OnUpdate(sensor)
+    on_update(sensor)
     {
         min_temp = 99.8;
     }
@@ -343,31 +323,108 @@ ruleset test35
 {
     {
         float total_temp = 0.0;
-        total_temp += /@incubator.min_temp;
+        total_temp += @/incubator.min_temp;
         total_temp += @incubator.max_temp;
     }
 }
 
 ruleset test36
 {
-    OnInsert(farmer)
+    on_insert(farmer)
     {
         float some_value = 0.0;
         int some_number = 0;
         some_number += animal.age;
         some_number += acres;
-        some_value += sensor.value;
+        // Note: this requires full qualification from farmer to differentiate between
+        // farmer.condos->incubator and farmer.incubators->incubator.
+        some_value += farmer.condos->incubator->sensor.value;
         some_number += acreage;
         some_number += portion;
         some_value += yield->feeding->animal->raised->incubator->sensor.value;
     }
 }
 
-// GAIAPLAT-945
+// GAIAPLAT-945 (fixed)
 ruleset test37
 {
-    OnUpdate(min_temp)
+    on_update(min_temp)
     {
         sensor.value += sensor.incubator->incubator.min_temp;
+    }
+}
+
+// GAIAPLAT-1043 (fixed)
+// GAIAPLAT-1044 (fixed)
+// TESTCASE: Use a long explicit path in a for statement.
+ruleset test38
+{
+    on_update(I:incubator)
+    {
+        int counter = 0;
+        int acre_total = 0;
+        for (incubator->raised->farmer->yield->C:crop)
+        {
+            acre_total += C.acres;
+            counter++;
+        }
+    }
+}
+
+// GAIAPLAT-1045 (fixed)
+// TESTCASE: No row references inside for loop
+ruleset test39
+{
+    on_update(incubator)
+    {
+        int counter = 0;
+        for (actuator)
+        {
+            counter++;
+        }
+    }
+}
+
+void printf(const char*, float);
+
+// TESTCASE: use link names together with table names
+ruleset test40
+{
+    on_update(incubator)
+    {
+        for (incubator.sensors->S:sensor)
+        {
+            printf("%f\n", S.value);
+        }
+    }
+}
+
+// TESTCASE: use link names together with table names in long explicit navigation
+ruleset test41
+{
+    on_change(yield.bushels)
+    {
+        /farmer.incubators->incubator.raised->raised.animal->animal->feeding->yield->crop.acres = 10;
+    }
+}
+
+// TESTCASE: equal-length path from incubator to feeding, qualified to avoid multiple link issue
+ruleset test42
+{
+    on_update(incubator)
+    {
+        int tot_acres = 0;
+        tot_acres += animal->feeding.portion;
+    }
+}
+
+// TESTCASE: observe scope of a declared variable assigned from field
+// GAIAPLAT-1119 (fixed)
+ruleset test43
+{
+    on_update(crop)
+    {
+        int acre = crop.acres;
+        printf("%d\n", acre);
     }
 }

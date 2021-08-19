@@ -78,6 +78,7 @@ protected:
         // will automatically connect to that instance.
         config::session_options_t session_options;
         session_options.db_instance_name = s_server_instance.instance_name();
+        session_options.skip_catalog_integrity_check = s_server_instance.skip_catalog_integrity_check();
         config::set_default_session_options(session_options);
 
         s_server_instance.start();

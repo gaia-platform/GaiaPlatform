@@ -1,0 +1,9 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test
+{
+    on_change(actuator.value, sensor.value)
+    {
+    }
+}
+// CHECK: A rule may not specify multiple tables or active fields from different tables in 'on_' attributes (on_insert, on_change, or on_update). Ensure that all your active field references belong to the same table.

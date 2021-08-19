@@ -4,7 +4,7 @@ ruleset test35
 {
     {
         int total_acres;
-        if (/@F:farmer.acreage > 10)
+        if (@/F:farmer.acreage > 10)
         {
             total_acres = 10;
         }

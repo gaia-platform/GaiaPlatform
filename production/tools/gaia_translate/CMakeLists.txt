@@ -16,6 +16,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 )
 
 set(GAIAT_SRCS
+  src/diagnostics.cpp
   src/main.cpp
   src/table_navigation.cpp
 )
@@ -52,7 +53,10 @@ set(TEST_INCLUDES
   ${GAIA_INC}
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/tools/gaia_translate/tests
+  ${GAIA_REPO}/production/rules/event_manager/inc
 )
+
+set(RULES_TEST_HELPERS "${GAIA_REPO}/production/rules/event_manager/tests/rules_test_helpers.cpp")
 
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/incubator.ddl")
 set(TRANSLATION_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
@@ -85,7 +89,7 @@ add_custom_target(generate_translation_rules ALL
 )
 
 add_gtest(test_translation_engine
-  "tests/test_translation_engine.cpp;tests/test_helpers.cpp;${TRANSLATION_RULESET_OUT}"
+  "tests/test_translation_engine.cpp;${RULES_TEST_HELPERS};${TRANSLATION_RULESET_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_barn_storage"
   "generate_translation_rules" ""
@@ -148,6 +152,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${RULESETS} -output ${RULESETS_OUT} --
     -I ${GAIA_INC}
     -I ${FLATBUFFERS_INC}
+    -I ${GAIA_GENERATED_CODE}/prerequisites
     -I /usr/include/clang/10/include/
     -std=c++${CMAKE_CXX_STANDARD}
   COMMAND pkill -f -KILL gaia_db_server &
@@ -168,14 +173,21 @@ add_custom_target(generate_rulesets_rules ALL
 )
 
 add_gtest(test_tags_ruleset
-  "tests/test_tags.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
+  "tests/test_tags.cpp;${RULES_TEST_HELPERS};${RULESETS_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
 )
 
 add_gtest(test_queries_ruleset
-  "tests/test_queries.cpp;tests/test_helpers.cpp;${RULESETS_OUT}"
+  "tests/test_queries.cpp;${RULES_TEST_HELPERS};${RULESETS_OUT}"
+  "${TEST_INCLUDES}"
+  "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
+  "generate_rulesets_rules" ""
+)
+
+add_gtest(test_insert_delete_ruleset
+  "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS};${RULESETS_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""

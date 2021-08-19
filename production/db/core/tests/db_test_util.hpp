@@ -18,9 +18,6 @@ namespace gaia::db::test
 
 constexpr common::gaia_type_t c_doctor_type = 1;
 constexpr common::gaia_type_t c_patient_type = 2;
-constexpr common::gaia_type_t c_non_existent_type = 1001;
-
-constexpr common::gaia_id_t c_non_existent_id = 10000000;
 
 constexpr common::reference_offset_t c_first_patient_offset = 0;
 constexpr common::reference_offset_t c_next_patient_offset = 0;

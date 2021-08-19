@@ -32,8 +32,11 @@ gaia_txn_id_t get_txn_id();
 // The name of the SE server binary.
 constexpr char c_db_server_exec_name[] = "gaia_db_server";
 
-// The name of the default gaia instance
+// The name of the default gaia instance.
 constexpr char c_default_instance_name[] = "gaia_default_instance";
+
+// The customer facing version of the DB server.
+constexpr char c_db_server_name[] = "Gaia Database server";
 
 } // namespace db
 } // namespace gaia

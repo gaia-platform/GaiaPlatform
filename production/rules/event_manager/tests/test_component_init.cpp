@@ -13,8 +13,7 @@
 
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
-
-#include "event_manager_test_helpers.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

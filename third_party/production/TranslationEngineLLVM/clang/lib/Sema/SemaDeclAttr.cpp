@@ -2032,7 +2032,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     }
     tables.push_back(tableArg->Ident);
   }
-  D->addAttr(::new (S.Context) RulesetTableAttr(
+  D->addAttr(::new (S.Context) RulesetTablesAttr(
     AL.getRange(), S.Context, tables.data(), tables.size(),
     AL.getAttributeSpellingListIndex()));
 }
@@ -2125,7 +2125,7 @@ static bool validateRuleAttribute(StringRef attribute,
         if (returnValue)
         {
           S.Diag(AL.getLoc(), diag::err_duplicate_field)
-            << attribute;
+            << attribute << table.first;
           return false;
         }
         returnValue = true;
@@ -2144,7 +2144,7 @@ static bool validateRuleAttribute(StringRef attribute,
     if (table.second.find(attribute) != table.second.end())
     {
       S.Diag(AL.getLoc(), diag::err_duplicate_field)
-        << attribute;
+        << attribute << table.first;
       return false;
     }
   }
@@ -2217,7 +2217,7 @@ static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
       << AL << AANT_ArgumentIdentifier;
     return;
   }
-  D->addAttr(::new (S.Context) SerialStreamAttr(
+  D->addAttr(::new (S.Context) RulesetSerializeAttr(
     AL.getRange(), S.Context, streamArg->Ident,
     AL.getAttributeSpellingListIndex()));
 }
@@ -7238,13 +7238,13 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     handleObjCExternallyRetainedAttr(S, D, AL);
     break;
 
-  case ParsedAttr::AT_RulesetTable:
+  case ParsedAttr::AT_RulesetTables:
     handleRulesetTableAttr(S, D, AL);
     break;
   case ParsedAttr::AT_Rule:
     handleRuleAttr(S, D, AL);
     break;
-  case ParsedAttr::AT_SerialStream:
+  case ParsedAttr::AT_RulesetSerialize:
     handleStreamAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaOnUpdate:

@@ -63,7 +63,6 @@ add_clang_library(clangSema
   SemaType.cpp
   TypeLocBuilder.cpp
   SemaGaia.cpp
-
   LINK_LIBS
   clangAST
   clangAnalysis

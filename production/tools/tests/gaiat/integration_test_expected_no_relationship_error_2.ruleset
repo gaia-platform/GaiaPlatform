@@ -9,4 +9,4 @@ ruleset test
         }
     }
 }
-// CHECK: No path between tables 'actuator' and 'isolated'.
+// CHECK: No navigation path exists between tables 'actuator' and 'isolated'. Ensure that your schema has a relationship between these two tables.

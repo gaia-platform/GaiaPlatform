@@ -13,30 +13,64 @@ constexpr float c_fan_speed_limit = 5000.0;
 constexpr float c_fan_speed_increment = 500.0;
 constexpr float c_fan_threshold = 0.7f;
 
+// Regular C++ function
+float adjust_temperature(float min_temp, float max_temp, float sensor_value, float fan_rpm)
+{
+    float new_fan_rpm = fan_rpm;
+    if (sensor_value >= max_temp)
+    {
+        new_fan_rpm = min(c_fan_speed_limit, fan_rpm + c_fan_speed_increment);
+    }
+    else if (sensor_value <= min_temp)
+    {
+        new_fan_rpm = max(0.0f, fan_rpm - (2*c_fan_speed_increment));
+    }
+
+    return new_fan_rpm;
+}
+
 ruleset incubator_ruleset
 {
-    // Rule 1:  keep the temperature with the range of the minimum and
-    // maximum limits of the incubator.
-    OnUpdate(sensor.value, incubator.max_temp, incubator.min_temp)
+    // Rule 1:  Verify the temperature is kept in range if the
+    // incubator temperature limits change. 
+    on_update(incubator.max_temp, incubator.min_temp)
     {
         if (!incubator.is_on)
         {
             return;
         }
 
-        if (sensor.value >= incubator.max_temp)
+        for(S:sensor)
         {
-            actuator.value = min(c_fan_speed_limit, actuator.value + c_fan_speed_increment);
-            actuator.timestamp = g_timestamp;
-        }
-        else if (sensor.value <= incubator.min_temp)
-        {
-            actuator.value = max(0.0f, actuator.value - (2*c_fan_speed_increment));
-            actuator.timestamp   = g_timestamp;
+            if (S.value < incubator.min_temp ||
+                S.value > incubator.max_temp)
+            {
+                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, actuator.value);
+                actuator.timestamp = g_timestamp;
+                break;
+            }
         }
     }
 
-    // Rule 2:  Turn off all the fans if the incubator is powered down.
+    // Rule 2:  Keep the temperature in range of the incubator limits.
+    on_update(sensor.value)
+    {
+        if (!incubator.is_on)
+        {
+            return;
+        }
+
+        if (sensor.value >= incubator.min_temp &&
+            sensor.value <= incubator.max_temp)
+        {
+            return;
+        }
+
+        actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
+        actuator.timestamp = g_timestamp;
+    }
+
+    // Rule 3:  Turn off all the fans if the incubator is powered down.
     {
         if (!@incubator.is_on)
         {
@@ -45,9 +79,9 @@ ruleset incubator_ruleset
         }
     }
 
-    // Rule 3:  If the fan is at 70% of its limit and the temperature is still too hot then
+    // Rule 4:  If the fan is at 70% of its limit and the temperature is still too hot then
     // set the fan to its maximum speed.
-    OnUpdate(actuator.value)
+    on_update(actuator.value)
     {
         if (actuator.value == c_fan_speed_limit)
         {

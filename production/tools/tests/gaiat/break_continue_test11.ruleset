@@ -1,0 +1,19 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: continue within declarative if
+ruleset test11
+{
+    on_update(incubator)
+    {
+        if (S:sensor.value > 99.0)
+        {
+            if (S.value > 100.0)
+            {
+                continue;
+            }
+        }
+    }
+}
+
+// CHECK: 'continue' statement not in loop statement
+// GAIAPLAT-1067 (fixed)

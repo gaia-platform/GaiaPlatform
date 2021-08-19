@@ -14,28 +14,31 @@ ruleset test9
 
 ruleset test10
 {
-    min_temp += @value; // expected-error {{unknown type name 'min_temp'}} expected-error {{expected unqualified-id}}
+    min_temp += @value; // expected-error {{unknown type name 'min_temp'}} \
+                        // expected-error {{expected unqualified-id}}
 }
 
 
-ruleset test19: Table(sensor)
+ruleset test19: tables(sensor)
 {
     {
-        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in table attribute.}}
+        actuator.value += @value/2; // expected-warning {{Table 'actuator' is not referenced in tables attribute.}}
     }
 }
 
 ruleset test15
 {
     {
-        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator__type'; did you mean 'value'?}} expected-note {{'value' declared here}}
+        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator__type'; did you mean 'value'?}} \
+                           // expected-note {{'value' declared here}}
     }
 }
 
 ruleset test16
 {
     {
-        value++; // expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
+        value++; // expected-error {{Duplicate field 'value'}} \
+                 // expected-error {{use of undeclared identifier 'value'}}
     }
 }
 

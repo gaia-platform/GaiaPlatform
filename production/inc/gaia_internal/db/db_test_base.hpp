@@ -56,12 +56,15 @@ protected:
     {
         gaia_log::initialize({});
 
-        s_server_instance = server_instance_t();
+        server_instance_config_t conf = server_instance_config_t::get_default();
+        conf.skip_catalog_integrity_check = true;
+        s_server_instance = server_instance_t(conf);
 
         // Make the instance name the default, so that calls to begin_session()
         // will automatically connect to that instance.
         config::session_options_t session_options;
         session_options.db_instance_name = s_server_instance.instance_name();
+        session_options.skip_catalog_integrity_check = s_server_instance.skip_catalog_integrity_check();
         config::set_default_session_options(session_options);
 
         s_server_instance.start();

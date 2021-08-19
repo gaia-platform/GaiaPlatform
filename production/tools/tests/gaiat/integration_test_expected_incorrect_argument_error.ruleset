@@ -2,10 +2,10 @@
 
 ruleset test
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         actuator.value ++;
     }
 }
 
-// CHECK: Translation Engine does not support more than one source ruleset.
+// CHECK: The Translation Engine does not support more than one source ruleset file.

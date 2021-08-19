@@ -48,6 +48,7 @@ public:
     bool operator>=(const index_key_t& other) const;
     bool operator==(const index_key_t& other) const;
 
+    const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
     size_t size() const;
 
 private:

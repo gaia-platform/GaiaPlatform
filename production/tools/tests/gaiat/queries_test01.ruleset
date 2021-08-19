@@ -4,7 +4,7 @@
 
 ruleset test01
 {
-    OnInsert(sensor)
+    on_insert(sensor)
     {
         I:incubator->I.value += I.min_temp;
     }

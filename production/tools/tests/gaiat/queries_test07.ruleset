@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// GAIAPLAT-1050
+ruleset test10
+{
+    on_update(crop)
+    {
+        actuator.value += feeding.portion;
+        sensor.value += acres;
+    }
+}
+
+// CHECK: Multiple shortest paths exist between tables 'crop' and 'sensor'. Explicitly specify the navigation path between these two tables to resolve the ambiguity.

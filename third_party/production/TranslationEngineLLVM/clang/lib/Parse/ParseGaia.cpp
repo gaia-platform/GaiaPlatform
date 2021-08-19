@@ -72,10 +72,9 @@ std::string Parser::GetExplicitNavigationPath()
     {
         returnValue = "@";
         startLocation = previousPreviousToken.getLocation();
-        if (getPreviousToken(previousPreviousToken).is(tok::slash))
+        if (previousToken.is(tok::slash))
         {
-            returnValue = "/@";
-            startLocation = getPreviousToken(previousPreviousToken).getLocation();
+            returnValue = "@/";
         }
     }
     else if (previousPreviousToken.is(tok::slash))
@@ -83,7 +82,7 @@ std::string Parser::GetExplicitNavigationPath()
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
     }
-    else if (previousPreviousToken.is(tok::colon))
+    else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
         if (tagToken.is(tok::identifier))
@@ -94,18 +93,23 @@ std::string Parser::GetExplicitNavigationPath()
             {
                 returnValue = "/" + returnValue;
                 startLocation = getPreviousToken(tagToken).getLocation();
+                if (getPreviousToken(getPreviousToken(tagToken)).is(tok::at))
+                {
+                    returnValue = "@" + returnValue;;
+                    startLocation = getPreviousToken(getPreviousToken(tagToken)).getLocation();
+                }
             }
             else if (getPreviousToken(tagToken).is(tok::at))
             {
                 tagToken = getPreviousToken(tagToken);
                 returnValue = "@" + returnValue;
                 startLocation = tagToken.getLocation();
-                if (getPreviousToken(tagToken).is(tok::slash))
-                {
-                    returnValue = "/" + returnValue;;
-                    startLocation = getPreviousToken(tagToken).getLocation();
-                }
             }
+        }
+        else
+        {
+            // ':' token that is not related to tag definition.
+            startLocation = previousToken.getLocation();
         }
     }
     else
@@ -211,12 +215,12 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs, GaiaA
     {
         if (attributeType == Ruleset)
         {
-            if (Tok.getIdentifierInfo()->getName().equals("Table"))
+            if (Tok.getIdentifierInfo()->getName().equals("tables"))
             {
                 return ParseRulesetTable(attrs, EndLoc);
             }
 
-            if (Tok.getIdentifierInfo()->getName().equals("SerialStream"))
+            if (Tok.getIdentifierInfo()->getName().equals("serialize"))
             {
                 return ParseRulesetSerialStream(attrs, EndLoc);
             }
@@ -369,7 +373,7 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs, GaiaAttribute
 bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("SerialStream") && "Not a SerialStream attribute!");
+    assert(Tok.getIdentifierInfo()->getName().equals("serialize") && "Not a 'serialize' attribute!");
 
     ArgsVector argExprs;
 
@@ -415,7 +419,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("Table") && "Not a ruleset table!");
+    assert(Tok.getIdentifierInfo()->getName().equals("tables") && "Not a 'tables' attribute!");
 
     ArgsVector argExprs;
 
@@ -566,7 +570,7 @@ Token Parser::getPreviousToken(Token token) const
     {
         location = Lexer::GetBeginningOfToken(location, sourceManager, langOptions);
         if (!Lexer::getRawToken(location, returnToken, sourceManager, langOptions) &&
-            !returnToken.is(tok::comment))
+            returnToken.isNot(tok::comment))
         {
             break;
         }
@@ -592,4 +596,14 @@ void Parser::ParseRule(Declarator &D)
         return;
     }
     InjectRuleFunction(D, attrs);
+}
+
+bool Parser::isGaiaSpecialFunction(StringRef name) const
+{
+    if (name == "insert")
+    {
+        return true;
+    }
+
+    return false;
 }

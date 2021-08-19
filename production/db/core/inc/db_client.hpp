@@ -28,6 +28,11 @@ namespace gaia
 namespace db
 {
 
+namespace query_processor
+{
+class db_client_proxy_t;
+}
+
 class client_t
 {
     friend class gaia_ptr_t;
@@ -48,6 +53,8 @@ class client_t
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+
+    friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
     static inline bool is_transaction_open();
@@ -113,16 +120,6 @@ private:
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
     thread_local static inline std::vector<gaia::db::memory_manager::chunk_manager_t> s_previous_chunk_managers{};
 
-    // Maintain a static filter in the client to disable generating events
-    // for system types.
-    static constexpr common::gaia_type_t c_trigger_excluded_types[] = {
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_table),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_field),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_relationship),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_ruleset),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::catalog_gaia_rule),
-        static_cast<common::gaia_type_t>(common::system_table_type_t::event_log)};
-
 private:
     static void init_memory_manager();
 
@@ -134,8 +131,6 @@ private:
 
     static void commit_chunk_manager_allocations();
     static void rollback_chunk_manager_allocations();
-
-    static void sort_log();
 
     static void apply_txn_log(int log_fd);
 

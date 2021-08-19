@@ -1,0 +1,12 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test10
+{
+    on_update(incubator)
+    {
+        int tot_acres = 0;
+        tot_acres += yield->crop.acres;
+    }
+}
+
+// CHECK: Ambiguous navigation path detected. There is more than one path that relates 'incubator' to 'farmer'. Specify the navigation path explicitly to resolve this ambiguity.

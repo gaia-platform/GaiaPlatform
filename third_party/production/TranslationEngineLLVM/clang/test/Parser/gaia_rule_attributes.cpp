@@ -21,266 +21,267 @@ ruleset test31
 
 ruleset test32
 {
-    OnUpdate(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_update(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test33
 {
-    OnUpdate(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_update(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test34
 {
-    OnUpdate(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
+    on_update(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test35
 {
-    OnUpdate
+    on_update
     { // expected-error {{expected '('}}
     }
 }
 
 ruleset test36
 {
-    OnUpdate()
+    on_update()
     { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
 ruleset test37
 {
-    OnUpdate("sensor") // expected-error {{expected identifier}}
+    on_update("sensor") // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test38
 {
-    OnUpdate(5) // expected-error {{expected identifier}}
+    on_update(5) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test39
 {
-    OnUpdate(value) // expected-error {{Duplicate field 'value'.}}
+    on_update(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test40
 {
-    OnUpdate(incubator), OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+    on_update(incubator), on_update(sensor) // expected-error {{Invalid Gaia rule attribute.}}
     {
     }
 }
 
 ruleset test53
 {
-    OnUpdate(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_update(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test53
 {
-    OnUpdate(value) // expected-error {{Duplicate field 'value'}}
+    on_update(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test54
 {
-    OnUpdate(sensor.) // expected-error {{expected identifier}}
+    on_update(sensor.) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test55
 {
-    OnChange(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_change(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test56
 {
-    OnChange(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_change(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test57
 {
-    OnChange(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
+    on_change(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test58
 {
-    OnChange
+    on_change
     { // expected-error {{expected '('}}
     }
 }
 
 ruleset test59
 {
-    OnChange()
+    on_change()
     { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
 ruleset test60
 {
-    OnChange("sensor") // expected-error {{expected identifier}}
+    on_change("sensor") // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test61
 {
-    OnChange(5) // expected-error {{expected identifier}}
+    on_change(5) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test62
 {
-    OnChange(value) // expected-error {{Duplicate field 'value'.}}
+    on_change(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test63
 {
-    OnChange(incubator), OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+    on_change(incubator), on_update(sensor) // expected-error {{Invalid Gaia rule attribute.}}
     {
     }
 }
 
 ruleset test64
 {
-    OnChange(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_change(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test65
 {
-    OnChange(value) // expected-error {{Duplicate field 'value'}}
+    on_change(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test66
 {
-    OnChange(sensor.) // expected-error {{expected identifier}}
+    on_change(sensor.) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test67
 {
-    OnInsert(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_insert(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test68
 {
-    OnInsert(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_insert(incubator sensor) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test69
 {
-    OnInsert(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
+    on_insert(incubator, sensor.test) // expected-error {{Field 'test' was not found in the catalog.}}
     {
     }
 }
 
 ruleset test70
 {
-    OnInsert { // expected-error {{expected '('}}
+    on_insert { // expected-error {{expected '('}}
     }
 }
 
 ruleset test71
 {
-    OnInsert()
+    on_insert()
     { // expected-error {{Invalid Gaia rule attribute.}}
     }
 }
 
 ruleset test72
 {
-    OnInsert("sensor") // expected-error {{expected identifier}}
+    on_insert("sensor") // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test73
 {
-    OnInsert(5) // expected-error {{expected identifier}}
+    on_insert(5) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test74
 {
-    OnInsert(value) // expected-error {{Duplicate field 'value'.}}
+    on_insert(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test75
 {
-    OnInsert(incubator), OnUpdate(sensor) // expected-error {{Invalid Gaia rule attribute.}}
+    on_insert(incubator), on_update(sensor) // expected-error {{Invalid Gaia rule attribute.}}
     {
     }
 }
 
 ruleset test76
 {
-    OnInsert(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_insert(sensor.value.value) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
     }
 }
 
 ruleset test77
 {
-    OnInsert(value) // expected-error {{Duplicate field 'value'}}
+    on_insert(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}}
     {
     }
 }
 
 ruleset test78
 {
-    OnInsert(sensor.) // expected-error {{expected identifier}}
+    on_insert(sensor.) // expected-error {{expected identifier}}
     {
     }
 }
 
 ruleset test79
 {
-    OnInsert(S:sensor)
+    on_insert(S:sensor)
     {
-        actuator.value += value/2;// expected-error {{Duplicate field 'value'}} expected-error {{use of undeclared identifier 'value'}}
+        actuator.value += value/2; // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifing them in the ruleset 'tables' attribute.}} \
+                                   // expected-error {{use of undeclared identifier 'value'}}
     }
 }
 
-ruleset test79 : Table(sensor, actuator)
+ruleset test79 : tables(sensor, actuator)
 {
-    OnInsert(S:sensor)
+    on_insert(S:sensor)
     {
         actuator.value += sensor.value/2;
     }
@@ -288,7 +289,7 @@ ruleset test79 : Table(sensor, actuator)
 
 ruleset test88
 {
-    OnUpdate(nonsense, no-sense, not-sensible) // expected-error {{expected ')'}} expected-note {{to match this '('}})
+    on_update(nonsense, no-sense, not-sensible) // expected-error {{expected ')'}} expected-note {{to match this '('}})
     {
     }
 }
@@ -296,7 +297,7 @@ ruleset test88
 
 ruleset test93
 {
-    OnUpdate(incubator[i]) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_update(incubator[i]) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
         int i = 0;
     }
@@ -313,7 +314,7 @@ ruleset test94
 
 ruleset test104
 {
-    OnInsert[A:animal] // expected-error {{expected '('}}
+    on_insert[A:animal] // expected-error {{expected '('}}
     {
         A.age=5;
     }
@@ -321,7 +322,7 @@ ruleset test104
 
 ruleset test106
 {
-    OnInsert(*incubator) // expected-error {{expected identifier}}
+    on_insert(*incubator) // expected-error {{expected identifier}}
     {
         incubator.min_temp=98.9;
     }
@@ -329,7 +330,7 @@ ruleset test106
 
 ruleset test107
 {
-    OnInsert(do(min_temp)) // expected-error {{expected identifier}}
+    on_insert(do(min_temp)) // expected-error {{expected identifier}}
     {
         age=5;
     }
@@ -337,7 +338,7 @@ ruleset test107
 
 ruleset test108
 {
-    OnInsert(age ? 3 : 4) // expected-error {{expected ')'}} expected-note {{to match this '('}}
+    on_insert(age ? 3 : 4) // expected-error {{expected ')'}} expected-note {{to match this '('}}
     {
         age=5;
     }

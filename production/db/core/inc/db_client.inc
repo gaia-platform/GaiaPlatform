@@ -22,8 +22,7 @@ inline gaia_txn_id_t client_t::get_txn_id()
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
 {
-    constexpr const common::gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
-    return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
+    return (s_txn_commit_trigger && type < common::c_system_table_reserved_range_start);
 }
 
 inline void client_t::verify_txn_active()
@@ -65,6 +64,8 @@ inline void client_t::txn_log(
     gaia_operation_t operation,
     common::gaia_id_t deleted_id)
 {
+    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
+
     if (operation == gaia_operation_t::remove)
     {
         ASSERT_PRECONDITION(

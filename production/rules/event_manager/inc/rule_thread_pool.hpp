@@ -66,7 +66,7 @@ public:
      * Wait for the current rules "graph" to execute. Wait for all rules to finish
      * executing as well as any rules that these rules enqueue.
      */
-    void wait_for_rules_to_finish();
+    void wait_for_rules_to_complete();
 
     /**
      * Notify and wait for all workers in the thread pool
@@ -101,7 +101,7 @@ private:
     void rule_worker(int32_t& count_busy_workers);
     void invoke_rule(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
-    void wait_for_rules_to_finish(std::unique_lock<std::mutex>& lock);
+    void wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock);
 
     // Each thread has a copy of these two variables to determine
     // whether pending rule invocations can be scheduled or they

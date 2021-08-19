@@ -1,0 +1,15 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+void printf(const char*, int);
+
+// TESTCASE: assign navigation result to declared variable
+ruleset test43
+{
+    on_update(crop)
+    {
+        int bushel = yield.bushels;
+        printf("%d\n", bushel);
+    }
+}
+
+// CHECK: Initialization of a declared variable with an EDC object is not supported.

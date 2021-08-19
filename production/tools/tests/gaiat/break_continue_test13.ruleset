@@ -1,0 +1,20 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: continue from a nomatch block
+ruleset test19
+{
+    on_update(incubator)
+    {
+        if (S:sensor.value > 50.0)
+        {
+            S.value += 1.0;
+        }
+        nomatch
+        {
+            continue;
+        }
+    }
+}
+
+// CHECK: 'continue' statement not in loop statement
+// GAIAPLAT-1087 (fixed)

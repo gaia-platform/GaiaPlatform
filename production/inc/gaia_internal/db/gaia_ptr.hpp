@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
@@ -28,9 +30,10 @@ class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
-    explicit gaia_ptr_t(common::gaia_id_t id);
+    explicit gaia_ptr_t(gaia_locator_t locator);
 
-    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool
+    operator==(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
@@ -53,11 +56,11 @@ public:
     static gaia_ptr_t create(
         common::gaia_id_t id,
         common::gaia_type_t type,
-        size_t num_refs,
+        common::reference_offset_t num_refs,
         size_t data_size,
         const void* data);
 
-    inline static gaia_ptr_t open(
+    static gaia_ptr_t open(
         common::gaia_id_t id);
 
     // TODO this should either accept a gaia_id_t or be an instance method.
@@ -77,7 +80,7 @@ public:
     inline char* data() const;
     inline size_t data_size() const;
     inline common::gaia_id_t* references() const;
-    inline size_t num_references() const;
+    inline common::reference_offset_t num_references() const;
 
     db_object_t* to_ptr() const;
     gaia_offset_t to_offset() const;
@@ -173,6 +176,36 @@ private:
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
 
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+
+    static void update_parent_reference(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t* child_references,
+        common::gaia_id_t new_parent_id,
+        common::reference_offset_t parent_offset);
+
+    /**
+     * Try to auto connect a record to matching parent side record(s).
+     *
+     * @param child_id The record id
+     * @param child_type The record type
+     * @param child_type The record id of the child table type
+     * @param child_references The record references
+     * @param candidate_fields The list of candidate fields' positions.
+     */
+    static void auto_connect_to_parent(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t child_type_id,
+        common::gaia_id_t* child_references,
+        const uint8_t* child_payload,
+        const common::field_position_list_t& candidate_fields);
+
+    static void auto_connect_to_parent(
+        common::gaia_id_t child_id,
+        common::gaia_type_t child_type,
+        common::gaia_id_t* child_references,
+        const uint8_t* child_payload);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};

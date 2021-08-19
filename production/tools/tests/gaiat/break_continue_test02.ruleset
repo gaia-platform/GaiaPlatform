@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: non-declarative if statement cannot have break statement
+ruleset test02
+{
+    on_update(I:incubator)
+    {
+        if (I.max_temp > 99.0)
+        {
+            break;
+        }
+    }
+}
+
+// CHECK: 'break' statement not in loop or switch statement
+// GAIAPLAT-1067 (fixed)
