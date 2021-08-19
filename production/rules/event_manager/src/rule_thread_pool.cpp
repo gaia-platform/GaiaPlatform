@@ -125,7 +125,6 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
-
     m_stats_manager.insert_rule_stats(invocation.rule_id);
 
     if (s_tls_can_enqueue)

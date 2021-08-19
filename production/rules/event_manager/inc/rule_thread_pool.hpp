@@ -36,14 +36,7 @@ public:
         db::gaia_txn_id_t src_txn_id;
     };
 
-    struct invocation_t;
-    struct serial_stream_t
-    {
-        std::mutex execute_lk;
-        std::mutex enqueue_lk;
-        std::queue<invocation_t> invocations;
-    };
-
+    struct serial_stream_t;
     struct invocation_t
     {
         rule_invocation_t args;
@@ -51,6 +44,13 @@ public:
         std::chrono::steady_clock::time_point start_time;
         uint32_t num_retries{0};
         std::shared_ptr<serial_stream_t> serial_stream{nullptr};
+    };
+
+    struct serial_stream_t
+    {
+        std::mutex execute_lk;
+        std::mutex enqueue_lk;
+        std::queue<invocation_t> invocations;
     };
 
     /**

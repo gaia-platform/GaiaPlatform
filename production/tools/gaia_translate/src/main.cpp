@@ -472,7 +472,7 @@ string generate_general_subscription_code()
 
 string get_serial_stream(const Decl* decl)
 {
-    const SerialStreamAttr* serial_attr = decl->getAttr<SerialStreamAttr>();
+    const RulesetSerialStreamAttr* serial_attr = decl->getAttr<RulesetSerialStreamAttr>();
     if (serial_attr != nullptr)
     {
         return serial_attr->getStream()->getName().str();
@@ -2512,7 +2512,7 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                gaiat::diag().emit(diag::err_duplicate_ruleset) << g_current_ruleset;
+                gaiat::diag().emit(ruleset_declaration->getBeginLoc(), diag::err_duplicate_ruleset) << g_current_ruleset;
                 g_is_generation_error = true;
                 return;
             }

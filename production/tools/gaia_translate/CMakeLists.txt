@@ -111,6 +111,7 @@ add_gaia_sdk_gtest(
   PREVIOUS_TARGET_NAME "test_tags_ruleset"
   TARGET_SOURCES "tests/test_queries.cpp;${RULES_TEST_HELPERS}"
   TARGET_INCLUDES "${TEST_INCLUDES}"
+)
 
 add_gaia_sdk_gtest(
   TARGET_NAME "test_insert_delete_ruleset"

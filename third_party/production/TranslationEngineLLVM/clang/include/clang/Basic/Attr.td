@@ -3197,8 +3197,8 @@ def GaiaFieldValue : Attr {
   let Documentation = [Undocumented];
 }
 
-def RulesetSerialize : Attr {
-    let Spellings = [Keyword<"serialize">];
+def RulesetSerialStream : Attr {
+    let Spellings = [Keyword<"serial_stream">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
     let Args = [IdentifierArgument<"stream">];

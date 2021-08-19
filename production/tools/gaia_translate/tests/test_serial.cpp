@@ -9,6 +9,7 @@
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+#include "gaia_internal/rules/rules_test_helpers.hpp"
 
 #include "gaia_barn_storage.h"
 #include "test_rulesets.hpp"
@@ -17,7 +18,6 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace rule_test_helpers;
 
 extern std::atomic<int32_t> g_rule_called;
 extern std::atomic<int32_t> g_insert_called;
@@ -62,8 +62,6 @@ protected:
 
 TEST_F(serial_rules_test, subscribe_serial_ruleset)
 {
-    init_storage();
-
     // Initializing storage inserts an incubator and a sensor. This calls:
     // rule-1: OnInsert(incubator)
     // rule-2: OnInsert(incubator)
@@ -73,8 +71,9 @@ TEST_F(serial_rules_test, subscribe_serial_ruleset)
     // rule-6: OnUpdate(incubator.min_temp)
     // rule-7: OnUpdate(sensor.value)
     // rule-8: OnUpdate(sensor.timestamp)
-    const int32_t c_count_rules_called_1 = 8;
-    EXPECT_TRUE(wait_for_rule(g_rule_called, c_count_rules_called_1));
+    init_storage();
+    gaia::rules::test::wait_for_rules_to_complete();
+
     EXPECT_EQ(g_update_max_temp_called, 1);
     EXPECT_EQ(g_update_min_temp_called, 1);
     EXPECT_EQ(g_update_max_temp_called, 1);

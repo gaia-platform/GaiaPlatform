@@ -220,7 +220,7 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs, GaiaA
                 return ParseRulesetTable(attrs, EndLoc);
             }
 
-            if (Tok.getIdentifierInfo()->getName().equals("serialize"))
+            if (Tok.getIdentifierInfo()->getName().equals("serial_stream"))
             {
                 return ParseRulesetSerialStream(attrs, EndLoc);
             }
