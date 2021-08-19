@@ -81,6 +81,9 @@ double g_update_row_duration_in_microseconds = 0.0;
 long g_t_pause_requested_in_microseconds = 0;
 int g_sleep_time_in_seconds_after_stop;
 int g_sim_with_wait_pause_in_microseconds = c_default_sim_with_wait_pause_in_microseconds;
+bool g_emit_after_pause = false;
+
+const int c_rules_firing_update_buffer_length = 4096;
 
 // Used to get a more accurate measurement using the toggle on/off (o) command.
 bool g_is_measured_duration_timer_on;
@@ -421,9 +424,9 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
     const int no_delta_count_before_break = 300 / c_processing_pause_in_microseconds;
     int current_no_delta_attempt = 0;
 
-    char buffer[4096];
-    int space_left = 1024;
-    char * start_pointer = buffer;
+    char update_trace_buffer[c_rules_firing_update_buffer_length];
+    int space_left = sizeof(update_trace_buffer);
+    char* start_pointer = update_trace_buffer;
 
     for (current_no_delta_attempt = 0;
          current_no_delta_attempt < maximum_no_delta_attempts;
@@ -476,8 +479,9 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
     my_time_point end_sleep_end_mark = my_clock::now();
     my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
-    if (current_no_delta_attempt >= maximum_no_delta_attempts) {
-        printf("...TO: %.6f:%s\n", ms_double.count(), buffer);
+    if (current_no_delta_attempt >= maximum_no_delta_attempts)
+    {
+        printf("...TIMEOUT: %.6f:%s\n", ms_double.count(), update_trace_buffer);
     }
 
     if (is_explicit_pause)
@@ -507,6 +511,25 @@ void step()
     simulation_step();
 }
 
+void emit_state()
+{
+    my_time_point print_start_mark = my_clock::now();
+    if (g_has_intermediate_state_output)
+    {
+        printf(",\n");
+    }
+    else
+    {
+        g_has_intermediate_state_output = true;
+        printf("[\n");
+    }
+    dump_db_json();
+
+    my_time_point print_end_mark = my_clock::now();
+    my_duration_in_microseconds ms_print = print_end_mark - print_start_mark;
+    g_total_print_time_in_microseconds += ms_print.count();
+}
+
 void step_and_emit_state(bool emit_text)
 {
     int rule_1_sample_base = g_rule_1_tracker;
@@ -520,21 +543,7 @@ void step_and_emit_state(bool emit_text)
 
     if (emit_text)
     {
-        my_time_point print_start_mark = my_clock::now();
-        if (g_has_intermediate_state_output)
-        {
-            printf(",\n");
-        }
-        else
-        {
-            g_has_intermediate_state_output = true;
-            printf("[\n");
-        }
-        dump_db_json();
-
-        my_time_point print_end_mark = my_clock::now();
-        my_duration_in_microseconds ms_print = print_end_mark - print_start_mark;
-        g_total_print_time_in_microseconds += ms_print.count();
+        emit_state();
     }
 }
 
@@ -609,6 +618,7 @@ public:
     static constexpr char c_cmd_step_sim = 's';
     static constexpr char c_cmd_step_sim_with_wait = 't';
     static constexpr char c_cmd_step_sim_with_wait_set = 'T';
+    static constexpr char c_cmd_step_sim_with_wait_emit = 'U';
     static constexpr char c_cmd_step_and_emit_state_sim = 'z';
     static constexpr char c_cmd_step_and_emit_state_sim_ex = 'Z';
     static constexpr char c_cmd_list_rules = 'l';
@@ -672,6 +682,7 @@ public:
                 printf("(%c) | step simulation\n", c_cmd_step_sim);
                 printf("(%c) | step simulation with 1ns pause after\n", c_cmd_step_sim_with_wait);
                 printf("(%c) | set pause for ^^^\n", c_cmd_step_sim_with_wait_set);
+                printf("(%c) | set emit for ^^^\n", c_cmd_step_sim_with_wait_emit);
 
                 printf("(%c) | step simulation and emit state\n", c_cmd_step_and_emit_state_sim);
                 printf("(%c) | step simulation and emit state EX\n", c_cmd_step_and_emit_state_sim_ex);
@@ -713,6 +724,9 @@ public:
                 break;
             case c_cmd_step_sim_with_wait_set:
                 g_sim_with_wait_pause_in_microseconds = 1;
+                break;
+            case c_cmd_step_sim_with_wait_emit:
+                g_emit_after_pause = true;
                 break;
             case c_cmd_step_sim_with_wait:
                 step();
@@ -828,6 +842,10 @@ public:
                 if (is_step_with_pause)
                 {
                     t_pause();
+                    if (g_emit_after_pause)
+                    {
+                        emit_state();
+                    }
                 }
             }
             else

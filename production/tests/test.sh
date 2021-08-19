@@ -208,6 +208,12 @@ copy_test_output() {
             complete_process 2
         fi
 
+        if ! cp -r "tests/$TEST_MODE/test.properties" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy test properties from '$(realpath "tests/$TEST_MODE/test.properties")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
+
         if ! cp -r "$TEST_RESULTS_DIRECTORY/" "$SCRIPTPATH" > "$TEMP_FILE" 2>&1;  then
             cat "$TEMP_FILE"
             echo "Test script cannot copy intermediate test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."

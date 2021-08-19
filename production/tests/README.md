@@ -338,24 +338,47 @@ before another test.
 
 ### Suite Summaries
 
-Unless the `suite.sh` script is started with the `-n`/`--no-stats` flag,
-the script will print out a summary of each test in the suite that was executed.
+Unless the `suite.sh` script is started with the `-n`/`--no-stats` flag, the script will print out a summary of each test in the suite that was executed.
 
-As the granularity of most measurements is in nanoseconds, unless explicitly stated,
-all measurements are presented in microseconds.  This was decided on to allow for
-the values to line up nicely, with a standard 3 digits to the right of the decimal
-place.
+### Integration Summaries
 
-For any tests that are not executed with the `repeat` keyword text is output
-that looks like the following:
+For any tests that are not executed with the `repeat` keyword text is output that looks like the following:
 
 ```text
 ---
-Suite: smoke-time-only
+Test: smoke
+---
+  Source        /tests/suite-smoke.txt:5
+  Test Type     integration
+  Test Results  Success
+```
+
+For any tests that are executed with the `repeat` keyword text is output that looks like the following:
+
+```text
+---
+Test: smoke
+---
+  Source               /tests/suite-repeat.txt:2
+  Test Type            integration
+  Test Summary         Success=3/3
+  Test Duration (sec)  ['1.988', '2.008', '2.003']
+```
+
+### Performance Summaries
+
+As the granularity of most measurements is in nanoseconds, unless explicitly stated, all measurements are presented in microseconds.  This was decided on to allow for the values to line up nicely, with a standard 3 digits to the right of the decimal place.
+
+For any tests that are not executed with the `repeat` keyword text is output that looks like the following:
+
+```text
+---
+Test: smoke-time-only
 ---
   Source            /tests/suite-smoke.txt:6
   Steps/Iterations  1023
-  Test Results      Sucess
+  Test Type         performance
+  Test Results      Success
 
     Measure         Value
     ----------  ---------
@@ -375,15 +398,15 @@ Suite: smoke-time-only
     max-exec      150.000µs
 ```
 
-For any tests that are executed with the `repeat` keyword text is output
-that looks like the following:
+For any tests that are executed with the `repeat` keyword text is output that looks like the following:
 
 ```text
 ---
-Suite: smoke-time-only-with-100k
+Test: smoke-time-only-with-100k
 ---
   Source            /tests/suite-scaling.txt:10
   Steps/Iterations  100000
+  Test Type         performance
   Test Results      Success=3/3
 
     Measure           Min        Max    Range  TP50 (Med)       TP90
@@ -404,14 +427,11 @@ Suite: smoke-time-only-with-100k
     max-exec      430.000µs   590.000µs   160.000µs   580.000µs   588.000µs
 ```
 
-All this information is available is raw form in the `summary.json` file
-detailed in the [section](#summary.json-file) describing the file, but is
-aggregated for simplicity.
+All this information is available is raw form in the `summary.json` file detailed in the [section](#summary.json-file) describing the file, but is aggregated for simplicity.
 
 #### Available Measures
 
-For all tests, the following general rows are reported.  More information
-on these fields are available [in this section](#single-test-json-blob).
+For all tests, the following general rows are reported.  More information on these fields are available [in this section](#single-test-json-blob).
 
 - `iter-total`
   - aggregation of the `iteration-measured-duration-sec` file from `summary.json`
