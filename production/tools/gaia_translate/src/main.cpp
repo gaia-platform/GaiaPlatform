@@ -705,32 +705,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
             if (variable_declaration_range.isValid())
             {
-                string declaration_code = rewriter.getRewrittenText(variable_declaration_range);
-                if (!declaration_code.empty())
-                {
-                    size_t start_position = declaration_code.find(data_iterator.variable_name);
-                    if (start_position != std::string::npos)
-                    {
-                        const auto& table_data = table_navigation_t::get_table_data();
-                        auto anchor_table_data_itr = table_data.find(anchor_table_name);
-
-                        if (anchor_table_data_itr == table_data.end())
-                        {
-                            return;
-                        }
-
-                        string replacement_code
-                            = string("gaia::")
-                                  .append(anchor_table_data_itr->second.db_name)
-                                  .append("::")
-                                  .append(anchor_table_name)
-                                  .append("_t::get(context->record)");
-
-                        declaration_code.replace(start_position, data_iterator.variable_name.length(), replacement_code);
-                        rewriter.ReplaceText(variable_declaration_range, declaration_code);
-                        continue;
-                    }
-                }
+                continue;
             }
 
             if (data_iterator.skip_implicit_path_generation && data_iterator.path_components.size() == 1)
@@ -945,9 +920,11 @@ void generate_table_subscription(
         }
     }
 
+    bool is_anchor_generation_required = true;
     if (!g_is_rule_context_rule_name_referenced && (is_absoute_path_only || g_expression_explicit_path_data.empty()))
     {
         function_prologue.append("(const gaia::rules::rule_context_t*)\n");
+        is_anchor_generation_required = false;
     }
     else
     {
@@ -961,6 +938,32 @@ void generate_table_subscription(
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+        }
+        if (is_anchor_generation_required)
+        {
+            const auto& table_data = table_navigation_t::get_table_data();
+            auto anchor_table_data_itr = table_data.find(table);
+
+            if (anchor_table_data_itr == table_data.end())
+            {
+                return;
+            }
+            string anchor_code = string("auto ")
+                .append(table)
+                .append(" = gaia::")
+                .append(anchor_table_data_itr->second.db_name)
+                .append("::")
+                .append(table)
+                .append("_t::get(context->record);\n");
+            for (const auto& attribute_tag_iterator : g_attribute_tag_map)
+            {
+                anchor_code.append("auto ")
+                    .append(attribute_tag_iterator.first)
+                    .append(" = ")
+                    .append(table)
+                    .append(";\n");
+            }
+            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), anchor_code);
         }
         if (g_rule_attribute_source_range.isValid())
         {
