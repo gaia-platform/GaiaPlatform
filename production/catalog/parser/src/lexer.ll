@@ -67,6 +67,7 @@ comment ("--".*)
 "IF"           return yy::parser::make_IF(loc);
 "NOT"          return yy::parser::make_NOT(loc);
 "EXISTS"       return yy::parser::make_EXISTS(loc);
+"REFERENCES"   return yy::parser::make_REFERENCES(loc);
 "RELATIONSHIP" return yy::parser::make_RELATIONSHIP(loc);
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
 "USE"          return yy::parser::make_USE(loc);

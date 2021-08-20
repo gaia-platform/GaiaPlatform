@@ -486,6 +486,30 @@ struct table_field_list_t
 
 using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;
 
+// The class represents reference fields in parsing results. The matching
+// references in the two corresponding table definitions will be translated to
+// relationship definitions during execution.
+struct ref_field_def_t : base_field_def_t
+{
+    ref_field_def_t(std::string name, std::string db_name, std::string table_name)
+        : base_field_def_t(name, field_type_t::reference), database((std::move(db_name))), table(std::move(table_name))
+    {
+    }
+    // Optional, the database of the referenced table.
+    std::string database;
+
+    // The referenced table.
+    std::string table;
+
+    relationship_cardinality_t cardinality;
+
+    // Optional, the field name of the referenced table.
+    std::string field;
+
+    // Optional, see the `create_relationship_t` for more details.
+    std::optional<table_field_map_t> field_map;
+};
+
 enum class create_type_t : uint8_t
 {
     create_database,

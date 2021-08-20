@@ -66,7 +66,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
-%token UNIQUE RANGE HASH INDEX ON
+%token UNIQUE RANGE HASH INDEX ON REFERENCES
 
 // Symbols
 %token LPAREN "("
@@ -101,6 +101,7 @@
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
+%type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
@@ -123,6 +124,7 @@
 %printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "field_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
+%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
@@ -285,6 +287,7 @@ field_def_commalist:
 
 field_def:
   data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
+| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:
@@ -296,6 +299,12 @@ data_field_def:
   }
 ;
 
+ref_field_def:
+  IDENTIFIER REFERENCES composite_name opt_array {
+      $$ = std::make_unique<ref_field_def_t>($1, $3.first, $3.second);
+      $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
+  }
+;
 constraint_list:
   constraint_def {
       $$ = constraint_list_t();

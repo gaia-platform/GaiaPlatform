@@ -27,13 +27,13 @@ size_t move_to_front(
     ddl::create_type_t type,
     size_t index = 0)
 {
-    if (statements.size() == 0)
+    ASSERT_PRECONDITION(index <= statements.size(), "Statement index out of bounds.");
+
+    // Handle the two boundary conditions where the list is empty or the index
+    // is right after the last statement.
+    if (statements.size() == 0 || index == statements.size())
     {
-        return 0;
-    }
-    else if (index >= statements.size())
-    {
-        return index;
+        return statements.size();
     }
 
     // The index used to reverse iterate the list.
