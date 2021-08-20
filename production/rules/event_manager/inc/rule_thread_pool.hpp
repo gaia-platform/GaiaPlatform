@@ -8,7 +8,6 @@
 
 #include <mutex>
 #include <queue>
-#include <shared_mutex>
 #include <thread>
 #include <variant>
 
@@ -42,14 +41,14 @@ public:
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
-        uint32_t num_retries{0};
         std::shared_ptr<serial_stream_t> serial_stream{nullptr};
+        uint32_t num_retries{0};
     };
 
     struct serial_stream_t
     {
-        std::mutex execute_lk;
-        std::mutex enqueue_lk;
+        std::mutex execute_lock;
+        std::mutex enqueue_lock;
         std::queue<invocation_t> invocations;
     };
 
@@ -106,14 +105,6 @@ public:
      * @return number of threads
      */
     size_t get_num_threads();
-
-    // XXX cameron make these private references to a serial_stream_manager given at construction.
-    //  The serial_stream_manager might end up being owned by the event manager.
-    /**
-     * Serial streams that have active subscriptions, invocations, or both.
-     */
-    std::shared_mutex serial_streams_lk;
-    std::map<std::string, std::weak_ptr<serial_stream_t>> serial_streams;
 
 private:
     void rule_worker(int32_t& count_busy_workers);

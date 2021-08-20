@@ -33,6 +33,7 @@ add_library(gaia_rules STATIC
   src/scheduler_stats.cpp
   src/rule_stats_manager.cpp
   src/event_manager_settings.cpp
+  src/serial_stream_manager.cpp
 )
 
 target_link_libraries(gaia_rules PUBLIC gaia_build_options)

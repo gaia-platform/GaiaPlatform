@@ -237,7 +237,6 @@ void event_manager_t::enqueue_invocation(
         std::move(rule_invocation),
         rule_binding->log_rule_name.c_str(),
         start_time,
-        0, // XXX Retry logic exists, but is not used due to this.
         serial_stream};
     m_invocations->enqueue(invocation);
 }
@@ -322,30 +321,7 @@ void event_manager_t::subscribe_rule(
 
     if (rule_binding.serial_stream_name != nullptr && event_binding.serial_stream == nullptr)
     {
-        shared_ptr<rule_thread_pool_t::serial_stream_t> serial_stream;
-        {
-            shared_lock sl{m_invocations->serial_streams_lk};
-            auto value = m_invocations->serial_streams.find({rule_binding.serial_stream_name});
-            if (value != m_invocations->serial_streams.end())
-            {
-                serial_stream = value->second.lock();
-            }
-        }
-        if (serial_stream == nullptr)
-        {
-            unique_lock ul{m_invocations->serial_streams_lk};
-            auto value = m_invocations->serial_streams.find({rule_binding.serial_stream_name});
-            if (value != m_invocations->serial_streams.end())
-            {
-                serial_stream = value->second.lock();
-            }
-            else
-            {
-                serial_stream = make_shared<decltype(serial_stream)::element_type>();
-                m_invocations->serial_streams.insert({rule_binding.serial_stream_name, serial_stream});
-            }
-        }
-        event_binding.serial_stream = move(serial_stream);
+        event_binding.serial_stream = m_serial_stream_manager.acquire_stream(rule_binding.serial_stream_name);
     }
 
     if (is_rule_subscribed)

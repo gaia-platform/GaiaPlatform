@@ -20,6 +20,7 @@
 
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
+#include "serial_stream_manager.hpp"
 
 namespace gaia
 {
@@ -139,7 +140,10 @@ private:
     // Commit trigger function pointer that the database calls
     // whenever a transaction is committed.
     gaia::db::triggers::commit_trigger_fn m_trigger_fn;
-    // XXX cameron add m_serial_stream_manager and pass reference to rule_thread_pool constructor.
+
+    // Ensures that all rules run in a ruleset marked with the 'serial_stream(stream_name)'
+    // attribute are run sequentially.
+    serial_stream_manager_t m_serial_stream_manager;
 
 private:
     // Only internal static creation is allowed.

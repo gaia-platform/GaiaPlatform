@@ -111,13 +111,18 @@ struct rule_binding_t
 struct subscription_t
 {
     subscription_t()
-        : ruleset_name(nullptr)
-        , rule_name(nullptr)
-        , gaia_type(common::c_invalid_gaia_type)
-        , event_type(db::triggers::event_type_t::not_set)
-        , field(0)
-        , line_number(0)
-        , serial_stream_name(nullptr)
+        : subscription_t(nullptr, nullptr, common::c_invalid_gaia_type, db::triggers::event_type_t::not_set, 0, 0, nullptr)
+    {
+    }
+
+    subscription_t(
+        const char* a_ruleset_name,
+        const char* a_rule_name,
+        common::gaia_type_t a_gaia_type,
+        db::triggers::event_type_t an_event_type,
+        common::field_position_t a_field,
+        uint32_t a_line_number)
+        : subscription_t(a_ruleset_name, a_rule_name, a_gaia_type, an_event_type, a_field, a_line_number, nullptr)
     {
     }
 
@@ -128,9 +133,7 @@ struct subscription_t
         db::triggers::event_type_t an_event_type,
         common::field_position_t a_field,
         uint32_t a_line_number,
-        // XXX (cameron) remove default value. Did this to make tests happy without modifying.
-        // XXX (cameron) reorder after `a_rule_name'. Did this to make tests happy without modifying.
-        const char* a_serial_stream_name = nullptr)
+        const char* a_serial_stream_name)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , gaia_type(a_gaia_type)
@@ -147,7 +150,6 @@ struct subscription_t
     db::triggers::event_type_t event_type;
     const common::field_position_t field;
     uint32_t line_number;
-    // XXX (cameron) reorder after `rule_name'. Did this to make tests happy without modifying.
     const char* serial_stream_name;
 };
 

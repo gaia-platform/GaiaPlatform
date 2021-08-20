@@ -190,31 +190,31 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
         return;
     }
 
-    unique_lock execute_lk{invocation.serial_stream->execute_lk, defer_lock};
-    if (execute_lk.try_lock())
+    unique_lock execute_lock{invocation.serial_stream->execute_lock, defer_lock};
+    if (execute_lock.try_lock())
     {
         invoke_rule_inner(invocation);
     }
     else
     {
-        unique_lock enqueue_lk{invocation.serial_stream->enqueue_lk};
+        unique_lock enqueue_lock{invocation.serial_stream->enqueue_lock};
         invocation.serial_stream->invocations.push(invocation);
-        execute_lk.try_lock();
+        execute_lock.try_lock();
     }
 
-    if (execute_lk)
+    if (execute_lock)
     {
-        unique_lock enqueue_lk{invocation.serial_stream->enqueue_lk};
+        unique_lock enqueue_lock{invocation.serial_stream->enqueue_lock};
         while (!invocation.serial_stream->invocations.empty())
         {
-            enqueue_lk.unlock();
+            enqueue_lock.unlock();
             do
             {
                 invocation = invocation.serial_stream->invocations.front();
                 invocation.serial_stream->invocations.pop();
                 invoke_rule_inner(invocation);
             } while (!invocation.serial_stream->invocations.empty());
-            enqueue_lk.lock();
+            enqueue_lock.lock();
         }
     }
 }
