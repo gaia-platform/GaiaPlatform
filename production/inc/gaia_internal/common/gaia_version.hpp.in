@@ -7,22 +7,49 @@
 
 #include <string>
 
+namespace gaia
+{
+namespace common
+{
+
 constexpr int c_gaia_version_major = @production_VERSION_MAJOR@;
 constexpr int c_gaia_version_minor = @production_VERSION_MINOR@;
 constexpr int c_gaia_version_patch = @production_VERSION_PATCH@;
-constexpr int c_gaia_incremental_build_number = @build.number@;
+constexpr char c_gaia_pre_release[] = "@PRE_RELEASE_IDENTIFIER@";
 
+// When built in CI this number is replaced with the TeamCity build version.
+// When built locally this number is replaced by the CMake with a string
+// containing the name of the user who run the build and the date:
+// Eg: simone.20210820121758
+constexpr char c_gaia_build_number[] = "@build.number@";
+
+/**
+ * Returns major.minor.patch-pre_release
+ *
+ * Eg. 0.1.0-beta
+ */
 std::string gaia_version()
 {
-    return std::to_string(c_gaia_version_major)
+    std::string version = std::to_string(c_gaia_version_major)
         + "." + std::to_string(c_gaia_version_minor)
         + "." + std::to_string(c_gaia_version_patch);
+
+    if (strlen(c_gaia_pre_release) > 0)
+    {
+        version += "-" + std::string(c_gaia_pre_release);
+    }
+
+    return version;
 }
 
+/**
+ * Returns major.minor.patch+build
+ */
 std::string gaia_full_version()
 {
-    return std::to_string(c_gaia_version_major)
-        + "." + std::to_string(c_gaia_version_minor)
-        + "." + std::to_string(c_gaia_version_patch)
-        + "+" + std::to_string(c_gaia_incremental_build_number);
+    return gaia_version()
+        + "+" + std::string(c_gaia_build_number);
+}
+
+}
 }
