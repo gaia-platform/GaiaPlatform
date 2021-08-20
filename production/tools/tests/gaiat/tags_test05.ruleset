@@ -8,5 +8,5 @@ ruleset test05
     }
 }
 
-// CHECK: Table 'P' was not found in the catalog.
+// CHECK: Table 'P' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.
 // CHECK: use of undeclared identifier 'P'

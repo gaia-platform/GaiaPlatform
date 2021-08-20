@@ -5485,7 +5485,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
     const auto catalogTableDataIterator = catalogTableData.find(tableName);
     if (catalogTableDataIterator == catalogTableData.end())
     {
-      Diag(LParenLoc, diag::err_invalid_table_name) << tableName;
+      Diag(LParenLoc, diag::err_table_not_found) << tableName;
       return ExprError();
     }
     // Perform semantic check of parameters.
