@@ -6,7 +6,6 @@
 
 #include <map>
 #include <shared_mutex>
-#include <thread>
 
 #include "rule_thread_pool.hpp"
 

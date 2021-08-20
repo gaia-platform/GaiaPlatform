@@ -75,25 +75,38 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
 struct rule_binding_t
 {
     rule_binding_t()
-        : ruleset_name(nullptr)
-        , rule_name(nullptr)
-        , rule(nullptr)
-        , line_number(0)
-        , serial_stream_name(nullptr)
+        : rule_binding_t(nullptr, nullptr, nullptr, 0, nullptr)
     {
     }
 
     rule_binding_t(
-        const char* a_ruleset_name,
-        const char* a_rule_name,
-        gaia_rule_fn a_rule,
-        uint32_t a_line_number = 0,
-        const char* a_serial_stream_name = nullptr)
-        : ruleset_name(a_ruleset_name)
-        , rule_name(a_rule_name)
-        , rule(a_rule)
-        , line_number(a_line_number)
-        , serial_stream_name(a_serial_stream_name)
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule)
+        : rule_binding_t(ruleset_name, rule_name, rule, 0, nullptr)
+    {
+    }
+
+    rule_binding_t(
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule,
+        uint32_t line_number)
+        : rule_binding_t(ruleset_name, rule_name, rule, line_number, nullptr)
+    {
+    }
+
+    rule_binding_t(
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule,
+        uint32_t line_number,
+        const char* serial_stream_name)
+        : ruleset_name(ruleset_name)
+        , rule_name(rule_name)
+        , rule(rule)
+        , line_number(line_number)
+        , serial_stream_name(serial_stream_name)
     {
     }
 
