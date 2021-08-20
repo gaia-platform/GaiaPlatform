@@ -161,3 +161,23 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     ASSERT_FALSE(student_1.parents());
     gaia::db::commit_transaction();
 }
+
+TEST_F(test_connect_disconnect, disconnect_delete)
+{
+    gaia::rules::subscribe_ruleset("test_disconnect_delete");
+
+    gaia::db::begin_transaction();
+    student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    gaia_id_t reg001 = registration_t::insert_row("reg001", c_status_eligible, c_grade_c);
+    gaia_id_t reg002 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
+    student_1.registrations().insert(reg001);
+    student_1.registrations().insert(reg002);
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+    int count = student_1.registrations().size();
+    gaia::db::commit_transaction();
+    ASSERT_EQ(count, 0);
+}
