@@ -51,6 +51,7 @@ target_link_libraries(gaia_catalog PUBLIC gaia_build_options)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
 target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers edc_catalog)
+add_dependencies(gaia_catalog gaia_parser)
 
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
