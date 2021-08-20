@@ -147,18 +147,20 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
     {
         variable_name = last_variable_name;
     }
-    return_value.prefix
-        .append("\n{\nauto ")
-        .append(variable_name)
-        .append(" = gaia::")
-        .append(anchor_table_data_itr->second.db_name)
-        .append("::")
-        .append(anchor_table)
-        .append("_t::get(context->record);\n")
-        .append("if (")
-        .append(variable_name)
-        .append(")\n{\n");
-    return_value.postfix = "\n}\n}\n";
+    if (variable_name != anchor_table_name)
+    {
+        return_value.prefix
+            .append("\n{\nauto ")
+            .append(variable_name)
+            .append(" = ")
+            .append(anchor_table_name)
+            .append(";\n");
+    }
+    else
+    {
+        return_value.prefix = "\n{\n";
+    }
+    return_value.postfix = "\n}\n";
 
     if (tables.size() == 1 && table_name == anchor_table_name)
     {
