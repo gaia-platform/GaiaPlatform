@@ -66,14 +66,15 @@ size_t find_first_unset_bit(
 // We can reference elements of a bitarray using the index of the elements (element_index)
 // or the bit index of the first bit of the element (bit_index).
 
-// Find the first occurrence of a bitarray element
-// and return the element index of this occurrence.
-// end_limit_element_index can limit the search to a prefix of a large bitarray. If
-// end_limit_element_index is not set, we'll search the entire bitarray.
+// Find the first occurrence of a bitarray element between start_element_index
+// (inclusive) and end_element_index (exclusive), and return the element index
+// of this occurrence. If end_element_index == -1, we search the entire bitarray.
+// If we find no matching element, we return -1.
 size_t find_first_element(
     std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
     size_t element_width, uint64_t element_value,
-    size_t end_limit_element_index = c_max_bit_index);
+    size_t start_element_index = 0,
+    size_t end_element_index = -1);
 
 // Read a bitarray element with given width at the given element index.
 uint64_t get_element_at_index(

@@ -264,7 +264,7 @@ size_t find_first_unset_bit(
 size_t find_first_element(
     std::atomic<uint64_t>* bitarray, size_t bitarray_word_size,
     size_t element_width, uint64_t element_value,
-    size_t end_limit_element_index)
+    size_t start_element_index, size_t end_element_index)
 {
     validate_bitmap_parameters(bitarray, bitarray_word_size);
 
@@ -274,26 +274,43 @@ size_t find_first_element(
         "Bitarray element width must divide word size!");
 
     // The element value must fit in the element width.
-    ASSERT_PRECONDITION(element_value < (1ULL << element_width), "Bitarray element value must fit in element width!");
+    ASSERT_PRECONDITION(
+        element_value < (1ULL << element_width),
+        "Bitarray element value must fit in element width!");
 
-    // If no limit bit index was provided, set the limit to the last bitarray index in the bitmap.
-    if (end_limit_element_index == c_max_bit_index)
+    // If end_element_index was not provided, set it to just after the last valid index.
+    if (end_element_index == -1)
     {
-        end_limit_element_index = bitarray_word_size * (c_uint64_bit_count / element_width) - 1;
+        end_element_index = bitarray_word_size * (c_uint64_bit_count / element_width);
+    }
+    validate_element_index(bitarray_word_size, end_element_index - 1, element_width);
+
+    ASSERT_PRECONDITION(
+        start_element_index < end_element_index,
+        "Start element index must precede end element index!");
+
+    size_t end_bit_index_exclusive = end_element_index * element_width;
+    size_t end_word_index_exclusive = end_bit_index_exclusive / c_uint64_bit_count;
+    size_t end_bit_index_in_word_exclusive = end_bit_index_exclusive % c_uint64_bit_count;
+
+    // If end_bit_index_in_word_exclusive == 0, then we need to convert it to
+    // the word size in bits, because that means we need to search all the way
+    // to the end of the word.
+    if (end_bit_index_in_word_exclusive == 0)
+    {
+        end_bit_index_in_word_exclusive = c_uint64_bit_count;
     }
 
-    size_t end_limit_bit_index = (end_limit_element_index + 1) * element_width - 1;
-    validate_element_index(bitarray_word_size, end_limit_element_index, element_width);
-
-    size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
-    size_t end_bit_index_within_word = end_limit_bit_index % c_uint64_bit_count;
+    size_t start_bit_index = start_element_index * element_width;
+    size_t start_word_index = start_bit_index / c_uint64_bit_count;
+    size_t start_bit_index_in_word = start_bit_index % c_uint64_bit_count;
 
     // The element width must divide the number of available bits in the final word.
     ASSERT_PRECONDITION(
-        (end_bit_index_within_word + 1) % element_width == 0,
+        end_bit_index_in_word_exclusive % element_width == 0,
         "Bitarray element width must divide available bits in final word!");
 
-    for (size_t word_index = 0; word_index <= end_word_index; ++word_index)
+    for (size_t word_index = start_word_index; word_index < end_word_index_exclusive; ++word_index)
     {
         uint64_t word = bitarray[word_index];
 
@@ -301,18 +318,34 @@ size_t find_first_element(
         // boundaries, i.e., on the element width, and that it never spans
         // words.
 
-        // Construct a mask with the element width and shift it over all possible aligned positions within the word.
-        uint64_t mask = (1ULL << element_width) - 1;
-        size_t position_count = c_uint64_bit_count / element_width;
+        size_t start_bit_index_current_word = 0;
+        size_t end_bit_index_exclusive_current_word = c_uint64_bit_count;
 
-        // Only scan up to the final bit.
-        if (word_index == end_word_index)
+        if (word_index == start_word_index)
         {
-            position_count = (end_bit_index_within_word + 1) / element_width;
+            start_bit_index_current_word = start_bit_index_in_word;
         }
 
+        if (word_index == end_word_index_exclusive - 1)
+        {
+            end_bit_index_exclusive_current_word = end_bit_index_in_word_exclusive;
+        }
+
+        size_t initial_position = start_bit_index_current_word / element_width;
+        size_t bits_to_scan_count = end_bit_index_exclusive_current_word - start_bit_index_current_word;
+
+        // The element width must divide the number of bits to be scanned in the current word.
+        ASSERT_INVARIANT(
+            bits_to_scan_count % element_width == 0,
+            "Bitarray element width must divide bits to be scanned in current word!");
+
+        size_t position_count = bits_to_scan_count / element_width;
+
+        // Construct a mask with the element width and shift it over all possible aligned positions within the word.
+        uint64_t mask = (1ULL << element_width) - 1;
+
         // Scan for a match at each aligned position of the bitarray element within the current word.
-        for (size_t position = 0; position < position_count; ++position)
+        for (size_t position = initial_position; position < position_count; ++position)
         {
             // Shift the mask to the current position.
             size_t position_shift = element_width * position;
@@ -328,7 +361,7 @@ size_t find_first_element(
         }
     }
 
-    return c_max_bit_index;
+    return -1;
 }
 
 // Get the bitarray element with given width at the given bit index within a single word.

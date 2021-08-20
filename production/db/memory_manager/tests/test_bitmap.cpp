@@ -271,11 +271,24 @@ TEST(bitarray, set_get_find_element)
     ASSERT_EQ(element_value, c_element_value);
 
     size_t found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value);
+
     ASSERT_EQ(found_bitarray_index, c_bitarray_index);
 
     // Stop the search just before the sought element.
-    found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value, c_bitarray_index - 1);
-    ASSERT_EQ(found_bitarray_index, c_max_bit_index);
+    found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value, 0, c_bitarray_index);
+    ASSERT_EQ(found_bitarray_index, -1);
+
+    // Start the search just before the sought element.
+    found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value, c_bitarray_index, -1);
+    ASSERT_EQ(found_bitarray_index, c_bitarray_index);
+
+    // Start the search just after the sought element.
+    found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value, c_bitarray_index + 1, -1);
+    ASSERT_EQ(found_bitarray_index, -1);
+
+    // Start the search just before the sought element and stop the search just after the sought element.
+    found_bitarray_index = find_first_element(bitarray, c_bitarray_size, c_element_width, c_element_value, c_bitarray_index, c_bitarray_index + 1);
+    ASSERT_EQ(found_bitarray_index, -1);
 }
 
 TEST(bitarray, conditional_set_element)
