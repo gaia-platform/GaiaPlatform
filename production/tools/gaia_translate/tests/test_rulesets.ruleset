@@ -432,6 +432,12 @@ ruleset test_query_10
 }
 
 // This ruleset is not used, but its translation must compile with C++.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-label"
+// The pragma is because the break labels, BREAK1_TARGET, etc. are left in
+// the code and result in compiler warnings. The Jira issue, when fixed,
+// will eliminate any unused labels. These pragmas should be removed then.
+// GAIAPLAT-1198
 ruleset test_compile
 {
     // GAIAPLAT-1112
@@ -491,6 +497,7 @@ ruleset test_compile
 #endif
 
 }
+#pragma clang diagnostic pop
 
 ruleset test_insert_delete
 {
