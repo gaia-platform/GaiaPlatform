@@ -177,9 +177,7 @@ TEST_F(test_connect_disconnect, disconnect_delete)
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
-    int count = 0;
-    for (auto registration : student_1.registrations())
-        count++;
+    int count = student_1.registrations().size();
     gaia::db::commit_transaction();
     ASSERT_EQ(count, 0);
 }
