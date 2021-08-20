@@ -10,10 +10,19 @@
 constexpr int c_gaia_version_major = @production_VERSION_MAJOR@;
 constexpr int c_gaia_version_minor = @production_VERSION_MINOR@;
 constexpr int c_gaia_version_patch = @production_VERSION_PATCH@;
+constexpr int c_gaia_incremental_build_number = @build.number@;
+
+std::string gaia_version()
+{
+    return std::to_string(c_gaia_version_major)
+        + "." + std::to_string(c_gaia_version_minor)
+        + "." + std::to_string(c_gaia_version_patch);
+}
 
 std::string gaia_full_version()
 {
     return std::to_string(c_gaia_version_major)
         + "." + std::to_string(c_gaia_version_minor)
-        + "." + std::to_string(c_gaia_version_patch);
+        + "." + std::to_string(c_gaia_version_patch)
+        + "+" + std::to_string(c_gaia_incremental_build_number);
 }

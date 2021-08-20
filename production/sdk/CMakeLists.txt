@@ -36,6 +36,18 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;edc_addr_book")
 
+#add_custom_target(gaia2)
+#
+#add_custom_command(
+#  TARGET gaia2
+#  PRE_BUILD
+#  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/increase_build_number.sh
+#      ${CMAKE_CURRENT_SOURCE_DIR}/build_number.txt
+#  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/write_build_number_header.sh
+#      ${CMAKE_CURRENT_SOURCE_DIR}/build_number.txt
+#      ${GAIA_INC}/gaia_internal/common/gaia_build_number.hpp
+#)
+
 
 # Set CPack variables required for building a DEB/RPM package.
 #

@@ -411,6 +411,11 @@ if(JAVA_FOUND AND JNI_FOUND)
   #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
+# Populate the gaia_version file
+# Note: the build number is generated right before the SDK build. Look into sdk/CMakeLists.txt for more info.
+set(build.number 1)
+configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
+
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
   CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
