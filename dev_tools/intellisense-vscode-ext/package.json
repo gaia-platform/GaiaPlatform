@@ -1,0 +1,35 @@
+{
+    "name": "gaia-platform",
+    "displayName": "Gaia-Syntax-Highlighting",
+    "description": "Syntax Highlighting for Gaia Platform",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.59.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "gaia",
+                "aliases": [
+                    "gaia platform",
+                    "gaia"
+                ],
+                "extensions": [
+                    ".ruleset",
+                    ".ddl"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "gaia",
+                "scopeName": "source.gaia",
+                "path": "./syntaxes/Gaia.tmLanguage.json"
+            }
+        ]
+    }
+}
