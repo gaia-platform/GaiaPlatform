@@ -385,7 +385,7 @@ ruleset test39
     }
 }
 
-void printf(const char*, float);
+void printf(const char*, ...);
 
 // TESTCASE: use link names together with table names
 ruleset test40
@@ -426,5 +426,39 @@ ruleset test43
     {
         int acre = crop.acres;
         printf("%d\n", acre);
+    }
+}
+
+// TESTCASE: use multiple fields from the same row in one statement
+ruleset test44
+{
+    on_insert(farmer)
+    {
+        printf("%s, %s, %u\n", animal.name, breed, animal.age);
+        printf("%u, %u\n", portion, frequency);
+    }
+}
+
+// TESTCASE: use multiple fields from the multiple rows in one statement
+ruleset test45
+{
+    on_insert(incubator)
+    {
+        printf("%s, %f, %u,%s, %f, %u\n", sensor.name, sensor.value, precision, actuator.name,
+            actuator.value, max_rpm);
+    }
+}
+
+// TESTCASE: expect navigation from anchor
+ruleset test46
+{
+    on_update(farmer)
+    {
+        if (bushels > 40)
+        {
+            int total_portion = 0;
+            int total_frequency = 0;
+            total_portion += portion, total_frequency += frequency;
+        }
     }
 }
