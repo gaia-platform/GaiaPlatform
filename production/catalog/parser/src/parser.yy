@@ -66,7 +66,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
-%token UNIQUE RANGE HASH INDEX ON REFERENCES
+%token UNIQUE RANGE HASH INDEX ON REFERENCES WHERE
 
 // Symbols
 %token LPAREN "("
@@ -76,6 +76,7 @@
 %token COMMA ","
 %token DOT "."
 %token SEMICOLON ";"
+%token EQUAL "="
 
 %token RARROW "->"
 
@@ -113,6 +114,7 @@
 %type <constraint_list_t> constraint_list
 %type <std::optional<constraint_list_t>> opt_constraint_list
 %type <gaia::catalog::ddl::table_field_map_t> table_field_map
+%type <std::string> opt_ref_using
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -300,11 +302,18 @@ data_field_def:
 ;
 
 ref_field_def:
-  IDENTIFIER REFERENCES composite_name opt_array {
+  IDENTIFIER REFERENCES composite_name opt_array opt_ref_using {
       $$ = std::make_unique<ref_field_def_t>($1, $3.first, $3.second);
       $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
+      $$->field = std::move($4);
   }
 ;
+
+opt_ref_using:
+  USING IDENTIFIER { $$ = std::move($2); }
+| { $$ = ""; }
+;
+
 constraint_list:
   constraint_def {
       $$ = constraint_list_t();
