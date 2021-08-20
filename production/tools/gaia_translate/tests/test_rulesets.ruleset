@@ -663,3 +663,12 @@ ruleset test_disconnect_1_1
         student.parents.disconnect();
     }
 };
+
+ruleset test_disconnect_delete
+{
+    on_insert(registration)
+    {
+        registration->student.disconnect(registration);
+        registration.remove();
+    }
+}
