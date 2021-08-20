@@ -34,7 +34,9 @@ constexpr char c_gaia_master_git_hash[] = "@GIT_MASTER_HASH@";
  * Returns major.minor.patch-pre_release. The pre_release
  * is absent for GA release.
  *
- * Eg. 0.1.0-beta
+ * Eg:
+ * - 0.2.1-alpha
+ * - 1.0.0
  */
 std::string gaia_version()
 {
@@ -54,8 +56,8 @@ std::string gaia_version()
  * Returns major.minor.patch-pre_release+build (git_commit)
  * - pre_release is absent for GA release.
  * - The build format is different for CI builds and local builds.
- * - The git_commit may be 2 different commits if
- *   the local_commit != master_commit.
+ * - The git_commit may be two different commits if
+ *   local_commit != master_commit.
  *
  * Eg:
  * - 0.1.0-beta+123 (609bacb31dd96e6faa6b56615bae060aee6549a4)
