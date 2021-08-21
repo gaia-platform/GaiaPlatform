@@ -143,7 +143,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(const string
         table_name = table_iterator->second;
     }
 
-    if (tables.size() == 1 && table_name == anchor_table_name)
+    if (table_name == anchor_table_name)
     {
         variable_name = last_variable_name;
     }

@@ -651,10 +651,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
         {
             continue_label = continue_label_iterator->second;
         }
-        for (const auto& data_iterator : explicit_path_data_iterator.second)
+        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); data_iterator++)
         {
             string anchor_table_name = get_table_name(
-                get_table_from_expression(anchor_table), data_iterator.tag_table_map);
+                get_table_from_expression(anchor_table), data_iterator->tag_table_map);
 
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
@@ -668,8 +668,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
                 {
-                    if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
-                        || is_tag_defined(data_iterator.defined_tags, variable_name))
+                    if (data_iterator->tag_table_map.find(variable_name) != data_iterator->tag_table_map.end()
+                        || is_tag_defined(data_iterator->defined_tags, variable_name))
                     {
                         cerr << "Local variable declaration '" << variable_name
                              << "' hides a tag of the same name." << endl;
@@ -680,11 +680,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     {
                         string table_name = get_table_name(
                             get_table_from_expression(
-                                data_iterator.path_components.front()),
-                            data_iterator.tag_table_map);
+                                data_iterator->path_components.front()),
+                            data_iterator->tag_table_map);
 
-                        if (data_iterator.path_components.size() == 1
-                            && table_name == anchor_table_name && !data_iterator.is_absolute_path)
+                        if (data_iterator->path_components.size() == 1
+                            && table_name == anchor_table_name && !data_iterator->is_absolute_path)
                         {
                             auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
                             auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
@@ -708,13 +708,13 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 continue;
             }
 
-            if (data_iterator.skip_implicit_path_generation && data_iterator.path_components.size() == 1)
+            if (data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1)
             {
                 continue;
             }
 
             navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                anchor_table, data_iterator);
+                anchor_table, *data_iterator);
             if (navigation_code.prefix.empty())
             {
                 g_is_generation_error = true;
@@ -738,11 +738,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
+            if (!break_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix += "\n" + break_label + ":;\n";
             }
-            if (!continue_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
+            if (!continue_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
@@ -954,7 +954,9 @@ void generate_table_subscription(
                 .append(anchor_table_data_itr->second.db_name)
                 .append("::")
                 .append(table)
-                .append("_t::get(context->record);\n");
+                .append("_t::get(context->record);\nif(")
+                .append(table)
+                .append(")\n{\n");
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
                 anchor_code.append("auto ")
@@ -964,6 +966,7 @@ void generate_table_subscription(
                     .append(";\n");
             }
             rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), anchor_code);
+            rewriter.InsertTextBefore(g_current_rule_declaration->getEndLoc(), "\n}\n");
         }
         if (g_rule_attribute_source_range.isValid())
         {
@@ -1528,13 +1531,13 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
+                optimize_path(expression_explicit_path_data_iterator.second, data);
                 if (expression_explicit_path_data_iterator.first == expression_source_range
                     || should_expression_location_be_merged(context, *node))
                 {
                     expression_explicit_path_data_iterator.second.push_back(data);
                     return;
                 }
-                optimize_path(expression_explicit_path_data_iterator.second, data);
             }
             else
             {
