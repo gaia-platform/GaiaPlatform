@@ -24,7 +24,7 @@ create table if not exists course (
 create table if not exists registration (
     reg_id string,
     status string,
-    grade string
+    grade float
 );
 
 create relationship if not exists student_reg (
@@ -39,7 +39,7 @@ create relationship if not exists course_reg (
 
 create table if not exists prereq (
     prereq_id string,
-    min_grade string
+    min_grade float
 );
 
 create relationship if not exists prereq_course (
