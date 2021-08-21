@@ -180,30 +180,37 @@ size_t count_set_bits(
 {
     validate_bitmap_parameters(bitmap, bitmap_word_size);
 
-    // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
+    // If no limit bit index was provided, set the limit to just past the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count - 1;
+        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count;
     }
     else
     {
-        validate_bit_index(bitmap_word_size, end_limit_bit_index);
+        validate_bit_index(bitmap_word_size, end_limit_bit_index - 1);
     }
 
-    size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
-    size_t end_bit_index_within_word = end_limit_bit_index % c_uint64_bit_count;
+    size_t end_word_index_exclusive = (end_limit_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
+    size_t end_bit_index_in_word_exclusive = end_limit_bit_index % c_uint64_bit_count;
+    // If end_bit_index_in_word_exclusive == 0, then we need to convert it to
+    // the word size in bits, because that means that the exclusive upper bound
+    // is at the very end of the word.
+    if (end_bit_index_in_word_exclusive == 0)
+    {
+        end_bit_index_in_word_exclusive = c_uint64_bit_count;
+    }
 
     size_t bit_count = 0;
 
-    for (size_t word_index = 0; word_index <= end_word_index; ++word_index)
+    for (size_t word_index = 0; word_index < end_word_index_exclusive; ++word_index)
     {
         uint64_t word = bitmap[word_index];
 
         // If we're processing the last word and we're not supposed to process it in its entirety,
         // then first mask out the bits that we are supposed to ignore before doing the counting.
-        if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
+        if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << (end_bit_index_within_word + 1)) - 1;
+            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
             word &= mask;
         }
 
@@ -222,25 +229,32 @@ size_t find_first_unset_bit(
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
     if (end_limit_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count - 1;
+        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count;
     }
     else
     {
-        validate_bit_index(bitmap_word_size, end_limit_bit_index);
+        validate_bit_index(bitmap_word_size, end_limit_bit_index - 1);
     }
 
-    size_t end_word_index = end_limit_bit_index / c_uint64_bit_count;
-    size_t end_bit_index_within_word = end_limit_bit_index % c_uint64_bit_count;
+    size_t end_word_index_exclusive = (end_limit_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
+    size_t end_bit_index_in_word_exclusive = end_limit_bit_index % c_uint64_bit_count;
+    // If end_bit_index_in_word_exclusive == 0, then we need to convert it to
+    // the word size in bits, because that means that the exclusive upper bound
+    // is at the very end of the word.
+    if (end_bit_index_in_word_exclusive == 0)
+    {
+        end_bit_index_in_word_exclusive = c_uint64_bit_count;
+    }
 
-    for (size_t word_index = 0; word_index <= end_word_index; ++word_index)
+    for (size_t word_index = 0; word_index < end_word_index_exclusive; ++word_index)
     {
         uint64_t word = bitmap[word_index];
 
         // If we're processing the last word and we're not supposed to process it in its entirety,
         // then first mask out the bits that we are supposed to ignore before doing any check.
-        if (word_index == end_word_index && end_bit_index_within_word != c_uint64_bit_count - 1)
+        if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << (end_bit_index_within_word + 1)) - 1;
+            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
             // Because we're looking out for unset bits,
             // the masking is done by setting the irrelevant bits to 1.
             word |= ~mask;
@@ -256,6 +270,38 @@ size_t find_first_unset_bit(
         {
             return (word_index * c_uint64_bit_count) + unset_bit_index;
         }
+    }
+
+    return c_max_bit_index;
+}
+
+size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_word_size)
+{
+    validate_bitmap_parameters(bitmap, bitmap_word_size);
+
+    // Scan backward from the last word in the bitmap, skipping over zero words,
+    // until we find the first nonzero word, then find the rightmost set bit in
+    // that word.
+    // NB: The loop termination condition ensures that we stop as soon as the
+    // index is decremented past zero and wraps around to the max value.
+    for (size_t word_index = bitmap_word_size - 1; word_index < bitmap_word_size; --word_index)
+    {
+        uint64_t word = bitmap[word_index];
+
+        // Skip any zero words.
+        if (word == 0)
+        {
+            continue;
+        }
+
+        // Find the leftmost set bit in a nonzero word (MSB-first).
+        // "__builtin_clzll(x) returns the number of leading 0-bits in x,
+        // starting at the most significant bit position. If x is 0, the result
+        // is undefined."
+        size_t leading_zeros_in_word = __builtin_clzll(word);
+        size_t last_set_bit_index_in_word = c_uint64_bit_count - leading_zeros_in_word - 1;
+        size_t bit_index = (word_index * c_uint64_bit_count) + last_set_bit_index_in_word;
+        return bit_index;
     }
 
     return c_max_bit_index;
@@ -290,7 +336,7 @@ size_t find_first_element(
         "Start element index must precede end element index!");
 
     size_t end_bit_index_exclusive = end_element_index * element_width;
-    size_t end_word_index_exclusive = end_bit_index_exclusive / c_uint64_bit_count;
+    size_t end_word_index_exclusive = (end_bit_index_exclusive + c_uint64_bit_count - 1) / c_uint64_bit_count;
     size_t end_bit_index_in_word_exclusive = end_bit_index_exclusive % c_uint64_bit_count;
 
     // If end_bit_index_in_word_exclusive == 0, then we need to convert it to

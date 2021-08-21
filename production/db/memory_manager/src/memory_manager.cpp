@@ -193,7 +193,7 @@ address_offset_t memory_manager_t::allocate_from_deallocated_memory() const
     {
         return c_invalid_address_offset;
     }
-    auto end_limit_bit_index = static_cast<size_t>(highest_deallocated_chunk_offset) - c_first_chunk_offset;
+    auto end_limit_bit_index = static_cast<size_t>(highest_deallocated_chunk_offset) - c_first_chunk_offset + 1;
     size_t first_unset_bit_index = c_max_bit_index;
     bool has_claimed_chunk = false;
     address_offset_t allocation_offset = c_invalid_address_offset;
@@ -204,7 +204,7 @@ address_offset_t memory_manager_t::allocate_from_deallocated_memory() const
                 end_limit_bit_index))
            != c_max_bit_index)
     {
-        ASSERT_INVARIANT(first_unset_bit_index <= end_limit_bit_index, "First unset bit index is outside the searched range!");
+        ASSERT_INVARIANT(first_unset_bit_index < end_limit_bit_index, "First unset bit index is outside the searched range!");
 
         auto chunk_offset = static_cast<chunk_offset_t>(first_unset_bit_index + c_first_chunk_offset);
 
