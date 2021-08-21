@@ -115,6 +115,7 @@
 %type <std::optional<constraint_list_t>> opt_constraint_list
 %type <gaia::catalog::ddl::table_field_map_t> table_field_map
 %type <std::string> opt_ref_using
+%type <std::optional<gaia::catalog::ddl::table_field_map_t>> opt_ref_where
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -140,6 +141,7 @@
 %printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
 %printer { yyo << "opt_constraint_list"; } opt_constraint_list
 %printer { yyo << "table_field_map:" << $$.first.table << "," << $$.second.table; } table_field_map
+%printer { yyo << "opt_ref_where:" << $$->first.fields.front() << "=" << $$->second.fields.front(); } opt_ref_where
 %printer { yyo << $$; } <*>
 
 %%
@@ -302,16 +304,31 @@ data_field_def:
 ;
 
 ref_field_def:
-  IDENTIFIER REFERENCES composite_name opt_array opt_ref_using {
+  IDENTIFIER REFERENCES composite_name opt_array opt_ref_using opt_ref_where {
       $$ = std::make_unique<ref_field_def_t>($1, $3.first, $3.second);
       $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
-      $$->field = std::move($4);
+      $$->field = std::move($5);
+      $$->field_map = std::move($6);
   }
 ;
 
 opt_ref_using:
-  USING IDENTIFIER { $$ = std::move($2); }
-| { $$ = ""; }
+  USING IDENTIFIER {
+      $$ = std::move($2);
+  }
+| {
+      $$ = "";
+  }
+;
+
+opt_ref_where:
+  WHERE composite_name "=" composite_name {
+      $$ = std::make_optional(std::make_pair<table_field_list_t, table_field_list_t>(
+          {"", $2.first, {$2.second}}, {"", $4.first, {$4.second}}));
+  }
+| {
+      $$ = std::nullopt;
+  }
 ;
 
 constraint_list:
