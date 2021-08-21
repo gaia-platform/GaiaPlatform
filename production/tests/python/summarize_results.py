@@ -7,6 +7,8 @@ Copyright (c) Gaia Platform LLC
 All rights reserved.
 """
 
+# pylint: disable=too-many-lines
+
 import json
 import sys
 import os
@@ -16,6 +18,7 @@ import configparser
 SUITE_DIRECTORY = "suite-results/"
 
 GENERATED_CONFIGUATION_FILE = "mink.conf"
+TEST_PROPERTIES_FILE = "test.properties"
 
 DECIMALS_PLACES_IN_NANOSECONDS = 9
 MICROSEC_PER_SEC = 1000000
@@ -39,6 +42,7 @@ THREAD_LOAD_TITLE = "thread-load-percent"
 
 SOURCE_TITLE = "source"
 CONFIGURATION_TITLE = "configuration"
+PROPERTIES_TITLE = "properties"
 ITERATIONS_TITLE = "iterations"
 RETURN_CODE_TITLE = "return-code"
 TEST_DURATION_TITLE = "test-duration-sec"
@@ -406,6 +410,16 @@ def process_rules_engine_stats(base_dir):
 # pylint: enable=broad-except
 
 
+def __translate_entry(test_properties, config, key):
+    this_value = config[key]
+    if this_value.lower() == "true" or this_value.lower() == "false":
+        test_properties[key] = this_value.lower() == "true"
+    elif re.search("^([0-9]+)$", this_value):
+        test_properties[key] = int(this_value)
+    else:
+        test_properties[key] = this_value
+
+
 def process_configuration_file(base_dir):
     """
     Load up the generated "*.conf" file for the test and translate the
@@ -418,14 +432,34 @@ def process_configuration_file(base_dir):
     assert "Rules" in config
     rules_configuration = {}
     for key in config["Rules"]:
-        this_value = config["Rules"][key]
-        if this_value.lower() == "true" or this_value.lower() == "false":
-            rules_configuration[key] = this_value.lower() == "true"
-        elif re.search("^([0-9]+)$", this_value):
-            rules_configuration[key] = int(this_value)
-        else:
-            rules_configuration[key] = this_value
+        __translate_entry(rules_configuration, config["Rules"], key)
     return rules_configuration
+
+
+def __load_properties(filepath, separator="=", comment_prefix="#"):
+    loaded_properties = {}
+    with open(filepath, "rt") as properties_file:
+        for next_line in properties_file:
+            next_line = next_line.strip()
+            if next_line and not next_line.startswith(comment_prefix):
+                split_next_line = next_line.split(separator)
+                key = split_next_line[0].strip()
+                value = separator.join(split_next_line[1:]).strip().strip('"')
+                loaded_properties[key] = value
+    return loaded_properties
+
+
+def process_properties_file(base_dir):
+    """
+    Load up the properties file.
+    """
+
+    json_path = os.path.join(base_dir, TEST_PROPERTIES_FILE)
+    loaded_properties = __load_properties(json_path)
+    test_properties = {}
+    for key in loaded_properties:
+        __translate_entry(test_properties, loaded_properties, key)
+    return test_properties
 
 
 # pylint: disable=broad-except
@@ -559,6 +593,8 @@ def load_test_result_files(suite_test_directory):
 
     configuration_data = process_configuration_file(base_dir)
 
+    property_data = process_properties_file(base_dir)
+
     return (
         return_code_data,
         duration_data,
@@ -570,6 +606,7 @@ def load_test_result_files(suite_test_directory):
         total_print_data,
         measured_section_data,
         configuration_data,
+        property_data,
         t_pause_data,
         t_requested_data,
         t_config_data,
@@ -620,6 +657,7 @@ def load_results_for_test(suite_test_directory, source_info):
         total_print_data,
         measured_section_data,
         configuration_data,
+        property_data,
         t_pause_data,
         t_requested_data,
         t_config_data,
@@ -633,6 +671,7 @@ def load_results_for_test(suite_test_directory, source_info):
     if source_info:
         new_results[SOURCE_TITLE] = source_info
     new_results[CONFIGURATION_TITLE] = configuration_data
+    new_results[PROPERTIES_TITLE] = property_data
     new_results[ITERATIONS_TITLE] = iterations_data
     new_results[RETURN_CODE_TITLE] = return_code_data
     new_results[TOTAL_DURATION_TITLE] = duration_data
@@ -718,6 +757,7 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     main_dictionary = {}
 
     main_dictionary[SOURCE_TITLE] = source_info
+
     main_dictionary[ITERATIONS_TITLE] = []
     main_dictionary[RETURN_CODE_TITLE] = []
     main_dictionary[TEST_DURATION_TITLE] = []
@@ -765,6 +805,8 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
         recorded_name = map_lines[map_line_index].strip()
         map_line_index += 1
         new_results = load_results_for_test(recorded_name, None)
+
+        main_dictionary[PROPERTIES_TITLE] = new_results[PROPERTIES_TITLE]
 
         add_individual_test_results(main_dictionary, new_results, totals, calculations)
 

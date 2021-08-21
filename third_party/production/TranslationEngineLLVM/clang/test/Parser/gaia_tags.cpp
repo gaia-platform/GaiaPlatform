@@ -113,7 +113,7 @@ ruleset test128
         {
             I.min_temp ++;
         }
-        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog.}}
+        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.}}
         // expected-error@-1  {{use of undeclared identifier 'I'}}
     }
 }

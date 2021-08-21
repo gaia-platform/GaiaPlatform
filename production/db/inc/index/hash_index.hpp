@@ -27,8 +27,8 @@ using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_i
 class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:
-    explicit hash_index_t(gaia::common::gaia_id_t index_id)
-        : index_t(index_id, catalog::index_type_t::hash)
+    explicit hash_index_t(gaia::common::gaia_id_t index_id, bool is_unique = false)
+        : index_t(index_id, catalog::index_type_t::hash, is_unique)
     {
     }
     ~hash_index_t() = default;

@@ -9526,7 +9526,7 @@ def err_duplicate_field : Error<
   "Duplicate field '%0' found in table '%1'. Qualify your field with the "
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
-  "specifing them in the ruleset 'tables' attribute.">;
+  "specifying them in the ruleset 'tables' attribute.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
 def err_duplicate_parameter_name : Error<
@@ -9578,8 +9578,6 @@ def err_invalid_parent_table : Error<
   "Incorrect parent table in the relationship '%0'.">;
 def err_invalid_table_field : Error<
   "Field '%0' has no table in the catalog.">;
-def err_invalid_table_name : Error<
-  "Table '%0' was not found in the catalog.">;
 def err_invalid_rule_context_internal_error : Error<
   "Internal error while generating 'rule_context'.">;
 def err_invalid_rule_attribute : Error<
@@ -9603,7 +9601,9 @@ def err_no_anchor_path : Error<
   "No navigation path exists between table '%0' and other tables. "
   "Ensure that your schema has a relationship between the tables you are referencing.">;
 def err_no_fields_referenced_by_table : Error<
-  "No fields referenced by table '%0'.">;  
+  "No fields referenced by table '%0'.">;
+def err_no_link : Error<
+  "Table link '%0.%1' was not found in the catalog.">;
 def err_no_path : Error<
   "No navigation path exists between tables '%0' and '%1'. "
   "Ensure that your schema has a relationship between these two tables.">;

@@ -94,6 +94,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
         g_oninsert_called = false;
         g_oninsert2_called = false;
         g_oninsert3_called = false;
@@ -232,9 +234,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
     registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete");
 
     // Fire on_update(S:student).
@@ -254,9 +254,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
 // TESTCASE: Generate database within rules
 TEST_F(test_insert_delete_code, build_database)
 {
-    gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
     // Fire on_update(S:student).
@@ -289,5 +287,6 @@ TEST_F(test_insert_delete_code, build_database)
     }
     gaia::db::commit_transaction();
 
+    gaia::rules::test::wait_for_rules_to_complete();
     EXPECT_EQ(row_count, 8) << "on_insert(enrollment_log) failed to create connections";
 }

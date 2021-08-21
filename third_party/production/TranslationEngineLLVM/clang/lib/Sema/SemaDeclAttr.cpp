@@ -2026,7 +2026,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
     if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << tableArg->Ident->getName();
       return;
     }
@@ -2082,7 +2082,7 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     if (dotPosition == 0)
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << "";
       return false;
     }
@@ -2092,7 +2092,7 @@ static bool validateRuleAttribute(StringRef attribute,
     auto tableDescription = tableData.find(table);
     if (tableDescription == tableData.end())
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << table;
       return false;
     }

@@ -77,7 +77,7 @@ add_gaia_sdk_gtest(
   RULESET_FILE "${RULESET_PREFIX}/test_mixed.ruleset"
   DATABASE_NAME "barn_storage"
   PREVIOUS_TARGET_NAME "test_translation_engine"
-  TARGET_SOURCES "tests/test_mixed_ruleset.cpp"
+  TARGET_SOURCES "tests/test_mixed_ruleset.cpp;${RULES_TEST_HELPERS}"
   TARGET_INCLUDES "${TEST_INCLUDES}"
 )
 
@@ -120,5 +120,15 @@ add_gaia_sdk_gtest(
   DATABASE_NAME "prerequisites"
   PREVIOUS_TARGET_NAME "test_queries_ruleset"
   TARGET_SOURCES "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS}"
+  TARGET_INCLUDES "${TEST_INCLUDES}"
+)
+
+add_gaia_sdk_gtest(
+  TARGET_NAME "test_connect_disconnect_ruleset"
+  DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
+  RULESET_FILE "${RULESET_PREFIX}/test_rulesets.ruleset"
+  DATABASE_NAME "prerequisites"
+  PREVIOUS_TARGET_NAME "test_insert_delete_ruleset"
+  TARGET_SOURCES "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
   TARGET_INCLUDES "${TEST_INCLUDES}"
 )

@@ -3191,6 +3191,14 @@ def GaiaField : Attr {
   let Documentation = [Undocumented];
 }
 
+// Identify Records (class/structs) that represent a Gaia table.
+def GaiaTable : Attr {
+  let Spellings = [Keyword<"gaiaTable">];
+  let Subjects = SubjectList<[Record]>;
+  let Documentation = [Undocumented];
+  let Args = [IdentifierArgument<"table">];
+}
+
 def GaiaFieldValue : Attr {
   let Spellings = [Keyword<"gaiaFieldValue">];
   let Subjects = SubjectList<[Var]>;
