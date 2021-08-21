@@ -85,7 +85,9 @@ def __calculate_total_counts(stats_slice, log_line_columns, totals, title, index
     totals[title] = previous_value + stats_slice[title]
 
 
-def __calculate_maximum_values(stats_slice, log_line_columns, calculations, title, index):
+def __calculate_maximum_values(
+    stats_slice, log_line_columns, calculations, title, index
+):
     """
     Given another slice, update the maximum values if needed for any title.
     """
@@ -97,7 +99,9 @@ def __calculate_maximum_values(stats_slice, log_line_columns, calculations, titl
     calculations[title] = max(previous_maximum, stats_slice[title])
 
 
-def __calculate_average_values(stats_slice, log_line_columns, calculations, title, index):
+def __calculate_average_values(
+    stats_slice, log_line_columns, calculations, title, index
+):
     """
     Given another slice, calculate any totals we need for average values.
 
@@ -565,7 +569,9 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
         if os.path.isabs(recorded_name)
         else os.path.join(SUITE_DIRECTORY, recorded_name)
     )
-    aggregate_data, performance_legend_data = __process_workload_properties_file(base_dir)
+    aggregate_data, performance_legend_data = __process_workload_properties_file(
+        base_dir
+    )
 
     main_dictionary[SOURCE_TITLE] = source_info
     main_dictionary[PER_TEST_TITLE] = {}
