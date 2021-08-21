@@ -3,7 +3,7 @@
 // TESTCASE: break from a nomatch block
 ruleset test17
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
         if (S:sensor.value > 50.0)
         {

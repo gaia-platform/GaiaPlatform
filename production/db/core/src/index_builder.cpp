@@ -15,6 +15,7 @@
 #include "field_access.hpp"
 #include "hash_index.hpp"
 #include "range_index.hpp"
+#include "reflection.hpp"
 #include "txn_metadata.hpp"
 #include "type_id_mapping.hpp"
 
@@ -27,11 +28,11 @@ namespace db
 namespace index
 {
 
-template <class T_index>
 /*
 w - the writer guard for the index meant to be truncated.
 commit_ts - the cutoff timestamp below which we remove committed transactions (inclusive).
 */
+template <class T_index>
 void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
@@ -59,7 +60,7 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
 {
     ASSERT_PRECONDITION(payload, "Cannot compute key on null payloads.");
 
-    index_key_t k;
+    index_key_t index_key;
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
     ASSERT_INVARIANT(
         type_record_id != c_invalid_gaia_id,
@@ -68,14 +69,39 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
 
-    auto& fields = *(index_view.fields());
-    for (auto field_id : fields)
+    const auto& fields = *(index_view.fields());
+    for (gaia_id_t field_id : fields)
     {
         field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
-        k.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
+        index_key.insert(payload_types::get_field_value(type_id, payload, schema->data(), schema->size(), pos));
     }
 
-    return k;
+    return index_key;
+}
+
+void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
+{
+    for (const payload_types::data_holder_t& key_value : key.values())
+    {
+        key_value.serialize(buffer);
+    }
+}
+
+index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer)
+{
+    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
+
+    index_key_t index_key;
+    auto index_view = index_view_t(id_to_ptr(index_id));
+
+    const auto& fields = *(index_view.fields());
+    for (auto field_id : fields)
+    {
+        data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
+        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type)));
+    }
+
+    return index_key;
 }
 
 index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
@@ -95,20 +121,25 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
     return get_indexes()->find(index_id) != get_indexes()->end();
 }
 
-indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, catalog::index_type_t type)
+indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, index_view_t index_view)
 {
-    switch (type)
+    bool is_unique = index_view.unique();
+
+    switch (index_view.type())
     {
     case catalog::index_type_t::range:
         return get_indexes()->emplace(
                                 index_id,
-                                std::make_shared<range_index_t, gaia_id_t>(static_cast<gaia_id_t&&>(index_id)))
+                                std::make_shared<range_index_t, gaia_id_t, bool>(
+                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
             .first;
         break;
+
     case catalog::index_type_t::hash:
         return get_indexes()->emplace(
                                 index_id,
-                                std::make_shared<hash_index_t, gaia_id_t>(static_cast<gaia_id_t&&>(index_id)))
+                                std::make_shared<hash_index_t, gaia_id_t, bool>(
+                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
             .first;
         break;
     }
@@ -124,7 +155,7 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     if (it == get_indexes()->end())
     {
         auto index_view = index_view_t(id_to_ptr(index_id));
-        it = create_empty_index(index_id, index_view.type());
+        it = create_empty_index(index_id, index_view);
     }
 
     switch (it->second->type())
@@ -144,7 +175,8 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     }
 }
 
-void index_builder_t::update_index(gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record)
+void index_builder_t::update_index(
+    gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record)
 {
     auto obj = offset_to_ptr(log_record.new_offset);
     uint8_t* payload = (obj) ? reinterpret_cast<uint8_t*>(obj->payload) : nullptr;

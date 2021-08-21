@@ -5,6 +5,7 @@
 
 # Set the project name.
 project(payload_types)
+set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_INC}"
@@ -12,6 +13,7 @@ set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_REPO}/production/db/core/inc"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/catalog/inc"
+  "${GEN_DIR}"
   "${FLATBUFFERS_INC}")
 
 message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")
@@ -20,7 +22,8 @@ message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")
 add_library(gaia_payload_types STATIC
   src/data_holder.cpp
   src/type_cache.cpp
-  src/field_access.cpp)
+  src/field_access.cpp
+  src/data_buffer.cpp)
 target_link_libraries(gaia_payload_types PUBLIC gaia_build_options)
 target_include_directories(gaia_payload_types PUBLIC ${GAIA_PAYLOAD_TYPES_INCLUDES})
 target_link_libraries(gaia_payload_types PRIVATE gaia_common flatbuffers)
@@ -49,10 +52,24 @@ add_custom_command(
   VERBATIM)
 add_custom_target(test_record_data_bin ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin)
 
+# Generate flatbuffers files required by test_serializaton.
+add_custom_command(
+  COMMENT "Compiling test_record.fbs with flatbuffers..."
+  OUTPUT ${GEN_DIR}/test_serialization_generated.h
+  COMMAND flatc
+    --cpp -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
+  DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
+  DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+  VERBATIM)
+
+
+add_custom_target(test_serialization_schena ALL DEPENDS ${GEN_DIR}/test_serialization_generated.h)
 # Tests.
 add_gtest(test_field_access tests/test_field_access.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
 add_gtest(test_data_holder tests/test_data_holder.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
+add_gtest(test_serialization tests/test_serialization.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
 # The flatbuffers test also requires our two input files.
 configure_file(tests/test_record.fbs . COPYONLY)
 configure_file(tests/test_record_data.json . COPYONLY)
+
 add_gtest(test_flatbuffers tests/test_flatbuffers.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;flatbuffers")

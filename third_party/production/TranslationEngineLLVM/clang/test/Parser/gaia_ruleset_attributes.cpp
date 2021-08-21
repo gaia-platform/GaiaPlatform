@@ -71,7 +71,7 @@ ruleset test_table_8 : tables(, ) // expected-error {{expected identifier}}
     }
 }
 
-ruleset test_table_9: tables(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog.}}
+ruleset test_table_9: tables(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.}}
 {
     {
         max_temp += min_temp/2;

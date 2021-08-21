@@ -1,4 +1,0 @@
-basic_with_100
-basic_with_1k
-basic_with_10k
-basic_with_100k

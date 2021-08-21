@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -17,18 +16,23 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
+#include "clang/Basic/DiagnosticOptions.h"
+#include "clang/Basic/DiagnosticSema.h"
 #include "clang/Driver/Options.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
+#include "diagnostics.h"
 #include "table_navigation.h"
 
 using namespace std;
@@ -42,8 +46,22 @@ using namespace gaia::common;
 using namespace gaia::translation;
 
 cl::OptionCategory g_translation_engine_category("Use translation engine options");
-cl::opt<string> g_translation_engine_output_option(
-    "output", cl::init(""), cl::desc("output file name"), cl::cat(g_translation_engine_category));
+
+cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
+
+cl::alias g_translation_engine_output_option_alias("o", cl::desc("Alias for -output"), cl::aliasopt(g_translation_engine_output_option), cl::NotHidden, cl::cat(g_translation_engine_category));
+
+// An alias cannot be made for the -help option,
+// so instead this cl::opt pretends to be the cl::alias for -help.
+cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDisallowed, cl::cat(g_translation_engine_category));
+
+// This should be "Required" instead of "ZeroOrMore", but its error message is not user-friendly:
+// "gaiat: Not enough positional command line arguments specified! Must specify at least 1 positional argument: See: ./gaiat -help"
+// Single-option statements like gaiat -h would print that error because the "Required" positional argument is missing.
+// The number of source files is enforced manually instead of using llvm::cl parameters.
+cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
+
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 bool g_is_generation_error = false;
@@ -55,6 +73,11 @@ SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
+
+constexpr char c_connect_keyword[] = "connect";
+constexpr char c_disconnect_keyword[] = "disconnect";
+constexpr size_t c_connect_keyword_length = 7;
+constexpr size_t c_disconnect_keyword_length = 10;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -94,6 +117,16 @@ const FunctionDecl* g_current_rule_declaration = nullptr;
 string g_current_ruleset_subscription;
 string g_generated_subscription_code;
 string g_current_ruleset_unsubscription;
+
+// We use this to report the rule location when reporting diagnostics.
+// In the best caese, we'll update the location to report the exact
+// line number and column for an error.  In some cases, however, we
+// don't have this information so the least we can do here is point to
+// the rule where the error occurred.  Note also that errors can occur
+// when the translation engine starts generating code.  Code generation
+// for rule N happens when we encounter rule N+1 or the end of file
+// for the last rule.  So we need to save off this context.
+SourceLocation g_last_rule_location;
 
 enum rewriter_operation_t
 {
@@ -136,7 +169,9 @@ static const char c_ident[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
-    stream << "Gaia Translation Engine " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+    // Note that the clang::raw_ostream does not support 'endl'.
+    stream << c_gaiat << " " << gaia_full_version() << "\n";
+    stream << c_copyright << "\n";
 }
 
 // Get location of a token before the current location.
@@ -500,7 +535,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
-        cerr << "Since a rule attribute was provided, specifying active fields inside the rule is not supported." << endl;
+        gaiat::diag().emit(diag::err_active_field_not_supported);
         g_is_generation_error = true;
         return false;
     }
@@ -514,7 +549,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table_name << "' was not found in the catalog." << endl;
+        gaiat::diag().emit(diag::err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -523,14 +558,14 @@ bool validate_and_add_active_field(const string& table_name, const string& field
 
     if (fields.find(field_name) == fields.end())
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' was not found in the catalog." << endl;
+        gaiat::diag().emit(diag::err_field_not_found) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
 
     if (fields[field_name].is_deprecated)
     {
-        cerr << "Field '" << field_name << "' of table '" << table_name << "' is deprecated in the catalog." << endl;
+        gaiat::diag().emit(diag::err_field_deprecated) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
@@ -662,8 +697,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 string variable_name = variable_declaration_range_iterator.second;
                 if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides a tag of the same name." << endl;
+                    gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::warn_tag_hidden) << variable_name;
                 }
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -671,8 +705,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (data_iterator->tag_table_map.find(variable_name) != data_iterator->tag_table_map.end()
                         || is_tag_defined(data_iterator->defined_tags, variable_name))
                     {
-                        cerr << "Local variable declaration '" << variable_name
-                             << "' hides a tag of the same name." << endl;
+                        gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::warn_tag_hidden) << variable_name;
                     }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
@@ -695,7 +728,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            cerr << "Initialization of declared variable with EDC objects is not supported." << endl;
+                            gaiat::diag().emit(diag::err_edc_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -713,6 +746,9 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 continue;
             }
 
+            // Set the source location to print out diagnostics on a line close to where an error
+            // might be reported.
+            gaiat::diag().set_location(explicit_path_data_iterator.first.getBegin());
             navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
                 anchor_table, *data_iterator);
             if (navigation_code.prefix.empty())
@@ -783,7 +819,7 @@ void generate_table_subscription(
     string common_subscription_code;
     if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
     {
-        cerr << "Table '" << table << "' was not found in the catalog." << endl;
+        gaiat::diag().emit(diag::err_table_not_found) << table;
         g_is_generation_error = true;
         return;
     }
@@ -898,10 +934,10 @@ void generate_table_subscription(
                                    .append(c_nolint_identifier_naming)
                                    .append("\nvoid ")
                                    .append(rule_name);
-    bool is_absoute_path_only = true;
+    bool is_absolute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
-        if (!is_absoute_path_only)
+        if (!is_absolute_path_only)
         {
             break;
         }
@@ -913,7 +949,7 @@ void generate_table_subscription(
                 const auto tag_iterator = data_iterator.tag_table_map.find(first_component_table);
                 if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
                 {
-                    is_absoute_path_only = false;
+                    is_absolute_path_only = false;
                     break;
                 }
             }
@@ -1067,20 +1103,15 @@ void optimize_subscription(const string& table, int rule_count)
 // tables used by all active fields.
 bool has_multiple_anchors()
 {
-    static const char* c_multi_anchor_tables = "Multiple anchor rows: A rule may not specify multiple tables or active fields from different tables in "
-                                               "'on_insert', 'on_change', or 'on_update'.";
-    static const char* c_multi_anchor_fields = "Multiple anchor rows: A rule may not specify active fields "
-                                               "from different tables.";
-
     if (g_insert_tables.size() > 1 || g_update_tables.size() > 1)
     {
-        cerr << c_multi_anchor_tables << endl;
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
     }
 
     if (g_active_fields.size() > 1)
     {
-        cerr << c_multi_anchor_fields << endl;
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_fields);
         return true;
     }
 
@@ -1089,7 +1120,7 @@ bool has_multiple_anchors()
         && g_update_tables.size() == 1
         && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
     {
-        cerr << c_multi_anchor_tables << endl;
+        gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
     }
 
@@ -1109,7 +1140,7 @@ void generate_rules(Rewriter& rewriter)
     }
     if (g_active_fields.empty() && g_update_tables.empty() && g_insert_tables.empty())
     {
-        cerr << "No active fields for the rule." << endl;
+        gaiat::diag().emit(g_last_rule_location, diag::err_no_active_fields);
         g_is_generation_error = true;
         return;
     }
@@ -1140,7 +1171,7 @@ void generate_rules(Rewriter& rewriter)
 
         if (field_description.second.empty())
         {
-            cerr << "No fields referenced by table '" << table << "'." << endl;
+            gaiat::diag().emit(diag::err_no_fields_referenced_by_table) << table;
             g_is_generation_error = true;
             return;
         }
@@ -1164,7 +1195,7 @@ void generate_rules(Rewriter& rewriter)
         {
             if (fields.find(field) == fields.end())
             {
-                cerr << "Field '" << field << "' of table '" << table << "' was not found in the catalog." << endl;
+                gaiat::diag().emit(diag::err_field_not_found) << field << table;
                 g_is_generation_error = true;
                 return;
             }
@@ -1734,7 +1765,7 @@ public:
                     expression_source_range
                         = SourceRange(expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                 }
-
+                gaiat::diag().set_location(decl->getBeginLoc());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
@@ -1776,7 +1807,7 @@ public:
                             = SourceRange(
                                 expression_source_range.getBegin().getLocWithOffset(-1), expression_source_range.getEnd());
                     }
-
+                    gaiat::diag().set_location(expression_source_range.getBegin());
                     if (!validate_and_add_active_field(table_name, field_name, true))
                     {
                         return;
@@ -1785,14 +1816,14 @@ public:
             }
             else
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                gaiat::diag().emit(member_expression->getBeginLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1872,14 +1903,16 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            // TODO:  Can we find a better location here?  If we don't have
+            // our operator, then we'll just report the rule location.
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression" << endl;
+            gaiat::diag().emit(op->getExprLoc(), diag::err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -1895,7 +1928,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -1927,7 +1960,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                gaiat::diag().emit(member_expression->getExprLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2010,12 +2043,12 @@ public:
             break;
         }
         default:
-            cerr << "Incorrect operator type." << endl;
+            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_type);
             g_is_generation_error = true;
             return;
         }
 
-        replacement_text += convert_compound_binary_opcode(op->getOpcode());
+        replacement_text += convert_compound_binary_opcode(op);
 
         if (left_declaration_expression != nullptr)
         {
@@ -2062,9 +2095,10 @@ public:
     }
 
 private:
-    string convert_compound_binary_opcode(BinaryOperator::Opcode op_code)
+    string convert_compound_binary_opcode(const BinaryOperator* op)
     {
-        switch (op_code)
+
+        switch (op->getOpcode())
         {
         case BO_Assign:
             return "=";
@@ -2089,7 +2123,7 @@ private:
         case BO_OrAssign:
             return "|=";
         default:
-            cerr << "Incorrect operator code " << op_code << "." << endl;
+            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_code) << op->getOpcode();
             g_is_generation_error = true;
             return "";
         }
@@ -2115,14 +2149,14 @@ public:
         const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op == nullptr)
         {
-            cerr << "Incorrect matched operator." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_operator);
             g_is_generation_error = true;
             return;
         }
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
-            cerr << "Incorrect operator expression." << endl;
+            gaiat::diag().emit(op->getExprLoc(), diag::err_incorrect_operator_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2131,7 +2165,7 @@ public:
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            cerr << "Incorrect operator expression type." << endl;
+            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -2172,7 +2206,7 @@ public:
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression == nullptr)
             {
-                cerr << "Incorrect base type of generated type." << endl;
+                gaiat::diag().emit(member_expression->getExprLoc(), diag::err_incorrect_base_type);
                 g_is_generation_error = true;
                 return;
             }
@@ -2288,10 +2322,11 @@ public:
         }
 
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        g_last_rule_location = rule_declaration->getSourceRange().getBegin();
         const GaiaOnUpdateAttr* update_attribute = rule_declaration->getAttr<GaiaOnUpdateAttr>();
         const GaiaOnInsertAttr* insert_attribute = rule_declaration->getAttr<GaiaOnInsertAttr>();
         const GaiaOnChangeAttr* change_attribute = rule_declaration->getAttr<GaiaOnChangeAttr>();
-
+        gaiat::diag().set_location(rule_declaration->getSourceRange().getBegin());
         generate_rules(m_rewriter);
         if (g_is_generation_error)
         {
@@ -2326,6 +2361,7 @@ public:
         {
             g_rule_attribute_source_range = update_attribute->getRange();
             g_is_rule_prolog_specified = true;
+            gaiat::diag().set_location(g_rule_attribute_source_range.getBegin());
             for (const auto& table_iterator : update_attribute->tables())
             {
                 string table, field, tag;
@@ -2373,6 +2409,7 @@ public:
         {
             g_is_rule_prolog_specified = true;
             g_rule_attribute_source_range = change_attribute->getRange();
+            gaiat::diag().set_location(g_rule_attribute_source_range.getBegin());
             for (const auto& table_iterator : change_attribute->tables())
             {
                 string table, field, tag;
@@ -2416,6 +2453,11 @@ public:
         {
             return;
         }
+        const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
+        if (ruleset_declaration)
+        {
+            gaiat::diag().set_location(ruleset_declaration->getBeginLoc());
+        }
         generate_rules(m_rewriter);
         if (g_is_generation_error)
         {
@@ -2436,7 +2478,6 @@ public:
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
 
-        const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (ruleset_declaration == nullptr)
         {
             return;
@@ -2457,9 +2498,7 @@ public:
         {
             if (r == g_current_ruleset)
             {
-                cerr << "Ruleset names must be unique - '"
-                     << g_current_ruleset
-                     << "' has been found multiple times." << endl;
+                gaiat::diag().emit(diag::err_duplicate_ruleset) << g_current_ruleset;
                 g_is_generation_error = true;
                 return;
             }
@@ -2532,11 +2571,10 @@ public:
         if (variable_name != "")
         {
             g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
-
+            gaiat::diag().set_location(variable_declaration->getSourceRange().getBegin());
             if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
             {
-                cerr << "Local variable declaration '" << variable_name
-                     << "' hides database table of the same name." << endl;
+                gaiat::diag().emit(diag::warn_table_hidden) << variable_name;
                 return;
             }
 
@@ -2544,8 +2582,7 @@ public:
             {
                 if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
                 {
-                    cerr << "Local variable declaration '" << variable_name
-                         << "' hides catalog field entity of the same name." << endl;
+                    gaiat::diag().emit(diag::warn_field_hidden) << variable_name;
                     return;
                 }
             }
@@ -2639,10 +2676,9 @@ public:
             return;
         }
         const auto* expression = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
-
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2684,16 +2720,17 @@ public:
         {
             if (g_insert_call_locations.find(expression->getBeginLoc()) != g_insert_call_locations.end())
             {
+                gaiat::diag().set_location(expression->getBeginLoc());
                 if (explicit_path_present)
                 {
-                    cerr << "'insert' call cannot be used with navigation." << endl;
+                    gaiat::diag().emit(diag::err_insert_with_explicit_nav);
                     g_is_generation_error = true;
                     return;
                 }
 
                 if (table_name == variable_name)
                 {
-                    cerr << "'insert' call cannot be used with tags." << endl;
+                    gaiat::diag().emit(diag::err_insert_with_tag);
                     g_is_generation_error = true;
                     return;
                 }
@@ -2754,7 +2791,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2777,7 +2814,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("RemoveCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("removeCall");
         if (expression != nullptr)
         {
             m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
@@ -2785,7 +2822,7 @@ public:
         }
         else
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
         }
     }
@@ -2808,11 +2845,11 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("insertCall");
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2862,7 +2899,7 @@ public:
         const auto* expression = result.Nodes.getNodeAs<GaiaForStmt>("DeclFor");
         if (expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2873,10 +2910,12 @@ public:
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
 
+        gaiat::diag().set_location(expression->getBeginLoc());
+
         const auto* path = dyn_cast<DeclRefExpr>(expression->getPath());
         if (path == nullptr)
         {
-            cerr << "Incorrect expression is used as a path in for statement." << endl;
+            gaiat::diag().emit(diag::err_incorrect_for_expression);
             g_is_generation_error = true;
             return;
         }
@@ -2951,7 +2990,7 @@ public:
         const auto* continue_expression = result.Nodes.getNodeAs<ContinueStmt>("DeclContinue");
         if (break_expression == nullptr && continue_expression == nullptr)
         {
-            cerr << "Incorrect matched expression." << endl;
+            gaiat::diag().emit(g_last_rule_location, diag::err_incorrect_matched_expression);
             g_is_generation_error = true;
             return;
         }
@@ -3029,6 +3068,129 @@ private:
     Rewriter& m_rewriter;
 };
 
+// Handles the connect/disconnect calls. Mostly the code figures out what link is between
+// table1.connect(table2) and inserts it: table1.link().connect(table2)
+class declarative_connect_disconnect_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_connect_disconnect_handler_t(Rewriter& r)
+        : m_rewriter(r){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        string src_table_name;
+        string dest_table_name;
+        string link_name;
+        bool need_link_field = false;
+
+        const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectDisconnectCall");
+        bool is_connect = method_call_expr->getMethodDecl()->getName().str() == c_connect_keyword;
+
+        const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        src_table_name = get_table_name(table_call->getDecl());
+
+        const auto* param = result.Nodes.getNodeAs<DeclRefExpr>("connectDisconnectParam");
+        const auto* table_attr = param->getType()->getAsRecordDecl()->getAttr<GaiaTableAttr>();
+        dest_table_name = table_attr->getTable()->getName().str();
+
+        const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
+
+        unordered_map<string, table_data_t> table_data = table_navigation_t::get_table_data();
+
+        gaiat::diag().set_location(table_call->getLocation());
+
+        auto src_table_iter = table_data.find(src_table_name);
+        if (src_table_iter == table_data.end())
+        {
+            gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t src_table_data = src_table_iter->second;
+
+        auto dest_table_iter = table_data.find(dest_table_name);
+        if (dest_table_iter == table_data.end())
+        {
+            gaiat::diag().emit(param->getLocation(), diag::err_table_not_found) << dest_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t dest_table_data = dest_table_iter->second;
+
+        // If the link_expr is not null this is a call in the form table.link.connect()
+        // hence we don't need to look up the name. Otherwise, this is in the form
+        // table.connect() and we have to infer the link name from the catalog.
+        if (link_expr)
+        {
+            link_name = link_expr->getMemberNameInfo().getName().getAsString();
+        }
+        else
+        {
+            // Search what link connect src_table to dest_table.
+            // We can assume that the link is unique because the check
+            // has already been performed in SemaGaia.
+            for (const auto& link_data_pair : src_table_data.link_data)
+            {
+                if (link_data_pair.second.target_table == dest_table_name)
+                {
+                    link_name = link_data_pair.first;
+                }
+            }
+
+            // We will need to add the field name.
+            need_link_field = true;
+        }
+
+        if (link_name.empty())
+        {
+            gaiat::diag().emit(diag::err_no_path) << src_table_name << dest_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        auto link_data_iter = src_table_data.link_data.find(link_name);
+        if (link_data_iter == src_table_data.link_data.end())
+        {
+            gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        link_data_t link_data = link_data_iter->second;
+
+        if (link_data.cardinality == gaia::catalog::relationship_cardinality_t::many)
+        {
+            if (is_connect)
+            {
+                // Changes connect() to insert() for 1:N relationships.
+                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_connect_keyword_length, "insert");
+            }
+            else
+            {
+                // Changes disconnect() to remove() for 1:N relationships.
+                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
+                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_disconnect_keyword_length, "remove");
+            }
+        }
+
+        if (need_link_field)
+        {
+            // Inserts the link name between the table name and the connect/disconnect method:
+            // table.link_name().connect().
+            m_rewriter.InsertTextBefore(method_call_expr->getExprLoc(), link_name + "().");
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -3045,6 +3207,7 @@ public:
         , m_declarative_break_continue_handler(r)
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
+        , m_declarative_connect_disconnect_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -3122,6 +3285,7 @@ public:
                           hasOperatorName("--")),
                       hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldUnaryOp");
+
         StatementMatcher table_field_get_matcher
             = memberExpr(
                   member(
@@ -3129,13 +3293,15 @@ public:
                           hasAttr(attr::GaiaField),
                           unless(hasAttr(attr::GaiaFieldLValue)))),
                   hasDescendant(declRefExpr(
-                      to(varDecl(
-                          anyOf(
-                              hasAttr(attr::GaiaField),
-                              hasAttr(attr::FieldTable),
-                              hasAttr(attr::GaiaFieldValue)),
-                          unless(hasAttr(attr::GaiaFieldLValue)))))))
+                                    to(varDecl(
+                                        anyOf(
+                                            hasAttr(attr::GaiaField),
+                                            hasAttr(attr::FieldTable),
+                                            hasAttr(attr::GaiaFieldValue)),
+                                        unless(hasAttr(attr::GaiaFieldLValue)))))
+                                    .bind("tableCall")))
                   .bind("tableFieldGet");
+
         StatementMatcher table_field_set_matcher
             = binaryOperator(
                   allOf(
@@ -3182,14 +3348,50 @@ public:
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("remove"))),
                   hasDescendant(table_call_matcher))
-                  .bind("RemoveCall");
+                  .bind("removeCall");
 
         StatementMatcher declarative_insert_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("insert"))),
                   hasDescendant(table_call_matcher))
-                  .bind("InsertCall");
+                  .bind("insertCall");
+
+        // Matches an expression in the form: table.connect().
+        StatementMatcher declarative_table_connect_disconnect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
+                  on(table_call_matcher))
+                  .bind("connectDisconnectCall");
+
+        // Matches an expression in the form: table.link.connect().
+        StatementMatcher declarative_link_connect_disconnect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.link.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.link.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
+                  on(table_field_get_matcher))
+                  .bind("connectDisconnectCall");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
@@ -3216,6 +3418,9 @@ public:
         m_matcher.addMatcher(declarative_continue_matcher, &m_declarative_break_continue_handler);
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
+
+        m_matcher.addMatcher(declarative_table_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
+        m_matcher.addMatcher(declarative_link_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -3238,29 +3443,47 @@ private:
     declarative_break_continue_handler_t m_declarative_break_continue_handler;
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
+    declarative_connect_disconnect_handler_t m_declarative_connect_disconnect_handler;
 };
 
-class translation_engine_action_t : public clang::ASTFrontendAction
+// This class allows us to generate diagnostics with source file information
+// right up to the point where we are about to call EndSourceFile() for the DiagnosticConsumer.
+// The Translation Engine will generate code for the last rule when it gets a
+// ASTFrontEndAction::EndSourceFileAction() call.  Unfortunately, this callback occurs after the DiagnosticConsumer
+// EndSourceFile() gets called so we were losing all source line information for the last
+// ruleset.  By creating a diagnostic consumer, we can override the EndSourceFile() call,
+// generate the code for the last rule, and ensure we have good source info.
+// See DiagnosticConsumer.h for information on BeginSourceFile and EndSourceFile.
+class gaiat_diagnostic_consumer_t : public clang::TextDiagnosticPrinter
 {
 public:
-    std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-        clang::CompilerInstance& compiler, llvm::StringRef) override
+    gaiat_diagnostic_consumer_t()
+        : TextDiagnosticPrinter(llvm::errs(), new DiagnosticOptions())
     {
-        m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
-        return std::unique_ptr<clang::ASTConsumer>(
-            new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
-    void EndSourceFileAction() override
+
+    void set_rewriter(Rewriter* rewriter)
+    {
+        m_rewriter = rewriter;
+    }
+
+    void EndSourceFile() override
     {
         if (!g_translation_engine_output_option.empty())
         {
             std::remove(g_translation_engine_output_option.c_str());
         }
-        generate_rules(m_rewriter);
+        Rewriter& rewriter = *m_rewriter;
+
+        // Always call the TextDiagnosticPrinter's EndSourceFile() method.
+        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] { TextDiagnosticPrinter::EndSourceFile(); });
+
+        generate_rules(rewriter);
         if (g_is_generation_error)
         {
             return;
         }
+
         g_generated_subscription_code
             += "namespace " + g_current_ruleset
             + "{\nvoid subscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription + "}\n"
@@ -3268,7 +3491,7 @@ public:
             + "} // namespace " + g_current_ruleset + "\n"
             + generate_general_subscription_code();
 
-        if (!shouldEraseOutputFiles() && !g_is_generation_error && !g_translation_engine_output_option.empty())
+        if (!m_rewriter->getSourceMgr().getDiagnostics().hasErrorOccurred() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
             llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);
@@ -3286,7 +3509,7 @@ public:
                     output_file << "#include \"gaia_" << db << ".h\"\n";
                 }
 
-                m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
+                m_rewriter->getEditBuffer(m_rewriter->getSourceMgr().getMainFileID())
                     .write(output_file);
                 output_file << g_generated_subscription_code;
             }
@@ -3296,51 +3519,85 @@ public:
     }
 
 private:
+    // Pointer to the Rewriter instance owned by the
+    // translation_engine_action_t class. Do not free.
+    // It is guaranteed to live until EndSourceFileAction() which
+    // occurs after EndSourceFile().
+    Rewriter* m_rewriter;
+};
+
+gaiat_diagnostic_consumer_t g_diagnostic_consumer;
+
+class translation_engine_action_t : public clang::ASTFrontendAction
+{
+public:
+    std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+        clang::CompilerInstance& compiler, llvm::StringRef) override
+    {
+        m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
+        g_diagnostic_consumer.set_rewriter(&m_rewriter);
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler.getSourceManager().getDiagnostics());
+        return std::unique_ptr<clang::ASTConsumer>(
+            new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
+    }
+
+private:
     Rewriter m_rewriter;
 };
 
 int main(int argc, const char** argv)
 {
-    cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
-    cl::list<std::string> source_files(
-        cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-    cl::opt<std::string> instance_name(
-        "n", cl::desc("DB instance name"), cl::Optional,
-        cl::cat(g_translation_engine_category), cl::sub(*cl::AllSubCommands));
-
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
-    std::string error_message;
-    llvm::raw_string_ostream stream(error_message);
-    std::unique_ptr<CompilationDatabase> compilation_database
-        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_message);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &stream))
+    std::string error_msg;
+
+    // This loads compilation commands after "--" in the command line: gaiat <sourceFile> -- <compileCommands>
+    // Errors in these commands will be visible later when the ClangTool is run.
+    std::unique_ptr<CompilationDatabase> compilation_database
+        = FixedCompilationDatabase::loadFromCommandLine(argc, argv, error_msg);
+
+    llvm::raw_string_ostream error_msg_stream(error_msg);
+
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
     {
-        stream.flush();
+        // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
+        // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.
+        error_msg_stream.flush();
+        llvm::errs() << error_msg;
         return EXIT_FAILURE;
     }
 
     cl::PrintOptionValues();
 
-    if (source_files.empty())
+    if (g_help_option_alias)
     {
+        // -help-list is omitted from the output because the categorized mode of PrintHelpMessage() behaves the same as -help-list.
+        // This is the only way -h and -help differ.
+        cl::PrintHelpMessage(false, true);
+        return EXIT_SUCCESS;
+    }
+
+    if (g_source_files.empty())
+    {
+        // This is considered success instead of failure because it happens if a new user explores gaiat by
+        // typing "gaiat" into their terminal with no file arguments. They didn't do anything bad
+        // to deserve an EXIT_FAILURE.
         cl::PrintHelpMessage();
         return EXIT_SUCCESS;
     }
 
-    if (source_files.size() > 1)
+    if (g_source_files.size() > 1)
     {
-        cerr << "Translation Engine does not support more than one source ruleset." << endl;
+        llvm::errs() << c_err_multiple_ruleset_files;
         return EXIT_FAILURE;
     }
 
-    if (!instance_name.empty())
+    if (!g_instance_name.empty())
     {
         gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
-        session_options.db_instance_name = instance_name.getValue();
+        session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;
         gaia::db::config::set_default_session_options(session_options);
     }
@@ -3352,7 +3609,8 @@ int main(int argc, const char** argv)
     }
 
     // Create a new Clang Tool instance (a LibTooling environment).
-    ClangTool tool(*compilation_database, source_files);
+    ClangTool tool(*compilation_database, g_source_files);
+    tool.setDiagnosticConsumer(&g_diagnostic_consumer);
 
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
     int result = tool.run(newFrontendActionFactory<translation_engine_action_t>().get());

@@ -11,7 +11,7 @@ ruleset test04
 }
 
 // CHECK: Tag refers to an invalid table 'name'.
-// CHECK: Table 'T' was not found in the catalog.
+// CHECK: Table 'T' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.
 // CHECK: use of undeclared identifier 'T'
-// CHECK: Table 'N' was not found in the catalog.
+// CHECK: Table 'N' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.
 // CHECK: use of undeclared identifier 'N'

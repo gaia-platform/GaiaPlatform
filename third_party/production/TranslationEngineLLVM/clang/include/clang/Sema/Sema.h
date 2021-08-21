@@ -4645,7 +4645,7 @@ private:
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc);
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
@@ -4654,6 +4654,20 @@ private:
   /// If the class has been defined in this context (eg. "class x {};") the defined type is
   /// returned otherwise only the forward declaration is returned (eg. "class x;").
   TagDecl* lookupClass(std::string className, SourceLocation loc, Scope* scope);
+
+  /// Look up a Gaia EDC class using the EDC class name.
+  /// TODO [GAIAPLAT-1028]: the lookup logic does not follow the Clang way of doing it (see lookupClass).
+  ///  The class name will be searched everywhere regardless of the namespace. If the class
+  ///  name appears multiple times in different namespaces the first occurrence is returned.
+  ///  This is inline with the fact that the translation process is unaware of databases.
+  TagDecl* lookupEDCClass(std::string className);
+
+  /// Add the connect/disconnect methods to the given sourceTable and target type (eg. source:incubator target:sensor).
+  /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
+  /// - bool incubator::connect(sensor__type&)
+  /// - bool incubator::connect(sensor_t&)
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, const std::string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
@@ -4674,6 +4688,8 @@ private:
   {
     std::string table;
     std::string field;
+    bool is_one_to_many;
+    bool is_from_parent;
   };
 
   std::unordered_set<std::string> labelsInProcess;

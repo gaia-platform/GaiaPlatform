@@ -104,7 +104,7 @@ base_index_scan_physical_t::open(common::gaia_id_t index_id)
         }
 
         auto index_view = db::index_view_t(view_ptr);
-        it = db::index::index_builder_t::create_empty_index(index_id, index_view.type());
+        it = db::index::index_builder_t::create_empty_index(index_id, index_view);
     }
     auto index = it->second;
 
