@@ -957,7 +957,7 @@ void generate_table_subscription(
     }
 
     bool is_anchor_generation_required = true;
-    if (!g_is_rule_context_rule_name_referenced && (is_absoute_path_only || g_expression_explicit_path_data.empty()))
+    if (!g_is_rule_context_rule_name_referenced && (is_absolute_path_only || g_expression_explicit_path_data.empty()))
     {
         function_prologue.append("(const gaia::rules::rule_context_t*)\n");
         is_anchor_generation_required = false;
