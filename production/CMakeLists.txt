@@ -416,10 +416,11 @@ if(JAVA_FOUND AND JNI_FOUND)
   #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
+find_package(Git REQUIRED)
 # Get the latest git hash for the current branch.
 execute_process(
   COMMAND
-    git rev-parse HEAD
+    ${GIT_EXECUTABLE} rev-parse --short HEAD
   RESULT_VARIABLE
     GIT_HEAD_HASH_RESULT
   OUTPUT_VARIABLE
@@ -430,13 +431,12 @@ string(REGEX REPLACE "\n" "" GIT_HEAD_HASH "${GIT_HEAD_HASH}")
 # Get the latest git hash from master merged into the current branch.
 execute_process(
   COMMAND
-    git rev-parse origin/master
+    ${GIT_EXECUTABLE} rev-parse --short origin/master
   RESULT_VARIABLE
     GIT_MASTER_HASH_RESULT
   OUTPUT_VARIABLE
     GIT_MASTER_HASH
 )
-
 string(REGEX REPLACE "\n" "" GIT_MASTER_HASH "${GIT_MASTER_HASH}")
 
 # Populate the gaia_version file

@@ -38,19 +38,7 @@ constexpr char c_gaia_master_git_hash[] = "@GIT_MASTER_HASH@";
  * - 0.2.1-alpha
  * - 1.0.0
  */
-std::string gaia_version()
-{
-    std::string version = std::to_string(c_gaia_version_major)
-        + "." + std::to_string(c_gaia_version_minor)
-        + "." + std::to_string(c_gaia_version_patch);
-
-    if (strlen(c_gaia_pre_release) > 0)
-    {
-        version += "-" + std::string(c_gaia_pre_release);
-    }
-
-    return version;
-}
+std::string gaia_version();
 
 /**
  * Returns major.minor.patch-pre_release+build (git_commit)
@@ -63,21 +51,7 @@ std::string gaia_version()
  * - 0.1.0-beta+123 (609bacb31dd96e6faa6b56615bae060aee6549a4)
  * - 0.1.0-beta+simone.20210902102212 (master:609bacb31dd96e6faa6b56615bae060aee6549a4 local:3e70ddea743df5afce392b62d706981282213e46)
  */
-std::string gaia_full_version()
-{
-     std::string version =  gaia_version()
-        + "+" + std::string(c_gaia_build_number);
-
-    if (strcmp(c_gaia_local_git_hash, c_gaia_master_git_hash) == 0)
-    {
-        version += "(" + std::string(c_gaia_master_git_hash) + ")";
-    }
-    else
-    {
-        version += " (master:" + std::string(c_gaia_master_git_hash) + " local:" + std::string(c_gaia_local_git_hash) + ")";
-    }
-    return version;
-}
+std::string gaia_full_version(bool include_git = false);
 
 }
 }

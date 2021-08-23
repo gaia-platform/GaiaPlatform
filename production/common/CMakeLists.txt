@@ -27,7 +27,8 @@ add_library(gaia_common STATIC
   src/timer.cpp
   src/logger.cpp
   src/logger_manager.cpp
-  src/random.cpp)
+  src/random.cpp
+  src/gaia_version.cpp)
 
 target_link_libraries(gaia_common PUBLIC gaia_build_options)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})

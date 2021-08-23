@@ -3297,6 +3297,7 @@ private:
 
 int main(int argc, const char** argv)
 {
+    // TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
     cl::opt<bool> help("h", cl::desc("Alias for -help"), cl::Hidden);
     cl::list<std::string> source_files(
         cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore,
