@@ -577,7 +577,9 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
     main_dictionary[PER_TEST_TITLE] = {}
 
     for aggregate_key in aggregate_data:
-        assert aggregate_key not in main_dictionary[PER_TEST_TITLE]
+        assert (
+            aggregate_key not in main_dictionary[PER_TEST_TITLE]
+        ), f"Key to aggregate on '{aggregate_key}' must be in 'per-test' section."
         main_dictionary[PER_TEST_TITLE][aggregate_key] = []
 
     totals = {}
