@@ -88,7 +88,7 @@ broadcast_message() {
 list_available_suites() {
     echo "Available suites:"
     echo ""
-    for next_file in ./tests/*
+    for next_file in ./suite-definitions/*
     do
         if [ -f "$next_file" ] ; then
             next_file_end="${next_file:8}"
@@ -147,10 +147,10 @@ parse_command_line() {
     if [[ ! "${PARAMS[0]}" == "" ]]; then
         SUITE_MODE=${PARAMS[0]}
     fi
-    TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests
-    SUITE_FILE_NAME=$TEST_SOURCE_DIRECTORY/suite-${SUITE_MODE}.txt
+    SUITE_SOURCE_DIRECTORY=$SCRIPTPATH/suite-definitions
+    SUITE_FILE_NAME=$SUITE_SOURCE_DIRECTORY/suite-${SUITE_MODE}.txt
     if [ ! -f "$SUITE_FILE_NAME" ]; then
-        complete_process 1 "Test directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'suite-${SUITE_MODE}.txt' file."
+        complete_process 1 "Test directory '$(realpath "$SUITE_SOURCE_DIRECTORY")' does not contain a 'suite-${SUITE_MODE}.txt' file."
     fi
 }
 
@@ -297,7 +297,7 @@ execute_single_test() {
     # shellcheck disable=SC2086
     ./test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
     TEST_RETURN_CODE=$?
-    echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$TEST_RESULTS_DIRECTORY/return_code.json"
+    echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$TEST_RESULTS_DIRECTORY/return_code2.json"
 
     # Copy any files in the `test-results` directory into a test-specific directory for
     # that one test.
@@ -389,7 +389,7 @@ for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
 done
 
 broadcast_message "$SUITE_MODE" "Testing of the test suite completed.  Summarizing suite results."
-if ! ./python/summarize_results.py "$SUITE_FILE_NAME"; then
+if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
     complete_process 1 "Summarizing the results failed."
 fi
 
