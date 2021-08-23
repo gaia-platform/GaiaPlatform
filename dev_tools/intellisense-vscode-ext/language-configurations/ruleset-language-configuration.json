@@ -8,7 +8,11 @@
             "*/"
         ]
     },
+<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
     // Symbols used as brackets.
+=======
+    // Symbols used as brackets
+>>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
     "brackets": [
         [
             "{",
@@ -23,7 +27,11 @@
             ")"
         ]
     ],
+<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that are auto closed when typing.
+=======
+    // Symbols that are auto closed when typing
+>>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
     "autoClosingPairs": [
         [
             "{",
@@ -46,7 +54,11 @@
             "'"
         ]
     ],
+<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that can be used to surround a selection.
+=======
+    // Symbols that can be used to surround a selection
+>>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
     "surroundingPairs": [
         [
             "{",
