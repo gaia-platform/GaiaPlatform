@@ -40,19 +40,17 @@ ruleset mink_ruleset
     // incubator temperature limits change.
     on_update(incubator.max_temp, incubator.min_temp)
     {
-        if (!incubator.is_on)
+        if (incubator.is_on)
         {
-            return;
-        }
-
-        for(S:sensor)
-        {
-            if (S.value < incubator.min_temp ||
-                S.value > incubator.max_temp)
+            for(S:sensor)
             {
-                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, actuator.value);
-                actuator.timestamp = g_timestamp;
-                break;
+                if (S.value < incubator.min_temp ||
+                    S.value > incubator.max_temp)
+                {
+                    actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, actuator.value);
+                    actuator.timestamp = g_timestamp;
+                    break;
+                }
             }
         }
         g_rule_1_tracker++;
@@ -61,19 +59,15 @@ ruleset mink_ruleset
     // Rule 2:  Keep the temperature in range of the incubator limits.
     on_update(sensor.value)
     {
-        if (!incubator.is_on)
+        if (incubator.is_on)
         {
-            return;
+            if (!(sensor.value >= incubator.min_temp &&
+                sensor.value <= incubator.max_temp))
+            {
+                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
+                actuator.timestamp = g_timestamp;
+            }
         }
-
-        if (sensor.value >= incubator.min_temp &&
-            sensor.value <= incubator.max_temp)
-        {
-            return;
-        }
-
-        actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
-        actuator.timestamp = g_timestamp;
         g_rule_2_tracker++;
     }
 
@@ -91,14 +85,12 @@ ruleset mink_ruleset
     // set the fan to its maximum speed.
     on_update(actuator.value)
     {
-        if (actuator.value == c_fan_speed_limit)
+        if (actuator.value != c_fan_speed_limit)
         {
-            return;
-        }
-
-        if (actuator.value > c_fan_threshold * c_fan_speed_limit && sensor.value > incubator.max_temp)
-        {
-            actuator.value = c_fan_speed_limit;
+            if (actuator.value > c_fan_threshold * c_fan_speed_limit && sensor.value > incubator.max_temp)
+            {
+                actuator.value = c_fan_speed_limit;
+            }
         }
         g_rule_4_tracker++;
     }

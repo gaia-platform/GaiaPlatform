@@ -2,6 +2,8 @@
 # Simple test suite with both of the standard smoke tests.
 #
 
+smoke
 smoke-time-test
 smoke-time-only
-smoke-time-test repeat 3
+#smoke-time-test repeat 3
+#smoke-time-only repeat 3

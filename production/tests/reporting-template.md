@@ -10,7 +10,7 @@ Is This Issue A Regresion?
 - Yes   No
 
 Reproduce Steps:
-1. Execute `./suite.sh repeat` within the https://github.com/gaia-platform/jack-test project.
+1. Execute `./suite.sh repeat` within the https://github.com/gaia-platform/GaiaPlatform/tree/master/production/tests project.
 2.
 
 What Was Found:
