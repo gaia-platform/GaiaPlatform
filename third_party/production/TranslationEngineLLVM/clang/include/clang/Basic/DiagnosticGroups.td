@@ -1050,3 +1050,6 @@ def NoDeref : DiagGroup<"noderef">;
 
 // A group for cross translation unit static analysis related warnings.
 def CrossTU : DiagGroup<"ctu">;
+
+// A group for Gaia extension warnings.
+def GaiaExtensions : DiagGroup<"gaia-extensions">;

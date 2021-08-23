@@ -62,14 +62,15 @@ struct index_record_t
 class base_index_t
 {
 public:
-    base_index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type)
-        : m_index_id(index_id), m_index_type(index_type)
+    base_index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, bool is_unique)
+        : m_index_id(index_id), m_index_type(index_type), m_is_unique(is_unique)
     {
     }
     virtual ~base_index_t() = default;
 
     gaia::common::gaia_id_t id() const;
     catalog::index_type_t type() const;
+    bool is_unique() const;
 
     std::recursive_mutex& get_lock() const;
 
@@ -78,11 +79,11 @@ public:
     virtual void clear() = 0;
     virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
 
-private:
+protected:
     gaia::common::gaia_id_t m_index_id;
     catalog::index_type_t m_index_type;
+    bool m_is_unique;
 
-protected:
     // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread.
     // This is a requirement because the implementation requires a reader to lock when obtaining the start
     // and end iterators. In future, the index resides in shared memory and should ideally be lock-free.

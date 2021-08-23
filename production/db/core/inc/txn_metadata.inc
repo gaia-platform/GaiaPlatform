@@ -200,13 +200,15 @@ bool txn_metadata_t::invalidate_txn_log_fd()
     // entry and hence to close the fd.
     while (true)
     {
-        if (get_txn_log_fd() == -1)
+        txn_metadata_entry_t expected_value{
+            get_entry()};
+
+        // If this metadata entry was already invalidated, then return failure.
+        if (expected_value.get_log_fd() == -1)
         {
             return false;
         }
 
-        txn_metadata_entry_t expected_value{
-            get_entry()};
         txn_metadata_entry_t desired_value{
             expected_value.invalidate_log_fd()};
         txn_metadata_entry_t actual_value{

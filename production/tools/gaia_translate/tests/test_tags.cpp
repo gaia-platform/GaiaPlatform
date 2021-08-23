@@ -58,6 +58,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
         g_oninsert_called = false;
         g_oninsert2_called = false;
         g_oninsert3_called = false;
@@ -89,9 +91,6 @@ protected:
 
 TEST_F(test_tags_code, oninsert)
 {
-    gaia::rules::initialize_rules_engine();
-    // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Creating a record should fire on_insert and on_change, but not on_update.
@@ -129,9 +128,7 @@ TEST_F(test_tags_code, onchange)
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing a record should fire on_change and on_update, but not on_insert.
@@ -174,9 +171,7 @@ TEST_F(test_tags_code, onupdate)
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing the age field should fire on_change and on_update, but not on_insert.
@@ -219,7 +214,6 @@ TEST_F(test_tags_code, multi_inserts)
 {
     const int num_inserts = 10;
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
@@ -245,9 +239,7 @@ TEST_F(test_tags_code, multi_inserts)
 
 TEST_F(test_tags_code, basic_tags)
 {
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();

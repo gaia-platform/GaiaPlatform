@@ -70,7 +70,7 @@ ruleset test38
 
 ruleset test39
 {
-    on_update(value) // expected-error {{Duplicate field 'value'.}}
+    on_update(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -91,7 +91,7 @@ ruleset test53
 
 ruleset test53
 {
-    on_update(value) // expected-error {{Duplicate field 'value'}}
+    on_update(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -154,7 +154,7 @@ ruleset test61
 
 ruleset test62
 {
-    on_change(value) // expected-error {{Duplicate field 'value'.}}
+    on_change(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -175,7 +175,7 @@ ruleset test64
 
 ruleset test65
 {
-    on_change(value) // expected-error {{Duplicate field 'value'}}
+    on_change(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -237,7 +237,7 @@ ruleset test73
 
 ruleset test74
 {
-    on_insert(value) // expected-error {{Duplicate field 'value'.}}
+    on_insert(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -258,7 +258,7 @@ ruleset test76
 
 ruleset test77
 {
-    on_insert(value) // expected-error {{Duplicate field 'value'}}
+    on_insert(value) // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -274,7 +274,7 @@ ruleset test79
 {
     on_insert(S:sensor)
     {
-        actuator.value += value/2; // expected-error {{Duplicate field 'value'}} \
+        actuator.value += value/2; // expected-error {{Duplicate field 'value' found in table 'actuator'. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}} \
                                    // expected-error {{use of undeclared identifier 'value'}}
     }
 }

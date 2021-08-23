@@ -713,8 +713,6 @@ void server_t::init_indexes()
 // On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_txn_log()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_txn_log);
-
     bool replay_logs = true;
 
     create_local_snapshot(replay_logs);
@@ -795,7 +793,7 @@ void server_t::end_startup_txn()
 
     log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
-    // Update the log header with our begin timestamp and intialize it to empty.
+    // Update the log header with our begin timestamp and initialize it to empty.
     log.data()->begin_ts = s_txn_id;
     log.data()->record_count = 0;
 
@@ -803,12 +801,17 @@ void server_t::end_startup_txn()
     // The empty log will be freed by a regular GC task.
     int log_fd = log.unmap_truncate_seal_fd();
 
-    // Register the committing txn under a new commit timestamp.
+    // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
-    // Now update the active txn metadata.
+    // Mark this txn as submitted.
     txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
-    // Update the current txn's decided status.
+    // Mark this txn as committed.
     txn_metadata_t::update_txn_decision(commit_ts, true);
+    // Mark this txn durable if persistence is enabled.
+    if (rdb)
+    {
+        txn_metadata_t::set_txn_durable(commit_ts);
+    }
 
     perform_maintenance();
 
@@ -2411,7 +2414,9 @@ void server_t::txn_rollback()
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    // Process the txn log.
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
+
+    // Process the txn log to update record lists.
     for (size_t i = 0; i < s_log.data()->record_count; ++i)
     {
         txn_log_t::log_record_t* lr = &(s_log.data()->log_records[i]);
@@ -2431,6 +2436,8 @@ void server_t::perform_pre_commit_work_for_txn()
             record_list->add(locator);
         }
     }
+
+    update_indexes_from_txn_log();
 }
 
 // Sort all txn log records, by locator as primary key, and by offset as
@@ -2438,7 +2445,7 @@ void server_t::perform_pre_commit_work_for_txn()
 // algorithms for conflict detection.
 void server_t::sort_log()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // We use stable_sort() to preserve the order of multiple updates to the
     // same locator.
@@ -2455,11 +2462,8 @@ void server_t::sort_log()
 // This method returns true for a commit decision and false for an abort decision.
 bool server_t::txn_commit()
 {
-    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
-
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
-    update_indexes_from_txn_log();
 
     // Before registering the log, sort by locator for fast conflict detection.
     sort_log();

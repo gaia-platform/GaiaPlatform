@@ -21,6 +21,11 @@ catalog::index_type_t base_index_t::type() const
     return m_index_type;
 }
 
+bool base_index_t::is_unique() const
+{
+    return m_is_unique;
+}
+
 std::recursive_mutex& base_index_t::get_lock() const
 {
     return m_index_lock;

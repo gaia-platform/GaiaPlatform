@@ -1,0 +1,407 @@
+#! /usr/bin/bash
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+
+# Simple function to start the process off.
+start_process() {
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Testing the $PROJECT_NAME project against suite ..."
+    fi
+}
+
+# Simple function to stop the process, including any cleanup
+complete_process() {
+    local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
+
+    COMPLETE_MESSAGE=
+    if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
+        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite failed."
+        echo "$COMPLETE_MESSAGE"
+    else
+        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite succeeded."
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "$COMPLETE_MESSAGE"
+        fi
+    fi
+
+    if [ "$DID_REPORT_START" -ne 0 ] ; then
+        if [ "$SLACK_MODE" -ne 0 ] ; then
+            ./python/publish_to_slack.py message "$SUITE_MODE" "$COMPLETE_MESSAGE"
+            if [ -n "$COMPLETE_REASON" ] ; then
+                ./python/publish_to_slack.py message "$SUITE_MODE" "Failure reason: $COMPLETE_REASON"
+            fi
+        fi
+    fi
+
+    if [ -f "$TEMP_FILE" ]; then
+        rm "$TEMP_FILE"
+    fi
+
+    # Restore the current directory.
+    if [ "$DID_PUSHD_FOR_BUILD" -eq 1 ]; then
+        popd > /dev/null 2>&1 || exit
+    fi
+    if [ "$DID_PUSHD" -eq 1 ]; then
+        popd > /dev/null 2>&1 || exit
+    fi
+
+    exit "$SCRIPT_RETURN_CODE"
+}
+
+# Show how this script can be used.
+show_usage() {
+    local SCRIPT_NAME=$0
+
+    echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
+    echo "Flags:"
+    echo "  -l,--list           List all available suites for this project."
+    echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
+    echo "  -v,--verbose        Show lots of information while executing the suite of tests."
+    echo "  -h,--help           Display this help text."
+    echo "Arguments:"
+    echo "  suite-name          Optional name of the suite to run.  (Default: 'smoke')"
+    exit 1
+}
+
+# Take the specified message and broadcast it to the command line and, if
+# enabled, slack.
+broadcast_message() {
+    local title=$1
+    local message=$2
+
+    echo "$2"
+    if [ "$SLACK_MODE" -ne 0 ] ; then
+        ./python/publish_to_slack.py message "$title" "$message"
+    fi
+}
+
+# Show a list of the available suites (suite files).
+list_available_suites() {
+    echo "Available suites:"
+    echo ""
+    for next_file in ./suite-definitions/*
+    do
+        if [ -f "$next_file" ] ; then
+            next_file_end="${next_file:8}"
+            if [[ $next_file_end = suite-* ]] && [[ $next_file_end = *.txt ]]; then
+                echo "${next_file_end:6:-4}"
+            fi
+        fi
+    done
+}
+
+# Parse the command line.
+parse_command_line() {
+    SUITE_MODE="smoke"
+    VERBOSE_MODE=0
+    SLACK_MODE=0
+    LIST_MODE=0
+    SHOW_STATS=1
+    PARAMS=()
+    while (( "$#" )); do
+    case "$1" in
+        -l|--list)
+            LIST_MODE=1
+            shift
+        ;;
+        -s|--slack)
+            SLACK_MODE=1
+            shift
+        ;;
+        -n|--no-stats)
+            SHOW_STATS=0
+            shift
+        ;;
+        -v|--verbose)
+            VERBOSE_MODE=1
+            shift
+        ;;
+        -h|--help)
+            show_usage
+        ;;
+        -*) # unsupported flags
+            echo "Error: Unsupported flag $1" >&2
+            show_usage
+        ;;
+        *) # preserve positional arguments
+            PARAMS+=("$1")
+            shift
+        ;;
+    esac
+    done
+
+    if [ $LIST_MODE -ne 0 ] ; then
+        list_available_suites
+        complete_process 0
+    fi
+
+    if [[ ! "${PARAMS[0]}" == "" ]]; then
+        SUITE_MODE=${PARAMS[0]}
+    fi
+    SUITE_SOURCE_DIRECTORY=$SCRIPTPATH/suite-definitions
+    SUITE_FILE_NAME=$SUITE_SOURCE_DIRECTORY/suite-${SUITE_MODE}.txt
+    if [ ! -f "$SUITE_FILE_NAME" ]; then
+        complete_process 1 "Test directory '$(realpath "$SUITE_SOURCE_DIRECTORY")' does not contain a 'suite-${SUITE_MODE}.txt' file."
+    fi
+}
+
+# Save the current directory when starting the script, so we can go back to that
+# directory at the end of the script.
+save_current_directory() {
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Saving current directory prior to test execution."
+    fi
+    if ! pushd . >"$TEMP_FILE" 2>&1;  then
+        cat "$TEMP_FILE"
+        complete_process 1 "Suite script cannot save the current directory before proceeding."
+    fi
+    DID_PUSHD=1
+}
+
+# Clear the suite output directory, making sure it exists for the suite execution.
+clear_suite_output() {
+    if [ "$SUITE_RESULTS_DIRECTORY" == "" ]; then
+        complete_process 1 "Removing the specified directory '$SUITE_RESULTS_DIRECTORY' is dangerous. Aborting."
+    fi
+
+    if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" ]; then
+        if [ "$(ls -A "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")" ] ; then
+            # shellcheck disable=SC2115
+            if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
+                cat "$TEMP_FILE"
+                complete_process 1 "Suite script cannot remove suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
+            fi
+        fi
+    else
+        if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            complete_process 1 "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
+        fi
+    fi
+}
+
+# Ensure that we have a current and fully built project in our "test" directory
+# before proceeding with the tests.
+install_and_build_cleanly() {
+
+    broadcast_message "$SUITE_MODE" "Installing test suite project in temporary directory."
+
+    # Remove any existing directory.
+    # shellcheck disable=SC2153
+    if ! rm -rf "$TEST_DIRECTORY"; then
+        complete_process 1 "Suite script failed to remove the '$(realpath "$TEST_DIRECTORY")' directory."
+    fi
+
+    # Install a clean version into that directory.
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
+    fi
+    if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
+        cat "$TEMP_FILE"
+        complete_process 1 "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script installed the project into directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
+    if ! pushd "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        echo "Suite script cannot push directory to '$(realpath "$TEST_DIRECTORY")'."
+    fi
+    DID_PUSHD_FOR_BUILD=1
+
+    broadcast_message "$SUITE_MODE" "Building test suite project in temporary directory."
+
+    # Build the executable, tracking any build information for later examination.
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script building the project in directory '$(realpath "$TEST_DIRECTORY")'..."
+    fi
+    if ! ./build.sh -v  > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt" 2>&1 ; then
+        cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt"
+        complete_process 1 "Suite script failed to build the project in directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Suite script built the project in directory '$(realpath "$TEST_DIRECTORY")'."
+    fi
+
+    if ! popd > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        echo "Suite script cannot pop directory to restore state."
+    fi
+    DID_PUSHD_FOR_BUILD=0
+}
+
+# Execute a single test within the test suite.
+execute_single_test() {
+    local NEXT_TEST_NAME=$1
+    local REPEAT_NUMBER=$2
+
+    broadcast_message "" "Sleeping for $PAUSE_IN_SECONDS_BEFORE_NEXT_TEST seconds before next test."
+    sleep "$PAUSE_IN_SECONDS_BEFORE_NEXT_TEST"
+
+    # Let the runner know what is going on.
+    if [ -n "$REPEAT_NUMBER" ] ; then
+        broadcast_message "" "Executing test: $NEXT_TEST_NAME, repeat $REPEAT_NUMBER"
+    else
+        broadcast_message "" "Executing test: $NEXT_TEST_NAME"
+    fi
+
+    # Make a new directory to contain all the results of the test.
+    SUITE_TEST_DIRECTORY=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/$NEXT_TEST_NAME
+    if [ -n "$REPEAT_NUMBER" ] ; then
+        SUITE_TEST_DIRECTORY="$SUITE_TEST_DIRECTORY"_"$REPEAT_NUMBER"
+    fi
+    if [ -d "$SUITE_TEST_DIRECTORY" ] ; then
+        MAX_ATTEMPTS=99
+        FINAL_DIRECTORY=
+        for (( DIRECTORY_SUFFIX_INDEX=1; DIRECTORY_SUFFIX_INDEX<=MAX_ATTEMPTS; DIRECTORY_SUFFIX_INDEX++ ))
+          do
+            NEXT_DIRECTORY="${SUITE_TEST_DIRECTORY}__$DIRECTORY_SUFFIX_INDEX"
+            if [ ! -d "$NEXT_DIRECTORY" ] ; then
+                FINAL_DIRECTORY=$NEXT_DIRECTORY
+                break
+            fi
+          done
+
+        if [ "$MAX_ATTEMPTS" -eq "$DIRECTORY_SUFFIX_INDEX" ] ; then
+            complete_process 1 "Failed to find a results directory for '$SUITE_TEST_DIRECTORY' test."
+        fi
+        SUITE_TEST_DIRECTORY=$FINAL_DIRECTORY
+    fi
+
+    TEST_THREADS_ARGUMENT=
+    if [ -n "$NUMBER_OF_THREADS" ] ; then
+        TEST_THREADS_ARGUMENT="-nt $NUMBER_OF_THREADS"
+    fi
+
+    # Make sure to record the eventual directory that we used so we can summarize it more effectively.
+    echo "$SUITE_TEST_DIRECTORY" >> "$EXECUTE_MAP_FILE"
+
+    if ! mkdir "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        complete_process 1 "Suite script cannot create suite test directory '$(realpath "$SUITE_TEST_DIRECTORY")' prior to test execution."
+    fi
+
+    # Execute the test in question.  Note that we do not complete the script
+    # if there are any errors, we just make sure that information is noted in
+    # the return_code.json file.
+
+    # shellcheck disable=SC2086
+    ./test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
+    TEST_RETURN_CODE=$?
+    echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$TEST_RESULTS_DIRECTORY/return_code2.json"
+
+    # Copy any files in the `test-results` directory into a test-specific directory for
+    # that one test.
+    if ! cp -r "$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+        cat "$TEMP_FILE"
+        complete_process 2 "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
+    fi
+}
+
+# Execute a test within the test suite.
+execute_suite_test() {
+    local NEXT_TEST_NAME=$1
+    # shellcheck disable=SC2116
+    NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
+
+    SUB="^[[:space:]]*#"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then
+        return
+    fi
+
+    NUMBER_OF_THREADS=
+    SUB="^(.*)[[:space:]]+threads[[:space:]]+([0-9]+)(.*)$"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+        NEXT_TEST_NAME="${BASH_REMATCH[1]}"
+        NUMBER_OF_THREADS="${BASH_REMATCH[2]}"
+        REMAINING_TEXT="${BASH_REMATCH[3]}"
+        NEXT_TEST_NAME="$NEXT_TEST_NAME$REMAINING_TEXT"
+    fi
+
+    SUB="^(.*)[[:space:]]+repeat[[:space:]]+([0-9]+)$"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+        NEXT_TEST_NAME="${BASH_REMATCH[1]}"
+        NUMBER_OF_REPEATS="${BASH_REMATCH[2]}"
+        if [ "$NUMBER_OF_REPEATS" -le 0 ]; then
+            complete_process 2 "Repeat value $NUMBER_OF_REPEATS for test name '$NEXT_TEST_NAME' is not a positive integer."
+        fi
+        broadcast_message "" "Executing suite test: $NEXT_TEST_NAME with $NUMBER_OF_REPEATS repeats."
+
+        # Make sure to record the suite so we can summarize it more effectively.
+        echo "Suite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
+        for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
+          do
+            execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
+          done
+        echo "EndSuite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
+    else
+        execute_single_test "$NEXT_TEST_NAME"
+    fi
+}
+
+
+
+# Set up any global script variables.
+# shellcheck disable=SC2164
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+# shellcheck disable=SC1091 source=./properties.sh
+source "$SCRIPTPATH/properties.sh"
+
+# Set up any project based local script variables.
+TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
+EXECUTE_MAP_FILE=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/map.txt
+
+# Set up any local script variables.
+PAUSE_IN_SECONDS_BEFORE_NEXT_TEST=15
+
+DID_PUSHD=0
+DID_PUSHD_FOR_BUILD=0
+DID_REPORT_START=0
+
+# Parse any command line values.
+parse_command_line "$@"
+
+# Clean entrance into the script.
+start_process
+
+save_current_directory
+
+clear_suite_output
+
+install_and_build_cleanly
+
+broadcast_message "$SUITE_MODE" "Testing of the test suite started."
+DID_REPORT_START=1
+
+# shellcheck disable=SC2016
+IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
+for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
+    execute_suite_test "$NEXT_TEST_NAME"
+done
+
+broadcast_message "$SUITE_MODE" "Testing of the test suite completed.  Summarizing suite results."
+if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
+    complete_process 1 "Summarizing the results failed."
+fi
+
+if [ $SHOW_STATS -ne 0 ] ; then
+    if ! ./python/summary_stats.py; then
+        complete_process 1 "Displaying statistics for the suite failed."
+    fi
+fi
+
+if [ $SLACK_MODE -ne 0 ] ; then
+    ./python/publish_to_slack.py attachment "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/summary.json" "application/json"
+fi
+
+# If we get here, we have a clean exit from the script.
+complete_process 0

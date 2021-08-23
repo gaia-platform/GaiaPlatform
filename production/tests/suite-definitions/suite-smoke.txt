@@ -1,0 +1,7 @@
+#
+# Simple test suite with both of the standard smoke tests.
+#
+
+smoke-time-test
+smoke-time-only
+smoke-time-test repeat 3

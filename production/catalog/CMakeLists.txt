@@ -26,13 +26,16 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_REPO}/production/db/inc/index
+  ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
+  ${PROJECT_SOURCE_DIR}/parser/inc
 )
 
 message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}")
 
 add_library(gaia_catalog STATIC
+  src/ddl_execution.cpp
   src/ddl_executor.cpp
   src/fbs_generator.cpp
   src/json_generator.cpp
@@ -47,7 +50,7 @@ add_library(gaia_catalog STATIC
 target_link_libraries(gaia_catalog PUBLIC gaia_build_options)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers edc_catalog)
+target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers edc_catalog)
 
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
