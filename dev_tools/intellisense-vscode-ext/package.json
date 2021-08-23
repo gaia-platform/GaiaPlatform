@@ -1,7 +1,13 @@
 {
+<<<<<<< HEAD
     "name": "gaia-platform",
     "displayName": "Gaia Platform Intellisense",
     "description": "Intellisense for Gaia Platform",
+=======
+    "name": "GaiaPlatform",
+    "displayName": "GaiaPlatform-Syntax-Highlighting",
+    "description": "Syntax Highlighting for GaiaPlatform",
+>>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.59.0"
@@ -17,6 +23,7 @@
     "contributes": {
         "languages": [
             {
+<<<<<<< HEAD
                 "id": "ruleset",
                 "aliases": [
                     "ruleset"
@@ -33,12 +40,21 @@
                 ],
                 "extensions": [
                     ".ddl"
+=======
+                "id": "GaiaPlatform",
+                "aliases": [
+                    "GaiaPlatform"
+                ],
+                "extensions": [
+                    ".ruleset"
+>>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
                 ],
                 "configuration": "./language-configurations/ddl-language-configuration.json"
             }
         ],
         "grammars": [
             {
+<<<<<<< HEAD
                 "language": "ruleset",
                 "scopeName": "source.cpp.ruleset",
                 "path": "./syntaxes/ruleset.tmLanguage.json",
@@ -60,6 +76,14 @@
             {
                 "language": "ddl",
                 "path": "./snippets/ddl.json"
+=======
+                "language": "GaiaPlatform",
+                "scopeName": "source.cpp.GaiaPlatform",
+                "path": "./syntaxes/GaiaPlatform.tmLanguage.json",
+                "embeddedLanguages": {
+					"meta.preprocessor.macro.contents": "cpp"
+				}
+>>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
             }
         ]
     },
