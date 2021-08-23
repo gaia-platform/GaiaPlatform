@@ -1,7 +1,7 @@
 {
-    "name": "gaia-platform",
-    "displayName": "Gaia-Syntax-Highlighting",
-    "description": "Syntax Highlighting for Gaia Platform",
+    "name": "GaiaPlatform",
+    "displayName": "GaiaPlatform-Syntax-Highlighting",
+    "description": "Syntax Highlighting for GaiaPlatform",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.59.0"
@@ -12,23 +12,24 @@
     "contributes": {
         "languages": [
             {
-                "id": "gaia",
+                "id": "GaiaPlatform",
                 "aliases": [
-                    "gaia platform",
-                    "gaia"
+                    "GaiaPlatform"
                 ],
                 "extensions": [
-                    ".ruleset",
-                    ".ddl"
+                    ".ruleset"
                 ],
                 "configuration": "./language-configuration.json"
             }
         ],
         "grammars": [
             {
-                "language": "gaia",
-                "scopeName": "source.gaia",
-                "path": "./syntaxes/Gaia.tmLanguage.json"
+                "language": "GaiaPlatform",
+                "scopeName": "source.cpp.GaiaPlatform",
+                "path": "./syntaxes/GaiaPlatform.tmLanguage.json",
+                "embeddedLanguages": {
+					"meta.preprocessor.macro.contents": "cpp"
+				}
             }
         ]
     }
