@@ -39,6 +39,8 @@ complete_process() {
         popd > /dev/null 2>&1 || exit
     fi
 
+    popd
+
     exit "$SCRIPT_RETURN_CODE"
 }
 
@@ -187,9 +189,9 @@ clear_test_output() {
 
 # Within the scope of completing this script, generate the test results.
 exec_summarize_test_results() {
-    local test_results_directory=$1
+    local summarize_directory=$1
 
-    if ! ./python/summarize_test_results.py "$test_results_directory"; then
+    if ! ./python/summarize_test_results.py "$summarize_directory"; then
         complete_process 2 "Summarizing the results failed."
     fi
 }
@@ -420,6 +422,7 @@ execute_test_workflow() {
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
+pushd $SCRIPTPATH
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp

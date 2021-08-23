@@ -57,18 +57,15 @@ ruleset mink_ruleset
     }
 
     // Rule 2:  Keep the temperature in range of the incubator limits.
-    on_update(S:sensor.value)
+    on_update(sensor.value)
     {
         if (incubator.is_on)
         {
-            if (!(S.value >= incubator.min_temp &&
-                S.value <= incubator.max_temp))
+            if (!(sensor.value >= incubator.min_temp &&
+                sensor.value <= incubator.max_temp))
             {
-                for(A:actuator)
-                {
-                    A.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, A.value);
-                    A.timestamp = g_timestamp;
-                }
+                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
+                actuator.timestamp = g_timestamp;
             }
         }
         g_rule_2_tracker++;

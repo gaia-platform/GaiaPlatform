@@ -205,7 +205,7 @@ install_and_build_cleanly() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
     fi
-    if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
+    if ! $WORKLOAD_DIRECTORY/install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
         complete_process 1 "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
     fi
@@ -295,16 +295,17 @@ execute_single_test() {
     # the return_code.json file.
 
     # shellcheck disable=SC2086
-    ./test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
+    $WORKLOAD_DIRECTORY/test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
     TEST_RETURN_CODE=$?
-    echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$TEST_RESULTS_DIRECTORY/return_code2.json"
 
     # Copy any files in the `test-results` directory into a test-specific directory for
     # that one test.
-    if ! cp -r "$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+    if ! cp -r "$WORKLOAD_DIRECTORY/$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
         complete_process 2 "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
     fi
+
+    echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$SUITE_TEST_DIRECTORY/return_code2.json"
 }
 
 # Execute a test within the test suite.
@@ -353,12 +354,19 @@ execute_suite_test() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091 source=./properties.sh
-source "$SCRIPTPATH/properties.sh"
+
+# Relative directory where the test suite results are stored.
+SUITE_RESULTS_DIRECTORY="suite-results"
+# Relative directory where the test results are stored.
+TEST_RESULTS_DIRECTORY="test-results"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
 EXECUTE_MAP_FILE=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/map.txt
+
+
+TEST_DIRECTORY=/tmp/test_mink
+
 
 # Set up any local script variables.
 PAUSE_IN_SECONDS_BEFORE_NEXT_TEST=15
@@ -377,6 +385,7 @@ save_current_directory
 
 clear_suite_output
 
+WORKLOAD_DIRECTORY=$SCRIPTPATH/workloads/mink
 install_and_build_cleanly
 
 broadcast_message "$SUITE_MODE" "Testing of the test suite started."
