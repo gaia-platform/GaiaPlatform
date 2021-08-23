@@ -10,8 +10,8 @@ Is This Issue A Regresion?
 - Yes   No
 
 Reproduce Steps:
-1. Execute `./suite.sh repeat` within the https://github.com/gaia-platform/GaiaPlatform/tree/master/production/tests project.
-2.
+1. Execute `cd <your GaiaPlatform root>/production/tests`
+2. Execute `./suite.sh <suite-name>`
 
 What Was Found:
 -

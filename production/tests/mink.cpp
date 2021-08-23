@@ -83,9 +83,20 @@ int g_sleep_time_in_seconds_after_stop;
 int g_sim_with_wait_pause_in_microseconds = c_default_sim_with_wait_pause_in_microseconds;
 bool g_emit_after_pause = false;
 
+/*
+This keep track of a separate log file used for debugging, independant of the
+other logs.
+
+Currently, it is used to track the values of the rule trackers for later examination
+and verification of the stats logs.
+
+This logging can be turned on and off using the `D` command, and will be
+automatically closed at the end of the application.  When closed, it will be
+assigned to nullptr.  When open, it will have the File * that is the output file.
+*/
+FILE* g_debug_log_file = nullptr;
 const int c_rules_firing_update_buffer_length = 4096;
 
-FILE* g_debug_log_file = nullptr;
 
 // Used to get a more accurate measurement using the toggle on/off (o) command.
 bool g_is_measured_duration_timer_on;
