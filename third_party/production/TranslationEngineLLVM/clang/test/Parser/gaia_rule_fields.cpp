@@ -45,7 +45,8 @@ ruleset test16
 ruleset test17
 {
     {
-        x.value++; // expected-error {{Table 'x' was not found in the catalog.}} expected-error {{use of undeclared identifier 'x'}}
+      x.value++; // expected-error {{Table 'x' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.}} \
+                 // expected-error {{use of undeclared identifier 'x'}}
     }
 }
 

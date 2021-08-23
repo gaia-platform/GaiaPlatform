@@ -1,8 +1,8 @@
-// RUN: %clang_cc1 -fgaia-extensions -ast-dump -verify %s -verify-ignore-unexpected=note
+// RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s -verify-ignore-unexpected=note
 
 #include "barn_storage/gaia_barn_storage.h"
 
-ruleset test_connect_disconnect_on_table
+ruleset test_connect_disconnect_1_n
 {
     on_insert(farmer)
     {
@@ -17,11 +17,11 @@ ruleset test_connect_disconnect_on_table
         auto birthday = raised.insert(birthdate: "2 Aug 1990");
         farmer.connect(birthday);
         farmer.disconnect(birthday);
-    }
-}
 
-ruleset test_connect_disconnect_on_link
-{
+        gaia::barn_storage::raised_t r2;
+        farmer.connect(r2);
+    }
+
     on_insert(farmer)
     {
         for (/i : incubator)
@@ -35,14 +35,45 @@ ruleset test_connect_disconnect_on_link
   //        incubators.disconnect(i);
         }
 
-        // This works because incubator_t is available hence the translation engine is able to
-        // convert incubator__type into incubator_t.
         farmer.incubators.connect(incubator.insert(name: "Zombies"));
 
         // Not putting any checks here because for some reason it does not work...
-        auto birthday = raised.insert(birthdate: "2 Aug 1990");
-        farmer.raised.connect(birthday);
-        farmer.raised.disconnect(birthday);
+        auto r1 = raised.insert(birthdate: "2 Aug 1990");
+        farmer.raised.connect(r1);
+        farmer.raised.disconnect(r1);
+
+        gaia::barn_storage::raised_t r2;
+        farmer.raised.connect(r2);
+    }
+}
+
+ruleset test_connect_disconnect_1_1
+{
+    on_insert(animal)
+    {
+        animal.connect(raised.insert(birthdate: "2 Aug 1990"));
+
+        auto r1 = raised.insert(birthdate: "2 Aug 1990");
+        animal.connect(r1);
+
+        gaia::barn_storage::raised_t r2;
+        animal.connect(r2);
+
+        // Note: it is not possible to call disconnect
+        // directly on a table for 1:1 relationships.
+    }
+
+    on_insert(animal)
+    {
+        animal.raised.connect(raised.insert(birthdate: "2 Aug 1990"));
+
+        auto r1 = raised.insert(birthdate: "2 Aug 1990");
+        animal.raised.connect(r1);
+
+        gaia::barn_storage::raised_t r2;
+        animal.raised.connect(r2);
+
+        animal.raised.disconnect();
     }
 }
 
@@ -69,6 +100,12 @@ ruleset test_connect_disconnect_fail_with_wrong_param_types
             farmer.incubators.connect(i); // expected-error {{no matching member function for call to 'connect'}}
             farmer.incubators.disconnect(i); // expected-error {{no matching member function for call to 'disconnect'}}
         }
+    }
+
+    on_insert(animal)
+    {
+        auto r1 = raised.insert(birthdate: "2 Aug 1990");
+        animal.raised.disconnect(r1); // expected-error {{too many arguments to function call, expected 0, have 1}}
     }
 };
 
@@ -117,5 +154,18 @@ ruleset test_connect_disconnect_invalid_link
         // name is a non-link field (const char *) hence should not expose the connect method.
         farmer.name.connect(); // expected-error {{member reference base type 'const char *' is not a structure or union}}
         farmer.name.disconnect(); // expected-error {{member reference base type 'const char *' is not a structure or union}}
+    }
+}
+
+// This is not a feature but a limitation of the current implementation.
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
+ruleset test_connect_disconnect_works_only_on_parent
+{
+    on_insert(incubator)
+    {
+        auto f1 = farmer.insert(name: "Gino D'Acampo");
+        incubator.landlord.connect(f1); // expected-error {{no member named 'landlord' in 'incubator__type'}}
+        incubator.connect(f1); // expected-error {{no matching member function for call to 'connect'}}
+        incubator.disconnect(f1); // expected-error {{no matching member function for call to 'disconnect'}}
     }
 }

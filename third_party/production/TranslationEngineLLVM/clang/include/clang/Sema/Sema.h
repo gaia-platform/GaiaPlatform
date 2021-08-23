@@ -4645,7 +4645,7 @@ private:
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc);
+  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
@@ -4666,7 +4666,7 @@ private:
   /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
   /// - bool incubator::connect(sensor__type&)
   /// - bool incubator::connect(sensor_t&)
-  void addConnectDisconnect(RecordDecl* sourceTableDecl, const std::string& targetTableName, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, const std::string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
 
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
@@ -4688,6 +4688,8 @@ private:
   {
     std::string table;
     std::string field;
+    bool is_one_to_many;
+    bool is_from_parent;
   };
 
   std::unordered_set<std::string> labelsInProcess;

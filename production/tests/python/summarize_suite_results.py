@@ -529,6 +529,8 @@ def __load_results_for_test(suite_test_directory, source_info):
     Load all the results for tests and place them in the main dictionary.
     """
 
+    print("recorded_name>" + str(suite_test_directory) + ">>" + str(source_info))
+
     (
         return_code_data,
         stats_data,

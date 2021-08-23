@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <atomic>
+#include <vector>
 
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
@@ -431,6 +432,13 @@ ruleset test_query_10
 }
 
 // This ruleset is not used, but its translation must compile with C++.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-label"
+// These pragmas are needed to prevent compiler warnings resulting from unused labels
+// in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
+// the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
+// These pragmas should be removed then.
+// GAIAPLAT-1198
 ruleset test_compile
 {
     // GAIAPLAT-1112
@@ -490,6 +498,7 @@ ruleset test_compile
 #endif
 
 }
+#pragma clang diagnostic pop
 
 ruleset test_insert_delete
 {
@@ -566,5 +575,108 @@ ruleset test_insert_delete_2
     on_update(status)
     {
         grade = "D+";
+    }
+}
+
+
+ruleset test_connect_1_n
+{
+    on_insert(student)
+    {
+        auto r1 = registration.insert(reg_id: "reg001");
+        student.connect(r1);
+        student.registrations.connect(r1);
+
+        for(/r2:registration)
+        {
+            student.connect(r2);
+            student.registrations.connect(r2);
+        }
+
+        gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
+        student.registrations.connect(r3);
+        student.connect(r3);
+
+        gaia::prerequisites::registration_writer w;
+        w.reg_id = "reg003";
+        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
+        student.connect(r4);
+        student.registrations.connect(r4);
+
+        student.connect(registration.insert(reg_id: "reg004"));
+        student.registrations.connect(registration.insert(reg_id: "reg005"));
+    }
+};
+
+ruleset test_connect_1_1
+{
+    on_insert(student)
+    {
+        if (strcmp(student.student_id, "stu001") == 0)
+        {
+            auto p = parents.insert(name_father: "Claudio", name_mother: "Patrizia");
+            student.connect(p);
+        }
+        else
+        {
+            gaia::prerequisites::parents_writer w;
+            w.name_father = "John";
+            w.name_mother = "Jane";
+            auto p = gaia::prerequisites::parents_t::get(w.insert_row());
+            student.parents.connect(p);
+        }
+    }
+}
+
+ruleset test_disconnect_1_n
+{
+    on_insert(student)
+    {
+        if (strcmp(student.student_id, "stu001") == 0)
+        {
+            for(/r:registration)
+            {
+                student.disconnect(r);
+            }
+        }
+        else
+        {
+            // This doesn't work for the same reason as delete.
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176
+//            student.disconnect(registration);
+        }
+    }
+
+    on_insert(course)
+    {
+        if (strcmp(course.course_id, "cou001") == 0)
+        {
+            for (/r:registration)
+            {
+                course.registrations.disconnect(r);
+            }
+        }
+        else
+        {
+            // This doesn't work for the same reason as delete.
+//            course.registrations.disconnect(registration);
+        }
+    }
+};
+
+ruleset test_disconnect_1_1
+{
+    on_insert(student)
+    {
+        student.parents.disconnect();
+    }
+};
+
+ruleset test_disconnect_delete
+{
+    on_insert(registration)
+    {
+        registration->student.disconnect(registration);
+        registration.remove();
     }
 }
