@@ -10,12 +10,12 @@ namespace gaia
 namespace common
 {
 
-template <std::size_t N>
-constexpr auto& assert_str_not_empty(char const (&s)[N])
+template <std::size_t array_len>
+constexpr auto& assert_str_not_empty(char const (&s)[array_len])
 {
     // There is a trailing `\0` in every literal, even if
     // we don't explicitly specify it.
-    static_assert(N > 1, "String should not be empty!");
+    static_assert(array_len > 1, "String should not be empty!");
     return s;
 }
 
