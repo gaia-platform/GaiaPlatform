@@ -213,3 +213,5 @@ When we are ready to release a new version of Gaia this is the process to follow
    3. Description: High level description of new features and relevant bug fixes.
    4. Check the box "This is a pre-release" if that's the case.
 8. From now on the version will remain `0.3.0-beta` until a new Release is ready. At that point repeat this process.
+   1. We currently have a single version across the product (gaia_sdk, gaia_db_server, gaiac, and gaiat).
+   2. Every build has an incremental build number which is added to the full version string (eg. `0.2.1-alpha+1731`). The build number may differ for local builds.
