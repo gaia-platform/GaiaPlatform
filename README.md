@@ -190,14 +190,13 @@ When we are ready to release a new version of Gaia this is the process to follow
    # To
    project(production VERSION 0.3.0)
    ```
-3. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). 
+3. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
    ```cmake
    # From  
    set(PRE_RELEASE_IDENTIFIER "alpha")
    # To
    set(PRE_RELEASE_IDENTIFIER "beta")
    ```
-   For GA releases leave the identifier empty.
 4. Create a commit for the new Release:
    ```shell
    git add -u
@@ -213,4 +212,4 @@ When we are ready to release a new version of Gaia this is the process to follow
    2. Release Title: `Gaia Platform 0.3.0-beta`
    3. Description: High level description of new features and relevant bug fixes.
    4. Check the box "This is a pre-release" if that's the case.
-8. From now the version will remain `0.3.0-beta` until a new Release is ready. At point repeat this process.
+8. From now the version will remain `0.3.0-beta` until a new Release is ready. At that point repeat this process.
