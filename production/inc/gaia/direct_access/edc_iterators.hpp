@@ -169,11 +169,11 @@ public:
     size_t size() const;
 
     void insert(gaia::common::gaia_id_t child_id);
-    void insert(T_child& child_edc);
+    void insert(const T_child& child_edc);
 
     edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
     void remove(gaia::common::gaia_id_t child_id);
-    void remove(T_child& child_edc);
+    void remove(const T_child& child_edc);
     void clear();
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;

@@ -9497,67 +9497,157 @@ def err_builtin_launder_invalid_arg : Error<
 
 def err_invalid_field_operation : Error<
   "Incorrect field operation.">;
-
-def err_invalid_table_name : Error<
-  "Table '%0' was not found in the catalog.">;
-def err_invalid_field_type : Error<
-  "Field '%0' has incorrect type.">;
-def err_no_ruleset_for_rule : Error<
-  "No ruleset was detected for rule.">;
+def err_active_field_not_supported : Error<
+  "Mixed use of 'on_' attributes (on_insert, on_change, or on_update) and "
+  "specifying active fields using '@' is not supported. Use either an 'on_' "
+  "attribute at the start of the rule or '@' within the rule.">;
 def err_ambiguous_field_reference : Error<
   "Ambiguous reference to field '%0'.">;
+def err_ambiguous_path : Error <
+  "Ambiguous navigation path detected. There is more than one path that "
+  "relates '%0' to '%1'. Specify the navigation path explicitly to resolve "
+  "this ambiguity.">;
+def err_ambiguous_tag_defined: Error<
+  "Tag '%0' cannot have the same name as a table or a field.">;
+def err_argument_type_mismatch : Error<
+  "Cannot convert from '%0' to '%1' for parameter '%2'.">;
+def err_argument_type_not_supported : Error<
+  "Type '%0' is not supported.">;
+def err_catalog_exception : Error<
+  "An exception has occurred while processing the catalog: '%0'.">;
+def err_declarative_label_does_not_exist : Error<
+  "Declarative label does not exist.">;
+def err_declarative_label_statement_is_invalid : Error<
+  "The statement of the declarative label is invalid. Only a declarative 'if' "
+  "or 'for' statement may have a declarative label.">;
+def err_declarative_label_wrong_statement : Error<
+  "The statement of the declarative label is not a declarative 'if' or 'for'.">;
+def err_duplicate_field : Error<
+  "Duplicate field '%0' found in table '%1'. Qualify your field with the "
+  "table name (table.field) to disambiguate field names that occur in more "
+  "than one table. You can also restrict the list of tables to search by "
+  "specifying them in the ruleset 'tables' attribute.">;
+def err_duplicate_link : Error<
+  "Duplicate link '%0'.">;
+def err_duplicate_parameter_name : Error<
+  "Parameter name '%0' has already been used.">;
+def err_duplicate_ruleset : Error<
+  "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
+def err_edc_init : Error<
+  "Initialization of a declared variable with an EDC object is not supported.">;
+def err_field_deprecated : Error<
+  "Field '%0' of table '%1' is marked as deprecated in the catalog. "
+  "Ensure that you are using the correct field in the catalog.">;
+def err_field_not_found : Error<
+  "Field '%0' of table '%1' was not found in the database. "
+  "Ensure that your field and table names match your schema definition.">;
+def err_incorrect_base_type : Error<
+  "Incorrect base type of generated type.">;
+def err_incorrect_for_expression : Error<
+  "An incorrect expression is used as a path in a 'for' statement. "
+  "An expression in a 'for' statement must only iterate over a table.">;
+def err_incorrect_matched_expression : Error<
+  "Incorrect matched expression.">;  
+def err_incorrect_matched_operator : Error<
+  "Incorrect matched operator.">;
+def err_incorrect_operator_code : Error<
+  "Incorrect operator code '%0'.">;
+def err_incorrect_operator_expression : Error<
+  "Incorrect operator expression.">;
+def err_incorrect_operator_expression_type : Error<
+  "Incorrect operator expression type.">;
+def err_incorrect_table : Error<
+  "Incorrect table for field '%0'.">;
+def err_incorrect_tag_use_in_path : Error<
+  "Tag '%0' cannot be used in this context.">;
+def err_incorrect_operator_type : Error<
+  "Incorrect operator type.">;
+def err_insert_with_explicit_nav : Error<
+  "The 'insert' method cannot be the target of a navigation path. "
+  "A new row is not reachable in a table until after it is inserted.">;
+def err_insert_with_tag : Error<
+  "The 'insert' method cannot be used with a tag. Remove the tag "
+  "from the table in the 'insert' statement.">;
+def err_invalid_child_table : Error<
+  "Incorrect child table in the relationship '%0'.">;
+def err_invalid_explicit_path : Error<
+  "Invalid explicit path.">;
+def err_invalid_field_type : Error<
+  "Field '%0' has incorrect type.">;
+def err_invalid_parent_table : Error<
+  "Incorrect parent table in the relationship '%0'.">;
+def err_invalid_table_field : Error<
+  "Field '%0' has no table in the catalog.">;
+def err_invalid_rule_context_internal_error : Error<
+  "Internal error while generating 'rule_context'.">;
+def err_invalid_rule_attribute : Error<
+  "Invalid Gaia rule attribute.">;
+def err_invalid_tag_defined: Error<
+  "Tag refers to an invalid table '%0'.">;
+def err_multi_anchor_fields : Error<
+  "A rule may not specify active fields from different tables. "
+   "Ensure that all your active field references belong to the same table.">;
+def err_multi_anchor_tables : Error<
+  "A rule may not specify multiple tables or active fields from different tables "
+  "in 'on_' attributes (on_insert, on_change, or on_update). "
+  "Ensure that all your active field references belong to the same table.">;
+def err_multiple_shortest_paths : Error<
+  "Multiple shortest paths exist between tables '%0' and '%1'. "
+  "Explicitly specify the navigation path between these two tables to resolve the ambiguity.">;
+def err_no_active_fields : Error<
+  "No active fields were referenced in this rule. "
+  "Ensure that your rule references at least one active field or table.">;
+def err_no_anchor_path : Error<
+  "No navigation path exists between table '%0' and other tables. "
+  "Ensure that your schema has a relationship between the tables you are referencing.">;
+def err_no_fields_referenced_by_table : Error<
+  "No fields referenced by table '%0'.">;
+def err_no_link : Error<
+  "Table link '%0.%1' was not found in the catalog.">;
+def err_no_path : Error<
+  "No navigation path exists between tables '%0' and '%1'. "
+  "Ensure that your schema has a relationship between these two tables.">;
+def err_no_relations_table_in_path : Error<
+  "'%0' table in the explicit path has no relationship to '%1'.">;
+def err_no_relationship : Error<
+  "No relationship exists between tables '%0' and '%1'. "
+  "Ensure that your schema has a relationship between these two tables.">;
+def err_no_ruleset_for_rule : Error<
+  "No ruleset was detected for rule.">;
+def err_parameter_names_numbers_different_from_parameter: Error<
+  "%0 parameter names are specified and %1 parameters passed.">;
+def err_table_not_found : Error<
+  "Table '%0' was not found in the catalog. "
+  "Ensure that the table you are referencing in your rule exists in the database.">;
+def err_tag_redefined : Error<
+  "Tag '%0' is already defined.">;
+def err_unknown_field : Error<
+  "Field '%0' was not found in the catalog.">;
+def err_unknown_parameter_name : Error<
+  "Parameter name '%0' is not found in the catalog.">;
+
 def note_table_reference : Note<
   "Table: '%0'.">;
 def note_field_reference : Note<
   "Field: '%0.%1'.">;
 def note_link_reference : Note<
   "Link: '%0.%1'.">;
-def err_duplicate_field : Error<
-  "Duplicate field '%0'.">;
-def err_duplicate_link : Error<
-  "Duplicate link '%0'.">;
-def err_unknown_field : Error<
-  "Field '%0' was not found in the catalog.">;
-def err_catalog_exception : Error<
-  "Exception occurred while fetching data from catalog: '%0'.">;
-def err_invalid_table_field : Error<
-  "Field '%0' has no table in the catalog.">;
+
+def warn_field_hidden : Warning<
+  "Local variable '%0' hides a database field with the same name. "
+  "Rename your local variable so that it doesn't conflict with an "
+  "existing field name.">,
+  InGroup<GaiaExtensions>;
+def warn_table_hidden : Warning<
+  "Local variable '%0' hides a database table with the same name. "
+  "Rename your local variable so that it doesn't conflict with an "
+  "existing table name.">,
+  InGroup<GaiaExtensions>;
 def warn_table_referenced_not_in_table_attribute : Warning<
-  "Table '%0' is not referenced in tables attribute.">;
-def err_invalid_rule_context_internal_error : Error<
-  "Internal error while generating 'rule_context'.">;
-def err_invalid_rule_attribute : Error<
-    "Invalid Gaia rule attribute.">;
-def err_invalid_explicit_path : Error<
-  "Invalid explicit path.">;
-def err_invalid_child_table : Error<
-  "Incorrect child table in the relationship '%0'.">;
-def err_invalid_parent_table : Error<
-  "Incorrect parent table in the relationship '%0'.">;
-def err_no_relations_table_in_path : Error<
-  "'%0' table in the explicit path has no relationship to '%1'.">;
-def err_invalid_tag_defined: Error<
-  "Tag refers to an invalid table '%0'.">;
-def err_ambiguous_tag_defined: Error<
-  "Tag '%0' cannot have the same name as a table or a field.">;
-def err_tag_redefined : Error<
-  "Tag '%0' is already defined.">;
-def err_incorrect_tag_use_in_path : Error<
-  "Tag '%0' cannot be used in this context.">;
-def err_declarative_label_does_not_exist : Error<
-  "Declarative label does not exist.">;
-def err_declarative_label_statement_is_invalid : Error<
-  "The statement of the declarative label is invalid. Only a declarative 'if' or 'for' statement may have a declarative label.">;
-def err_declarative_label_wrong_statement : Error<
-  "The statement of the declarative label is not a declarative if or for.">;
-def err_parameter_names_numbers_different_from_parameter: Error<
-  "%0 parameter names are specified and %1 parameters passed.">;
-def err_unknown_parameter_name : Error<
-  "Parameter name '%0' is not found in the catalog.">;
-def err_duplicate_parameter_name : Error<
-  "Parameter name '%0' has already been used.">;
-def err_argument_type_mismatch : Error<
-  "Cannot convert from '%0' to '%1' for parameter '%2'.">;
-def err_argument_type_not_supported : Error<
-  "Type '%0' is not supported.">;
+  "Table '%0' is not referenced in tables attribute.">,
+  InGroup<GaiaExtensions>;
+def warn_tag_hidden : Warning<
+   "Local variable '%0' hides a tag defined with the same name. "
+   "Rename your local variable or tag so that their names do not conflict.">,
+   InGroup<GaiaExtensions>;
 } // end of sema component.

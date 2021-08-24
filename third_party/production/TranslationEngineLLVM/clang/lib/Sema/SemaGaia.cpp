@@ -236,7 +236,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
+                Diag(loc, diag::err_table_not_found) << tagEntry.second;
                 return "";
             }
         }
@@ -385,7 +385,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                Diag(loc, diag::err_duplicate_field) << field.name();
+                Diag(loc, diag::err_duplicate_field) << field.name() << tbl.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
@@ -465,9 +465,15 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
             TableLinkData_t link_data_1;
             link_data_1.table = parent_table.name();
             link_data_1.field = relationship.to_parent_link_name();
+            link_data_1.is_from_parent = false;
+            link_data_1.is_one_to_many = false;
+
             TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
             link_data_n.field = relationship.to_child_link_name();
+            link_data_n.is_from_parent = true;
+            link_data_n.is_one_to_many = static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())
+                == catalog::relationship_cardinality_t::many;
 
             retVal.emplace(child_table.name(), link_data_1);
             retVal.emplace(parent_table.name(), link_data_n);
@@ -593,7 +599,7 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc)
+QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
@@ -619,28 +625,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    string targetTableTypeName = to_table + "__type";
-    TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
-
-    if (!paramRecordDecl)
-    {
-        paramRecordDecl = CXXRecordDecl::Create(
-            getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-            SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
-
-        paramRecordDecl->setLexicalDeclContext(getCurFunctionDecl());
-        PushOnScopeChains(paramRecordDecl, getCurScope());
-    }
-
-    // Creates a reference parameter (incubator__type&).
-    QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl, paramRecordDecl->getPreviousDecl());
-    QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
-
-    SmallVector<QualType, 8> paramTypes;
-    paramTypes.push_back(connectDisconnectParamRef);
-
-    addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-    addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), true);
+    addConnectDisconnect(RD, to_table, is_one_to_many, loc, attrFactory, attrs);
 
     RD->completeDefinition();
 
@@ -674,6 +659,91 @@ TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* sco
     }
 
     return classDecl;
+}
+
+TagDecl* Sema::lookupEDCClass(std::string className)
+{
+    // TODO do a search bound to a namespace:
+    //   LookupResult gaiaNS(
+    //       *this, &Context.Idents.get("gaia"), loc, LookupNamespaceName);
+    //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
+    //  ....
+
+    for (Type* type : Context.getTypes())
+    {
+        RecordDecl* record = type->getAsRecordDecl();
+        if (record != nullptr)
+        {
+            const IdentifierInfo* id = record->getIdentifier();
+            if (id && id->getName().equals(className))
+            {
+                return llvm::cast_or_null<TagDecl>(record);
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+{
+    SmallVector<TagDecl*, 2> targetTypes;
+
+    // Look up the implicit class type (table__type).
+    string implicitTableTypeName = targetTableName + "__type";
+    TagDecl* implicitTargetTypeDecl = lookupClass(implicitTableTypeName, loc, getCurScope());
+
+    if (!implicitTargetTypeDecl)
+    {
+        // The implicit type hasn't been declared yet. Creates a forward declaration.
+        implicitTargetTypeDecl = CXXRecordDecl::Create(
+            getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
+            SourceLocation(), SourceLocation(), &Context.Idents.get(implicitTableTypeName));
+
+        implicitTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
+        implicitTargetTypeDecl->setLexicalDeclContext(getCurFunctionDecl());
+        PushOnScopeChains(implicitTargetTypeDecl, getCurScope());
+    }
+
+    targetTypes.push_back(implicitTargetTypeDecl);
+
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
+    // Lookup the EDC class type (table_t)
+    string edcTableTypeName = targetTableName + "_t";
+    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
+
+    if (edcTargetTypeDecl)
+    {
+        targetTypes.push_back(edcTargetTypeDecl);
+        // TODO ideally we should apply this to all EDC classes...
+        edcTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
+    }
+
+    // Add connect/disconnect both for the implicit class and EDC class (if available).
+    for (TagDecl* targetType : targetTypes)
+    {
+        // Creates a reference parameter (eg. incubator__type&).
+        QualType connectDisconnectParam = Context.getTypeDeclType(targetType);
+        QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0).withConst(), true, loc, DeclarationName());
+
+        SmallVector<QualType, 8> parameters;
+        parameters.push_back(connectDisconnectParamRef);
+
+        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+
+        // The disconnect with argument is available only 1:n relationships.
+        if (is_one_to_many)
+        {
+            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        }
+    }
+
+    // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
+    //  person.mother.disconnect();
+    if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
+    {
+        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+    }
 }
 
 QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
@@ -711,7 +781,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
-        Diag(loc, diag::err_invalid_table_name) << typeName;
+        Diag(loc, diag::err_table_not_found) << typeName;
         return Context.VoidTy;
     }
 
@@ -721,36 +791,14 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     //  3. It finds the definition and returns it. This happens if this method
     //     is called multiple times for the same table.
 
-    string className = typeName + "__type";
+    string implicitClassName = typeName + "__type";
 
-    TagDecl* previousDeclaration = lookupClass(className, loc, getCurScope());
+    TagDecl* previousDeclaration = lookupClass(implicitClassName, loc, getCurScope());
     fieldTableName = typeName;
 
     if (previousDeclaration && previousDeclaration->isCompleteDefinition())
     {
         return Context.getTagDeclType(previousDeclaration);
-    }
-
-    const Type* realType = nullptr;
-
-    auto& types = Context.getTypes();
-    for (unsigned typeIdx = 0; typeIdx != types.size(); ++typeIdx)
-    {
-        const auto* type = types[typeIdx];
-        const RecordDecl* record = type->getAsRecordDecl();
-        if (record != nullptr)
-        {
-            const auto* id = record->getIdentifier();
-            if (id != nullptr)
-            {
-                // Check if EDC type is defined.
-                if (id->getName().equals(typeName + "_t"))
-                {
-                    realType = type;
-                    break;
-                }
-            }
-        }
     }
 
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(rulesetContext);
@@ -776,27 +824,35 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     RecordDecl* RD = CXXRecordDecl::Create(
         getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-        SourceLocation(), SourceLocation(), &Context.Idents.get(className),
+        SourceLocation(), SourceLocation(), &Context.Idents.get(implicitClassName),
         llvm::cast_or_null<CXXRecordDecl>(previousDeclaration));
 
     RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
+
+    // The attribute may have already been set in the forward declaration.
+    if (!RD->hasAttr<GaiaTableAttr>())
+    {
+        RD->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(typeName)));
+    }
     PushOnScopeChains(RD, getCurScope());
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    if (realType != nullptr)
+    string edcClassName = tableName + "_t";
+    TagDecl* edcType = lookupEDCClass(edcClassName);
+    if (edcType != nullptr)
     {
         QualType R = Context.getFunctionType(
-            BuildReferenceType(QualType(realType, 0), true, loc, DeclarationName()),
+            BuildReferenceType(Context.getTagDeclType(edcType), true, loc, DeclarationName()),
             None, FunctionProtoType::ExtProtoInfo());
         CanQualType ClassType = Context.getCanonicalType(R);
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 
-        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
+        auto* conversionFunctionDeclaration = CXXConversionDecl::Create(
             Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
             nullptr, false, false, false, SourceLocation());
 
@@ -823,14 +879,27 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
     // have a connect/disconnect method for a given target type.
-    unordered_map<string, int> links_targets;
+    unordered_map<string, int> links_target_tables;
+
+    // Stores the cardinality for a given target table.
+    // true -> one-to-many, false otherwise.
+    // Note that if a table has multiple links it does not matter
+    // because the connect/disconnect methods are not generated.
+    unordered_map<string, bool> links_cardinality;
 
     for (auto link = links.first; link != links.second; ++link)
     {
         TableLinkData_t linkData = link->second;
-        QualType type = getLinkType(linkData.field, tableName, linkData.table, loc);
-        addField(&Context.Idents.get(linkData.field), type, RD, loc);
-        links_targets[linkData.table]++;
+
+        // For now, connect/disconnect is supported only from the parent side
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
+        if (linkData.is_from_parent)
+        {
+            QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
+            addField(&Context.Idents.get(linkData.field), type, RD, loc);
+            links_target_tables[linkData.table]++;
+            links_cardinality[linkData.table] = linkData.is_one_to_many;
+        }
     }
 
     // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
@@ -840,7 +909,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
     // connect and disconnect can be present only if the table has outgoing relationships.
-    if (!links_targets.empty())
+    if (!links_target_tables.empty())
     {
         // For each outgoing relationship creates an overload connect/disconnect to the target types. eg:
         // incubator__type
@@ -849,7 +918,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         //   bool connect(farmer_type&);
         //   bool disconnect(farmer_type&);
         //   ....
-        for (auto targetTablePair : links_targets)
+        for (auto targetTablePair : links_target_tables)
         {
             // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
@@ -860,29 +929,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
                 continue;
             }
 
-            // Look up the target type.
-            string targetTableTypeName = targetTablePair.first + "__type";
-            TagDecl* paramRecordDecl = lookupClass(targetTableTypeName, loc, getCurScope());
-
-            if (!paramRecordDecl)
-            {
-                paramRecordDecl = CXXRecordDecl::Create(
-                    getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
-                    SourceLocation(), SourceLocation(), &Context.Idents.get(targetTableTypeName));
-
-                paramRecordDecl->setLexicalDeclContext(functionDecl);
-                PushOnScopeChains(paramRecordDecl, getCurScope());
-            }
-
-            // Creates a reference parameter (incubator__type&).
-            QualType connectDisconnectParam = Context.getTypeDeclType(paramRecordDecl);
-            QualType connectDisconnectParamRef = Context.getLValueReferenceType(connectDisconnectParam);
-
-            SmallVector<QualType, 8> paramTypes;
-            paramTypes.push_back(connectDisconnectParamRef);
-
-            addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
-            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, paramTypes, attrFactory, attrs, RD, SourceLocation(), false);
+            addConnectDisconnect(RD, targetTablePair.first, links_cardinality[targetTablePair.first], loc, attrFactory, attrs);
         }
     }
 
@@ -967,7 +1014,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         auto tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
-            Diag(loc, diag::err_invalid_table_name) << tableName;
+            Diag(loc, diag::err_table_not_found) << tableName;
             return Context.VoidTy;
         }
 
@@ -982,7 +1029,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
+                Diag(loc, diag::err_duplicate_field) << fieldOrTagName << tableName;
                 return Context.VoidTy;
             }
 
@@ -1000,6 +1047,11 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             {
                 TableLinkData_t linkData = link->second;
 
+                if (!linkData.is_from_parent)
+                {
+                    continue;
+                }
+
                 if (linkData.field == fieldOrTagName)
                 {
                     if (retVal != Context.VoidTy)
@@ -1008,7 +1060,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, loc);
+                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
                     fieldTableName = tableName;
                 }
             }

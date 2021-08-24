@@ -22,7 +22,7 @@ add_link_options(-stdlib=libc++)
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-O0 -g3 -ggdb -fno-limit-debug-info -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
-  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
+  if(SANITIZER STREQUAL "ASAN")
     add_compile_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
     add_link_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
   endif()

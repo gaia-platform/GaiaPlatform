@@ -1,4 +1,4 @@
-// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test10
 {
@@ -8,4 +8,4 @@ ruleset test10
     }
 }
 
-// CHECK: There is more than one field that links 'incubator' and 'farmer'
+// CHECK: Ambiguous navigation path detected. There is more than one path that relates 'incubator' to 'farmer'. Specify the navigation path explicitly to resolve this ambiguity.

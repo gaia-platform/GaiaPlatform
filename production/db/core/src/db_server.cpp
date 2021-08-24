@@ -54,7 +54,7 @@ using namespace gaia::common::scope_guard;
 
 using persistence_mode_t = server_config_t::persistence_mode_t;
 
-static constexpr char c_message_uninitialized_fd_log[] = "Uninitialized fd log!";
+static constexpr char c_message_uninitialized_log_fd[] = "Uninitialized log fd!";
 static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
 static constexpr char c_message_current_event_is_inconsistent_with_state_transition[]
     = "Current event is inconsistent with state transition!";
@@ -208,51 +208,64 @@ void server_t::handle_begin_txn(
 
     ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
 
-    ASSERT_PRECONDITION(s_fd_log == -1, "Transaction log fd should be uninitialized!");
-
-    // Allocate a new begin_ts for this txn and initialize its metadata in the txn table.
-    s_txn_id = txn_metadata_t::txn_begin();
-
-    // The begin_ts returned by txn_begin() should always be valid because it
-    // retries on concurrent invalidation.
-    ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
-
-    // Ensure that there are no undecided txns in our snapshot window.
-    validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
+    ASSERT_PRECONDITION(!s_log.is_set(), "Transaction log should be uninitialized!");
 
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
-    std::vector<int> txn_log_fds;
-    get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
-    auto cleanup_log_fds = make_scope_guard([&]() {
-        // Now we need to close all the duplicated log fds in the buffer.
-        for (auto& fd : txn_log_fds)
+    std::vector<int> txn_log_fds_for_snapshot;
+    auto cleanup_txn_log_fds_for_snapshot = make_scope_guard([&]() {
+        // Close all the duplicated log fds in the buffer.
+        for (int& fd : txn_log_fds_for_snapshot)
         {
             // Each log fd should still be valid.
             ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
             close_fd(fd);
         }
     });
+    txn_begin(txn_log_fds_for_snapshot);
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
     // REVIEW: We could optimize the fast path by piggybacking some small fixed
     // number of log fds on the initial reply message.
+    int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds.size());
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
+    send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
     // We need a 1-byte dummy message buffer due to our datagram size convention.
     uint8_t msg_buf[1]{0};
     size_t fds_sent_count = 0;
-    while (fds_sent_count < txn_log_fds.size())
+    while (fds_sent_count < txn_log_fds_for_snapshot.size())
     {
-        size_t fds_to_send_count = std::min(c_max_fd_count, txn_log_fds.size() - fds_sent_count);
+        size_t fds_to_send_count = std::min(c_max_fd_count, txn_log_fds_for_snapshot.size() - fds_sent_count);
         send_msg_with_fds(
-            s_session_socket, txn_log_fds.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
+            s_session_socket, txn_log_fds_for_snapshot.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
     }
+}
+
+void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
+{
+    // Allocate a new begin_ts for this txn and initialize its metadata in the txn table.
+    s_txn_id = txn_metadata_t::register_begin_ts();
+
+    // The begin_ts returned by register_begin_ts() should always be valid because it
+    // retries on concurrent invalidation.
+    ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
+
+    // Ensure that there are no undecided txns in our snapshot window.
+    validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
+
+    get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
+
+    // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
+    s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+
+    // Update the log header with our begin timestamp and initialize it to empty.
+    s_log.data()->begin_ts = s_txn_id;
+    s_log.data()->record_count = 0;
 }
 
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
@@ -314,15 +327,11 @@ void server_t::handle_rollback_txn(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ASSERT_PRECONDITION(s_fd_log == -1, "fd log should be uninitialized!");
+    ASSERT_PRECONDITION(
+        s_txn_id != c_invalid_gaia_txn_id,
+        "No active transaction to roll back!");
 
-    // Get the log fd and free it if the client sends it.
-    // The client will not send the txn log to the server if a read-only txn was rolled back.
-    if (fds && fd_count == 1)
-    {
-        s_fd_log = *fds;
-        ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
-    }
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Release all txn resources and mark the txn's begin_ts metadata as terminated.
     txn_rollback();
@@ -338,45 +347,11 @@ void server_t::handle_commit_txn(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // Get the log fd and mmap it.
-    ASSERT_PRECONDITION(fds && fd_count == 1, "Invalid fd data!");
-    s_fd_log = *fds;
-    ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
-
-    // We need to keep the log fd around until it's applied to the shared
-    // locator view, so we only close the log fd if an exception is thrown.
-    // Aborted txns only have their log fds invalidated and closed after the
-    // watermark advances, to preserve the invariant that invalidation can only
-    // follow the watermark.
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(s_fd_log);
-    });
-
-    // Check that the log memfd was sealed for writes.
-    int seals = ::fcntl(s_fd_log, F_GET_SEALS);
-    if (seals == -1)
-    {
-        throw_system_error("fcntl(F_GET_SEALS) failed!");
-    }
-    ASSERT_PRECONDITION(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
-
-    // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
-    // which seems contrary to the manpage for fcntl(2).
-    // We map the log into a local variable so it gets unmapped automatically on exit.
-    mapped_log_t log;
-    log.open(s_fd_log);
-    // Surface the log in our static variable, to avoid passing it around.
-    s_log = log.data();
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Actually commit the transaction.
     bool success = txn_commit();
 
-    // Ideally, we would immediately clean up the log of an aborted txn, but
-    // this complicates reasoning about safe concurrent validation (we want to
-    // maintain the invariant that a log is never cleaned up until the watermark
-    // advances past its txn's commit_ts). Once txn_commit() returns, only a
-    // thread advancing the watermark can clean up this txn's log fd.
-    cleanup_log_fd.dismiss();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
@@ -395,10 +370,11 @@ void server_t::handle_decide_txn(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     // We need to clear transactional state after the decision has been
-    // returned, but don't need to free any resources.
+    // returned, but we don't close the log fd (even for an abort decision),
+    // because GC needs the log in order to properly deallocate all allocations
+    // made by this txn when they become obsolete.
     auto cleanup = make_scope_guard([&]() {
         s_txn_id = c_invalid_gaia_txn_id;
-        s_fd_log = -1;
     });
 
     FlatBufferBuilder builder;
@@ -599,10 +575,10 @@ void server_t::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    size_t log_fd_count)
+    size_t log_fds_to_apply_count)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fd_count);
+    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
         builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
@@ -737,13 +713,11 @@ void server_t::init_indexes()
 // On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_txn_log()
 {
-    ASSERT_PRECONDITION(s_log != nullptr, c_message_uninitialized_txn_log);
-
     bool replay_logs = true;
 
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_logs(*s_log, s_server_conf.skip_catalog_integrity_checks());
+    index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
 address_offset_t server_t::allocate_object(
@@ -808,7 +782,7 @@ void server_t::recover_db()
 
 gaia_txn_id_t server_t::begin_startup_txn()
 {
-    s_txn_id = txn_metadata_t::txn_begin();
+    s_txn_id = txn_metadata_t::register_begin_ts();
     return s_txn_id;
 }
 
@@ -817,29 +791,28 @@ void server_t::end_startup_txn()
     // Use a local variable to ensure cleanup in case of an error.
     mapped_log_t log;
 
-    int fd;
-    size_t log_size;
-
     log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
-    // Update the log header with our begin timestamp and intialize it to empty.
+    // Update the log header with our begin timestamp and initialize it to empty.
     log.data()->begin_ts = s_txn_id;
     log.data()->record_count = 0;
 
-    log.truncate_seal_and_close(fd, log_size);
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(fd);
-    });
+    // Claim ownership of the log fd from the mapping object.
+    // The empty log will be freed by a regular GC task.
+    int log_fd = log.unmap_truncate_seal_fd();
 
-    // Register the committing txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, fd);
-    // Now update the active txn metadata.
+    // Register this txn under a new commit timestamp.
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
+    // Mark this txn as submitted.
     txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
-    // Update the current txn's decided status.
+    // Mark this txn as committed.
     txn_metadata_t::update_txn_decision(commit_ts, true);
+    // Mark this txn durable if persistence is enabled.
+    if (rdb)
+    {
+        txn_metadata_t::set_txn_durable(commit_ts);
+    }
 
-    // Dismiss the cleanup here to avoid a potential double-free.
-    cleanup_log_fd.dismiss();
     perform_maintenance();
 
     s_txn_id = c_invalid_gaia_txn_id;
@@ -874,13 +847,13 @@ void server_t::create_local_snapshot(bool apply_logs)
         {
             mapped_log_t txn_log;
             txn_log.open(it);
-            apply_logs_to_locators(s_local_snapshot_locators.data(), txn_log.data());
+            apply_log_to_locators(s_local_snapshot_locators.data(), txn_log.data());
         }
 
         // Apply s_log to the local snapshot, if any.
-        if (s_log)
+        if (s_log.is_set())
         {
-            apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
+            apply_log_to_locators(s_local_snapshot_locators.data(), s_log.data());
         }
     }
     else
@@ -1589,8 +1562,8 @@ void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_
     for (gaia_txn_id_t ts = start_ts; ts < end_ts; ++ts)
     {
         // Fence off any txns that have allocated a commit_ts between start_ts
-        // and end_ts but have not yet registered a commit_ts metadata in the txn
-        // table.
+        // and end_ts but have not yet registered a commit_ts metadata entry in
+        // the txn table.
         if (txn_metadata_t::seal_uninitialized_ts(ts))
         {
             continue;
@@ -1977,7 +1950,7 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
     // that txn's snapshot). This update is non-atomic because log application
     // is idempotent and therefore a txn log can be re-applied over the same
     // txn's partially-applied log during snapshot reconstruction.
-    apply_logs_to_locators(s_shared_locators.data(), txn_log.data());
+    apply_log_to_locators(s_shared_locators.data(), txn_log.data());
 }
 
 void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
@@ -2412,14 +2385,6 @@ void server_t::update_txn_table_safe_truncation_point()
 
 void server_t::txn_rollback()
 {
-    ASSERT_PRECONDITION(
-        s_txn_id != c_invalid_gaia_txn_id,
-        "txn_rollback() was called without an active transaction!");
-
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(s_fd_log);
-    });
-
     // Set our txn status to TXN_TERMINATED.
     // NB: this must be done before calling perform_maintenance()!
     txn_metadata_t::set_active_txn_terminated(s_txn_id);
@@ -2430,19 +2395,31 @@ void server_t::txn_rollback()
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
 
-    if (s_fd_log != -1)
+    // Claim ownership of the log fd from the mapping object.
+    bool is_log_empty = (s_log.data()->record_count == 0);
+    int log_fd = s_log.unmap_truncate_seal_fd();
+
+    // We need to unconditionally close the log fd because we're not registering
+    // it in a txn metadata entry, so it won't be closed by GC.
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(log_fd);
+    });
+
+    // Free any deallocated objects (don't bother for read-only txns).
+    if (!is_log_empty)
     {
-        // Free any deallocated objects.
-        gc_txn_log_from_fd(s_fd_log, false);
+        gc_txn_log_from_fd(log_fd, false);
     }
 }
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    // Process the txn log.
-    for (size_t i = 0; i < s_log->record_count; ++i)
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
+
+    // Process the txn log to update record lists.
+    for (size_t i = 0; i < s_log.data()->record_count; ++i)
     {
-        txn_log_t::log_record_t* lr = &(s_log->log_records[i]);
+        txn_log_t::log_record_t* lr = &(s_log.data()->log_records[i]);
 
         // In case of insertions, we want to update the record list for the object's type.
         // We do this after updating the shared locator view, so we can access the new object's data.
@@ -2459,6 +2436,25 @@ void server_t::perform_pre_commit_work_for_txn()
             record_list->add(locator);
         }
     }
+
+    update_indexes_from_txn_log();
+}
+
+// Sort all txn log records, by locator as primary key, and by offset as
+// secondary key. This enables us to use fast binary search and binary merge
+// algorithms for conflict detection.
+void server_t::sort_log()
+{
+    ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
+
+    // We use stable_sort() to preserve the order of multiple updates to the
+    // same locator.
+    std::stable_sort(
+        &s_log.data()->log_records[0],
+        &s_log.data()->log_records[s_log.data()->record_count],
+        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
+            return lhs.locator < rhs.locator;
+        });
 }
 
 // Before this method is called, we have already received the log fd from the client
@@ -2466,14 +2462,18 @@ void server_t::perform_pre_commit_work_for_txn()
 // This method returns true for a commit decision and false for an abort decision.
 bool server_t::txn_commit()
 {
-    ASSERT_PRECONDITION(s_fd_log != -1, c_message_uninitialized_fd_log);
-
     // Perform pre-commit work.
     perform_pre_commit_work_for_txn();
-    update_indexes_from_txn_log();
+
+    // Before registering the log, sort by locator for fast conflict detection.
+    sort_log();
+
+    // From now on, the txn log should be immutable.
+    // Claim ownership of the log fd from the mapping object.
+    int log_fd = s_log.unmap_truncate_seal_fd();
 
     // Register the committing txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_fd_log);
+    gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
 
     // This is only used for persistence.
     std::string txn_name;
@@ -2485,10 +2485,10 @@ bool server_t::txn_commit()
         // This is effectively asynchronous with validation, because if it takes
         // too long, then another thread may recursively validate this txn,
         // before the committing thread has a chance to do so.
-        rdb->prepare_wal_for_write(s_log, txn_name);
+        mapped_log_t log;
+        log.open(log_fd);
+        rdb->prepare_wal_for_write(log.data(), txn_name);
     }
-
-    ASSERT_INVARIANT(s_fd_log != -1, c_message_uninitialized_fd_log);
 
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);

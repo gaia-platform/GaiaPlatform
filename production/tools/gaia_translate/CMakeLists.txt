@@ -16,6 +16,7 @@ set(TRANSLATION_ENGINE_INCLUDES
 )
 
 set(GAIAT_SRCS
+  src/diagnostics.cpp
   src/main.cpp
   src/table_navigation.cpp
 )
@@ -129,7 +130,7 @@ add_custom_target(generate_mixed_rules ALL
 )
 
 add_gtest(test_mixed_ruleset
-  "tests/test_mixed_ruleset.cpp;${MIXED_RULESET_OUT}"
+  "tests/test_mixed_ruleset.cpp;${RULES_TEST_HELPERS};${MIXED_RULESET_OUT}"
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_barn_storage"
   "generate_mixed_rules" ""
@@ -190,4 +191,11 @@ add_gtest(test_insert_delete_ruleset
   "${TEST_INCLUDES}"
   "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
   "generate_rulesets_rules" ""
+)
+
+add_gtest(test_connect_disconnect_ruleset
+    "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS};${RULESETS_OUT}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;edc_prerequisites"
+    "generate_rulesets_rules" ""
 )

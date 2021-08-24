@@ -132,8 +132,6 @@ private:
     static void commit_chunk_manager_allocations();
     static void rollback_chunk_manager_allocations();
 
-    static void sort_log();
-
     static void apply_txn_log(int log_fd);
 
     static int get_session_socket(const std::string& socket_name);

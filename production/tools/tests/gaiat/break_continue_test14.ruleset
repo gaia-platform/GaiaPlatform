@@ -3,7 +3,7 @@
 // TESTCASE: continue from a nomatch block
 ruleset test20
 {
-    OnUpdate(incubator)
+    on_update(incubator)
     {
 CONTINUE_TARGET:
         if (S:sensor.value > 50.0)

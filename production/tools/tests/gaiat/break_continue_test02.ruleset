@@ -3,7 +3,7 @@
 // TESTCASE: non-declarative if statement cannot have break statement
 ruleset test02
 {
-    OnUpdate(I:incubator)
+    on_update(I:incubator)
     {
         if (I.max_temp > 99.0)
         {
