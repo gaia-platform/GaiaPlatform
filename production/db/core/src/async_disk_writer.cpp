@@ -52,6 +52,15 @@ async_disk_writer_t::async_disk_writer_t(int validate_flush_efd, int signal_chec
 
 void async_disk_writer_t::open(size_t batch_size)
 {
+    if (!m_in_progress_batch)
+    {
+        m_in_progress_batch = std::make_unique<async_write_batch_t>();
+    }
+    if (!m_in_flight_batch)
+    {
+        m_in_flight_batch = std::make_unique<async_write_batch_t>();
+    }
+
     m_in_progress_batch->setup(batch_size);
     m_in_flight_batch->setup(batch_size);
 }
@@ -114,7 +123,7 @@ void async_disk_writer_t::perform_post_completion_maintenance()
     for (auto decision : decisions)
     {
         // Set durability flags for txn.
-        txn_metadata_t::set_txn_durable(decision.commit_ts);
+        transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
         // Unblock session thread.
         auto itr = m_ts_to_session_decision_fd_map.find(decision.commit_ts);

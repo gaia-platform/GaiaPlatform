@@ -46,9 +46,9 @@ struct decision_entry_t
 // Pair of log file sequence number and file fd.
 typedef std::vector<decision_entry_t> decision_list_t;
 typedef size_t file_sequence_t;
-typedef size_t file_offset_t;
+constexpr file_sequence_t c_invalid_file_sequence_number = 0;
 
-file_sequence_t c_invalid_file_sequence_number = 0;
+typedef size_t file_offset_t;
 
 // The record size is constrained by the size of the log file.
 // We'd never need more that 32 bits for the record size.

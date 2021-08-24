@@ -167,7 +167,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common gaia_index Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE)
   target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
 endif()

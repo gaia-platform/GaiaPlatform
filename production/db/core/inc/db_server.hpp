@@ -110,7 +110,7 @@ private:
     static inline server_config_t s_server_conf{};
 
     // Todo: Make configurable.
-    static inline bool use_gaia_log_implementation = true;
+    static inline bool use_gaia_log_implementation = false;
     static constexpr int64_t txn_group_timeout_ms = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
@@ -122,6 +122,8 @@ private:
     static inline int s_signal_log_write_eventfd = -1;
 
     static inline int s_signal_decision_eventfd = -1;
+
+    static inline int s_signal_checkpoint_log_evenfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
     // These fields have session lifetime.
@@ -301,6 +303,8 @@ private:
     static void log_writer_handler();
 
     static void write_to_persistent_log(bool sync_writes = false);
+
+    static void recover_persistent_log();
 
     static void flush_all_pending_writes();
 

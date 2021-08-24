@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "log_io.hpp"
+
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -30,7 +32,6 @@
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "memory_types.hpp"
-#include "persistent_log_io.hpp"
 #include "txn_metadata.hpp"
 
 using namespace gaia::common;
@@ -44,12 +45,12 @@ namespace db
 namespace persistence
 {
 
-persistent_log_handler_t::persistent_log_handler_t(const std::string& directory_path)
+log_handler_t::log_handler_t(const std::string& directory_path)
 {
     auto dirpath = directory_path;
     ASSERT_PRECONDITION(!dirpath.empty(), "Gaia persistent directory path shouldn't be empty.");
     s_wal_dir_path = dirpath.append(c_gaia_wal_dir_name);
-    auto code = mkdir(s_wal_dir_path.c_str(), 0755);
+    auto code = mkdir(s_wal_dir_path.c_str(), c_gaia_wal_dir_permissions);
     if (code == -1 && errno != EEXIST)
     {
         throw_system_error("Unable to create persistent log directory");
@@ -61,9 +62,10 @@ persistent_log_handler_t::persistent_log_handler_t(const std::string& directory_
     }
 }
 
-void persistent_log_handler_t::open_for_writes(int validate_flushed_batch_efd, int signal_checkpoint_eventfd)
+void log_handler_t::open_for_writes(int validate_flushed_batch_efd, int signal_checkpoint_eventfd)
 {
     ASSERT_PRECONDITION(validate_flushed_batch_efd >= 0, "Invalid validate flush eventfd.");
+    ASSERT_PRECONDITION(signal_checkpoint_eventfd >= 0, "Invalid checkpoint eventfd.");
     ASSERT_INVARIANT(dir_fd > 0, "Unable to open data directory for persistent log writes.");
 
     // Create new wal file every time the wal writer gets initialized.
@@ -72,7 +74,7 @@ void persistent_log_handler_t::open_for_writes(int validate_flushed_batch_efd, i
     async_disk_writer->open();
 }
 
-persistent_log_handler_t::~persistent_log_handler_t()
+log_handler_t::~log_handler_t()
 {
     close_fd(dir_fd);
 }
@@ -84,10 +86,10 @@ uint32_t calculate_crc32(uint32_t init_crc, void* data, size_t n)
     // This implementation uses the CRC32 instruction from the SSE4 (SSE4.2) instruction set if it is available.
     // From my understanding of the code, it defaults to a 4 table based lookup implementation otherwise.
     // Here is an old benchmark that compares various crc impl including the two used by rocks. https://www.strchr.com/crc32_popcnt
-    return rocksdb::crc32c::Extend(init_crc, (const char*)data, n);
+    return rocksdb::crc32c::Extend(init_crc, static_cast<const char*>(data), n);
 }
 
-file_offset_t persistent_log_handler_t::allocate_log_space(size_t payload_size)
+file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
 {
     // For simplicity, we don't break up transaction records across log files. We simply
     // write it to the next log file. If a transaction is greater in size than size of the log file,
@@ -96,7 +98,8 @@ file_offset_t persistent_log_handler_t::allocate_log_space(size_t payload_size)
     if (!current_file)
     {
         auto fs = (payload_size > c_file_size) ? payload_size : c_file_size;
-        current_file.reset(new log_file_t(s_wal_dir_path, dir_fd, file_num, fs));
+        current_file.reset();
+        current_file = std::make_unique<log_file_t>(s_wal_dir_path, dir_fd, file_num, fs);
     }
     else if (current_file->get_remaining_bytes_count(payload_size) <= 0)
     {
@@ -113,12 +116,12 @@ file_offset_t persistent_log_handler_t::allocate_log_space(size_t payload_size)
         current_file = std::make_unique<log_file_t>(s_wal_dir_path, dir_fd, file_num, fs);
     }
 
-    file_offset_t current_offset = current_file->get_current_offset();
+    auto current_offset = current_file->get_current_offset();
     current_file->allocate(payload_size);
     return current_offset;
 }
 
-void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decisions)
+void log_handler_t::create_decision_record(decision_list_t& txn_decisions)
 {
     ASSERT_PRECONDITION(!txn_decisions.empty(), "Decision record cannot have empty payload.");
     // Track decisions per batch.
@@ -128,7 +131,7 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     std::vector<iovec> writes_to_submit;
     size_t txn_decision_size = txn_decisions.size() * (sizeof(gaia_txn_id_t) + sizeof(decision_type_t));
     auto total_log_space_needed = txn_decision_size + sizeof(record_header_t);
-    file_offset_t begin_log_offset = allocate_log_space(total_log_space_needed);
+    allocate_log_space(total_log_space_needed);
 
     record_header_t header;
     header.crc = c_crc_initial_value;
@@ -150,15 +153,15 @@ void persistent_log_handler_t::create_decision_record(decision_list_t& txn_decis
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
     writes_to_submit.push_back({txn_decisions_ptr, txn_decision_size});
 
-    async_disk_writer->enqueue_pwritev_requests(writes_to_submit, current_file->get_file_fd(), begin_log_offset, current_file->get_current_offset(), uring_op_t::pwritev_decision);
+    async_disk_writer->enqueue_pwritev_requests(writes_to_submit, current_file->get_file_fd(), current_file->get_current_offset(), uring_op_t::pwritev_decision);
 }
 
-void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts, memory_manager_t* memory_manager)
+void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts, memory_manager_t* memory_manager)
 {
     mapped_log_t log;
     log.open(txn_log_fd);
 
-    map_commit_ts_to_session_unblock_fd(commit_ts, log.data()->session_unblock_fd);
+    map_commit_ts_to_session_unblock_fd(commit_ts, log.data()->session_decision_fd);
 
     std::vector<common::gaia_id_t> deleted_ids;
     std::map<chunk_offset_t, std::set<gaia_offset_t>> map;
@@ -217,23 +220,23 @@ void persistent_log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_tx
     }
 }
 
-void persistent_log_handler_t::map_commit_ts_to_session_unblock_fd(gaia_txn_id_t commit_ts, int session_unblock_fd)
+void log_handler_t::map_commit_ts_to_session_unblock_fd(gaia_txn_id_t commit_ts, int session_unblock_fd)
 {
     ASSERT_INVARIANT(session_unblock_fd > 0, "incorrect session unblock fd");
     async_disk_writer->map_commit_ts_to_session_decision_efd(commit_ts, session_unblock_fd);
 }
 
-void persistent_log_handler_t::validate_flushed_batch()
+void log_handler_t::validate_flushed_batch()
 {
     async_disk_writer->perform_post_completion_maintenance();
 }
 
-void persistent_log_handler_t::submit_writes(bool sync)
+void log_handler_t::submit_writes(bool sync)
 {
     async_disk_writer->submit_and_swap_in_progress_batch(current_file->get_file_fd(), sync);
 }
 
-void persistent_log_handler_t::create_txn_record(
+void log_handler_t::create_txn_record(
     gaia_txn_id_t commit_ts,
     record_type_t type,
     std::vector<gaia_offset_t>& contiguous_address_offsets,
@@ -265,7 +268,7 @@ void persistent_log_handler_t::create_txn_record(
     auto total_log_space_needed = payload_size + sizeof(record_header_t);
 
     // Allocate log space.
-    size_t start_offset = allocate_log_space(total_log_space_needed);
+    allocate_log_space(total_log_space_needed);
 
     // Create header.
     record_header_t header;
@@ -304,7 +307,7 @@ void persistent_log_handler_t::create_txn_record(
         writes_to_submit.push_back({deleted_id_ptr, deleted_size});
     }
 
-    async_disk_writer->enqueue_pwritev_requests(writes_to_submit, current_file->get_file_fd(), start_offset, current_file->get_current_offset(), uring_op_t::PWRITEV_TXN);
+    async_disk_writer->enqueue_pwritev_requests(writes_to_submit, current_file->get_file_fd(), current_file->get_current_offset(), uring_op_t::pwritev_txn);
 }
 
 } // namespace persistence

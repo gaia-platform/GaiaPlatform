@@ -67,11 +67,11 @@ public:
 
     void map_commit_ts_to_session_unblock_fd(gaia_txn_id_t commit_ts, int session_unblock_fd);
 
-    static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
-
 private:
     // Hardcode wal segment size for now.
     static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
+    static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
+    static constexpr int c_gaia_wal_dir_permissions = 0755;
     static inline std::string s_wal_dir_path{};
     static inline int dir_fd = 0;
     static inline file_sequence_t file_num = 1;
