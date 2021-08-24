@@ -416,7 +416,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__many_to_many_from_head)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__non_existent_children)
+TEST_F(gaia_db_references_test, remove_child_reference__different_child)
 {
     begin_transaction();
 
@@ -431,9 +431,34 @@ TEST_F(gaia_db_references_test, remove_child_reference__non_existent_children)
 
     gaia_ptr_t child2 = create_object(patient_type, "Jane Doe");
 
+    // We gracefully handle removing a child that is not attached to any
+    ASSERT_FALSE(parent.remove_child_reference(child2.id(), c_next_patient_offset));
+
+    ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
+    ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
+
+    commit_transaction();
+}
+
+TEST_F(gaia_db_references_test, remove_child_reference__different_parent)
+{
+    begin_transaction();
+
+    relationship_builder_t::one_to_one()
+        .parent(doctor_type)
+        .child(patient_type)
+        .create_relationship();
+
+    gaia_ptr_t parent = create_object(doctor_type, "Dr. House");
+    gaia_ptr_t child = create_object(patient_type, "John Doe");
+    parent.add_child_reference(child.id(), c_first_patient_offset);
+
+    gaia_ptr_t parent2 = create_object(doctor_type, "Jane Doe");
+
     // nothing should happen
-    EXPECT_THROW(
-        parent.remove_child_reference(child2.id(), c_next_patient_offset),
+    ASSERT_THROW(
+        parent2.remove_child_reference(child.id(), c_next_patient_offset),
         invalid_child);
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
