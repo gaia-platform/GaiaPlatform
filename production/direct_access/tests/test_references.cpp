@@ -127,7 +127,7 @@ TEST_F(gaia_references_test, connect_disconnect)
 }
 
 // Repeat above test, but with gaia_id_t members only.
-TEST_F(gaia_references_test, connect_id_member)
+TEST_F(gaia_references_test, insert_remove_id_member)
 {
     begin_transaction();
 
@@ -157,6 +157,21 @@ TEST_F(gaia_references_test, connect_id_member)
     address_t::delete_row(aid3);
     e3.delete_row();
     EXPECT_THROW(address_t::delete_row(invalid_id), invalid_object_id);
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, connect_disconnect_id_member)
+{
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_t e1 = insert_employee("Hidalgo");
+    address_t a1 = insert_address("2400 4th Ave", "Houston");
+    e1.addresses().connect(a1.gaia_id());
+    EXPECT_EQ(e1.addresses().size(), 1);
+
+    e1.addresses().disconnect(a1.gaia_id());
+    EXPECT_EQ(e1.addresses().size(), 0);
     commit_transaction();
 }
 
