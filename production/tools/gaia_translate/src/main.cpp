@@ -1552,6 +1552,7 @@ void update_expression_explicit_path_data(
     {
         return;
     }
+    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
@@ -1574,7 +1575,7 @@ void update_expression_explicit_path_data(
             {
                 string first_component = get_table_from_expression(data.path_components.front());
                 const auto tag_iterator = data.tag_table_map.find(first_component);
-                if (tag_iterator != data.tag_table_map.end() && tag_iterator->second != tag_iterator->first)
+                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end()))
                 {
                     data.skip_implicit_path_generation = true;
                 }
@@ -1591,7 +1592,6 @@ void update_expression_explicit_path_data(
     }
     path_data.push_back(data);
 
-    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     if (explicit_path_data_iterator == g_expression_explicit_path_data.end())
     {
         g_expression_explicit_path_data[expression_source_range] = path_data;
