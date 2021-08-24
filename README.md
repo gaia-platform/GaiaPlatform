@@ -183,7 +183,7 @@ When we are ready to release a new version of Gaia this is the process to follow
    git checkout master
    git pull 
    ```
-2. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt). 
+2. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
    ```cmake
    # From 
    project(production VERSION 0.2.5)
@@ -203,7 +203,7 @@ When we are ready to release a new version of Gaia this is the process to follow
    git commit -m "Bump version to 0.3.0-beta."
    git push
    ```
-5. Create a reflecting the new version:
+5. Create a tag reflecting the new version:
    ```shell
    git tag 0.3.0-beta
    ```
@@ -212,4 +212,4 @@ When we are ready to release a new version of Gaia this is the process to follow
    2. Release Title: `Gaia Platform 0.3.0-beta`
    3. Description: High level description of new features and relevant bug fixes.
    4. Check the box "This is a pre-release" if that's the case.
-8. From now the version will remain `0.3.0-beta` until a new Release is ready. At that point repeat this process.
+8. From now on the version will remain `0.3.0-beta` until a new Release is ready. At that point repeat this process.
