@@ -20,4 +20,4 @@ CREATE INDEX int_idx ON sandbox(i);
 CREATE HASH INDEX int_hash_idx ON sandbox(i);
 
 CREATE INDEX float_idx ON sandbox(f);
-CREATE HASH INDEX fload_has_idx ON sandbox(f);
+CREATE HASH INDEX float_hash_idx ON sandbox(f);
