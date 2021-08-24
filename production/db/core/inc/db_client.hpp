@@ -127,6 +127,8 @@ private:
         gaia_locator_t locator,
         size_t size);
 
+    static void txn_log_update_chunks(gaia::db::memory_manager::address_offset_t offset);
+
     static void txn_cleanup();
 
     static void commit_chunk_manager_allocations();

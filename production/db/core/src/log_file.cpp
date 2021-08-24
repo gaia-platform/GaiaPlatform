@@ -66,9 +66,14 @@ log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_
     }
 }
 
-size_t log_file_t::get_current_offset()
+file_offset_t log_file_t::get_current_offset()
 {
     return m_current_offset;
+}
+
+file_sequence_t log_file_t::get_file_sequence()
+{
+    return m_file_seq;
 }
 
 int log_file_t::get_file_fd()

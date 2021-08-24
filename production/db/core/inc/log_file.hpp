@@ -34,7 +34,12 @@ public:
     /**
      * Obtain offset to write the next log record at.
      */
-    size_t get_current_offset();
+    file_offset_t get_current_offset();
+
+    /**
+     * Obtain sequence number for the file.
+     */
+    file_sequence_t get_file_sequence();
 
     /**
      * Get remaining space in persistent log file.
@@ -51,7 +56,7 @@ public:
 private:
     size_t m_file_size;
     file_sequence_t m_file_seq;
-    size_t m_current_offset;
+    file_offset_t m_current_offset;
     std::string m_dir_name;
     int m_dir_fd;
     int m_file_fd;

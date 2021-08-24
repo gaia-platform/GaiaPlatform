@@ -495,6 +495,8 @@ void client_t::begin_transaction()
     s_log.open(log_fd, read_only);
 
     cleanup_private_locators.dismiss();
+
+    txn_log_update_chunks(s_chunk_manager.get_start_memory_offset());
 }
 
 void client_t::apply_txn_log(int log_fd)
@@ -543,6 +545,8 @@ void client_t::commit_transaction()
         rollback_transaction();
         return;
     }
+
+    s_log.data()->session_decision_fd = 0;
 
     // Clean up all transaction-local session state when we exit.
     auto cleanup = make_scope_guard(txn_cleanup);
@@ -612,6 +616,12 @@ void client_t::init_memory_manager()
         chunk_address_offset);
 }
 
+void client_t::txn_log_update_chunks(address_offset_t offset)
+{
+    auto& chunk = s_log.data()->chunks[s_log.data()->chunk_count++];
+    chunk = get_gaia_offset(offset);
+}
+
 address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
@@ -621,12 +631,19 @@ address_offset_t client_t::allocate_object(
     address_offset_t object_offset = s_chunk_manager.allocate(size);
     if (object_offset == c_invalid_address_offset)
     {
+        if (s_log.data()->chunk_count == c_max_chunk_per_txn)
+        {
+            throw memory_allocation_error("Maximum number of chunks for this transaction has been reached.");
+        }
+
         // We ran out of memory in the current chunk. Allocate a new one!
         address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
         if (chunk_address_offset == c_invalid_address_offset)
         {
             throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
         }
+
+        txn_log_update_chunks(chunk_address_offset);
 
         // Keep track of the exhausted chunk manager.
         s_previous_chunk_managers.push_back(s_chunk_manager);
@@ -636,7 +653,7 @@ address_offset_t client_t::allocate_object(
             chunk_address_offset);
 
         // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
+        object_offset = s_chunk_manager.allocate(size);
     }
 
     ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");

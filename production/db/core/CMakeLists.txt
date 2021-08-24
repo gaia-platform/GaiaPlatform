@@ -130,7 +130,8 @@ endif()
 add_library(gaia_db_persistence STATIC
   src/log_file.cpp
   src/async_disk_writer.cpp
-  src/async_write_batch.cpp)
+  src/async_write_batch.cpp
+  src/log_io.cpp)
 target_link_libraries(gaia_db_persistence PUBLIC gaia_build_options)
 target_include_directories(gaia_db_persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"

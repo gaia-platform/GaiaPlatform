@@ -169,6 +169,21 @@ inline int make_eventfd()
     return eventfd;
 }
 
+/**
+ * Create an eventfd without any special flags.
+ */
+inline int make_blocking_eventfd()
+{
+    int eventfd = ::eventfd(0, 0);
+    if (eventfd == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_eventfd(0, 0);
+        throw system_error(reason, err);
+    }
+    return eventfd;
+}
+
 inline void signal_eventfd(int eventfd, uint64_t efd_counter_val)
 {
     ssize_t bytes_written = ::write(eventfd, &efd_counter_val, sizeof(efd_counter_val));

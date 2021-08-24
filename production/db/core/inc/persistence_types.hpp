@@ -22,6 +22,14 @@ namespace db
 {
 namespace persistence
 {
+
+enum class record_type_t : uint8_t
+{
+    not_set = 0x0,
+    txn = 0x1,
+    decision = 0x2,
+};
+
 enum class decision_type_t : uint8_t
 {
     undecided = 0,
@@ -38,7 +46,27 @@ struct decision_entry_t
 // Pair of log file sequence number and file fd.
 typedef std::vector<decision_entry_t> decision_list_t;
 typedef size_t file_sequence_t;
+typedef size_t file_offset_t;
+
 file_sequence_t c_invalid_file_sequence_number = 0;
+
+// The record size is constrained by the size of the log file.
+// We'd never need more that 32 bits for the record size.
+typedef uint32_t record_size_t;
+typedef uint32_t crc32_t;
+
+struct record_header_t
+{
+    crc32_t crc;
+    record_size_t payload_size;
+    record_type_t record_type;
+    gaia_txn_id_t txn_commit_ts;
+
+    // Stores a count value depending on the record type.
+    // For txn record, this represents the count of deleted objects.
+    // For a decision record, this represents the number of decisions in the record's payload.
+    uint32_t count;
+};
 
 struct log_file_info_t
 {

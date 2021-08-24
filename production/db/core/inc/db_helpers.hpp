@@ -140,6 +140,13 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id;
 }
 
+inline gaia_txn_id_t get_exact_last_txn_id()
+{
+    __sync_synchronize();
+    counters_t* counters = gaia::db::get_counters();
+    return counters->last_txn_id;
+}
+
 inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)
 {
     for (size_t i = 0; i < log->record_count; ++i)

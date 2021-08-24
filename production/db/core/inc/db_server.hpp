@@ -21,6 +21,7 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 
 #include "db_internal_types.hpp"
+#include "log_io.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
@@ -108,10 +109,19 @@ public:
 private:
     static inline server_config_t s_server_conf{};
 
+    // Todo: Make configurable.
+    static inline bool use_gaia_log_implementation = true;
+    static constexpr int64_t txn_group_timeout_ms = 100;
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
     static inline int s_server_shutdown_eventfd = -1;
+
+    // To signal to persistence thread that txn updates are ready to be written to the log.
+    static inline int s_signal_log_write_eventfd = -1;
+
+    static inline int s_signal_decision_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
     // These fields have session lifetime.
@@ -134,11 +144,16 @@ private:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     static inline std::unique_ptr<persistent_store_manager> rdb{};
+    static inline std::unique_ptr<persistence::log_handler_t> log_handler{};
 
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
+    thread_local static inline int s_session_decision_eventfd = -1;
+
+    // Signal to persistence thread that a batch is ready to be validated.
+    static inline int s_validate_persistence_batch_eventfd = -1;
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -173,6 +188,14 @@ private:
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
+    // Only used when writing to the persistent_log; writes to the log occur via the log_writer alone
+    // which is why we don't need std::atomic<> here.
+    static inline gaia_txn_id_t s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
+    // Used to provide the guarantee that if txn with ts 'X' is durable then all txn's with ts lesser
+    // than 'X' are also durable.
+    static inline std::set<gaia_txn_id_t> seen_txn_set{};
 
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
@@ -274,6 +297,12 @@ private:
     static bool authenticate_client_socket(int socket);
 
     static void client_dispatch_handler(const std::string& socket_name);
+
+    static void log_writer_handler();
+
+    static void write_to_persistent_log(bool sync_writes = false);
+
+    static void flush_all_pending_writes();
 
     static void session_handler(int session_socket);
 
