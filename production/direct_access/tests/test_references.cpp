@@ -634,8 +634,10 @@ TEST_F(gaia_references_test, m_to_n_connections)
 {
     auto_transaction_t txn;
 
-    auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", "")); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-    auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", "")); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
     auto a1 = address_t::get(address_t::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
     auto a2 = address_t::get(address_t::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
     auto p1 = phone_t::get(phone_t::insert_row("303", "H", false));
@@ -796,7 +798,8 @@ TEST_F(gaia_references_test, set_filter)
     e_emp = insert_employee("Hoover");
     e_mgr.reportees().insert(e_emp);
 
-    size_t name_length = 5; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
                                 .where([&name_length](const employee_t& e) { return strlen(e.name_first()) == name_length; });
@@ -806,7 +809,8 @@ TEST_F(gaia_references_test, set_filter)
         count++;
     }
     EXPECT_EQ(count, 2);
-    name_length = 6; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    name_length = 6;
     count = 0;
     auto it = name_length_list.begin();
     while (*it)
