@@ -158,17 +158,33 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
         it = create_empty_index(index_id, index_view);
     }
 
+    bool is_unique_index = it->second->is_unique();
+
     switch (it->second->type())
     {
     case catalog::index_type_t::range:
     {
         auto index = static_cast<range_index_t*>(it->second.get());
+
+        if (is_unique_index
+            && index->equal_range(key).first != index->end())
+        {
+            throw unique_constraint_violation(index->id());
+        }
+
         index->insert_index_entry(std::move(key), record);
     }
     break;
     case catalog::index_type_t::hash:
     {
         auto index = static_cast<hash_index_t*>(it->second.get());
+
+        if (is_unique_index
+            && index->equal_range(key).first != index->end())
+        {
+            throw unique_constraint_violation(index->id());
+        }
+
         index->insert_index_entry(std::move(key), record);
     }
     break;
@@ -184,13 +200,11 @@ void index_builder_t::update_index(
     switch (log_record.operation)
     {
     case gaia_operation_t::create:
-    {
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
             index_builder_t::make_insert_record(log_record.locator, log_record.new_offset));
         break;
-    }
     case gaia_operation_t::update:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);

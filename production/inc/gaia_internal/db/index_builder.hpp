@@ -25,6 +25,17 @@ namespace db
 namespace index
 {
 
+class unique_constraint_violation : public common::gaia_exception
+{
+public:
+    explicit unique_constraint_violation(common::gaia_id_t index_id)
+    {
+        std::stringstream message;
+        message << "UNIQUE constraint violation for index: \"" << index_id << "\".";
+        m_message = message.str();
+    }
+};
+
 /**
  * Opaque API for index maintenance.
  **/

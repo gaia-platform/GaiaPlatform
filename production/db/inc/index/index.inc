@@ -78,14 +78,16 @@ std::optional<index_record_t> index_generator_t<T_structure>::operator()()
 }
 
 template <typename T_structure, typename T_iterator>
-std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_structure, T_iterator>::generator(gaia_txn_id_t txn_id)
+std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_structure, T_iterator>::generator(
+    gaia_txn_id_t txn_id)
 {
     return std::make_shared<index_generator_t<T_structure>>(get_lock(), m_data, txn_id);
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.
 template <typename T_structure, typename T_iterator>
-typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(index_key_t& key, index_record_t& record)
+typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(
+    index_key_t& key, index_record_t& record)
 {
     auto it = m_data.find(key);
     while (it != m_data.end() && it->first == key)
