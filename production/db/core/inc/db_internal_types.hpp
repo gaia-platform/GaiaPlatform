@@ -112,7 +112,7 @@ struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
     size_t record_count;
-    int session_decision_fd;
+    int session_decision_eventfd;
     size_t chunk_count;
 
     struct log_record_t

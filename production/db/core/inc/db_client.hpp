@@ -127,8 +127,6 @@ private:
         gaia_locator_t locator,
         size_t size);
 
-    static void txn_log_update_chunks(gaia::db::memory_manager::address_offset_t offset);
-
     static void txn_cleanup();
 
     static void commit_chunk_manager_allocations();
@@ -152,6 +150,12 @@ private:
 
     static std::function<std::optional<common::gaia_id_t>()>
     augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
+
+    /**
+     * Keep track of every chunk used in a transaction. This helps retain the order in which chunks are
+     * assigned to a txn; with chunk reuse they can be assigned out of order.
+     */
+    static void txn_log_update_chunks(gaia::db::memory_manager::address_offset_t offset);
 
     /**
      *  Check if an event should be generated for a given type.

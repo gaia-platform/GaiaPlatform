@@ -546,7 +546,7 @@ void client_t::commit_transaction()
         return;
     }
 
-    s_log.data()->session_decision_fd = 0;
+    s_log.data()->session_decision_eventfd = 0;
 
     // Clean up all transaction-local session state when we exit.
     auto cleanup = make_scope_guard(txn_cleanup);

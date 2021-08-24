@@ -86,9 +86,9 @@ void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t use
     throw_system_error(ss.str(), err);
 }
 
-void async_disk_writer_t::map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_fd)
+void async_disk_writer_t::map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_eventfd)
 {
-    m_ts_to_session_decision_fd_map.insert(std::pair(commit_ts, session_decision_fd));
+    m_ts_to_session_decision_eventfd_map.insert(std::pair(commit_ts, session_decision_eventfd));
 }
 
 void async_disk_writer_t::add_decisions_to_batch(decision_list_t& decisions)
@@ -126,10 +126,10 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
         // Unblock session thread.
-        auto itr = m_ts_to_session_decision_fd_map.find(decision.commit_ts);
-        ASSERT_INVARIANT(itr != m_ts_to_session_decision_fd_map.end(), "Unable to find session durability eventfd from committing txn's commit_ts");
+        auto itr = m_ts_to_session_decision_eventfd_map.find(decision.commit_ts);
+        ASSERT_INVARIANT(itr != m_ts_to_session_decision_eventfd_map.end(), "Unable to find session durability eventfd from committing txn's commit_ts");
         signal_eventfd_single_thread(itr->second);
-        m_ts_to_session_decision_fd_map.erase(itr);
+        m_ts_to_session_decision_eventfd_map.erase(itr);
     }
 
     m_in_flight_batch->clear_decision_batch();

@@ -109,8 +109,10 @@ public:
 private:
     static inline server_config_t s_server_conf{};
 
-    // Todo: Make configurable.
+    // TODO: Delete this once recovery/checkpointing implementation is in.
     static inline bool use_gaia_log_implementation = false;
+
+    // TODO: Make configurable.
     static constexpr int64_t txn_group_timeout_ms = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
@@ -118,11 +120,13 @@ private:
 
     static inline int s_server_shutdown_eventfd = -1;
 
-    // To signal to persistence thread that txn updates are ready to be written to the log.
+    // Signals the log writer thread to persist txn updates.
     static inline int s_signal_log_write_eventfd = -1;
 
+    // Signals the log writer thread to persist txn decisions.
     static inline int s_signal_decision_eventfd = -1;
 
+    // Signals the checkpointing thread to merge log file updates into the LSM store.
     static inline int s_signal_checkpoint_log_evenfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
@@ -146,7 +150,7 @@ private:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     static inline std::unique_ptr<persistent_store_manager> rdb{};
-    static inline std::unique_ptr<persistence::log_handler_t> log_handler{};
+    static inline std::unique_ptr<persistence::log_handler_t> s_log_handler{};
 
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
@@ -191,13 +195,11 @@ private:
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
-    // Only used when writing to the persistent_log; writes to the log occur via the log_writer alone
-    // which is why we don't need std::atomic<> here.
+    // Keep track of the last txn that has been submitted to the async_disk_writer.
     static inline gaia_txn_id_t s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
 
-    // Used to provide the guarantee that if txn with ts 'X' is durable then all txn's with ts lesser
-    // than 'X' are also durable.
-    static inline std::set<gaia_txn_id_t> seen_txn_set{};
+    // Keep a track of undecided txns submitted to the async_disk_writer.
+    static inline std::set<gaia_txn_id_t> seen_and_undecided_txn_set{};
 
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
