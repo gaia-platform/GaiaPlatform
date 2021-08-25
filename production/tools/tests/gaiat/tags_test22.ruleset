@@ -12,5 +12,5 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-851
+// GAIAPLAT-851 (fixed)
 // CHECK: use of undeclared label 'A'

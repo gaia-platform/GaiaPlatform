@@ -214,7 +214,7 @@ ruleset test24
 
 // GAIAPLAT-803
 // This should be identical to test1 above.
-#ifdef TEST_FAILURES
+#ifdef TEST_FAILURES // GAIAPLAT-803
 ruleset test25
 {
     {

@@ -13,4 +13,5 @@ ruleset test09
 }
 
 // GAIAPLAT-794
+// GAIAPLAT-1178
 // CHECK: WARNING: Variable declaration hides a tag.

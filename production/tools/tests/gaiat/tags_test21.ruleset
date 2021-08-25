@@ -12,5 +12,5 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-850
+// GAIAPLAT-850 (V1)
 // CHECK: Tag 'A' defined but not used.

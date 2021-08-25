@@ -197,15 +197,13 @@ COURSE_TAKEN:
     }
 }
 
-// WLW TODO - change 'student.total_hours' back to 'total_hours'.
-// GAIAPLAT-1124 - the "student." qualification on this implicit navigation
+// GAIAPLAT-1124 (fixed)
 ruleset test_query_1
 {
     // test_queries_code.sum_of_hours
     // Auto-sum of student hours.
     on_insert(registration)
     {
-        // GAIAPLAT-1124 (fixed)
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
@@ -440,16 +438,17 @@ ruleset test_query_10
 // in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
 // the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
 // These pragmas should be removed then.
-// GAIAPLAT-1198
+// GAIAPLAT-1198 (won't do)
+// GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
-    // GAIAPLAT-1112
+    // GAIAPLAT-1112 (fixed)
     on_insert(student)
     {
         student.insert(surname: course.name, total_hours: course.hours);
     }
 
-    // GAIAPLAT-1142
+    // GAIAPLAT-1142 (fixed)
     on_update(student)
     {
     BREAK1_TARGET:
@@ -472,7 +471,7 @@ ruleset test_compile
         }
     }
 
-    // GAIAPLAT-564 (tentative)
+    // GAIAPLAT-564 (fixed)
     // TESTCASE: use field name same as a catalog field name, expect no conflict
     on_insert(course)
     {
@@ -485,8 +484,8 @@ ruleset test_compile
         printf("%s\n", name);
     }
 
-    // GAIAPLAT-1140
-#if TEST_FAILURES
+    // GAIAPLAT-1140 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1140 (V1)
     on_update(student)
     {
     BREAK_TARGET:
@@ -528,8 +527,8 @@ DELETE_REG:
 
 ruleset test_insert_delete_2
 {
-    // GAIAPLAT-1110
-    // GAIAPLAT-1112
+    // GAIAPLAT-1110 (fixed)
+    // GAIAPLAT-1112 (fixed)
     // GAIAPLAT-1188 (fixed)
     on_insert(E:enrollment_log)
     {
@@ -629,8 +628,10 @@ ruleset test_disconnect_1_n
         else
         {
             // This doesn't work for the same reason as delete.
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176
-//            student.disconnect(registration);
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1176 (V1)
+            student.disconnect(registration);
+#endif
         }
     }
 
@@ -646,7 +647,9 @@ ruleset test_disconnect_1_n
         else
         {
             // This doesn't work for the same reason as delete.
-//            course.registrations.disconnect(registration);
+#ifdef TEST_FAILURES // GAIAPLAT-1176 (V1)
+            course.registrations.disconnect(registration);
+#endif
         }
     }
 };

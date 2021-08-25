@@ -1,5 +1,4 @@
-// RUN: echo "Tag used before it is declared." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 // TESTCASE: forbid using a tag in the do{} before it is declared in the while()
 ruleset test09
@@ -15,4 +14,5 @@ ruleset test09
     }
 }
 
-// CHECK: Tag used before it is declared.
+// CHECK: Table 'S' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database
+// CHECK: Local variable 'val' hides a database field with the same name. Rename your local variable so that it doesn't conflict with an existing field name
