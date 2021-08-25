@@ -326,6 +326,35 @@ public:
     }
 };
 
+/**
+ * Thrown when the `references` definition is ambiguous.
+ */
+class ambiguous_ref_def : public gaia::common::gaia_exception
+{
+public:
+    explicit ambiguous_ref_def(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition in table '" << table << "' is ambiguous.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the `references` definition does not have a matching definition.
+ */
+class orphaned_ref_def : public gaia::common::gaia_exception
+{
+public:
+    explicit orphaned_ref_def(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition "
+                << "in table '" << table << "' has no matching definition.";
+        m_message = message.str();
+    }
+};
+
 namespace ddl
 {
 /**

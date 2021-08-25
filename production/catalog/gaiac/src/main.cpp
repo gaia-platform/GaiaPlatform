@@ -54,6 +54,7 @@ void start_repl(parser_t& parser)
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
 
+    string ddl_buffer;
     while (true)
     {
         string line;
@@ -79,8 +80,14 @@ void start_repl(parser_t& parser)
                     break;
                 }
             }
-            parser.parse_line(line);
-            execute(parser.statements);
+
+            ddl_buffer += line;
+            if (ddl_buffer.back() == ';')
+            {
+                parser.parse_line(ddl_buffer);
+                execute(parser.statements);
+                ddl_buffer = "";
+            }
         }
         catch (gaia::common::gaia_exception& e)
         {
@@ -362,7 +369,8 @@ int main(int argc, char* argv[])
     gaia::db::begin_session();
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]() {
+        [&server]()
+        {
             gaia::db::end_session();
             if (server.is_initialized())
             {
