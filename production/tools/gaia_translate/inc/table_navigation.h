@@ -99,7 +99,6 @@ private:
     {
         string table_name;
         string linking_field;
-        bool is_parent;
     };
 
 private:
@@ -107,13 +106,12 @@ private:
     static void fill_table_data();
     static string get_closest_table(const unordered_map<string, int>& table_distance);
     static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path);
-    static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_multimap<string, navigation_data_t>& graph_data);
+    static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, table_data_t>& graph_data);
     static string generate_random_string(string::size_type length);
     static navigation_code_data_t generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_table);
     static bool generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
     static bool m_is_initialized;
     static unordered_map<string, table_data_t> m_table_data;
-    static unordered_multimap<string, navigation_data_t> m_table_relationship;
 };
 } // namespace translation
 } // namespace gaia
