@@ -89,14 +89,14 @@ template <typename T_structure, typename T_iterator>
 typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(
     index_key_t& key, index_record_t& record)
 {
-    auto it = m_data.find(key);
-    while (it != m_data.end() && it->first == key)
+    for (auto it = m_data.find(key);
+         it != m_data.end() && it->first == key;
+         ++it)
     {
         if (it->second.locator == record.locator && it->second.txn_id == record.txn_id)
         {
             return it;
         }
-        ++it;
     }
 
     return m_data.end();

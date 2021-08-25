@@ -169,14 +169,19 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
         // If the index has UNIQUE constraint, then we can't insert duplicate values.
         // Because we never actually remove index entries, we need special checks
         // for the situations when we delete keys or re-insert a previously deleted key.
-        auto it = index->equal_range(key).first;
-        if (is_unique_index
-            && !record.deleted
-            && it != index->end()
-            && !it->second.deleted)
+        if (is_unique_index && !record.deleted)
         {
-            auto index_view = index_view_t(id_to_ptr(index->id()));
-            throw unique_constraint_violation(index_view.name());
+            auto it_start = index->equal_range(key).first;
+            auto it_end = index->equal_range(key).second;
+
+            for (; it_start != it_end; ++it_start)
+            {
+                if (!it_start->second.deleted)
+                {
+                    auto index_view = index_view_t(id_to_ptr(index->id()));
+                    throw unique_constraint_violation(index_view.name());
+                }
+            }
         }
 
         index->insert_index_entry(std::move(key), record);
@@ -189,14 +194,19 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
         // If the index has UNIQUE constraint, then we can't insert duplicate values.
         // Because we never actually remove index entries, we need special checks
         // for the situations when we delete keys or re-insert a previously deleted key.
-        auto it = index->equal_range(key).first;
-        if (is_unique_index
-            && !record.deleted
-            && it != index->end()
-            && !it->second.deleted)
+        if (is_unique_index && !record.deleted)
         {
-            auto index_view = index_view_t(id_to_ptr(index->id()));
-            throw unique_constraint_violation(index_view.name());
+            auto it_start = index->equal_range(key).first;
+            auto it_end = index->equal_range(key).second;
+
+            for (; it_start != it_end; ++it_start)
+            {
+                if (!it_start->second.deleted)
+                {
+                    auto index_view = index_view_t(id_to_ptr(index->id()));
+                    throw unique_constraint_violation(index_view.name());
+                }
+            }
         }
 
         index->insert_index_entry(std::move(key), record);
