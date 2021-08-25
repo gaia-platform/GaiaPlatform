@@ -3557,7 +3557,7 @@ int main(int argc, const char** argv)
 
     llvm::raw_string_ostream error_msg_stream(error_msg);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets.", &error_msg_stream))
     {
         // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
         // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.

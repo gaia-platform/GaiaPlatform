@@ -65,7 +65,7 @@ set(TRANSLATION_RULESET_OUT "${GAIA_GENERATED_CODE}/test_translation.cpp")
 add_custom_command(
   COMMENT "Compiling test.ruleset..."
   OUTPUT ${TRANSLATION_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TRANSLATION_RULESET} -output ${TRANSLATION_RULESET_OUT} --
@@ -103,7 +103,7 @@ set(MIXED_RULESET_OUT "${GAIA_GENERATED_CODE}/test_mixed.cpp")
 add_custom_command(
   COMMENT "Compiling test_mixed.ruleset..."
   OUTPUT ${MIXED_RULESET_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${INCUBATOR_DDL}
   COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${MIXED_RULESET} -output ${MIXED_RULESET_OUT} --
@@ -145,7 +145,7 @@ set(RULESETS_OUT "${GAIA_GENERATED_CODE}/test_rulesets.cpp")
 add_custom_command(
   COMMENT "Compiling test_rulesets.ruleset..."
   OUTPUT ${RULESETS_OUT}
-  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+  COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
   COMMAND sleep 1
   # message(WARNING, "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}")
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${PREREQUISITE_DDL}
