@@ -166,10 +166,17 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     {
         auto index = static_cast<range_index_t*>(it->second.get());
 
+        // If the index has UNIQUE constraint, then we can't insert duplicate values.
+        // Because we never actually remove index entries, we need special checks
+        // for the situations when we delete keys or re-insert a previously deleted key.
+        auto it = index->equal_range(key).first;
         if (is_unique_index
-            && index->equal_range(key).first != index->end())
+            && !record.deleted
+            && it != index->end()
+            && !it->second.deleted)
         {
-            throw unique_constraint_violation(index->id());
+            auto index_view = index_view_t(id_to_ptr(index->id()));
+            throw unique_constraint_violation(index_view.name());
         }
 
         index->insert_index_entry(std::move(key), record);
@@ -179,10 +186,17 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     {
         auto index = static_cast<hash_index_t*>(it->second.get());
 
+        // If the index has UNIQUE constraint, then we can't insert duplicate values.
+        // Because we never actually remove index entries, we need special checks
+        // for the situations when we delete keys or re-insert a previously deleted key.
+        auto it = index->equal_range(key).first;
         if (is_unique_index
-            && index->equal_range(key).first != index->end())
+            && !record.deleted
+            && it != index->end()
+            && !it->second.deleted)
         {
-            throw unique_constraint_violation(index->id());
+            auto index_view = index_view_t(id_to_ptr(index->id()));
+            throw unique_constraint_violation(index_view.name());
         }
 
         index->insert_index_entry(std::move(key), record);

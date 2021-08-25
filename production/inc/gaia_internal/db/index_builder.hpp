@@ -28,10 +28,10 @@ namespace index
 class unique_constraint_violation : public common::gaia_exception
 {
 public:
-    explicit unique_constraint_violation(common::gaia_id_t index_id)
+    explicit unique_constraint_violation(const char* index_name)
     {
         std::stringstream message;
-        message << "UNIQUE constraint violation for index: \"" << index_id << "\".";
+        message << "UNIQUE constraint violation for index: '" << index_name << "'.";
         m_message = message.str();
     }
 };
