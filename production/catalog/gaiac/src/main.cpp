@@ -208,7 +208,7 @@ string usage()
           "  --generate             Generate direct access API header files.\n"
           "  --output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
-          "  -n, --instance-name <name> Specify the database instance name.\n"
+          "  -n, --instance-name <name> Specifies the database instance name.\n"
           "                            If not specified will use "
        << c_default_instance_name << ".\n"
        << "                            If 'rnd' is specified will use a random name.\n"

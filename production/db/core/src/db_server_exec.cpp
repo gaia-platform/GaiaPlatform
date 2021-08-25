@@ -39,7 +39,7 @@ static void usage()
            "USAGE: gaia_db_server [options]\n"
            "\n"
            "OPTIONS:\n"
-           "  --persistence <mode>        Database persistence mode, if not defined is assumed enabled.\n"
+           "  --persistence <mode>        Specifies the database persistence mode. If not specified, the default mode is enabled.\n"
            "                              The data location is specified with --data-dir.\n"
            "                              - <enabled>: Persist data [default].\n"
            "                              - <disabled>: Do not persist any data.\n"
