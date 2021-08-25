@@ -45,7 +45,7 @@ using namespace gaia;
 using namespace gaia::common;
 using namespace gaia::translation;
 
-cl::OptionCategory g_translation_engine_category("Use translation engine options");
+cl::OptionCategory g_translation_engine_category("Translation engine options");
 
 cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
 

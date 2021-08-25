@@ -45,8 +45,8 @@ static void usage()
            "                              - <disabled>: Do not persist any data.\n"
            "                              - <disabled-after-recovery>: Load data from the datastore and\n"
            "                                disable persistence.\n"
-           "  --data-dir <data_dir>       Directory where the data is stored.\n"
-           "  --reset-data-store          Delete the data in the data store.\n"
+           "  --data-dir <data_dir>       Specifies the directory in which to create the data store.\n"
+           "  --reset-data-store          Deletes the data in the data store.\n"
 #ifdef DEBUG
            "  --instance-name <db_instance_name>   Specify the database instance name.\n"
            "                                       If not specified will use "
@@ -54,7 +54,7 @@ static void usage()
         << ".\n"
            "  --skip-catalog-integrity-checks      ????"
 #endif
-           "  --config-file <file>        Gaia configuration file.\n"
+           "  --config-file <file>        Specifies the location of the Gaia configuration file to use.\n"
            "  --help                      Print help information.\n"
            "  --version                   Print version information.\n";
 }
