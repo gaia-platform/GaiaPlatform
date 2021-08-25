@@ -123,8 +123,7 @@ ruleset test10
 }
 
 // This is legal? But has error (duplicate 'name' fields).
-// GAIAPLAT-796
-#ifdef TEST_FAILURES // GAIAPLAT-796
+// GAIAPLAT-796 (fixed)
 ruleset test11 : tables(sensor)
 {
     on_update(name)
@@ -132,7 +131,6 @@ ruleset test11 : tables(sensor)
         use_string(name);
     }
 }
-#endif
 
 ruleset test12
 {
