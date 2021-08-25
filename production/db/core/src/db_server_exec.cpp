@@ -22,9 +22,9 @@ static constexpr char c_help_param[] = "--help";
 static constexpr char c_version_param[] = "--version";
 static constexpr char c_data_dir_command_param[] = "--data-dir";
 static constexpr char c_instance_name_command_param[] = "--instance-name";
-static constexpr char c_conf_file_param[] = "--config-file";
+static constexpr char c_config_file_param[] = "--config-file";
 static constexpr char c_persistence_param[] = "--persistence";
-static constexpr char c_reinitialize_data_store_param[] = "--reinitialize-data-store";
+static constexpr char c_reset_data_store_param[] = "--reset-data-store";
 static constexpr char c_skip_catalog_integrity_param[] = "--skip-catalog-integrity-checks";
 
 static constexpr char c_persistence_enabled_mode[] = "enabled";
@@ -56,7 +56,7 @@ static void usage()
 #endif
            "  --config-file <file>        Gaia configuration file.\n"
            "  --help                      Print help information.\n"
-           "  --version                   Version information.\n";
+           "  --version                   Print version information.\n";
 }
 
 static void version()
@@ -217,6 +217,32 @@ private:
     }
 };
 
+static server_config_t::persistence_mode_t parse_persistence_mode(std::string persistence_mode)
+{
+    if (persistence_mode == c_persistence_enabled_mode)
+    {
+        return server_config_t::persistence_mode_t::e_enabled;
+    }
+    else if (persistence_mode == c_persistence_disabled_mode)
+    {
+        return server_config_t::persistence_mode_t::e_disabled;
+    }
+    else if (persistence_mode == c_persistence_disabled_after_recovery_mode)
+    {
+        return server_config_t::persistence_mode_t::e_disabled_after_recovery;
+    }
+    else
+    {
+        std::cerr
+            << "\nUnrecognized persistence mode: '"
+            << persistence_mode
+            << "'."
+            << std::endl;
+        usage();
+        std::exit(1);
+    }
+}
+
 static server_config_t process_command_line(int argc, char* argv[])
 {
     std::set<std::string> used_params;
@@ -249,32 +275,9 @@ static server_config_t process_command_line(int argc, char* argv[])
         }
         else if (strcmp(argv[i], c_persistence_param) == 0)
         {
-            std::string persistence_mode_str = argv[++i];
-
-            if (persistence_mode_str == c_persistence_enabled_mode)
-            {
-                persistence_mode = server_config_t::persistence_mode_t::e_enabled;
-            }
-            else if (persistence_mode_str == c_persistence_disabled_mode)
-            {
-                persistence_mode = server_config_t::persistence_mode_t::e_disabled;
-            }
-            else if (persistence_mode_str == c_persistence_disabled_after_recovery_mode)
-            {
-                persistence_mode = server_config_t::persistence_mode_t::e_disabled_after_recovery;
-            }
-            else
-            {
-                std::cerr
-                    << "\nUnrecognized persistence mode: '"
-                    << persistence_mode_str
-                    << "'."
-                    << std::endl;
-                usage();
-                std::exit(1);
-            }
+            persistence_mode = parse_persistence_mode(argv[++i]);
         }
-        else if (strcmp(argv[i], c_reinitialize_data_store_param) == 0)
+        else if (strcmp(argv[i], c_reset_data_store_param) == 0)
         {
             persistence_mode = server_config_t::persistence_mode_t::e_reinitialized_on_startup;
         }
@@ -282,7 +285,7 @@ static server_config_t process_command_line(int argc, char* argv[])
         {
             data_dir = argv[++i];
         }
-        else if ((strcmp(argv[i], c_conf_file_param) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_config_file_param) == 0) && (i + 1 < argc))
         {
             conf_file_path = argv[++i];
         }
