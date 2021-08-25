@@ -3085,7 +3085,6 @@ public:
         bool need_link_field = false;
 
         const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectDisconnectCall");
-        bool is_connect = method_call_expr->getMethodDecl()->getName().str() == c_connect_keyword;
 
         const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         src_table_name = get_table_name(table_call->getDecl());
@@ -3158,22 +3157,6 @@ public:
         }
 
         link_data_t link_data = link_data_iter->second;
-
-        if (link_data.cardinality == gaia::catalog::relationship_cardinality_t::many)
-        {
-            if (is_connect)
-            {
-                // Changes connect() to insert() for 1:N relationships.
-                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
-                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_connect_keyword_length, "insert");
-            }
-            else
-            {
-                // Changes disconnect() to remove() for 1:N relationships.
-                // TODO https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1181
-                m_rewriter.ReplaceText(method_call_expr->getExprLoc(), c_disconnect_keyword_length, "remove");
-            }
-        }
 
         if (need_link_field)
         {
