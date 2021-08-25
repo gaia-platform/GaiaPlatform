@@ -2038,13 +2038,45 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 }
 
 static bool validateRuleAttribute(StringRef attribute,
-    Sema &S, const ParsedAttr &AL)
+    Sema &S, const ParsedAttr &AL, const Decl *D)
 {
+  const DeclContext *context = D->getDeclContext();
+  const RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+  std::unordered_set<std::string> attributeTables;
+  if (rulesetDecl != nullptr)
+  {
+    RulesetTablesAttr* tablesAttribute = rulesetDecl->getAttr<RulesetTablesAttr>();
+
+    if (tablesAttribute != nullptr)
+    {
+      for (const IdentifierInfo* id : tablesAttribute->tables())
+      {
+        attributeTables.emplace(id->getName().str());
+      }
+    }
+  }
+
   auto tableData = S.getTableData(AL.getLoc());
   if (tableData.empty())
   {
     return false;
   }
+
+  if (!attributeTables.empty())
+  {
+    for (auto tableDataIterator = tableData.begin(); tableDataIterator != tableData.end();)
+    {
+      if (attributeTables.find(tableDataIterator->first) == attributeTables.end())
+      {
+        tableDataIterator = tableData.erase(tableDataIterator);
+      }
+      else
+      {
+        ++tableDataIterator;
+      }
+    }
+  }
+
   size_t colonPosition = attribute.find(':');
   StringRef tag;
   if (colonPosition != StringRef::npos)
@@ -2124,6 +2156,7 @@ static bool validateRuleAttribute(StringRef attribute,
       {
         if (returnValue)
         {
+llvm::errs()<<"0\n";
           S.Diag(AL.getLoc(), diag::err_duplicate_field)
             << attribute << table.first;
           return false;
@@ -2178,7 +2211,7 @@ static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
       return;
     }
 
-    if (!validateRuleAttribute(table, S, AL))
+    if (!validateRuleAttribute(table, S, AL, D))
     {
       return;
     }
