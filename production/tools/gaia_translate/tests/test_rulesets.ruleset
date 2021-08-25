@@ -530,31 +530,14 @@ ruleset test_insert_delete_2
 {
     // GAIAPLAT-1110
     // GAIAPLAT-1112
-    // GAIAPLAT-1188
+    // GAIAPLAT-1188 (fixed)
     on_insert(E:enrollment_log)
     {
-        const char* str1 = nullptr;
-        const char* str2 = nullptr;
-        int32_t int1 = 0;
+        gaia::prerequisites::student_t S = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
+        gaia::prerequisites::course_t C = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
+        gaia::prerequisites::registration_t R = registration.insert(reg_id: E.log_reg_id);
 
-        // WLW TODO - when bugs are fixed, use the tagged parameters.
-        // The uncommented code is a poor workaround for this, which should get fixed soon.
-        // auto S = student.insert(student_id: E.log_student_id, surname: E.log_surname, E.log_age);
-        // auto C = course.insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
-        // auto R = registration.insert(reg_id: E.log_reg_id);
-
-        str1 = E.log_student_id;
-        str2 = E.log_surname;
-        int1 = E.log_age;
-        gaia::prerequisites::student_t S = student.insert(student_id: str1, surname: str2, age: int1);
-        str1 = E.log_course_id;
-        str2 = E.log_name;
-        int1 = E.log_hours;
-        gaia::prerequisites::course_t C = course.insert(course_id: str1, name: str2, hours: int1);
-        str1 = E.log_reg_id;
-        gaia::prerequisites::registration_t R = registration.insert(reg_id: str1);
-
-        // WLW TODO - when declarative connect() is ready, use it rather than EDC.
+        // [WLW] Convert this to declarative connect.
         S.registrations().insert(R);
         C.registrations().insert(R);
 

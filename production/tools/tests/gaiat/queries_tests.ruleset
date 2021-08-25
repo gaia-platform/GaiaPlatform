@@ -450,6 +450,7 @@ ruleset test45
 }
 
 // TESTCASE: expect navigation from anchor
+// GAIAPLAT-1191 (fixed)
 ruleset test46
 {
     on_update(farmer)

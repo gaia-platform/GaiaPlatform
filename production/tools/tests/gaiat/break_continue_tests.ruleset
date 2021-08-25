@@ -263,7 +263,7 @@ BREAK_TARGET:
 
 // TESTCASE: break from an if condition with two navigations
 // GAIAPLAT-1141 (fixed)
-// GAIAPLAT-1164
+// GAIAPLAT-1164 (fixed)
 ruleset test18
 {
     on_update(crop)
