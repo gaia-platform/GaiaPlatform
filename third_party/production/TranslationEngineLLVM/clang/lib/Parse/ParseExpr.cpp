@@ -808,6 +808,12 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
             isUnaryExpression, isAddressOfOperand, NotCastExpr,
             isTypeCast, isVectorLiteral);
         }
+        else if (NextToken().is(tok::at) &&
+        (getPreviousToken(Tok).is(tok::at) || !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square))))
+        {
+          NotCastExpr = true;
+          return ExprError();
+        }
     }
     else
     {
