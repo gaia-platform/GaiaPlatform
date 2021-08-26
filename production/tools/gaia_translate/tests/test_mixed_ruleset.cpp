@@ -80,6 +80,7 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
     gaia::db::commit_transaction();
 }
 
+// TESTCASE: create then delete a row so it doesn't exist as anchor in rule
 TEST_F(test_mixed_code, insert_delete_row)
 {
     gaia::db::begin_transaction();
@@ -87,9 +88,10 @@ TEST_F(test_mixed_code, insert_delete_row)
     auto sensor = sensor_t::get(sensor_t::insert_row("TestSensor", 20210708, 98.6));
     sensor.delete_row();
 
+    g_test_mixed_value = 0;
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-    ASSERT_EQ(g_test_mixed_value, 2);
+    ASSERT_EQ(g_test_mixed_value, 0);
 }
