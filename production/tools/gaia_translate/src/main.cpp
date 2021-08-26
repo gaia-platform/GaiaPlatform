@@ -1954,6 +1954,18 @@ public:
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
             }
+            if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
+            {
+                if (!explicit_path_present)
+                {
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                }
+                gaiat::diag().set_location(set_source_range.getBegin());
+                if (!validate_and_add_active_field(table_name, field_name, true))
+                {
+                    return;
+                }
+            }
         }
         else
         {
@@ -1980,6 +1992,18 @@ public:
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+            }
+            if (decl->hasAttr<GaiaFieldValueAttr>())
+            {
+                if (!explicit_path_present)
+                {
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                }
+                gaiat::diag().set_location(set_source_range.getBegin());
+                if (!validate_and_add_active_field(table_name, field_name, true))
+                {
+                    return;
+                }
             }
         }
         tok::TokenKind token_kind;

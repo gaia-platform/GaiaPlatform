@@ -1478,9 +1478,9 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
+    SourceLocation AtLoc = ConsumeToken();
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
-      SourceLocation atTok = ConsumeToken();
       if (Tok.isOneOf(tok::identifier, tok::slash))
       {
         ExprResult expr =  ParseCastExpression(isUnaryExpression,
@@ -1531,14 +1531,14 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
             }
             else
             {
-              return ExprError(Diag(atTok, diag::err_unexpected_at));
+              return ExprError(Diag(AtLoc, diag::err_unexpected_at));
             }
           }
           return expr;
         }
         else
         {
-          return ExprError(Diag(atTok, diag::err_unexpected_at));
+          return ExprError(Diag(AtLoc, diag::err_unexpected_at));
         }
       }
       else
@@ -1547,7 +1547,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
       }
     }
 
-    SourceLocation AtLoc = ConsumeToken();
     return ParseObjCAtExpression(AtLoc);
   }
   case tok::caret:

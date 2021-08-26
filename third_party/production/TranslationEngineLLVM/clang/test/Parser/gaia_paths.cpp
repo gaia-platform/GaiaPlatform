@@ -176,7 +176,7 @@ ruleset test129
 {
     on_update(incubator)
     {
-        if (/@incubator.min_temp)
+        if (/@incubator.min_temp) // expected-error {{expected expression}}
         {
             int i = 0;
         }
