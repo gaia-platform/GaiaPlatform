@@ -12,8 +12,6 @@ import os
 import json
 import argparse
 
-GENERATED_CONFIGUATION_FILE = "mink.conf"
-
 CONFIGURATION_FILE_TEMPLATE = """
 [Database]
 data_dir = "/var/lib/gaia/db"
@@ -59,6 +57,12 @@ def process_command_line():
         type=check_non_negative,
         help="Number of threads to use when executing.  Note that a value of `0` "
         + "equals as many threads as possible.",
+    )
+    parser.add_argument(
+        "--output",
+        dest="output_file_name",
+        action="store",
+        help="Output file name for the generated configuration file.",
     )
     return parser.parse_args()
 
@@ -133,7 +137,7 @@ def load_configuration_values_from_json_file(args):
     return thread_pool_count, stats_log_interval
 
 
-def write_templated_output(thread_count, stats_log_interval):
+def write_templated_output(output_file_name, thread_count, stats_log_interval):
     """
     Realize the templated output and write it to the configuration file.
     """
@@ -142,7 +146,7 @@ def write_templated_output(thread_count, stats_log_interval):
         "{THREAD_POOL_COUNT}", str(thread_count)
     ).replace("{STATS_LOG_INTERVAL}", str(stats_log_interval))
 
-    with open(GENERATED_CONFIGUATION_FILE, "w") as write_file:
+    with open(output_file_name, "w") as write_file:
         write_file.write(templated_file_contents)
 
 
@@ -154,7 +158,7 @@ def process_script_action():
     thread_count_value, stats_log_interval = load_configuration_values_from_json_file(
         args
     )
-    write_templated_output(thread_count_value, stats_log_interval)
+    write_templated_output(args.output_file_name, thread_count_value, stats_log_interval)
     print(str(stats_log_interval))
 
 

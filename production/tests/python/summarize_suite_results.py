@@ -15,7 +15,6 @@ import configparser
 
 SUITE_DIRECTORY = "suite-results/"
 
-GENERATED_CONFIGUATION_FILE = "mink.conf"
 TEST_PROPERTIES_FILE = "test.properties"
 
 DECIMALS_PLACES_IN_NANOSECONDS = 9
@@ -45,6 +44,7 @@ PER_TEST_TITLE = "per-test"
 TEST_RUNS_TITLE = "test_runs"
 
 RETURN_CODE_TITLE = "return-code"
+INVOKE_RETURN_CODE_TITLE = "invoke-return-code"
 
 SOURCE_FILE_NAME_TITLE = "file_name"
 SOURCE_LINE_NUMBER_TITLE = "line_number"
@@ -317,6 +317,9 @@ def __process_rules_engine_logs(base_dir):
     """
 
     log_path = os.path.join(base_dir, "gaia.log")
+    if not os.path.exists(log_path):
+        return None
+
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
@@ -338,6 +341,8 @@ def __process_rules_engine_stats(base_dir):
     """
 
     log_path = os.path.join(base_dir, "gaia_stats.log")
+    if not os.path.exists(log_path):
+        return None
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
@@ -403,7 +408,9 @@ def __process_workload_properties_file(base_dir):
 
     json_path = os.path.join(base_dir, "workload.properties")
     config = configparser.ConfigParser()
-    config.read(json_path)
+    loaded_files = config.read(json_path)
+    if not loaded_files:
+        return None, None, f"Cannot load property file '{json_path}'."
 
     assert "Aggregations" in config
     aggregate_data = {}
@@ -414,23 +421,33 @@ def __process_workload_properties_file(base_dir):
     performance_legend_data = {}
     for key in config["PerformanceLegend"]:
         __translate_entry(performance_legend_data, config["PerformanceLegend"], key)
-    return aggregate_data, performance_legend_data
+    return aggregate_data, performance_legend_data, None
 
 
-def __process_configuration_file(base_dir):
+def __process_configuration_file(base_dir, workload_specific_data):
     """
     Load up the generated "*.conf" file for the test and translate the
     "Rules" portion into a JSON blob.
     """
 
-    json_path = os.path.join(base_dir, GENERATED_CONFIGUATION_FILE)
-    config = configparser.ConfigParser()
-    config.read(json_path)
-    assert "Rules" in config
     rules_configuration = {}
-    for key in config["Rules"]:
-        __translate_entry(rules_configuration, config["Rules"], key)
-    return rules_configuration
+    if "configuration-file" not in workload_specific_data:
+        print("Test summary file does not contain a 'configuration-file' entry.")
+    else:
+        configuration_file_entry = workload_specific_data["configuration-file"]
+        configuration_file_parts = configuration_file_entry.split("/")
+        configuration_file_name = configuration_file_parts[-1]
+
+        json_path = os.path.join(base_dir, configuration_file_name)
+        config = configparser.ConfigParser()
+        loaded_files = config.read(json_path)
+        if not loaded_files:
+            return None, f"Cannot load configuration file '{json_path}'."
+        else:
+            assert "Rules" in config
+            for key in config["Rules"]:
+                __translate_entry(rules_configuration, config["Rules"], key)
+    return rules_configuration, None
 
 
 def __load_properties(filepath, separator="=", comment_prefix="#"):
@@ -466,7 +483,10 @@ def __load_test_summary(base_dir):
     json_path = os.path.join(base_dir, "test-summary.json")
     with open(json_path) as input_file:
         data = json.load(input_file)
-    return data
+
+    if "return-code" not in data:
+        return None, f"Per test summary file '{json_path}' must contain a 'return-code' entry."
+    return data, None
 
 
 # pylint: disable=broad-except
@@ -505,19 +525,28 @@ def __load_test_result_files(suite_test_directory):
     )
     return_code_data = __load_simple_result_files(base_dir)
 
-    workload_specific_data = __load_test_summary(base_dir)
-    stats_data = __process_rules_engine_stats(base_dir)
-    log_data = __process_rules_engine_logs(base_dir)
-    configuration_data = __process_configuration_file(base_dir)
-    property_data = __process_properties_file(base_dir)
+    workload_specific_data, workload_specific_error = __load_test_summary(base_dir)
+    if not workload_specific_error:
+        if "return-code" not in workload_specific_data:
+            workload_specific_error = f"File '{os.path.join(base_dir, 'test-summary.json')}' does not contain a return-code field."
+    if not workload_specific_error:
+        stats_data = __process_rules_engine_stats(base_dir)
+        log_data = __process_rules_engine_logs(base_dir)
+        configuration_data, configuration_error = __process_configuration_file(base_dir, workload_specific_data)
+        property_data = __process_properties_file(base_dir)
+    else:
+        stats_data = None
+        log_data = None
+        configuration_data, configuration_error = None, None
+        property_data = None
 
     return (
         return_code_data,
         stats_data,
         log_data,
-        configuration_data,
+        configuration_data,configuration_error,
         property_data,
-        workload_specific_data,
+        workload_specific_data, workload_specific_error
     )
 
 
@@ -529,30 +558,38 @@ def __load_results_for_test(suite_test_directory, source_info):
     Load all the results for tests and place them in the main dictionary.
     """
 
-    print("recorded_name>" + str(suite_test_directory) + ">>" + str(source_info))
-
     (
         return_code_data,
         stats_data,
         log_data,
         configuration_data,
+        configuration_error,
         property_data,
         workload_specific_data,
+        workload_specific_error
     ) = __load_test_result_files(suite_test_directory)
+    if configuration_error:
+        return None, configuration_error
+    if workload_specific_error:
+        return None, workload_specific_error
 
     new_results = {}
     if source_info:
         new_results[SOURCE_TITLE] = source_info
-    new_results[CONFIGURATION_TITLE] = configuration_data
+    if configuration_data:
+        new_results[CONFIGURATION_TITLE] = configuration_data
     new_results[PROPERTIES_TITLE] = property_data
     new_results[PER_TEST_TITLE] = workload_specific_data
 
     new_results[RETURN_CODE_TITLE] = return_code_data
 
-    new_results[RULES_ENGINE_TITLE] = stats_data
-    new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
+    if stats_data:
+        new_results[RULES_ENGINE_TITLE] = stats_data
+    if log_data:
+        new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
 
-    return new_results
+    new_results[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE] = new_results[RETURN_CODE_TITLE]
+    return new_results, None
 
 
 # pylint: disable=too-many-locals
@@ -569,9 +606,11 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
         if os.path.isabs(recorded_name)
         else os.path.join(SUITE_DIRECTORY, recorded_name)
     )
-    aggregate_data, performance_legend_data = __process_workload_properties_file(
+    aggregate_data, performance_legend_data, configuration_error = __process_workload_properties_file(
         base_dir
     )
+    if configuration_error:
+        return None, None, None, configuration_error
 
     main_dictionary[SOURCE_TITLE] = source_info
     main_dictionary[PER_TEST_TITLE] = {}
@@ -579,7 +618,7 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
     for aggregate_key in aggregate_data:
         assert (
             aggregate_key not in main_dictionary[PER_TEST_TITLE]
-        ), f"Key to aggregate on '{aggregate_key}' must be in 'per-test' section."
+        ), f"Key to aggregate on '{aggregate_key}' must be in '{PER_TEST_TITLE}' section."
         main_dictionary[PER_TEST_TITLE][aggregate_key] = []
 
     totals = {}
@@ -602,12 +641,15 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
 
     main_dictionary[RULES_ENGINE_TITLE] = rules_engine_stats
 
+    configuration_error = None
     test_runs = {}
     main_dictionary[TEST_RUNS_TITLE] = test_runs
     for _ in range(1, max_test + 1):
         recorded_name = map_lines[map_line_index].strip()
         map_line_index += 1
-        new_results = __load_results_for_test(recorded_name, None)
+        new_results, configuration_error = __load_results_for_test(recorded_name, None)
+        if configuration_error:
+            break
 
         main_dictionary[PROPERTIES_TITLE] = new_results[PROPERTIES_TITLE]
 
@@ -617,7 +659,7 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
 
         test_runs[recorded_name] = new_results
 
-    return main_dictionary, map_line_index, performance_legend_data
+    return main_dictionary, map_line_index, performance_legend_data, configuration_error
 
 
 # pylint: enable=too-many-locals
@@ -650,25 +692,26 @@ def __add_individual_test_results(
                     new_results[PER_TEST_TITLE][aggregate_key]
                 )
 
-    test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
-    if SCHEDULED_TITLE in test_totals:
-        totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
-        totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
-        totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
-        totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
-        totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
-        totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
+    if RULES_ENGINE_TITLE in new_results:
+        test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
+        if SCHEDULED_TITLE in test_totals:
+            totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
+            totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
+            totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
+            totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
+            totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
+            totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
 
-    test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
-    if AVERAGE_LATENCY_TITLE in test_calculations:
-        calculations[AVERAGE_LATENCY_TITLE].append(
-            test_calculations[AVERAGE_LATENCY_TITLE]
-        )
-        calculations[MAXIMUM_LATENCY_TITLE].append(
-            test_calculations[MAXIMUM_LATENCY_TITLE]
-        )
-        calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
-        calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
+        test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
+        if AVERAGE_LATENCY_TITLE in test_calculations:
+            calculations[AVERAGE_LATENCY_TITLE].append(
+                test_calculations[AVERAGE_LATENCY_TITLE]
+            )
+            calculations[MAXIMUM_LATENCY_TITLE].append(
+                test_calculations[MAXIMUM_LATENCY_TITLE]
+            )
+            calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
+            calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
 
 def __load_scenario_file():
@@ -715,6 +758,7 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
     """
     full_test_results = {}
     map_line_index = 0
+    configuration_error = None
     file_line_number = 1
     for next_suite_test in suite_file_lines:
         next_suite_test = next_suite_test.strip()
@@ -725,7 +769,8 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
         file_line_number += 1
 
         is_repeat_test = re.search("^#", next_suite_test)
-        if is_repeat_test or not next_suite_test.strip():
+        is_workflow_test = re.search("^workload +(.*)$", next_suite_test)
+        if is_repeat_test or is_workflow_test or not next_suite_test.strip():
             continue
 
         is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
@@ -752,9 +797,12 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
                 full_test_results[next_suite_test],
                 map_line_index,
                 performance_legend_data,
+                configuration_error
             ) = __summarize_repeated_tests(
                 max_test, map_lines, map_line_index, source_info
             )
+            if configuration_error:
+                break
             full_test_results[next_suite_test][
                 "performance-legend"
             ] = performance_legend_data
@@ -763,13 +811,17 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
             suite_test_results_directory = map_lines[map_line_index].strip()
             simple_results_name = os.path.basename(suite_test_results_directory)
 
-            _, performance_legend_data = __process_workload_properties_file(
+            _, performance_legend_data, configuration_error = __process_workload_properties_file(
                 suite_test_results_directory
             )
+            if configuration_error:
+                break
 
-            full_test_results[simple_results_name] = __load_results_for_test(
+            full_test_results[simple_results_name], configuration_error = __load_results_for_test(
                 suite_test_results_directory, source_info
             )
+            if configuration_error:
+                break
 
             full_test_results[simple_results_name][
                 "performance-legend"
@@ -777,8 +829,8 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
 
             map_line_index += 1
 
-    assert len(map_lines) == map_line_index
-    return full_test_results
+    assert len(map_lines) == map_line_index or configuration_error
+    return full_test_results, configuration_error
 
 
 # pylint: enable=too-many-locals
@@ -790,7 +842,10 @@ def __process_script_action():
     """
     suite_file_name, map_file_lines = __load_scenario_file()
     map_lines = __load_execution_map_file()
-    test_results = __execute_suite_tests(suite_file_name, map_file_lines, map_lines)
+    test_results, configuration_error = __execute_suite_tests(suite_file_name, map_file_lines, map_lines)
+    if configuration_error:
+        print(f"Procssesing error: {configuration_error}")
+        return 1
     __dump_results_dictionary(test_results)
 
 

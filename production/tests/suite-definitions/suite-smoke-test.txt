@@ -3,6 +3,8 @@
 # the suite can be started.
 #
 
+workload mink
+
 # Tests by their own name
 smoke
 smoke-time-only
