@@ -198,13 +198,13 @@ bool valid_db_name(const string& db_name)
 string usage()
 {
     std::stringstream ss;
-    ss << "OVERVIEW: Reads Gaia DDL definitions and generates direct access code.\n"
+    ss << "OVERVIEW: Reads Gaia DDL definitions and generates Direct Access code.\n"
           "USAGE: gaiac [options] <ddl_file>\n"
           "\n"
           "OPTIONS:\n"
           "  --db-name <dbname>     Specifies the database name to use.\n"
           "  --interactive          Run gaiac in interactive mode.\n"
-          "  --generate             Generate direct access API header files.\n"
+          "  --generate             Generate Direct Access API header files.\n"
           "  --output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
           "  -n, --instance-name <name> Specifies the database instance name.\n"
