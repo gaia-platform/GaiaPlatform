@@ -10,6 +10,7 @@
 #include <string>
 
 #include "gaia_internal/common/config.hpp"
+#include "gaia_internal/common/gaia_version.hpp"
 
 #include "cpptoml.h"
 #include "db_server.hpp"
@@ -17,6 +18,8 @@
 using namespace gaia::common;
 using namespace gaia::db;
 
+static constexpr char c_help_flag[] = "--help";
+static constexpr char c_version_flag[] = "--version";
 static constexpr char c_data_dir_command_flag[] = "--data-dir";
 static constexpr char c_instance_name_command_flag[] = "--instance-name";
 static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
@@ -25,10 +28,10 @@ static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-p
 static constexpr char c_conf_file_flag[] = "--configuration-file-path";
 static constexpr char c_skip_catalog_integrity_flag[] = "--skip-catalog-integrity-checks";
 
+//TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 static void usage()
 {
     std::cerr
-        << "\nCopyright (c) Gaia Platform LLC\n\n"
         << "Usage: gaia_db_server ["
         << c_disable_persistence_flag
         << " | "
@@ -46,7 +49,11 @@ static void usage()
         << c_conf_file_flag
         << " <config file path>]"
         << std::endl;
-    std::exit(1);
+}
+
+static void version()
+{
+    std::cerr << "Gaia DB Server " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
 // Replaces the tilde '~' with the full user home path.
@@ -68,6 +75,7 @@ static void expand_home_path(std::string& path)
             << "'. No $HOME environment variable found."
             << std::endl;
         usage();
+        std::exit(1);
     }
 
     path = home + path.substr(1);
@@ -221,7 +229,17 @@ static server_config_t process_command_line(int argc, char* argv[])
     for (int i = 1; i < argc; ++i)
     {
         used_flags.insert(argv[i]);
-        if (strcmp(argv[i], c_disable_persistence_flag) == 0)
+        if (strcmp(argv[i], c_help_flag) == 0)
+        {
+            usage();
+            std::exit(0);
+        }
+        if (strcmp(argv[i], c_version_flag) == 0)
+        {
+            version();
+            std::exit(0);
+        }
+        else if (strcmp(argv[i], c_disable_persistence_flag) == 0)
         {
             persistence_mode = server_config_t::persistence_mode_t::e_disabled;
         }
@@ -257,6 +275,7 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << "'."
                 << std::endl;
             usage();
+            std::exit(1);
         }
     }
 
@@ -301,6 +320,7 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << "to identify the location of the database."
                 << std::endl;
             usage();
+            std::exit(1);
         }
 
         expand_home_path(data_dir);
@@ -335,6 +355,7 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << "' flags are mutually exclusive."
                 << std::endl;
             usage();
+            std::exit(1);
         }
     }
 
@@ -343,9 +364,9 @@ static server_config_t process_command_line(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    std::cerr << "Starting " << c_db_server_exec_name << "..." << std::endl;
-
     auto server_conf = process_command_line(argc, argv);
+
+    std::cerr << "Starting " << c_db_server_exec_name << "..." << std::endl;
 
     gaia::db::server_t::run(server_conf);
 }
