@@ -181,7 +181,8 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
                 if (!it_start->second.deleted)
                 {
                     auto index_view = index_view_t(id_to_ptr(index->id()));
-                    throw unique_constraint_violation(index_view.name());
+                    auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+                    throw unique_constraint_violation(index_view.name(), table_view.name());
                 }
             }
         }
@@ -206,7 +207,8 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
                 if (!it_start->second.deleted)
                 {
                     auto index_view = index_view_t(id_to_ptr(index->id()));
-                    throw unique_constraint_violation(index_view.name());
+                    auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+                    throw unique_constraint_violation(index_view.name(), table_view.name());
                 }
             }
         }
