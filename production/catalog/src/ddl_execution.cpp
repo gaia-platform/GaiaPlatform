@@ -358,7 +358,9 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
         {
             auto create_list = dynamic_cast<ddl::create_list_t*>(stmt.get());
 
-            ASSERT_INVARIANT(statements.size() >= 1, "The list must contain at least one statement.");
+            ASSERT_INVARIANT(
+                create_list->statements.size() >= 1,
+                "The list must contain at least one statement.");
 
             // To handle forward references in `create list` statements,
             // preprocess all references in `create table` statements and
