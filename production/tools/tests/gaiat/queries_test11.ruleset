@@ -12,4 +12,4 @@ ruleset test43
     }
 }
 
-// CHECK: Initialization of a declared variable with an EDC object is not supported.
+// CHECK: Initialization of a declared variable with a direct access object is not supported.
