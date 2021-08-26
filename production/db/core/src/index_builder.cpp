@@ -8,6 +8,8 @@
 #include <iostream>
 #include <utility>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "data_holder.hpp"
