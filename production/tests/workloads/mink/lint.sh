@@ -156,7 +156,7 @@ build_project() {
     fi
     if ! ./build.sh -v > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
+        echo "Build script cannot build the project."
         complete_process 1
     fi
 }
@@ -270,10 +270,6 @@ lint_shell_scripts() {
         echo "Analyzing the Bash parts of the $PROJECT_NAME project."
     fi
     if ! shellcheck ./*.sh > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        complete_process 1 "Linting of shellscript by 'shellcheck' failed."
-    fi
-    if ! shellcheck ./utils/*.sh > "$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Linting of shellscript by 'shellcheck' failed."
     fi

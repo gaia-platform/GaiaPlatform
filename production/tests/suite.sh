@@ -9,7 +9,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Testing the $PROJECT_NAME project against suite ..."
+        echo "Testing the $SUITE_MODE suite ..."
     fi
 }
 
@@ -24,10 +24,10 @@ complete_process() {
 
     COMPLETE_MESSAGE=
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
-        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite failed."
+        COMPLETE_MESSAGE="Testing the $SUITE_MODE suite failed."
         echo "$COMPLETE_MESSAGE"
     else
-        COMPLETE_MESSAGE="Testing of the $PROJECT_NAME suite succeeded."
+        COMPLETE_MESSAGE="Testing the $SUITE_MODE suite succeeded."
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "$COMPLETE_MESSAGE"
         fi
@@ -65,6 +65,7 @@ show_usage() {
     echo "Flags:"
     echo "  -l,--list           List all available suites for this project."
     echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
+    echo "  -j,--json           Display the statistics in JSON format."
     echo "  -v,--verbose        Show lots of information while executing the suite of tests."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
@@ -101,11 +102,11 @@ list_available_suites() {
 
 # Parse the command line.
 parse_command_line() {
-    SUITE_MODE="smoke"
     VERBOSE_MODE=0
     SLACK_MODE=0
     LIST_MODE=0
     SHOW_STATS=1
+    SHOW_JSON_STATS=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -115,6 +116,10 @@ parse_command_line() {
         ;;
         -s|--slack)
             SLACK_MODE=1
+            shift
+        ;;
+        -j|--json)
+            SHOW_JSON_STATS=1
             shift
         ;;
         -n|--no-stats)
@@ -189,6 +194,66 @@ clear_suite_output() {
     fi
 }
 
+# Based on the suite file, determine the workload directory.
+determine_workload_directory() {
+
+    WORKLOAD_DIRECTORY=
+    # shellcheck disable=SC2016
+    IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
+    for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
+        SUB="^[[:space:]]*#"
+        if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then
+            continue
+        fi
+        SUB="^workload[[:space:]]+(.*)$"
+        if [[ "$NEXT_TEST_NAME" =~ $SUB ]]; then
+            if [ -n "$WORKLOAD_DIRECTORY" ] ; then
+                complete_process 1 "Suite file '$SUITE_FILE_NAME' cannot specify multiple workloads."
+            fi
+            WORKLOAD_DIRECTORY="${BASH_REMATCH[1]}"
+        fi
+    done
+
+    if [[ -z $WORKLOAD_DIRECTORY ]] ; then
+        complete_process 1 "Suite file '$SUITE_FILE_NAME' must specify a workload."
+    fi
+
+    # shellcheck disable=SC1001
+    if [[ "$WORKLOAD_DIRECTORY" != *\/* ]] ; then
+        WORKLOAD_DIRECTORY=$SCRIPTPATH/workloads/$WORKLOAD_DIRECTORY
+    fi
+}
+
+# Verify the contents of the workload directory.
+# For more, go to XXX.
+verify_workload_directory() {
+
+    if [ ! -d "$WORKLOAD_DIRECTORY" ]; then
+        complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must exist."
+    fi
+
+    if [ ! -f "$WORKLOAD_DIRECTORY/install.sh" ]; then
+        complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must specify an 'install.sh' script."
+    fi
+    if [[ ! -x "$WORKLOAD_DIRECTORY/install.sh" ]] ; then
+        complete_process 1 "Workload file '$WORKLOAD_DIRECTORY/install.sh' must be executable."
+    fi
+
+    if [ ! -f "$WORKLOAD_DIRECTORY/build.sh" ]; then
+        complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must specify a 'build.sh' script."
+    fi
+    if [[ ! -x "$WORKLOAD_DIRECTORY/build.sh" ]] ; then
+        complete_process 1 "Workload file '$WORKLOAD_DIRECTORY/build.sh' must be executable."
+    fi
+
+    if [ ! -f "$WORKLOAD_DIRECTORY/test.sh" ]; then
+        complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must specify a 'test.sh' script."
+    fi
+    if [[ ! -x "$WORKLOAD_DIRECTORY/test.sh" ]] ; then
+        complete_process 1 "Workload file '$WORKLOAD_DIRECTORY/test.sh' must be executable."
+    fi
+}
+
 # Ensure that we have a current and fully built project in our "test" directory
 # before proceeding with the tests.
 install_and_build_cleanly() {
@@ -205,7 +270,7 @@ install_and_build_cleanly() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Suite script installing the project into directory '$(realpath "$TEST_DIRECTORY")'..."
     fi
-    if ! $WORKLOAD_DIRECTORY/install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
+    if ! "$WORKLOAD_DIRECTORY/install.sh" "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
         complete_process 1 "Suite script failed to install the project into directory '$(realpath "$TEST_DIRECTORY")'."
     fi
@@ -295,7 +360,7 @@ execute_single_test() {
     # the return_code.json file.
 
     # shellcheck disable=SC2086
-    $WORKLOAD_DIRECTORY/test.sh -vv -ni $TEST_THREADS_ARGUMENT "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
+    $WORKLOAD_DIRECTORY/test.sh -vv -ni $TEST_THREADS_ARGUMENT -d "$TEST_DIRECTORY" "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
     TEST_RETURN_CODE=$?
 
     # Copy any files in the `test-results` directory into a test-specific directory for
@@ -316,6 +381,11 @@ execute_suite_test() {
 
     SUB="^[[:space:]]*#"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then
+        return
+    fi
+
+    SUB="^workload[[:space:]]+(.*)$"
+    if [[ "$NEXT_TEST_NAME" =~ $SUB ]] ; then
         return
     fi
 
@@ -355,17 +425,17 @@ execute_suite_test() {
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-# Relative directory where the test suite results are stored.
+# Relative directory where the test suite results are stored in this project.
 SUITE_RESULTS_DIRECTORY="suite-results"
-# Relative directory where the test results are stored.
+
+# Relative directory where the test results are stored after being executed in the workload.
 TEST_RESULTS_DIRECTORY="test-results"
 
 # Set up any project based local script variables.
-TEMP_FILE=/tmp/$PROJECT_NAME.suite.tmp
+SUITE_MODE="smoke"
+TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
 EXECUTE_MAP_FILE=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/map.txt
-
-
-TEST_DIRECTORY=/tmp/test_mink
+TEST_DIRECTORY=/tmp/test_suite
 
 
 # Set up any local script variables.
@@ -375,8 +445,17 @@ DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0
 
+
 # Parse any command line values.
 parse_command_line "$@"
+
+determine_workload_directory
+verify_workload_directory
+
+# Reset this after the command line, now that we know what the selected
+# SUITE_MODE is.
+TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
+
 
 # Clean entrance into the script.
 start_process
@@ -385,7 +464,6 @@ save_current_directory
 
 clear_suite_output
 
-WORKLOAD_DIRECTORY=$SCRIPTPATH/workloads/mink
 install_and_build_cleanly
 
 broadcast_message "$SUITE_MODE" "Testing of the test suite started."
@@ -403,8 +481,22 @@ if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
 fi
 
 if [ $SHOW_STATS -ne 0 ] ; then
-    if ! ./python/summary_stats.py; then
+    OUTPUT_FILE=$TEMP_FILE
+    STATS_FORMAT=
+    if [ $SHOW_JSON_STATS -ne 0 ] ; then
+        STATS_FORMAT="--format json"
+        OUTPUT_FILE=$SUITE_RESULTS_DIRECTORY/stats.json
+        broadcast_message "$SUITE_MODE" "Creating statistics file at '$(realpath "$OUTPUT_FILE")'."
+    fi
+
+    # shellcheck disable=SC2086
+    if ! ./python/summary_stats.py $STATS_FORMAT > $OUTPUT_FILE 2>&1 ; then
+        cat $OUTPUT_FILE
         complete_process 1 "Displaying statistics for the suite failed."
+    fi
+
+    if [ $SHOW_JSON_STATS -eq 0 ] ; then
+        cat $OUTPUT_FILE
     fi
 fi
 

@@ -2,6 +2,8 @@
 # Simple test suite with both of the standard smoke tests.
 #
 
+workload mink
+
 smoke
 smoke-time-test
 smoke-time-only

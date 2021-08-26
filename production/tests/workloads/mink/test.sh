@@ -39,7 +39,7 @@ complete_process() {
         popd > /dev/null 2>&1 || exit
     fi
 
-    popd
+    popd > /dev/null 2>&1 || exit
 
     exit "$SCRIPT_RETURN_CODE"
 }
@@ -51,6 +51,7 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
     echo "  -l,--list                   List all available tests for this project."
+    echo "  -d,--directory              Directory to run the tests against."
     echo "  -ni,--no-init               Do not initialize the test data before executing the test."
     echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine.  If '0' is"
     echo "                              specified, then the number of threads is set to maximum."
@@ -82,6 +83,7 @@ parse_command_line() {
     NO_INIT_MODE=0
     LIST_MODE=0
     NUMBER_OF_THREADS=-1
+    ALTERNATE_TEST_DIRECTORY=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -93,6 +95,15 @@ parse_command_line() {
         -ni|--no-init)
             NO_INIT_MODE=1
             shift
+        ;;
+        -d|--directory)
+            # shellcheck disable=SC2086
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                ALTERNATE_TEST_DIRECTORY=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing." >&2; exit 1
+            fi
         ;;
         -nt|--num-threads)
             # shellcheck disable=SC2086
@@ -132,6 +143,10 @@ parse_command_line() {
     if [ $LIST_MODE -ne 0 ] ; then
         list_available_tests
         complete_process 0
+    fi
+
+    if [ -n "$ALTERNATE_TEST_DIRECTORY" ] ; then
+        TEST_DIRECTORY=$ALTERNATE_TEST_DIRECTORY
     fi
 
     if [[ ! "${PARAMS[0]}" == "" ]]; then
@@ -191,7 +206,7 @@ clear_test_output() {
 exec_summarize_test_results() {
     local summarize_directory=$1
 
-    if ! ./python/summarize_test_results.py "$summarize_directory"; then
+    if ! ./python/summarize_test_results.py "$summarize_directory" "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE"; then
         complete_process 2 "Summarizing the results failed."
     fi
 }
@@ -239,12 +254,6 @@ copy_test_output() {
             complete_process 2
         fi
 
-        if ! cp "$BUILD_DIRECTORY"/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
-            cat "$TEMP_FILE"
-            echo "Test script cannot copy intermediate test results from '$(realpath "$BUILD_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
-            complete_process 2
-        fi
-
         if ! cp "$LOG_DIRECTORY/gaia.log" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             echo "Test script cannot copy intermediate gaia log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
@@ -256,6 +265,8 @@ copy_test_output() {
             echo "Test script cannot copy intermediate stats log files from '$(realpath "$LOG_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
         fi
+
+        copy_extra_test_files
 
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Test results located in: $(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")"
@@ -371,12 +382,12 @@ execute_test_workflow() {
     if [ "$VERY_VERBOSE_MODE" -ne 0 ]; then
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
+        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT -d "$TEST_DIRECTORY" "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt"
         DID_FAIL=$?
     else
         DID_FAIL=0
         # shellcheck disable=SC2086
-        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
+        ./run.sh -v -c -a $THREAD_ARGUMENT $CONFIG_ARGUMENT -d "$TEST_DIRECTORY" "$TEST_COMMAND_NAME" "tests/$TEST_MODE/commands.txt" > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)
@@ -422,7 +433,12 @@ execute_test_workflow() {
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
-pushd $SCRIPTPATH
+
+# Save the current directory before going on.
+if ! pushd . > /dev/null 2>&1;  then
+    complete_process 1 "Test script cannot save the current directory before proceeding."
+    exit 1
+fi
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp

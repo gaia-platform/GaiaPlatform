@@ -188,8 +188,6 @@ lint_shell_scripts() {
 
 
 # Set up any global script variables.
-# shellcheck disable=SC2164
-#SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
