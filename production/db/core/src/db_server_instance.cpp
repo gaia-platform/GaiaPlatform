@@ -315,7 +315,8 @@ std::vector<const char*> server_instance_t::get_server_command_and_argument()
     if (m_conf.disable_persistence)
     {
         ASSERT_PRECONDITION(m_conf.data_dir.empty(), "data_dir must be empty when persistence is disabled.");
-        strings.push_back("--disable-persistence");
+        strings.push_back("--persistence");
+        strings.push_back("disabled");
     }
     else
     {

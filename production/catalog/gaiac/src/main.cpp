@@ -195,29 +195,29 @@ bool valid_db_name(const string& db_name)
     return true;
 }
 
-// TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 string usage()
 {
     std::stringstream ss;
-    ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -d|--db-name <dbname>     Specify the database name.\n"
-          "  -i|--interactive          Interactive prompt, as a REPL.\n"
-          "  -g|--generate             Generate direct access API header files.\n"
-          "  -o|--output <path>        Set the output directory for all generated files.\n"
+    ss << "OVERVIEW: Reads Gaia DDL definitions and generates Direct Access code.\n"
+          "USAGE: gaiac [options] <ddl_file>\n"
+          "\n"
+          "OPTIONS:\n"
+          "  --db-name <dbname>     Specifies the database name to use.\n"
+          "  --interactive          Run gaiac in interactive mode.\n"
+          "  --generate             Generate Direct Access API header files.\n"
+          "  --output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
-          "  -n|--instance-name <name> Specify the database instance name.\n"
-          "                            If not specified will use "
+          "  -n, --instance-name <name> Specifies the database instance name.\n"
+          "                            If not specified, will use "
        << c_default_instance_name << ".\n"
        << "                            If 'rnd' is specified will use a random name.\n"
-          "  -p|--parse-trace          Print parsing trace.\n"
-          "  -s|--scan-trace           Print scanning trace.\n"
-          "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
+          "  -p, --parse-trace          Print parsing trace.\n"
+          "  -s, --scan-trace           Print scanning trace.\n"
+          "  -t, --db-server-path       Start the DB server (for testing purposes).\n"
 #endif
-          "  <ddl_file>                Process the DDLs in the file.\n"
-          "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-          "                            The database will be created automatically.\n"
-          "  -h|--help                 Print help information.\n"
-          "  -v|--version              Version information.\n";
+          "  <ddl_file>             Process the DDL statements in the file.\n"
+          "  --help                 Print help information.\n"
+          "  --version              Print version information.\n";
     return ss.str();
 }
 
