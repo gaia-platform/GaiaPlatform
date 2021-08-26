@@ -205,8 +205,10 @@ void convert_references_to_relationships(
 
             relationships.emplace_back(std::make_unique<ddl::create_relationship_t>(rel_name));
 
-            ddl::link_def_t ref_link{"", create_table->name, ref->name, "", ref->table, ref->cardinality};
-            ddl::link_def_t matching_ref_link{"", ref->table, matching_ref->name, "", matching_ref->table, matching_ref->cardinality};
+            ddl::link_def_t ref_link{
+                "", create_table->name, ref->name, "", ref->table, ref->cardinality};
+            ddl::link_def_t matching_ref_link{
+                "", ref->table, matching_ref->name, "", matching_ref->table, matching_ref->cardinality};
             relationships.back()->relationship
                 = (ref->cardinality == relationship_cardinality_t::many
                        ? std::make_pair(ref_link, matching_ref_link)
@@ -225,8 +227,6 @@ void convert_references_to_relationships(
                 relationships.back()->field_map = ref->field_map;
             }
 
-            // Append the new relationship definition to the statement list.
-
             // Remove the matched reference definition.
             table_refs.erase(matching_iter);
         }
@@ -238,6 +238,7 @@ void convert_references_to_relationships(
         throw orphaned_reference_definition(table_refs.begin()->first, table_refs.begin()->second->name);
     }
 
+    // Append the new relationship definition(s) to the statement list.
     statements.insert(
         statements.end(),
         std::make_move_iterator(relationships.begin()),
@@ -292,28 +293,17 @@ void execute_create_statement_no_txn(
 }
 
 // The `create list` parsing results are stored in the same classes as the
-// standalone statements. We will impose some additional requirements here.
-//
-// - Only the first statement can be `create database` when there is one. When
-//   the first statement is a `create database` statement, the remaining
-//   entities will be created in that database.
-//
-// - No statement can contain database names in identifiers such as
-//   `[db_name].[table_name]`.
+// standalone create statements. We will check to make sure no statement can
+// contain database names in identifiers such as `[db_name].[table_name]`.
 //
 void sanity_check_create_list_statements(
     std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
 {
     ASSERT_PRECONDITION(statements.size() > 1, "The list must contain more than one statement.");
 
-    size_t index = 0;
     for (auto& stmt : statements)
     {
-        if (stmt->type == ddl::create_type_t::create_database && index > 0)
-        {
-            throw invalid_create_list("CREATE DATABASE should be the first statement.");
-        }
-        else if (stmt->type == ddl::create_type_t::create_table)
+        if (stmt->type == ddl::create_type_t::create_table)
         {
             auto create_table = dynamic_cast<ddl::create_table_t*>(stmt.get());
             if (!create_table->database.empty())
@@ -346,8 +336,6 @@ void sanity_check_create_list_statements(
                 throw invalid_create_list("CREATE RELATIONSHIP should not specify a database in the field(s).");
             }
         }
-
-        index++;
     }
 }
 

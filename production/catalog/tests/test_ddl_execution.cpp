@@ -345,3 +345,52 @@ drop database hospital;
         ASSERT_NO_THROW(execute(parser.statements));
     }
 }
+
+TEST_F(ddl_execution_test, invalid_create_list)
+{
+    array ddls{
+        R"(
+-- table name should not contain the database name
+create table d.t1(c1 int32, t2 references t2)
+create table d.t2(c2 int32, t1 references t1);
+)",
+        R"(
+-- links in relationship definition should not contain the database name
+create database d
+create table t1(c1 int32)
+create table t2(c2 int32)
+create relationship r (d.t1.link2 -> t2, d.t2.link1 -> t1);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_THROW(execute(parser.statements), invalid_create_list);
+    }
+}
+
+TEST_F(ddl_execution_test, ambiguous_reference_definition)
+{
+    string ddl{R"(
+create table t1(c1 int32, link1a references t2, link1b references t2)
+create table t2(c2 int32, link2a references t1, link2b references t1);
+)"};
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_THROW(execute(parser.statements), ambiguous_reference_definition);
+}
+
+TEST_F(ddl_execution_test, orphaned_reference_definition)
+{
+    string ddl{R"(
+create table t1(c1 int32, link1 references t2)
+create table t2(c2 int32, link2a references t1, link2b references t1);
+)"};
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
+}

@@ -762,3 +762,26 @@ create table patient (
     ASSERT_NO_THROW(parser.parse_line(one_to_many_ddl));
     ASSERT_NO_THROW(parser.parse_line(hybrid_index_ddl));
 }
+
+TEST(catalog_ddl_parser_test, invalid_create_list)
+{
+    array ddls{
+        R"(
+-- referenced table name cannot contain the database name
+create table t1(c1 int32, t2 references d.t2)
+create table t2(c2 int32, t1 references d.t1);
+)",
+        R"(
+-- database can only be the first statement
+create table t1(c1 int32)
+create database d
+create table t2(c2 int32);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        parser_t parser;
+        ASSERT_THROW(parser.parse_line(ddl), parsing_error);
+    }
+}
