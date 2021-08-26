@@ -38,21 +38,21 @@ template <class T_index>
 void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
-    auto end = index.end();
-    auto iter = index.begin();
+    auto it_next = index.begin();
+    auto it_end = index.end();
 
-    while (iter != end)
+    while (it_next != it_end)
     {
-        auto curr_iter = iter++;
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(curr_iter->second.txn_id);
+        auto it_current = it_next++;
+        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_current->second.txn_id);
 
         // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
         if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
         {
             // Only erase entry if each key contains at least one additional entry with the same key.
-            if (iter != end && curr_iter->first == iter->first)
+            if (it_next != it_end && it_current->first == it_next->first)
             {
-                iter = index.erase(curr_iter);
+                it_next = index.erase(it_current);
             }
         }
     }
