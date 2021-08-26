@@ -195,7 +195,8 @@ void convert_references_to_relationships(
             // link placement) before the proper support of one-to-many
             // relationship definition is ready.
             //
-            // TODO: Support one-to-many.
+            // TODO: Update the code after we can support placing one side link
+            //       before many side link in `create relationship` statements.
             //
             std::string rel_name
                 = (ref->cardinality == relationship_cardinality_t::many
@@ -294,8 +295,8 @@ void execute_create_statement_no_txn(
 // standalone statements. We will impose some additional requirements here.
 //
 // - Only the first statement can be `create database` when there is one. When
-//   the first statement is a `create database` statement, the rest entities
-//   will be created in that database.
+//   the first statement is a `create database` statement, the remaining
+//   entities will be created in that database.
 //
 // - No statement can contain database names in identifiers such as
 //   `[db_name].[table_name]`.
