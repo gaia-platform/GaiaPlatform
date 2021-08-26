@@ -3,7 +3,7 @@ create database if not exists incubator;
 USE incubator;
 
 create table if not exists animal (
-    name string,
+    animal_name string unique,
     breed string,
     age uint64
 );
@@ -14,7 +14,7 @@ create table if not exists farmer (
 );
 
 create table if not exists crop (
-    name string,
+    name string unique,
     acres uint32
 );
 
@@ -57,12 +57,14 @@ create relationship if not exists incubator_actuators (
 );
 
 create table if not exists raised (
+    animal_name string unique,
     birthdate string
 );
 
 create relationship if not exists animal_raised (
     animal.raised -> raised,
-    raised.animal -> animal
+    raised.animal -> animal,
+    using raised(animal_name), animal(animal_name)
 );
 
 create relationship if not exists farmer_raised (
@@ -76,6 +78,7 @@ create relationship if not exists incubator_raised (
 );
 
 create table if not exists yield (
+    crop_name string,
     bushels uint32
 );
 
@@ -86,7 +89,8 @@ create relationship if not exists farmer_yield (
 
 create relationship if not exists crop_yield (
     crop.yield -> yield[],
-    yield.crop -> crop
+    yield.crop -> crop,
+    using yield(crop_name), crop(name)
 );
 
 create relationship if not exists crop_animal (

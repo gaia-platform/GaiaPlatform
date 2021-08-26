@@ -243,7 +243,7 @@ TEST_F(test_tags_code, basic_tags)
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
+    registration_t::insert_row("reg00H", nullptr, nullptr, c_status_pending, c_grade_none);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

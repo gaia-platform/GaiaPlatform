@@ -228,10 +228,10 @@ TEST_F(test_insert_delete_code, implicit_delete)
 {
     gaia::db::begin_transaction();
     auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    registration_t::insert_row("reg001", c_status_pending, c_grade_none);
-    registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
-    registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
-    registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg001", nullptr, nullptr, c_status_pending, c_grade_none);
+    registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg003", nullptr, nullptr, c_status_eligible, c_grade_b);
+    registration_t::insert_row("reg004", nullptr, nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     // Use the rules for insert & delete.

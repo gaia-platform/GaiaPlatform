@@ -529,7 +529,8 @@ ruleset test_insert_delete_2
     // GAIAPLAT-1112
     on_insert(E:enrollment_log)
     {
-        const char* str1 = nullptr;
+        const char* stu_id = nullptr;
+        const char* cou_id = nullptr;
         const char* str2 = nullptr;
         int32_t int1 = 0;
 
@@ -539,16 +540,17 @@ ruleset test_insert_delete_2
         // auto C = course.insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
         // auto R = registration.insert(reg_id: E.log_reg_id);
 
-        str1 = E.log_student_id;
+        stu_id = E.log_student_id;
         str2 = E.log_surname;
         int1 = E.log_age;
-        gaia::prerequisites::student_t S = student.insert(student_id: str1, surname: str2, age: int1);
-        str1 = E.log_course_id;
+        gaia::prerequisites::student_t S = student.insert(student_id: stu_id, surname: str2, age: int1);
+        cou_id = E.log_course_id;
         str2 = E.log_name;
         int1 = E.log_hours;
-        gaia::prerequisites::course_t C = course.insert(course_id: str1, name: str2, hours: int1);
-        str1 = E.log_reg_id;
-        gaia::prerequisites::registration_t R = registration.insert(reg_id: str1);
+        gaia::prerequisites::course_t C = course.insert(course_id: cou_id, name: str2, hours: int1);
+        str2 = E.log_reg_id;
+        gaia::prerequisites::registration_t R = registration.insert(reg_id: str2, student_id: stu_id,
+            course_id: cou_id);
 
         // WLW TODO - when declarative connect() is ready, use it rather than EDC.
         S.registrations().insert(R);
@@ -674,9 +676,9 @@ ruleset test_disconnect_1_1
 
 ruleset test_disconnect_delete
 {
-    on_insert(registration)
+    on_insert(R:registration)
     {
-        registration->student.disconnect(registration);
+        registration.student_id = nullptr;
         registration.remove();
     }
 }
