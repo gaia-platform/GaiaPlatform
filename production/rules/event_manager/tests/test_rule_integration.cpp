@@ -515,15 +515,13 @@ TEST_F(rule_integration_test, test_serial)
     subscribe_sleep_serial();
 
     int64_t total_time = timer.get_function_duration([&]() {
+        rule_monitor_t monitor(num_inserts);
+        auto_transaction_t txn(false);
+        for (size_t i = 0; i < num_inserts; i++)
         {
-            rule_monitor_t monitor(num_inserts);
-            auto_transaction_t txn(false);
-            for (size_t i = 0; i < num_inserts; i++)
-            {
-                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
-            }
-            txn.commit();
+            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
         }
+        txn.commit();
     });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds >= num_inserts);

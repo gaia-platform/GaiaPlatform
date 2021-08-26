@@ -87,8 +87,7 @@ ruleset test_serial_group_2 : tables(sensor, incubator), serial_group(sdfdf, sfd
     }
 }
 
-// expected-note@+1 {{to match this '('}}
-ruleset test_serial_group_3 : tables(sensor, incubator), serial_group(, ) // expected-error {{expected ')'}}
+ruleset test_serial_group_3 : tables(sensor, incubator), serial_group(, ) // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;

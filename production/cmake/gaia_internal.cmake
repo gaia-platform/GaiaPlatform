@@ -236,7 +236,7 @@ endmacro()
 # TARGET_NAME - name of the gtest
 # DDL_FILE - input gaia ddl file, but gtest will link to already build edc lib
 # RULESET_FILE - input ruleset file
-# EDC_LIBRARY - name of generated EDC library from DDL that this gtest will link to
+# DATABASE_NAME - name of the database used in the DDL_FILE
 # [PREVIOUS_TARGET_NAME] - for now these test use the same db instance so serialize build
 #   by specifying a previous target.  This argument is optional
 # TARGET_SOURCES - semicolon delimited list of gtest sources
