@@ -3,64 +3,58 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create database if not exists prerequisites;
+drop database if exists prerequisites;
 
-use prerequisites;
+create database prerequisites
 
-create table if not exists student (
+create table student (
     student_id string,
     surname string,
     age int32,
     total_hours int32,
-    gpa float
-);
+    gpa float,
+    parents references parents,
+    registrations references registration[]
+)
 
-create table if not exists parents (
+create table parents (
     name_father string,
-    name_mother string
-);
+    name_mother string,
+    student references student
+)
 
-create relationship if not exists student_parents (
-    student.parents -> parents,
-    parents.student -> student
-);
-
-create table if not exists course (
+create table course (
     course_id string,
     name string,
     hours int32
-);
+)
 
-create table if not exists registration (
+create table registration (
     reg_id string,
     status string,
-    grade string
-);
+    grade string,
+    registered_student references student
+)
 
-create relationship if not exists student_reg (
-    student.registrations -> registration[],
-    registration.registered_student -> student
-);
-
-create relationship if not exists course_reg (
+create relationship course_reg (
     course.registrations -> registration[],
     registration.registered_course -> course
-);
+)
 
-create table if not exists prereq (
+create table prereq (
     prereq_id string,
     min_grade string
-);
+)
 
-create relationship if not exists prereq_course (
+create relationship prereq_course (
     course.required_by -> prereq[],
     prereq.prereq -> course
-);
+)
 
-create relationship if not exists course_prereq (
+create relationship course_prereq (
     course.requires -> prereq[],
     prereq.course -> course
-);
+)
 
 create table if not exists enrollment_log (
     log_student_id string,

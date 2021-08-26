@@ -169,22 +169,34 @@ inline int make_eventfd()
     return eventfd;
 }
 
-inline void signal_eventfd(int eventfd)
+inline void signal_eventfd(int eventfd, uint64_t efd_counter_val)
+{
+    ssize_t bytes_written = ::write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
+    if (bytes_written == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
+        throw system_error(reason, err);
+    }
+    ASSERT_POSTCONDITION(bytes_written == sizeof(efd_counter_val), "Failed to fully write data!");
+}
+
+inline void signal_eventfd_single_thread(int eventfd)
+{
+    // Signal the eventfd by writing 1.
+    signal_eventfd(eventfd, 1);
+}
+
+inline void signal_eventfd_multiple_threads(int eventfd)
 {
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
+
     // Signal the eventfd by writing a nonzero value.
     // This value is large enough that no thread will
     // decrement it to zero, so every waiting thread
     // should see a nonzero value.
-    ssize_t bytes_written = ::write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
-    if (bytes_written == -1)
-    {
-        int err = errno;
-        const char* reason = ::explain_write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
-        throw system_error(reason, err);
-    }
-    ASSERT_POSTCONDITION(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
+    signal_eventfd(eventfd, c_max_semaphore_count);
 }
 
 inline void consume_eventfd(int eventfd)

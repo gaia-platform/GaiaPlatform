@@ -722,3 +722,66 @@ CREATE table  t2(
     ASSERT_THROW(parser.parse_line(negative_2), parsing_error);
     ASSERT_THROW(parser.parse_line(negative_3), parsing_error);
 }
+
+TEST(catalog_ddl_parser_test, in_table_relationship)
+{
+    parser_t parser;
+
+    const string one_to_many_ddl = R"(
+create table doctor (
+ name string,
+ phone_no string unique,
+ patients references patient[]
+)
+create table patient (
+ name string,
+ doctor_phone_no string,
+ doctor references doctor where doctor_phone_no = phone_no
+);
+)";
+    const string hybrid_index_ddl = R"(
+create table doctor (
+ name string,
+ email uint32 unique,
+ primary_care_patients references patient[],
+ secondary_care_patients references patient[]
+)
+create table patient (
+ name string,
+ primary_care_doctor_email uint32,
+ secondary_care_doctor_email uint32,
+ primary_care_doctor references doctor
+  using primary_care_patients
+  where patient.primary_care_doctor_email = doctor.email,
+ secondary_care_doctor references doctor
+  using secondary_care_patients
+  where patient.secondary_care_doctor_email = doctor.email
+);
+)";
+
+    ASSERT_NO_THROW(parser.parse_line(one_to_many_ddl));
+    ASSERT_NO_THROW(parser.parse_line(hybrid_index_ddl));
+}
+
+TEST(catalog_ddl_parser_test, invalid_create_list)
+{
+    array ddls{
+        R"(
+-- referenced table name cannot contain the database name
+create table t1(c1 int32, t2 references d.t2)
+create table t2(c2 int32, t1 references d.t1);
+)",
+        R"(
+-- database can only be the first statement
+create table t1(c1 int32)
+create database d
+create table t2(c2 int32);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        parser_t parser;
+        ASSERT_THROW(parser.parse_line(ddl), parsing_error);
+    }
+}

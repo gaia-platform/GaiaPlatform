@@ -7,13 +7,55 @@
 
 #include <string>
 
+namespace gaia
+{
+namespace common
+{
+
 constexpr int c_gaia_version_major = @production_VERSION_MAJOR@;
 constexpr int c_gaia_version_minor = @production_VERSION_MINOR@;
 constexpr int c_gaia_version_patch = @production_VERSION_PATCH@;
+constexpr char c_gaia_pre_release[] = "@PRE_RELEASE_IDENTIFIER@";
 
-std::string gaia_full_version()
-{
-    return std::to_string(c_gaia_version_major)
-        + "." + std::to_string(c_gaia_version_minor)
-        + "." + std::to_string(c_gaia_version_patch);
+// When built in CI this number is replaced with the TeamCity build version.
+// When built locally this number is replaced by the CMake with a string
+// containing the name of the user who run the build and the date:
+// Eg: simone.20210820121758
+constexpr char c_gaia_build_number[] = "@BUILD_NUMBER@";
+
+// Tracks both the tip of the local branch and the latest
+// commit from master because the tip of the local branch
+// may not be pushed to remote. Only commits that are
+// pushed to remote are useful for tracking purposes.
+constexpr char c_gaia_local_git_hash[] = "@GIT_HEAD_HASH@";
+constexpr char c_gaia_master_git_hash[] = "@GIT_MASTER_HASH@";
+
+// True if this is a CI build (eg. TeamCity).
+constexpr bool c_is_ci_build = @IS_CI_BUILD@;
+
+/**
+ * Returns major.minor.patch-pre_release. The pre_release
+ * is absent for GA release.
+ *
+ * Eg:
+ * - 0.2.1-alpha
+ * - 1.0.0
+ */
+std::string gaia_version();
+
+/**
+ * Returns major.minor.patch-pre_release+build (git_commit)
+ * - pre_release is absent for GA release.
+ * - The build format is different for CI builds and local builds.
+ * - The git_commit may be two different commits if
+ *   local_commit != master_commit.
+ *
+ * Eg:
+ * - 0.1.0-beta+123
+ * - 0.1.0-beta+123 (bb5e5e574)
+ * - 0.1.0-beta+simone.20210902102212 (master:bb5e5e574 local:3e70ddea7)
+ */
+std::string gaia_full_version(bool include_git = !c_is_ci_build);
+
+}
 }

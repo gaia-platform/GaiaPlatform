@@ -279,7 +279,7 @@ function(add_gaia_sdk_gtest)
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
-    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --disable-persistence &
+    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --

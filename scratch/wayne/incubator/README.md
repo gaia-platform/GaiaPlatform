@@ -5,7 +5,7 @@ This is an alternate implementation of the original incubator demo, contained in
 The Gaia database server, `gaia_db_server` must be running for the build to work. The following example shows how to start the server in such a way that it must be re-initialized each time it is started.
 
 ```
-gaia_db_server --disable-persistence &
+gaia_db_server --persistence disabled &
 mkdir build
 cd build/
 cmake ..
@@ -26,7 +26,7 @@ If you wish to start with a fresh database, the best way is to kill the server, 
 pkill gaia_db_server
 touch incubator.ddl
 make -C build
-gaia_db_server --disable-persistence &
+gaia_db_server --persistence disabled &
 ```
 
 # Running the Demo
