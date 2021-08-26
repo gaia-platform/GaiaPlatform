@@ -45,7 +45,7 @@ using namespace gaia;
 using namespace gaia::common;
 using namespace gaia::translation;
 
-cl::OptionCategory g_translation_engine_category("Use translation engine options");
+cl::OptionCategory g_translation_engine_category("Translation engine options");
 
 cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
 
@@ -3526,7 +3526,6 @@ private:
 
 int main(int argc, const char** argv)
 {
-    // TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
     cl::SetVersionPrinter(print_version);
     cl::ResetAllOptionOccurrences();
     cl::HideUnrelatedOptions(g_translation_engine_category);
@@ -3540,7 +3539,7 @@ int main(int argc, const char** argv)
 
     llvm::raw_string_ostream error_msg_stream(error_msg);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets.", &error_msg_stream))
     {
         // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
         // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.

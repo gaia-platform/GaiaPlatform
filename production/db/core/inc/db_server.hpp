@@ -50,13 +50,13 @@ class server_config_t
 public:
     enum class persistence_mode_t : uint8_t
     {
-        e_default,
+        e_enabled,
         e_disabled,
         e_disabled_after_recovery,
         e_reinitialized_on_startup,
     };
 
-    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
+    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_enabled;
 
 public:
     server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir, bool testing)
