@@ -79,24 +79,24 @@ size_t move_to_front(
 void rearrange_create_list_statements(
     std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
 {
+    // Skip the first create database statement if it exists.
+    size_t index = statements.front()->type == ddl::create_type_t::create_database ? 1 : 0;
     // Move all create table statements to the front.
-    size_t index = move_to_front(statements, ddl::create_type_t::create_table);
+    index = move_to_front(statements, ddl::create_type_t::create_table, index);
     // Move all create index statements before create relationship statements.
     move_to_front(statements, ddl::create_type_t::create_index, index);
 }
 
 /**
- * Transform in-table relationship definitions (references) into standalone
+ * Convert in-table relationship definitions (references) into standalone
  * `create relationship` definitions.
  */
-void transform_references(
+void convert_references_to_relationships(
     std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
 {
     // The map tracks the seen references in a given table (whose name will be
     // the key of the map) without the corresponding matching references yet.
     std::multimap<std::string, ddl::ref_field_def_t*> table_refs;
-
-    std::unordered_map<std::string, size_t> rel_names;
 
     for (auto& stmt : statements)
     {
@@ -130,9 +130,9 @@ void transform_references(
             // reference definition at this point.
             auto candidate_range = table_refs.equal_range(ref_field->table);
             auto matching_iter = table_refs.end();
-            for (auto iter = candidate_range.first; iter != candidate_range.second; ++iter)
+            for (auto it = candidate_range.first; it != candidate_range.second; ++it)
             {
-                ddl::ref_field_def_t* candidate_ref = iter->second;
+                ddl::ref_field_def_t* candidate_ref = it->second;
 
                 // The reference definitions are considered a match when any of
                 // the following conditions are met.
@@ -149,7 +149,7 @@ void transform_references(
                 {
                     if (matching_iter == table_refs.end())
                     {
-                        matching_iter = iter;
+                        matching_iter = it;
                         continue;
                     }
 
@@ -157,29 +157,45 @@ void transform_references(
                     // reference. This tells us the previously matched reference
                     // is an ambiguous definition. Report it (instead of other
                     // candidates) as ambiguous because it appears earlier.
-                    throw ambiguous_ref_def(ref_field->table, matching_iter->second->name);
+                    throw ambiguous_reference_definition(ref_field->table, matching_iter->second->name);
                 }
             }
 
             // We cannot find any matching references for this definition.
             if (matching_iter == table_refs.end())
             {
-                throw orphaned_ref_def(create_table->name, ref_field->name);
+                throw orphaned_reference_definition(create_table->name, ref_field->name);
             }
 
             // Create a standalone `create relationship` definition by combining
             // the two matching reference definitions.
+            //
             ddl::ref_field_def_t* matching_ref = matching_iter->second;
-            std::string rel_name(ref_field->table + "_" + create_table->name);
-            rel_names[rel_name]++;
-            auto create_relationship
-                = std::make_unique<ddl::create_relationship_t>(rel_name + "_" + std::to_string(rel_names[rel_name]));
+
+            // Many to many is not supported at the moment.
+            if (matching_ref->cardinality == relationship_cardinality_t::many
+                && ref_field->cardinality == relationship_cardinality_t::many)
+            {
+                throw many_to_many_not_supported(ref_field->table, matching_ref->table);
+            }
+
+            // Use the [link1]_[link2] as the relationship name.
+            // TODO: Detect name conflict. [GATAPLAT-306]
+            std::string rel_name
+                = (matching_ref->cardinality == relationship_cardinality_t::many
+                       ? ref_field->name + "_" + matching_ref->name
+                       : matching_ref->name + "_" + ref_field->name);
+
+            auto create_relationship = std::make_unique<ddl::create_relationship_t>(rel_name);
+
             create_relationship->relationship = std::make_pair<ddl::link_def_t, ddl::link_def_t>(
                 {"", ref_field->table, matching_ref->name, "", create_table->name, matching_ref->cardinality},
                 {"", create_table->name, ref_field->name, "", ref_field->table, ref_field->cardinality});
+
             create_relationship->if_not_exists = false;
+
             // TODO: Detect conflict in field map definitions when both
-            //       `references` definitions contain one.
+            //       `references` definitions contain one. [GAIAPLAT-306]
             if (matching_ref->field_map)
             {
                 create_relationship->field_map = matching_ref->field_map;
@@ -200,7 +216,7 @@ void transform_references(
     // There are references left unmatched. Report the first seen one.
     if (table_refs.size() > 0)
     {
-        throw orphaned_ref_def(table_refs.begin()->first, table_refs.begin()->second->name);
+        throw orphaned_reference_definition(table_refs.begin()->first, table_refs.begin()->second->name);
     }
 }
 
@@ -213,6 +229,7 @@ void execute_create_statement_no_txn(
     {
         throw_on_exist = false;
     }
+
     if (create_stmt->type == ddl::create_type_t::create_table)
     {
         auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
@@ -250,16 +267,73 @@ void execute_create_statement_no_txn(
     }
 }
 
+// The `create list` parsing results are stored in the same classes as the
+// standalone statements. We will impose some additional requirements here.
+//
+// - Only the first statement can be `create database` when there is one. When
+//   the first statement is a `create database` statement, the rest entities
+//   will be created in that database.
+//
+// - No statement can contain database names in identifiers such as
+//   `[db_name].[table_name]`.
+//
+void sanity_check_create_list_statements(
+    std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
+{
+    ASSERT_PRECONDITION(statements.size() > 1, "The list must contain more than one statement.");
+
+    size_t index = 0;
+    for (auto& stmt : statements)
+    {
+        if (stmt->type == ddl::create_type_t::create_database && index > 0)
+        {
+            throw invalid_create_list("CREATE DATABASE should be the first statement.");
+        }
+        else if (stmt->type == ddl::create_type_t::create_table)
+        {
+            auto create_table = dynamic_cast<ddl::create_table_t*>(stmt.get());
+            if (!create_table->database.empty())
+            {
+                throw invalid_create_list("CREATE TABLE should not specify a database.");
+            }
+        }
+        else if (stmt->type == ddl::create_type_t::create_index)
+        {
+            auto create_index = dynamic_cast<ddl::create_index_t*>(stmt.get());
+            if (!create_index->database.empty())
+            {
+                throw invalid_create_list("CREATE INDEX should not specify a database.");
+            }
+        }
+        else if (stmt->type == ddl::create_type_t::create_relationship)
+        {
+            auto create_relationship = dynamic_cast<ddl::create_relationship_t*>(stmt.get());
+            if (!create_relationship->relationship.first.from_database.empty()
+                || !create_relationship->relationship.second.from_database.empty()
+                || !create_relationship->relationship.first.to_database.empty()
+                || !create_relationship->relationship.second.to_database.empty())
+            {
+                throw invalid_create_list("CREATE RELATIONSHIP should not specify a database in the link(s).");
+            }
+            if (create_relationship->field_map
+                && (!create_relationship->field_map->first.database.empty()
+                    || !create_relationship->field_map->second.database.empty()))
+            {
+                throw invalid_create_list("CREATE RELATIONSHIP should not specify a database in the field(s).");
+            }
+        }
+
+        index++;
+    }
+}
+
 void execute_create_list_statements(
     std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
 {
-    ASSERT_PRECONDITION(statements.size() > 1, "The list must contain more than one statements.");
+    ASSERT_PRECONDITION(statements.size() > 1, "The list must contain more than one statement.");
 
-    // To handle forward references in `create list` statements, first
-    // preprocess all references in `create table` statements and transform them
-    // into standalone `create relationship` statements; then rearrange the
-    // statements into an order that can be executed in sequence.
-    transform_references(statements);
+    sanity_check_create_list_statements(statements);
+
     rearrange_create_list_statements(statements);
 
     ddl_executor_t& executor = ddl_executor_t::get();
@@ -268,6 +342,10 @@ void execute_create_list_statements(
     {
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
+        if (create_stmt->type == ddl::create_type_t::create_database)
+        {
+            use_database(create_stmt->name);
+        }
     }
     txn.commit();
 }
@@ -281,6 +359,14 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             auto create_list = dynamic_cast<ddl::create_list_t*>(stmt.get());
 
             ASSERT_INVARIANT(statements.size() >= 1, "The list must contain at least one statement.");
+
+            // To handle forward references in `create list` statements,
+            // preprocess all references in `create table` statements and
+            // convert them into standalone `create relationship` statements;
+            // when there are more than one statement, rearrange the statements
+            // into an order that can be executed sequentially.
+            //
+            convert_references_to_relationships(create_list->statements);
 
             if (create_list->statements.size() == 1)
             {

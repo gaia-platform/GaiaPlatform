@@ -81,17 +81,22 @@ void start_repl(parser_t& parser)
                 }
             }
 
-            ddl_buffer += line;
-            if (ddl_buffer.back() == ';')
+            if (line.back() == ';')
             {
-                parser.parse_line(ddl_buffer);
+                parser.parse_line(ddl_buffer + line);
                 execute(parser.statements);
                 ddl_buffer = "";
+            }
+            else
+            {
+                ddl_buffer += line;
+                ddl_buffer += '\n';
             }
         }
         catch (gaia::common::gaia_exception& e)
         {
             cerr << c_error_prompt << e.what() << endl;
+            ddl_buffer = "";
         }
     }
 }

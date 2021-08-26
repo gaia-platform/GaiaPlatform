@@ -197,3 +197,151 @@ CREATE TABLE t2(c2 INT32);
     ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 }
+
+TEST_F(ddl_execution_test, in_table_relationship_definition)
+{
+    // In the following list of DDLs, the first will be the one we want to test.
+    // The second DDL will try to delete the entities created in the first.
+    // Successful deletion also verifies the entities are created successfully.
+    array ddls{
+        R"(
+-- self-reference 1:1 relationship full form
+create table employee (
+ name string,
+ mentor references employee using mentee,
+ mentee references employee using mentor
+);
+)",
+        R"(
+drop relationship mentor_mentee;
+drop table employee;
+)",
+        R"(
+-- self-reference 1:N relationship full form
+create table employee (
+  name string,
+  manager references employee using reports,
+  reports references employee[] using manager
+);
+)",
+        R"(
+drop relationship manager_reports;
+drop table employee;
+)",
+        R"(
+-- self-reference 1:N relationship without the optional using
+create table employee (
+  name string,
+  manager references employee,
+  reports references employee[]
+);
+)",
+        R"(
+drop relationship manager_reports;
+drop table employee;
+)",
+        R"(
+-- forward references 1:1 relationship without the optional using
+create table person (
+ name string,
+ employee references employee
+)
+create table employee (
+ company string,
+ person references person
+);
+)",
+        R"(
+drop relationship employee_person;
+drop table person;
+drop table employee;
+)",
+        R"(
+-- forward references 1:N relationship without the optional using
+create table doctor (
+ name string,
+ patients references patient[]
+)
+create table patient (
+ name string,
+ doctor references doctor
+);
+)",
+        R"(
+drop relationship doctor_patients;
+drop table doctor;
+drop table patient;
+)",
+        R"(
+-- forward references 1:1 relationship with hybrid index without using
+create table person (
+ name string,
+ email string unique,
+ employee references employee
+  where employee.personal_email = person.email
+)
+create table employee (
+ company string,
+ personal_email string unique,
+ person references person
+);
+)",
+        R"(
+drop relationship employee_person;
+drop table person;
+drop table employee;
+)",
+        R"(
+-- forward references 1:N relationship with hybrid index without using
+create table doctor (
+ name string,
+ phone_no string unique,
+ patients references patient[]
+)
+create table patient (
+ name string,
+ doctor_phone_no string,
+ doctor references doctor
+   where patient.doctor_phone_no = doctor.phone_no
+);
+)",
+        R"(
+drop relationship doctor_patients;
+drop table doctor;
+drop table patient;
+)",
+        R"(
+-- forward references 1:N relationship with hybrid index
+create database hospital
+create table doctor (
+ name string,
+ email string unique,
+ primary_care_patients references patient[],
+ secondary_care_patients references patient[]
+)
+create table patient (
+ name string,
+ primary_care_doctor_email string,
+ secondary_care_doctor_email string,
+ primary_care_doctor references doctor
+  using primary_care_patients
+  where patient.primary_care_doctor_email = doctor.email,
+ secondary_care_doctor references doctor
+  using secondary_care_patients
+  where patient.secondary_care_doctor_email = doctor.email
+);
+)",
+        R"(
+drop relationship primary_care_doctor_primary_care_patients;
+drop relationship secondary_care_doctor_secondary_care_patients;
+drop database hospital;
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_NO_THROW(execute(parser.statements));
+    }
+}

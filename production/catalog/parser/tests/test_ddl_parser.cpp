@@ -746,16 +746,13 @@ create table doctor (
  primary_care_patients references patient[],
  secondary_care_patients references patient[]
 )
-
 create table patient (
  name string,
  primary_care_doctor_email uint32,
  secondary_care_doctor_email uint32,
-
  primary_care_doctor references doctor
   using primary_care_patients
   where patient.primary_care_doctor_email = doctor.email,
-
  secondary_care_doctor references doctor
   using secondary_care_patients
   where patient.secondary_care_doctor_email = doctor.email

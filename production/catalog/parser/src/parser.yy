@@ -153,8 +153,6 @@ input:
   }
 ;
 
-opt_semicolon: ";" | ;
-
 statement_list:
   statement ";" {
       $$ = std::make_unique<statement_list_t>();
@@ -304,8 +302,8 @@ data_field_def:
 ;
 
 ref_field_def:
-  IDENTIFIER REFERENCES composite_name opt_array opt_ref_using opt_ref_where {
-      $$ = std::make_unique<ref_field_def_t>($1, $3.first, $3.second);
+  IDENTIFIER REFERENCES IDENTIFIER opt_array opt_ref_using opt_ref_where {
+      $$ = std::make_unique<ref_field_def_t>($1, $3);
       $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
       $$->field = std::move($5);
       $$->field_map = std::move($6);
