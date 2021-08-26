@@ -195,7 +195,7 @@ bool valid_db_name(const string& db_name)
     return true;
 }
 
-//TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
+// TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 string usage()
 {
     std::stringstream ss;
@@ -360,8 +360,6 @@ int main(int argc, char* argv[])
     session_options.skip_catalog_integrity_check = false;
     gaia::db::config::set_default_session_options(session_options);
 
-    gaia::db::begin_session();
-
     const auto cleanup = scope_guard::make_scope_guard(
         [&server]() {
             gaia::db::end_session();
@@ -371,13 +369,15 @@ int main(int argc, char* argv[])
             }
         });
 
-    if (mode == operate_mode_t::interactive)
+    try
     {
-        start_repl(parser);
-    }
-    else
-    {
-        try
+        gaia::db::begin_session();
+
+        if (mode == operate_mode_t::interactive)
+        {
+            start_repl(parser);
+        }
+        else
         {
             initialize_catalog();
 
@@ -405,20 +405,22 @@ int main(int argc, char* argv[])
                 }
             }
         }
-        catch (gaia::common::system_error& e)
+    }
+    catch (gaia::common::system_error& e)
+    {
+        cerr << c_error_prompt << e.what() << endl;
+        if (e.get_errno() == ECONNREFUSED)
         {
-            cerr << c_error_prompt << e.what() << endl;
-            if (e.get_errno() == ECONNREFUSED)
-            {
-                cerr << "Unable to connect to the database server." << endl;
-            }
-            return EXIT_FAILURE;
+            cerr << "Can't connect to a running instance of the " << gaia::db::c_db_server_name << ".\n"
+                 << "Start the Gaia database server and rerun gaiac."
+                 << endl;
         }
-        catch (gaia_exception& e)
-        {
-            cerr << c_error_prompt << e.what() << endl;
-            return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
+    }
+    catch (gaia_exception& e)
+    {
+        cerr << c_error_prompt << e.what() << endl;
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
