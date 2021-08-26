@@ -114,7 +114,7 @@ void async_disk_writer_t::perform_post_completion_maintenance()
     for (auto decision : decisions)
     {
         // Set durability flags for txn.
-        txn_metadata_t::set_txn_durable(decision.commit_ts);
+        transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
         // Unblock session thread.
         auto itr = m_ts_to_session_decision_fd_map.find(decision.commit_ts);
