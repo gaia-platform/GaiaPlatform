@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <map>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -115,20 +114,20 @@ void convert_references_to_relationships(
                 continue;
             }
 
-            auto ref_field = dynamic_cast<ddl::ref_field_def_t*>(field.get());
+            auto ref = dynamic_cast<ddl::ref_field_def_t*>(field.get());
 
             // We have not seen the referenced table so far; add the reference
             // definition to the seen reference map and continue.
-            if (table_refs.count(ref_field->table) == 0)
+            if (table_refs.count(ref->table) == 0)
             {
-                table_refs.emplace(create_table->name, ref_field);
+                table_refs.emplace(create_table->name, ref);
                 continue;
             }
 
             // We have seen the referenced table definition and should be able
             // to find the matching reference definition for the current
             // reference definition at this point.
-            auto candidate_range = table_refs.equal_range(ref_field->table);
+            auto candidate_range = table_refs.equal_range(ref->table);
             auto matching_iter = table_refs.end();
             for (auto it = candidate_range.first; it != candidate_range.second; ++it)
             {
@@ -140,12 +139,12 @@ void convert_references_to_relationships(
                 // - One reference definition has a matching field that matches
                 //   the other while the other does not have a matching field.
                 // - Both references have a matching field that matches the other.
-                if ((ref_field->field.empty() && candidate_ref->field.empty())
-                    || (ref_field->field.empty() && candidate_ref->field == ref_field->name)
-                    || (candidate_ref->field.empty() && ref_field->field == candidate_ref->name)
-                    || (!ref_field->field.empty() && !candidate_ref->field.empty()
-                        && candidate_ref->field == ref_field->name
-                        && ref_field->field == candidate_ref->name))
+                if ((ref->field.empty() && candidate_ref->field.empty())
+                    || (ref->field.empty() && candidate_ref->field == ref->name)
+                    || (candidate_ref->field.empty() && ref->field == candidate_ref->name)
+                    || (!ref->field.empty() && !candidate_ref->field.empty()
+                        && candidate_ref->field == ref->name
+                        && ref->field == candidate_ref->name))
                 {
                     if (matching_iter == table_refs.end())
                     {
@@ -157,14 +156,14 @@ void convert_references_to_relationships(
                     // reference. This tells us the previously matched reference
                     // is an ambiguous definition. Report it (instead of other
                     // candidates) as ambiguous because it appears earlier.
-                    throw ambiguous_reference_definition(ref_field->table, matching_iter->second->name);
+                    throw ambiguous_reference_definition(ref->table, matching_iter->second->name);
                 }
             }
 
             // We cannot find any matching references for this definition.
             if (matching_iter == table_refs.end())
             {
-                throw orphaned_reference_definition(create_table->name, ref_field->name);
+                throw orphaned_reference_definition(create_table->name, ref->name);
             }
 
             // Create a standalone `create relationship` definition by combining
@@ -174,23 +173,23 @@ void convert_references_to_relationships(
 
             // Many to many is not supported at the moment.
             if (matching_ref->cardinality == relationship_cardinality_t::many
-                && ref_field->cardinality == relationship_cardinality_t::many)
+                && ref->cardinality == relationship_cardinality_t::many)
             {
-                throw many_to_many_not_supported(ref_field->table, matching_ref->table);
+                throw many_to_many_not_supported(ref->table, matching_ref->table);
             }
 
             // Use the [link1]_[link2] as the relationship name.
             // TODO: Detect name conflict. [GATAPLAT-306]
             std::string rel_name
                 = (matching_ref->cardinality == relationship_cardinality_t::many
-                       ? ref_field->name + "_" + matching_ref->name
-                       : matching_ref->name + "_" + ref_field->name);
+                       ? ref->name + "_" + matching_ref->name
+                       : matching_ref->name + "_" + ref->name);
 
             auto create_relationship = std::make_unique<ddl::create_relationship_t>(rel_name);
 
             create_relationship->relationship = std::make_pair<ddl::link_def_t, ddl::link_def_t>(
-                {"", ref_field->table, matching_ref->name, "", create_table->name, matching_ref->cardinality},
-                {"", create_table->name, ref_field->name, "", ref_field->table, ref_field->cardinality});
+                {"", ref->table, matching_ref->name, "", create_table->name, matching_ref->cardinality},
+                {"", create_table->name, ref->name, "", ref->table, ref->cardinality});
 
             create_relationship->if_not_exists = false;
 
@@ -200,9 +199,9 @@ void convert_references_to_relationships(
             {
                 create_relationship->field_map = matching_ref->field_map;
             }
-            if (ref_field->field_map)
+            if (ref->field_map)
             {
-                create_relationship->field_map = ref_field->field_map;
+                create_relationship->field_map = ref->field_map;
             }
 
             // Append the new relationship definition to the statement list.
