@@ -195,7 +195,6 @@ bool valid_db_name(const string& db_name)
     return true;
 }
 
-//TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 string usage()
 {
     std::stringstream ss;
@@ -209,7 +208,7 @@ string usage()
           "  --output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
           "  -n, --instance-name <name> Specifies the database instance name.\n"
-          "                            If not specified will use "
+          "                            If not specified, will use "
        << c_default_instance_name << ".\n"
        << "                            If 'rnd' is specified will use a random name.\n"
           "  -p, --parse-trace          Print parsing trace.\n"

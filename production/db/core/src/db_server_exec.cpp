@@ -31,7 +31,6 @@ static constexpr char c_persistence_enabled_mode[] = "enabled";
 static constexpr char c_persistence_disabled_mode[] = "disabled";
 static constexpr char c_persistence_disabled_after_recovery_mode[] = "disabled-after-recovery";
 
-// TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 static void usage()
 {
     std::cerr
@@ -50,7 +49,7 @@ static void usage()
            "  --reset-data-store          Deletes the data in the data store.\n"
 #ifdef DEBUG
            "  --instance-name <db_instance_name>   Specify the database instance name.\n"
-           "                                       If not specified will use "
+           "                                       If not specified, will use "
         << c_default_instance_name
         << ".\n"
            "  --skip-catalog-integrity-checks      ????"
