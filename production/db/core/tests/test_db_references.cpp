@@ -431,7 +431,6 @@ TEST_F(gaia_db_references_test, remove_child_reference__different_child)
 
     gaia_ptr_t child2 = create_object(patient_type, "Jane Doe");
 
-    // We gracefully handle removing a child that is not attached to any
     ASSERT_FALSE(parent.remove_child_reference(child2.id(), c_next_patient_offset));
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());

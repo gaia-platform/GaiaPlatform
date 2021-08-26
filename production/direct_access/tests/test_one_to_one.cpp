@@ -86,7 +86,7 @@ TEST_F(gaia_one_to_one_test, connect_with_edc_obj)
     ASSERT_FALSE(madeline_employee.person());
 }
 
-TEST_F(gaia_one_to_one_test, mutliple_disconnect_same_obj_succeed)
+TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)
 {
     auto_transaction_t txn;
 
@@ -110,7 +110,7 @@ TEST_F(gaia_one_to_one_test, mutliple_disconnect_same_obj_succeed)
     ASSERT_FALSE(employee);
 }
 
-TEST_F(gaia_one_to_one_test, mutliple_connect_same_objects_succeed)
+TEST_F(gaia_one_to_one_test, multiple_connect_same_objects_succeed)
 {
     auto_transaction_t txn;
 
@@ -140,7 +140,7 @@ TEST_F(gaia_one_to_one_test, mutliple_connect_same_objects_succeed)
     ASSERT_FALSE(employee);
 }
 
-TEST_F(gaia_one_to_one_test, mutliple_connect_different_objects_fail)
+TEST_F(gaia_one_to_one_test, multiple_connect_different_objects_fail)
 {
     auto_transaction_t txn;
 

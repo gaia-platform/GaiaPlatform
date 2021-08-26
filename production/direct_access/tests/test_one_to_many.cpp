@@ -51,7 +51,7 @@ TEST_F(gaia_one_to_many_test, connect_with_edc_obj)
     ASSERT_TRUE(madeline.addresses().connect(seattle));
 }
 
-TEST_F(gaia_one_to_many_test, mutliple_disconnect_succeed)
+TEST_F(gaia_one_to_many_test, multiple_disconnect_succeed)
 {
     auto_transaction_t txn;
 
@@ -63,7 +63,7 @@ TEST_F(gaia_one_to_many_test, mutliple_disconnect_succeed)
     ASSERT_FALSE(madeline.addresses().disconnect(seattle));
 }
 
-TEST_F(gaia_one_to_many_test, mutliple_disconnect_different_object_fail)
+TEST_F(gaia_one_to_many_test, multiple_disconnect_different_object_fail)
 {
     auto_transaction_t txn;
 
@@ -77,7 +77,7 @@ TEST_F(gaia_one_to_many_test, mutliple_disconnect_different_object_fail)
     ASSERT_FALSE(john.addresses().disconnect(seattle));
 }
 
-TEST_F(gaia_one_to_many_test, mutliple_connect_same_obj_succeed)
+TEST_F(gaia_one_to_many_test, multiple_connect_same_obj_succeed)
 {
     auto_transaction_t txn;
 
@@ -88,7 +88,7 @@ TEST_F(gaia_one_to_many_test, mutliple_connect_same_obj_succeed)
     ASSERT_FALSE(madeline.addresses().connect(kissimmee));
 }
 
-TEST_F(gaia_one_to_many_test, mutliple_connect_different_obj_fail)
+TEST_F(gaia_one_to_many_test, multiple_connect_different_obj_fail)
 {
     auto_transaction_t txn;
 
