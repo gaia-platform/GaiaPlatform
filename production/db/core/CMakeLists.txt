@@ -21,6 +21,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/index"
   "${ROCKSDB_INC}"
+  "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
 
@@ -114,6 +115,32 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 
+# Liburing
+# Choose static version of the library.
+message(CHECK_START "Looking for liburing")
+find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
+find_library(LIBURING_LIBRARY NAMES liburing.a)
+if (LIBURING_LIBRARY)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+  message(FATAL_ERROR "liburing is required.")
+endif()
+
+add_library(gaia_db_persistence STATIC
+  src/log_file.cpp
+  src/async_disk_writer.cpp
+  src/async_write_batch.cpp)
+target_link_libraries(gaia_db_persistence PUBLIC gaia_build_options)
+target_include_directories(gaia_db_persistence PRIVATE
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
+# Only need util, not all of rocks.
+target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
+
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
   src/txn_metadata.cpp
@@ -139,8 +166,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
-
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager gaia_index ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager gaia_index ${LIB_EXPLAIN} ${LIB_CAP} dl)
 if(ENABLE_STACKTRACE)
   target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
 endif()

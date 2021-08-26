@@ -39,6 +39,7 @@ show_usage() {
     echo "Flags:"
     echo "  -a,--auto                   Automatically build the project before execution, if needed."
     echo "  -c,--csv                    Generate a CSV output file if applicable."
+    echo "  -d,--directory              Directory to run the tests against."
     echo "  -g,--config <file>          Generate a configuration file specific to this run."
     echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine. If specified,"
     echo "                              this overrides any configuration in a specified configuration"
@@ -58,6 +59,7 @@ parse_command_line() {
     GENERATE_CSV_MODE=0
     CONFIG_FILE=
     NUMBER_OF_THREADS=-1
+    ALTERNATE_TEST_DIRECTORY=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -68,6 +70,15 @@ parse_command_line() {
         -c|--csv)
             GENERATE_CSV_MODE=1
             shift
+        ;;
+        -d|--directory)
+            # shellcheck disable=SC2086
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                ALTERNATE_TEST_DIRECTORY=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing." >&2; exit 1
+            fi
         ;;
         -g|--config)
             # shellcheck disable=SC2086
@@ -109,6 +120,10 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [ -n "$ALTERNATE_TEST_DIRECTORY" ] ; then
+        TEST_DIRECTORY=$ALTERNATE_TEST_DIRECTORY
+    fi
 }
 
 # Check to see if an individual component to make the executable
@@ -181,7 +196,7 @@ handle_auto_build() {
 create_configuration_file() {
 
     local CONFIG_PATH=
-    CONFIGURATION_PATH=$(realpath "mink.conf")
+    CONFIGURATION_PATH=$(realpath "$GENERATED_CONFIGURATION_FILE")
 
     THREADS_ARGUMENT=
     if [ "$NUMBER_OF_THREADS" -ge 0 ] ; then
@@ -191,13 +206,13 @@ create_configuration_file() {
     if [ -z "$CONFIG_FILE" ]; then
         echo "No configuration file specified.  Generating gaia configuation file with default values."
         # shellcheck disable=SC2086
-        ./python/generate_config.py $THREADS_ARGUMENT > "$TEMP_FILE" 2>&1
+        ./python/generate_config.py --output $CONFIGURATION_PATH $THREADS_ARGUMENT > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     else
         CONFIG_PATH=$(realpath "$CONFIG_FILE")
         echo "Configuration file '$CONFIG_PATH' specified.  Generating gaia configuration file."
         # shellcheck disable=SC2086
-        ./python/generate_config.py $THREADS_ARGUMENT --config "$CONFIG_PATH"  > "$TEMP_FILE" 2>&1
+        ./python/generate_config.py --output $CONFIGURATION_PATH $THREADS_ARGUMENT --config "$CONFIG_PATH"  > "$TEMP_FILE" 2>&1
         DID_FAIL=$?
     fi
 
@@ -221,9 +236,6 @@ source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.run.tmp
-
-# Set up any local script variables.
-EXECUTABLE_PATH=./$BUILD_DIRECTORY/$EXECUTABLE_NAME
 
 
 # Parse any command line values.

@@ -1,2 +1,5 @@
+
+workload mink
+
 smoke-time-only-with-100k repeat 5
 smoke repeat 10

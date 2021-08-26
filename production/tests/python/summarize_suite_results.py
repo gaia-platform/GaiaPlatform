@@ -7,8 +7,6 @@ Copyright (c) Gaia Platform LLC
 All rights reserved.
 """
 
-# pylint: disable=too-many-lines
-
 import json
 import sys
 import os
@@ -17,7 +15,6 @@ import configparser
 
 SUITE_DIRECTORY = "suite-results/"
 
-GENERATED_CONFIGUATION_FILE = "mink.conf"
 TEST_PROPERTIES_FILE = "test.properties"
 
 DECIMALS_PLACES_IN_NANOSECONDS = 9
@@ -43,36 +40,11 @@ THREAD_LOAD_TITLE = "thread-load-percent"
 SOURCE_TITLE = "source"
 CONFIGURATION_TITLE = "configuration"
 PROPERTIES_TITLE = "properties"
-ITERATIONS_TITLE = "iterations"
-RETURN_CODE_TITLE = "return-code"
-TEST_DURATION_TITLE = "test-duration-sec"
-ITERATION_DURATION_TITLE = "iteration-duration-sec"
-MEASURED_DURATION_TITLE = "measured-duration-sec"
-PER_MEASURED_DURATION_TITLE = "iteration-measured-duration-sec"
-TOTAL_DURATION_TITLE = "duration-sec"
-PAUSE_DURATION_TITLE = "stop-pause-sec"
-WAIT_DURATION_TITLE = "wait-pause-sec"
-PRINT_DURATION_TITLE = "print-duration-sec"
+PER_TEST_TITLE = "per-test"
 TEST_RUNS_TITLE = "test_runs"
 
-START_TRANSACTION_DURATION_TITLE = "start-transaction-sec"
-INSIDE_TRANSACTION_DURATION_TITLE = "inside-transaction-sec"
-END_TRANSACTION_DURATION_TITLE = "end-transaction-sec"
-UPDATE_ROW_DURATION_TITLE = "update-row-sec"
-
-AVG_START_TRANSACTION_DURATION_TITLE = "average-start-transaction-microsec"
-AVG_INSIDE_TRANSACTION_DURATION_TITLE = "average-inside-transaction-microsec"
-AVG_END_TRANSACTION_DURATION_TITLE = "average-end-transaction-microsec"
-AVG_UPDATE_ROW_DURATION_TITLE = "average-update-row-microsec"
-AVG_WAIT_DURATION_TITLE = "average-wait-microsec"
-AVG_PRINT_DURATION_TITLE = "average-print-microsec"
-
-T_PAUSE_TITLE = "t-requested-pause-microseconds"
-T_OVER_PERCENT_TITLE = "t-over-percent"
-T_PAUSE_SECONDS_TITLE = "t-pause-sec"
-T_REQUESTED_SECONDS_TITLE = "t-requested-sec"
-T_EXCESS_NANOSECONDS_TITLE = "t-excess-microsec"
-T_PER_EXCESS_NANOSECONDS_TITLE = "t-individual-excess-microsec"
+RETURN_CODE_TITLE = "return-code"
+INVOKE_RETURN_CODE_TITLE = "invoke-return-code"
 
 SOURCE_FILE_NAME_TITLE = "file_name"
 SOURCE_LINE_NUMBER_TITLE = "line_number"
@@ -101,7 +73,7 @@ OBJECT_ID_TITLE = "rule-line-number"
 OBJECT_NAME_TITLE = "rule-additional-name"
 
 
-def calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
+def __calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
     """
     Given another sliace, update the total number of elements for a given title.
     """
@@ -113,7 +85,9 @@ def calculate_total_counts(stats_slice, log_line_columns, totals, title, index):
     totals[title] = previous_value + stats_slice[title]
 
 
-def calculate_maximum_values(stats_slice, log_line_columns, calculations, title, index):
+def __calculate_maximum_values(
+    stats_slice, log_line_columns, calculations, title, index
+):
     """
     Given another slice, update the maximum values if needed for any title.
     """
@@ -125,7 +99,9 @@ def calculate_maximum_values(stats_slice, log_line_columns, calculations, title,
     calculations[title] = max(previous_maximum, stats_slice[title])
 
 
-def calculate_average_values(stats_slice, log_line_columns, calculations, title, index):
+def __calculate_average_values(
+    stats_slice, log_line_columns, calculations, title, index
+):
     """
     Given another slice, calculate any totals we need for average values.
 
@@ -143,7 +119,7 @@ def calculate_average_values(stats_slice, log_line_columns, calculations, title,
     )
 
 
-def process_indivudal_stats_line(log_line_columns, totals, calculations):
+def __process_indivudal_stats_line(log_line_columns, totals, calculations):
     """
     Given a line of a gaia_stats.log file that is not an aggregate, break it
     apart and store the information under the aggregate totals.
@@ -162,42 +138,42 @@ def process_indivudal_stats_line(log_line_columns, totals, calculations):
         individual_stats[OBJECT_ID_TITLE]
     ]
 
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
         SCHEDULED_TITLE,
         SCHEDULED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
         INVOKED_TITLE,
         INVOKED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
         PENDING_TITLE,
         PENDING_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
         ABANDONED_TITLE,
         ABANDONED_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
         RETRY_TITLE,
         RETRY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         individual_stats,
         log_line_columns,
         individual_object_totals_item,
@@ -214,28 +190,28 @@ def process_indivudal_stats_line(log_line_columns, totals, calculations):
         individual_stats[OBJECT_ID_TITLE]
     ]
 
-    calculate_average_values(
+    __calculate_average_values(
         individual_stats,
         log_line_columns,
         individual_object_calculations_item,
         AVERAGE_LATENCY_TITLE,
         AVERAGE_LATENCY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_maximum_values(
+    __calculate_maximum_values(
         individual_stats,
         log_line_columns,
         individual_object_calculations_item,
         MAXIMUM_LATENCY_TITLE,
         MAXIMUM_LATENCY_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_average_values(
+    __calculate_average_values(
         individual_stats,
         log_line_columns,
         individual_object_calculations_item,
         AVERAGE_EXEC_TITLE,
         AVERAGE_EXEC_INDEX + AGGREGATE_TO_INDIVIDUAL_INDEX_DELTA,
     )
-    calculate_maximum_values(
+    __calculate_maximum_values(
         individual_stats,
         log_line_columns,
         individual_object_calculations_item,
@@ -245,53 +221,53 @@ def process_indivudal_stats_line(log_line_columns, totals, calculations):
     return individual_stats
 
 
-def process_aggregate_stats_line(log_line_columns, totals, calculations):
+def __process_aggregate_stats_line(log_line_columns, totals, calculations):
     """
     Take care of processing a line beginning with `[thread load:` into an aggregate
     statis slice dictionary.
     """
     stats_slice = {}
     stats_slice[THREAD_LOAD_TITLE] = float(log_line_columns[THREAD_LOAD_INDEX])
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, SCHEDULED_TITLE, SCHEDULED_INDEX
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, INVOKED_TITLE, INVOKED_INDEX
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, PENDING_TITLE, PENDING_INDEX
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, ABANDONED_TITLE, ABANDONED_INDEX
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, RETRY_TITLE, RETRY_INDEX
     )
-    calculate_total_counts(
+    __calculate_total_counts(
         stats_slice, log_line_columns, totals, EXCEPTION_TITLE, EXCEPTION_INDEX
     )
-    calculate_average_values(
+    __calculate_average_values(
         stats_slice,
         log_line_columns,
         calculations,
         AVERAGE_LATENCY_TITLE,
         AVERAGE_LATENCY_INDEX,
     )
-    calculate_maximum_values(
+    __calculate_maximum_values(
         stats_slice,
         log_line_columns,
         calculations,
         MAXIMUM_LATENCY_TITLE,
         MAXIMUM_LATENCY_INDEX,
     )
-    calculate_average_values(
+    __calculate_average_values(
         stats_slice,
         log_line_columns,
         calculations,
         AVERAGE_EXEC_TITLE,
         AVERAGE_EXEC_INDEX,
     )
-    calculate_maximum_values(
+    __calculate_maximum_values(
         stats_slice,
         log_line_columns,
         calculations,
@@ -301,7 +277,7 @@ def process_aggregate_stats_line(log_line_columns, totals, calculations):
     return stats_slice
 
 
-def calculate_proper_averages(calculations, totals):
+def __calculate_proper_averages(calculations, totals):
     """
     Once all the data has been collected, the weighted averages can be properly
     calculated.
@@ -334,13 +310,16 @@ def calculate_proper_averages(calculations, totals):
         )
 
 
-def process_rules_engine_logs(base_dir):
+def __process_rules_engine_logs(base_dir):
     """
     Load up the `gaia.log` file for a given test and specifically
     extract any information about exceptions logged in that log.
     """
 
     log_path = os.path.join(base_dir, "gaia.log")
+    if not os.path.exists(log_path):
+        return None
+
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
@@ -355,13 +334,15 @@ def process_rules_engine_logs(base_dir):
 
 
 # pylint: disable=broad-except
-def process_rules_engine_stats(base_dir):
+def __process_rules_engine_stats(base_dir):
     """
     Load up the `gaia_stats.log` file for a given test and convert it into
     a JSON blob that can be attached to the summary.
     """
 
     log_path = os.path.join(base_dir, "gaia_stats.log")
+    if not os.path.exists(log_path):
+        return None
     with open(log_path) as input_file:
         log_file_lines = input_file.readlines()
 
@@ -380,12 +361,12 @@ def process_rules_engine_stats(base_dir):
                 assert len(log_line_columns) == MAXIMUM_EXEC_INDEX + 2, str(
                     log_line_columns
                 )
-                stats_slice = process_aggregate_stats_line(
+                stats_slice = __process_aggregate_stats_line(
                     log_line_columns, totals, calculations
                 )
                 stats_slices.append(stats_slice)
             else:
-                individual_stats = process_indivudal_stats_line(
+                individual_stats = __process_indivudal_stats_line(
                     log_line_columns, totals, calculations
                 )
                 individual_name = individual_stats[OBJECT_ID_TITLE]
@@ -393,7 +374,7 @@ def process_rules_engine_stats(base_dir):
                 if INDIVIDUAL_STATS_TITLE not in owner_slice:
                     owner_slice[INDIVIDUAL_STATS_TITLE] = {}
                 owner_slice[INDIVIDUAL_STATS_TITLE][individual_name] = individual_stats
-        calculate_proper_averages(calculations, totals)
+        __calculate_proper_averages(calculations, totals)
     except Exception as my_exception:
         stats_slices = (
             "Slices could not be parsed from original "
@@ -420,20 +401,53 @@ def __translate_entry(test_properties, config, key):
         test_properties[key] = this_value
 
 
-def process_configuration_file(base_dir):
+def __process_workload_properties_file(base_dir):
+    """
+    Load the workload properties file so we can figure out how to aggregate.
+    """
+
+    json_path = os.path.join(base_dir, "workload.properties")
+    config = configparser.ConfigParser()
+    loaded_files = config.read(json_path)
+    if not loaded_files:
+        return None, None, f"Cannot load property file '{json_path}'."
+
+    assert "Aggregations" in config
+    aggregate_data = {}
+    for key in config["Aggregations"]:
+        __translate_entry(aggregate_data, config["Aggregations"], key)
+
+    assert "PerformanceLegend" in config
+    performance_legend_data = {}
+    for key in config["PerformanceLegend"]:
+        __translate_entry(performance_legend_data, config["PerformanceLegend"], key)
+    return aggregate_data, performance_legend_data, None
+
+
+def __process_configuration_file(base_dir, workload_specific_data):
     """
     Load up the generated "*.conf" file for the test and translate the
     "Rules" portion into a JSON blob.
     """
 
-    json_path = os.path.join(base_dir, GENERATED_CONFIGUATION_FILE)
-    config = configparser.ConfigParser()
-    config.read(json_path)
-    assert "Rules" in config
     rules_configuration = {}
-    for key in config["Rules"]:
-        __translate_entry(rules_configuration, config["Rules"], key)
-    return rules_configuration
+    if "configuration-file" not in workload_specific_data:
+        print("Test summary file does not contain a 'configuration-file' entry.")
+    else:
+        configuration_file_entry = workload_specific_data["configuration-file"]
+        configuration_file_parts = configuration_file_entry.split("/")
+        configuration_file_name = configuration_file_parts[-1]
+
+        json_path = os.path.join(base_dir, configuration_file_name)
+        config = configparser.ConfigParser()
+        loaded_files = config.read(json_path)
+        if not loaded_files:
+            return None, f"Cannot load configuration file '{json_path}'."
+        else:
+            assert "Rules" in config
+            for key in config["Rules"]:
+                __translate_entry(rules_configuration, config["Rules"], key)
+    return rules_configuration, None
 
 
 def __load_properties(filepath, separator="=", comment_prefix="#"):
@@ -449,7 +463,7 @@ def __load_properties(filepath, separator="=", comment_prefix="#"):
     return loaded_properties
 
 
-def process_properties_file(base_dir):
+def __process_properties_file(base_dir):
     """
     Load up the properties file.
     """
@@ -462,102 +476,40 @@ def process_properties_file(base_dir):
     return test_properties
 
 
+def __load_test_summary(base_dir):
+    """
+    Load a test summary file, one that is specific to the test that was exectuted.
+    """
+    json_path = os.path.join(base_dir, "test-summary.json")
+    with open(json_path) as input_file:
+        data = json.load(input_file)
+
+    if "return-code" not in data:
+        return None, f"Per test summary file '{json_path}' must contain a 'return-code' entry."
+    return data, None
+
+
 # pylint: disable=broad-except
-def load_simple_result_files(base_dir):
+def __load_simple_result_files(base_dir):
     """
     Load the simple, one value, result files.
 
-    The return_code.json is from the test.sh and stored by the suite.sh file.
-    The duration.json is from the run.sh and stored by the test.sh file.,
+    The return_code2.json is from the test.sh and stored by the suite.sh file.
     """
 
-    json_path = os.path.join(base_dir, "return_code.json")
+    json_path = os.path.join(base_dir, "return_code2.json")
     with open(json_path) as input_file:
         data = json.load(input_file)
         return_code_data = data[RETURN_CODE_TITLE]
 
-    duration_data = 0.0
-    json_path = os.path.join(base_dir, "duration.json")
-    try:
-        with open(json_path) as input_file:
-            data = json.load(input_file)
-            duration_data = data["duration"]
-    except Exception as my_exception:
-        duration_data = (
-            "Duration data could not be loaded from "
-            + f"original '{json_path}' file ({my_exception})."
-        )
-    return return_code_data, duration_data
+    return return_code_data
 
 
 # pylint: enable=broad-except
 
 
 # pylint: disable=too-many-locals
-def load_output_timing_files(base_dir):
-    """
-    Load the 'output.delay' file generated from the main executable.
-    """
-
-    (
-        stop_pause_data,
-        iterations_data,
-        total_wait_data,
-        total_print_data,
-        measured_section_data,
-        t_pause_data,
-        t_requested_data,
-        t_config_data,
-        start_transaction_data,
-        inside_transaction_data,
-        end_transaction_data,
-        update_row_data,
-    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None, 0.0, 0.0, 0.0, 0.0)
-
-    json_path = os.path.join(base_dir, "output.delay")
-    if os.path.exists(json_path):
-        with open(json_path) as input_file:
-            data = json.load(input_file)
-            stop_pause_data = data["stop_pause_in_sec"]
-            iterations_data = data["iterations"]
-            total_wait_data = data["total_wait_in_sec"]
-            total_print_data = data["total_print_in_sec"]
-            t_pause_data = data["t_pause_in_sec"]
-            t_requested_data = data["t_requested_in_sec"]
-
-            start_transaction_data = data["start_transaction_in_sec"]
-            inside_transaction_data = data["inside_transaction_in_sec"]
-            end_transaction_data = data["end_transaction_in_sec"]
-            update_row_data = data["update_row_in_sec"]
-
-            measured_section_data = None
-            if "measured_in_sec" in data:
-                measured_section_data = data["measured_in_sec"]
-            t_config_data = None
-            if "requested_t_pause_in_microseconds" in data:
-                t_config_data = data["requested_t_pause_in_microseconds"]
-
-    return (
-        stop_pause_data,
-        iterations_data,
-        total_wait_data,
-        total_print_data,
-        measured_section_data,
-        t_pause_data,
-        t_requested_data,
-        t_config_data,
-        start_transaction_data,
-        inside_transaction_data,
-        end_transaction_data,
-        update_row_data,
-    )
-
-
-# pylint: enable=too-many-locals
-
-
-# pylint: disable=too-many-locals
-def load_test_result_files(suite_test_directory):
+def __load_test_result_files(suite_test_directory):
     """
     Load sets of individual results from their various sources.
 
@@ -571,213 +523,103 @@ def load_test_result_files(suite_test_directory):
         if os.path.isabs(suite_test_directory)
         else os.path.join(SUITE_DIRECTORY, suite_test_directory)
     )
-    return_code_data, duration_data = load_simple_result_files(base_dir)
-    (
-        stop_pause_data,
-        iterations_data,
-        total_wait_data,
-        total_print_data,
-        measured_section_data,
-        t_pause_data,
-        t_requested_data,
-        t_config_data,
-        start_transaction_data,
-        inside_transaction_data,
-        end_transaction_data,
-        update_row_data,
-    ) = load_output_timing_files(base_dir)
+    return_code_data = __load_simple_result_files(base_dir)
 
-    stats_data = process_rules_engine_stats(base_dir)
-
-    log_data = process_rules_engine_logs(base_dir)
-
-    configuration_data = process_configuration_file(base_dir)
-
-    property_data = process_properties_file(base_dir)
+    workload_specific_data, workload_specific_error = __load_test_summary(base_dir)
+    if not workload_specific_error:
+        if "return-code" not in workload_specific_data:
+            workload_specific_error = f"File '{os.path.join(base_dir, 'test-summary.json')}' does not contain a return-code field."
+    if not workload_specific_error:
+        stats_data = __process_rules_engine_stats(base_dir)
+        log_data = __process_rules_engine_logs(base_dir)
+        configuration_data, configuration_error = __process_configuration_file(base_dir, workload_specific_data)
+        property_data = __process_properties_file(base_dir)
+    else:
+        stats_data = None
+        log_data = None
+        configuration_data, configuration_error = None, None
+        property_data = None
 
     return (
         return_code_data,
-        duration_data,
-        stop_pause_data,
         stats_data,
         log_data,
-        iterations_data,
-        total_wait_data,
-        total_print_data,
-        measured_section_data,
-        configuration_data,
+        configuration_data,configuration_error,
         property_data,
-        t_pause_data,
-        t_requested_data,
-        t_config_data,
-        start_transaction_data,
-        inside_transaction_data,
-        end_transaction_data,
-        update_row_data,
+        workload_specific_data, workload_specific_error
     )
 
 
 # pylint: enable=too-many-locals
 
 
-def __handle_t_data(
-    new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
-):
-    if t_config_data:
-        new_results[T_PAUSE_TITLE] = t_config_data
-    if t_pause_data > 0.00001:
-        new_results[T_PAUSE_SECONDS_TITLE] = t_pause_data
-        new_results[T_REQUESTED_SECONDS_TITLE] = t_requested_data
-        new_results[T_EXCESS_NANOSECONDS_TITLE] = int(
-            (t_pause_data - t_requested_data) * 1000000.0
-        )
-        new_results[T_OVER_PERCENT_TITLE] = round(
-            ((t_pause_data - t_requested_data) / t_pause_data) * 100.0, 3
-        )
-        if iterations_data > 0:
-            new_results[T_PER_EXCESS_NANOSECONDS_TITLE] = int(
-                ((t_pause_data - t_requested_data) / iterations_data) * 1000000.0
-            )
-
-
-# pylint: disable=too-many-locals
-def load_results_for_test(suite_test_directory, source_info):
+def __load_results_for_test(suite_test_directory, source_info):
     """
     Load all the results for tests and place them in the main dictionary.
     """
 
     (
         return_code_data,
-        duration_data,
-        stop_pause_data,
         stats_data,
         log_data,
-        iterations_data,
-        total_wait_data,
-        total_print_data,
-        measured_section_data,
         configuration_data,
+        configuration_error,
         property_data,
-        t_pause_data,
-        t_requested_data,
-        t_config_data,
-        start_transaction_data,
-        inside_transaction_data,
-        end_transaction_data,
-        update_row_data,
-    ) = load_test_result_files(suite_test_directory)
+        workload_specific_data,
+        workload_specific_error
+    ) = __load_test_result_files(suite_test_directory)
+    if configuration_error:
+        return None, configuration_error
+    if workload_specific_error:
+        return None, workload_specific_error
 
     new_results = {}
     if source_info:
         new_results[SOURCE_TITLE] = source_info
-    new_results[CONFIGURATION_TITLE] = configuration_data
+    if configuration_data:
+        new_results[CONFIGURATION_TITLE] = configuration_data
     new_results[PROPERTIES_TITLE] = property_data
-    new_results[ITERATIONS_TITLE] = iterations_data
+    new_results[PER_TEST_TITLE] = workload_specific_data
+
     new_results[RETURN_CODE_TITLE] = return_code_data
-    new_results[TOTAL_DURATION_TITLE] = duration_data
-    new_results[PAUSE_DURATION_TITLE] = stop_pause_data
-    new_results[WAIT_DURATION_TITLE] = total_wait_data
-    new_results[PRINT_DURATION_TITLE] = total_print_data
-    __handle_t_data(
-        new_results, t_pause_data, t_requested_data, t_config_data, iterations_data
-    )
 
-    new_results[START_TRANSACTION_DURATION_TITLE] = start_transaction_data
-    new_results[INSIDE_TRANSACTION_DURATION_TITLE] = inside_transaction_data
-    new_results[END_TRANSACTION_DURATION_TITLE] = end_transaction_data
-    new_results[UPDATE_ROW_DURATION_TITLE] = update_row_data
+    if stats_data:
+        new_results[RULES_ENGINE_TITLE] = stats_data
+    if log_data:
+        new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
 
-    if new_results[ITERATIONS_TITLE] > 0:
-        new_results[AVG_START_TRANSACTION_DURATION_TITLE] = round(
-            (start_transaction_data / float(new_results[ITERATIONS_TITLE]))
-            * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        new_results[AVG_INSIDE_TRANSACTION_DURATION_TITLE] = round(
-            inside_transaction_data
-            / float(new_results[ITERATIONS_TITLE])
-            * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        new_results[AVG_END_TRANSACTION_DURATION_TITLE] = round(
-            end_transaction_data
-            / float(new_results[ITERATIONS_TITLE])
-            * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        new_results[AVG_UPDATE_ROW_DURATION_TITLE] = round(
-            update_row_data / float(new_results[ITERATIONS_TITLE]) * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        new_results[AVG_WAIT_DURATION_TITLE] = round(
-            (total_wait_data / float(new_results[ITERATIONS_TITLE])) * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        new_results[AVG_PRINT_DURATION_TITLE] = round(
-            (total_print_data / float(new_results[ITERATIONS_TITLE]))
-            * MICROSEC_PER_SEC,
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-
-    if not isinstance(new_results[TOTAL_DURATION_TITLE], str):
-        new_results[TEST_DURATION_TITLE] = round(
-            new_results[TOTAL_DURATION_TITLE]
-            - new_results[PAUSE_DURATION_TITLE]
-            - new_results[WAIT_DURATION_TITLE]
-            - new_results[PRINT_DURATION_TITLE],
-            DECIMALS_PLACES_IN_NANOSECONDS,
-        )
-        if new_results[ITERATIONS_TITLE] > 0:
-            new_results[ITERATION_DURATION_TITLE] = round(
-                new_results[TEST_DURATION_TITLE] / float(new_results[ITERATIONS_TITLE]),
-                DECIMALS_PLACES_IN_NANOSECONDS,
-            )
-
-    if measured_section_data:
-        new_results[MEASURED_DURATION_TITLE] = measured_section_data
-        if new_results[ITERATIONS_TITLE] > 0:
-            new_results[PER_MEASURED_DURATION_TITLE] = round(
-                measured_section_data / float(new_results[ITERATIONS_TITLE]),
-                DECIMALS_PLACES_IN_NANOSECONDS,
-            )
-
-    new_results[RULES_ENGINE_TITLE] = stats_data
-    new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
-    return new_results
+    new_results[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE] = new_results[RETURN_CODE_TITLE]
+    return new_results, None
 
 
-# pylint: enable=too-many-locals
-
-
-def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
+# pylint: disable=too-many-locals
+def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
     """
     Create a summary dictionary for any repeated tests.
     """
 
     main_dictionary = {}
 
+    recorded_name = map_lines[map_line_index].strip()
+    base_dir = (
+        recorded_name
+        if os.path.isabs(recorded_name)
+        else os.path.join(SUITE_DIRECTORY, recorded_name)
+    )
+    aggregate_data, performance_legend_data, configuration_error = __process_workload_properties_file(
+        base_dir
+    )
+    if configuration_error:
+        return None, None, None, configuration_error
+
     main_dictionary[SOURCE_TITLE] = source_info
+    main_dictionary[PER_TEST_TITLE] = {}
 
-    main_dictionary[ITERATIONS_TITLE] = []
-    main_dictionary[RETURN_CODE_TITLE] = []
-    main_dictionary[TEST_DURATION_TITLE] = []
-    main_dictionary[MEASURED_DURATION_TITLE] = []
-
-    main_dictionary[START_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[INSIDE_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[END_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[UPDATE_ROW_DURATION_TITLE] = []
-
-    main_dictionary[AVG_START_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[AVG_INSIDE_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[AVG_END_TRANSACTION_DURATION_TITLE] = []
-    main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE] = []
-    main_dictionary[AVG_WAIT_DURATION_TITLE] = []
-    main_dictionary[AVG_PRINT_DURATION_TITLE] = []
-
-    main_dictionary[ITERATION_DURATION_TITLE] = []
-    main_dictionary[PER_MEASURED_DURATION_TITLE] = []
-    main_dictionary[T_OVER_PERCENT_TITLE] = []
+    for aggregate_key in aggregate_data:
+        assert (
+            aggregate_key not in main_dictionary[PER_TEST_TITLE]
+        ), f"Key to aggregate on '{aggregate_key}' must be in '{PER_TEST_TITLE}' section."
+        main_dictionary[PER_TEST_TITLE][aggregate_key] = []
 
     totals = {}
     totals[SCHEDULED_TITLE] = []
@@ -799,105 +641,80 @@ def summarize_repeated_tests(max_test, map_lines, map_line_index, source_info):
 
     main_dictionary[RULES_ENGINE_TITLE] = rules_engine_stats
 
+    configuration_error = None
     test_runs = {}
     main_dictionary[TEST_RUNS_TITLE] = test_runs
     for _ in range(1, max_test + 1):
         recorded_name = map_lines[map_line_index].strip()
         map_line_index += 1
-        new_results = load_results_for_test(recorded_name, None)
+        new_results, configuration_error = __load_results_for_test(recorded_name, None)
+        if configuration_error:
+            break
 
         main_dictionary[PROPERTIES_TITLE] = new_results[PROPERTIES_TITLE]
 
-        add_individual_test_results(main_dictionary, new_results, totals, calculations)
+        __add_individual_test_results(
+            main_dictionary, new_results, totals, calculations, aggregate_data
+        )
 
         test_runs[recorded_name] = new_results
 
-    test_value = main_dictionary[T_OVER_PERCENT_TITLE]
-    if not test_value:
-        del main_dictionary[T_OVER_PERCENT_TITLE]
-    return main_dictionary, map_line_index
+    return main_dictionary, map_line_index, performance_legend_data, configuration_error
 
 
-def add_individual_test_results(main_dictionary, new_results, totals, calculations):
+# pylint: enable=too-many-locals
+
+
+def __add_individual_test_results(
+    main_dictionary, new_results, totals, calculations, aggregate_data
+):
     """
     Add the approriate fields to the main aggregation list for that field.
     """
 
-    main_dictionary[ITERATIONS_TITLE].append(new_results[ITERATIONS_TITLE])
-    main_dictionary[RETURN_CODE_TITLE].append(new_results[RETURN_CODE_TITLE])
-    if TEST_DURATION_TITLE in new_results:
-        main_dictionary[TEST_DURATION_TITLE].append(new_results[TEST_DURATION_TITLE])
-    else:
-        main_dictionary[TEST_DURATION_TITLE].append(None)
-    if MEASURED_DURATION_TITLE in new_results:
-        main_dictionary[MEASURED_DURATION_TITLE].append(
-            new_results[MEASURED_DURATION_TITLE]
-        )
-    if ITERATION_DURATION_TITLE in new_results:
-        main_dictionary[ITERATION_DURATION_TITLE].append(
-            new_results[ITERATION_DURATION_TITLE]
-        )
-    if PER_MEASURED_DURATION_TITLE in new_results:
-        main_dictionary[PER_MEASURED_DURATION_TITLE].append(
-            new_results[PER_MEASURED_DURATION_TITLE]
-        )
-    if T_OVER_PERCENT_TITLE in new_results:
-        main_dictionary[T_OVER_PERCENT_TITLE].append(new_results[T_OVER_PERCENT_TITLE])
+    for aggregate_key in aggregate_data:
+        value = aggregate_data[aggregate_key]
 
-    main_dictionary[START_TRANSACTION_DURATION_TITLE].append(
-        new_results[START_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[INSIDE_TRANSACTION_DURATION_TITLE].append(
-        new_results[INSIDE_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[END_TRANSACTION_DURATION_TITLE].append(
-        new_results[END_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[UPDATE_ROW_DURATION_TITLE].append(
-        new_results[UPDATE_ROW_DURATION_TITLE]
-    )
+        if value == "always":
+            main_dictionary[PER_TEST_TITLE][aggregate_key].append(
+                new_results[PER_TEST_TITLE][aggregate_key]
+            )
+        elif value == "if-present-or-none":
+            if aggregate_key in new_results[PER_TEST_TITLE]:
+                main_dictionary[PER_TEST_TITLE][aggregate_key].append(
+                    new_results[PER_TEST_TITLE][aggregate_key]
+                )
+            else:
+                main_dictionary[PER_TEST_TITLE][aggregate_key].append(None)
+        elif value == "if-present":
+            if aggregate_key in new_results[PER_TEST_TITLE]:
+                main_dictionary[PER_TEST_TITLE][aggregate_key].append(
+                    new_results[PER_TEST_TITLE][aggregate_key]
+                )
 
-    main_dictionary[AVG_START_TRANSACTION_DURATION_TITLE].append(
-        new_results[AVG_START_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[AVG_INSIDE_TRANSACTION_DURATION_TITLE].append(
-        new_results[AVG_INSIDE_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[AVG_END_TRANSACTION_DURATION_TITLE].append(
-        new_results[AVG_END_TRANSACTION_DURATION_TITLE]
-    )
-    main_dictionary[AVG_UPDATE_ROW_DURATION_TITLE].append(
-        new_results[AVG_UPDATE_ROW_DURATION_TITLE]
-    )
-    main_dictionary[AVG_WAIT_DURATION_TITLE].append(
-        new_results[AVG_WAIT_DURATION_TITLE]
-    )
-    main_dictionary[AVG_PRINT_DURATION_TITLE].append(
-        new_results[AVG_PRINT_DURATION_TITLE]
-    )
+    if RULES_ENGINE_TITLE in new_results:
+        test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
+        if SCHEDULED_TITLE in test_totals:
+            totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
+            totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
+            totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
+            totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
+            totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
+            totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
 
-    test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
-    if SCHEDULED_TITLE in test_totals:
-        totals[SCHEDULED_TITLE].append(test_totals[SCHEDULED_TITLE])
-        totals[INVOKED_TITLE].append(test_totals[INVOKED_TITLE])
-        totals[PENDING_TITLE].append(test_totals[PENDING_TITLE])
-        totals[ABANDONED_TITLE].append(test_totals[ABANDONED_TITLE])
-        totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
-        totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
-
-    test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
-    if AVERAGE_LATENCY_TITLE in test_calculations:
-        calculations[AVERAGE_LATENCY_TITLE].append(
-            test_calculations[AVERAGE_LATENCY_TITLE]
-        )
-        calculations[MAXIMUM_LATENCY_TITLE].append(
-            test_calculations[MAXIMUM_LATENCY_TITLE]
-        )
-        calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
-        calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
+        test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
+        if AVERAGE_LATENCY_TITLE in test_calculations:
+            calculations[AVERAGE_LATENCY_TITLE].append(
+                test_calculations[AVERAGE_LATENCY_TITLE]
+            )
+            calculations[MAXIMUM_LATENCY_TITLE].append(
+                test_calculations[MAXIMUM_LATENCY_TITLE]
+            )
+            calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
+            calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
 
 
-def load_scenario_file():
+def __load_scenario_file():
     """
     Load the contents of the specified suite file.
     """
@@ -915,7 +732,7 @@ def load_scenario_file():
     return suite_file_name, suite_file_lines
 
 
-def load_execution_map_file():
+def __load_execution_map_file():
     """
     Load the contents of the generated execution map file.
     """
@@ -926,7 +743,7 @@ def load_execution_map_file():
     return map_file_lines
 
 
-def dump_results_dictionary(full_test_results):
+def __dump_results_dictionary(full_test_results):
     """
     Dump the full_test_results dictionary as a JSON file.
     """
@@ -934,12 +751,14 @@ def dump_results_dictionary(full_test_results):
         json.dump(full_test_results, write_file, indent=4)
 
 
-def execute_suite_tests(suite_file, suite_file_lines, map_lines):
+# pylint: disable=too-many-locals
+def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
     """
     Execute each of the tests specified by the lines in the suite file.
     """
     full_test_results = {}
     map_line_index = 0
+    configuration_error = None
     file_line_number = 1
     for next_suite_test in suite_file_lines:
         next_suite_test = next_suite_test.strip()
@@ -950,7 +769,8 @@ def execute_suite_tests(suite_file, suite_file_lines, map_lines):
         file_line_number += 1
 
         is_repeat_test = re.search("^#", next_suite_test)
-        if is_repeat_test or not next_suite_test.strip():
+        is_workflow_test = re.search("^workload +(.*)$", next_suite_test)
+        if is_repeat_test or is_workflow_test or not next_suite_test.strip():
             continue
 
         is_repeat_test = re.search("^(.*) repeat ([0-9]+)$", next_suite_test)
@@ -976,30 +796,57 @@ def execute_suite_tests(suite_file, suite_file_lines, map_lines):
             (
                 full_test_results[next_suite_test],
                 map_line_index,
-            ) = summarize_repeated_tests(
+                performance_legend_data,
+                configuration_error
+            ) = __summarize_repeated_tests(
                 max_test, map_lines, map_line_index, source_info
             )
+            if configuration_error:
+                break
+            full_test_results[next_suite_test][
+                "performance-legend"
+            ] = performance_legend_data
             map_line_index += 1
         else:
             suite_test_results_directory = map_lines[map_line_index].strip()
             simple_results_name = os.path.basename(suite_test_results_directory)
-            full_test_results[simple_results_name] = load_results_for_test(
+
+            _, performance_legend_data, configuration_error = __process_workload_properties_file(
+                suite_test_results_directory
+            )
+            if configuration_error:
+                break
+
+            full_test_results[simple_results_name], configuration_error = __load_results_for_test(
                 suite_test_results_directory, source_info
             )
+            if configuration_error:
+                break
+
+            full_test_results[simple_results_name][
+                "performance-legend"
+            ] = performance_legend_data
+
             map_line_index += 1
 
-    assert len(map_lines) == map_line_index
-    return full_test_results
+    assert len(map_lines) == map_line_index or configuration_error
+    return full_test_results, configuration_error
 
 
-def process_script_action():
+# pylint: enable=too-many-locals
+
+
+def __process_script_action():
     """
     Process the posting of the message.
     """
-    suite_file_name, map_file_lines = load_scenario_file()
-    map_lines = load_execution_map_file()
-    test_results = execute_suite_tests(suite_file_name, map_file_lines, map_lines)
-    dump_results_dictionary(test_results)
+    suite_file_name, map_file_lines = __load_scenario_file()
+    map_lines = __load_execution_map_file()
+    test_results, configuration_error = __execute_suite_tests(suite_file_name, map_file_lines, map_lines)
+    if configuration_error:
+        print(f"Procssesing error: {configuration_error}")
+        return 1
+    __dump_results_dictionary(test_results)
 
 
-sys.exit(process_script_action())
+sys.exit(__process_script_action())

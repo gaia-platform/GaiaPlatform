@@ -2,6 +2,8 @@
 # Simple test suite with both of the standard smoke tests.
 #
 
+workload mink
+
 # `Smoke` suite with different threads
 smoke threads 1 repeat 3
 smoke threads 2 repeat 3

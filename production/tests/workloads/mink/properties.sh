@@ -39,12 +39,27 @@ export LOG_DIRECTORY="logs"
 # Relative directory where the test results are stored.
 export TEST_RESULTS_DIRECTORY="test-results"
 
-# Relative directory where the test suite results are stored.
-export SUITE_RESULTS_DIRECTORY="suite-results"
-
 # Absolute temp directory where the project is installed to and operated
 # on during the testing process.
 export TEST_DIRECTORY=/tmp/test_$PROJECT_NAME
+
+# Set up any local script variables.
+export EXECUTABLE_PATH=./$BUILD_DIRECTORY/$EXECUTABLE_NAME
+
+
+# -----------------------------------------------------------------
+# Functions to specify project specific information for test.sh.
+#
+# This is placed in this file to make the core scripts as agnostic
+# as possible for reuse.
+# -----------------------------------------------------------------
+copy_extra_test_files() {
+    if ! cp "$BUILD_DIRECTORY"/output.* "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"  > "$TEMP_FILE" 2>&1; then
+        cat "$TEMP_FILE"
+        echo "Test script cannot copy intermediate test results from '$(realpath "$BUILD_DIRECTORY")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+        complete_process 2
+    fi
+}
 
 # -----------------------------------------------------------------
 # Functions to specify how to process the command line with run.sh.

@@ -195,6 +195,7 @@ bool valid_db_name(const string& db_name)
     return true;
 }
 
+//TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 string usage()
 {
     std::stringstream ss;
@@ -330,12 +331,12 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
-            cout << usage() << endl;
+            cout << usage();
             exit(EXIT_SUCCESS);
         }
         else if (argv[i] == string("-v") || argv[i] == string("--version"))
         {
-            cout << version() << endl;
+            cout << version();
             exit(EXIT_SUCCESS);
         }
         else
