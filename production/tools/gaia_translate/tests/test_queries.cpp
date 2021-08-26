@@ -97,6 +97,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
         g_oninsert_called = false;
         g_oninsert2_called = false;
         g_oninsert3_called = false;
@@ -225,8 +227,6 @@ TEST_F(test_queries_code, basic_implicit_navigation)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
     // Fire on_update(S:student).
@@ -248,8 +248,6 @@ TEST_F(test_queries_code, implicit_navigation_fork)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
     // Fire on_update(registration)
@@ -273,8 +271,6 @@ TEST_F(test_queries_code, new_registration)
 
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
     // The students will register for a class. The rule, on_insert(registration)
@@ -317,8 +313,6 @@ TEST_F(test_queries_code, sum_of_ages)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_queries");
 
     // Fire on_insert(student). Expect to see a sum of all student ages.
@@ -339,8 +333,6 @@ TEST_F(test_queries_code, sum_of_hours)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_1");
 
     // on_insert(registration) will sum up the student's hours.
@@ -363,8 +355,6 @@ TEST_F(test_queries_code, sum_of_all_hours)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_2");
 
     // on_insert(registration) will sum up the student's hours.
@@ -387,8 +377,6 @@ TEST_F(test_queries_code, tag_define_use)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_3");
 
     // on_insert(registration) will sum up the student's hours.
@@ -432,8 +420,6 @@ TEST_F(test_queries_code, if_stmt)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
     // on_insert(registration) will sum up the student's hours.
@@ -456,8 +442,6 @@ TEST_F(test_queries_code, if_stmt2)
 
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
     // @hours - active variable.
@@ -483,8 +467,6 @@ TEST_F(test_queries_code, if_stmt3)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_4");
 
     // @grade - active variable.
@@ -508,8 +490,6 @@ TEST_F(test_queries_code, nomatch_stmt)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_6");
 
     // on_update(student) will fire a rule with an if/else/nomatch.
@@ -533,8 +513,6 @@ TEST_F(test_queries_code, nomatch_stmt2)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_6");
 
     // on_insert(student) will look for class hours, which don't exist - nomatch!
@@ -556,8 +534,6 @@ TEST_F(test_queries_code, nomatch_stmt3)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_7");
 
     // on_insert(registration) will look for class hours, which don't exist - nomatch!
@@ -581,8 +557,6 @@ TEST_F(test_queries_code, nomatch_stmt4)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_8");
 
     // on_insert(student) will look for class hours, which don't exist - nomatch!
@@ -604,8 +578,6 @@ TEST_F(test_queries_code, nomatch_function_query)
 {
     populate_db();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_9");
 
     g_string_value = "";
@@ -647,8 +619,6 @@ TEST_F(test_queries_code, one_to_one)
     student_5.parents().connect(parents_3);
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_query_10");
 
     g_string_value = "";

@@ -13,11 +13,19 @@ import os
 import math
 from enum import Enum
 
+DECIMALS_PLACES_IN_MILLISECONDS = 3
+
 
 def __translate_return_code(return_code):
     value = "unknown"
     if not return_code:
-        value = "Sucess"
+        value = "Success"
+    elif return_code == 1:
+        value = "SuiteFailure"
+    elif return_code == 5:
+        value = "TestExecutionFailure"
+    elif return_code == 6:
+        value = "ExpectedComparisonFailure"
     else:
         value = f"Failure:{return_code}"
     return value
@@ -187,14 +195,16 @@ class ColumnFormatter:
 
 def __compute_scale_info(source_list_name, translate_scale):
 
-    if source_list_name.endswith("-sec"):
+    if source_list_name.endswith("-sec") or source_list_name.endswith("-seconds"):
         scale = MeasuredScale.SECONDS
     elif source_list_name.endswith("-millisec") or source_list_name.endswith("-ms"):
         scale = MeasuredScale.MILLISECONDS
     elif source_list_name.endswith("-microsec"):
         scale = MeasuredScale.MICROSECONDS
     else:
-        assert source_list_name.endswith("-nanosec")
+        assert source_list_name.endswith("-nanosec"), (
+            "Cannot determine scale for '" + source_list_name + "'."
+        )
         scale = MeasuredScale.NANOSECONDS
 
     translation_factor = None
@@ -209,7 +219,7 @@ def __compute_scale_info(source_list_name, translate_scale):
 
 
 # pylint: disable=too-many-arguments,too-many-locals
-def add_new_sample_set(
+def __add_new_sample_set(
     formatter,
     suite_data,
     passed_test_indices,
@@ -223,13 +233,17 @@ def add_new_sample_set(
     """
     scale, translation_factor = __compute_scale_info(source_list_name, translate_scale)
 
-    if "." in source_list_name:
-        sample_dictionary = suite_data
-        split_source_name = source_list_name.split(".")
-        for next_source_name in split_source_name:
-            sample_dictionary = sample_dictionary[next_source_name]
-    else:
-        sample_dictionary = suite_data[source_list_name]
+    try:
+        if "." in source_list_name:
+            sample_dictionary = suite_data
+            split_source_name = source_list_name.split(".")
+            for next_source_name in split_source_name:
+                sample_dictionary = sample_dictionary[next_source_name]
+        else:
+            sample_dictionary = suite_data[source_list_name]
+    except KeyError as this_error:
+        print("suite_data:" + str(suite_data))
+        raise this_error
 
     if is_single_test_report:
         data_value = sample_dictionary
@@ -275,13 +289,12 @@ def __output_suite_header(suite_data, formatted_header):
         file_name = file_name[len(current_directory) :]
     formatted_header.add_row(["Source", f"{file_name}:{source_data['line_number']}"])
 
-    iteration_data = suite_data["iterations"]
+    properties_data = suite_data["properties"]
+    test_type = properties_data["test-type"]
 
-    is_single_test_report = isinstance(iteration_data, int)
-    if not is_single_test_report:
-        iteration_data = iteration_data[0]
-    formatted_header.add_row(["Steps/Iterations", f"{iteration_data}"])
-    return is_single_test_report
+    return_code_data = suite_data["per-test"]["return-code"]
+    is_single_test_report = isinstance(return_code_data, int)
+    return is_single_test_report, test_type
 
 
 def __find_passed_tests(return_code_data):
@@ -294,7 +307,110 @@ def __find_passed_tests(return_code_data):
     return passed_test_indices
 
 
-def process_script_action():
+def __summarize_integration(suite_data, is_single_test_report, formatted_header):
+
+    return_code_data = suite_data["per-test"]["return-code"]
+    if is_single_test_report:
+        passed_test_indices = None
+        test_duration = suite_data["per-test"]["measured-duration-sec"]
+
+        formatted_header.add_row(
+            ["Test Results", f"{__translate_return_code(return_code_data)}"]
+        )
+        formatted_header.add_row(
+            [
+                "Test Duration (sec)",
+                f"{round(test_duration, DECIMALS_PLACES_IN_MILLISECONDS)}",
+            ]
+        )
+    else:
+        passed_test_indices = __find_passed_tests(return_code_data)
+        test_duration = suite_data["per-test"]["measured-duration-sec"]
+        formatted_header.add_row(
+            [
+                "Test Summary",
+                f"Success={len(passed_test_indices)}/{len(return_code_data)}",
+            ]
+        )
+        translated_array = []
+        for next_test in test_duration:
+            translated_array.append(
+                f"{round(next_test, DECIMALS_PLACES_IN_MILLISECONDS)}"
+            )
+        test_duration = translated_array
+
+        if len(passed_test_indices) != len(return_code_data):
+            translated_array = []
+            for next_test in return_code_data:
+                translated_array.append(__translate_return_code(next_test))
+
+            formatted_header.add_row(
+                [
+                    "Test Results",
+                    f"Success={translated_array}",
+                ]
+            )
+        formatted_header.add_row(["Test Duration (sec)", f"{test_duration}"])
+
+
+def __summarize_performance(suite_data, is_single_test_report, formatted_header):
+
+    performance_legened_data = suite_data["performance-legend"]
+
+    return_code_data = suite_data["per-test"]["return-code"]
+    if is_single_test_report:
+        passed_test_indices = None
+        formatted_header.add_row(
+            ["Test Results", f"{__translate_return_code(return_code_data)}"]
+        )
+    else:
+        passed_test_indices = __find_passed_tests(return_code_data)
+        formatted_header.add_row(
+            [
+                "Test Results",
+                f"Success={len(passed_test_indices)}/{len(return_code_data)}",
+            ]
+        )
+
+    formatted_columns = []
+
+    for next_display_value in performance_legened_data:
+
+        if not formatted_columns or next_display_value.startswith("."):
+            if is_single_test_report:
+                formatted_data = ColumnFormatter(
+                    ["Measure", "Value"],
+                    [True, False],
+                    line_start_separator="    ",
+                )
+            else:
+                formatted_data = ColumnFormatter(
+                    ["Measure", "Min", "Max", "Range", "TP50 (Med)", "TP90"],
+                    [True, False, False, False, False, False],
+                    line_start_separator="    ",
+                )
+            formatted_columns.append(formatted_data)
+            if next_display_value.startswith("."):
+                continue
+
+        sample_title = performance_legened_data[next_display_value].split(":")
+        sample_scale = None
+        if len(sample_title) > 1:
+            sample_scale, _ = __compute_scale_info("-" + sample_title[1], None)
+
+        __add_new_sample_set(
+            formatted_data,
+            suite_data,
+            passed_test_indices,
+            next_display_value,
+            sample_title[0],
+            is_single_test_report,
+            sample_scale,
+        )
+    return formatted_columns
+
+
+def __process_script_action():
     """
     Process the posting of the message.
     """
@@ -304,7 +420,7 @@ def process_script_action():
         data_dictionary = json.load(input_file)
 
     for suite_title in data_dictionary:
-        print(f"\n---\nSuite: {suite_title}\n---")
+        print(f"\n---\nTest: {suite_title}\n---")
         suite_data = data_dictionary[suite_title]
 
         formatted_header = ColumnFormatter(
@@ -313,143 +429,23 @@ def process_script_action():
             show_header=False,
             line_start_separator="  ",
         )
-        is_single_test_report = __output_suite_header(suite_data, formatted_header)
+        is_single_test_report, test_type = __output_suite_header(
+            suite_data, formatted_header
+        )
+        formatted_header.add_row(["Test Type", f"{test_type}"])
 
-        return_code_data = suite_data["return-code"]
-        if is_single_test_report:
-            passed_test_indices = None
-            formatted_header.add_row(
-                ["Test Results", f"{__translate_return_code(return_code_data)}"]
-            )
-            formatted_data = ColumnFormatter(
-                ["Measure", "Value"],
-                [True, False],
-                line_start_separator="    ",
-            )
-            formatted_rules_data = ColumnFormatter(
-                ["Measure", "Value"],
-                [True, False],
-                line_start_separator="    ",
+        formatted_data_items = []
+        if test_type == "performance":
+            formatted_data_items = __summarize_performance(
+                suite_data, is_single_test_report, formatted_header
             )
         else:
-            passed_test_indices = __find_passed_tests(return_code_data)
-            formatted_header.add_row(
-                [
-                    "Test Results",
-                    f"Success={len(passed_test_indices)}/{len(return_code_data)}",
-                ]
-            )
-            formatted_data = ColumnFormatter(
-                ["Measure", "Min", "Max", "Range", "TP50 (Med)", "TP90"],
-                [True, False, False, False, False, False],
-                line_start_separator="    ",
-            )
-            formatted_rules_data = ColumnFormatter(
-                ["Measure", "Min", "Max", "Range", "TP50 (Med)", "TP90"],
-                [True, False, False, False, False, False],
-                line_start_separator="    ",
-            )
-
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "iteration-measured-duration-sec",
-            "iter-total",
-            is_single_test_report,
-            MeasuredScale.MICROSECONDS,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-start-transaction-microsec",
-            "start",
-            is_single_test_report,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-inside-transaction-microsec",
-            "inside",
-            is_single_test_report,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-end-transaction-microsec",
-            "commit",
-            is_single_test_report,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-update-row-microsec",
-            "update-row",
-            is_single_test_report,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-wait-microsec",
-            "wait",
-            is_single_test_report,
-        )
-        add_new_sample_set(
-            formatted_data,
-            suite_data,
-            passed_test_indices,
-            "average-print-microsec",
-            "print",
-            is_single_test_report,
-        )
-
-        add_new_sample_set(
-            formatted_rules_data,
-            suite_data,
-            passed_test_indices,
-            "rules-engine-stats.calculations.avg-latency-ms",
-            "avg-latency",
-            is_single_test_report,
-            MeasuredScale.MICROSECONDS,
-        )
-        add_new_sample_set(
-            formatted_rules_data,
-            suite_data,
-            passed_test_indices,
-            "rules-engine-stats.calculations.max-latency-ms",
-            "max-latency",
-            is_single_test_report,
-            MeasuredScale.MICROSECONDS,
-        )
-        add_new_sample_set(
-            formatted_rules_data,
-            suite_data,
-            passed_test_indices,
-            "rules-engine-stats.calculations.avg-exec-ms",
-            "avg-exec",
-            is_single_test_report,
-            MeasuredScale.MICROSECONDS,
-        )
-        add_new_sample_set(
-            formatted_rules_data,
-            suite_data,
-            passed_test_indices,
-            "rules-engine-stats.calculations.max-exec-ms",
-            "max-exec",
-            is_single_test_report,
-            MeasuredScale.MICROSECONDS,
-        )
+            __summarize_integration(suite_data, is_single_test_report, formatted_header)
 
         formatted_header.generate_output()
-        print(" ")
-        formatted_data.generate_output()
-        print(" ")
-        formatted_rules_data.generate_output()
+        for next_data_item in formatted_data_items:
+            print(" ")
+            next_data_item.generate_output()
 
 
-sys.exit(process_script_action())
+sys.exit(__process_script_action())

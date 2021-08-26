@@ -173,3 +173,45 @@ Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't 
    - Press the play button on the left of each test.
 4. Modify
    - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the test being compiled, executed and the obvious failure.
+
+## Release Process
+
+When we are ready to release a new version of Gaia this is the process to follow:
+
+1. Ensure you are on `master` and have the latest changed:
+   ```shell
+   git checkout master
+   git pull 
+   ```
+2. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
+   ```cmake
+   # From 
+   project(production VERSION 0.2.5)
+   # To
+   project(production VERSION 0.3.0)
+   ```
+3. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
+   ```cmake
+   # From  
+   set(PRE_RELEASE_IDENTIFIER "alpha")
+   # To
+   set(PRE_RELEASE_IDENTIFIER "beta")
+   ```
+4. Create a commit for the new Release:
+   ```shell
+   git add -u
+   git commit -m "Bump version to 0.3.0-beta."
+   git push
+   ```
+5. Create a tag reflecting the new version:
+   ```shell
+   git tag 0.3.0-beta
+   ```
+6. Go on [GitHub releases tab](https://github.com/gaia-platform/GaiaPlatform/releases) and draft a new release, using the tag created in the previous step.
+   1. Tag Version: `0.3.0-beta`
+   2. Release Title: `Gaia Platform 0.3.0-beta`
+   3. Description: High level description of new features and relevant bug fixes.
+   4. Check the box "This is a pre-release" if that's the case.
+8. From now on the version will remain `0.3.0-beta` until a new Release is ready. At that point repeat this process.
+   1. We currently have a single version across the product (gaia_sdk, gaia_db_server, gaiac, and gaiat).
+   2. Every build has an incremental build number which is added to the full version string (eg. `0.2.1-alpha+1731`). The build number may differ for local builds.

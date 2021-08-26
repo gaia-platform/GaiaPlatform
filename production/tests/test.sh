@@ -18,6 +18,8 @@ complete_process() {
 
     if [ "$SCRIPT_RETURN_CODE" -ne 2 ]; then
         copy_test_output
+
+        exec_summarize_test_results "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"
     fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
@@ -183,6 +185,15 @@ clear_test_output() {
     fi
 }
 
+# Within the scope of completing this script, generate the test results.
+exec_summarize_test_results() {
+    local test_results_directory=$1
+
+    if ! ./python/summarize_test_results.py "$test_results_directory"; then
+        complete_process 2 "Summarizing the results failed."
+    fi
+}
+
 # Copy the intermediate test output directory to the script's test output directory.
 copy_test_output() {
     if [ -d "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" ]; then
@@ -205,6 +216,18 @@ copy_test_output() {
         if ! cp -r "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
             cat "$TEMP_FILE"
             echo "Test script cannot copy generated configuration from '$(realpath "$TEST_DIRECTORY/$GENERATED_CONFIGURATION_FILE")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/$GENERATED_CONFIGURATION_FILE")'."
+            complete_process 2
+        fi
+
+        if ! cp -r "workload.properties" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy workload properties from '$(realpath "workload.properties")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
+            complete_process 2
+        fi
+
+        if ! cp -r "tests/$TEST_MODE/test.properties" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            echo "Test script cannot copy test properties from '$(realpath "tests/$TEST_MODE/test.properties")' to '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")'."
             complete_process 2
         fi
 
@@ -355,6 +378,9 @@ execute_test_workflow() {
         DID_FAIL=$?
     fi
     TEST_END_MARK=$(date +%s.%N)
+
+    echo " { \"return-code\" : $DID_FAIL }" > "$TEST_RESULTS_DIRECTORY/return_code.json"
+
 
     # Make sure to calculate the runtime and store it in the `duration.json` file.
     TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )

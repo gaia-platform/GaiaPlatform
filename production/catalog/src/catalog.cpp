@@ -39,12 +39,20 @@ void use_database(const string& name)
 
 gaia_id_t create_database(const string& name, bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_database(name, throw_on_exists);
+    ddl_executor_t& ddl_executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
+    gaia_id_t id = ddl_executor.create_database(name, throw_on_exists);
+    txn.commit();
+    return id;
 }
 
 gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields)
 {
-    return ddl_executor_t::get().create_table("", name, fields);
+    ddl_executor_t& ddl_executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
+    gaia_id_t id = ddl_executor.create_table("", name, fields);
+    txn.commit();
+    return id;
 }
 
 gaia_id_t create_table(
@@ -53,8 +61,12 @@ gaia_id_t create_table(
     const ddl::field_def_list_t& fields,
     bool throw_on_exists)
 {
+    ddl_executor_t& ddl_executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
     check_not_system_db(name);
-    return ddl_executor_t::get().create_table(db_name, name, fields, throw_on_exists);
+    gaia_id_t id = ddl_executor.create_table(db_name, name, fields, throw_on_exists);
+    txn.commit();
+    return id;
 }
 gaia_id_t create_relationship(
     const string& name,
@@ -72,17 +84,11 @@ gaia_id_t create_relationship(
     const optional<ddl::table_field_map_t>& field_map,
     bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_relationship(name, link1, link2, field_map, throw_on_exists);
-}
-
-void drop_relationship(const string& name, bool throw_unless_exists)
-{
-    return ddl_executor_t::get().drop_relationship(name, throw_unless_exists);
-}
-
-void drop_index(const string& name, bool throw_unless_exists)
-{
-    return ddl_executor_t::get().drop_index(name, throw_unless_exists);
+    ddl_executor_t& ddl_executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
+    gaia_id_t id = ddl_executor.create_relationship(name, link1, link2, field_map, throw_on_exists);
+    txn.commit();
+    return id;
 }
 
 gaia_id_t create_index(
@@ -94,8 +100,22 @@ gaia_id_t create_index(
     const std::vector<std::string>& field_names,
     bool throw_on_exists)
 {
-    return ddl_executor_t::get().create_index(
+    ddl_executor_t& ddl_executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
+    gaia_id_t id = ddl_executor.create_index(
         index_name, unique, type, db_name, table_name, field_names, throw_on_exists);
+    txn.commit();
+    return id;
+}
+
+void drop_relationship(const string& name, bool throw_unless_exists)
+{
+    return ddl_executor_t::get().drop_relationship(name, throw_unless_exists);
+}
+
+void drop_index(const string& name, bool throw_unless_exists)
+{
+    return ddl_executor_t::get().drop_index(name, throw_unless_exists);
 }
 
 void drop_database(const string& name, bool throw_unless_exists)
