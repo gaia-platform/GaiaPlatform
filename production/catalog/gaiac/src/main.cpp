@@ -412,7 +412,7 @@ int main(int argc, char* argv[])
         if (e.get_errno() == ECONNREFUSED)
         {
             cerr << "Can't connect to a running instance of the " << gaia::db::c_db_server_name << ".\n"
-                 << "Start the Gaia database server and rerun gaiac."
+                 << "Start the " << gaia::db::c_db_server_name << " and rerun gaiac."
                  << endl;
         }
         return EXIT_FAILURE;
