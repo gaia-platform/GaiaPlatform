@@ -77,11 +77,11 @@ int client_t::get_record_cursor_socket_for_index(
 {
     FlatBufferBuilder builder;
 
-    flatbuffers::Offset<void> flat_predicate = 0;
+    flatbuffers::Offset<void> serialized_predicate = 0;
 
     if (predicate)
     {
-        flat_predicate = predicate->as_query(builder);
+        serialized_predicate = predicate->as_query(builder);
     }
 
     auto info_builder = index_scan_info_tBuilder(builder);
@@ -90,7 +90,7 @@ int client_t::get_record_cursor_socket_for_index(
 
     if (predicate)
     {
-        info_builder.add_query(flat_predicate);
+        info_builder.add_query(serialized_predicate);
         info_builder.add_query_type(predicate->query_type());
     }
 

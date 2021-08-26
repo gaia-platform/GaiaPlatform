@@ -541,8 +541,8 @@ void server_t::handle_request_stream(
                 }
             }
             start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
+            break;
         }
-        break;
         default:
             ASSERT_UNREACHABLE(c_message_unexpected_query_type);
         }
