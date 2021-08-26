@@ -147,6 +147,34 @@ indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, inde
     }
 }
 
+template <typename T_index_type>
+void update_index_entry(
+    base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
+{
+    auto index = static_cast<T_index_type*>(base_index);
+
+    // If the index has UNIQUE constraint, then we can't insert duplicate values.
+    // Because we never actually remove index entries, we need special checks
+    // for the situations when we delete keys or re-insert a previously deleted key.
+    if (is_unique && !record.deleted)
+    {
+        auto it_start = index->equal_range(key).first;
+        auto it_end = index->equal_range(key).second;
+
+        for (; it_start != it_end; ++it_start)
+        {
+            if (!it_start->second.deleted)
+            {
+                auto index_view = index_view_t(id_to_ptr(index->id()));
+                auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+                throw unique_constraint_violation(index_view.name(), table_view.name());
+            }
+        }
+    }
+
+    index->insert_index_entry(std::move(key), record);
+}
+
 void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record)
 {
     ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized");
@@ -165,57 +193,11 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
     switch (it->second->type())
     {
     case catalog::index_type_t::range:
-    {
-        auto index = static_cast<range_index_t*>(it->second.get());
-
-        // If the index has UNIQUE constraint, then we can't insert duplicate values.
-        // Because we never actually remove index entries, we need special checks
-        // for the situations when we delete keys or re-insert a previously deleted key.
-        if (is_unique_index && !record.deleted)
-        {
-            auto it_start = index->equal_range(key).first;
-            auto it_end = index->equal_range(key).second;
-
-            for (; it_start != it_end; ++it_start)
-            {
-                if (!it_start->second.deleted)
-                {
-                    auto index_view = index_view_t(id_to_ptr(index->id()));
-                    auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
-                    throw unique_constraint_violation(index_view.name(), table_view.name());
-                }
-            }
-        }
-
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<range_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     case catalog::index_type_t::hash:
-    {
-        auto index = static_cast<hash_index_t*>(it->second.get());
-
-        // If the index has UNIQUE constraint, then we can't insert duplicate values.
-        // Because we never actually remove index entries, we need special checks
-        // for the situations when we delete keys or re-insert a previously deleted key.
-        if (is_unique_index && !record.deleted)
-        {
-            auto it_start = index->equal_range(key).first;
-            auto it_end = index->equal_range(key).second;
-
-            for (; it_start != it_end; ++it_start)
-            {
-                if (!it_start->second.deleted)
-                {
-                    auto index_view = index_view_t(id_to_ptr(index->id()));
-                    auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
-                    throw unique_constraint_violation(index_view.name(), table_view.name());
-                }
-            }
-        }
-
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<hash_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     }
 }
 
