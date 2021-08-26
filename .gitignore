@@ -45,3 +45,5 @@ checks.json
 production/tests/suite-results/*
 production/tests/test-results/*
 production/tests/Pipfile.lock
+
+third_party/production
