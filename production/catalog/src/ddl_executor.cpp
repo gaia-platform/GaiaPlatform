@@ -633,6 +633,19 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
         reference_record.delete_row();
     }
 
+    std::vector<gaia_id_t> index_ids;
+    for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
+    {
+        index_ids.push_back(index.gaia_id());
+    }
+    for (gaia_id_t id : index_ids)
+    {
+        // Unlink the index.
+        table_record.gaia_indexes().remove(id);
+        // Remove the index.
+        gaia_index_t::get(id).delete_row();
+    }
+
     // Unlink the table from its database.
     table_record.database().gaia_tables().remove(table_record);
     // Remove the table.
@@ -847,6 +860,11 @@ gaia_id_t ddl_executor_t::create_table_impl(
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
     {
+        if (field->field_type != field_type_t::data)
+        {
+            continue;
+        }
+
         const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
         gaia_id_t field_id = gaia_field_t::insert_row(
             field->name.c_str(),

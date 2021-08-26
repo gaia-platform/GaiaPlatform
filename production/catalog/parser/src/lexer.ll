@@ -67,10 +67,12 @@ comment ("--".*)
 "IF"           return yy::parser::make_IF(loc);
 "NOT"          return yy::parser::make_NOT(loc);
 "EXISTS"       return yy::parser::make_EXISTS(loc);
+"REFERENCES"   return yy::parser::make_REFERENCES(loc);
 "RELATIONSHIP" return yy::parser::make_RELATIONSHIP(loc);
 "ACTIVE"       return yy::parser::make_ACTIVE(loc);
 "USE"          return yy::parser::make_USE(loc);
 "USING"        return yy::parser::make_USING(loc);
+"WHERE"        return yy::parser::make_WHERE(loc);
 
 "UNIQUE"     return yy::parser::make_UNIQUE(loc);
 "RANGE"      return yy::parser::make_RANGE(loc);
@@ -98,6 +100,7 @@ comment ("--".*)
 ","          return yy::parser::make_COMMA(loc);
 "."          return yy::parser::make_DOT(loc);
 ";"          return yy::parser::make_SEMICOLON(loc);
+"="          return yy::parser::make_EQUAL(loc);
 
 "->"         return yy::parser::make_RARROW(loc);
 
